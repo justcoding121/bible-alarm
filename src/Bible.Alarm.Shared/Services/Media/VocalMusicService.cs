@@ -24,7 +24,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
-    private const string MusicCategoryName = "Music";
+    private const string MusicCategoryCode = "Music";
 
     public async Task<VocalMusic?> GetByLanguageAndCodeAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
@@ -35,11 +35,12 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
 
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Include(x => x.Language)
-                .Where(x => x.Category.CategoryName == MusicCategoryName 
-                    && x.LanguageId != null 
-                    && x.Language!.LanguageCode == languageCode 
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                    && x.LanguageId != null
+                    && x.Language!.LanguageCode == languageCode
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -64,10 +65,11 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
 
             var vocalMusicList = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Include(x => x.Language)
-                .Where(x => x.Category.CategoryName == MusicCategoryName 
-                    && x.LanguageId != null 
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                    && x.LanguageId != null
                     && x.Language!.LanguageCode == languageCode)
                 .ToListAsync(cancellationToken);
 
@@ -107,7 +109,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .AsNoTracking()
                 .Include(x => x.Language)
                 .Include(x => x.Category)
-                .Where(x => x.Category != null && x.Category.CategoryName == MusicCategoryName && x.Language != null);
+                .Where(x => x.Category != null && x.Category.CategoryCode == MusicCategoryCode && x.Language != null);
 
             // For vocal music, we need to check if the publication has LanguageId in BiblePublications
             // But since we're querying PublicationLanguages, we can't directly filter by LanguageId
@@ -126,10 +128,11 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             {
                 var hasVocalMusic = await dbContext.BiblePublications
                     .AsNoTracking()
-                    .Include(x => x.Category)
+                    .Include(x => x.BiblePublicationCategories)
+                    .ThenInclude(x => x.Category)
                     .Include(x => x.Language)
-                    .AnyAsync(x => x.Category.CategoryName == MusicCategoryName 
-                        && x.LanguageId != null 
+                    .AnyAsync(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                        && x.LanguageId != null
                         && x.Language!.LanguageCode == lang.LanguageCode, cancellationToken);
                 
                 if (hasVocalMusic)
@@ -139,7 +142,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             }
 
             logger.Information("VocalMusicService.GetDistinctLanguagesAsync: Found {PublicationLanguageCount} PublicationLanguage entries across {LanguageCount} distinct vocal music languages: {LanguageCodes}",
-                publicationLanguagesCount, vocalLanguages.Count, string.Join(", ", vocalLanguages.Select(l => $"{l.LanguageCode}:{l.Name}")));
+                publicationLanguagesCount, vocalLanguages.Count, string.Join(", ", vocalLanguages.Select(l => l.LanguageCode)));
 
             return vocalLanguages.ToDictionary(x => x.LanguageCode, x => x);
         }
@@ -159,12 +162,13 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
 
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Include(x => x.Language)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.Category.CategoryName == MusicCategoryName 
-                    && x.LanguageId != null 
-                    && x.Language!.LanguageCode == languageCode 
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                    && x.LanguageId != null
+                    && x.Language!.LanguageCode == languageCode
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 

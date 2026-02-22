@@ -15,7 +15,7 @@ public static class PlaybackReducer
             // Next/Previous are always enabled during playback sessions.
             canPlayNext: true,
             canPlayPrevious: true,
-            status: state.Status,
+            status: PlayStatus.Loading,
             title: state.Title,
             artist: state.Artist,
             album: state.Album,

@@ -3,9 +3,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class LanguageListViewItemModel(Language language) : ObservableObject, IComparable
+/// <param name="language">Language entity (Code and Direction come from here).</param>
+/// <param name="displayName">Localized name for display (e.g. from LanguageNamesByLanguage for "E").</param>
+public sealed class LanguageListViewItemModel(Language language, string displayName) : ObservableObject, IComparable
 {
-    public string Name { get; set; } = language.Name;
+    public string Name { get; set; } = displayName;
     public string Code { get; set; } = language.LanguageCode;
     public string Direction { get; set; } = language.Direction;
 

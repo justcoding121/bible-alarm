@@ -42,8 +42,8 @@ public sealed class CategoryService(IServiceScopeFactory scopeFactory, ILogger l
 
             var categories = await dbContext.Categories
                 .AsNoTracking()
-                .OrderBy(c => c.CategoryName == "Bible" ? 0 : 1)
-                .ThenBy(c => c.CategoryName)
+                .OrderBy(c => c.CategoryCode == "Bible" ? 0 : 1)
+                .ThenBy(c => c.CategoryCode)
                 .ToListAsync(cancellationToken);
 
             logger.Debug("CategoryService.GetAllCategoriesAsync: Found {CategoryCount} categories", categories.Count);

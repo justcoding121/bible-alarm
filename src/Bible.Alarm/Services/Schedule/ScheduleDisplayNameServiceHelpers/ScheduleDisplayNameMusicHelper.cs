@@ -17,12 +17,14 @@ public sealed class ScheduleDisplayNameMusicHelper
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
+    private readonly ILanguageNameService languageNameService;
     private readonly IServiceProvider serviceProvider;
 
-    public ScheduleDisplayNameMusicHelper(ILogger logger, IMediaService mediaService, IServiceProvider serviceProvider)
+    public ScheduleDisplayNameMusicHelper(ILogger logger, IMediaService mediaService, ILanguageNameService languageNameService, IServiceProvider serviceProvider)
     {
         this.logger = logger;
         this.mediaService = mediaService;
+        this.languageNameService = languageNameService;
         this.serviceProvider = serviceProvider;
     }
 
@@ -37,7 +39,7 @@ public sealed class ScheduleDisplayNameMusicHelper
                 var languagesDict = await mediaService.GetVocalMusicLanguages();
                 if (languagesDict.TryGetValue(music.LanguageCode, out var language))
                 {
-                    scheduleStateItem.MusicLanguageName = language.Name;
+                    scheduleStateItem.MusicLanguageName = languageNameService.GetNameCached(language.Id) ?? music.LanguageCode;
                     scheduleStateItem.MusicLanguageDirection = language.Direction;
                 }
                 else
@@ -59,7 +61,7 @@ public sealed class ScheduleDisplayNameMusicHelper
                 var languagesDict = await mediaService.GetVocalMusicLanguages();
                 if (languagesDict.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
                 {
-                    scheduleStateItem.MusicLanguageName = englishLanguage.Name;
+                    scheduleStateItem.MusicLanguageName = languageNameService.GetNameCached(englishLanguage.Id) ?? "English";
                     scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
                 }
                 else
@@ -123,7 +125,7 @@ public sealed class ScheduleDisplayNameMusicHelper
                     var sectionCodeLower = music.SectionCode.ToLowerInvariant();
                     var section = await dbContext.BiblePublicationSections
                         .AsNoTracking()
-                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode && x.BiblePublication.Category!.CategoryName == "Music" && x.BiblePublication.LanguageId == null && x.SectionCode != null && x.SectionCode.ToLower() == sectionCodeLower)
+                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode && x.BiblePublication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") && x.BiblePublication.LanguageId == null && x.SectionCode != null && x.SectionCode.ToLower() == sectionCodeLower)
                         .Select(x => x.Name)
                         .FirstOrDefaultAsync();
                     if (!string.IsNullOrWhiteSpace(section))

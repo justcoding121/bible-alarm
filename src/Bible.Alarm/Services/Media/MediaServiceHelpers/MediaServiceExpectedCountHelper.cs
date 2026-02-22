@@ -54,7 +54,7 @@ public static class MediaServiceExpectedCountHelper
 
         var query = db.PublicationLanguages
             .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
+            .Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
 
         if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
         {

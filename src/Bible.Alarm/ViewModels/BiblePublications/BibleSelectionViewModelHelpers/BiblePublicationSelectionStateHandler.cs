@@ -370,13 +370,14 @@ public sealed class BiblePublicationSelectionStateHandler
                 // Try to get category from BiblePublications first (for downloaded publications)
                 var publication = await db.BiblePublications
                     .AsNoTracking()
-                    .Include(bp => bp.Category)
+                    .Include(bp => bp.BiblePublicationCategories)
+                    .ThenInclude(bpc => bpc.Category)
                     .Where(bp => bp.PublicationCode == currentSchedule.BiblePublicationCode)
                     .FirstOrDefaultAsync();
                 
-                if (publication?.Category != null)
+                if (publication?.PrimaryCategory != null)
                 {
-                    newCategoryName = publication.Category.CategoryName;
+                    newCategoryName = publication.PrimaryCategory.CategoryCode;
                     Log.Debug("RefreshFromStateAsync: Got category={CategoryName} from BiblePublications for publication={PublicationCode}",
                         newCategoryName, currentSchedule.BiblePublicationCode);
                 }
@@ -391,7 +392,7 @@ public sealed class BiblePublicationSelectionStateHandler
                     
                     if (publicationLanguage?.Category != null)
                     {
-                        newCategoryName = publicationLanguage.Category.CategoryName;
+                        newCategoryName = publicationLanguage.Category.CategoryCode;
                         Log.Debug("RefreshFromStateAsync: Got category={CategoryName} from PublicationLanguages for publication={PublicationCode}",
                             newCategoryName, currentSchedule.BiblePublicationCode);
                     }

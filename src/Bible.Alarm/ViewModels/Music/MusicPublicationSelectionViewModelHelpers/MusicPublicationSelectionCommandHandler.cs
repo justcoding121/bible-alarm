@@ -7,6 +7,7 @@ using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
@@ -24,7 +25,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
     INavigationService navigationService,
     IState<ApplicationState> state,
     IDispatcher dispatcher,
-    IMediaService mediaService)
+    IMediaService mediaService,
+    ILanguageNameService languageNameService)
 {
     public async Task HandleTrackSelectionAsync(
         PublicationListViewItemModel songPublication,
@@ -187,7 +189,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 var languages = await mediaService.GetVocalMusicLanguages();
                 if (languages.TryGetValue(languageCode, out var lang))
                 {
-                    resolvedLanguageName = lang.Name;
+                    resolvedLanguageName = languageNameService.GetNameCached(lang.Id) ?? languageCode;
                     resolvedLanguageDirection = lang.Direction;
                 }
             }
@@ -350,7 +352,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
         string? languageNameOverride = null,
         string? languageDirectionOverride = null)
     {
-        var languageName = currentLanguage?.Name ?? languageNameOverride;
+        var languageName = currentLanguage != null ? currentLanguage.Name : languageNameOverride;
         var languageDirection = currentLanguage?.Direction ?? languageDirectionOverride;
         return new MusicStateItem
         {

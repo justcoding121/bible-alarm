@@ -41,6 +41,8 @@ internal sealed class VideoLocalizedNameFetcher
             "vodmoviesanimated" => "VODMoviesAnimated",
             "vodmoviesextras" => "VODMoviesExtras",
             "vodlffvideosad" => "VODLFFVideosAD",
+            "seriesdigfortreasures" => "SeriesDigForTreasures",
+            "seriesbjflessons" => "SeriesBJFLessons",
             _ => null
         };
 

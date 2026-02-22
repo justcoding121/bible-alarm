@@ -107,15 +107,19 @@ public sealed class BiblePublicationSelectionCommandHandler
                 {
                     Id = 0,
                     LanguageCode = string.Empty,
-                    Name = string.Empty
-                });
+                    Direction = AppConstants.Media.TextDirectionLeftToRight
+                }, string.Empty);
             }
             else
             {
+                var languageNameService = ServiceProviderManager.GetService<ILanguageNameService>();
                 var languages = await mediaService.GetBiblePublicationLanguages();
                 if (languages.TryGetValue(languageCode, out var language))
                 {
-                    currentLanguage = new LanguageListViewItemModel(language);
+                    var name = languageNameService != null
+                        ? await languageNameService.GetNameAsync(language.Id, AppConstants.Media.DefaultLanguageCode) ?? languageCode
+                        : languageCode;
+                    currentLanguage = new LanguageListViewItemModel(language, name);
                 }
                 else
                 {
@@ -124,8 +128,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                     {
                         Id = 0,
                         LanguageCode = languageCode,
-                        Name = languageCode
-                    });
+                        Direction = AppConstants.Media.TextDirectionLeftToRight
+                    }, languageCode);
                 }
             }
 

@@ -84,7 +84,8 @@ internal sealed class LanguageContentFirstSectionFetcher
             // Get English publication as template
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
-                .Include(bp => bp.Category)
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bp => bp.Category)
                 .Include(bp => bp.Sections)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(

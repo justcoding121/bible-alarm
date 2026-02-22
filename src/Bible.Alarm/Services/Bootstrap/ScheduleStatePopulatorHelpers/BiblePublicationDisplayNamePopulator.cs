@@ -17,7 +17,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
         LookupDataLoader.LookupData lookupData,
-        Dictionary<string, Language>? languagesDict)
+        Dictionary<string, Language>? languagesDict,
+        Dictionary<string, string>? languageNamesByCode = null)
     {
         if (schedule.BiblePublicationSchedule == null)
         {
@@ -25,7 +26,7 @@ internal sealed class BiblePublicationDisplayNamePopulator
         }
 
         var biblePublication = schedule.BiblePublicationSchedule;
-        SetLanguageName(schedule, scheduleStateItem, biblePublication, languagesDict, lookupData);
+        SetLanguageName(schedule, scheduleStateItem, biblePublication, languagesDict, lookupData, languageNamesByCode);
         SetPublicationName(schedule, scheduleStateItem, biblePublication, lookupData);
         SetSectionName(schedule, scheduleStateItem, biblePublication, lookupData);
         SetTrackTitle(schedule, scheduleStateItem, biblePublication, lookupData);
@@ -36,11 +37,21 @@ internal sealed class BiblePublicationDisplayNamePopulator
         ScheduleStateItem scheduleStateItem,
         BiblePublicationSchedule biblePublication,
         Dictionary<string, Language>? languagesDict,
-        LookupDataLoader.LookupData lookupData)
+        LookupDataLoader.LookupData lookupData,
+        Dictionary<string, string>? languageNamesByCode = null)
     {
         if (languagesDict == null)
         {
             return;
+        }
+
+        string GetDisplayName(string code)
+        {
+            if (languageNamesByCode != null && languageNamesByCode.TryGetValue(code, out var name))
+            {
+                return name;
+            }
+            return code;
         }
 
         // No-language publications (e.g. "iam") store LanguageCode "E" as the effective code for playback.
@@ -51,10 +62,10 @@ internal sealed class BiblePublicationDisplayNamePopulator
             var effectiveCode = biblePublication.LanguageCode;
             if (!string.IsNullOrWhiteSpace(effectiveCode) && languagesDict.TryGetValue(effectiveCode, out var effectiveLanguage))
             {
-                scheduleStateItem.BiblePublicationLanguageName = effectiveLanguage.Name;
+                scheduleStateItem.BiblePublicationLanguageName = GetDisplayName(effectiveCode);
                 scheduleStateItem.BiblePublicationLanguageDirection = effectiveLanguage.Direction;
                 Log.Logger.Debug("Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' for no-language publication {PublicationCode} in schedule {ScheduleId} (effective LanguageCode: {LanguageCode})",
-                    effectiveLanguage.Name, biblePublication.PublicationCode, schedule.Id, effectiveCode);
+                    scheduleStateItem.BiblePublicationLanguageName, biblePublication.PublicationCode, schedule.Id, effectiveCode);
             }
             return;
         }
@@ -67,10 +78,10 @@ internal sealed class BiblePublicationDisplayNamePopulator
 
         if (languagesDict.TryGetValue(languageCode, out var language))
         {
-            scheduleStateItem.BiblePublicationLanguageName = language.Name;
+            scheduleStateItem.BiblePublicationLanguageName = GetDisplayName(languageCode);
             scheduleStateItem.BiblePublicationLanguageDirection = language.Direction;
             Log.Logger.Debug("Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' and Direction '{Direction}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                language.Name, language.Direction, schedule.Id, languageCode);
+                scheduleStateItem.BiblePublicationLanguageName, language.Direction, schedule.Id, languageCode);
         }
         else
         {
@@ -108,7 +119,7 @@ internal sealed class BiblePublicationDisplayNamePopulator
                         noLangMeta.Name, schedule.Id, biblePublication.PublicationCode);
                 }
 
-                if (!string.IsNullOrWhiteSpace(noLangMeta.CategoryName))
+                if (!string.IsNullOrWhiteSpace(noLangMeta.CategoryName)) // CategoryName holds CategoryCode for display/filter
                 {
                     scheduleStateItem.BiblePublicationCategoryId = noLangMeta.CategoryId;
                     scheduleStateItem.BiblePublicationCategoryName = noLangMeta.CategoryName;
@@ -134,22 +145,22 @@ internal sealed class BiblePublicationDisplayNamePopulator
             }
 
             // Populate category from publication
-            if (publication.Category != null)
+            if (publication.PrimaryCategory != null)
             {
-                scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
-                scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                scheduleStateItem.BiblePublicationCategoryId = publication.PrimaryCategoryId;
+                scheduleStateItem.BiblePublicationCategoryName = publication.PrimaryCategory.CategoryCode;
                 Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    publication.CategoryId, publication.Category.CategoryName, schedule.Id, biblePublication.PublicationCode);
+                    publication.PrimaryCategoryId, publication.PrimaryCategory.CategoryCode, schedule.Id, biblePublication.PublicationCode);
             }
             else
             {
-                // Fallback: derive category name from publication code
-                var categoryName = JwSourceHelper.GetCategoryName(biblePublication.PublicationCode);
-                if (!string.IsNullOrWhiteSpace(categoryName))
+                // Fallback: derive category code from publication code
+                var categoryCode = JwSourceHelper.GetCategoryCode(biblePublication.PublicationCode);
+                if (!string.IsNullOrWhiteSpace(categoryCode))
                 {
-                    scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                    scheduleStateItem.BiblePublicationCategoryName = categoryCode;
                     Log.Logger.Debug("Set BiblePublicationCategoryName='{CategoryName}' from publication code for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                        categoryName, schedule.Id, biblePublication.PublicationCode);
+                        categoryCode, schedule.Id, biblePublication.PublicationCode);
                 }
             }
         }
@@ -270,13 +281,13 @@ internal sealed class BiblePublicationDisplayNamePopulator
                 }
 
                 // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
-                if (publication.Category != null && 
+                if (publication.PrimaryCategory != null && 
                     (scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
                 {
-                    scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
-                    scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                    scheduleStateItem.BiblePublicationCategoryId = publication.PrimaryCategoryId;
+                    scheduleStateItem.BiblePublicationCategoryName = publication.PrimaryCategory?.CategoryCode ?? "";
                     Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for non-sectioned publication in schedule {ScheduleId}",
-                        publication.CategoryId, publication.Category.CategoryName, schedule.Id);
+                        publication.PrimaryCategoryId, publication.PrimaryCategory?.CategoryCode ?? "", schedule.Id);
                 }
             }
         }

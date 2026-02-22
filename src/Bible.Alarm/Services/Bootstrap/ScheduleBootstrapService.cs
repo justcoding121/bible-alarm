@@ -42,6 +42,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
     private readonly IVocalMusicService? vocalMusicService;
     private readonly ScheduleStatePopulator statePopulator;
     private readonly IServiceScopeFactory scopeFactory;
+    private readonly ILanguageNameService? languageNameService;
 
     public ScheduleBootstrapService(
         IDatabaseSeedService databaseSeedService,
@@ -54,7 +55,8 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         IMediaService? mediaService,
         IMelodyMusicService? melodyMusicService,
         IVocalMusicService? vocalMusicService,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        ILanguageNameService? languageNameService = null)
     {
         this.databaseSeedService = databaseSeedService;
         this.scheduleMigrationService = scheduleMigrationService;
@@ -67,6 +69,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         this.melodyMusicService = melodyMusicService;
         this.vocalMusicService = vocalMusicService;
         this.scopeFactory = scopeFactory;
+        this.languageNameService = languageNameService;
         this.statePopulator = new ScheduleStatePopulator(
             BiblePublicationService,
             biblePublicationSectionService,
@@ -145,7 +148,8 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                 Log.Logger.Debug("[BOOTSTRAP] Schedule was seeded during bootstrap");
             }
 
-            var schedulesList = await LoadSchedulesListAsync(languagesDict);
+            var languageNamesByCode = await LoadLanguageNamesForDisplayAsync(languagesDict);
+            var schedulesList = await LoadSchedulesListAsync(languagesDict, languageNamesByCode);
             var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
             foreach (var item in schedulesList)
             {
@@ -216,7 +220,35 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         }
     }
 
-    public async Task<List<ScheduleStateItem>> LoadSchedulesListAsync(Dictionary<string, Language>? languagesDict)
+    private async Task<Dictionary<string, string>?> LoadLanguageNamesForDisplayAsync(Dictionary<string, Language>? languagesDict)
+    {
+        if (languageNameService == null || languagesDict == null || languagesDict.Count == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            var ids = languagesDict.Values.Select(l => l.Id).ToList();
+            var names = await languageNameService.GetNamesAsync(ids, Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
+            var codeToName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in languagesDict)
+            {
+                if (names.TryGetValue(kvp.Value.Id, out var name))
+                {
+                    codeToName[kvp.Key] = name;
+                }
+            }
+            return codeToName;
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Error loading language names for display");
+            return null;
+        }
+    }
+
+    public async Task<List<ScheduleStateItem>> LoadSchedulesListAsync(Dictionary<string, Language>? languagesDict, Dictionary<string, string>? languageNamesByCode = null)
     {
 #if DEBUG
         var loadStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -230,7 +262,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
 #if DEBUG
         var populateStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
-        var scheduleStateItems = await statePopulator.PopulateAsync(alarmSchedules, languagesDict);
+        var scheduleStateItems = await statePopulator.PopulateAsync(alarmSchedules, languagesDict, languageNamesByCode);
 #if DEBUG
         var populateElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - populateStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         Log.Logger.Information("[BOOTSTRAP] Populated {Count} schedule state items in {ElapsedMs:F2}ms", scheduleStateItems.Count, populateElapsed);

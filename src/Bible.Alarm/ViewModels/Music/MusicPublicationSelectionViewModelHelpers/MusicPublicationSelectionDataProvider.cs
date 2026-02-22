@@ -20,6 +20,7 @@ namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers
 /// </summary>
 public sealed class MusicPublicationSelectionDataProvider(
     IMediaService mediaService,
+    ILanguageNameService languageNameService,
     IBiblePublicationService? biblePublicationService = null,
     ILanguageContentService? languageContentService = null,
     IServiceScopeFactory? scopeFactory = null)
@@ -45,15 +46,18 @@ public sealed class MusicPublicationSelectionDataProvider(
             var languagesFromDb = await mediaService.GetBiblePublicationLanguages("Music");
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
+            var languageIds = languagesFromDb.Values.Select(l => l.Id).ToList();
+            var names = await languageNameService.GetNamesAsync(languageIds, Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
+
             var languageVMs = new List<LanguageListViewItemModel>();
             LanguageListViewItemModel? selectedLanguage = null;
 
-            foreach (var language in languagesFromDb.Values
-                         .Where(x => trimmedSearchTerm == null
-                                     || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                         .OrderBy(x => x.Name))
+            foreach (var language in languagesFromDb.Values)
             {
-                var languageVm = new LanguageListViewItemModel(language);
+                var name = names.GetValueOrDefault(language.Id) ?? language.LanguageCode;
+                if (trimmedSearchTerm != null && !name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var languageVm = new LanguageListViewItemModel(language, name);
                 languageVMs.Add(languageVm);
 
                 if (current != null && 
@@ -65,6 +69,8 @@ public sealed class MusicPublicationSelectionDataProvider(
                         languageVm.Code, languageVm.Name);
                 }
             }
+
+            languageVMs = languageVMs.OrderBy(x => x.Name).ToList();
 
             // Add items in small batches with frequent yields for smooth spinner animation
             const int batchSize = 15;

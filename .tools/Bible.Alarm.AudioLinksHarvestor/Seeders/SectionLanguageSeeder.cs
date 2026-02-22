@@ -152,18 +152,18 @@ internal sealed class SectionLanguageSeeder
                 
                 // Determine harvest type and category based on publication code
                 var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
-                var categoryName = JwSourceHelper.GetCategoryName(normalizedPublicationCode);
+                var categoryCode = JwSourceHelper.GetCategoryCode(normalizedPublicationCode);
                 
-                if (string.IsNullOrEmpty(categoryName))
+                if (string.IsNullOrEmpty(categoryCode))
                 {
                     logger.Warning("Category not found for publication code {PublicationCode}, defaulting to 'Bible'", publicationCode);
-                    categoryName = "Bible";
+                    categoryCode = "Bible";
                 }
 
-                var category = await db.Categories.FirstOrDefaultAsync(c => c.CategoryName == categoryName);
+                var category = await db.Categories.FirstOrDefaultAsync(c => c.CategoryCode == categoryCode);
                 if (category == null)
                 {
-                    logger.Warning("Category '{CategoryName}' not found in database for publication {PublicationCode}", categoryName, publicationCode);
+                    logger.Warning("Category '{CategoryCode}' not found in database for publication {PublicationCode}", categoryCode, publicationCode);
                     // Can't create SectionLanguage without PublicationLanguage
                     return;
                 }
@@ -212,7 +212,8 @@ internal sealed class SectionLanguageSeeder
         // Get all publications without language (LanguageId == null) with their sections - data-driven, not hard-coded
         var publicationsWithoutLanguage = await db.BiblePublications
             .AsNoTracking()
-            .Include(bp => bp.Category)
+            .Include(bp => bp.BiblePublicationCategories)
+            .ThenInclude(bpc => bpc.Category)
             .Include(bp => bp.Sections)
             .Where(bp => bp.LanguageId == null)
             .ToListAsync();
@@ -227,7 +228,7 @@ internal sealed class SectionLanguageSeeder
 
         foreach (var publication in publicationsWithoutLanguage)
         {
-            if (publication.Category == null)
+            if (publication.PrimaryCategory == null)
             {
                 logger.Warning("Category not found for publication {PublicationCode} without language, skipping", publication.PublicationCode);
                 continue;
@@ -263,29 +264,28 @@ internal sealed class SectionLanguageSeeder
                 if (publicationLanguage == null)
                 {
                     logger.Warning("PublicationLanguage with LanguageId == null not found for {PublicationCode}, creating it", publicationCodeForDb);
-                    
-                    // Query Category from database to ensure it's tracked
-                    var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == publication.Category.Id);
+
+                    var categoryId = publication.PrimaryCategoryId;
+                    var category = await db.Categories.FindAsync(categoryId);
                     if (category == null)
                     {
-                        logger.Warning("Category with Id {CategoryId} not found in database for publication {PublicationCode}, skipping", publication.Category.Id, publicationCodeForDb);
+                        logger.Warning("Category Id {CategoryId} not found for publication {PublicationCode}, skipping", categoryId, publicationCodeForDb);
                         continue;
                     }
-                    
-                    // Determine harvest type based on publication code
+
                     var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
 
                     publicationLanguage = new PublicationLanguage
                     {
                         PublicationCode = publicationCodeForDb,
-                        LanguageId = null, // No language FK for publications without language
+                        LanguageId = null,
                         Language = null,
                         HarvestType = harvestType,
                         Category = category,
                         CategoryId = category.Id
                     };
                     db.PublicationLanguages.Add(publicationLanguage);
-                    await db.SaveChangesAsync(); // Save to get the ID
+                    await db.SaveChangesAsync();
                 }
             }
 

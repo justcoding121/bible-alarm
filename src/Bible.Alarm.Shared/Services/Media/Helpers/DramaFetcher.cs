@@ -81,7 +81,7 @@ internal sealed class DramaFetcher
             return false;
         }
 
-        var category = englishPublication.Category;
+        var category = englishPublication.PrimaryCategory;
         if (category == null)
         {
             logger.Warning("Category not found for English publication {PublicationCode}", normalizedPublicationCode);

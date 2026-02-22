@@ -36,9 +36,9 @@ public static class MediaServiceVocalMusicHelper
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             var pubsWithoutLang = await db.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
-                .Where(x => x.Category != null &&
-                           x.Category.CategoryName == "Music" &&
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
                            x.LanguageId == null)
                 .ToListAsync(cancellationToken);
 
@@ -78,7 +78,7 @@ public static class MediaServiceVocalMusicHelper
                 .Include(pl => pl.Category)
                 .Include(pl => pl.Language)
                 .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode &&
-                             pl.Category != null && pl.Category.CategoryName == "Music" &&
+                             pl.Category != null && pl.Category.CategoryCode == "Music" &&
                              missingPublicationCodes.Contains(pl.PublicationCode))
                 .ToListAsync(cancellationToken);
 
@@ -91,8 +91,7 @@ public static class MediaServiceVocalMusicHelper
                     Id = 0,
                     PublicationCode = plInfo.PublicationCode,
                     Name = plInfo.PublicationCode,
-                    CategoryId = plInfo.CategoryId,
-                    Category = plInfo.Category,
+                    BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = plInfo.CategoryId, Category = plInfo.Category } },
                     LanguageId = plInfo.LanguageId,
                     Language = plInfo.Language,
                     Sections = new List<BiblePublicationSection>(),

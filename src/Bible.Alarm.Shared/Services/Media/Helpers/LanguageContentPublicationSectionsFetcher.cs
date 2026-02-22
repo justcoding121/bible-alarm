@@ -92,7 +92,8 @@ internal sealed class LanguageContentPublicationSectionsFetcher
             // Verify English publication exists (needed as template for ad-hoc fetching)
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
-                .Include(bp => bp.Category)
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bp => bp.Category)
                 .Include(bp => bp.Sections)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(

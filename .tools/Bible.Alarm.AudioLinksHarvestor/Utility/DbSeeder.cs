@@ -194,31 +194,28 @@ internal class DbSeeder : IDataPersister
             .ToListAsync();
     }
 
-    private async Task<Category> GetCategory(MediaDbContext db, string categoryName)
+    private async Task<Category> GetCategory(MediaDbContext db, string categoryCode)
     {
-        return await db.Categories.FirstAsync(x => x.CategoryName == categoryName);
+        return await db.Categories.FirstAsync(x => x.CategoryCode == categoryCode);
     }
 
     private async Task<BiblePublication> CreateBiblePublication(
         MediaDbContext db,
-        Publication publication, 
+        Publication publication,
         Language? newLanguage,
-        int categoryId,
+        Category category,
         string? languageCode,
         bool isVideo = false)
     {
-        // Normalize code to lowercase for consistency
         var normalizedCode = publication.Code.ToLowerInvariant();
-        
         var biblePublication = new BiblePublication
         {
             Name = publication.Name,
             PublicationCode = normalizedCode,
-            Language = newLanguage, // Optional - can be null
-            CategoryId = categoryId,
+            Language = newLanguage,
+            BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { CategoryId = category.Id, Category = category } },
             IsVideo = isVideo
         };
-
         return biblePublication;
     }
 

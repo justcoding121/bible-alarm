@@ -1,5 +1,6 @@
 #nullable enable annotations
 
+using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
 using Bible.Alarm.Shared.Constants;
@@ -50,13 +51,14 @@ internal static class MediaServiceBiblePublicationList
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             var query = db.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Where(x => x.LanguageId == null);
 
-            // Filter by category if provided
+            // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
-                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+                query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
             }
 
             var pubsWithoutLang = await query.ToListAsync(cancellationToken);
@@ -115,7 +117,7 @@ internal static class MediaServiceBiblePublicationList
                 .Include(pl => pl.Category)
                 .Include(pl => pl.Language)
                 .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
-                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryName == categoryName))
+                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
                 .ToListAsync(cancellationToken);
 
             // Also get PublicationLanguages entries with LanguageId == null (publications without language)
@@ -124,7 +126,7 @@ internal static class MediaServiceBiblePublicationList
                 .AsNoTracking()
                 .Include(pl => pl.Category)
                 .Where(pl => pl.LanguageId == null)
-                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryName == categoryName))
+                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
                 .ToListAsync(cancellationToken);
 
             // Group by normalized publication code to handle duplicates (case-insensitive comparison, preserve case)
@@ -132,7 +134,7 @@ internal static class MediaServiceBiblePublicationList
 
             void TryAddPlaceholder(PublicationLanguage plInfo, string codeForKey)
             {
-                if (plInfo.Category == null || !missingPublicationCodes.Contains(codeForKey, StringComparer.OrdinalIgnoreCase) || seenCodes.Contains(codeForKey))
+                if (plInfo.Category == null || !missingPublicationCodes.Any(c => string.Equals(c, codeForKey, StringComparison.OrdinalIgnoreCase)) || seenCodes.Contains(codeForKey))
                 {
                     return;
                 }
@@ -143,8 +145,7 @@ internal static class MediaServiceBiblePublicationList
                     Id = 0,
                     PublicationCode = codeForKey,
                     Name = codeForKey,
-                    CategoryId = plInfo.CategoryId,
-                    Category = plInfo.Category,
+                    BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = plInfo.CategoryId, Category = plInfo.Category } },
                     LanguageId = plInfo.LanguageId,
                     Language = plInfo.Language,
                     Sections = new List<BiblePublicationSection>(),
@@ -190,7 +191,7 @@ internal static class MediaServiceBiblePublicationList
             .AsNoTracking()
             .Include(pl => pl.Category)
             .Where(pl => pl.LanguageId == null)
-            .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryName == categoryName))
+            .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
             .ToListAsync(cancellationToken);
 
         foreach (var plInfo in publicationLanguagesWithoutLanguageForPlaceholders)
@@ -213,8 +214,7 @@ internal static class MediaServiceBiblePublicationList
                     Id = 0, // Not saved yet
                     PublicationCode = codeForKey,
                     Name = codeForKey, // Placeholder name - will be updated when downloaded
-                    CategoryId = plInfo.CategoryId,
-                    Category = plInfo.Category,
+                    BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = plInfo.CategoryId, Category = plInfo.Category } },
                     LanguageId = null, // No language for these publications
                     Language = null,
                     Sections = new List<BiblePublicationSection>(),

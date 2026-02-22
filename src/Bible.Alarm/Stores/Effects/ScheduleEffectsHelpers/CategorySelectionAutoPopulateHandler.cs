@@ -32,6 +32,7 @@ public sealed class CategorySelectionAutoPopulateHandler
     private readonly IBiblePublicationService biblePublicationService;
     private readonly IMediaService mediaService;
     private readonly ILanguageContentService languageContentService;
+    private readonly ILanguageNameService languageNameService;
     private readonly BiblePublicationSelectionItemSelector itemSelector;
     private readonly IState<ApplicationState> state;
     private readonly IServiceScopeFactory scopeFactory;
@@ -41,6 +42,7 @@ public sealed class CategorySelectionAutoPopulateHandler
         IBiblePublicationService biblePublicationService,
         IMediaService mediaService,
         ILanguageContentService languageContentService,
+        ILanguageNameService languageNameService,
         BiblePublicationSelectionItemSelector itemSelector,
         IState<ApplicationState> state,
         IServiceScopeFactory scopeFactory,
@@ -49,6 +51,7 @@ public sealed class CategorySelectionAutoPopulateHandler
         this.biblePublicationService = biblePublicationService;
         this.mediaService = mediaService;
         this.languageContentService = languageContentService;
+        this.languageNameService = languageNameService;
         this.itemSelector = itemSelector;
         this.state = state;
         this.scopeFactory = scopeFactory;
@@ -150,7 +153,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 // Filter by category if provided
                 if (!string.IsNullOrWhiteSpace(action.CategoryName))
                 {
-                    query = query.Where(pl => pl.Category != null && pl.Category.CategoryName == action.CategoryName);
+                    query = query.Where(pl => pl.Category != null && pl.Category.CategoryCode == action.CategoryName);
                 }
                 
                 // Get publications, then sort by priority (nwt first, then bi12, then others)
@@ -237,8 +240,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 {
                     var pubWithoutLanguage = await db.BiblePublications
                         .AsNoTracking()
-                        .Where(bp => bp.Category != null && 
-                                    bp.Category.CategoryName == action.CategoryName &&
+                        .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == action.CategoryName) &&
                                     bp.LanguageId == null)
                         .OrderBy(bp => bp.Id)
                         .FirstOrDefaultAsync();
@@ -290,7 +292,9 @@ public sealed class CategorySelectionAutoPopulateHandler
                     return;
                 }
 
-                var languageModel = new LanguageListViewItemModel(selectedLanguage);
+                var languageName = await languageNameService.GetNameAsync(selectedLanguage.Id, AppConstants.Media.DefaultLanguageCode)
+                    ?? selectedLanguage.LanguageCode;
+                var languageModel = new LanguageListViewItemModel(selectedLanguage, languageName);
                 // GetPublicationSectionAndTrackForLanguageAsync reads from DB and resolves names (no fetch, no progress)
                 // Pass action.CategoryName so the method filters by the new category (state hasn't been updated yet).
                 var (resultPublicationCode, resultSectionCode, resultTrackCode, resultSectionName, resultPublicationName, resultTrackTitle) =
@@ -345,7 +349,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             else if (selectedLanguage != null)
             {
                 updatedSchedule.BiblePublicationLanguageCode = selectedLanguage.LanguageCode;
-                updatedSchedule.BiblePublicationLanguageName = selectedLanguage.Name;
+                updatedSchedule.BiblePublicationLanguageName = languageNameService.GetNameCached(selectedLanguage.Id) ?? selectedLanguage.LanguageCode;
                 updatedSchedule.BiblePublicationLanguageDirection = selectedLanguage.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
             }
             

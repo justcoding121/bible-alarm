@@ -56,7 +56,7 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
                 .Include(pl => pl.Language)
                 .Include(pl => pl.Category)
                 .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
-                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryName == categoryName))
+                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
                 .Select(pl => pl.PublicationCode)
                 .Distinct()
                 .ToListAsync(cancellationToken);

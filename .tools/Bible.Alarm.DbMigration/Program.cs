@@ -476,8 +476,8 @@ extractZip:
             .AsNoTracking()
             .Include(x => x.Language)
             .Include(x => x.Category)
-            .Where(x => x.Category != null && x.Category.CategoryName == "Bible" && x.LanguageId != null && x.Language != null)
-            .Select(x => x.Language!.Name)
+            .Where(x => x.Category != null && x.Category.CategoryCode == "Bible" && x.LanguageId != null && x.Language != null)
+            .Select(x => x.Language!.LanguageCode)
             .Distinct()
             .OrderBy(x => x)
             .ToListAsync();

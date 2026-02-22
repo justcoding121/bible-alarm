@@ -376,7 +376,7 @@ internal sealed class FlatPublicationFetcher
             }
         }
 
-        var category = englishPublication.Category;
+        var category = englishPublication.PrimaryCategory;
         if (category == null)
         {
             logger.Warning("Category not found for English publication {PublicationCode}", normalizedPublicationCode);
@@ -428,8 +428,7 @@ internal sealed class FlatPublicationFetcher
             PublicationCode = normalizedPublicationCode,
             Name = publicationName,
             Language = resolvedLanguage,
-            Category = category,
-            CategoryId = category.Id,
+            BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = category.Id, Category = category } },
             LanguageId = resolvedLanguage?.Id,
             IsVideo = isVideo,
             Tracks = tracks,

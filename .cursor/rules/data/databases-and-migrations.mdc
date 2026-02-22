@@ -33,10 +33,16 @@ DbContext:
 
 - `Languages`
   - `LanguageCode` is unique (also enforced by EF)
+  - no `Name` on entity; display names in **LanguageNamesByLanguage** (e.g. DisplayLanguageCode `"E"`)
   - includes text direction (`ltr`/`rtl`)
 
 - `Categories`
+  - **CategoryCode** (e.g. “Bible”, “Music”); display names in **CategoryNamesByLanguage**
   - logical grouping: “Bible”, “Music”, “Dramas”, “Video”
+
+- `BiblePublicationCategories` (junction)
+  - many-to-many between `BiblePublications` and `Categories`; a publication can have multiple categories
+  - use **PrimaryCategory** / **PrimaryCategoryId** (first junction row) when a single category is needed
 
 - `BaseUrls` (+ `UrlParams`)
   - URL construction metadata used to build JW API URLs
@@ -48,7 +54,7 @@ DbContext:
   - **Sections and Publications do NOT store UrlParams** - URLs are built in code using harvest-type logic (see `FlatPublicationFetcher.cs`, `SectionFetcher.cs`)
 
 - `BiblePublications`
-  - `CategoryId` required
+  - categories via **BiblePublicationCategories** only (no `CategoryId`/`Category` on `BiblePublication`)
   - `LanguageId` optional:
     - **null LanguageId** = “no-language” publications (not language-specific), e.g. melody music
 

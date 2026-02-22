@@ -211,7 +211,8 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
 
             publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(bpc => bpc.Category)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
                 .FirstOrDefaultAsync();

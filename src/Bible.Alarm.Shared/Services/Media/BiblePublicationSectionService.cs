@@ -139,7 +139,8 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
             // This is data-driven - works for any publication with LanguageId=null, not just Music
             var sections = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Include(x => x.Sections)
                 .Where(x => x.LanguageId == null
                     && x.PublicationCode == publicationCode)

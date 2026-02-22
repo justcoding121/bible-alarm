@@ -145,7 +145,8 @@ internal sealed class TestModeSeeder
             // Get English publication to determine category/harvester type
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
-                .Include(bp => bp.Category)
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bpc => bpc.Category)
                 .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb &&
                                           bp.Language != null &&
                                           bp.Language.LanguageCode == "E");
@@ -157,7 +158,7 @@ internal sealed class TestModeSeeder
             }
 
             logger.Information("Testing on-demand fetching for publication: {PublicationCode} (Category: {Category}, IsVideo: {IsVideo})",
-                publicationCode, englishPublication.Category?.CategoryName ?? "Unknown", englishPublication.IsVideo);
+                publicationCode, englishPublication.PrimaryCategory?.CategoryCode ?? "Unknown", englishPublication.IsVideo);
 
             foreach (var testLanguageCode in testLanguages)
             {

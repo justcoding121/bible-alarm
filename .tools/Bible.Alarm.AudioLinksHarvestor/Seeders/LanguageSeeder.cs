@@ -48,14 +48,22 @@ internal sealed class LanguageSeeder
             language = new Language
             {
                 LanguageCode = normalizedCode,
-                Name = name ?? normalizedCode, // Use fetched name or code as fallback
                 Direction = direction
             };
             db.Languages.Add(language);
             await db.SaveChangesAsync();
-            
-            logger.Information("Created new language {Code}: Name={Name}, Direction={Direction} from /en/languages API", 
-                normalizedCode, name ?? normalizedCode, direction);
+
+            var displayName = name ?? normalizedCode;
+            db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+            {
+                LanguageId = language.Id,
+                DisplayLanguageCode = "E",
+                Name = displayName
+            });
+            await db.SaveChangesAsync();
+
+            logger.Information("Created new language {Code}: Name={Name}, Direction={Direction} from /en/languages API",
+                normalizedCode, displayName, direction);
         }
         return language;
     }
@@ -331,14 +339,21 @@ internal sealed class LanguageSeeder
                     }
                 }
 
-                // Create and add language
+                // Create and add language (name goes to LanguageNamesByLanguage for "E")
                 var language = new Language
                 {
                     LanguageCode = normalizedCode,
-                    Name = name,
                     Direction = direction
                 };
                 db.Languages.Add(language);
+                await db.SaveChangesAsync();
+
+                db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+                {
+                    LanguageId = language.Id,
+                    DisplayLanguageCode = "E",
+                    Name = name
+                });
                 languagesSeeded++;
             }
 

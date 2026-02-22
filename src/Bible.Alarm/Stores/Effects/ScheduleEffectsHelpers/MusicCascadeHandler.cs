@@ -180,8 +180,7 @@ public sealed class MusicCascadeHandler
         var publication = await db.BiblePublications
             .AsNoTracking()
             .Where(bp => bp.PublicationCode == publicationCode &&
-                         bp.Category != null &&
-                         bp.Category.CategoryName == "Music")
+                         bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music"))
             .FirstOrDefaultAsync();
 
         if (publication == null)
@@ -253,7 +252,7 @@ public sealed class MusicCascadeHandler
                 .Where(pl => pl.Language != null &&
                            pl.Language.LanguageCode == normalizedLanguageCode &&
                            pl.Category != null &&
-                           pl.Category.CategoryName == "Music")
+                           pl.Category.CategoryCode == "Music")
                 .OrderBy(pl => pl.Id)
                 .FirstOrDefaultAsync();
 
@@ -303,8 +302,7 @@ public sealed class MusicCascadeHandler
                 // No languaged publication found for this language - fall back to non-languaged (like "iam")
                 var noLangPublication = await db.BiblePublications
                     .AsNoTracking()
-                    .Where(bp => bp.Category != null &&
-                               bp.Category.CategoryName == "Music" &&
+                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
                                bp.LanguageId == null)
                     .OrderBy(bp => bp.Id)
                     .FirstOrDefaultAsync();
@@ -324,8 +322,7 @@ public sealed class MusicCascadeHandler
             // No language selected - get first non-languaged publication (like "iam")
             var publication = await db.BiblePublications
                 .AsNoTracking()
-                .Where(bp => bp.Category != null &&
-                           bp.Category.CategoryName == "Music" &&
+                .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
                            bp.LanguageId == null)
                 .OrderBy(bp => bp.Id)
                 .FirstOrDefaultAsync();
@@ -405,8 +402,7 @@ public sealed class MusicCascadeHandler
             .AsNoTracking()
             .Include(bp => bp.Sections)
             .Where(bp => bp.PublicationCode == publicationCode &&
-                       bp.Category != null &&
-                       bp.Category.CategoryName == "Music")
+                       bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music"))
             .FirstOrDefaultAsync();
 
         if (publication == null)
@@ -454,8 +450,7 @@ public sealed class MusicCascadeHandler
         var publication = await db.BiblePublications
             .AsNoTracking()
             .Where(bp => bp.PublicationCode == publicationCode &&
-                       bp.Category != null &&
-                       bp.Category.CategoryName == "Music")
+                       bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music"))
             .FirstOrDefaultAsync();
 
         if (publication == null)

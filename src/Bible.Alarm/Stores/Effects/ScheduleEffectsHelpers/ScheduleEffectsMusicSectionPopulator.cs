@@ -68,11 +68,12 @@ public static class ScheduleEffectsMusicSectionPopulator
                 .AsNoTracking()
                 .Include(t => t.Section)
                     .ThenInclude(s => s!.BiblePublication)
-                        .ThenInclude(p => p.Category)
+                        .ThenInclude(p => p.BiblePublicationCategories)
+                        .ThenInclude(bpc => bpc.Category)
                 .Where(t => t.BiblePublicationSectionId != null
                     && t.TrackCode == trackCode
                     && t.Publication.PublicationCode == scheduleStateItem.MusicPublicationCode
-                    && t.Publication.Category.CategoryName == "Music"
+                    && t.Publication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music")
                     && t.Publication.LanguageId == null)
                 .Select(t => new { t.Section!.SectionCode, t.Section.Name })
                 .FirstOrDefaultAsync();

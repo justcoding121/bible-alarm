@@ -159,6 +159,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBiblePublicationSectionService, BiblePublicationSectionService>();
         services.AddSingleton<IBiblePublicationTrackService, BiblePublicationTrackService>();
         services.AddSingleton<ICategoryService, CategoryService>();
+        services.AddSingleton<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService, Bible.Alarm.Shared.Services.Media.LanguageNameService>();
+        services.AddSingleton<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService, Bible.Alarm.Shared.Services.Media.CategoryNameService>();
         services.AddSingleton<IUrlConstructionService>(sp => 
             new UrlConstructionService(sp.GetRequiredService<IServiceScopeFactory>()));
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();

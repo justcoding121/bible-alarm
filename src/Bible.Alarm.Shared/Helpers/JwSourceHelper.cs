@@ -66,7 +66,7 @@ public static class JwSourceHelper
     };
 
     /// <summary>
-    /// Canonical drama publication codes in exact casing for DB and Mediator API.
+    /// Canonical drama and Mediator API publication/category codes in exact casing for DB and Mediator API.
     /// Used to resolve normalized (lowercase) code to the form required by the API and database.
     /// </summary>
     private static readonly string[] CanonicalDramaPublicationCodes =
@@ -77,7 +77,9 @@ public static class JwSourceHelper
         "VODMoviesModernDay",
         "VODMoviesAnimated",
         "VODMoviesExtras",
-        "VODLFFVideosAD" // Enjoy Life Forever!—Videos (Series, Mediator API)
+        "VODLFFVideosAD", // Enjoy Life Forever!—Videos (Series, Mediator API)
+        "SeriesDigForTreasures", // Dig for Treasures in God's Word (Series, Mediator API)
+        "SeriesBJFLessons" // Bible Stories for Little Ones (Children, Mediator API)
     };
 
     /// <summary>
@@ -119,9 +121,20 @@ public static class JwSourceHelper
     public static HashSet<string> BrochuresAndBookletsPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Publication codes for Children category. Empty until JW API codes are added.
+    /// Publication codes for Children category.
     /// </summary>
-    public static HashSet<string> ChildrenPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> ChildrenPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SeriesBJFLessons" // Bible Stories for Little Ones (Mediator API)
+    };
+
+    /// <summary>
+    /// Children category publications that use Mediator API for discovery (MediatorSectioned).
+    /// </summary>
+    public static HashSet<string> ChildrenMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SeriesBJFLessons"
+    };
 
     /// <summary>
     /// Publication codes for Family category. Empty until JW API codes are added.
@@ -149,7 +162,8 @@ public static class JwSourceHelper
     public static HashSet<string> SeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         "thv", // Apply Yourself to Reading and Teaching—Videos (Flat)
-        "VODLFFVideosAD" // Enjoy Life Forever!—Videos (Mediator API)
+        "VODLFFVideosAD", // Enjoy Life Forever!—Videos (Mediator API)
+        "SeriesDigForTreasures" // Dig for Treasures in God's Word (Mediator API)
     };
 
     /// <summary>
@@ -157,7 +171,8 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> SeriesMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODLFFVideosAD"
+        "VODLFFVideosAD",
+        "SeriesDigForTreasures"
     };
 
     /// <summary>
@@ -212,7 +227,7 @@ public static class JwSourceHelper
     }
 
     /// <summary>
-    /// Gets the category name for a given publication code.
+    /// Gets the category name for a given publication code (for display/legacy).
     /// Returns null if the publication code is not recognized.
     /// </summary>
     public static string? GetCategoryName(string publicationCode)
@@ -233,6 +248,25 @@ public static class JwSourceHelper
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Gets the CategoryCode (DB) for a given publication code, e.g. "Bible", "Music", "Dramas".
+    /// Returns null if the publication code is not recognized.
+    /// </summary>
+    public static string? GetCategoryCode(string publicationCode)
+    {
+        var name = GetCategoryName(publicationCode);
+        if (name == null)
+        {
+            return null;
+        }
+        return CategoryNameToCode(name);
+    }
+
+    private static string CategoryNameToCode(string categoryName)
+    {
+        return categoryName.Replace(" and ", "And").Replace(" ", "");
     }
 
     /// <summary>

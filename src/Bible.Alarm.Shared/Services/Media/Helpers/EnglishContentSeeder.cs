@@ -128,19 +128,19 @@ internal sealed class EnglishContentSeeder
             if (publicationLanguage == null)
             {
                 // Create PublicationLanguage if it doesn't exist (shouldn't happen during normal flow, but handle it)
-                var tempCategoryName = JwSourceHelper.GetCategoryName(publicationCode);
-                if (tempCategoryName == null)
+                var tempCategoryCode = JwSourceHelper.GetCategoryCode(publicationCode);
+                if (tempCategoryCode == null)
                 {
                     logger.Warning("Unknown publication type for {PublicationCode}", publicationCode);
                     return false;
                 }
 
                 var tempCategory = await db.Categories
-                    .FirstOrDefaultAsync(c => c.CategoryName == tempCategoryName, cancellationToken);
+                    .FirstOrDefaultAsync(c => c.CategoryCode == tempCategoryCode, cancellationToken);
                 
                 if (tempCategory == null)
                 {
-                    logger.Warning("Category {CategoryName} not found in database", tempCategoryName);
+                    logger.Warning("Category {CategoryCode} not found in database", tempCategoryCode);
                     return false;
                 }
 
@@ -174,7 +174,7 @@ internal sealed class EnglishContentSeeder
                 harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
             }
 
-            var categoryName = category.CategoryName;
+            var categoryName = category.CategoryCode;
             // Determine if this is a video (videos are in Dramas category but have IsVideo=true)
             var isVideo = JwSourceHelper.VideoPublicationCodes.Contains(normalizedPublicationCode);
 
@@ -328,7 +328,7 @@ internal sealed class EnglishContentSeeder
         {
             PublicationCode = normalizedPublicationCode,
             Name = normalizedPublicationCode,
-            Category = category,
+            BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = category.Id, Category = category } },
             IsVideo = isVideo
         };
 

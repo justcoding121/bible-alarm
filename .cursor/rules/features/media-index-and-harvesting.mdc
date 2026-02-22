@@ -34,19 +34,40 @@ Canonical list: **CategorySeeder** (`.tools/Bible.Alarm.AudioLinksHarvestor/Seed
 | Books | — | — | — |
 | Broadcasting | — | — | — |
 | Brochures and Booklets | — | — | — |
-| Children | — | — | — |
+| Children | SeriesBJFLessons | MediatorSectioned (video) | Yes |
 | Family | — | — | — |
 | Interviews and Experiences | — | — | — |
 | Meetings and Ministry | — | — | — |
 | Programs and Events | — | — | — |
-| Series | thv, VODLFFVideosAD | Flat (thv); MediatorSectioned (VODLFFVideosAD, video) | Yes |
+| Series | thv, VODLFFVideosAD, SeriesDigForTreasures | Flat (thv); MediatorSectioned (VODLFFVideosAD, SeriesDigForTreasures, video) | Yes |
 | Teenagers | — | — | — |
 
 Notes:
 - **Language-bound**: Yes = `BiblePublications.LanguageId != null` (per-language content); No = no-language (e.g. instrumental iam).
 - **Harvest type**: Flat = Publication → Tracks (GETPUBMEDIALINKS); Sectioned = Publication → Sections → Tracks (booknum or pub=sectionCode); MediatorSectioned = Mediator API discovery then GETPUBMEDIALINKS.
 - Categories with "—" have no publication codes or harvesters yet; add codes in JwSourceHelper and implement discovery/harvest when ready.
-- **Category modal order**: Bible is always shown first (CategoryService orders with Bible first, then rest alphabetically by CategoryName).
+- **Category modal order**: Bible is always shown first (CategoryService orders with Bible first, then rest alphabetically by category display name).
+
+---
+
+## Categories and languages schema (display names)
+
+### Categories
+
+- **Category** has **CategoryCode** only (e.g. `"Bible"`, `"Music"`). Display names are in **CategoryNamesByLanguage** (e.g. LanguageCode `"E"`).
+- **BiblePublication** is many-to-many with categories via **BiblePublicationCategories**. There is **no** `CategoryId` or `Category` navigation on `BiblePublication`.
+- Use **PrimaryCategory** and **PrimaryCategoryId** (first junction entry) when a single “main” category is needed. When loading from DB, use `.Include(x => x.BiblePublicationCategories).ThenInclude(x => x.Category)`.
+- Filter by category in queries: `x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music")` (not `x.Category.CategoryName`).
+
+### Languages
+
+- **Language** has **no** `Name` property. Display names are in **LanguageNamesByLanguage** (e.g. DisplayLanguageCode `"E"`).
+- Resolve display names at runtime via **ILanguageNameService** (async `GetNameAsync` / `GetNamesAsync`, or sync **GetNameCached** / **GetNameByLanguageCodeCached** for use where async is awkward).
+
+### In-memory caches (display names for "E")
+
+- **ICategoryNameService** and **ILanguageNameService** warm in-memory maps for `"E"` at startup (`BootstrapOrchestrator`).
+- Use sync cache methods when calling from sync or fire-and-forget paths (e.g. **GetNameCached(int languageId)**, **GetNameByLanguageCodeCached(string languageCode)**).
 
 ---
 

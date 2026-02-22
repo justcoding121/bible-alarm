@@ -40,9 +40,11 @@ internal class DramaHarvester : BaseHarvester
         // Track publications per language: languageCode -> set of publication codes
         var languageCodeToPublications = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
-        // Harvest each drama and Series Mediator publication (DramaCategoryCodes + SeriesMediatorPublicationCodes).
+        // Harvest each drama, Series Mediator, and Children Mediator publication.
         // Publication name for each language comes from the category API response (category.name), not from code.
-        foreach (var publicationCode in JwSourceHelper.DramaCategoryCodes.Union(JwSourceHelper.SeriesMediatorPublicationCodes))
+        foreach (var publicationCode in JwSourceHelper.DramaCategoryCodes
+            .Union(JwSourceHelper.SeriesMediatorPublicationCodes)
+            .Union(JwSourceHelper.ChildrenMediatorPublicationCodes))
         {
             Logger.Information("Harvesting Drama publication: {PublicationCode}", publicationCode);
 

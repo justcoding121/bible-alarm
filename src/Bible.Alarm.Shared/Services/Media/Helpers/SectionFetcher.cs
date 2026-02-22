@@ -57,7 +57,7 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        var category = englishPublication.Category;
+        var category = englishPublication.PrimaryCategory;
         if (category == null)
         {
             logger.Warning("Category not found for English publication {PublicationCode}", normalizedPublicationCode);
@@ -98,7 +98,7 @@ internal sealed class SectionFetcher
             return true;
         }
 
-        var isBible = category.CategoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var isBible = category.CategoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         string? localizedPubName = null;
 
         // Create or get the publication first (so we can add sections incrementally)
@@ -116,8 +116,7 @@ internal sealed class SectionFetcher
                 PublicationCode = normalizedPublicationCode,
                 Name = englishPublication.Name, // Will update if we get localized name
                 Language = language,
-                Category = category,
-                CategoryId = category.Id,
+                BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = category.Id, Category = category } },
                 LanguageId = language.Id,
                 IsVideo = isVideoDrama,
                 Tracks = new List<BiblePublicationTrack>(),

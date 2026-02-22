@@ -18,10 +18,11 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         ILogger logger,
         IBiblePublicationService? biblePublicationService,
         IMediaService mediaService,
+        ILanguageNameService languageNameService,
         IServiceProvider serviceProvider)
     {
-        bibleHelper = new ScheduleDisplayNameBibleHelper(logger, biblePublicationService, mediaService, serviceProvider);
-        musicHelper = new ScheduleDisplayNameMusicHelper(logger, mediaService, serviceProvider);
+        bibleHelper = new ScheduleDisplayNameBibleHelper(logger, biblePublicationService, mediaService, languageNameService, serviceProvider);
+        musicHelper = new ScheduleDisplayNameMusicHelper(logger, mediaService, languageNameService, serviceProvider);
     }
 
     public async Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)

@@ -139,7 +139,7 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
         }
 
         var newCategoryId = await GetIdAsync(
-            connection, "SELECT Id FROM Categories WHERE CategoryName = @val", oldPub.Value.CategoryName);
+            connection, "SELECT Id FROM Categories WHERE CategoryCode = @val", oldPub.Value.CategoryName);
         var newLanguageId = await GetIdAsync(
             connection, "SELECT Id FROM Languages WHERE LanguageCode = @val", langCode);
 
@@ -156,14 +156,21 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
         {
             var newPubId = await InsertAndGetIdAsync(connection, transaction,
                 """
-                INSERT INTO BiblePublications (CategoryId, LanguageId, PublicationCode, Name, IsVideo)
-                VALUES (@p0, @p1, @p2, @p3, @p4)
+                INSERT INTO BiblePublications (LanguageId, PublicationCode, Name, IsVideo)
+                VALUES (@p0, @p1, @p2, @p3)
                 """,
-                ("@p0", (object)newCategoryId.Value),
-                ("@p1", (object)newLanguageId.Value),
-                ("@p2", pubCode),
-                ("@p3", oldPub.Value.Name),
-                ("@p4", oldPub.Value.IsVideo));
+                ("@p0", (object)newLanguageId.Value),
+                ("@p1", pubCode),
+                ("@p2", oldPub.Value.Name),
+                ("@p3", oldPub.Value.IsVideo));
+            using (var junctionCmd = connection.CreateCommand())
+            {
+                junctionCmd.Transaction = transaction;
+                junctionCmd.CommandText = "INSERT INTO BiblePublicationCategories (BiblePublicationId, CategoryId) VALUES (@p0, @p1)";
+                junctionCmd.Parameters.AddWithValue("@p0", newPubId);
+                junctionCmd.Parameters.AddWithValue("@p1", newCategoryId.Value);
+                await junctionCmd.ExecuteNonQueryAsync();
+            }
 
             if (sectionCodes.Count > 0)
             {

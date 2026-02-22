@@ -69,10 +69,11 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
         // Initialize helper classes
         stateManager = new MusicPublicationSelectionStateManager();
+        var languageNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
         var biblePublicationService = serviceProvider.GetService<IBiblePublicationService>();
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
-        dataProvider = new MusicPublicationSelectionDataProvider(mediaService, biblePublicationService, languageContentService, scopeFactory);
-        commandHandler = new MusicPublicationSelectionCommandHandler(navigationService, state, dispatcher, mediaService);
+        dataProvider = new MusicPublicationSelectionDataProvider(mediaService, languageNameService, biblePublicationService, languageContentService, scopeFactory);
+        commandHandler = new MusicPublicationSelectionCommandHandler(navigationService, state, dispatcher, mediaService, languageNameService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
         refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, dataProvider, propertyManager, mapper);
         initHandler = new MusicPublicationSelectionInitHandler(mediaService, stateManager, dataProvider, propertyManager);

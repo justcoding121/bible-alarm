@@ -15,7 +15,8 @@ internal sealed class MusicDisplayNamePopulator
     public void Populate(
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
-        LookupDataLoader.LookupData lookupData)
+        LookupDataLoader.LookupData lookupData,
+        Dictionary<string, string>? languageNamesByCode = null)
     {
         if (schedule.Music == null)
         {
@@ -29,29 +30,39 @@ internal sealed class MusicDisplayNamePopulator
 
         if (!isMelodyMusic)
         {
-            PopulateVocalMusic(schedule, scheduleStateItem, music, lookupData);
+            PopulateVocalMusic(schedule, scheduleStateItem, music, lookupData, languageNamesByCode);
         }
         else
         {
-            PopulateMelodyMusic(schedule, scheduleStateItem, music, lookupData);
+            PopulateMelodyMusic(schedule, scheduleStateItem, music, lookupData, languageNamesByCode);
         }
+    }
+
+    private static string GetLanguageDisplayName(string languageCode, Dictionary<string, string>? languageNamesByCode)
+    {
+        if (languageNamesByCode != null && languageNamesByCode.TryGetValue(languageCode, out var name))
+        {
+            return name;
+        }
+        return languageCode;
     }
 
     private static void PopulateVocalMusic(
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
         AlarmMusic music,
-        LookupDataLoader.LookupData lookupData)
+        LookupDataLoader.LookupData lookupData,
+        Dictionary<string, string>? languageNamesByCode = null)
     {
         // Use cached vocal languages
         if (!string.IsNullOrWhiteSpace(music.LanguageCode))
         {
             if (lookupData.VocalLanguages.TryGetValue(music.LanguageCode, out var vocalLanguage))
             {
-                scheduleStateItem.MusicLanguageName = vocalLanguage.Name;
+                scheduleStateItem.MusicLanguageName = GetLanguageDisplayName(music.LanguageCode, languageNamesByCode);
                 scheduleStateItem.MusicLanguageDirection = vocalLanguage.Direction;
                 Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' and MusicLanguageDirection '{MusicLanguageDirection}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                    vocalLanguage.Name, vocalLanguage.Direction, schedule.Id, music.LanguageCode);
+                    scheduleStateItem.MusicLanguageName, vocalLanguage.Direction, schedule.Id, music.LanguageCode);
             }
             else
             {
@@ -111,16 +122,17 @@ internal sealed class MusicDisplayNamePopulator
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
         AlarmMusic music,
-        LookupDataLoader.LookupData lookupData)
+        LookupDataLoader.LookupData lookupData,
+        Dictionary<string, string>? languageNamesByCode = null)
     {
         // No-language (melody) music: show "English" in the language row, same as Bible container for no-language publications.
         // Effective language for display and for publication modal is "E" (English + no-language pubs together).
         if (lookupData.VocalLanguages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
         {
-            scheduleStateItem.MusicLanguageName = englishLanguage.Name;
+            scheduleStateItem.MusicLanguageName = GetLanguageDisplayName(AppConstants.Media.DefaultLanguageCode, languageNamesByCode);
             scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
             Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' for melody (no-language) in schedule {ScheduleId} (effective display: English)",
-                englishLanguage.Name, schedule.Id);
+                scheduleStateItem.MusicLanguageName, schedule.Id);
         }
 
         // Populate melody publication name

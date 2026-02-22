@@ -98,7 +98,8 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
         return await dbContext.BiblePublications
             .AsNoTracking()
-            .Include(x => x.Category)
+            .Include(x => x.BiblePublicationCategories)
+            .ThenInclude(x => x.Category)
             .Include(x => x.Sections)
                 .ThenInclude(s => s.Tracks)
                     .ThenInclude(t => t.UrlParams)
@@ -182,7 +183,8 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         // Include UrlParams so TrackCodeHelper.GetFromTrack can return the correct track code (pub param for dramas)
         var publication = await dbContext.BiblePublications
             .AsNoTracking()
-            .Include(x => x.Category)
+            .Include(x => x.BiblePublicationCategories)
+            .ThenInclude(x => x.Category)
             .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .ThenInclude(t => t.UrlParams)
             .Where(x => x.PublicationCode == publicationCodeForDb && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
@@ -203,14 +205,15 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var query = dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Include(x => x.Language)
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode);
 
-            // Filter by category if provided
+            // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
-                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+                query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
             }
 
             var publicationsList = await query.ToListAsync(cancellationToken);
@@ -274,10 +277,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Include(x => x.Category)
                 .Where(x => x.Language != null);
 
-            // Filter by category if provided
+            // Filter by category if provided (categoryName is CategoryCode, e.g. "Bible", "Music")
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
-                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+                query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
             }
 
             var publicationLanguagesCount = await query.CountAsync(cancellationToken);
@@ -331,10 +334,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Where(x => (x.Language != null && x.Language.LanguageCode == normalizedLanguageCode) ||
                            (x.LanguageId == null));
 
-            // Filter by category if provided
+            // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
-                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+                query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
             }
 
             var publicationCodes = await query
@@ -400,10 +403,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Include(x => x.Category)
                 .Where(x => x.Language != null && x.Language.LanguageCode == normalizedLanguageCode);
 
-            // Filter by category if provided
+            // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
-                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+                query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
             }
 
             // Order by Id to get the first publication by ID order

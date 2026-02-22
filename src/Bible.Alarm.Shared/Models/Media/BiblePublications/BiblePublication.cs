@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -9,6 +10,7 @@ namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
 /// <summary>
 /// Represents a Bible-related publication including traditional Bible publications,
 /// Audio Bible Dramas, Dramatic Bible Readings, and Video publications.
+/// A publication can belong to many categories via BiblePublicationCategories.
 /// </summary>
 [Table("BiblePublications")]
 public sealed class BiblePublication : TranslatedPublication
@@ -17,17 +19,21 @@ public sealed class BiblePublication : TranslatedPublication
     public int Id { get; set; }
 
     /// <summary>
-    /// Foreign key to Category
+    /// Many-to-many: categories this publication belongs to.
     /// </summary>
-    [Required]
-    [ForeignKey(nameof(Category))]
-    public int CategoryId { get; set; }
+    public List<BiblePublicationCategory> BiblePublicationCategories { get; set; } = [];
 
     /// <summary>
-    /// Navigation property to Category
+    /// First category (when loaded). Use when a single category is expected (e.g. Music).
     /// </summary>
-    [Required]
-    public Media.Category Category { get; set; } = null!;
+    [NotMapped]
+    public Media.Category? PrimaryCategory => BiblePublicationCategories.Count > 0 ? BiblePublicationCategories[0].Category : null;
+
+    /// <summary>
+    /// First category id (when loaded). Use when a single category is expected.
+    /// </summary>
+    [NotMapped]
+    public int PrimaryCategoryId => BiblePublicationCategories.Count > 0 ? BiblePublicationCategories[0].CategoryId : 0;
 
     /// <summary>
     /// Optional foreign key to Language

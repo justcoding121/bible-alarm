@@ -394,15 +394,18 @@ public sealed class TrackSelectionSyncHandler
         if (string.IsNullOrWhiteSpace(updatedSchedule.MusicLanguageName) && !string.IsNullOrWhiteSpace(actionMusic.LanguageCode))
         {
             var mediaService = ServiceProviderManager.GetService<IMediaService>();
-            if (mediaService != null)
+            var languageNameService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
+            try
             {
-                try
+                if (mediaService != null)
                 {
                     var languages = await mediaService.GetVocalMusicLanguages();
                     if (languages.TryGetValue(actionMusic.LanguageCode, out var language))
                     {
-                        updatedSchedule.MusicLanguageName = language.Name;
                         updatedSchedule.MusicLanguageDirection = language.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
+                        updatedSchedule.MusicLanguageName = languageNameService != null
+                            ? await languageNameService.GetNameAsync(language.Id, AppConstants.Media.DefaultLanguageCode) ?? actionMusic.LanguageCode
+                            : actionMusic.LanguageCode;
                     }
                     else
                     {
@@ -410,11 +413,16 @@ public sealed class TrackSelectionSyncHandler
                         updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                     }
                 }
-                catch
+                else
                 {
                     updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
                     updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                 }
+            }
+            catch
+            {
+                updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
+                updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
 

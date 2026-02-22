@@ -65,7 +65,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         this.navigationService = navigationService;
 
         // Initialize services
-        dataProvider = new BiblePublicationSelectionDataProvider(mediaService, state, dispatcher);
+        var languageNameService = serviceProvider.GetRequiredService<ILanguageNameService>();
+        dataProvider = new BiblePublicationSelectionDataProvider(mediaService, languageNameService, state, dispatcher);
         stateHandler = new BiblePublicationSelectionStateHandler(mediaService, state, mapper, dataProvider, scopeFactory);
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, mapper, biblePublicationService, languageContentService);

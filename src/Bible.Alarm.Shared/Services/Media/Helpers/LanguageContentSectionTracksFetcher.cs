@@ -63,7 +63,8 @@ internal sealed class LanguageContentSectionTracksFetcher
             // Get the publication for this language
             var publication = await db.BiblePublications
                 .Include(bp => bp.Language)
-                .Include(bp => bp.Category)
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bp => bp.Category)
                 .Include(bp => bp.Sections)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(

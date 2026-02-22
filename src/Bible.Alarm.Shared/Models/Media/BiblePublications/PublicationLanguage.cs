@@ -12,7 +12,7 @@ namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
 /// Used to determine which languages can be fetched on-demand when user changes language.
 /// </summary>
 [Table("PublicationLanguages")]
-[Index(nameof(PublicationCode), nameof(LanguageId), IsUnique = true)]
+[Index(nameof(PublicationCode), nameof(LanguageId), nameof(CategoryId), IsUnique = true)]
 public sealed class PublicationLanguage
 {
     [Key]

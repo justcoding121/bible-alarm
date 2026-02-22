@@ -21,10 +21,12 @@ public sealed class DisplayMetadataService(
     IMediaService mediaService,
     HttpMessageHandler httpHandler,
     IBiblePublicationService? biblePublicationService = null,
-    IVocalMusicService? vocalMusicService = null)
+    IVocalMusicService? vocalMusicService = null,
+    ILanguageNameService? languageNameService = null)
     : IDisplayMetadataService
 {
     private readonly IVocalMusicService? vocalMusicService = vocalMusicService;
+    private readonly ILanguageNameService? languageNameService = languageNameService;
     private readonly DisplayMetadataServiceMusicHelper musicHelper = new(logger, mediaService, vocalMusicService);
     private readonly RemoteId3ArtworkExtractor remoteId3ArtworkExtractor = new(httpHandler, logger);
     private readonly RemoteMp4ArtworkExtractor remoteMp4ArtworkExtractor = new(httpHandler, logger);
@@ -131,13 +133,15 @@ public sealed class DisplayMetadataService(
                 // Artist: Publication name + (jw.org)
                 meta.Artist = $"{publication.Name} (jw.org)";
                 
-                // Album: Language name
+                // Album: Language name (from LanguageNamesByLanguage for "E")
                 var languages = await mediaService.GetBiblePublicationLanguages();
                 if (languages.TryGetValue(trackMetadata.LanguageCode, out var language))
                 {
-                    meta.Album = language.Name;
+                    meta.Album = languageNameService != null
+                        ? await languageNameService.GetNameAsync(language.Id, Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode) ?? language.LanguageCode
+                        : language.LanguageCode;
                 }
-                
+
                 return;
             }
         }
@@ -151,11 +155,13 @@ public sealed class DisplayMetadataService(
         // Title: Section name + Track number
         meta.Title = $"{section.Name} {trackMetadata.TrackCode}";
 
-        // Description: Language name
+        // Description: Language name (from LanguageNamesByLanguage for "E")
         var languages = await mediaService.GetBiblePublicationLanguages();
         if (languages.TryGetValue(trackMetadata.LanguageCode, out var language))
         {
-            meta.Album = language.Name;
+            meta.Album = languageNameService != null
+                ? await languageNameService.GetNameAsync(language.Id, Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode) ?? language.LanguageCode
+                : language.LanguageCode;
         }
 
         // SubTitle: Publication name + (jw.org)

@@ -65,8 +65,7 @@ internal sealed class EnglishPublicationBuilder
             PublicationCode = normalizedPublicationCode,
             Name = finalPublicationName,
             Language = language, // null for publications without language
-            Category = category,
-            CategoryId = category.Id,
+            BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = category.Id, Category = category } },
             LanguageId = language?.Id, // null for publications without language
             IsVideo = isVideo,
             Tracks = new List<BiblePublicationTrack>(),

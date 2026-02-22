@@ -2,6 +2,7 @@
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -13,6 +14,7 @@ public sealed class MusicDisplayTextProvider
 {
     private readonly IState<ApplicationState> state;
     private readonly IMediaService mediaService;
+    private readonly ILanguageNameService? languageNameService;
 
     private string? cachedSongPublicationName;
     private string? lastMusicPublicationCode;
@@ -24,10 +26,11 @@ public sealed class MusicDisplayTextProvider
     private bool isLoadingDefaultLanguageName;
     private Action<string>? propertyChangeNotifier;
 
-    public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService)
+    public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService, ILanguageNameService? languageNameService = null)
     {
         this.state = state;
         this.mediaService = mediaService;
+        this.languageNameService = languageNameService;
     }
 
     /// <summary>
@@ -169,16 +172,10 @@ public sealed class MusicDisplayTextProvider
         isLoadingDefaultLanguageName = true;
         try
         {
-            var languages = await mediaService.GetVocalMusicLanguages();
-            if (languages.TryGetValue("E", out var englishLanguage))
-            {
-                cachedDefaultLanguageName = englishLanguage.Name;
-            }
-            else
-            {
-                // Fallback if "E" not found in DB
-                cachedDefaultLanguageName = "English";
-            }
+            cachedDefaultLanguageName = languageNameService != null
+                ? await languageNameService.GetNameByLanguageCodeAsync("E", AppConstants.Media.DefaultLanguageCode)
+                : null;
+            cachedDefaultLanguageName ??= "English";
 
             // Notify UI to update if callback provided
             if (onPropertyChanged != null)

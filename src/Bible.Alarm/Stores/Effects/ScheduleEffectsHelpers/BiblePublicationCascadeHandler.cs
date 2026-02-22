@@ -130,12 +130,12 @@ public sealed class BiblePublicationCascadeHandler
                         // Invalidate cache after downloading to ensure selectability checks use fresh data
                         mediaService.InvalidateBiblePublicationsCache(languageCode, categoryName);
                         // Harvest succeeded - proceed to get section and track
+                        var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
                         var languageModel = new LanguageListViewItemModel(new Language
                         {
                             LanguageCode = languageCode,
-                            Name = currentSchedule.BiblePublicationLanguageName ?? languageCode,
                             Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
-                        });
+                        }, languageDisplayName);
 
                         var publicationModel = new PublicationListViewItemModel(new Publication
                         {
@@ -197,7 +197,7 @@ public sealed class BiblePublicationCascadeHandler
         // Filter by category if provided (try current category first)
         if (!string.IsNullOrWhiteSpace(categoryName))
         {
-            query = query.Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
+            query = query.Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
         }
         
         // Get publications, then sort by priority (nwt first, then bi12, then others)
@@ -269,8 +269,7 @@ public sealed class BiblePublicationCascadeHandler
             {
                 var pubWithoutLanguage = await db.BiblePublications
                     .AsNoTracking()
-                    .Where(bp => bp.Category != null && 
-                                bp.Category.CategoryName == categoryName &&
+                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
                                 bp.LanguageId == null)
                     .OrderBy(bp => bp.Id)
                     .FirstOrDefaultAsync();
@@ -310,12 +309,12 @@ public sealed class BiblePublicationCascadeHandler
         else
         {
             // For publications with LanguageId, use the existing publication code from schedule
+            var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
             var languageModel = new LanguageListViewItemModel(new Language
             {
                 LanguageCode = languageCode,
-                Name = currentSchedule.BiblePublicationLanguageName ?? languageCode,
                 Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
-            });
+            }, languageDisplayName);
 
             var publicationModel = new PublicationListViewItemModel(new Publication
             {
@@ -377,12 +376,12 @@ public sealed class BiblePublicationCascadeHandler
             publicationCode, languageCode);
 
         // Use existing selector logic to get section and track
+        var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
         var languageModel = new LanguageListViewItemModel(new Language
         {
             LanguageCode = languageCode,
-            Name = currentSchedule.BiblePublicationLanguageName ?? languageCode,
             Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
-        });
+        }, languageDisplayName);
 
         // Create a minimal publication model for the selector
         var publication = new Publication

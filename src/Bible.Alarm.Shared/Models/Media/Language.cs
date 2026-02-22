@@ -1,4 +1,6 @@
+#nullable enable
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +19,6 @@ public sealed class Language : IComparable
     [Column("LanguageCode")]
     public string LanguageCode { get; set; } = string.Empty;
 
-    [Required]
-    [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
-
     /// <summary>
     /// Text direction: "ltr" (left-to-right) or "rtl" (right-to-left)
     /// </summary>
@@ -28,5 +26,18 @@ public sealed class Language : IComparable
     [MaxLength(3)]
     public string Direction { get; set; } = "ltr";
 
-    public int CompareTo(object obj) => Name.CompareTo((obj as Language).Name);
+    /// <summary>
+    /// Localized names per display language code (e.g. "E" for English).
+    /// </summary>
+    public List<LanguageNameByLanguage> NamesByDisplayLanguage { get; set; } = [];
+
+    public int CompareTo(object? obj)
+    {
+        if (obj is not Language other)
+        {
+            return 1;
+        }
+
+        return string.Compare(LanguageCode, other.LanguageCode, StringComparison.Ordinal);
+    }
 }

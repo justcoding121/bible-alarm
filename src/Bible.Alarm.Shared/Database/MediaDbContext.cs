@@ -15,10 +15,13 @@ public class MediaDbContext : DbContext
     }
 
     public DbSet<Language> Languages { get; set; }
+    public DbSet<LanguageNameByLanguage> LanguageNamesByLanguage { get; set; }
     public DbSet<Category> Categories { get; set; }
+    public DbSet<CategoryNameByLanguage> CategoryNamesByLanguage { get; set; }
     public DbSet<ApiUrl> ApiUrls { get; set; }
 
     public DbSet<BiblePublication> BiblePublications { get; set; }
+    public DbSet<BiblePublicationCategory> BiblePublicationCategories { get; set; }
     public DbSet<BiblePublicationSection> BiblePublicationSections { get; set; }
     public DbSet<BiblePublicationTrack> BiblePublicationTracks { get; set; }
     public DbSet<PublicationLanguage> PublicationLanguages { get; set; }
@@ -63,6 +66,36 @@ public class MediaDbContext : DbContext
         modelBuilder.Entity<Language>()
             .HasIndex(l => l.LanguageCode)
             .IsUnique();
+
+        // LanguageNameByLanguage: LanguageId + DisplayLanguageCode unique
+        modelBuilder.Entity<LanguageNameByLanguage>()
+            .HasOne(lnl => lnl.Language)
+            .WithMany(l => l.NamesByDisplayLanguage)
+            .HasForeignKey(lnl => lnl.LanguageId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // CategoryNameByLanguage: CategoryId + LanguageCode unique
+        modelBuilder.Entity<CategoryNameByLanguage>()
+            .HasOne(cnl => cnl.Category)
+            .WithMany(c => c.NamesByLanguage)
+            .HasForeignKey(cnl => cnl.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // BiblePublicationCategory: many-to-many junction, composite PK
+        modelBuilder.Entity<BiblePublicationCategory>()
+            .HasKey(bpc => new { bpc.BiblePublicationId, bpc.CategoryId });
+
+        modelBuilder.Entity<BiblePublicationCategory>()
+            .HasOne(bpc => bpc.BiblePublication)
+            .WithMany(bp => bp.BiblePublicationCategories)
+            .HasForeignKey(bpc => bpc.BiblePublicationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<BiblePublicationCategory>()
+            .HasOne(bpc => bpc.Category)
+            .WithMany(c => c.BiblePublicationCategories)
+            .HasForeignKey(bpc => bpc.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Configure PublicationLanguage relationships
         // Language relationship is optional (LanguageId can be null for publications without language, e.g., instrumental music)

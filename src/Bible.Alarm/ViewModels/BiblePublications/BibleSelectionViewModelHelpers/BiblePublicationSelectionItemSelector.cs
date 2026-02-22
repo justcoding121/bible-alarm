@@ -164,7 +164,7 @@ public sealed class BiblePublicationSelectionItemSelector
 
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
-                query = query.Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
+                query = query.Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
             }
 
             var publicationLanguages = await query.ToListAsync();
@@ -241,9 +241,9 @@ public sealed class BiblePublicationSelectionItemSelector
             {
                 var pubWithoutLanguage = await db.BiblePublications
                     .AsNoTracking()
-                    .Include(bp => bp.Category)
-                    .Where(bp => bp.Category != null &&
-                                 bp.Category.CategoryName == categoryName &&
+                    .Include(bp => bp.BiblePublicationCategories)
+                    .ThenInclude(bpc => bpc.Category)
+                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
                                  bp.LanguageId == null)
                     .OrderBy(bp => bp.Id)
                     .FirstOrDefaultAsync();

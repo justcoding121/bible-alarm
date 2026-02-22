@@ -30,6 +30,7 @@ public interface IScheduleBootstrapService
     /// Loads schedules list from database and populates state items.
     /// Used for cache refresh operations.
     /// </summary>
-    Task<List<ScheduleStateItem>> LoadSchedulesListAsync(Dictionary<string, Language>? languagesDict);
+    /// <param name="languageNamesByCode">Optional: language code to display name (e.g. for "E") for bootstrap display.</param>
+    Task<List<ScheduleStateItem>> LoadSchedulesListAsync(Dictionary<string, Language>? languagesDict, Dictionary<string, string>? languageNamesByCode = null);
 }
 

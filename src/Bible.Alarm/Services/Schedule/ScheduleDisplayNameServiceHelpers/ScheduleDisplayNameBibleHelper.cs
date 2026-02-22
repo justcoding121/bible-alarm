@@ -18,17 +18,20 @@ public sealed class ScheduleDisplayNameBibleHelper
     private readonly ILogger logger;
     private readonly IBiblePublicationService? biblePublicationService;
     private readonly IMediaService mediaService;
+    private readonly ILanguageNameService languageNameService;
     private readonly IServiceProvider serviceProvider;
 
     public ScheduleDisplayNameBibleHelper(
         ILogger logger,
         IBiblePublicationService? biblePublicationService,
         IMediaService mediaService,
+        ILanguageNameService languageNameService,
         IServiceProvider serviceProvider)
     {
         this.logger = logger;
         this.biblePublicationService = biblePublicationService;
         this.mediaService = mediaService;
+        this.languageNameService = languageNameService;
         this.serviceProvider = serviceProvider;
     }
 
@@ -44,7 +47,7 @@ public sealed class ScheduleDisplayNameBibleHelper
                 var languagesDict = await biblePublicationService.GetDistinctLanguagesAsync();
                 if (languagesDict.TryGetValue(scheduleLanguageCode, out var language))
                 {
-                    scheduleStateItem.BiblePublicationLanguageName = language.Name;
+                    scheduleStateItem.BiblePublicationLanguageName = languageNameService.GetNameCached(language.Id) ?? scheduleLanguageCode;
                     scheduleStateItem.BiblePublicationLanguageDirection = language.Direction;
                 }
                 else
@@ -85,7 +88,8 @@ public sealed class ScheduleDisplayNameBibleHelper
                         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
                         publication = await dbContext.BiblePublications
                             .AsNoTracking()
-                            .Include(x => x.Category)
+                            .Include(x => x.BiblePublicationCategories)
+                            .ThenInclude(bpc => bpc.Category)
                             .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
                             .FirstOrDefaultAsync();
                         publicationWithoutLanguage = publication != null;
@@ -102,19 +106,19 @@ public sealed class ScheduleDisplayNameBibleHelper
                 {
                     if (!string.IsNullOrWhiteSpace(publication.Name))
                         scheduleStateItem.BiblePublicationName = publication.Name;
-                    if (publication.Category != null)
+                    if (publication.PrimaryCategory != null)
                     {
-                        scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
-                        scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
-                        logger.Debug("Populated BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName={CategoryName} for schedule {ScheduleId}", publication.CategoryId, publication.Category.CategoryName, scheduleStateItem.Id);
+                        scheduleStateItem.BiblePublicationCategoryId = publication.PrimaryCategoryId;
+                        scheduleStateItem.BiblePublicationCategoryName = publication.PrimaryCategory.CategoryCode;
+                        logger.Debug("Populated BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName={CategoryName} for schedule {ScheduleId}", publication.PrimaryCategoryId, publication.PrimaryCategory.CategoryCode, scheduleStateItem.Id);
                     }
                     else
                     {
-                        var categoryName = JwSourceHelper.GetCategoryName(publicationCode);
-                        if (!string.IsNullOrWhiteSpace(categoryName))
+                        var categoryCode = JwSourceHelper.GetCategoryCode(publicationCode);
+                        if (!string.IsNullOrWhiteSpace(categoryCode))
                         {
-                            scheduleStateItem.BiblePublicationCategoryName = categoryName;
-                            logger.Debug("Populated BiblePublicationCategoryName={CategoryName} from publication code for schedule {ScheduleId}", categoryName, scheduleStateItem.Id);
+                            scheduleStateItem.BiblePublicationCategoryName = categoryCode;
+                            logger.Debug("Populated BiblePublicationCategoryName={CategoryName} from publication code for schedule {ScheduleId}", categoryCode, scheduleStateItem.Id);
                         }
                     }
                     if (!hasSections && !string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) && publication.Tracks != null && publication.Tracks.Count > 0)

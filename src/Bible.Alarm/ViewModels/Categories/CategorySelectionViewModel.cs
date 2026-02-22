@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -22,6 +23,7 @@ namespace Bible.Alarm.ViewModels.Categories;
 public sealed class CategorySelectionViewModel : ObservableObject, IListViewModel, IDisposable, IRecipient<CategoryFetchProgressMessage>
 {
     private readonly ICategoryService categoryService;
+    private readonly ICategoryNameService categoryNameService;
     private readonly INavigationService navigationService;
     private readonly IDispatcher dispatcher;
     private readonly IState<ApplicationState> state;
@@ -37,11 +39,13 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
 
     public CategorySelectionViewModel(
         ICategoryService categoryService,
+        ICategoryNameService categoryNameService,
         INavigationService navigationService,
         IDispatcher dispatcher,
         IState<ApplicationState> state)
     {
         this.categoryService = categoryService;
+        this.categoryNameService = categoryNameService;
         this.navigationService = navigationService;
         this.dispatcher = dispatcher;
         this.state = state;
@@ -112,7 +116,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         try
         {
             var previousScheduleSnapshot = currentSchedule?.DeepClone();
-            dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.Name, previousLanguageCode, previousScheduleSnapshot));
+            dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.CategoryCode, previousLanguageCode, previousScheduleSnapshot));
 
             const int maxWaitAttempts = 60;
             const int delayMs = 200;
@@ -123,7 +127,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
 
                 var currentState = state.Value.CurrentSchedule;
                 if (currentState != null &&
-                    currentState.BiblePublicationCategoryName == category.Name &&
+                    currentState.BiblePublicationCategoryName == category.CategoryCode &&
                     !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
                     !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode) &&
                     (currentState.BiblePublicationCategoryName != previousCategoryName ||
@@ -137,7 +141,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "CategorySelectionViewModel: Error during category selection for category={CategoryName}", category.Name);
+            Serilog.Log.Error(ex, "CategorySelectionViewModel: Error during category selection for category={CategoryCode}", category.CategoryCode);
         }
         finally
         {
@@ -159,7 +163,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal after fetch error for category={CategoryName}", category.Name);
+                Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal after fetch error for category={CategoryCode}", category.CategoryCode);
             }
         }
         else
@@ -170,7 +174,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal for category={CategoryName}", category.Name);
+                Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal for category={CategoryCode}", category.CategoryCode);
             }
         }
     });
@@ -181,23 +185,28 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         try
         {
             var categories = await categoryService.GetAllCategoriesAsync();
-            var categoryVMs = categories.Select(c => new CategoryListViewItemModel(c)).ToList();
-            
-            // Get current category from state to mark as selected
-            var currentCategoryName = state.Value.CurrentSchedule?.BiblePublicationCategoryName;
-            
+            var defaultLang = AppConstants.Media.DefaultLanguageCode;
+            var categoryVMs = categories.Select(c =>
+            {
+                var displayName = categoryNameService.GetName(c.CategoryCode, defaultLang);
+                return new CategoryListViewItemModel(c, displayName);
+            }).ToList();
+
+            // Get current category from state to mark as selected (state stores category code)
+            var currentCategoryCode = state.Value.CurrentSchedule?.BiblePublicationCategoryName;
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Categories.Clear();
                 foreach (var categoryVM in categoryVMs)
                 {
                     // Mark the current category as selected for scroll-to-selected
-                    if (!string.IsNullOrEmpty(currentCategoryName) && 
-                        string.Equals(categoryVM.Name, currentCategoryName, StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrEmpty(currentCategoryCode) &&
+                        string.Equals(categoryVM.CategoryCode, currentCategoryCode, StringComparison.OrdinalIgnoreCase))
                     {
                         categoryVM.IsSelected = true;
                         SelectedCategory = categoryVM;
-                        Serilog.Log.Debug("LoadCategoriesAsync: Marked category {CategoryName} as selected", categoryVM.Name);
+                        Serilog.Log.Debug("LoadCategoriesAsync: Marked category {CategoryCode} as selected", categoryVM.CategoryCode);
                     }
                     Categories.Add(categoryVM);
                 }

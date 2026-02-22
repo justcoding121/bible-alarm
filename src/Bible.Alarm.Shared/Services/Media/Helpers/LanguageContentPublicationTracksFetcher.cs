@@ -93,7 +93,8 @@ internal sealed class LanguageContentPublicationTracksFetcher
             // Verify English publication exists (needed as template for ad-hoc fetching)
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
-                .Include(bp => bp.Category)
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bp => bp.Category)
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == publicationCodeForDb &&
                           bp.Language != null &&
@@ -128,8 +129,8 @@ internal sealed class LanguageContentPublicationTracksFetcher
 
             // Use HarvestType from PublicationLanguage to determine fetching method
             var category = publicationLanguage.Category;
-            var categoryName = category.CategoryName;
-            var isVideo = categoryName.Equals("Dramas", StringComparison.OrdinalIgnoreCase) &&
+            var categoryCode = category.CategoryCode;
+            var isVideo = categoryCode.Equals("Dramas", StringComparison.OrdinalIgnoreCase) &&
                          PublicationTypeHelper.IsVideo(lowerCode);
 
             var harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(lowerCode);
@@ -144,7 +145,7 @@ internal sealed class LanguageContentPublicationTracksFetcher
 
                 case Models.Enums.HarvestType.Flat:
                     // Music and Video use flat-track fetching
-                    var isMusic = categoryName.Equals("Music", StringComparison.OrdinalIgnoreCase);
+                    var isMusic = categoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
                     var fileFormat = isVideo ? "MP4" : "MP3";
                     var trackParam = isVideo ? "&track=" : "";
 

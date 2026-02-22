@@ -47,7 +47,16 @@ public static class PublicationTypeHelper
     /// </summary>
     private static readonly HashSet<string> SeriesMediatorPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODLFFVideosAD" // Enjoy Life Forever!—Videos
+        "VODLFFVideosAD", // Enjoy Life Forever!—Videos
+        "SeriesDigForTreasures" // Dig for Treasures in God's Word
+    };
+
+    /// <summary>
+    /// Children category publications that use Mediator API (MediatorSectioned, video).
+    /// </summary>
+    private static readonly HashSet<string> ChildrenMediatorPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SeriesBJFLessons" // Bible Stories for Little Ones
     };
 
     /// <summary>
@@ -68,9 +77,10 @@ public static class PublicationTypeHelper
             return true; // Kingdom Melodies uses discs (sections)
         }
 
-        // Dramas, videos, series flat videos, and series Mediator videos have flat tracks
+        // Dramas, videos, series flat videos, series Mediator videos, and Children Mediator have flat tracks
         if (DramaPublicationCodes.Contains(publicationCode) || VideoPublicationCodes.Contains(publicationCode) ||
-            SeriesVideoPublicationCodes.Contains(publicationCode) || SeriesMediatorPublicationCodes.Contains(publicationCode))
+            SeriesVideoPublicationCodes.Contains(publicationCode) || SeriesMediatorPublicationCodes.Contains(publicationCode) ||
+            ChildrenMediatorPublicationCodes.Contains(publicationCode))
         {
             return false;
         }
@@ -113,7 +123,7 @@ public static class PublicationTypeHelper
         }
 
         return VideoPublicationCodes.Contains(publicationCode) || SeriesVideoPublicationCodes.Contains(publicationCode) ||
-               SeriesMediatorPublicationCodes.Contains(publicationCode);
+               SeriesMediatorPublicationCodes.Contains(publicationCode) || ChildrenMediatorPublicationCodes.Contains(publicationCode);
     }
 
     /// <summary>
@@ -134,8 +144,9 @@ public static class PublicationTypeHelper
             return HarvestType.Sectioned; // Default to Bible structure
         }
 
-        // Series Mediator and Dramas use Mediator API
-        if (JwSourceHelper.SeriesMediatorPublicationCodes.Contains(publicationCode) || IsDrama(publicationCode))
+        // Series Mediator, Children Mediator, and Dramas use Mediator API
+        if (JwSourceHelper.SeriesMediatorPublicationCodes.Contains(publicationCode) ||
+            JwSourceHelper.ChildrenMediatorPublicationCodes.Contains(publicationCode) || IsDrama(publicationCode))
         {
             return HarvestType.MediatorSectioned;
         }

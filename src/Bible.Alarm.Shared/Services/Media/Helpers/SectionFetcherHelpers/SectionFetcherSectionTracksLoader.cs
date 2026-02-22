@@ -53,8 +53,8 @@ internal sealed class SectionFetcherSectionTracksLoader
             return true;
         }
 
-        var categoryName = publication.Category?.CategoryName ?? "";
-        var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var categoryCode = publication.PrimaryCategory?.CategoryCode ?? "";
+        var isBible = categoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         var isVideoDrama = !isBible && publication.IsVideo;
         var dramaFileFormat = isVideoDrama ? "MP4" : "MP3";
 

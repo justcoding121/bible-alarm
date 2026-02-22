@@ -24,7 +24,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
-    private const string MusicCategoryName = "Music";
+    private const string MusicCategoryCode = "Music";
 
     public async Task<MelodyMusic?> GetByCodeWithTracksAsync(string publicationCode, CancellationToken cancellationToken = default)
     {
@@ -37,12 +37,13 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             // Include sections and their tracks
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.Category.CategoryName == MusicCategoryName 
-                    && x.LanguageId == null 
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                    && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -79,9 +80,8 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 PublicationCode = publication.PublicationCode,
                 Name = publication.Name,
                 LanguageId = publication.LanguageId,
-                CategoryId = publication.CategoryId,
                 IsVideo = publication.IsVideo,
-                Category = publication.Category,
+                BiblePublicationCategories = publication.BiblePublicationCategories.ToList(),
                 Tracks = allTracks,
                 Sections = publication.Sections ?? new List<BiblePublicationSection>() // Include sections so GetSampleSchedule can select a section
             };
@@ -105,8 +105,9 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
 
             var melodyList = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
-                .Where(x => x.Category.CategoryName == MusicCategoryName && x.LanguageId == null)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode) && x.LanguageId == null)
                 .ToListAsync(cancellationToken);
 
             // Handle potential duplicates gracefully - use first occurrence
@@ -142,13 +143,14 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             // Include sections and their tracks (with UrlParams for OriginalTrackCode)
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
                     .ThenInclude(t => t.UrlParams)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.Category.CategoryName == MusicCategoryName 
-                    && x.LanguageId == null 
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                    && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -207,12 +209,13 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             // Get the publication with sections and track UrlParams
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Category)
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
                     .ThenInclude(t => t.UrlParams)
-                .Where(x => x.Category.CategoryName == MusicCategoryName 
-                    && x.LanguageId == null 
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                    && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 

@@ -22,6 +22,7 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelper
 public sealed class BiblePublicationSelectionDataProvider
 {
     private readonly IMediaService mediaService;
+    private readonly ILanguageNameService languageNameService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly SemaphoreSlim languagePopulationLock = new(1, 1);
@@ -30,10 +31,12 @@ public sealed class BiblePublicationSelectionDataProvider
 
     public BiblePublicationSelectionDataProvider(
         IMediaService mediaService,
+        ILanguageNameService languageNameService,
         IState<ApplicationState> state,
         IDispatcher dispatcher)
     {
         this.mediaService = mediaService;
+        this.languageNameService = languageNameService;
         this.state = state;
         this.dispatcher = dispatcher;
     }
@@ -60,17 +63,20 @@ public sealed class BiblePublicationSelectionDataProvider
             var languagesData = await mediaService.GetBiblePublicationLanguages(currentCategoryName);
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
+            var languageIds = languagesData.Values.Select(l => l.Id).ToList();
+            var names = await languageNameService.GetNamesAsync(languageIds, AppConstants.Media.DefaultLanguageCode);
+
             Log.Debug("PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages, currentLanguageCode={CurrentLanguageCode}",
                 languagesData.Count, currentLanguageCode ?? "(null)");
 
             var languageVMs = new List<LanguageListViewItemModel>();
 
-            foreach (var language in languagesData.Values
-                         .Where(x => trimmedSearchTerm == null
-                                     || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                         .OrderBy(x => x.Name))
+            foreach (var language in languagesData.Values)
             {
-                var languageVm = new LanguageListViewItemModel(language);
+                var name = names.GetValueOrDefault(language.Id) ?? language.LanguageCode;
+                if (trimmedSearchTerm != null && !name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var languageVm = new LanguageListViewItemModel(language, name);
                 languageVMs.Add(languageVm);
 
                 if (!string.IsNullOrEmpty(currentLanguageCode) && 
@@ -81,6 +87,8 @@ public sealed class BiblePublicationSelectionDataProvider
                         languageVm.Code, languageVm.Name);
                 }
             }
+
+            languageVMs = languageVMs.OrderBy(x => x.Name).ToList();
 
             // Add items in small batches with frequent yields for smooth spinner animation
             const int batchSize = 15;

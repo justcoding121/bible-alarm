@@ -64,8 +64,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
             var publicationsWithoutLanguage = await db.BiblePublications
                 .AsNoTracking()
-                .Where(bp => bp.Category != null &&
-                            bp.Category.CategoryName == "Music" &&
+                .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
                             bp.LanguageId == null)
                 .Select(bp => bp.PublicationCode)
                 .Distinct()
@@ -85,7 +84,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                     .Where(pl => pl.Language != null &&
                                pl.Language.LanguageCode == language.Code.ToUpperInvariant() &&
                                pl.Category != null &&
-                               pl.Category.CategoryName == "Music")
+                               pl.Category.CategoryCode == "Music")
                     .OrderBy(pl => pl.Id)
                     .ToListAsync();
 

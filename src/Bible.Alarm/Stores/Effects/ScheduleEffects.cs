@@ -425,12 +425,14 @@ public class ScheduleEffects(
             var currentBiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>()!;
             var currentBiblePublicationSectionService = biblePublicationSectionService ?? ServiceProviderManager.GetService<IBiblePublicationSectionService>();
             var languageContentService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>()!;
+            var languageNameService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>()!;
             var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>()!;
-            
+
             var handler = new CategorySelectionAutoPopulateHandler(
                 currentBiblePublicationService,
                 currentMediaService,
                 languageContentService,
+                languageNameService,
                 new Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers.BiblePublicationSelectionItemSelector(
                     currentMediaService,
                     currentState,

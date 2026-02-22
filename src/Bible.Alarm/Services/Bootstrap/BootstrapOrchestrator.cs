@@ -4,6 +4,8 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
@@ -23,6 +25,8 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
     private readonly IScheduleBootstrapService scheduleBootstrapService;
     private readonly IPlatformBootstrapService platformBootstrapService;
     private readonly IDatabaseSeedService databaseSeedService;
+    private readonly ILanguageNameService languageNameService;
+    private readonly ICategoryNameService categoryNameService;
 
     public BootstrapOrchestrator(
         IDatabaseBootstrapService databaseBootstrapService,
@@ -30,7 +34,9 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
         IResourceBootstrapService resourceBootstrapService,
         IScheduleBootstrapService scheduleBootstrapService,
         IPlatformBootstrapService platformBootstrapService,
-        IDatabaseSeedService databaseSeedService)
+        IDatabaseSeedService databaseSeedService,
+        ILanguageNameService languageNameService,
+        ICategoryNameService categoryNameService)
     {
         this.databaseBootstrapService = databaseBootstrapService;
         this.fluxorBootstrapService = fluxorBootstrapService;
@@ -38,6 +44,8 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
         this.scheduleBootstrapService = scheduleBootstrapService;
         this.platformBootstrapService = platformBootstrapService;
         this.databaseSeedService = databaseSeedService;
+        this.languageNameService = languageNameService;
+        this.categoryNameService = categoryNameService;
     }
 
     public async Task VerifyServicesAsync(bool initializeUi = false)
@@ -104,6 +112,19 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                     // After both database and resource bootstrap complete, migrate non-English media
                     // data from old media index to new packaged index (only runs on version change)
                     await resourceBootstrapService.MigrateNonEnglishMediaDataAsync();
+
+                    // Warm in-memory caches for category and language display names (current app language "E")
+                    // so UI lookups avoid DB hits. Future app languages can be warmed similarly.
+                    try
+                    {
+                        var defaultLang = AppConstants.Media.DefaultLanguageCode;
+                        await languageNameService.WarmCacheForDisplayLanguageAsync(defaultLang);
+                        await categoryNameService.WarmCacheForDisplayLanguageAsync(defaultLang);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to warm display-name caches, lookups will use DB");
+                    }
 
                     // Send InitializedMessage early (after database/Fluxor are ready) to show UI with loading state
                     // This improves perceived performance - user sees the home page while schedules are being populated

@@ -8,6 +8,7 @@ using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using BiblePublicationCategory = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationCategory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -49,7 +50,7 @@ internal sealed class MelodyMusicSeeder
 
         // Get Music category
         var musicCategory = await db.Categories
-            .FirstOrDefaultAsync(c => c.CategoryName == "Music");
+            .FirstOrDefaultAsync(c => c.CategoryCode == "Music");
 
         if (musicCategory == null)
         {
@@ -114,9 +115,8 @@ internal sealed class MelodyMusicSeeder
             {
                 PublicationCode = publicationCode.ToLowerInvariant(),
                 Name = publicationName,
-                LanguageId = null, // MelodyMusic has no language
-                CategoryId = musicCategory.Id,
-                Category = musicCategory,
+                LanguageId = null,
+                BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { CategoryId = musicCategory.Id, Category = musicCategory } },
                 IsVideo = false,
                 Sections = new List<SharedBiblePublicationSection>(),
                 Tracks = new List<SharedBiblePublicationTrack>()

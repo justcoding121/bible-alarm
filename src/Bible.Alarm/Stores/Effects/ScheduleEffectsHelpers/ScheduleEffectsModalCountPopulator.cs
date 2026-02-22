@@ -72,7 +72,7 @@ public static class ScheduleEffectsModalCountPopulator
 
         var query = db.PublicationLanguages
             .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
+            .Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
 
         if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
         {
@@ -151,7 +151,7 @@ public static class ScheduleEffectsModalCountPopulator
 
         var query = db.PublicationLanguages
             .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryName == "Music");
+            .Where(pl => pl.Category != null && pl.Category.CategoryCode == "Music");
 
         query = query.Where(pl =>
             (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||

@@ -45,7 +45,8 @@ internal sealed class ScheduleStatePopulator
 
     public async Task<ObservableHashSet<ScheduleStateItem>> PopulateAsync(
         List<AlarmSchedule> alarmSchedules,
-        Dictionary<string, Language>? languagesDict)
+        Dictionary<string, Language>? languagesDict,
+        Dictionary<string, string>? languageNamesByCode = null)
     {
         // Collect all unique keys needed
         var keys = keyCollector.CollectKeys(alarmSchedules);
@@ -63,12 +64,14 @@ internal sealed class ScheduleStatePopulator
                 schedule,
                 scheduleStateItem,
                 lookupData,
-                languagesDict);
+                languagesDict,
+                languageNamesByCode);
 
             musicPopulator.Populate(
                 schedule,
                 scheduleStateItem,
-                lookupData);
+                lookupData,
+                languageNamesByCode);
 
             return scheduleStateItem;
         });

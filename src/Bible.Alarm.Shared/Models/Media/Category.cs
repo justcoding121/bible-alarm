@@ -8,19 +8,36 @@ using Microsoft.EntityFrameworkCore;
 namespace Bible.Alarm.Shared.Models.Media;
 
 [Table("Categories")]
+[Index(nameof(CategoryCode), IsUnique = true)]
 public sealed class Category : IComparable
 {
     [Key]
     public int Id { get; set; }
 
+    /// <summary>
+    /// Stable code (PascalCase, no spaces), e.g. "Bible", "InterviewsAndExperiences".
+    /// </summary>
     [Required]
-    [MaxLength(255)]
-    public string CategoryName { get; set; } = string.Empty;
+    [MaxLength(100)]
+    public string CategoryCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Navigation property to BiblePublications in this category
+    /// Localized names per language code (e.g. "E" for English).
     /// </summary>
-    public List<BiblePublications.BiblePublication> BiblePublications { get; set; } = [];
+    public List<CategoryNameByLanguage> NamesByLanguage { get; set; } = [];
 
-    public int CompareTo(object? obj) => obj is not Category other ? 1 : CategoryName.CompareTo(other.CategoryName);
+    /// <summary>
+    /// Junction: publications in this category (many-to-many).
+    /// </summary>
+    public List<BiblePublications.BiblePublicationCategory> BiblePublicationCategories { get; set; } = [];
+
+    public int CompareTo(object? obj)
+    {
+        if (obj is not Category other)
+        {
+            return 1;
+        }
+
+        return string.Compare(CategoryCode, other.CategoryCode, StringComparison.Ordinal);
+    }
 }

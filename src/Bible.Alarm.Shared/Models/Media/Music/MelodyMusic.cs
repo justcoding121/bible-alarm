@@ -18,8 +18,8 @@ public class MelodyMusic
     public int Id => Publication.Id;
     public string Code => Publication.PublicationCode;
     public string Name => Publication.Name;
-    public int CategoryId => Publication.CategoryId;
-    public Category Category => Publication.Category;
+    public int CategoryId => Publication.PrimaryCategoryId;
+    public Category Category => Publication.PrimaryCategory!;
     public int? LanguageId => Publication.LanguageId;
     public Language? Language => Publication.Language;
     public List<BiblePublicationSection> Sections => Publication.Sections;

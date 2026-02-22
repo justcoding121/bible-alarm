@@ -4,10 +4,20 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class CategoryListViewItemModel(Category category) : ObservableObject, IComparable
+public sealed class CategoryListViewItemModel : ObservableObject, IComparable
 {
-    public int Id { get; set; } = category.Id;
-    public string Name { get; set; } = category.CategoryName;
+    public CategoryListViewItemModel(Category category, string? displayName = null)
+    {
+        Id = category.Id;
+        CategoryCode = category.CategoryCode;
+        Name = displayName ?? category.CategoryCode;
+    }
+
+    public int Id { get; set; }
+    /// <summary>Category code for filtering and state (e.g. "Bible", "Music").</summary>
+    public string CategoryCode { get; set; } = string.Empty;
+    /// <summary>Display name for UI (localized when cache warmed for "E").</summary>
+    public string Name { get; set; } = string.Empty;
 
     private bool isSelected;
     private bool isNavigating;

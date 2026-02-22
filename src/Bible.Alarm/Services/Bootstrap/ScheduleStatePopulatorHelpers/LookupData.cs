@@ -252,24 +252,32 @@ internal sealed class LookupDataLoader
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
         // Load publication metadata (name + category) for LanguageId == null publications.
-        var noLanguagePubs = await db.BiblePublications
+        var noLanguagePubsRaw = await db.BiblePublications
             .AsNoTracking()
-            .Include(p => p.Category)
+            .Include(p => p.BiblePublicationCategories)
+            .ThenInclude(bpc => bpc.Category)
             .Where(p => p.LanguageId == null && missingPublicationCodes.Contains(p.PublicationCode))
-            .Select(p => new
-            {
-                p.Id,
-                p.PublicationCode,
-                p.Name,
-                p.CategoryId,
-                CategoryName = p.Category != null ? p.Category.CategoryName : null
-            })
             .ToListAsync(CancellationToken.None);
 
-        if (noLanguagePubs.Count == 0)
+        if (noLanguagePubsRaw.Count == 0)
         {
             return NoLanguageLookupData.Empty;
         }
+
+        var noLanguagePubs = noLanguagePubsRaw
+            .Select(p =>
+            {
+                var firstCat = p.BiblePublicationCategories.FirstOrDefault();
+                return new
+                {
+                    p.Id,
+                    p.PublicationCode,
+                    p.Name,
+                    CategoryId = firstCat?.CategoryId ?? 0,
+                    CategoryCode = firstCat?.Category?.CategoryCode ?? JwSourceHelper.GetCategoryCode(p.PublicationCode) ?? string.Empty
+                };
+            })
+            .ToList();
 
         var pubIdByCode = noLanguagePubs
             .GroupBy(p => p.PublicationCode, StringComparer.OrdinalIgnoreCase)
@@ -284,11 +292,7 @@ internal sealed class LookupDataLoader
                 g =>
                 {
                     var first = g.First();
-                    var categoryName =
-                        first.CategoryName
-                        ?? JwSourceHelper.GetCategoryName(first.PublicationCode)
-                        ?? string.Empty;
-                    return new NoLanguagePublicationMeta(first.Name ?? string.Empty, first.CategoryId, categoryName);
+                    return new NoLanguagePublicationMeta(first.Name ?? string.Empty, first.CategoryId, first.CategoryCode);
                 },
                 StringComparer.OrdinalIgnoreCase);
 
