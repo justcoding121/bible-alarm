@@ -76,7 +76,8 @@ public static class JwSourceHelper
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
         "VODMoviesAnimated",
-        "VODMoviesExtras"
+        "VODMoviesExtras",
+        "VODLFFVideosAD" // Enjoy Life Forever!—Videos (Series, Mediator API)
     };
 
     /// <summary>
@@ -101,11 +102,6 @@ public static class JwSourceHelper
 
         return null;
     }
-
-    /// <summary>
-    /// Publication codes for categories that have no harvesters yet. Empty until JW API codes are added.
-    /// </summary>
-    public static HashSet<string> ArticleSeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Books category. Empty until JW API codes are added.
@@ -148,9 +144,21 @@ public static class JwSourceHelper
     public static HashSet<string> ProgramsAndEventsPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Publication codes for Series category. Empty until JW API codes are added.
+    /// Publication codes for Series category (flat video and/or Mediator-sectioned video).
     /// </summary>
-    public static HashSet<string> SeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> SeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "thv", // Apply Yourself to Reading and Teaching—Videos (Flat)
+        "VODLFFVideosAD" // Enjoy Life Forever!—Videos (Mediator API)
+    };
+
+    /// <summary>
+    /// Series publications that use Mediator API for discovery (MediatorSectioned). Used by DramaHarvester.
+    /// </summary>
+    public static HashSet<string> SeriesMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "VODLFFVideosAD"
+    };
 
     /// <summary>
     /// Publication codes for Teenagers category. Empty until JW API codes are added.
@@ -189,7 +197,6 @@ public static class JwSourceHelper
                 ["Bible"] = BiblePublicationCodes,
                 ["Music"] = musicCodes,
                 ["Dramas"] = dramaCodes,
-                ["Article Series"] = ArticleSeriesPublicationCodes,
                 ["Books"] = BooksPublicationCodes,
                 ["Broadcasting"] = BroadcastingPublicationCodes,
                 ["Brochures and Booklets"] = BrochuresAndBookletsPublicationCodes,

@@ -31,7 +31,6 @@ Canonical list: **CategorySeeder** (`.tools/Bible.Alarm.AudioLinksHarvestor/Seed
 | Bible | nwt, bi12 | Sectioned | Yes |
 | Music | osg, sjjc, sjji, snv, pksjj (vocal); iam (melody) | Flat (vocal); Sectioned (iam) | Yes (vocal); No (iam) |
 | Dramas | Dramas, DramaticBibleReadings, gnj, VODMoviesBibleTimes, VODMoviesModernDay, VODMoviesAnimated, VODMoviesExtras | MediatorSectioned (Dramas, DramaticBibleReadings, VOD*); Flat (gnj). VOD* are video (MP4). | Yes |
-| Article Series | — | — | — |
 | Books | — | — | — |
 | Broadcasting | — | — | — |
 | Brochures and Booklets | — | — | — |
@@ -40,7 +39,7 @@ Canonical list: **CategorySeeder** (`.tools/Bible.Alarm.AudioLinksHarvestor/Seed
 | Interviews and Experiences | — | — | — |
 | Meetings and Ministry | — | — | — |
 | Programs and Events | — | — | — |
-| Series | — | — | — |
+| Series | thv, VODLFFVideosAD | Flat (thv); MediatorSectioned (VODLFFVideosAD, video) | Yes |
 | Teenagers | — | — | — |
 
 Notes:

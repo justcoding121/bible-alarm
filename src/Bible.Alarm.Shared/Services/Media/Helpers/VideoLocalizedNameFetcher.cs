@@ -40,6 +40,7 @@ internal sealed class VideoLocalizedNameFetcher
             "vodmoviesmodernday" => "VODMoviesModernDay",
             "vodmoviesanimated" => "VODMoviesAnimated",
             "vodmoviesextras" => "VODMoviesExtras",
+            "vodlffvideosad" => "VODLFFVideosAD",
             _ => null
         };
 

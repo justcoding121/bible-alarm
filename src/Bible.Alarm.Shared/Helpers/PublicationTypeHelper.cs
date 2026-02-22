@@ -35,6 +35,22 @@ public static class PublicationTypeHelper
     };
 
     /// <summary>
+    /// Series category flat video publications (GETPUBMEDIALINKS, MP4). Treated as Flat + IsVideo.
+    /// </summary>
+    private static readonly HashSet<string> SeriesVideoPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "thv" // Apply Yourself to Reading and Teaching—Videos
+    };
+
+    /// <summary>
+    /// Series category publications that use Mediator API (MediatorSectioned, video). Treated as MediatorSectioned + IsVideo.
+    /// </summary>
+    private static readonly HashSet<string> SeriesMediatorPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "VODLFFVideosAD" // Enjoy Life Forever!—Videos
+    };
+
+    /// <summary>
     /// Returns true if the publication has a Section → Track structure.
     /// Only Bible (books 1-66) and Music "iam" (Kingdom Melodies discs) have sections.
     /// Returns false for dramas, videos, and other music which have a flat Track structure.
@@ -52,8 +68,9 @@ public static class PublicationTypeHelper
             return true; // Kingdom Melodies uses discs (sections)
         }
 
-        // Dramas and videos have flat tracks
-        if (DramaPublicationCodes.Contains(publicationCode) || VideoPublicationCodes.Contains(publicationCode))
+        // Dramas, videos, series flat videos, and series Mediator videos have flat tracks
+        if (DramaPublicationCodes.Contains(publicationCode) || VideoPublicationCodes.Contains(publicationCode) ||
+            SeriesVideoPublicationCodes.Contains(publicationCode) || SeriesMediatorPublicationCodes.Contains(publicationCode))
         {
             return false;
         }
@@ -95,7 +112,8 @@ public static class PublicationTypeHelper
             return false;
         }
 
-        return VideoPublicationCodes.Contains(publicationCode);
+        return VideoPublicationCodes.Contains(publicationCode) || SeriesVideoPublicationCodes.Contains(publicationCode) ||
+               SeriesMediatorPublicationCodes.Contains(publicationCode);
     }
 
     /// <summary>
@@ -116,8 +134,8 @@ public static class PublicationTypeHelper
             return HarvestType.Sectioned; // Default to Bible structure
         }
 
-        // Dramas use Mediator API
-        if (IsDrama(publicationCode))
+        // Series Mediator and Dramas use Mediator API
+        if (JwSourceHelper.SeriesMediatorPublicationCodes.Contains(publicationCode) || IsDrama(publicationCode))
         {
             return HarvestType.MediatorSectioned;
         }

@@ -110,6 +110,55 @@ internal class VideoHarvester : BaseHarvester
             languageCodeToInfo[englishEntry.Code] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
             AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
         }
+
+        // Series category flat video (same API shape: GETPUBMEDIALINKS pub=code track=N, MP4)
+        foreach (var publicationCode in SharedHelpers.JwSourceHelper.SeriesPublicationCodes)
+        {
+            var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
+            Logger.Information("Starting harvest for Series publication: {PublicationName} ({PublicationCode})",
+                publicationName, publicationCode);
+
+            var languageEntries = await GetLanguageEntries(publicationCode, publicationName, isTestRun);
+            if (languageEntries == null || languageEntries.Count == 0)
+            {
+                Logger.Warning("No languages found for Series publication: {PublicationName} ({PublicationCode})",
+                    publicationName, publicationCode);
+                continue;
+            }
+
+            languageEntries = await signLanguageChecker.FilterSignLanguagesAsync(languageEntries);
+
+            if (languageEntries.Count == 0)
+            {
+                Logger.Warning("No non-sign languages found for Series publication: {PublicationName} ({PublicationCode})",
+                    publicationName, publicationCode);
+                continue;
+            }
+
+            if (dataPersister != null)
+            {
+                var discoveredLanguages = languageEntries
+                    .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+                    .ToDictionary(
+                        e => e.Code,
+                        e => new LanguageInfo(e.Name, e.Direction));
+
+                if (discoveredLanguages.Count > 0)
+                {
+                    await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
+                }
+            }
+
+            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
+            if (englishEntry == default)
+            {
+                Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
+                continue;
+            }
+
+            languageCodeToInfo[englishEntry.Code] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
+            AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
+        }
     }
 
     private async Task<List<(string Code, string Name, string Direction)>?> GetLanguageEntries(
