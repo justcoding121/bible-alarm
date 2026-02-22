@@ -27,6 +27,7 @@ internal sealed class CategorySeeder
             new Category { CategoryCode = "Bible" },
             new Category { CategoryCode = "Dramas" },
             new Category { CategoryCode = "Music" },
+            new Category { CategoryCode = "FaithAndBible" },
             new Category { CategoryCode = "Books" },
             new Category { CategoryCode = "Broadcasting" },
             new Category { CategoryCode = "Brochures and Booklets" },

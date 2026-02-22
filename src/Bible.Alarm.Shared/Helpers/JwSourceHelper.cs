@@ -121,6 +121,11 @@ public static class JwSourceHelper
     }
 
     /// <summary>
+    /// Publication codes for Faith and Bible category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> FaithAndBiblePublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Publication codes for Books category. Empty until JW API codes are added.
     /// </summary>
     public static HashSet<string> BooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
@@ -247,6 +252,7 @@ public static class JwSourceHelper
                 ["Bible"] = BiblePublicationCodes,
                 ["Music"] = musicCodes,
                 ["Dramas"] = dramaCodes,
+                ["Faith and Bible"] = FaithAndBiblePublicationCodes,
                 ["Books"] = BooksPublicationCodes,
                 ["Broadcasting"] = BroadcastingPublicationCodes,
                 ["Brochures and Booklets"] = BrochuresAndBookletsPublicationCodes,
