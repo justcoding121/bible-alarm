@@ -46,19 +46,7 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = normalizedPublicationCode;
-            }
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
             var publication = await db.BiblePublications
                 .Include(bp => bp.Sections)

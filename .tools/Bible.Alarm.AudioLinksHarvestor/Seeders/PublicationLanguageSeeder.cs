@@ -98,20 +98,7 @@ internal sealed class PublicationLanguageSeeder
     {
         var normalizedPublicationCode = publicationCode.ToLowerInvariant();
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
-
-        // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-        var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-        string publicationCodeForDb;
-        if (isDrama)
-        {
-            publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                ? "Dramas"
-                : "DramaticBibleReadings";
-        }
-        else
-        {
-            publicationCodeForDb = normalizedPublicationCode;
-        }
+        var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
         // Get or create language
         var language = await languageSeeder.GetOrCreateLanguageByCode(db, normalizedLanguageCode);
@@ -169,6 +156,15 @@ internal sealed class PublicationLanguageSeeder
         }
     }
 
+    /// <summary>
+    /// Syncs PublicationLanguages so that English (E) has a row for every BiblePublication with Language E.
+    /// Call after English seeding so that VOD*, Series*, and other E-only publications appear in the app.
+    /// </summary>
+    public async Task SyncPublicationLanguagesForEnglishAsync(MediaDbContext db)
+    {
+        await SeedEnglishForAllPublications(db);
+    }
+
     private async Task SeedEnglishForAllPublications(MediaDbContext db)
     {
         // Get all English publications
@@ -184,23 +180,10 @@ internal sealed class PublicationLanguageSeeder
         foreach (var publicationCode in englishPublications)
         {
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-            
-            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            // This matches the logic in SeedLanguageForPublication to prevent duplicates
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = normalizedPublicationCode;
-            }
-            
-            // Determine harvest type and category based on publication code
+
+            // Preserve actual publication code from BiblePublications (VODMoviesBibleTimes, Dramas, gnj, etc.)
+            var publicationCodeForDb = publicationCode;
+
             var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
             var categoryCode = JwSourceHelper.GetCategoryCode(normalizedPublicationCode);
 
@@ -216,8 +199,7 @@ internal sealed class PublicationLanguageSeeder
                 logger.Warning("Category '{CategoryCode}' not found in database for publication {PublicationCode}", categoryCode, publicationCode);
                 continue;
             }
-            
-            // Check if already exists (use case-sensitive code for dramas)
+
             var exists = await db.PublicationLanguages
                 .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
 
@@ -225,7 +207,7 @@ internal sealed class PublicationLanguageSeeder
             {
                 var publicationLanguage = new PublicationLanguage
                 {
-                    PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
+                    PublicationCode = publicationCodeForDb,
                     Language = englishLanguage,
                     HarvestType = harvestType,
                     Category = category,
@@ -235,10 +217,9 @@ internal sealed class PublicationLanguageSeeder
             }
             else
             {
-                // Update existing entry with harvest type and category if missing
                 var existing = await db.PublicationLanguages
                     .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
-                
+
                 if (existing != null)
                 {
                     existing.HarvestType = harvestType;
@@ -246,6 +227,66 @@ internal sealed class PublicationLanguageSeeder
                     existing.CategoryId = category.Id;
                 }
             }
+        }
+
+        await EnsureDramasCategoryEntriesForDramaPublicationsAsync(db, englishPublications, englishLanguage);
+    }
+
+    /// <summary>
+    /// For publications whose primary category is Dramas (DramaCategoryCodes or VideoPublicationCodes),
+    /// ensure a PublicationLanguage row with Category = Dramas so they appear in the Dramas list.
+    /// Series/Children pubs (e.g. SeriesBJFLessons, SeriesDigForTreasures, VODLFFVideosAD) are not added here.
+    /// </summary>
+    private async Task EnsureDramasCategoryEntriesForDramaPublicationsAsync(
+        MediaDbContext db,
+        List<string> englishPublicationCodes,
+        Bible.Alarm.Shared.Models.Media.Language englishLanguage)
+    {
+        var dramasCategory = await db.Categories.FirstOrDefaultAsync(c => c.CategoryCode == "Dramas");
+        if (dramasCategory == null)
+        {
+            return;
+        }
+
+        var withDramasCategory = await db.PublicationLanguages
+            .Where(pl => pl.CategoryId == dramasCategory.Id)
+            .ToListAsync();
+        var toRemove = withDramasCategory
+            .Where(pl => !JwSourceHelper.IsInDramasCategory(pl.PublicationCode))
+            .ToList();
+        if (toRemove.Count > 0)
+        {
+            db.PublicationLanguages.RemoveRange(toRemove);
+            await db.SaveChangesAsync();
+            logger.Information("Removed {Count} PublicationLanguage row(s) with Dramas category for non-Dramas publications", toRemove.Count);
+        }
+
+        foreach (var publicationCode in englishPublicationCodes)
+        {
+            if (!JwSourceHelper.IsInDramasCategory(publicationCode))
+            {
+                continue;
+            }
+
+            var exists = await db.PublicationLanguages
+                .AnyAsync(pl => pl.PublicationCode == publicationCode
+                    && pl.LanguageId == englishLanguage.Id
+                    && pl.CategoryId == dramasCategory.Id);
+
+            if (exists)
+            {
+                continue;
+            }
+
+            var harvestType = PublicationTypeHelper.GetHarvestType(publicationCode);
+            db.PublicationLanguages.Add(new PublicationLanguage
+            {
+                PublicationCode = publicationCode,
+                Language = englishLanguage,
+                HarvestType = harvestType,
+                Category = dramasCategory,
+                CategoryId = dramasCategory.Id
+            });
         }
     }
 

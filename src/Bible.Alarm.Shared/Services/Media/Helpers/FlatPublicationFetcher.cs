@@ -63,8 +63,25 @@ internal sealed class FlatPublicationFetcher
         var trackCode = 1;
         var consecutiveFailures = 0;
         const int MaxConsecutiveFailures = 3;
+        var fetchedAllVideoTracks = false;
 
-        while (consecutiveFailures < MaxConsecutiveFailures)
+        // Some video publications (e.g. thv) return all tracks in one response when no track param is used
+        if (isVideo && !string.IsNullOrEmpty(trackParam))
+        {
+            var (allTracksResult, fetchedPubName) = await TryFetchAllVideoTracksInOneRequestAsync(
+                db, normalizedPublicationCode, normalizedLanguageCode, fileFormat, cancellationToken);
+            if (allTracksResult.Count > 0)
+            {
+                tracks.AddRange(allTracksResult);
+                if (fetchedPubName != null)
+                {
+                    localizedPubName = fetchedPubName;
+                }
+                fetchedAllVideoTracks = true;
+            }
+        }
+
+        while (!fetchedAllVideoTracks && consecutiveFailures < MaxConsecutiveFailures)
         {
             try
             {
@@ -449,5 +466,141 @@ internal sealed class FlatPublicationFetcher
             tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         return true;
+    }
+
+    /// <summary>
+    /// Tries to fetch all video tracks in one request (no track param). Many video publications (e.g. thv) return
+    /// all tracks in files.lang.MP4 when the track parameter is omitted. The API also supports per-track requests
+    /// (track=1, track=2, …); we try fetch-all first for efficiency (one request vs many).
+    /// </summary>
+    private async Task<(List<BiblePublicationTrack> Tracks, string? LocalizedPubName)> TryFetchAllVideoTracksInOneRequestAsync(
+        MediaDbContext db,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        string fileFormat,
+        CancellationToken cancellationToken)
+    {
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        try
+        {
+            var response = await httpClient.GetAsync(harvestLink, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return (new List<BiblePublicationTrack>(), null);
+            }
+
+            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = doc.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement) ||
+                !filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
+                !languageFiles.TryGetProperty(fileFormat, out var formatFiles) ||
+                formatFiles.ValueKind != JsonValueKind.Array)
+            {
+                return (new List<BiblePublicationTrack>(), null);
+            }
+
+            string? fetchedPubName = null;
+            if (root.TryGetProperty("pubName", out var pubNameElement))
+            {
+                var rawName = pubNameElement.GetString();
+                fetchedPubName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            }
+
+            var apiUrl = await db.ApiUrls
+                .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
+                .FirstOrDefaultAsync(cancellationToken);
+            if (apiUrl == null)
+            {
+                return (new List<BiblePublicationTrack>(), null);
+            }
+
+            var byTrack = new Dictionary<int, JsonElement>();
+            foreach (var file in formatFiles.EnumerateArray())
+            {
+                if (!file.TryGetProperty("track", out var trackEl))
+                {
+                    continue;
+                }
+
+                var trackNum = trackEl.GetInt32();
+                if (trackNum == 0)
+                {
+                    continue;
+                }
+
+                if (!byTrack.TryGetValue(trackNum, out var existing))
+                {
+                    byTrack[trackNum] = file;
+                    continue;
+                }
+
+                var prefer240p = file.TryGetProperty("label", out var labelEl) && labelEl.GetString() == "240p";
+                if (prefer240p)
+                {
+                    byTrack[trackNum] = file;
+                }
+            }
+
+            var result = new List<BiblePublicationTrack>();
+            foreach (var kv in byTrack.OrderBy(x => x.Key))
+            {
+                var fileElement = kv.Value;
+                if (!fileElement.TryGetProperty("file", out var fileInfo) ||
+                    !fileInfo.TryGetProperty("url", out var urlElement))
+                {
+                    continue;
+                }
+
+                var url = urlElement.GetString();
+                if (string.IsNullOrEmpty(url))
+                {
+                    continue;
+                }
+
+                string title = "Unknown";
+                if (fileElement.TryGetProperty("title", out var titleElement))
+                {
+                    var rawTitle = titleElement.GetString();
+                    title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                }
+
+                var trackUrlParams = new List<UrlParam>
+                {
+                    new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id },
+                    new UrlParam { Key = "track", Value = kv.Key.ToString(), IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id },
+                    new UrlParam { Key = "fileformat", Value = fileFormat.ToLowerInvariant(), IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id },
+                    new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id },
+                    new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id }
+                };
+
+                result.Add(new BiblePublicationTrack
+                {
+                    TrackCode = kv.Key.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Title = title,
+                    UrlParams = trackUrlParams
+                });
+            }
+
+            if (result.Count > 0)
+            {
+                logger.Debug("Fetched {Count} video tracks in one request for publication {PublicationCode} in language {LanguageCode}",
+                    result.Count, normalizedPublicationCode, normalizedLanguageCode);
+            }
+
+            return (result, fetchedPubName);
+        }
+        catch (Exception ex)
+        {
+            if (NetworkExceptionHelper.IsNetworkFailure(ex))
+            {
+                throw;
+            }
+
+            logger.Debug(ex, "Fetch-all (no track param) failed for publication {PublicationCode}, will try track-by-track",
+                normalizedPublicationCode);
+            return (new List<BiblePublicationTrack>(), null);
+        }
     }
 }

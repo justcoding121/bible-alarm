@@ -47,22 +47,9 @@ internal sealed class EnglishSeeder
         var publicationsNeedingEnglish = new List<string>();
         foreach (var publicationCode in allPublicationCodes)
         {
-            // Normalize publication code for database queries
             var normalizedCode = publicationCode.ToLowerInvariant();
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = normalizedCode;
-            }
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedCode) ?? normalizedCode;
 
-            // Check if publication has LanguageId == null (skip these - they don't have English content)
             var hasNullLanguage = await db.BiblePublications
                 .AsNoTracking()
                 .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.LanguageId == null);
@@ -73,7 +60,6 @@ internal sealed class EnglishSeeder
                 continue;
             }
 
-            // Check if English already exists for this publication
             var hasEnglish = await db.BiblePublications
                 .AsNoTracking()
                 .Include(bp => bp.Language)

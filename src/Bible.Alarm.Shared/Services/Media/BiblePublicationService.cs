@@ -113,22 +113,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         {
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            // For others (e.g., "gnj"), preserve exact case
+            // Use canonical case for drama codes (VODMoviesBibleTimes, etc.); otherwise preserve input
             var lowerCode = publicationCode.ToLowerInvariant();
-            var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                // Preserve exact case (e.g., "gnj")
-                publicationCodeForDb = publicationCode;
-            }
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
 
             var key = new PublicationCacheKey(normalizedLanguageCode, publicationCodeForDb);
             var now = DateTimeOffset.UtcNow;
@@ -210,7 +197,6 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Include(x => x.Language)
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode);
 
-            // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
@@ -345,30 +331,13 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            // Remove duplicates by normalizing case for comparison, but preserve original case
-            // For dramas, use case-sensitive codes: "Dramas", "DramaticBibleReadings" (preserve exact case)
+            // Deduplicate by case-insensitive key while preserving original case from first occurrence
             var uniqueCodes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var code in publicationCodes)
             {
-                var lowerCode = code.ToLowerInvariant();
-                // For dramas, normalize to correct case-sensitive format
-                if (PublicationTypeHelper.IsDrama(lowerCode))
+                if (!uniqueCodes.ContainsKey(code))
                 {
-                    var normalizedDramaCode = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                        ? "Dramas"
-                        : "DramaticBibleReadings";
-                    if (!uniqueCodes.ContainsKey(normalizedDramaCode))
-                    {
-                        uniqueCodes[normalizedDramaCode] = normalizedDramaCode;
-                    }
-                }
-                else
-                {
-                    // For non-dramas, preserve original case (e.g., "gnj")
-                    if (!uniqueCodes.ContainsKey(code))
-                    {
-                        uniqueCodes[code] = code;
-                    }
+                    uniqueCodes[code] = code;
                 }
             }
 
@@ -409,23 +378,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
             }
 
-            // Order by Id to get the first publication by ID order
             var firstPublicationCode = await query
                 .OrderBy(x => x.Id)
                 .Select(x => x.PublicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
-
-            // Normalize drama publication codes to prevent duplicates
-            if (!string.IsNullOrEmpty(firstPublicationCode))
-            {
-                var normalized = firstPublicationCode.ToLowerInvariant();
-                if (PublicationTypeHelper.IsDrama(normalized))
-                {
-                    firstPublicationCode = normalized.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                        ? "Dramas"
-                        : "DramaticBibleReadings";
-                }
-            }
 
             logger.Debug("GetFirstPublicationCodeByOrderAsync: Found first publication code={PublicationCode} for language={LanguageCode}, category={CategoryName}",
                 firstPublicationCode ?? "(null)", languageCode, categoryName ?? "all");

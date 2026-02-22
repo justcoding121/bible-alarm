@@ -106,6 +106,21 @@ public static class JwSourceHelper
     }
 
     /// <summary>
+    /// Returns true if the publication's primary category is Dramas (DramaCategoryCodes or VideoPublicationCodes).
+    /// Use when deciding whether to show a publication under the Dramas list; excludes Series/Children pubs
+    /// that are only in CanonicalDramaPublicationCodes for API/DB resolution.
+    /// </summary>
+    public static bool IsInDramasCategory(string? publicationCode)
+    {
+        if (string.IsNullOrEmpty(publicationCode))
+        {
+            return false;
+        }
+
+        return DramaCategoryCodes.Contains(publicationCode) || VideoPublicationCodes.Contains(publicationCode);
+    }
+
+    /// <summary>
     /// Publication codes for Books category. Empty until JW API codes are added.
     /// </summary>
     public static HashSet<string> BooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase);

@@ -43,19 +43,7 @@ internal sealed class SectionLanguageSeeder
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             var normalizedSectionCode = sectionCode.ToLowerInvariant();
 
-            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = normalizedPublicationCode;
-            }
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
             // Verify English publication exists (it should be seeded by now, but skip silently if not)
             // Note: We still seed section languages even if English publication doesn't exist,
@@ -116,19 +104,7 @@ internal sealed class SectionLanguageSeeder
         var normalizedPublicationCode = publicationCode.ToLowerInvariant();
         var normalizedSectionCode = sectionCode.ToLowerInvariant();
 
-        // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-        var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-        string publicationCodeForDb;
-        if (isDrama)
-        {
-            publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                ? "Dramas"
-                : "DramaticBibleReadings";
-        }
-        else
-        {
-            publicationCodeForDb = normalizedPublicationCode;
-        }
+        var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
         // Get or create language
         var language = await languageSeeder.GetOrCreateLanguageByCode(db, normalizedLanguageCode);
@@ -236,18 +212,7 @@ internal sealed class SectionLanguageSeeder
 
             // Normalize publication code for database (case-sensitive for dramas)
             var normalizedPublicationCode = publication.PublicationCode.ToLowerInvariant();
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = normalizedPublicationCode;
-            }
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
             // Get or create PublicationLanguage entry with LanguageId == null for this publication
             var publicationLanguage = await db.PublicationLanguages

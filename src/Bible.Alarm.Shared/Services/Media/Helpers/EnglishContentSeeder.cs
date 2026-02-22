@@ -62,19 +62,7 @@ internal sealed class EnglishContentSeeder
             const string EnglishCode = "E";
             var normalizedLanguageCode = EnglishCode.ToUpperInvariant();
 
-            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = normalizedPublicationCode;
-            }
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
             // Data-driven check: Determine if publication has LanguageId == null
             // Check both BiblePublications and PublicationLanguages to determine if this publication needs a language

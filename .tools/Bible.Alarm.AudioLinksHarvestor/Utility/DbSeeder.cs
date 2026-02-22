@@ -138,11 +138,19 @@ internal class DbSeeder : IDataPersister
         // Seed English using shared FetchAndSave* methods (same as used for other languages in test mode)
         // This happens after discovery tables are seeded, using the same methods that are used for on-demand fetching
         await englishSeeder.SeedEnglish();
-        
+
+        // Sync PublicationLanguages for E so all E BiblePublications (incl. VOD*, Series*) appear in publication list
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            await publicationLanguageSeeder.SyncPublicationLanguagesForEnglishAsync(db);
+            await db.SaveChangesAsync();
+        }
+
         // Now seed SectionLanguages after English publications exist (needed for section lookup)
         using (var scope = scopeFactory.CreateScope())
         {
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             await sectionLanguageSeeder.SeedSectionLanguages(db);
         }
         

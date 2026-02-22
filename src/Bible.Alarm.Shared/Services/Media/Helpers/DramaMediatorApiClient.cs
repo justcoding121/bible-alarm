@@ -60,33 +60,37 @@ internal sealed class DramaMediatorApiClient
             return (null, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         }
 
-        // Extract localized publication name
-        // Concatenate parent category name with category name (e.g., "Audio" + "Dramas" = "Audio Dramas")
+        // Extract localized publication name.
+        // Only prepend parent category when the pub name equals the category name (e.g. "Dramas" under "Dramas")
+        // to avoid confusion; otherwise use the category name as-is (e.g. "The Good News According to Jesus").
         string? localizedPubName = null;
         string? categoryName = null;
         string? parentCategoryName = null;
-        
+
         if (categoryElement.TryGetProperty("name", out var nameElement))
         {
             var rawName = nameElement.GetString();
             categoryName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
         }
-        
+
         if (categoryElement.TryGetProperty("parentCategory", out var parentCategoryElement) &&
             parentCategoryElement.TryGetProperty("name", out var parentNameElement))
         {
             var rawParentName = parentNameElement.GetString();
             parentCategoryName = rawParentName != null ? WebUtility.HtmlDecode(rawParentName).Replace('\u00A0', ' ') : null;
         }
-        
-        // Concatenate parent category name with category name
-        if (!string.IsNullOrEmpty(parentCategoryName) && !string.IsNullOrEmpty(categoryName))
+
+        if (!string.IsNullOrEmpty(categoryName))
         {
-            localizedPubName = $"{parentCategoryName} {categoryName}";
-        }
-        else if (!string.IsNullOrEmpty(categoryName))
-        {
-            localizedPubName = categoryName;
+            var pubNameEqualsCategoryName = string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase);
+            if (pubNameEqualsCategoryName && !string.IsNullOrEmpty(parentCategoryName))
+            {
+                localizedPubName = $"{parentCategoryName} {categoryName}";
+            }
+            else
+            {
+                localizedPubName = categoryName;
+            }
         }
 
         // Extract section codes from category.media array

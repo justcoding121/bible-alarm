@@ -49,20 +49,8 @@ internal sealed class LanguageContentFirstSectionFetcher
 
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
             var lowerCode = publicationCode.ToLowerInvariant();
-            var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = publicationCode;
-            }
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
 
             // Get PublicationLanguage to determine category
             var publicationLanguage = await db.PublicationLanguages
