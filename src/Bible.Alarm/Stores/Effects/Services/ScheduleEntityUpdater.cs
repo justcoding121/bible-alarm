@@ -72,6 +72,7 @@ public static class ScheduleEntityUpdater
         existing.NumberOfTracksToPlay = dbSchedule.NumberOfTracksToPlay;
         existing.Name = dbSchedule.Name;
         existing.SnoozeMinutes = dbSchedule.SnoozeMinutes;
+        existing.CategoryCode = dbSchedule.CategoryCode;
     }
 
     /// <summary>

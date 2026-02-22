@@ -39,14 +39,19 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             currentSchedule?.AlwaysPlayFromStart ?? false);
 
         var model = mapper.Map<AlarmSchedule>(currentSchedule);
-        
+
         // Explicitly ensure NumberOfTracksToPlay and AlwaysPlayFromStart are set from currentSchedule state
         // (AutoMapper should handle this, but we explicitly set it to be safe)
         model.NumberOfTracksToPlay = currentSchedule?.NumberOfTracksToPlay ?? 0;
         model.AlwaysPlayFromStart = currentSchedule?.AlwaysPlayFromStart ?? false;
-        
-        // For no-language publications, set LanguageCode to null (not "E")
-        // "E" is only used in state/UI as a fallback, but should not be persisted to DB
+
+        // Persist category code only for non-Music schedules (Music schedules do not need category code)
+        var isMusicCategory = currentSchedule != null &&
+            !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
+            string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
+        model.CategoryCode = isMusicCategory ? null : (string.IsNullOrWhiteSpace(currentSchedule?.BiblePublicationCategoryName) ? null : currentSchedule.BiblePublicationCategoryName);
+
+        // For Bible/Music schedule content, always keep the selected language (even for no-language pubs) so the schedule page can show language + pubs. Only normalize begin-with-music (AlarmMusic) for no-language.
         await NormalizeLanguageCodeForNoLanguagePublicationsAsync(model);
         
         logger.Information("PrepareModelForSave: After mapping - model.NumberOfTracksToPlay={NumberOfTracksToPlay}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}",
@@ -173,7 +178,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(model);
 
-        // Preserve category from CurrentSchedule state (not persisted in DB model)
+        // Preserve category from CurrentSchedule (CategoryCode is persisted for non-Music; for Music we rely on populator/currentSchedule)
         scheduleStateItem.BiblePublicationCategoryId = currentSchedule.BiblePublicationCategoryId;
         scheduleStateItem.BiblePublicationCategoryName = currentSchedule.BiblePublicationCategoryName;
 
@@ -303,8 +308,8 @@ public sealed class ScheduleSaveService : IScheduleSaveService
     }
 
     /// <summary>
-    /// Normalizes LanguageCode for no-language publications by setting it to null.
-    /// "E" is used in state/UI as a fallback but should not be persisted to DB.
+    /// Normalizes LanguageCode only for begin-with-music (AlarmMusic) no-language publications.
+    /// BiblePublicationSchedule (schedule content) always keeps the selected language so the schedule page can show language + pubs when viewed again; playback uses the publications table to decide API fetch.
     /// </summary>
     private async Task NormalizeLanguageCodeForNoLanguagePublicationsAsync(AlarmSchedule model)
     {
@@ -313,19 +318,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             return;
         }
 
-        // Check Bible publication
-        if (model.BiblePublicationSchedule != null && !string.IsNullOrEmpty(model.BiblePublicationSchedule.PublicationCode))
-        {
-            var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.BiblePublicationSchedule.PublicationCode);
-            if (isNoLanguage && model.BiblePublicationSchedule.LanguageCode == AppConstants.Media.DefaultLanguageCode)
-            {
-                logger.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting BiblePublicationSchedule.LanguageCode to null for no-language publication {PublicationCode}",
-                    model.BiblePublicationSchedule.PublicationCode);
-                model.BiblePublicationSchedule.LanguageCode = null;
-            }
-        }
-
-        // Check Music publication (instrumental music is no-language)
+        // Only normalize begin-with-music (AlarmMusic) for no-language; do not null BiblePublicationSchedule.LanguageCode
         if (model.Music != null && !string.IsNullOrEmpty(model.Music.PublicationCode))
         {
             var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.Music.PublicationCode);

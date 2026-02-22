@@ -28,6 +28,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.MusicSectionCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.SectionCode : null))
             .ForMember(dest => dest.MusicTrackCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.TrackCode : null))
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
+            .ForMember(dest => dest.BiblePublicationCategoryName, opt => opt.MapFrom(src => src.CategoryCode))
             // Set manually during bootstrap
             .ForMember(dest => dest.BiblePublicationLanguageName, opt => opt.Ignore())
             // Set manually during bootstrap
@@ -39,7 +40,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.BiblePublicationSchedule, opt => opt.MapFrom(src => src.BiblePublicationScheduleId.HasValue ? new BiblePublicationSchedule
             {
                 Id = src.BiblePublicationScheduleId.Value,
-                LanguageCode = src.BiblePublicationLanguageCode ?? string.Empty,
+                LanguageCode = src.BiblePublicationLanguageCode,
                 PublicationCode = src.BiblePublicationCode ?? string.Empty,
                 SectionCode = SectionCodeHelper.Normalize(src.BiblePublicationSectionCode),
                 TrackCode = src.BiblePublicationTrackCode ?? string.Empty,
@@ -65,7 +66,9 @@ public class ScheduleMappingProfile : Profile
             // Computed property
             .ForMember(dest => dest.Meridian, opt => opt.Ignore())
             // Computed property
-            .ForMember(dest => dest.TimeText, opt => opt.Ignore());
+            .ForMember(dest => dest.TimeText, opt => opt.Ignore())
+            // Set in ScheduleSaveService (Music schedules leave CategoryCode null)
+            .ForMember(dest => dest.CategoryCode, opt => opt.Ignore());
 
         // Map AlarmMusic to MusicStateItem
         CreateMap<AlarmMusic, MusicStateItem>();

@@ -89,6 +89,12 @@ public sealed class AlarmSchedule : IComparable
     [Required]
     public long LatestAlarmNotificationId { get; set; }
 
+    /// <summary>
+    /// Category code (e.g. "Bible", "Dramas") for schedule content. Null for Music category schedules.
+    /// </summary>
+    [MaxLength(100)]
+    public string? CategoryCode { get; set; }
+
     public ICollection<AlarmNotification> AlarmNotifications { get; set; } = new List<AlarmNotification>();
 
     public DateTimeOffset NextFireDate()
