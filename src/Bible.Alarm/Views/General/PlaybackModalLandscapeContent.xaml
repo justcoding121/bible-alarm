@@ -314,7 +314,7 @@
                             VerticalOptions="Fill"
                             IsEnabled="{Binding IsStopButtonEnabled}"
                             IsVisible="{Binding IsStopping, Converter={StaticResource negateBooleanConverter}}"
-                            Text="{x:Static fn:GlyphNames.Stop}"
+                            Text="{x:Static fn:GlyphNames.Xmark}"
                             TextColor="White" />
 
                         <ActivityIndicator

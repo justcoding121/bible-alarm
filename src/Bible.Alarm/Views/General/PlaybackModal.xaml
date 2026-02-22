@@ -403,7 +403,7 @@
                                 VerticalOptions="Fill"
                                 IsEnabled="{Binding IsStopButtonEnabled}"
                                 IsVisible="{Binding IsStopping, Converter={StaticResource negateBooleanConverter}}"
-                                Text="{x:Static fn:GlyphNames.Stop}"
+                                Text="{x:Static fn:GlyphNames.Xmark}"
                                 TextColor="White">
                                 <Button.Triggers>
                                     <Trigger TargetType="Button" Property="IsEnabled" Value="False">
