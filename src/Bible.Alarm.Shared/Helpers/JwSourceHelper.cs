@@ -77,9 +77,97 @@ public static class JwSourceHelper
         "VODMoviesModernDay",
         "VODMoviesAnimated",
         "VODMoviesExtras",
-        "VODLFFVideosAD", // Enjoy Life Forever!—Videos (Series, Mediator API)
-        "SeriesDigForTreasures", // Dig for Treasures in God's Word (Series, Mediator API)
-        "SeriesBJFLessons" // Bible Stories for Little Ones (Children, Mediator API)
+        "VODLFFVideosAD",
+        "SeriesDigForTreasures",
+        "SeriesBJFLessons",
+        "StudioMonthlyPrograms",
+        "StudioTalks",
+        "StudioNewsReports",
+        "BJF",
+        "ChildrenSongs",
+        "ChildrenMovies",
+        "TeenSpiritualGrowth",
+        "TeenSocialLife",
+        "TeenGoals",
+        "TeenWhatPeersSay",
+        "SeriesWhatPeersSay",
+        "TeenMovies",
+        "FamilyChallenges",
+        "FamilyDatingMarriage",
+        "FamilyWorship",
+        "FamilyMovies",
+        "VODPgmEvtMorningWorship",
+        "VODPgmEvtSpecial",
+        "VODPgmEvtGilead",
+        "VODPgmEvtAnnMtg",
+        "2025Convention",
+        "2024Convention",
+        "2023Convention",
+        "2022Convention",
+        "2021Convention",
+        "2020Convention",
+        "2019Convention",
+        "2018Convention",
+        "2017Convention",
+        "2016Convention",
+        "2015Convention",
+        "2014Convention",
+        "VODActivitiesTranslation",
+        "VODActivitiesAVProduction",
+        "VODActivitiesPrintingShipping",
+        "VODActivitiesConstruction",
+        "VODActivitiesReliefWork",
+        "VODActivitiesTheoSchools",
+        "VODActivitiesSpecialEvents",
+        "VODMinistryTools",
+        "VODMinistryImproveSkills",
+        "VODMinistryMethods",
+        "MeetingsConventions",
+        "VODSampleConversations",
+        "Reports",
+        "VODOrgBethel",
+        "AccomplishMinistry",
+        "VODOrgHistory",
+        "VODOrgLegal",
+        "VODOrgBloodlessMedicine",
+        "BibleBooks",
+        "VODBibleReadingStudy",
+        "VODBibleTeachings",
+        "VODBibleAccounts",
+        "VODBibleMedia",
+        "VODBibleTranslations",
+        "VODBiblePrinciples",
+        "VODBibleCreation",
+        "SeriesBJFSongs",
+        "SeriesBibleTeachings",
+        "SeriesHappyMarriage",
+        "SeriesImitateFaith",
+        "SeriesBibleBooks",
+        "SeriesIronSharpens",
+        "SeriesJehovahsFriends",
+        "SeriesLearnFromThem",
+        "SeriesWTLessons",
+        "VODLovePeople",
+        "SeriesMyTeenLife",
+        "SeriesNeetaJade",
+        "SeriesOrgAccomplishments",
+        "SeriesOurHistory",
+        "VODPureWorshipIntro",
+        "SeriesBibleChangesLives",
+        "SeriesGoodNews",
+        "SeriesTruthTransforms",
+        "SeriesOriginsLife",
+        "SeriesWCGVideos",
+        "SeriesWasItDesigned",
+        "SeriesWhatPeersSay",
+        "SeriesWhereAreTheyNow",
+        "SeriesWhiteboard",
+        "VODIntExpTransformations",
+        "VODIntExpBlessings",
+        "VODIntExpEndurance",
+        "VODIntExpYouth",
+        "OriginsLife",
+        "VODIntExpArchives"
     };
 
     /// <summary>
@@ -121,31 +209,63 @@ public static class JwSourceHelper
     }
 
     /// <summary>
-    /// Publication codes for Faith and Bible category. Empty until JW API codes are added.
+    /// Publication codes for Faith and Bible category (Mediator API).
     /// </summary>
-    public static HashSet<string> FaithAndBiblePublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> FaithAndBiblePublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "BibleBooks",
+        "VODBibleReadingStudy",
+        "VODBibleTeachings",
+        "VODBibleAccounts",
+        "VODBibleMedia",
+        "VODBibleTranslations",
+        "VODBiblePrinciples",
+        "VODBibleCreation"
+    };
 
     /// <summary>
-    /// Publication codes for Books category. Empty until JW API codes are added.
+    /// Publication codes for Books category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> BooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> BooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "wcg", "lff", "rr", "lvs", "lfb", "yb17", "yb16", "bhs", "jy", "kr", "ia", "mb", "jr", "bt", "lv", "cf", "jd", "bh", "my", "lr", "cl", "fy", "gt"
+    };
 
     /// <summary>
-    /// Publication codes for Broadcasting category. Empty until JW API codes are added.
+    /// Publication codes for Broadcasting category (Mediator API).
     /// </summary>
-    public static HashSet<string> BroadcastingPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> BroadcastingPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "StudioMonthlyPrograms",
+        "StudioTalks",
+        "StudioNewsReports"
+    };
 
     /// <summary>
-    /// Publication codes for Brochures and Booklets category. Empty until JW API codes are added.
+    /// Publication codes for Yearbooks category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> BrochuresAndBookletsPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> YearbooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "yb15", "yb14", "yb13", "yb12", "yb11", "yb10"
+    };
+
+    /// <summary>
+    /// Publication codes for Brochures and Booklets category (flat MP3 via GETPUBMEDIALINKS).
+    /// </summary>
+    public static HashSet<string> BrochuresAndBookletsPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "lmd", "wfg", "lffi", "th", "rj", "ypq", "hf", "jl", "yc", "hl", "fg", "ll", "lc", "lf", "la", "we"
+    };
 
     /// <summary>
     /// Publication codes for Children category.
     /// </summary>
     public static HashSet<string> ChildrenPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "SeriesBJFLessons" // Bible Stories for Little Ones (Mediator API)
+        "SeriesBJFLessons",
+        "BJF",
+        "ChildrenSongs",
+        "ChildrenMovies"
     };
 
     /// <summary>
@@ -153,37 +273,104 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> ChildrenMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "SeriesBJFLessons"
+        "SeriesBJFLessons",
+        "BJF",
+        "ChildrenSongs",
+        "ChildrenMovies"
     };
 
     /// <summary>
-    /// Publication codes for Family category. Empty until JW API codes are added.
+    /// Publication codes for Family category (Mediator API).
     /// </summary>
-    public static HashSet<string> FamilyPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> FamilyPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "FamilyChallenges",
+        "FamilyDatingMarriage",
+        "FamilyWorship",
+        "FamilyMovies"
+    };
 
     /// <summary>
-    /// Publication codes for Interviews and Experiences category. Empty until JW API codes are added.
+    /// Publication codes for Interviews and Experiences category (Mediator API).
     /// </summary>
-    public static HashSet<string> InterviewsAndExperiencesPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> InterviewsAndExperiencesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "VODIntExpTransformations",
+        "VODIntExpBlessings",
+        "VODIntExpEndurance",
+        "VODIntExpYouth",
+        "OriginsLife",
+        "VODIntExpArchives"
+    };
 
     /// <summary>
-    /// Publication codes for Meetings and Ministry category. Empty until JW API codes are added.
+    /// Publication codes for Meetings and Ministry category (Mediator API).
     /// </summary>
-    public static HashSet<string> MeetingsAndMinistryPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> MeetingsAndMinistryPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "VODMinistryTools",
+        "VODMinistryImproveSkills",
+        "VODMinistryMethods",
+        "MeetingsConventions",
+        "VODSampleConversations"
+    };
 
     /// <summary>
-    /// Publication codes for Programs and Events category. Empty until JW API codes are added.
+    /// Publication codes for Programs and Events category (Mediator API).
     /// </summary>
-    public static HashSet<string> ProgramsAndEventsPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> ProgramsAndEventsPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "VODPgmEvtMorningWorship",
+        "VODPgmEvtSpecial",
+        "VODPgmEvtGilead",
+        "VODPgmEvtAnnMtg",
+        "2025Convention",
+        "2024Convention",
+        "2023Convention",
+        "2022Convention",
+        "2021Convention",
+        "2020Convention",
+        "2019Convention",
+        "2018Convention",
+        "2017Convention",
+        "2016Convention",
+        "2015Convention",
+        "2014Convention"
+    };
 
     /// <summary>
     /// Publication codes for Series category (flat video and/or Mediator-sectioned video).
     /// </summary>
     public static HashSet<string> SeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "thv", // Apply Yourself to Reading and Teaching—Videos (Flat)
-        "VODLFFVideosAD", // Enjoy Life Forever!—Videos (Mediator API)
-        "SeriesDigForTreasures" // Dig for Treasures in God's Word (Mediator API)
+        "thv",
+        "VODLFFVideosAD",
+        "SeriesDigForTreasures",
+        "SeriesBJFSongs",
+        "SeriesBJFLessons",
+        "SeriesBibleTeachings",
+        "SeriesHappyMarriage",
+        "SeriesImitateFaith",
+        "SeriesBibleBooks",
+        "SeriesIronSharpens",
+        "SeriesJehovahsFriends",
+        "SeriesLearnFromThem",
+        "SeriesWTLessons",
+        "VODLovePeople",
+        "SeriesMyTeenLife",
+        "SeriesNeetaJade",
+        "SeriesOrgAccomplishments",
+        "SeriesOurHistory",
+        "VODPureWorshipIntro",
+        "SeriesBibleChangesLives",
+        "SeriesGoodNews",
+        "SeriesTruthTransforms",
+        "SeriesOriginsLife",
+        "SeriesWCGVideos",
+        "SeriesWasItDesigned",
+        "SeriesWhatPeersSay",
+        "SeriesWhereAreTheyNow",
+        "SeriesWhiteboard"
     };
 
     /// <summary>
@@ -192,18 +379,136 @@ public static class JwSourceHelper
     public static HashSet<string> SeriesMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         "VODLFFVideosAD",
-        "SeriesDigForTreasures"
+        "SeriesDigForTreasures",
+        "SeriesBJFSongs",
+        "SeriesBJFLessons",
+        "SeriesBibleTeachings",
+        "SeriesHappyMarriage",
+        "SeriesImitateFaith",
+        "SeriesBibleBooks",
+        "SeriesIronSharpens",
+        "SeriesJehovahsFriends",
+        "SeriesLearnFromThem",
+        "SeriesWTLessons",
+        "VODLovePeople",
+        "SeriesMyTeenLife",
+        "SeriesNeetaJade",
+        "SeriesOrgAccomplishments",
+        "SeriesOurHistory",
+        "VODPureWorshipIntro",
+        "SeriesBibleChangesLives",
+        "SeriesGoodNews",
+        "SeriesTruthTransforms",
+        "SeriesOriginsLife",
+        "SeriesWCGVideos",
+        "SeriesWasItDesigned",
+        "SeriesWhatPeersSay",
+        "SeriesWhereAreTheyNow",
+        "SeriesWhiteboard"
     };
 
     /// <summary>
-    /// Publication codes for Teenagers category. Empty until JW API codes are added.
+    /// Publication codes for Activities category (Mediator API).
     /// </summary>
-    public static HashSet<string> TeenagersPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> ActivitiesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "VODActivitiesTranslation",
+        "VODActivitiesAVProduction",
+        "VODActivitiesPrintingShipping",
+        "VODActivitiesConstruction",
+        "VODActivitiesReliefWork",
+        "VODActivitiesTheoSchools",
+        "VODActivitiesSpecialEvents"
+    };
+
+    /// <summary>
+    /// Publication codes for Organization category (Mediator API).
+    /// </summary>
+    public static HashSet<string> OrganizationPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Reports",
+        "VODOrgBethel",
+        "AccomplishMinistry",
+        "VODOrgHistory",
+        "VODOrgLegal",
+        "VODOrgBloodlessMedicine"
+    };
+
+    /// <summary>
+    /// Publication codes for Article Series category (flat audio via GETPUBMEDIALINKS).
+    /// </summary>
+    public static HashSet<string> ArticleSeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "mrt", // More Topics: flat MP3, pub=mrt&track=N&fileformat=MP3
+        "hdu", // How Your Donations Are Used: flat MP3, pub=hdu&track=N&fileformat=MP3
+        "lfs"  // Life Stories: flat MP3, pub=lfs&track=N&fileformat=MP3
+    };
+
+    /// <summary>
+    /// All publication codes that use Mediator API for discovery (MediatorSectioned). Used by GetHarvestType and IsVideo.
+    /// Excludes flat-audio (Article Series, Books, Yearbooks, Brochures) and flat video (gnj) which use GETPUBMEDIALINKS only.
+    /// </summary>
+    public static HashSet<string> AllMediatorPublicationCodes
+    {
+        get
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var code in DramaCategoryCodes) set.Add(code);
+            foreach (var code in VideoPublicationCodes) set.Add(code);
+            foreach (var code in SeriesMediatorPublicationCodes) set.Add(code);
+            foreach (var code in ChildrenMediatorPublicationCodes) set.Add(code);
+            foreach (var code in BroadcastingPublicationCodes) set.Add(code);
+            foreach (var code in TeenagersPublicationCodes) set.Add(code);
+            foreach (var code in FamilyPublicationCodes) set.Add(code);
+            foreach (var code in ProgramsAndEventsPublicationCodes) set.Add(code);
+            foreach (var code in ActivitiesPublicationCodes) set.Add(code);
+            foreach (var code in MeetingsAndMinistryPublicationCodes) set.Add(code);
+            foreach (var code in OrganizationPublicationCodes) set.Add(code);
+            foreach (var code in FaithAndBiblePublicationCodes) set.Add(code);
+            foreach (var code in InterviewsAndExperiencesPublicationCodes) set.Add(code);
+            return set;
+        }
+    }
+
+    /// <summary>
+    /// Publication codes that are harvested but not validated via Mediator API (they use GETPUBMEDIALINKS only, e.g. gnj).
+    /// </summary>
+    public static HashSet<string> MediatorValidationExclusionCodes => new(StringComparer.OrdinalIgnoreCase) { "gnj" };
+
+    /// <summary>
+    /// Section codes (GETPUBMEDIALINKS pub=) that use issue= rather than track= for the numeric identifier (e.g. mwbv, jwb use YYYYMM issue ids).
+    /// </summary>
+    public static HashSet<string> SectionCodesUsingIssueParameter => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "mwbv", "jwb", "jwbrd", "jwbiv", "jwbcov", "jwbam", "jwbur"
+    };
+
+    /// <summary>
+    /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when no track param is sent.
+    /// </summary>
+    public static HashSet<string> SectionCodesSingleTrackNoParam => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ivdd", "ivno"
+    };
+
+    /// <summary>
+    /// Publication codes for Teenagers category (Mediator API).
+    /// </summary>
+    public static HashSet<string> TeenagersPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "TeenSpiritualGrowth",
+        "TeenSocialLife",
+        "TeenGoals",
+        "TeenWhatPeersSay",
+        "TeenMovies"
+    };
 
     /// <summary>
     /// All language-bound publication codes that should be harvested for English (E) in the harvester.
-    /// Matches the cursor rules table: Bible, Music (vocal only), Dramas, Children, Series.
-    /// Excludes melody (iam) which has no language. Used by EnglishSeeder to ensure every listed publication gets E.
+    /// Includes Bible, Music (vocal only), Dramas, Video, Children, Series, and all mediator-only categories
+    /// (Broadcasting, Teenagers, Family, Programs and Events, Activities, Meetings and Ministry, Organization,
+    /// Faith and Bible, Interviews and Experiences). Excludes melody (iam) which has no language.
+    /// Used by EnglishSeeder and E-seed validation so every listed publication has E content with &gt;0 tracks.
     /// </summary>
     public static HashSet<string> AllPublicationCodesForEnglishSeeding
     {
@@ -216,6 +521,15 @@ public static class JwSourceHelper
             foreach (var code in VideoPublicationCodes) set.Add(code);
             foreach (var code in ChildrenPublicationCodes) set.Add(code);
             foreach (var code in SeriesPublicationCodes) set.Add(code);
+            foreach (var code in BroadcastingPublicationCodes) set.Add(code);
+            foreach (var code in TeenagersPublicationCodes) set.Add(code);
+            foreach (var code in FamilyPublicationCodes) set.Add(code);
+            foreach (var code in ProgramsAndEventsPublicationCodes) set.Add(code);
+            foreach (var code in ActivitiesPublicationCodes) set.Add(code);
+            foreach (var code in MeetingsAndMinistryPublicationCodes) set.Add(code);
+            foreach (var code in OrganizationPublicationCodes) set.Add(code);
+            foreach (var code in FaithAndBiblePublicationCodes) set.Add(code);
+            foreach (var code in InterviewsAndExperiencesPublicationCodes) set.Add(code);
             return set;
         }
     }
@@ -252,17 +566,21 @@ public static class JwSourceHelper
                 ["Bible"] = BiblePublicationCodes,
                 ["Music"] = musicCodes,
                 ["Dramas"] = dramaCodes,
-                ["Faith and Bible"] = FaithAndBiblePublicationCodes,
+                ["FaithAndBible"] = FaithAndBiblePublicationCodes,
                 ["Books"] = BooksPublicationCodes,
+                ["Yearbooks"] = YearbooksPublicationCodes,
                 ["Broadcasting"] = BroadcastingPublicationCodes,
-                ["Brochures and Booklets"] = BrochuresAndBookletsPublicationCodes,
+                ["BrochuresAndBooklets"] = BrochuresAndBookletsPublicationCodes,
                 ["Children"] = ChildrenPublicationCodes,
                 ["Family"] = FamilyPublicationCodes,
-                ["Interviews and Experiences"] = InterviewsAndExperiencesPublicationCodes,
-                ["Meetings and Ministry"] = MeetingsAndMinistryPublicationCodes,
-                ["Programs and Events"] = ProgramsAndEventsPublicationCodes,
+                ["InterviewsAndExperiences"] = InterviewsAndExperiencesPublicationCodes,
+                ["MeetingsAndMinistry"] = MeetingsAndMinistryPublicationCodes,
+                ["ProgramsAndEvents"] = ProgramsAndEventsPublicationCodes,
                 ["Series"] = SeriesPublicationCodes,
-                ["Teenagers"] = TeenagersPublicationCodes
+                ["Teenagers"] = TeenagersPublicationCodes,
+                ["Activities"] = ActivitiesPublicationCodes,
+                ["Organization"] = OrganizationPublicationCodes,
+                ["ArticleSeries"] = ArticleSeriesPublicationCodes
             };
         }
     }

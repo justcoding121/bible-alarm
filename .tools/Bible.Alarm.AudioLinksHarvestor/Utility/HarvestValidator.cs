@@ -251,14 +251,17 @@ internal static class HarvestValidator
     /// Validates that after English seeding each publication has &gt;0 tracks, and if sectioned also &gt;0 sections.
     /// Returns true if all pass, false if any fail (harvester should exit with code 1).
     /// </summary>
-    public static async Task<bool> ValidateEnglishSeedContentAsync(MediaDbContext db, ILogger logger)
+    public static async Task<bool> ValidateEnglishSeedContentAsync(MediaDbContext db, ILogger logger, IReadOnlySet<string>? publicationFilter = null)
     {
         logger.Information("=== Validating E seed content: each pub must have >0 tracks; if sectioned, >0 sections ===");
 
         var failed = new List<string>();
         var sectionedCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nwt", "bi12", "iam" };
+        var codesToValidate = publicationFilter != null
+            ? publicationFilter
+            : (IEnumerable<string>)JwSourceHelper.AllPublicationCodesForEnglishSeeding;
 
-        foreach (var publicationCode in JwSourceHelper.AllPublicationCodesForEnglishSeeding)
+        foreach (var publicationCode in codesToValidate)
         {
             var codeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(publicationCode.ToLowerInvariant()) ?? publicationCode;
             var pub = await db.BiblePublications
@@ -295,30 +298,34 @@ internal static class HarvestValidator
             }
         }
 
-        var iamPub = await db.BiblePublications
-            .AsNoTracking()
-            .Include(bp => bp.Sections)
-            .Include(bp => bp.Tracks)
-            .FirstOrDefaultAsync(bp => bp.PublicationCode == "iam" && bp.LanguageId == null);
+        var checkIam = publicationFilter == null || publicationFilter.Contains("iam");
+        if (checkIam)
+        {
+            var iamPub = await db.BiblePublications
+                .AsNoTracking()
+                .Include(bp => bp.Sections)
+                .Include(bp => bp.Tracks)
+                .FirstOrDefaultAsync(bp => bp.PublicationCode == "iam" && bp.LanguageId == null);
 
-        if (iamPub == null)
-        {
-            logger.Warning("HarvestValidator E-seed: Publication iam (no-language) has no row");
-            failed.Add("iam (missing)");
-        }
-        else
-        {
-            var iamTracks = iamPub.Tracks?.Count ?? 0;
-            var iamSections = iamPub.Sections?.Count ?? 0;
-            if (iamTracks == 0)
+            if (iamPub == null)
             {
-                logger.Warning("HarvestValidator E-seed: Publication iam has 0 tracks");
-                failed.Add("iam (0 tracks)");
+                logger.Warning("HarvestValidator E-seed: Publication iam (no-language) has no row");
+                failed.Add("iam (missing)");
             }
-            else if (iamSections == 0)
+            else
             {
-                logger.Warning("HarvestValidator E-seed: Publication iam is sectioned but has 0 sections");
-                failed.Add("iam (0 sections)");
+                var iamTracks = iamPub.Tracks?.Count ?? 0;
+                var iamSections = iamPub.Sections?.Count ?? 0;
+                if (iamTracks == 0)
+                {
+                    logger.Warning("HarvestValidator E-seed: Publication iam has 0 tracks");
+                    failed.Add("iam (0 tracks)");
+                }
+                else if (iamSections == 0)
+                {
+                    logger.Warning("HarvestValidator E-seed: Publication iam is sectioned but has 0 sections");
+                    failed.Add("iam (0 sections)");
+                }
             }
         }
 
@@ -329,6 +336,77 @@ internal static class HarvestValidator
         }
 
         logger.Warning("HarvestValidator E-seed: {Count} publication(s) failed validation: {Failed}", failed.Count, string.Join(", ", failed));
+        return false;
+    }
+
+    /// <summary>
+    /// Validates each mediator category URL: GET /categories/E/{code}?detailed=1 and asserts category.media exists (array).
+    /// Returns true if all pass, false if any fail (harvester should exit with code 1 when run before harvest).
+    /// </summary>
+    public static async Task<bool> ValidateMediatorLinksAsync(ILogger logger, DownloadUtility downloadUtility)
+    {
+        logger.Information("=== Validating mediator links: each category must return category.media array ===");
+
+        var failed = new List<string>();
+        var codesToValidate = JwSourceHelper.AllMediatorPublicationCodes
+            .Where(c => !JwSourceHelper.MediatorValidationExclusionCodes.Contains(c))
+            .ToList();
+        foreach (var publicationCode in codesToValidate)
+        {
+            var pathAndQuery = $"/categories/E/{publicationCode}?detailed=1";
+            string? jsonString;
+            try
+            {
+                jsonString = await downloadUtility.GetMediatorAsync(pathAndQuery);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "HarvestValidator mediator: Failed to fetch {PublicationCode}", publicationCode);
+                failed.Add($"{publicationCode} (fetch error)");
+                continue;
+            }
+
+            if (string.IsNullOrEmpty(jsonString))
+            {
+                logger.Warning("HarvestValidator mediator: Empty response for {PublicationCode}", publicationCode);
+                failed.Add($"{publicationCode} (empty response)");
+                continue;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(jsonString);
+                var root = doc.RootElement;
+                if (!root.TryGetProperty("category", out var category))
+                {
+                    logger.Warning("HarvestValidator mediator: No 'category' in response for {PublicationCode}", publicationCode);
+                    failed.Add($"{publicationCode} (no category)");
+                    continue;
+                }
+
+                if (!category.TryGetProperty("media", out var mediaEl) || mediaEl.ValueKind != JsonValueKind.Array)
+                {
+                    logger.Warning("HarvestValidator mediator: No 'category.media' array for {PublicationCode}", publicationCode);
+                    failed.Add($"{publicationCode} (no category.media array)");
+                    continue;
+                }
+
+                logger.Debug("HarvestValidator mediator: OK {PublicationCode} (media count: {Count})", publicationCode, mediaEl.GetArrayLength());
+            }
+            catch (JsonException ex)
+            {
+                logger.Warning(ex, "HarvestValidator mediator: Invalid JSON for {PublicationCode}", publicationCode);
+                failed.Add($"{publicationCode} (invalid JSON)");
+            }
+        }
+
+        if (failed.Count == 0)
+        {
+            logger.Information("HarvestValidator mediator: All {Count} mediator links returned valid category.media.", codesToValidate.Count);
+            return true;
+        }
+
+        logger.Warning("HarvestValidator mediator: {Count} link(s) failed: {Failed}", failed.Count, string.Join(", ", failed));
         return false;
     }
 }

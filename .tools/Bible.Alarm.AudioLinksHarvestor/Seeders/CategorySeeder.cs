@@ -17,7 +17,19 @@ internal sealed class CategorySeeder
     private const string EnglishLanguageCode = "E";
 
     private static string DisplayNameForCategoryCode(string categoryCode) =>
-        categoryCode == "FaithAndBible" ? "Faith and Bible" : categoryCode;
+        categoryCode switch
+        {
+            "FaithAndBible" => "Faith and Bible",
+            "BrochuresAndBooklets" => "Brochures and Booklets",
+            "InterviewsAndExperiences" => "Interviews and Experiences",
+            "MeetingsAndMinistry" => "Meetings and Ministry",
+            "ProgramsAndEvents" => "Programs and Events",
+            "Activities" => "Activities",
+            "Organization" => "Organization",
+            "Series" => "Video Series",
+            "ArticleSeries" => "Article Series",
+            _ => categoryCode
+        };
 
     private readonly ILogger logger;
 
@@ -35,15 +47,19 @@ internal sealed class CategorySeeder
             "Music",
             "FaithAndBible",
             "Books",
+            "Yearbooks",
             "Broadcasting",
-            "Brochures and Booklets",
+            "BrochuresAndBooklets",
             "Children",
             "Family",
-            "Interviews and Experiences",
-            "Meetings and Ministry",
-            "Programs and Events",
+            "InterviewsAndExperiences",
+            "MeetingsAndMinistry",
+            "ProgramsAndEvents",
             "Series",
-            "Teenagers"
+            "Teenagers",
+            "Activities",
+            "Organization",
+            "ArticleSeries"
         };
 
         foreach (var code in categoryCodes)

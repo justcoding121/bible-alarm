@@ -35,15 +35,14 @@ internal class MusicHarvester : BaseHarvester
     /// </summary>
     private readonly Dictionary<(string LanguageCode, string PublicationCode), string> localizedVocalNames = new();
 
-    internal async Task HarvestVocalMusicLinks(bool isTestRun = false)
+    internal async Task HarvestVocalMusicLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {
         var languageCodeToInfo = new Dictionary<string, LanguageInfo>();
         var languageCodeToPublications = new Dictionary<string, List<string>>();
 
-        // List of vocal music publication codes to harvest (from centralized JwSourceHelper)
         var vocalMusicPublicationCodes = SharedHelpers.JwSourceHelper.VocalMusicPublicationCodes;
-
-        foreach (var publicationCode in vocalMusicPublicationCodes)
+        var codesToHarvest = publicationFilter != null ? vocalMusicPublicationCodes.Where(c => publicationFilter.Contains(c)).ToList() : vocalMusicPublicationCodes.ToList();
+        foreach (var publicationCode in codesToHarvest)
         {
             Logger.Information("Starting harvest for Vocal Music publication: {PublicationCode}", publicationCode);
             
@@ -93,6 +92,77 @@ internal class MusicHarvester : BaseHarvester
             // Add English to language mappings (for reference, but don't process it here)
             languageCodeToInfo.TryAdd("E", new LanguageInfo(englishEntry.Name, englishEntry.Direction));
             AddPublicationToLanguage("E", publicationCode, languageCodeToPublications);
+        }
+    }
+
+    internal async Task HarvestArticleSeriesLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null) =>
+        await HarvestFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.ArticleSeriesPublicationCodes, "Article Series", isTestRun, publicationFilter);
+
+    internal async Task HarvestBooksLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null) =>
+        await HarvestFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.BooksPublicationCodes, "Books", isTestRun, publicationFilter);
+
+    internal async Task HarvestYearbooksLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null) =>
+        await HarvestFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.YearbooksPublicationCodes, "Yearbooks", isTestRun, publicationFilter);
+
+    internal async Task HarvestBrochuresAndBookletsLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null) =>
+        await HarvestFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.BrochuresAndBookletsPublicationCodes, "Brochures and Booklets", isTestRun, publicationFilter);
+
+    private async Task HarvestFlatAudioPublicationLinks(
+        IReadOnlyCollection<string> publicationCodes,
+        string categoryLabel,
+        bool isTestRun,
+        IReadOnlySet<string>? publicationFilter = null)
+    {
+        var codesToHarvest = publicationFilter != null
+            ? publicationCodes.Where(c => publicationFilter.Contains(c)).ToList()
+            : publicationCodes.ToList();
+        if (codesToHarvest.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var publicationCode in codesToHarvest)
+        {
+            Logger.Information("Starting harvest for {CategoryLabel} publication: {PublicationCode}", categoryLabel, publicationCode);
+
+            var languageEntries = await GetLanguageEntries(publicationCode, publicationCode, isTestRun);
+            if (languageEntries == null || languageEntries.Count == 0)
+            {
+                Logger.Warning("No languages found for {CategoryLabel} publication: {PublicationCode}", categoryLabel, publicationCode);
+                continue;
+            }
+
+            Logger.Information("Found {Count} language(s) for {CategoryLabel} publication: {PublicationCode}",
+                languageEntries.Count, categoryLabel, publicationCode);
+
+            languageEntries = await signLanguageChecker.FilterSignLanguagesAsync(languageEntries);
+
+            if (languageEntries.Count == 0)
+            {
+                Logger.Warning("No non-sign languages found for {CategoryLabel} publication: {PublicationCode}", categoryLabel, publicationCode);
+                continue;
+            }
+
+            if (dataPersister != null)
+            {
+                var discoveredLanguages = languageEntries
+                    .Where(e => !e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+                    .ToDictionary(
+                        e => e.LanguageCode,
+                        e => new LanguageInfo(e.Name, e.Direction));
+
+                if (discoveredLanguages.Count > 0)
+                {
+                    await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
+                }
+            }
+
+            var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase));
+            if (englishEntry == default)
+            {
+                Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
+                continue;
+            }
         }
     }
 
@@ -197,13 +267,14 @@ internal class MusicHarvester : BaseHarvester
     }
 
 
-    internal async Task HarvestMusicMelodyLinks(bool isTestRun = false)
+    internal async Task HarvestMusicMelodyLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {
         var discs = new List<string>();
         var downloadCodes = new List<string>();
 
-        // Melody music publication codes (from centralized JwSourceHelper)
-        foreach (var publicationCode in SharedHelpers.JwSourceHelper.MelodyMusicPublicationCodes)
+        var melodyCodes = SharedHelpers.JwSourceHelper.MelodyMusicPublicationCodes;
+        var codesToHarvest = publicationFilter != null ? melodyCodes.Where(c => publicationFilter.Contains(c)).ToList() : melodyCodes.ToList();
+        foreach (var publicationCode in codesToHarvest)
         {
             Logger.Information("Starting harvest for Instrumental Music publication: {PublicationCode}", publicationCode);
             

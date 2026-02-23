@@ -52,13 +52,15 @@ internal class VideoHarvester : BaseHarvester
     private readonly object localizedNamesLock = new();
 
 
-    internal async Task HarvestVideoLinks(bool isTestRun = false)
+    internal async Task HarvestVideoLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {
         var languageCodeToInfo = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
         var languageCodeToPublications = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
-        // Use codes from centralized JwSourceHelper
-        foreach (var publicationCode in SharedHelpers.JwSourceHelper.VideoPublicationCodes)
+        var videoCodes = publicationFilter != null
+            ? SharedHelpers.JwSourceHelper.VideoPublicationCodes.Where(c => publicationFilter.Contains(c)).ToList()
+            : SharedHelpers.JwSourceHelper.VideoPublicationCodes.ToList();
+        foreach (var publicationCode in videoCodes)
         {
             var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
             Logger.Information("Starting harvest for Video publication: {PublicationName} ({PublicationCode})", 
@@ -111,8 +113,10 @@ internal class VideoHarvester : BaseHarvester
             AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
         }
 
-        // Series category flat video (same API shape: GETPUBMEDIALINKS pub=code track=N, MP4)
-        foreach (var publicationCode in SharedHelpers.JwSourceHelper.SeriesPublicationCodes)
+        var seriesCodes = publicationFilter != null
+            ? SharedHelpers.JwSourceHelper.SeriesPublicationCodes.Where(c => publicationFilter.Contains(c)).ToList()
+            : SharedHelpers.JwSourceHelper.SeriesPublicationCodes.ToList();
+        foreach (var publicationCode in seriesCodes)
         {
             var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
             Logger.Information("Starting harvest for Series publication: {PublicationName} ({PublicationCode})",

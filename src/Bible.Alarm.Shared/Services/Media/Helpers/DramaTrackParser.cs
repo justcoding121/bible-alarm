@@ -28,13 +28,15 @@ internal sealed class DramaTrackParser
         string sectionCode,
         bool isVideo = false,
         int? trackNumber = null,
-        bool allowAudioDescriptionTitles = false)
+        bool allowAudioDescriptionTitles = false,
+        bool useIssueParameter = false,
+        bool omitTrackFromUrlParams = false,
+        bool useDocidParam = false)
     {
         var tracks = new List<BiblePublicationTrack>();
         var formatKey = isVideo ? "MP4" : "MP3";
 
-        if (!sectionFilesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
-            !languageFiles.TryGetProperty(formatKey, out var formatFiles))
+        if (!TryGetLanguageFormatArray(sectionFilesElement, normalizedLanguageCode, formatKey, out var formatFiles))
         {
             return tracks;
         }
@@ -42,7 +44,7 @@ internal sealed class DramaTrackParser
         // For mediator media items (trackNumber set), API may return multiple format entries (e.g. qualities); take only the first to avoid duplicate TrackCodes.
         foreach (var trackFile in formatFiles.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, sectionCode, normalizedLanguageCode, isVideo, trackNumber, allowAudioDescriptionTitles);
+            var track = ParseSingleTrack(trackFile, sectionCode, normalizedLanguageCode, isVideo, trackNumber, allowAudioDescriptionTitles, useIssueParameter, omitTrackFromUrlParams, useDocidParam);
             if (track != null)
             {
                 tracks.Add(track);
@@ -62,7 +64,10 @@ internal sealed class DramaTrackParser
         string normalizedLanguageCode,
         bool isVideo = false,
         int? trackNumber = null,
-        bool allowAudioDescriptionTitles = false)
+        bool allowAudioDescriptionTitles = false,
+        bool useIssueParameter = false,
+        bool omitTrackFromUrlParams = false,
+        bool useDocidParam = false)
     {
         if (!trackFile.TryGetProperty("file", out var fileElement))
         {
@@ -106,23 +111,74 @@ internal sealed class DramaTrackParser
 
         var trackUrlParams = new List<UrlParam>
         {
-            new UrlParam { Key = "pub", Value = sectionCode, IsQueryParam = true },
             new UrlParam { Key = "fileformat", Value = isVideo ? "mp4" : "mp3", IsQueryParam = true },
             new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
             new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
         };
 
-        if (trackNumber.HasValue)
+        if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
         {
-            trackUrlParams.Add(new UrlParam { Key = "track", Value = trackNumber.Value.ToString(), IsQueryParam = true });
+            var docidValue = sectionCode.Substring(6);
+            trackUrlParams.Insert(0, new UrlParam { Key = "docid", Value = docidValue, IsQueryParam = true });
+            if (trackNumber.HasValue)
+            {
+                trackUrlParams.Add(new UrlParam { Key = "track", Value = trackNumber.Value.ToString(), IsQueryParam = true });
+            }
+        }
+        else
+        {
+            trackUrlParams.Insert(0, new UrlParam { Key = "pub", Value = sectionCode, IsQueryParam = true });
+            if (trackNumber.HasValue && !omitTrackFromUrlParams)
+            {
+                var numberKey = useIssueParameter ? "issue" : "track";
+                trackUrlParams.Add(new UrlParam { Key = numberKey, Value = trackNumber.Value.ToString(), IsQueryParam = true });
+            }
         }
 
-        var trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
+        string trackCode;
+        if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
+        {
+            var docidValue = sectionCode.Substring(6);
+            trackCode = trackNumber.HasValue ? $"{docidValue}-{trackNumber.Value}" : docidValue;
+        }
+        else
+        {
+            trackCode = (trackNumber.HasValue && !omitTrackFromUrlParams) ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
+        }
+
         return new BiblePublicationTrack
         {
             TrackCode = trackCode,
             Title = title,
             UrlParams = trackUrlParams
         };
+    }
+
+    private static bool TryGetLanguageFormatArray(JsonElement sectionFilesElement, string languageCode, string formatKey, out JsonElement formatFiles)
+    {
+        formatFiles = default;
+        var gotLang = sectionFilesElement.TryGetProperty(languageCode, out var languageFiles);
+        if (!gotLang)
+        {
+            gotLang = sectionFilesElement.TryGetProperty(languageCode.ToLowerInvariant(), out languageFiles);
+        }
+
+        if (!gotLang)
+        {
+            gotLang = sectionFilesElement.TryGetProperty(languageCode.ToUpperInvariant(), out languageFiles);
+        }
+
+        if (!gotLang)
+        {
+            return false;
+        }
+
+        if (languageFiles.TryGetProperty(formatKey, out formatFiles))
+        {
+            return true;
+        }
+
+        var formatAlt = formatKey == "MP3" ? "mp3" : "mp4";
+        return languageFiles.TryGetProperty(formatAlt, out formatFiles);
     }
 }

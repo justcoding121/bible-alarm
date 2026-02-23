@@ -64,8 +64,9 @@ internal sealed class DramaTrackFetcher
                 else
                 {
                     failed++;
-                    logger.Warning("DramaTrackFetcher: No track found for {SectionCode} track {TrackNumber}",
-                        sectionCode, trackNumber);
+                    var url = BuildTrackRequestUrl(sectionCode, trackNumber, normalizedPublicationCode, normalizedLanguageCode);
+                    logger.Warning("DramaTrackFetcher: No track found for {SectionCode} track {TrackNumber}. URL: {Url}",
+                        sectionCode, trackNumber, url);
                 }
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
@@ -95,6 +96,29 @@ internal sealed class DramaTrackFetcher
         return allTracks;
     }
 
+    private static string BuildTrackRequestUrl(string sectionCode, int trackNumber, string normalizedPublicationCode, string normalizedLanguageCode)
+    {
+        var isVideo = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
+        var fileFormat = isVideo ? "MP4" : "MP3";
+        string queryString;
+        if (sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
+        {
+            var docidValue = sectionCode.Substring(6);
+            queryString = $"?output=json&docid={docidValue}&track={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+        else if (JwSourceHelper.SectionCodesSingleTrackNoParam.Contains(sectionCode))
+        {
+            queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+        else
+        {
+            queryString = $"?output=json&pub={sectionCode}&{(JwSourceHelper.SectionCodesUsingIssueParameter.Contains(sectionCode) ? "issue" : "track")}={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+
+        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
+        return baseUrls.Count > 0 ? baseUrls[0] + queryString : "(no base URL)" + queryString;
+    }
+
     private async Task<List<BiblePublicationTrack>> FetchSingleTrackAsync(
         string sectionCode,
         int trackNumber,
@@ -105,7 +129,22 @@ internal sealed class DramaTrackFetcher
     {
         var isVideo = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
         var fileFormat = isVideo ? "MP4" : "MP3";
-        var queryString = $"?output=json&pub={sectionCode}&track={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        var useIssueParam = JwSourceHelper.SectionCodesUsingIssueParameter.Contains(sectionCode);
+        string queryString;
+        if (sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
+        {
+            var docidValue = sectionCode.Substring(6);
+            queryString = $"?output=json&docid={docidValue}&track={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+        else if (JwSourceHelper.SectionCodesSingleTrackNoParam.Contains(sectionCode))
+        {
+            queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+        else
+        {
+            queryString = $"?output=json&pub={sectionCode}&{(useIssueParam ? "issue" : "track")}={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+
         var sectionJsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
         if (sectionJsonString == null)
         {
@@ -121,8 +160,10 @@ internal sealed class DramaTrackFetcher
         }
 
         var allowAudioDescriptionTitles = normalizedPublicationCode.EndsWith("AD", StringComparison.OrdinalIgnoreCase);
+        var useDocidParam = sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase);
+        var omitTrackFromUrlParams = !useDocidParam && JwSourceHelper.SectionCodesSingleTrackNoParam.Contains(sectionCode);
         return trackParser.ParseTracksFromJson(
-            sectionFilesElement, normalizedLanguageCode, sectionCode, isVideo, trackNumber, allowAudioDescriptionTitles);
+            sectionFilesElement, normalizedLanguageCode, sectionCode, isVideo, trackNumber, allowAudioDescriptionTitles, useIssueParam, omitTrackFromUrlParams, useDocidParam);
     }
 
     /// <summary>

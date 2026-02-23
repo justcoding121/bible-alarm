@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Harvestors;
 using Bible.Alarm.AudioLinksHarvestor.Models;
+using HarvestValidator = Bible.Alarm.AudioLinksHarvestor.Utility.HarvestValidator;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -101,6 +102,12 @@ public class Program
                          args.Contains("--test-mode", StringComparer.OrdinalIgnoreCase) ||
                          args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
 
+        HashSet<string>? publicationFilter = ParsePublicationFilter(args, logger, DirectoryHelper.IndexDirectory);
+        if (publicationFilter != null)
+        {
+            logger.Information("=== PUBLICATION FILTER: Processing only {Count} publication(s) ===", publicationFilter.Count);
+        }
+
         if (isTestRun)
         {
             logger.Information("=== TEST RUN MODE: Processing English (E), Malayalam (MY), and Arabic (A) languages per publication ===");
@@ -128,7 +135,8 @@ public class Program
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
             var downloadUtility = serviceProvider.GetRequiredService<DownloadUtility>();
             var dbSeederLogger = serviceProvider.GetRequiredService<ILogger>();
-            IDataPersister dataPersister = new DbSeeder(dbSeederLogger, scopeFactory, downloadUtility, isTestRun);
+            var failedListPath = Path.Combine(DirectoryHelper.IndexDirectory, "last_run_failed.txt");
+            IDataPersister dataPersister = new DbSeeder(dbSeederLogger, scopeFactory, downloadUtility, isTestRun, failedListPath);
 
             await using (var harvesterScope = serviceProvider.CreateAsyncScope())
             {
@@ -154,25 +162,39 @@ public class Program
                 // TODO: Add discovery methods for Music, Drama, Video harvesters
                 logger.Information("=== DISCOVERY PHASE COMPLETED ===\n");
 
+                var mediatorLinksValid = await HarvestValidator.ValidateMediatorLinksAsync(harvesterLogger, harvesterDownloadUtility);
+                if (!mediatorLinksValid)
+                {
+                    logger.Error("Mediator link validation failed: one or more category URLs did not return valid category.media. Failing harvester.");
+                    return 1;
+                }
+
                 // === PHASE 2: HARVESTING ===
                 // Now harvest content for discovered languages
                 logger.Information("=== PHASE 2: HARVESTING ===");
-                bibleTasks.Add(bibleHarvester.HarvestBibleLinks(biblePublicationCodeToNameMappings, languageCodeToInfoMappings, languageCodeToEditionsMapping, isTestRun));
+                if (publicationFilter == null || publicationFilter.Overlaps(JwSourceHelper.BiblePublicationCodes))
+                {
+                    bibleTasks.Add(bibleHarvester.HarvestBibleLinks(biblePublicationCodeToNameMappings, languageCodeToInfoMappings, languageCodeToEditionsMapping, isTestRun));
+                }
 
                 var musicTasks = new List<Task>
                 {
-                    musicHarvester.HarvestVocalMusicLinks(isTestRun),
-                    musicHarvester.HarvestMusicMelodyLinks(isTestRun)
+                    musicHarvester.HarvestVocalMusicLinks(isTestRun, publicationFilter),
+                    musicHarvester.HarvestMusicMelodyLinks(isTestRun, publicationFilter),
+                    musicHarvester.HarvestArticleSeriesLinks(isTestRun, publicationFilter),
+                    musicHarvester.HarvestBooksLinks(isTestRun, publicationFilter),
+                    musicHarvester.HarvestYearbooksLinks(isTestRun, publicationFilter),
+                    musicHarvester.HarvestBrochuresAndBookletsLinks(isTestRun, publicationFilter)
                 };
 
                 var dramaTasks = new List<Task>
                 {
-                    dramaHarvester.HarvestDramaLinks(isTestRun)
+                    dramaHarvester.HarvestDramaLinks(isTestRun, publicationFilter)
                 };
 
                 var videoTasks = new List<Task>
                 {
-                    videoHarvester.HarvestVideoLinks(isTestRun)
+                    videoHarvester.HarvestVideoLinks(isTestRun, publicationFilter)
                 };
 
                 await Task.WhenAll([.. bibleTasks, .. musicTasks, .. dramaTasks, .. videoTasks]);
@@ -187,7 +209,7 @@ public class Program
             {
                 try
                 {
-                    await dbSeeder.Seed();
+                    await dbSeeder.Seed(publicationFilter);
                 }
                 catch (Exception ex)
                 {
@@ -221,11 +243,11 @@ public class Program
             {
                 var validateDb = validateScope.ServiceProvider.GetRequiredService<MediaDbContext>();
                 var httpClient = serviceProvider.GetRequiredService<System.Net.Http.HttpClient>();
-                await Utility.HarvestValidator.ValidateAsync(validateDb, httpClient, logger);
-                var eSeedValid = await Utility.HarvestValidator.ValidateEnglishSeedContentAsync(validateDb, logger);
+                await HarvestValidator.ValidateAsync(validateDb, httpClient, logger);
+                var eSeedValid = await HarvestValidator.ValidateEnglishSeedContentAsync(validateDb, logger, publicationFilter);
                 if (!eSeedValid)
                 {
-                    logger.Error("E-seed validation failed: at least one of the 19 publications has <=0 tracks or (if sectioned) 0 sections. Failing harvester.");
+                    logger.Error("E-seed validation failed: one or more publications have <=0 tracks or (if sectioned) 0 sections. Failing harvester.");
                     return 1;
                 }
             }
@@ -334,6 +356,59 @@ public class Program
         {
             Directory.Delete(path);
         }
+    }
+
+    /// <summary>
+    /// Parses --publications=code1,code2,... or --retry-failed[=path]. Returns null for full run.
+    /// </summary>
+    private static HashSet<string>? ParsePublicationFilter(string[] args, ILogger logger, string indexDirectory)
+    {
+        const StringComparison cmp = StringComparison.OrdinalIgnoreCase;
+        foreach (var arg in args)
+        {
+            if (arg.StartsWith("--publications=", cmp))
+            {
+                var list = arg.Substring("--publications=".Length).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (list.Length == 0)
+                {
+                    logger.Warning("--publications= was empty, ignoring");
+                    return null;
+                }
+                var set = new HashSet<string>(list, StringComparer.OrdinalIgnoreCase);
+                logger.Information("Publication filter: {Count} code(s) from --publications", set.Count);
+                return set;
+            }
+        }
+
+        foreach (var arg in args)
+        {
+            if (!arg.StartsWith("--retry-failed", cmp))
+            {
+                continue;
+            }
+            var path = arg.Length > "--retry-failed".Length && arg.AsSpan()["--retry-failed".Length] == '='
+                ? arg.Substring("--retry-failed=".Length).Trim()
+                : Path.Combine(indexDirectory, "last_run_failed.txt");
+            if (!File.Exists(path))
+            {
+                logger.Error("Retry file not found: {Path}. Run a full harvest first; failed publications are written there.", path);
+                throw new InvalidOperationException($"Retry file not found: {path}");
+            }
+            var lines = File.ReadAllLines(path)
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0 && !l.StartsWith("#", StringComparison.Ordinal))
+                .ToList();
+            if (lines.Count == 0)
+            {
+                logger.Warning("Retry file was empty, ignoring");
+                return null;
+            }
+            var set = new HashSet<string>(lines, StringComparer.OrdinalIgnoreCase);
+            logger.Information("Publication filter: {Count} code(s) from {Path}", set.Count, path);
+            return set;
+        }
+
+        return null;
     }
 
 }

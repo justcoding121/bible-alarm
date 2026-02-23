@@ -102,7 +102,7 @@ internal sealed class DramaMediatorApiClient
             if (mediaItem.TryGetProperty("primaryCategory", out var primaryCatElement))
             {
                 var primaryCat = primaryCatElement.GetString();
-                if (!string.Equals(primaryCat, categoryKey, StringComparison.OrdinalIgnoreCase))
+                if (!PrimaryCategoryMatches(categoryKey, primaryCat))
                 {
                     continue;
                 }
@@ -114,31 +114,105 @@ internal sealed class DramaMediatorApiClient
             }
 
             var naturalKey = naturalKeyElement.GetString() ?? "";
+            if (naturalKey.StartsWith("docid-", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = naturalKey.Split('_');
+                if (parts.Length < 3)
+                {
+                    continue;
+                }
+
+                var docidValue = parts[0].Substring(6);
+                if (string.IsNullOrEmpty(docidValue) || !int.TryParse(docidValue, out _))
+                {
+                    continue;
+                }
+
+                if (!int.TryParse(parts[2], out var docidTrack) || docidTrack < 1)
+                {
+                    continue;
+                }
+
+                mediaItems.Add(($"docid:{docidValue}", docidTrack));
+                continue;
+            }
+
             if (!naturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            var parts = naturalKey.Split('_');
-            if (parts.Length < 3)
+            var pubParts = naturalKey.Split('_');
+            if (pubParts.Length < 3)
             {
                 continue;
             }
 
-            var sectionCode = parts[0].Substring(4);
+            var sectionCode = pubParts[0].Substring(4);
             if (string.IsNullOrEmpty(sectionCode))
             {
                 continue;
             }
 
-            if (!int.TryParse(parts[2], out var trackNumber) || trackNumber < 1)
+            var trackPart = pubParts[2];
+            if (!int.TryParse(trackPart, out var trackNumber) || trackNumber < 1)
             {
-                continue;
+                if (string.Equals(trackPart, "x", StringComparison.OrdinalIgnoreCase))
+                {
+                    trackNumber = 1;
+                }
+                else
+                {
+                    continue;
+                }
             }
 
             mediaItems.Add((sectionCode, trackNumber));
         }
 
         return (localizedPubName, mediaItems);
+    }
+
+    /// <summary>
+    /// Category keys that aggregate media from multiple primary categories (e.g. conventions, family, children).
+    /// When fetching one of these, accept all media regardless of primaryCategory.
+    /// </summary>
+    private static readonly HashSet<string> AggregatorCategoryKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "2014Convention", "2015Convention", "2016Convention", "2017Convention", "2018Convention",
+        "2019Convention", "2020Convention", "2021Convention", "2022Convention", "2023Convention", "2024Convention", "2025Convention",
+        "ChildrenMovies", "ChildrenSongs", "FamilyMovies", "FamilyWorship", "TeenMovies", "TeenSocialLife", "TeenGoals", "TeenSpiritualGrowth", "TeenWhatPeersSay",
+        "VODMoviesAnimated", "VODMoviesBibleTimes", "VODMoviesModernDay", "VODMoviesExtras",
+        "SeriesWhatPeersSay", "SeriesDigForTreasures", "SeriesBJFLessons"
+    };
+
+    /// <summary>
+    /// Mediator may return media with a more specific primaryCategory (e.g. SeriesBibleBooks for BibleBooks).
+    /// Aggregator categories (conventions, family, etc.) list media from many primary categories; accept all.
+    /// </summary>
+    private static bool PrimaryCategoryMatches(string categoryKey, string? primaryCat)
+    {
+        if (string.IsNullOrEmpty(primaryCat))
+        {
+            return true;
+        }
+
+        if (AggregatorCategoryKeys.Contains(categoryKey))
+        {
+            return true;
+        }
+
+        if (string.Equals(primaryCat, categoryKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(categoryKey, "BibleBooks", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(primaryCat, "SeriesBibleBooks", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 }

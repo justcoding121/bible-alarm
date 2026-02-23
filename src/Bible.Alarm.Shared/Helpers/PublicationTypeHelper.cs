@@ -77,10 +77,28 @@ public static class PublicationTypeHelper
             return true; // Kingdom Melodies uses discs (sections)
         }
 
-        // Dramas, videos, series flat videos, series Mediator videos, and Children Mediator have flat tracks
-        if (DramaPublicationCodes.Contains(publicationCode) || VideoPublicationCodes.Contains(publicationCode) ||
-            SeriesVideoPublicationCodes.Contains(publicationCode) || SeriesMediatorPublicationCodes.Contains(publicationCode) ||
-            ChildrenMediatorPublicationCodes.Contains(publicationCode))
+        // All Mediator-based publications have flat tracks
+        if (JwSourceHelper.AllMediatorPublicationCodes.Contains(publicationCode))
+        {
+            return false;
+        }
+
+        // Article Series (e.g. mrt = More Topics) are flat audio
+        if (JwSourceHelper.ArticleSeriesPublicationCodes.Contains(publicationCode))
+        {
+            return false;
+        }
+
+        // Books, Yearbooks, Brochures and Booklets are flat audio (GETPUBMEDIALINKS, no booknum)
+        if (JwSourceHelper.BooksPublicationCodes.Contains(publicationCode) ||
+            JwSourceHelper.YearbooksPublicationCodes.Contains(publicationCode) ||
+            JwSourceHelper.BrochuresAndBookletsPublicationCodes.Contains(publicationCode))
+        {
+            return false;
+        }
+
+        // Series flat video (thv)
+        if (SeriesVideoPublicationCodes.Contains(publicationCode))
         {
             return false;
         }
@@ -88,7 +106,7 @@ public static class PublicationTypeHelper
         // Check if it's a music publication (vocal or melody, but not "iam" which we already handled)
         var isMusic = JwSourceHelper.VocalMusicPublicationCodes.Contains(publicationCode) ||
                       JwSourceHelper.MelodyMusicPublicationCodes.Contains(publicationCode);
-        
+
         if (isMusic)
         {
             return false; // Music publications (except "iam") have flat tracks
@@ -112,8 +130,17 @@ public static class PublicationTypeHelper
     }
 
     /// <summary>
+    /// Mediator drama publications that are audio-only (MP3). Excluded from IsVideo so we request MP3, not MP4.
+    /// </summary>
+    private static readonly HashSet<string> AudioDramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Dramas",
+        "DramaticBibleReadings"
+    };
+
+    /// <summary>
     /// Returns true if the publication is a video (e.g., "The Good News According to Jesus").
-    /// Videos are non-sectioned like dramas but use GETPUBMEDIALINKS API, not Mediator API.
+    /// Dramas and DramaticBibleReadings are audio (MP3); all other mediator-based publications are video (MP4).
     /// </summary>
     public static bool IsVideo(string? publicationCode)
     {
@@ -122,8 +149,17 @@ public static class PublicationTypeHelper
             return false;
         }
 
-        return VideoPublicationCodes.Contains(publicationCode) || SeriesVideoPublicationCodes.Contains(publicationCode) ||
-               SeriesMediatorPublicationCodes.Contains(publicationCode) || ChildrenMediatorPublicationCodes.Contains(publicationCode);
+        if (VideoPublicationCodes.Contains(publicationCode) || SeriesVideoPublicationCodes.Contains(publicationCode))
+        {
+            return true;
+        }
+
+        if (AudioDramaPublicationCodes.Contains(publicationCode))
+        {
+            return false;
+        }
+
+        return JwSourceHelper.AllMediatorPublicationCodes.Contains(publicationCode);
     }
 
     /// <summary>
@@ -144,9 +180,14 @@ public static class PublicationTypeHelper
             return HarvestType.Sectioned; // Default to Bible structure
         }
 
-        // Series Mediator, Children Mediator, and Dramas use Mediator API
-        if (JwSourceHelper.SeriesMediatorPublicationCodes.Contains(publicationCode) ||
-            JwSourceHelper.ChildrenMediatorPublicationCodes.Contains(publicationCode) || IsDrama(publicationCode))
+        // Flat-video-only publications (e.g. gnj) have no Mediator category; use GETPUBMEDIALINKS only
+        if (JwSourceHelper.MediatorValidationExclusionCodes.Contains(publicationCode))
+        {
+            return HarvestType.Flat;
+        }
+
+        // All Mediator-based publications use Mediator API
+        if (JwSourceHelper.AllMediatorPublicationCodes.Contains(publicationCode))
         {
             return HarvestType.MediatorSectioned;
         }

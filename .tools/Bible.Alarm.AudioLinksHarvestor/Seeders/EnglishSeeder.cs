@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
@@ -28,9 +29,9 @@ internal sealed class EnglishSeeder
 
     /// <summary>
     /// Seeds English (E) for all discovered publications using the shared FetchAndSave* methods.
-    /// This is the same approach used for other languages in test mode.
+    /// When publicationFilter is set, only those publications are considered. When failedListPath is set, failed codes are written there for --retry-failed.
     /// </summary>
-    public async Task SeedEnglish()
+    public async Task SeedEnglish(IReadOnlySet<string>? publicationFilter = null, string? failedListPath = null)
     {
         using var scope = scopeFactory.CreateScope();
         var languageContentService = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>();
@@ -40,8 +41,9 @@ internal sealed class EnglishSeeder
         using var dbScope = scopeFactory.CreateScope();
         var db = dbScope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        // Use canonical list from JwSourceHelper so every listed publication (and any future one added there) is harvested for E
-        var allPublicationCodes = JwSourceHelper.AllPublicationCodesForEnglishSeeding;
+        var allPublicationCodes = publicationFilter != null
+            ? publicationFilter
+            : (IEnumerable<string>)JwSourceHelper.AllPublicationCodesForEnglishSeeding;
 
         // Filter out publications that already have English or have LanguageId == null (e.g. iam)
         var publicationsNeedingEnglish = new List<string>();
@@ -81,12 +83,11 @@ internal sealed class EnglishSeeder
 
         logger.Information("Found {Count} publication(s) that need English seeding", publicationsNeedingEnglish.Count);
 
+        var failed = new List<string>();
         foreach (var publicationCode in publicationsNeedingEnglish.OrderBy(pc => pc))
         {
             logger.Information("Seeding English for publication: {PublicationCode}", publicationCode);
 
-            // Use shared LanguageContentService to seed English publication
-            // This reuses the same code used for ad-hoc fetching
             var success = await languageContentService.SeedEnglishPublicationAsync(publicationCode);
 
             if (success)
@@ -95,8 +96,20 @@ internal sealed class EnglishSeeder
             }
             else
             {
+                failed.Add(publicationCode);
                 logger.Warning("✗ Failed to seed English for publication {PublicationCode}", publicationCode);
             }
+        }
+
+        if (failed.Count > 0 && !string.IsNullOrEmpty(failedListPath))
+        {
+            var dir = Path.GetDirectoryName(failedListPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            File.WriteAllLines(failedListPath, failed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+            logger.Information("Wrote {Count} failed publication code(s) to {Path} for use with --retry-failed", failed.Count, failedListPath);
         }
 
         logger.Information("=== English seeding completed ===");

@@ -47,19 +47,21 @@ internal class DbSeeder : IDataPersister
     private readonly TestModeSeeder testModeSeeder;
     private readonly EnglishSeeder englishSeeder;
     private readonly MelodyMusicSeeder melodyMusicSeeder;
+    private readonly string failedListPath;
 
     /// <summary>
     /// Exposes the PublicationLanguages data store for access by harvesters after discovery phase.
     /// </summary>
     public IReadOnlyDictionary<string, Dictionary<string, LanguageInfo>> PublicationLanguages => dataStore.PublicationLanguages;
 
-    public DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, DownloadUtility downloadUtility, bool isTestRun = false)
+    public DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, DownloadUtility downloadUtility, bool isTestRun = false, string? failedListPath = null)
     {
         this.logger = logger;
         this.scopeFactory = scopeFactory;
         this.downloadUtility = downloadUtility;
         this.dataStore = new InMemoryDataStore();
         this.isTestRun = isTestRun;
+        this.failedListPath = failedListPath ?? Path.Combine(Path.GetTempPath(), "bible_alarm_last_run_failed.txt");
         
         // Initialize helper classes
         this.languageSeeder = new LanguageSeeder(logger, downloadUtility);
@@ -71,7 +73,7 @@ internal class DbSeeder : IDataPersister
         this.melodyMusicSeeder = new MelodyMusicSeeder(logger, scopeFactory, dataStore);
     }
 
-    public async Task Seed()
+    public async Task Seed(IReadOnlySet<string>? publicationFilter = null)
     {
         using (var scope = scopeFactory.CreateScope())
         {
@@ -137,7 +139,7 @@ internal class DbSeeder : IDataPersister
         
         // Seed English using shared FetchAndSave* methods (same as used for other languages in test mode)
         // This happens after discovery tables are seeded, using the same methods that are used for on-demand fetching
-        await englishSeeder.SeedEnglish();
+        await englishSeeder.SeedEnglish(publicationFilter, failedListPath);
 
         // Sync PublicationLanguages for E so all E BiblePublications (incl. VOD*, Series*) appear in publication list
         using (var scope = scopeFactory.CreateScope())

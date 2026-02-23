@@ -17,7 +17,9 @@ internal static class DramaTrackParser
         string languageCode,
         ILogger logger,
         bool isVideo = false,
-        int? trackNumber = null)
+        int? trackNumber = null,
+        bool useIssueParameter = false,
+        bool useDocidParam = false)
     {
         var tracks = new List<DramaTrack>();
         string? sectionName = null;
@@ -46,7 +48,18 @@ internal static class DramaTrackParser
             }
 
             var fileFormat = isVideo ? "MP4" : "MP3";
-            var lookUpPathBase = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+            string lookUpPathBase;
+            if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
+            {
+                var docidValue = sectionCode.Substring(6);
+                lookUpPathBase = $"?output=json&docid={docidValue}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+            }
+            else
+            {
+                lookUpPathBase = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+            }
+
+            var numberParam = useIssueParameter ? "issue" : "track";
 
             foreach (var trackFile in formatFiles.EnumerateArray())
             {
@@ -85,10 +98,19 @@ internal static class DramaTrackParser
                     }
                 }
 
-                var lookUpPath = trackNumber.HasValue
-                    ? $"{lookUpPathBase}&track={trackNumber.Value}"
-                    : lookUpPathBase;
-                var trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
+                string lookUpPath;
+                string trackCode;
+                if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var docidValue = sectionCode.Substring(6);
+                    lookUpPath = trackNumber.HasValue ? $"{lookUpPathBase}&track={trackNumber.Value}" : lookUpPathBase;
+                    trackCode = trackNumber.HasValue ? $"{docidValue}-{trackNumber.Value}" : docidValue;
+                }
+                else
+                {
+                    lookUpPath = trackNumber.HasValue ? $"{lookUpPathBase}&{numberParam}={trackNumber.Value}" : lookUpPathBase;
+                    trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
+                }
 
                 tracks.Add(new DramaTrack
                 {

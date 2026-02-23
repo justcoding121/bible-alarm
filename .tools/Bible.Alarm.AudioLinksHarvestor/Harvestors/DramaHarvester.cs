@@ -35,16 +35,17 @@ internal class DramaHarvester : BaseHarvester
     /// </summary>
     private readonly ConcurrentDictionary<(string LanguageCode, string CategoryKey), string> localizedCategoryNames = new();
 
-    internal async Task HarvestDramaLinks(bool isTestRun = false)
+    internal async Task HarvestDramaLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {
         // Track publications per language: languageCode -> set of publication codes
         var languageCodeToPublications = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
-        // Harvest each drama, Series Mediator, and Children Mediator publication.
-        // Publication name for each language comes from the category API response (category.name), not from code.
-        foreach (var publicationCode in JwSourceHelper.DramaCategoryCodes
-            .Union(JwSourceHelper.SeriesMediatorPublicationCodes)
-            .Union(JwSourceHelper.ChildrenMediatorPublicationCodes))
+        // Harvest each Mediator API publication (dramas, series, children, broadcasting, family, etc.).
+        var mediatorCodes = JwSourceHelper.AllMediatorPublicationCodes;
+        var codesToHarvest = publicationFilter != null
+            ? mediatorCodes.Where(c => publicationFilter.Contains(c)).ToList()
+            : mediatorCodes.ToList();
+        foreach (var publicationCode in codesToHarvest)
         {
             Logger.Information("Harvesting Drama publication: {PublicationCode}", publicationCode);
 
@@ -238,10 +239,28 @@ internal class DramaHarvester : BaseHarvester
         {
             var isVideo = PublicationTypeHelper.IsVideo(publicationCode);
             var fileFormat = isVideo ? "MP4" : "MP3";
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&track={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+            var useDocidParam = sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase);
+            var useIssueParam = JwSourceHelper.SectionCodesUsingIssueParameter.Contains(sectionCode);
+            var singleTrackNoParam = JwSourceHelper.SectionCodesSingleTrackNoParam.Contains(sectionCode);
+            string harvestLink;
+            if (useDocidParam)
+            {
+                var docidValue = sectionCode.Substring(6);
+                harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&docid={docidValue}&track={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+            }
+            else if (singleTrackNoParam)
+            {
+                harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+            }
+            else
+            {
+                harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&{(useIssueParam ? "issue" : "track")}={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+            }
+
             var jsonString = await DownloadUtility.GetAsync(harvestLink);
 
-            return DramaTrackParser.ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode, Logger, isVideo, trackNumber);
+            var trackNumberForParser = (useDocidParam || !singleTrackNoParam) ? (int?)trackNumber : null;
+            return DramaTrackParser.ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode, Logger, isVideo, trackNumberForParser, useIssueParam, useDocidParam);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
         {

@@ -132,7 +132,7 @@ Categories are used to:
 - filter publications by category (e.g. “Music” schedules vs “Bible” schedules)
 - support “no-language” category publications (notably **instrumental music**) via `BiblePublications.LanguageId == null`
 
-The schedule UI category selection and cascade logic depends on category strings matching the DB’s `Category.CategoryName` (e.g. `"Music"`).
+The schedule UI category selection and cascade logic depends on category strings matching the DB’s `Category.CategoryCode (PascalCase, no spaces, e.g. `"Music"`, `"FaithAndBible"`).
 
 ---
 
