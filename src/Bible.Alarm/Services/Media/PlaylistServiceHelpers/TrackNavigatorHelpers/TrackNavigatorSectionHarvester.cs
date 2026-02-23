@@ -176,6 +176,8 @@ public sealed class TrackNavigatorSectionHarvester
                 ? new ScaledFetchProgressAdapter(sectionFetchProgress, 0.5)
                 : null;
 
+            // For sectioned (Bible/iam): ensures pub + first section; we then fetch this section's tracks via GETPUBMEDIALINKS (section-level, no track=).
+            // For mediator (drama): ensures pub by fetching all tracks from mediator, so sections already have tracks; FetchSectionTracksAsync below is then a no-op.
             var publicationExists = await languageContentService.EnsurePublicationExistsAsync(
                 publicationCode,
                 languageCode,

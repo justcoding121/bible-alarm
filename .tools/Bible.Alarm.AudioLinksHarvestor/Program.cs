@@ -34,20 +34,34 @@ public class Program
 
     public static async Task<int> Main(string[] args)
     {
-        // Check for verbose logging flag
-        bool verboseLogging = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase) || 
+        bool verboseLogging = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase) ||
                              args.Contains("-v", StringComparer.OrdinalIgnoreCase);
-        
-        // Set minimum log level: Information by default to show progress, Debug if verbose
+        bool quietLogging = args.Contains("--quiet", StringComparer.OrdinalIgnoreCase) ||
+                           args.Contains("-q", StringComparer.OrdinalIgnoreCase);
+
+        var logLevelEnv = Environment.GetEnvironmentVariable("HARVESTOR_LOG_LEVEL");
+        if (!string.IsNullOrWhiteSpace(logLevelEnv))
+        {
+            var level = logLevelEnv.Trim();
+            if (level.Equals("Quiet", StringComparison.OrdinalIgnoreCase) || level.Equals("Minimal", StringComparison.OrdinalIgnoreCase))
+                quietLogging = true;
+            else if (level.Equals("Debug", StringComparison.OrdinalIgnoreCase) || level.Equals("Verbose", StringComparison.OrdinalIgnoreCase))
+                verboseLogging = true;
+        }
+
+        if (!quietLogging && string.Equals(Environment.GetEnvironmentVariable("HARVESTOR_QUIET"), "1", StringComparison.OrdinalIgnoreCase))
+            quietLogging = true;
+
+        // Log levels: --verbose/-v or HARVESTOR_LOG_LEVEL=Debug → full (Harvestors/Seeders/Utility at Debug). Default → progress (Information). --quiet/-q or HARVESTOR_LOG_LEVEL=Quiet → minimal (Harvestors/Seeders/Utility at Warning; only Program phase lines and size).
         var minimumLevel = verboseLogging ? LogEventLevel.Debug : LogEventLevel.Information;
-        
+        var harvesterLevel = quietLogging ? LogEventLevel.Warning : LogEventLevel.Information;
+
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Is(minimumLevel)
-            // Override to always show Information level for important messages
             .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Program", LogEventLevel.Information)
-            // Show Information level for all harvesters to track progress
-            .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Harvestors", LogEventLevel.Information)
-            // Hide EF Core query logs
+            .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Harvestors", harvesterLevel)
+            .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Seeders", harvesterLevel)
+            .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Utility", harvesterLevel)
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
             .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")

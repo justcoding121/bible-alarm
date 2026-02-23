@@ -59,6 +59,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         var isVideoDrama = !isBible && publication.IsVideo;
         var dramaFileFormat = isVideoDrama ? "MP4" : "MP3";
 
+        // Section-level fetch only (no track=). Response contains all tracks for this section; we parse and create BiblePublicationTrack per file.
         var queryString = isBible
             ? $"?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
             : $"?output=json&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
