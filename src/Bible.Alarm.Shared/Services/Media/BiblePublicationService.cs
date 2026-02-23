@@ -177,6 +177,20 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             .Where(x => x.PublicationCode == publicationCodeForDb && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
             .FirstOrDefaultAsync(cancellationToken);
 
+        if (publication?.Tracks != null && publication.Tracks.Count > 0)
+        {
+            var distinctByCode = publication.Tracks
+                .GroupBy(t => t.TrackCode, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+            if (distinctByCode.Count < publication.Tracks.Count)
+            {
+                logger.Debug("GetByLanguageAndCodeWithTracksAsync: Deduplicated tracks by TrackCode for {PublicationCode}: {Original} -> {Deduped}",
+                    publicationCodeForDb, publication.Tracks.Count, distinctByCode.Count);
+                publication.Tracks = distinctByCode;
+            }
+        }
+
         logger.Debug("GetByLanguageAndCodeWithTracksAsync: Loaded publication={PublicationName}, TracksCount={TracksCount} for language={LanguageCode}, code={PublicationCode} (dbCode={DbCode})",
             publication?.Name ?? "(null)", publication?.Tracks?.Count ?? 0, normalizedLanguageCode, originalPublicationCodeForLog, publicationCodeForDbForLog);
 

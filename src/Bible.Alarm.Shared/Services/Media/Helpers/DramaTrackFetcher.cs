@@ -120,7 +120,47 @@ internal sealed class DramaTrackFetcher
             return new List<BiblePublicationTrack>();
         }
 
+        var allowAudioDescriptionTitles = normalizedPublicationCode.EndsWith("AD", StringComparison.OrdinalIgnoreCase);
         return trackParser.ParseTracksFromJson(
-            sectionFilesElement, normalizedLanguageCode, sectionCode, isVideo, trackNumber);
+            sectionFilesElement, normalizedLanguageCode, sectionCode, isVideo, trackNumber, allowAudioDescriptionTitles);
+    }
+
+    /// <summary>
+    /// Fetches tracks by requesting track 1, 2, 3, ... until GETPUBMEDIALINKS returns no files.
+    /// Used for publications (e.g. VODLFFVideosAD) where the mediator list uses different numbering than the GETPUBMEDIALINKS API (e.g. pub=lffv).
+    /// </summary>
+    public async Task<List<BiblePublicationTrack>> FetchTracksSequentiallyAsync(
+        string sectionCode,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        int maxTracks,
+        CancellationToken cancellationToken)
+    {
+        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
+        var allTracks = new List<BiblePublicationTrack>();
+        var trackNumber = 1;
+
+        while (trackNumber <= maxTracks)
+        {
+            var tracks = await FetchSingleTrackAsync(
+                sectionCode, trackNumber, normalizedPublicationCode, normalizedLanguageCode, baseUrls,
+                cancellationToken);
+
+            if (tracks.Count == 0)
+            {
+                break;
+            }
+
+            allTracks.AddRange(tracks);
+            trackNumber++;
+        }
+
+        if (allTracks.Count > 0)
+        {
+            logger.Information("DramaTrackFetcher: Sequential fetch for {SectionCode} returned {TrackCount} tracks (track 1..{LastTrack})",
+                sectionCode, allTracks.Count, trackNumber - 1);
+        }
+
+        return allTracks;
     }
 }

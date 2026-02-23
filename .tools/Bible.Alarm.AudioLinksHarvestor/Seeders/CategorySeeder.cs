@@ -17,7 +17,7 @@ internal sealed class CategorySeeder
     private const string EnglishLanguageCode = "E";
 
     private static string DisplayNameForCategoryCode(string categoryCode) =>
-        categoryCode == "FaithAndBible" ? "Faith & Bible" : categoryCode;
+        categoryCode == "FaithAndBible" ? "Faith and Bible" : categoryCode;
 
     private readonly ILogger logger;
 

@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -245,4 +246,89 @@ internal static class HarvestValidator
         string? TrackTitle,
         string? SectionName,
         List<UrlParam> UrlParams);
+
+    /// <summary>
+    /// Validates that after English seeding each publication has &gt;0 tracks, and if sectioned also &gt;0 sections.
+    /// Returns true if all pass, false if any fail (harvester should exit with code 1).
+    /// </summary>
+    public static async Task<bool> ValidateEnglishSeedContentAsync(MediaDbContext db, ILogger logger)
+    {
+        logger.Information("=== Validating E seed content: each pub must have >0 tracks; if sectioned, >0 sections ===");
+
+        var failed = new List<string>();
+        var sectionedCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nwt", "bi12", "iam" };
+
+        foreach (var publicationCode in JwSourceHelper.AllPublicationCodesForEnglishSeeding)
+        {
+            var codeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(publicationCode.ToLowerInvariant()) ?? publicationCode;
+            var pub = await db.BiblePublications
+                .AsNoTracking()
+                .Include(bp => bp.Language)
+                .Include(bp => bp.Sections)
+                .Include(bp => bp.Tracks)
+                .FirstOrDefaultAsync(bp => bp.PublicationCode == codeForDb &&
+                    bp.LanguageId != null &&
+                    bp.Language != null &&
+                    bp.Language.LanguageCode == LanguageE);
+
+            if (pub == null)
+            {
+                logger.Warning("HarvestValidator E-seed: Publication {PublicationCode} has no E content (missing)", publicationCode);
+                failed.Add($"{publicationCode} (missing)");
+                continue;
+            }
+
+            var trackCount = pub.Tracks?.Count ?? 0;
+            var sectionCount = pub.Sections?.Count ?? 0;
+
+            if (trackCount == 0)
+            {
+                logger.Warning("HarvestValidator E-seed: Publication {PublicationCode} has 0 tracks", publicationCode);
+                failed.Add($"{publicationCode} (0 tracks)");
+                continue;
+            }
+
+            if (sectionedCodes.Contains(publicationCode) && sectionCount == 0)
+            {
+                logger.Warning("HarvestValidator E-seed: Publication {PublicationCode} is sectioned but has 0 sections", publicationCode);
+                failed.Add($"{publicationCode} (0 sections)");
+            }
+        }
+
+        var iamPub = await db.BiblePublications
+            .AsNoTracking()
+            .Include(bp => bp.Sections)
+            .Include(bp => bp.Tracks)
+            .FirstOrDefaultAsync(bp => bp.PublicationCode == "iam" && bp.LanguageId == null);
+
+        if (iamPub == null)
+        {
+            logger.Warning("HarvestValidator E-seed: Publication iam (no-language) has no row");
+            failed.Add("iam (missing)");
+        }
+        else
+        {
+            var iamTracks = iamPub.Tracks?.Count ?? 0;
+            var iamSections = iamPub.Sections?.Count ?? 0;
+            if (iamTracks == 0)
+            {
+                logger.Warning("HarvestValidator E-seed: Publication iam has 0 tracks");
+                failed.Add("iam (0 tracks)");
+            }
+            else if (iamSections == 0)
+            {
+                logger.Warning("HarvestValidator E-seed: Publication iam is sectioned but has 0 sections");
+                failed.Add("iam (0 sections)");
+            }
+        }
+
+        if (failed.Count == 0)
+        {
+            logger.Information("HarvestValidator E-seed: All publications have >0 tracks (and >0 sections where required).");
+            return true;
+        }
+
+        logger.Warning("HarvestValidator E-seed: {Count} publication(s) failed validation: {Failed}", failed.Count, string.Join(", ", failed));
+        return false;
+    }
 }

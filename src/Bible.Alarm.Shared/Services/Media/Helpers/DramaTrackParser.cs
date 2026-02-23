@@ -27,7 +27,8 @@ internal sealed class DramaTrackParser
         string normalizedLanguageCode,
         string sectionCode,
         bool isVideo = false,
-        int? trackNumber = null)
+        int? trackNumber = null,
+        bool allowAudioDescriptionTitles = false)
     {
         var tracks = new List<BiblePublicationTrack>();
         var formatKey = isVideo ? "MP4" : "MP3";
@@ -38,12 +39,17 @@ internal sealed class DramaTrackParser
             return tracks;
         }
 
+        // For mediator media items (trackNumber set), API may return multiple format entries (e.g. qualities); take only the first to avoid duplicate TrackCodes.
         foreach (var trackFile in formatFiles.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, sectionCode, normalizedLanguageCode, isVideo, trackNumber);
+            var track = ParseSingleTrack(trackFile, sectionCode, normalizedLanguageCode, isVideo, trackNumber, allowAudioDescriptionTitles);
             if (track != null)
             {
                 tracks.Add(track);
+                if (trackNumber.HasValue)
+                {
+                    break;
+                }
             }
         }
 
@@ -55,7 +61,8 @@ internal sealed class DramaTrackParser
         string sectionCode,
         string normalizedLanguageCode,
         bool isVideo = false,
-        int? trackNumber = null)
+        int? trackNumber = null,
+        bool allowAudioDescriptionTitles = false)
     {
         if (!trackFile.TryGetProperty("file", out var fileElement))
         {
@@ -92,7 +99,7 @@ internal sealed class DramaTrackParser
             }
         }
 
-        if (title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))
+        if (!allowAudioDescriptionTitles && title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }

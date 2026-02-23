@@ -222,6 +222,12 @@ public class Program
                 var validateDb = validateScope.ServiceProvider.GetRequiredService<MediaDbContext>();
                 var httpClient = serviceProvider.GetRequiredService<System.Net.Http.HttpClient>();
                 await Utility.HarvestValidator.ValidateAsync(validateDb, httpClient, logger);
+                var eSeedValid = await Utility.HarvestValidator.ValidateEnglishSeedContentAsync(validateDb, logger);
+                if (!eSeedValid)
+                {
+                    logger.Error("E-seed validation failed: at least one of the 19 publications has <=0 tracks or (if sectioned) 0 sections. Failing harvester.");
+                    return 1;
+                }
             }
 
             SqliteConnection.ClearAllPools();

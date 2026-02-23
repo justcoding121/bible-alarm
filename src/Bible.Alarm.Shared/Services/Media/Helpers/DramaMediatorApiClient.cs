@@ -99,6 +99,15 @@ internal sealed class DramaMediatorApiClient
         var mediaItems = new List<(string SectionCode, int TrackNumber)>();
         foreach (var mediaItem in mediaArray.EnumerateArray())
         {
+            if (mediaItem.TryGetProperty("primaryCategory", out var primaryCatElement))
+            {
+                var primaryCat = primaryCatElement.GetString();
+                if (!string.Equals(primaryCat, categoryKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+            }
+
             if (!mediaItem.TryGetProperty("naturalKey", out var naturalKeyElement))
             {
                 continue;

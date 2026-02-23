@@ -4,7 +4,9 @@ using System.Net.Http;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Common.ViewHelpers;
+using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -169,6 +171,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             if (string.IsNullOrWhiteSpace(trackCode))
             {
                 Log.Warning("CreateSectionSelectionCommand: Invalid trackCode={TrackCode}, returning", trackCode ?? "(null)");
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("This content is not available at the moment."));
                 return;
             }
 
