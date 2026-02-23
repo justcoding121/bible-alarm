@@ -24,27 +24,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateTable(
-                name: "CategoryNamesByLanguage",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    CategoryId = table.Column<int>(type: "INTEGER", nullable: false),
-                    LanguageCode = table.Column<string>(type: "TEXT", maxLength: 10, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CategoryNamesByLanguage", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CategoryNamesByLanguage_Categories_CategoryId",
-                        column: x => x.CategoryId,
-                        principalTable: "Categories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Languages",
                 columns: table => new
                 {
@@ -284,12 +263,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_CategoryNamesByLanguage_CategoryId_LanguageCode",
-                table: "CategoryNamesByLanguage",
-                columns: new[] { "CategoryId", "LanguageCode" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_LanguageNamesByLanguage_LanguageId_DisplayLanguageCode",
                 table: "LanguageNamesByLanguage",
                 columns: new[] { "LanguageId", "DisplayLanguageCode" },
@@ -353,9 +326,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
             migrationBuilder.DropTable(
                 name: "BiblePublicationCategories");
-
-            migrationBuilder.DropTable(
-                name: "CategoryNamesByLanguage");
 
             migrationBuilder.DropTable(
                 name: "LanguageNamesByLanguage");

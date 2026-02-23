@@ -37,7 +37,7 @@ DbContext:
   - includes text direction (`ltr`/`rtl`)
 
 - `Categories`
-  - **CategoryCode** (e.g. “Bible”, “Music”); display names in **CategoryNamesByLanguage**
+  - **CategoryCode** (e.g. “Bible”, “Music”); display names from embedded JSON in shared project (Resources/CategoryNames/E.json, etc.)
   - logical grouping: “Bible”, “Music”, “Dramas”, “Video”
 
 - `BiblePublicationCategories` (junction)

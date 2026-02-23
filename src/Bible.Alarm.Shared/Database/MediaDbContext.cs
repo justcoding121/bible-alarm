@@ -17,7 +17,6 @@ public class MediaDbContext : DbContext
     public DbSet<Language> Languages { get; set; }
     public DbSet<LanguageNameByLanguage> LanguageNamesByLanguage { get; set; }
     public DbSet<Category> Categories { get; set; }
-    public DbSet<CategoryNameByLanguage> CategoryNamesByLanguage { get; set; }
 
     public DbSet<BiblePublication> BiblePublications { get; set; }
     public DbSet<BiblePublicationCategory> BiblePublicationCategories { get; set; }
@@ -65,13 +64,6 @@ public class MediaDbContext : DbContext
             .HasOne(lnl => lnl.Language)
             .WithMany(l => l.NamesByDisplayLanguage)
             .HasForeignKey(lnl => lnl.LanguageId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // CategoryNameByLanguage: CategoryId + LanguageCode unique
-        modelBuilder.Entity<CategoryNameByLanguage>()
-            .HasOne(cnl => cnl.Category)
-            .WithMany(c => c.NamesByLanguage)
-            .HasForeignKey(cnl => cnl.CategoryId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // BiblePublicationCategory: many-to-many junction, composite PK

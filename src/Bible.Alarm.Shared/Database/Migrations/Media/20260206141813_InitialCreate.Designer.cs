@@ -242,33 +242,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.CategoryNameByLanguage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("LanguageCode")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId", "LanguageCode")
-                        .IsUnique();
-
-                    b.ToTable("CategoryNamesByLanguage");
-                });
-
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Language", b =>
                 {
                     b.Property<int>("Id")
@@ -422,17 +395,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.Navigation("BiblePublicationTrack");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.CategoryNameByLanguage", b =>
-                {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.Category", "Category")
-                        .WithMany("NamesByLanguage")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.LanguageNameByLanguage", b =>
                 {
                     b.HasOne("Bible.Alarm.Shared.Models.Media.Language", "Language")
@@ -471,8 +433,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Category", b =>
                 {
                     b.Navigation("BiblePublicationCategories");
-
-                    b.Navigation("NamesByLanguage");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Language", b =>

@@ -1,57 +1,38 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
+using System.Reflection;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media;
 
 /// <summary>
-/// Resolves localized category names from CategoryNamesByLanguage.
-/// Caches category code → name for the current app language ("E") in memory after WarmCacheForDisplayLanguageAsync.
+/// Resolves localized category names from embedded JSON resources (e.g. Resources/CategoryNames/E.json).
+/// Caches category code → name for the current app language in memory after WarmCacheForDisplayLanguageAsync.
 /// </summary>
-public sealed class CategoryNameService(IServiceScopeFactory scopeFactory, ILogger logger) : ICategoryNameService
+public sealed class CategoryNameService(ILogger logger) : ICategoryNameService
 {
-    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private const string ResourceNamePrefix = "Bible.Alarm.Shared.Resources.CategoryNames.";
+
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     private readonly object cacheLock = new();
     private string? warmedDisplayLanguageCode;
     private Dictionary<string, string>? cacheByCategoryCode;
 
-    public async Task WarmCacheForDisplayLanguageAsync(string displayLanguageCode, CancellationToken cancellationToken = default)
+    public Task WarmCacheForDisplayLanguageAsync(string displayLanguageCode, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(displayLanguageCode))
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        var pairs = await db.CategoryNamesByLanguage
-            .AsNoTracking()
-            .Where(cnl => cnl.LanguageCode == displayLanguageCode)
-            .Join(db.Categories.AsNoTracking(),
-                cnl => cnl.CategoryId,
-                c => c.Id,
-                (cnl, c) => new { c.CategoryCode, cnl.Name })
-            .ToListAsync(cancellationToken);
-
-        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var p in pairs)
-        {
-            if (!string.IsNullOrEmpty(p.CategoryCode))
-            {
-                dict[p.CategoryCode] = p.Name ?? p.CategoryCode;
-            }
-        }
+        var dict = LoadCategoryNamesForLanguage(displayLanguageCode);
 
         lock (cacheLock)
         {
@@ -61,6 +42,8 @@ public sealed class CategoryNameService(IServiceScopeFactory scopeFactory, ILogg
 
         logger.Information("CategoryNameService: Warmed in-memory cache for display language {DisplayLanguageCode} with {Count} category names",
             displayLanguageCode, dict.Count);
+
+        return Task.CompletedTask;
     }
 
     public string? GetName(string categoryCode, string displayLanguageCode)
@@ -81,5 +64,36 @@ public sealed class CategoryNameService(IServiceScopeFactory scopeFactory, ILogg
         }
 
         return null;
+    }
+
+    private static Dictionary<string, string> LoadCategoryNamesForLanguage(string languageCode)
+    {
+        var assembly = typeof(CategoryNameService).Assembly;
+        var resourceName = ResourceNamePrefix + languageCode + ".json";
+
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream == null)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        using var reader = new StreamReader(stream);
+        var json = reader.ReadToEnd();
+        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        if (dict == null)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kvp in dict)
+        {
+            if (!string.IsNullOrEmpty(kvp.Key))
+            {
+                result[kvp.Key] = kvp.Value ?? kvp.Key;
+            }
+        }
+
+        return result;
     }
 }

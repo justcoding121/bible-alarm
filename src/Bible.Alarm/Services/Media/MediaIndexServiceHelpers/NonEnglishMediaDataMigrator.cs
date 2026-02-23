@@ -139,7 +139,7 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
         }
 
         var newCategoryId = await GetIdAsync(
-            connection, "SELECT Id FROM Categories WHERE CategoryCode = @val", oldPub.Value.CategoryName);
+            connection, "SELECT Id FROM Categories WHERE CategoryCode = @val", oldPub.Value.CategoryCode);
         var newLanguageId = await GetIdAsync(
             connection, "SELECT Id FROM Languages WHERE LanguageCode = @val", langCode);
 
@@ -147,7 +147,7 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
         {
             logger.Warning(
                 "Cannot migrate {PubCode}/{LangCode}: category '{Category}' or language not found in new DB",
-                pubCode, langCode, oldPub.Value.CategoryName);
+                pubCode, langCode, oldPub.Value.CategoryCode);
             return;
         }
 
@@ -398,14 +398,14 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
         return count > 0;
     }
 
-    private static async Task<(int Id, string Name, bool IsVideo, string CategoryName)?> ReadOldPublicationAsync(
+    private static async Task<(int Id, string Name, bool IsVideo, string CategoryCode)?> ReadOldPublicationAsync(
         SqliteConnection connection,
         string pubCode,
         string langCode)
     {
         using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT bp.Id, bp.Name, bp.IsVideo, c.CategoryName
+            SELECT bp.Id, bp.Name, bp.IsVideo, c.CategoryCode
             FROM old_db.BiblePublications bp
             JOIN old_db.Categories c ON bp.CategoryId = c.Id
             JOIN old_db.Languages l ON bp.LanguageId = l.Id

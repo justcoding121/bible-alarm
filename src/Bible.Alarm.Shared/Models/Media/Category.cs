@@ -22,11 +22,6 @@ public sealed class Category : IComparable
     public string CategoryCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Localized names per language code (e.g. "E" for English).
-    /// </summary>
-    public List<CategoryNameByLanguage> NamesByLanguage { get; set; } = [];
-
-    /// <summary>
     /// Junction: publications in this category (many-to-many).
     /// </summary>
     public List<BiblePublications.BiblePublicationCategory> BiblePublicationCategories { get; set; } = [];

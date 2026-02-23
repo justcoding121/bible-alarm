@@ -24,7 +24,7 @@ At runtime, the app:
 
 ## Categories seeded in harvester
 
-Canonical list: **CategorySeeder** (`.tools/Bible.Alarm.AudioLinksHarvestor/Seeders/CategorySeeder.cs`) seeds the category names; **JwSourceHelper** (`src/Bible.Alarm.Shared/Helpers/JwSourceHelper.cs`) maps category → publication codes; **PublicationTypeHelper** (`src/Bible.Alarm.Shared/Helpers/PublicationTypeHelper.cs`) drives harvest type and section structure.
+Canonical list: **CategorySeeder** (`.tools/Bible.Alarm.AudioLinksHarvestor/Seeders/CategorySeeder.cs`) seeds category codes only; display names are in shared project JSON (`Resources/CategoryNames/E.json`). **JwSourceHelper** (`src/Bible.Alarm.Shared/Helpers/JwSourceHelper.cs`) maps category → publication codes; **PublicationTypeHelper** (`src/Bible.Alarm.Shared/Helpers/PublicationTypeHelper.cs`) drives harvest type and section structure.
 
 **Publication lists**: The single source of truth for which publications we fetch is **JwSourceHelper**. The **Drama harvester** iterates **JwSourceHelper.AllMediatorPublicationCodes** (all mediator categories). **Video harvester** iterates **VideoPublicationCodes** and **SeriesPublicationCodes** (flat/index-service API). Bible and Music harvesters use **BiblePublicationCodes**, **VocalMusicPublicationCodes**, **MelodyMusicPublicationCodes**. Before Phase 2, the harvester runs **HarvestValidator.ValidateMediatorLinksAsync** (GET each `/categories/E/{code}?detailed=1`, assert `category.media` array); failure exits with code 1.
 
@@ -58,7 +58,7 @@ Notes:
 - **Harvest type**: **Flat** = Publication → Tracks (GETPUBMEDIALINKS, optional `track=`). **Sectioned** = Publication → Sections → Tracks (Bible: `booknum=`; iam: `pub=sectionCode`). **MediatorSectioned** = Mediator API returns media items `(sectionCode, trackNumber)`; each track fetched with GETPUBMEDIALINKS `pub={sectionCode}&track={trackNumber}`; TrackCode = `sectionCode-trackNumber`. All mediator publications are treated as video (MP4) unless audio-only.
 - **Drama harvester** iterates **JwSourceHelper.AllMediatorPublicationCodes** (DramaCategoryCodes, VideoPublicationCodes, SeriesMediatorPublicationCodes, ChildrenMediatorPublicationCodes, BroadcastingPublicationCodes, TeenagersPublicationCodes, FamilyPublicationCodes, ProgramsAndEventsPublicationCodes, ActivitiesPublicationCodes, MeetingsAndMinistryPublicationCodes, OrganizationPublicationCodes, FaithAndBiblePublicationCodes, InterviewsAndExperiencesPublicationCodes).
 - **Pre-harvested English (E)**: **JwSourceHelper.AllPublicationCodesForEnglishSeeding** = Bible ∪ VocalMusic ∪ DramaCategoryCodes ∪ VideoPublicationCodes ∪ Children ∪ Series ∪ Broadcasting ∪ Teenagers ∪ Family ∪ ProgramsAndEvents ∪ Activities ∪ MeetingsAndMinistry ∪ Organization ∪ FaithAndBible ∪ InterviewsAndExperiences ∪ ArticleSeries ∪ Books ∪ Yearbooks ∪ BrochuresAndBooklets (excludes melody-only iam). **EnglishSeeder** and E-seed validation use that set. **Flat audio (Article Series, Books, Yearbooks, Brochures and Booklets)** discovery: **MusicHarvester** methods HarvestArticleSeriesLinks, HarvestBooksLinks, HarvestYearbooksLinks, HarvestBrochuresAndBookletsLinks (same GETPUBMEDIALINKS flat-MP3 discovery as vocal music).
-- **Category display names**: Series → "Video Series"; ArticleSeries → "Article Series" (CategorySeeder).
+- **Category display names**: Series → "Video Series"; ArticleSeries → "Article Series" (in shared `Resources/CategoryNames/E.json`).
 - **Category modal order**: Bible first, then rest alphabetically by category display name.
 
 ---
@@ -67,7 +67,7 @@ Notes:
 
 ### Categories
 
-- **Category** has **CategoryCode** only (e.g. `"Bible"`, `"Music"`). Display names are in **CategoryNamesByLanguage** (e.g. LanguageCode `"E"`).
+- **Category** has **CategoryCode** only (e.g. `"Bible"`, `"Music"`). Display names come from embedded JSON resources in the shared project (`Resources/CategoryNames/{LanguageCode}.json`, e.g. `E.json` for English).
 - **BiblePublication** is many-to-many with categories via **BiblePublicationCategories**. There is **no** `CategoryId` or `Category` navigation on `BiblePublication`.
 - Use **PrimaryCategory** and **PrimaryCategoryId** (first junction entry) when a single “main” category is needed. When loading from DB, use `.Include(x => x.BiblePublicationCategories).ThenInclude(x => x.Category)`.
 - Filter by category in queries: `x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music")` (not `x.Category.CategoryName`).
@@ -79,7 +79,7 @@ Notes:
 
 ### In-memory caches (display names for "E")
 
-- **ICategoryNameService** and **ILanguageNameService** warm in-memory maps for `"E"` at startup (`BootstrapOrchestrator`).
+- **ICategoryNameService** loads category code → display name from embedded JSON (e.g. `Resources/CategoryNames/E.json`) and warms an in-memory cache per language at startup. **ILanguageNameService** warms in-memory maps for `"E"` at startup (`BootstrapOrchestrator`).
 - Use sync cache methods when calling from sync or fire-and-forget paths (e.g. **GetNameCached(int languageId)**, **GetNameByLanguageCodeCached(string languageCode)**).
 
 ---
