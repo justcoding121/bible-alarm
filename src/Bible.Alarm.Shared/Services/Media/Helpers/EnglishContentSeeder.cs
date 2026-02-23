@@ -308,9 +308,6 @@ internal sealed class EnglishContentSeeder
         // Both are flat-track publications (no sections), only differ by file format (MP3 vs MP4)
         var isMusic = categoryName.Equals("Music", StringComparison.OrdinalIgnoreCase);
         var fileFormat = isVideo ? "MP4" : "MP3";
-        var trackParam = isVideo ? "&track=" : "";
-
-        // Create a temporary English publication object for the unified method
         var tempEnglishPublication = new BiblePublication
         {
             PublicationCode = normalizedPublicationCode,
@@ -321,6 +318,6 @@ internal sealed class EnglishContentSeeder
 
         return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(
             db, normalizedPublicationCode, normalizedLanguageCode, tempEnglishPublication,
-            isVideo, isMusic, fileFormat, trackParam, language, cancellationToken);
+            isVideo, isMusic, fileFormat, language, cancellationToken);
     }
 }

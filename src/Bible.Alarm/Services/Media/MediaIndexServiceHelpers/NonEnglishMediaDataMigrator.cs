@@ -281,8 +281,6 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
             return;
         }
 
-        await EnsureBaseUrlsExistAsync(connection, transaction, oldTracks.Select(t => t.Id).ToList());
-
         foreach (var (oldTrackId, trackCode, title) in oldTracks)
         {
             var newTrackId = await InsertAndGetIdAsync(connection, transaction,
@@ -295,89 +293,54 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
                 ("@p2", trackCode),
                 ("@p3", title));
 
-            await CopyUrlParamsForTrackAsync(connection, transaction, oldTrackId, newTrackId);
+            await CopyTrackUrlForTrackAsync(connection, transaction, oldTrackId, newTrackId);
         }
     }
 
-    private static async Task EnsureBaseUrlsExistAsync(
-        SqliteConnection connection,
-        SqliteTransaction transaction,
-        List<int> oldTrackIds)
-    {
-        if (oldTrackIds.Count == 0)
-        {
-            return;
-        }
-
-        var idList = string.Join(",", oldTrackIds);
-
-        using var cmd = connection.CreateCommand();
-        cmd.Transaction = transaction;
-        cmd.CommandText = $"""
-            INSERT OR IGNORE INTO ApiUrls (Url, PathPrefix)
-            SELECT DISTINCT old_bu.Url, old_bu.PathPrefix
-            FROM old_db.UrlParams old_up
-            JOIN old_db.ApiUrls old_bu ON old_up.BaseUrlId = old_bu.Id
-            WHERE old_up.BiblePublicationTrackId IN ({idList})
-            AND old_up.BaseUrlId IS NOT NULL
-            """;
-
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    private static async Task CopyUrlParamsForTrackAsync(
+    private static async Task CopyTrackUrlForTrackAsync(
         SqliteConnection connection,
         SqliteTransaction transaction,
         int oldTrackId,
         int newTrackId)
     {
-        var urlParams = new List<(string? ApiUrl, string Key, string Value, bool IsQueryParam)>();
-
-        using (var readCmd = connection.CreateCommand())
+        string? url = null;
+        try
         {
-            readCmd.Transaction = transaction;
-            readCmd.CommandText = """
-                SELECT old_bu.Url, old_up.Key, old_up.Value, old_up.IsQueryParam
-                FROM old_db.UrlParams old_up
-                LEFT JOIN old_db.ApiUrls old_bu ON old_up.BaseUrlId = old_bu.Id
-                WHERE old_up.BiblePublicationTrackId = @oldTrackId
-                """;
-            readCmd.Parameters.AddWithValue("@oldTrackId", oldTrackId);
-
-            using var reader = await readCmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            using (var readCmd = connection.CreateCommand())
             {
-                urlParams.Add((
-                    reader.IsDBNull(0) ? null : reader.GetString(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    reader.GetBoolean(3)));
+                readCmd.Transaction = transaction;
+                readCmd.CommandText = """
+                    SELECT Url FROM old_db.TrackUrls
+                    WHERE BiblePublicationTrackId = @oldTrackId
+                    """;
+                readCmd.Parameters.AddWithValue("@oldTrackId", oldTrackId);
+
+                using var reader = await readCmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    url = reader.IsDBNull(0) ? null : reader.GetString(0);
+                }
             }
         }
-
-        foreach (var (apiUrl, key, value, isQueryParam) in urlParams)
+        catch (Microsoft.Data.Sqlite.SqliteException)
         {
-            int? newApiUrlId = null;
-            if (apiUrl != null)
-            {
-                newApiUrlId = await GetIdAsync(
-                    connection, "SELECT Id FROM ApiUrls WHERE Url = @val", apiUrl, transaction);
-            }
-
-            using var insertCmd = connection.CreateCommand();
-            insertCmd.Transaction = transaction;
-            insertCmd.CommandText = """
-                INSERT INTO UrlParams (BiblePublicationTrackId, BaseUrlId, Key, Value, IsQueryParam)
-                VALUES (@p0, @p1, @p2, @p3, @p4)
-                """;
-            insertCmd.Parameters.AddWithValue("@p0", newTrackId);
-            insertCmd.Parameters.AddWithValue("@p1", (object?)newApiUrlId ?? DBNull.Value);
-            insertCmd.Parameters.AddWithValue("@p2", key);
-            insertCmd.Parameters.AddWithValue("@p3", value);
-            insertCmd.Parameters.AddWithValue("@p4", isQueryParam);
-
-            await insertCmd.ExecuteNonQueryAsync();
+            return;
         }
+
+        if (string.IsNullOrEmpty(url))
+        {
+            return;
+        }
+
+        using var insertCmd = connection.CreateCommand();
+        insertCmd.Transaction = transaction;
+        insertCmd.CommandText = """
+            INSERT INTO TrackUrls (Url, BiblePublicationTrackId)
+            VALUES (@p0, @p1)
+            """;
+        insertCmd.Parameters.AddWithValue("@p0", url);
+        insertCmd.Parameters.AddWithValue("@p1", newTrackId);
+        await insertCmd.ExecuteNonQueryAsync();
     }
 
     private static async Task<bool> PublicationExistsInNewDbAsync(

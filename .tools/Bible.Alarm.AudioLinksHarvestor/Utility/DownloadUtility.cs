@@ -81,7 +81,7 @@ internal class DownloadUtility
     /// <summary>
     /// Fetches from Mediator API using redundant base URLs (random pick, retry on failure).
     /// </summary>
-    /// <param name="pathAndQuery">Path and query including leading slash (e.g. "/categories/E/gnj?detailed=1")</param>
+    /// <param name="pathAndQuery">Path and query including leading slash (e.g. "/categories/E/gnj")</param>
     /// <returns>Response body or null if all base URLs failed</returns>
     internal async Task<string?> GetMediatorAsync(string pathAndQuery)
     {

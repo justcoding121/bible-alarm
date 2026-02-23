@@ -27,7 +27,10 @@ internal sealed class DramaMediatorApiClient
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<(string? LocalizedPubName, List<(string SectionCode, int TrackNumber)> MediaItems)> FetchCategoryAndSectionsAsync(
+    /// <summary>
+    /// Fetches the mediator category and returns tracks with CDN URLs. Do not call GETPUBMEDIALINKS for mediator publications.
+    /// </summary>
+    public async Task<(string? LocalizedPubName, List<MediatorTrack> Tracks)> FetchCategoryAndTracksAsync(
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         CancellationToken cancellationToken)
@@ -36,17 +39,17 @@ internal sealed class DramaMediatorApiClient
         if (categoryKey == null)
         {
             logger.Warning("Unknown drama publication code: {PublicationCode}", normalizedPublicationCode);
-            return (null, new List<(string SectionCode, int TrackNumber)>());
+            return (null, new List<MediatorTrack>());
         }
 
-        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
+        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}";
         var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery, cancellationToken);
         if (jsonString == null)
         {
             logger.Warning("Failed to fetch drama category {CategoryKey} for language {LanguageCode}",
                 categoryKey, normalizedLanguageCode);
-            return (null, new List<(string SectionCode, int TrackNumber)>());
+            return (null, new List<MediatorTrack>());
         }
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
@@ -54,12 +57,9 @@ internal sealed class DramaMediatorApiClient
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("category", out var categoryElement))
         {
             logger.Warning("Invalid response structure for drama category {CategoryKey}", categoryKey);
-            return (null, new List<(string SectionCode, int TrackNumber)>());
+            return (null, new List<MediatorTrack>());
         }
 
-        // Extract localized publication name.
-        // Only prepend parent category when the pub name equals the category name (e.g. "Dramas" under "Dramas")
-        // to avoid confusion; otherwise use the category name as-is (e.g. "The Good News According to Jesus").
         string? localizedPubName = null;
         string? categoryName = null;
         string? parentCategoryName = null;
@@ -81,97 +81,84 @@ internal sealed class DramaMediatorApiClient
         {
             var pubNameEqualsCategoryName = string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase);
             if (pubNameEqualsCategoryName && !string.IsNullOrEmpty(parentCategoryName))
-            {
                 localizedPubName = $"{parentCategoryName} {categoryName}";
-            }
             else
-            {
                 localizedPubName = categoryName;
-            }
         }
 
         if (!categoryElement.TryGetProperty("media", out var mediaArray) || mediaArray.ValueKind != JsonValueKind.Array)
         {
             logger.Warning("No media items found in drama category {CategoryKey}", categoryKey);
-            return (localizedPubName, new List<(string SectionCode, int TrackNumber)>());
+            return (localizedPubName, new List<MediatorTrack>());
         }
 
-        var mediaItems = new List<(string SectionCode, int TrackNumber)>();
+        var tracks = new List<MediatorTrack>();
         foreach (var mediaItem in mediaArray.EnumerateArray())
         {
             if (mediaItem.TryGetProperty("primaryCategory", out var primaryCatElement))
             {
                 var primaryCat = primaryCatElement.GetString();
                 if (!PrimaryCategoryMatches(categoryKey, primaryCat))
-                {
                     continue;
-                }
             }
 
             if (!mediaItem.TryGetProperty("naturalKey", out var naturalKeyElement))
-            {
                 continue;
-            }
 
             var naturalKey = naturalKeyElement.GetString() ?? "";
+            string trackCode;
             if (naturalKey.StartsWith("docid-", StringComparison.OrdinalIgnoreCase))
             {
                 var parts = naturalKey.Split('_');
-                if (parts.Length < 3)
-                {
+                if (parts.Length < 3 || !int.TryParse(parts[2], out var docidTrack) || docidTrack < 1)
                     continue;
-                }
-
                 var docidValue = parts[0].Substring(6);
-                if (string.IsNullOrEmpty(docidValue) || !int.TryParse(docidValue, out _))
-                {
-                    continue;
-                }
-
-                if (!int.TryParse(parts[2], out var docidTrack) || docidTrack < 1)
-                {
-                    continue;
-                }
-
-                mediaItems.Add(($"docid:{docidValue}", docidTrack));
-                continue;
+                if (string.IsNullOrEmpty(docidValue)) continue;
+                trackCode = $"{docidValue}-{docidTrack}";
             }
-
-            if (!naturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
+            else if (naturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
             {
-                continue;
+                var pubParts = naturalKey.Split('_');
+                if (pubParts.Length < 3) continue;
+                var sectionCode = pubParts[0].Substring(4);
+                var trackPart = pubParts[2];
+                var trackNumber = int.TryParse(trackPart, out var n) && n >= 1 ? n : (string.Equals(trackPart, "x", StringComparison.OrdinalIgnoreCase) ? 1 : 0);
+                if (trackNumber < 1) continue;
+                trackCode = $"{sectionCode}-{trackNumber}";
             }
-
-            var pubParts = naturalKey.Split('_');
-            if (pubParts.Length < 3)
-            {
+            else
                 continue;
-            }
 
-            var sectionCode = pubParts[0].Substring(4);
-            if (string.IsNullOrEmpty(sectionCode))
-            {
+            if (!mediaItem.TryGetProperty("files", out var filesElement) || filesElement.ValueKind != JsonValueKind.Array)
                 continue;
-            }
 
-            var trackPart = pubParts[2];
-            if (!int.TryParse(trackPart, out var trackNumber) || trackNumber < 1)
+            string? url = null;
+            foreach (var file in filesElement.EnumerateArray())
             {
-                if (string.Equals(trackPart, "x", StringComparison.OrdinalIgnoreCase))
+                if (file.TryGetProperty("progressiveDownloadURL", out var urlEl))
                 {
-                    trackNumber = 1;
-                }
-                else
-                {
-                    continue;
+                    url = urlEl.GetString();
+                    break;
                 }
             }
 
-            mediaItems.Add((sectionCode, trackNumber));
+            if (string.IsNullOrEmpty(url))
+                continue;
+
+            var title = "Unknown";
+            if (mediaItem.TryGetProperty("title", out var titleElement))
+            {
+                var rawTitle = titleElement.GetString();
+                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+            }
+
+            tracks.Add(new MediatorTrack(trackCode, title, url));
         }
 
-        return (localizedPubName, mediaItems);
+        return (localizedPubName, tracks);
     }
+
+    internal sealed record MediatorTrack(string TrackCode, string Title, string Url);
 
     /// <summary>
     /// Category keys that aggregate media from multiple primary categories (e.g. conventions, family, children).

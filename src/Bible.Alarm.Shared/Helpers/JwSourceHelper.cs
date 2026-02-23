@@ -484,12 +484,26 @@ public static class JwSourceHelper
     public static HashSet<string> MediatorValidationExclusionCodes => new(StringComparer.OrdinalIgnoreCase) { "gnj" };
 
     /// <summary>
-    /// Section codes (GETPUBMEDIALINKS pub=) that use issue= rather than track= for the numeric identifier (e.g. mwbv, jwb use YYYYMM issue ids).
+    /// Section codes (GETPUBMEDIALINKS pub=) that use issue= rather than track= for the numeric identifier (e.g. mwbv, jwb, jwbls use YYYYMM issue ids).
     /// </summary>
     public static HashSet<string> SectionCodesUsingIssueParameter => new(StringComparer.OrdinalIgnoreCase)
     {
-        "mwbv", "jwb", "jwbrd", "jwbiv", "jwbcov", "jwbam", "jwbur"
+        "mwbv", "jwb", "jwbrd", "jwbiv", "jwbcov", "jwbam", "jwbur", "jwbls", "jwbgg"
     };
+
+    /// <summary>
+    /// Returns true if the numeric value looks like a YYYYMM issue id (e.g. 201512).
+    /// When true, GETPUBMEDIALINKS should use issue= instead of track=.
+    /// </summary>
+    public static bool LooksLikeIssueNumber(int trackNumber)
+    {
+        if (trackNumber < 190101 || trackNumber > 209912)
+        {
+            return false;
+        }
+        var month = trackNumber % 100;
+        return month >= 1 && month <= 12;
+    }
 
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when no track param is sent.
@@ -497,6 +511,14 @@ public static class JwSourceHelper
     public static HashSet<string> SectionCodesSingleTrackNoParam => new(StringComparer.OrdinalIgnoreCase)
     {
         "ivdd", "ivno"
+    };
+
+    /// <summary>
+    /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when track=0 is sent.
+    /// </summary>
+    public static HashSet<string> SectionCodesSingleTrackZero => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "bhat"
     };
 
     /// <summary>
@@ -513,9 +535,10 @@ public static class JwSourceHelper
 
     /// <summary>
     /// All language-bound publication codes that should be harvested for English (E) in the harvester.
-    /// Includes Bible, Music (vocal only), Dramas, Video, Children, Series, and all mediator-only categories
-    /// (Broadcasting, Teenagers, Family, Programs and Events, Activities, Meetings and Ministry, Organization,
-    /// Faith and Bible, Interviews and Experiences). Excludes melody (iam) which has no language.
+    /// Includes Bible, Music (vocal only), Dramas, Video, Children, Series, Article Series, Books, Yearbooks,
+    /// Brochures and Booklets, and all mediator-only categories (Broadcasting, Teenagers, Family, Programs and Events,
+    /// Activities, Meetings and Ministry, Organization, Faith and Bible, Interviews and Experiences).
+    /// Excludes melody (iam) which has no language.
     /// Used by EnglishSeeder and E-seed validation so every listed publication has E content with &gt;0 tracks.
     /// </summary>
     public static HashSet<string> AllPublicationCodesForEnglishSeeding
@@ -538,6 +561,10 @@ public static class JwSourceHelper
             foreach (var code in OrganizationPublicationCodes) set.Add(code);
             foreach (var code in FaithAndBiblePublicationCodes) set.Add(code);
             foreach (var code in InterviewsAndExperiencesPublicationCodes) set.Add(code);
+            foreach (var code in ArticleSeriesPublicationCodes) set.Add(code);
+            foreach (var code in BooksPublicationCodes) set.Add(code);
+            foreach (var code in YearbooksPublicationCodes) set.Add(code);
+            foreach (var code in BrochuresAndBookletsPublicationCodes) set.Add(code);
             return set;
         }
     }

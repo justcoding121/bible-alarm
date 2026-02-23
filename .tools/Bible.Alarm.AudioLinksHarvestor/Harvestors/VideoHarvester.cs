@@ -176,8 +176,7 @@ internal class VideoHarvester : BaseHarvester
         string jsonString;
         try
         {
-            // Use track=1 to get all available languages
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&alllangs=1&track=1&langwritten=E";
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&alllangs=1&langwritten=E";
             jsonString = await DownloadUtility.GetAsync(harvestLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
@@ -282,7 +281,7 @@ internal class VideoHarvester : BaseHarvester
 
         try
         {
-            var pathAndQuery = $"/categories/{languageCode}/{categoryKey}?detailed=1";
+            var pathAndQuery = $"/categories/{languageCode}/{categoryKey}";
             var jsonString = await DownloadUtility.GetMediatorAsync(pathAndQuery);
             if (string.IsNullOrEmpty(jsonString))
             {
@@ -337,39 +336,17 @@ internal class VideoHarvester : BaseHarvester
 
     private async Task<bool> HarvestVideoEpisodes(string publicationCode, string languageCode, string publicationName)
     {
-        // Unified structure: media/Dramas/{languageCode}/{publicationCode} (no Audio/Video prefix)
-        // Videos use "Dramas" category, IsVideo flag in database determines if it's video or audio
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
         var dir = $"{DirectoryHelper.IndexDirectory}/media/Dramas/{normalizedLanguageCode}/{normalizedPublicationCode}";
         var file = $"{dir}/episodes.json";
 
-        var episodes = new List<VideoEpisode>();
-        var episodeNumber = 1;
-        var consecutiveFailures = 0;
-        const int maxConsecutiveFailures = 3;
-
-        while (consecutiveFailures < maxConsecutiveFailures)
-        {
-            var episode = await FetchEpisode(publicationCode, languageCode, episodeNumber);
-            if (episode == null)
-            {
-                consecutiveFailures++;
-                episodeNumber++;
-                continue;
-            }
-
-            consecutiveFailures = 0;
-            episodes.Add(episode);
-            episodeNumber++;
-        }
-
-        if (episodes.Count == 0)
+        var episodes = await FetchAllEpisodes(publicationCode, languageCode);
+        if (episodes == null || episodes.Count == 0)
         {
             return false;
         }
 
-        // Save to database via persister if available, otherwise save to files
         if (dataPersister != null)
         {
             await dataPersister.SaveVideoEpisodes(languageCode, publicationCode, publicationName, episodes);
@@ -381,13 +358,13 @@ internal class VideoHarvester : BaseHarvester
         return true;
     }
 
-    private async Task<VideoEpisode?> FetchEpisode(string publicationCode, string languageCode, int episodeNumber)
+    private async Task<List<VideoEpisode>?> FetchAllEpisodes(string publicationCode, string languageCode)
     {
-        string jsonString;
         try
         {
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}&track={episodeNumber}";
-            jsonString = await DownloadUtility.GetAsync(harvestLink);
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}";
+            var jsonString = await DownloadUtility.GetAsync(harvestLink);
+            return ParseAllEpisodes(jsonString, publicationCode, languageCode);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
@@ -395,99 +372,72 @@ internal class VideoHarvester : BaseHarvester
         }
         catch (Exception ex)
         {
-            Logger.Warning(ex, "Failed to fetch episode {EpisodeNumber} for {PublicationCode} in {LanguageCode}",
-                episodeNumber, publicationCode, languageCode);
+            Logger.Warning(ex, "Failed to fetch episodes for {PublicationCode} in {LanguageCode}", publicationCode, languageCode);
             return null;
         }
-
-        return ParseEpisode(jsonString, publicationCode, languageCode, episodeNumber);
     }
 
-    private VideoEpisode? ParseEpisode(string jsonString, string publicationCode, string languageCode, int episodeNumber)
+    private static List<VideoEpisode>? ParseAllEpisodes(string? jsonString, string publicationCode, string languageCode)
     {
+        if (string.IsNullOrEmpty(jsonString))
+            return null;
+
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
-        {
             return null;
-        }
 
         if (!filesElement.TryGetProperty(languageCode, out var languageFiles))
         {
-            // Try uppercase version
             if (!filesElement.TryGetProperty(languageCode.ToUpperInvariant(), out languageFiles))
-            {
                 return null;
-            }
         }
 
-        if (!languageFiles.TryGetProperty("MP4", out var mp4Files))
-        {
+        if (!languageFiles.TryGetProperty("MP4", out var mp4Files) || mp4Files.ValueKind != JsonValueKind.Array)
             return null;
-        }
 
-        // Find the preferred quality (240p) or fallback to first available
-        JsonElement? selectedFile = null;
-        foreach (var file in mp4Files.EnumerateArray())
+        var lookUpPathBase = $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}";
+        var episodes = new List<VideoEpisode>();
+
+        foreach (var fileElement in mp4Files.EnumerateArray())
         {
-            if (file.TryGetProperty("label", out var labelElement))
+            if (!fileElement.TryGetProperty("track", out var trackEl) || trackEl.ValueKind != JsonValueKind.Number)
+                continue;
+            var episodeNumber = trackEl.GetInt32();
+            if (episodeNumber == 0)
+                continue;
+
+            if (!fileElement.TryGetProperty("file", out var fileInfo) ||
+                !fileInfo.TryGetProperty("url", out var urlElement))
+                continue;
+
+            var url = urlElement.GetString();
+            if (string.IsNullOrEmpty(url))
+                continue;
+
+            var title = "Unknown";
+            if (fileElement.TryGetProperty("title", out var titleElement))
             {
-                var label = labelElement.GetString();
-                if (label == PreferredQuality)
-                {
-                    selectedFile = file;
-                    break;
-                }
+                var rawTitle = titleElement.GetString();
+                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
             }
 
-            // Keep first file as fallback
-            selectedFile ??= file;
+            double duration = 0;
+            if (fileElement.TryGetProperty("duration", out var durationElement))
+                duration = durationElement.GetDouble();
+
+            episodes.Add(new VideoEpisode
+            {
+                Number = episodeNumber,
+                Title = title,
+                Url = url,
+                LookUpPath = lookUpPathBase,
+                Duration = duration
+            });
         }
 
-        if (!selectedFile.HasValue)
-        {
-            return null;
-        }
-
-        var fileElement = selectedFile.Value;
-
-        if (!fileElement.TryGetProperty("file", out var fileInfo) ||
-            !fileInfo.TryGetProperty("url", out var urlElement))
-        {
-            return null;
-        }
-
-        var url = urlElement.GetString();
-        if (string.IsNullOrEmpty(url))
-        {
-            return null;
-        }
-
-        var title = "Unknown";
-        if (fileElement.TryGetProperty("title", out var titleElement))
-        {
-            var rawTitle = titleElement.GetString();
-            // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
-        }
-
-        double duration = 0;
-        if (fileElement.TryGetProperty("duration", out var durationElement))
-        {
-            duration = durationElement.GetDouble();
-        }
-
-        var lookUpPath = $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}&track={episodeNumber}";
-
-        return new VideoEpisode
-        {
-            Number = episodeNumber,
-            Title = title,
-            Url = url,
-            LookUpPath = lookUpPath,
-            Duration = duration
-        };
+        return episodes.Count > 0 ? episodes.OrderBy(e => e.Number).ToList() : null;
     }
 
     private static void SaveEpisodes(string dir, string file, List<VideoEpisode> episodes)

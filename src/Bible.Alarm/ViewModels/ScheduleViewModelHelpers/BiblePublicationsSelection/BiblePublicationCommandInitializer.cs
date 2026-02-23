@@ -82,7 +82,8 @@ public sealed class BiblePublicationCommandInitializer
             // Check if publication is selectable (multiple options available)
             // If not selectable, don't open the modal
             var mediaService = serviceProvider.GetRequiredService<IMediaService>();
-            var displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService);
+            var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
+            var displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService, categoryNameService);
             var isSelectable = await displayTextProvider.GetIsPublicationSelectableAsync();
             if (!isSelectable)
             {

@@ -160,29 +160,14 @@ internal sealed class SectionFetcherSectionTracksLoader
 
             var track = new BiblePublicationTrack
             {
-                TrackCode = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                TrackCode = isBible ? trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture) : normalizedSectionCode,
                 Title = title,
                 Publication = publication,
                 BiblePublicationId = publication.Id,
                 Section = section,
                 BiblePublicationSectionId = section.Id,
-                UrlParams = new List<UrlParam>()
+                TrackUrl = new TrackUrl { Url = url }
             };
-
-            if (isBible)
-            {
-                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true });
-                track.UrlParams.Add(new UrlParam { Key = "booknum", Value = normalizedSectionCode, IsQueryParam = true });
-            }
-            else
-            {
-                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedSectionCode, IsQueryParam = true });
-                track.TrackCode = normalizedSectionCode;
-            }
-            track.UrlParams.Add(new UrlParam { Key = "track", Value = trackCode.ToString(), IsQueryParam = true });
-            track.UrlParams.Add(new UrlParam { Key = "fileformat", Value = isVideoDrama ? "mp4" : "mp3", IsQueryParam = true });
-            track.UrlParams.Add(new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true });
-            track.UrlParams.Add(new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true });
 
             tracks.Add(track);
             trackCode++;

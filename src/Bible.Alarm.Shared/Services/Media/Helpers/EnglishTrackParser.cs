@@ -128,31 +128,11 @@ internal sealed class EnglishTrackParser
             return null;
         }
 
-        // Create track with URL params
-        var trackUrlParams = new List<UrlParam>();
-
-        if (isIam)
-        {
-            trackUrlParams.Add(new UrlParam { Key = "pub", Value = sectionCode, IsQueryParam = true });
-            trackUrlParams.Add(new UrlParam { Key = "fileformat", Value = "mp3", IsQueryParam = true });
-            trackUrlParams.Add(new UrlParam { Key = "track", Value = originalTrackCode.ToString(), IsQueryParam = true });
-        }
-        else if (isBible && normalizedPublicationCode != null && normalizedLanguageCode != null)
-        {
-            trackUrlParams.Add(new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true });
-            trackUrlParams.Add(new UrlParam { Key = "booknum", Value = sectionCode, IsQueryParam = true });
-            trackUrlParams.Add(new UrlParam { Key = "track", Value = originalTrackCode.ToString(), IsQueryParam = true });
-            trackUrlParams.Add(new UrlParam { Key = "fileformat", Value = "mp3", IsQueryParam = true });
-            trackUrlParams.Add(new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true });
-            trackUrlParams.Add(new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true });
-        }
-
-        // TrackCode is the originalTrackCode from API (track param value), not the sequential trackNumber
         return new BiblePublicationTrack
         {
             TrackCode = originalTrackCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Title = title,
-            UrlParams = trackUrlParams
+            TrackUrl = new TrackUrl { Url = url }
         };
     }
 }

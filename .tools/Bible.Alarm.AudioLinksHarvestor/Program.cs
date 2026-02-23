@@ -81,6 +81,7 @@ public class Program
                 b.MigrationsAssembly("Bible.Alarm.Shared");
                 b.CommandTimeout(60);
             });
+            options.UseQuerySplittingBehavior(Microsoft.EntityFrameworkCore.QuerySplittingBehavior.SplitQuery);
         });
 
         services.AddTransient<BibleHarvester>();
@@ -332,9 +333,20 @@ public class Program
 
         foreach (var file in files)
         {
-            if (!file.EndsWith("index.zip"))
+            if (file.EndsWith("index.zip"))
+            {
+                continue;
+            }
+
+            try
             {
                 File.Delete(file);
+            }
+            catch (IOException ex) when (ex.Message.Contains("being used by another process", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot delete {path}: the file is in use by another process (e.g. a previous harvester run). Close other instances and try again.",
+                    ex);
             }
         }
 

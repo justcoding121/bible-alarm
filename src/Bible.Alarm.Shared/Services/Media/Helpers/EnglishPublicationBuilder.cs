@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -54,7 +55,7 @@ internal sealed class EnglishPublicationBuilder
         var existingPublication = await db.BiblePublications
             .Include(bp => bp.Sections)
             .ThenInclude(s => s.Tracks)
-            .ThenInclude(t => t.UrlParams)
+            .ThenInclude(t => t.TrackUrl)
             .Include(bp => bp.BiblePublicationCategories)
             .ThenInclude(bpc => bpc.Category)
             .FirstOrDefaultAsync(
@@ -67,9 +68,9 @@ internal sealed class EnglishPublicationBuilder
             {
                 foreach (var track in section.Tracks)
                 {
-                    if (track.UrlParams.Count > 0)
+                    if (track.TrackUrl != null)
                     {
-                        db.UrlParams.RemoveRange(track.UrlParams);
+                        db.TrackUrls.Remove(track.TrackUrl);
                     }
                 }
             }
@@ -141,6 +142,7 @@ internal sealed class EnglishPublicationBuilder
             LanguageId = languageId,
             IsVideo = isVideo,
             IsMusic = isMusicPub,
+            HarvestType = HarvestType.Sectioned,
             Tracks = new List<BiblePublicationTrack>(),
             Sections = sections
         };

@@ -19,7 +19,6 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
 internal class DramaHarvester : BaseHarvester
 {
-    private const int MaxConcurrentSectionDownloads = 8;
     private readonly IDataPersister? dataPersister;
     private readonly SignLanguageChecker signLanguageChecker;
 
@@ -64,7 +63,7 @@ internal class DramaHarvester : BaseHarvester
         ConcurrentDictionary<string, ConcurrentDictionary<string, string>> languageCodeToPublications,
         bool isTestRun)
     {
-        var pathAndQuery = $"/categories/E/{publicationCode}?detailed=1";
+        var pathAndQuery = $"/categories/E/{publicationCode}";
         string? jsonString;
         try
         {
@@ -142,7 +141,7 @@ internal class DramaHarvester : BaseHarvester
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         Logger.Information("Harvesting {PublicationName} for language {LanguageCode}", publicationName, normalizedLanguageCode);
 
-        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{publicationCode}?detailed=1";
+        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{publicationCode}";
         string? jsonString;
         try
         {
@@ -165,14 +164,14 @@ internal class DramaHarvester : BaseHarvester
             return;
         }
 
-        var (mediaItems, localizedPublicationName) = DramaSectionCodeExtractor.ExtractMediaItemsFromCategory(
+        var (allTracks, localizedPublicationName) = DramaSectionCodeExtractor.ExtractTracksFromMediatorCategory(
             jsonString,
             publicationCode,
             normalizedLanguageCode,
             Logger);
-        if (mediaItems.Count == 0)
+        if (allTracks.Count == 0)
         {
-            Logger.Warning("No media items found for publication {PublicationCode} in language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
+            Logger.Warning("No tracks found for publication {PublicationCode} in language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
             return;
         }
 
@@ -184,36 +183,6 @@ internal class DramaHarvester : BaseHarvester
         var publicationsForLanguage = languageCodeToPublications.GetOrAdd(normalizedLanguageCode, _ => new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase));
         var finalPublicationName = localizedPublicationName ?? publicationName;
         publicationsForLanguage[publicationCode] = finalPublicationName;
-
-        var allTracks = new List<DramaTrack>();
-        using var semaphore = new SemaphoreSlim(MaxConcurrentSectionDownloads, MaxConcurrentSectionDownloads);
-        var mediaTasks = mediaItems.Select(async item =>
-        {
-            await semaphore.WaitAsync();
-            try
-            {
-                var (tracks, _) = await HarvestSingleTrack(item.SectionCode, item.TrackNumber, normalizedLanguageCode, publicationCode);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    lock (allTracks)
-                    {
-                        allTracks.AddRange(tracks);
-                    }
-                }
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
-
-        await Task.WhenAll(mediaTasks);
-
-        if (allTracks.Count == 0)
-        {
-            Logger.Warning("No tracks found for publication {PublicationCode} ({LanguageCode}). Skipping.", publicationCode, normalizedLanguageCode);
-            return;
-        }
 
         var tracksBySection = new Dictionary<string, List<DramaTrack>>(StringComparer.OrdinalIgnoreCase)
         {
@@ -232,46 +201,4 @@ internal class DramaHarvester : BaseHarvester
 
         Logger.Information("Saved {Count} tracks for publication {PublicationCode} ({LanguageCode})", allTracks.Count, publicationCode, normalizedLanguageCode);
     }
-
-    private async Task<(List<DramaTrack>? Tracks, string? SectionName)> HarvestSingleTrack(string sectionCode, int trackNumber, string languageCode, string publicationCode)
-    {
-        try
-        {
-            var isVideo = PublicationTypeHelper.IsVideo(publicationCode);
-            var fileFormat = isVideo ? "MP4" : "MP3";
-            var useDocidParam = sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase);
-            var useIssueParam = JwSourceHelper.SectionCodesUsingIssueParameter.Contains(sectionCode);
-            var singleTrackNoParam = JwSourceHelper.SectionCodesSingleTrackNoParam.Contains(sectionCode);
-            string harvestLink;
-            if (useDocidParam)
-            {
-                var docidValue = sectionCode.Substring(6);
-                harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&docid={docidValue}&track={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
-            }
-            else if (singleTrackNoParam)
-            {
-                harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
-            }
-            else
-            {
-                harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&{(useIssueParam ? "issue" : "track")}={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
-            }
-
-            var jsonString = await DownloadUtility.GetAsync(harvestLink);
-
-            var trackNumberForParser = (useDocidParam || !singleTrackNoParam) ? (int?)trackNumber : null;
-            return DramaTrackParser.ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode, Logger, isVideo, trackNumberForParser, useIssueParam, useDocidParam);
-        }
-        catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
-        {
-            Logger.Warning("Track {SectionCode}-{TrackNumber} not available for language {LanguageCode}. Skipping.", sectionCode, trackNumber, languageCode);
-            return (null, null);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to fetch track {SectionCode}-{TrackNumber} in language {LanguageCode}. Skipping.", sectionCode, trackNumber, languageCode);
-            return (null, null);
-        }
-    }
-
 }

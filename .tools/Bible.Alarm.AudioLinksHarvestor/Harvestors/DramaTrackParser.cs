@@ -98,19 +98,12 @@ internal static class DramaTrackParser
                     }
                 }
 
-                string lookUpPath;
                 string trackCode;
                 if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
-                {
-                    var docidValue = sectionCode.Substring(6);
-                    lookUpPath = trackNumber.HasValue ? $"{lookUpPathBase}&track={trackNumber.Value}" : lookUpPathBase;
-                    trackCode = trackNumber.HasValue ? $"{docidValue}-{trackNumber.Value}" : docidValue;
-                }
+                    trackCode = trackNumber.HasValue ? $"{sectionCode.Substring(6)}-{trackNumber.Value}" : sectionCode.Substring(6);
                 else
-                {
-                    lookUpPath = trackNumber.HasValue ? $"{lookUpPathBase}&{numberParam}={trackNumber.Value}" : lookUpPathBase;
                     trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
-                }
+                var lookUpPath = lookUpPathBase;
 
                 tracks.Add(new DramaTrack
                 {

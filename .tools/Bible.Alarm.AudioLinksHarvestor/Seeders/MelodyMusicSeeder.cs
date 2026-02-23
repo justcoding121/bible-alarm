@@ -14,7 +14,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using SharedBiblePublicationSection = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection;
 using SharedBiblePublicationTrack = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack;
-using SharedUrlParam = Bible.Alarm.Shared.Models.Media.BiblePublications.UrlParam;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Seeders;
 
@@ -142,34 +141,23 @@ internal sealed class MelodyMusicSeeder
                 // Create tracks for this section
                 foreach (var musicTrack in discTracks.OrderBy(t => t.Number))
                 {
-                    // Create UrlParams for the track (similar to ParseIamTracks)
-                    var trackUrlParams = new List<SharedUrlParam>
-                    {
-                        new SharedUrlParam { Key = "pub", Value = discCode.ToLowerInvariant(), IsQueryParam = true },
-                        new SharedUrlParam { Key = "fileformat", Value = "mp3", IsQueryParam = true },
-                        new SharedUrlParam { Key = "langwritten", Value = "E", IsQueryParam = true },
-                        new SharedUrlParam { Key = "track", Value = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(), IsQueryParam = true }
-                    };
+                    var trackCode = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-                    // For Kingdom Melodies (iam), prefix track title with "Melody Number(s) "
                     var trackTitle = musicTrack.Title;
                     if (publicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
                     {
                         trackTitle = $"Melody Number(s) {trackTitle}";
                     }
 
-                    // TrackCode is the originalTrackCode from UrlParams (track param), or Number as string fallback
-                    var trackCode = trackUrlParams.FirstOrDefault(p => p.Key == "track")?.Value ?? musicTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    
                     var track = new SharedBiblePublicationTrack
                     {
                         TrackCode = trackCode,
                         Title = trackTitle,
                         Section = section,
-                        BiblePublicationSectionId = 0, // Will be set after section is saved
+                        BiblePublicationSectionId = 0,
                         Publication = biblePublication,
-                        BiblePublicationId = 0, // Will be set after publication is saved
-                        UrlParams = trackUrlParams
+                        BiblePublicationId = 0,
+                        TrackUrl = !string.IsNullOrEmpty(musicTrack.Url) ? new TrackUrl { Url = musicTrack.Url } : null
                     };
 
                     section.Tracks.Add(track);

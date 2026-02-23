@@ -32,63 +32,33 @@ internal static class HarvestValidator
     {
         logger.Information("=== Validating harvest: sample track/section/publication vs API ===");
 
-        var baseUrl = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl;
         var samples = await GetSampleTracksAsync(db, logger);
         var passed = 0;
         var failed = 0;
 
         foreach (var s in samples)
         {
-            var query = BuildQueryString(s.UrlParams);
-            if (string.IsNullOrEmpty(query))
+            var fullUrl = s.TrackUrl;
+            if (string.IsNullOrEmpty(fullUrl))
             {
-                logger.Warning("HarvestValidator: No URL params for {PublicationCode} track {TrackCode}, skipping", s.PublicationCode, s.TrackCode);
+                logger.Warning("HarvestValidator: No track URL for {PublicationCode} track {TrackCode}, skipping", s.PublicationCode, s.TrackCode);
                 failed++;
                 continue;
             }
-
-            var fullUrl = baseUrl + query;
             try
             {
-                var response = await httpClient.GetAsync(fullUrl);
+                // TrackUrl.Url is now a CDN URL (mp3/mp4); GET returns binary, not JSON. Just validate reachability.
+                var request = new HttpRequestMessage(HttpMethod.Head, fullUrl);
+                var response = await httpClient.SendAsync(request);
+                if (response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
+                {
+                    response.Dispose();
+                    response = await httpClient.GetAsync(fullUrl, HttpCompletionOption.ResponseHeadersRead);
+                }
                 response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                var pubNameFromApi = root.TryGetProperty("pubName", out var pn) ? pn.GetString() : null;
-                var (titleFromApi, _) = GetFirstTrackFromResponse(root, LanguageE);
-                var (sectionNameFromApi, _) = GetSectionNameFromResponse(root);
-
-                var nameMatch = string.IsNullOrEmpty(pubNameFromApi) ||
-                                string.Equals(pubNameFromApi?.Trim(), s.PublicationName?.Trim(), StringComparison.OrdinalIgnoreCase);
-                var titleMatch = string.IsNullOrEmpty(titleFromApi) ||
-                                 (s.TrackTitle != null && titleFromApi != null && (titleFromApi.Contains(s.TrackTitle, StringComparison.OrdinalIgnoreCase) || s.TrackTitle.Contains(titleFromApi, StringComparison.OrdinalIgnoreCase))) ||
-                                 string.Equals(titleFromApi?.Trim(), s.TrackTitle?.Trim(), StringComparison.OrdinalIgnoreCase);
-
-                bool isSectionedOrMediator = IsSectionedOrMediatorPublication(s.PublicationCode);
-                bool pass = titleMatch && (nameMatch || isSectionedOrMediator);
-                if (isSectionedOrMediator && !nameMatch)
-                {
-                    logger.Information("HarvestValidator: OK (sectioned/mediator) {PublicationCode} | pubName API={ApiName} DB={DbName} (section/episode vs publication name) | title match: {TitleMatch}",
-                        s.PublicationCode, pubNameFromApi ?? "(none)", s.PublicationName ?? "(none)", titleMatch);
-                }
-
-                if (pass)
-                {
-                    if (nameMatch && titleMatch)
-                    {
-                        logger.Information("HarvestValidator: OK {PublicationCode} | pubName API vs DB: {ApiName} vs {DbName} | track: {ApiTitle} vs DB {DbTitle}",
-                            s.PublicationCode, pubNameFromApi ?? "(none)", s.PublicationName ?? "(none)", titleFromApi ?? "(none)", s.TrackTitle ?? "(none)");
-                    }
-                    passed++;
-                }
-                else
-                {
-                    logger.Warning("HarvestValidator: MISMATCH {PublicationCode} track {TrackCode} | pubName API={ApiName} DB={DbName} | title API={ApiTitle} DB={DbTitle}",
-                        s.PublicationCode, s.TrackCode, pubNameFromApi ?? "(none)", s.PublicationName ?? "(none)", titleFromApi ?? "(none)", s.TrackTitle ?? "(none)");
-                    failed++;
-                }
+                response.Dispose();
+                logger.Debug("HarvestValidator: OK {PublicationCode} track {TrackCode} | CDN URL reachable", s.PublicationCode, s.TrackCode);
+                passed++;
             }
             catch (Exception ex)
             {
@@ -98,32 +68,6 @@ internal static class HarvestValidator
         }
 
         logger.Information("HarvestValidator: Done. Passed: {Passed}, Failed: {Failed}", passed, failed);
-    }
-
-    private static string BuildQueryString(IReadOnlyList<UrlParam> urlParams)
-    {
-        if (urlParams == null || urlParams.Count == 0)
-        {
-            return string.Empty;
-        }
-
-        var queryParams = urlParams
-            .Where(p => p.IsQueryParam && !string.IsNullOrEmpty(p.Key))
-            .Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value ?? "")}")
-            .ToList();
-
-        if (queryParams.Count == 0)
-        {
-            return string.Empty;
-        }
-
-        var hasOutput = queryParams.Any(p => p.StartsWith("output=", StringComparison.OrdinalIgnoreCase));
-        if (!hasOutput)
-        {
-            queryParams.Insert(0, "output=json");
-        }
-
-        return "?" + string.Join("&", queryParams);
     }
 
     private static (string? Title, string? Url) GetFirstTrackFromResponse(JsonElement root, string languageCode)
@@ -185,11 +129,11 @@ internal static class HarvestValidator
 
         var tracksWithParams = await db.BiblePublicationTracks
             .AsNoTracking()
-            .Include(t => t.UrlParams)
+            .Include(t => t.TrackUrl)
             .Include(t => t.Publication)
             .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
-            .Where(t => t.UrlParams.Any())
+            .Where(t => t.TrackUrl != null)
             .ToListAsync();
 
         var byPub = tracksWithParams
@@ -216,7 +160,7 @@ internal static class HarvestValidator
                     track.TrackCode,
                     track.Title ?? string.Empty,
                     track.Section?.Name,
-                    track.UrlParams));
+                    track.TrackUrl?.Url));
             }
         }
 
@@ -233,7 +177,7 @@ internal static class HarvestValidator
 
         if (samples.Count == 0)
         {
-            logger.Warning("HarvestValidator: No sample tracks found in DB (no tracks with UrlParams for language E)");
+            logger.Warning("HarvestValidator: No sample tracks found in DB (no tracks with TrackUrl for language E)");
         }
 
         return samples;
@@ -245,7 +189,7 @@ internal static class HarvestValidator
         string TrackCode,
         string? TrackTitle,
         string? SectionName,
-        List<UrlParam> UrlParams);
+        string? TrackUrl);
 
     /// <summary>
     /// Validates that after English seeding each publication has &gt;0 tracks, and if sectioned also &gt;0 sections.
@@ -340,7 +284,7 @@ internal static class HarvestValidator
     }
 
     /// <summary>
-    /// Validates each mediator category URL: GET /categories/E/{code}?detailed=1 and asserts category.media exists (array).
+    /// Validates each mediator category URL: GET /categories/E/{code} and asserts category.media exists (array).
     /// Returns true if all pass, false if any fail (harvester should exit with code 1 when run before harvest).
     /// </summary>
     public static async Task<bool> ValidateMediatorLinksAsync(ILogger logger, DownloadUtility downloadUtility)
@@ -353,7 +297,7 @@ internal static class HarvestValidator
             .ToList();
         foreach (var publicationCode in codesToValidate)
         {
-            var pathAndQuery = $"/categories/E/{publicationCode}?detailed=1";
+            var pathAndQuery = $"/categories/E/{publicationCode}";
             string? jsonString;
             try
             {

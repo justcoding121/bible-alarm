@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,7 @@ internal sealed class DramaPublicationBuilder
 
     /// <summary>
     /// Upserts a drama publication: if a BiblePublication with the same PublicationCode and LanguageId exists,
-    /// updates it (replaces tracks and UrlParams, syncs categories); otherwise inserts a new row.
+    /// updates it (replaces tracks and TrackUrls, syncs categories); otherwise inserts a new row.
     /// Callers: (1) Harvester only calls this via SeedEnglishPublicationAsync for pubs that do not yet have English, so insert is the normal path.
     /// (2) App on-demand fetch uses EnsurePublicationExistsAsync which skips when the row exists, or FetchPublicationTracksAsync which deletes then re-fetches; neither hits this with an existing row.
     /// The update path is for idempotency: e.g. SeedEnglishPublicationAsync invoked twice (race, future refresh-English, or logic change), so we update instead of creating a duplicate row.
@@ -57,7 +58,7 @@ internal sealed class DramaPublicationBuilder
 
         var existingPublication = await db.BiblePublications
             .Include(bp => bp.Tracks)
-            .ThenInclude(t => t.UrlParams)
+            .ThenInclude(t => t.TrackUrl)
             .Include(bp => bp.BiblePublicationCategories)
             .ThenInclude(bpc => bpc.Category)
             .FirstOrDefaultAsync(
@@ -68,9 +69,9 @@ internal sealed class DramaPublicationBuilder
         {
             foreach (var track in existingPublication.Tracks)
             {
-                if (track.UrlParams.Count > 0)
+                if (track.TrackUrl != null)
                 {
-                    db.UrlParams.RemoveRange(track.UrlParams);
+                    db.TrackUrls.Remove(track.TrackUrl);
                 }
             }
 
@@ -110,6 +111,7 @@ internal sealed class DramaPublicationBuilder
             LanguageId = language.Id,
             IsVideo = isVideo,
             IsMusic = isMusicPub,
+            HarvestType = HarvestType.MediatorSectioned,
             Tracks = tracks,
             Sections = new List<BiblePublicationSection>()
         };

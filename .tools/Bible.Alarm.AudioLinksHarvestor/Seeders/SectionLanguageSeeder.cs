@@ -98,6 +98,63 @@ internal sealed class SectionLanguageSeeder
         logger.Information("Seeded section languages for publications without language");
     }
 
+    /// <summary>
+    /// Adds Spanish (S) to SectionLanguages for every (publication, section) that has English (E).
+    /// Enables EnsureAllSectionsForPublicationAsync(pub, "S") to discover and fetch sections for Spanish.
+    /// Call after SyncPublicationLanguagesForSpanishAsync so PublicationLanguage rows for S exist.
+    /// </summary>
+    public async Task SyncSectionLanguagesForSpanishAsync(MediaDbContext db)
+    {
+        const string SpanishCode = "S";
+        var spanishLanguage = await languageSeeder.GetOrCreateLanguageByCode(db, SpanishCode);
+
+        var sectionLanguagesE = await db.SectionLanguages
+            .Include(sl => sl.Language)
+            .Include(sl => sl.PublicationLanguage)
+            .Where(sl => sl.Language != null && sl.Language.LanguageCode == "E")
+            .ToListAsync();
+
+        var publicationLanguagesS = await db.PublicationLanguages
+            .Include(pl => pl.Language)
+            .Where(pl => pl.Language != null && pl.Language.LanguageCode == SpanishCode)
+            .ToDictionaryAsync(pl => pl.PublicationCode, pl => pl);
+
+        var added = 0;
+        foreach (var slE in sectionLanguagesE)
+        {
+            if (!publicationLanguagesS.TryGetValue(slE.PublicationCode, out var plS))
+            {
+                continue;
+            }
+
+            var exists = await db.SectionLanguages
+                .AnyAsync(sl => sl.PublicationCode == slE.PublicationCode
+                    && sl.SectionCode == slE.SectionCode
+                    && sl.LanguageId == spanishLanguage.Id);
+            if (exists)
+            {
+                continue;
+            }
+
+            db.SectionLanguages.Add(new SectionLanguage
+            {
+                PublicationCode = slE.PublicationCode,
+                SectionCode = slE.SectionCode,
+                Language = spanishLanguage,
+                LanguageId = spanishLanguage.Id,
+                PublicationLanguage = plS,
+                PublicationLanguageId = plS.Id
+            });
+            added++;
+        }
+
+        if (added > 0)
+        {
+            await db.SaveChangesAsync();
+            logger.Information("SyncSectionLanguagesForSpanish: Added Spanish (S) for {Count} section(s)", added);
+        }
+    }
+
     private async Task SeedLanguageForSection(MediaDbContext db, string publicationCode, string sectionCode, string languageCode)
     {
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
@@ -171,8 +228,7 @@ internal sealed class SectionLanguageSeeder
                 PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
                 SectionCode = normalizedSectionCode,
                 Language = language,
-                PublicationLanguage = publicationLanguage,
-                HarvestType = publicationLanguage.HarvestType
+                PublicationLanguage = publicationLanguage
             };
             db.SectionLanguages.Add(sectionLanguage);
         }
@@ -280,8 +336,7 @@ internal sealed class SectionLanguageSeeder
                         LanguageId = null, // No language FK for sections of publications without language
                         Language = null,
                         PublicationLanguage = publicationLanguage,
-                        PublicationLanguageId = publicationLanguage.Id,
-                        HarvestType = publicationLanguage.HarvestType
+                        PublicationLanguageId = publicationLanguage.Id
                     };
                     db.SectionLanguages.Add(sectionLanguage);
                     logger.Debug("Added SectionLanguage entry for {PublicationCode}/{SectionCode} without language",

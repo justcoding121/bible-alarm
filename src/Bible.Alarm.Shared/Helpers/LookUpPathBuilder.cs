@@ -38,28 +38,18 @@ public static class LookUpPathBuilder
         var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleSection;
         var lc = effectiveIsNoLanguage || string.IsNullOrWhiteSpace(languageCode) ? "E" : languageCode.Trim();
 
-        // For non-sectioned publications: flat music (e.g. osg) uses MP3; videos use MP4
+        // Section-level or pub-level only (no track=). Refetch returns all tracks; resolve by trackCode in response.
         if (string.IsNullOrWhiteSpace(sectionCode))
         {
-            // Vocal music (osg, sjjc, etc.) is flat and MP3. Harvester uses fileformat=MP3 for these.
             if (JwSourceHelper.VocalMusicPublicationCodes.Contains(publicationCode))
-            {
-                return $"?output=json&pub={publicationCode}&fileformat=MP3&langwritten={lc}&track={trackCode}";
-            }
-            // Videos use MP4, not MP3. Match harvester format: no txtCMSLang for videos
-            return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={lc}&track={trackCode}";
+                return $"?output=json&pub={publicationCode}&fileformat=MP3&langwritten={lc}";
+            return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={lc}";
         }
 
-        // For disc-style sections, use the section code as the pub parameter
         if (isDiscStyleSection)
-        {
-            return $"?output=json&pub={sectionCode}&fileformat=MP3&langwritten={lc}&track={trackCode}";
-        }
+            return $"?output=json&pub={sectionCode}&fileformat=MP3&langwritten={lc}";
 
-        // For sectioned Bible publications, use booknum (not sectionnum)
-        // Match harvester format: ?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}
-        // Note: We include track parameter for individual track lookup, harvester doesn't use it when fetching all tracks
-        return $"?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&langwritten={lc}&track={trackCode}";
+        return $"?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={lc}";
     }
 
     /// <summary>
@@ -80,22 +70,14 @@ public static class LookUpPathBuilder
         int? originalTrackCode = null,
         bool isNoLanguagePublication = false)
     {
-        // Use downloadCode if provided (for melody music with discs), otherwise use publicationCode
         var pubCode = !string.IsNullOrEmpty(downloadCode) ? downloadCode : publicationCode;
-        // Use originalTrackCode if provided (for melody music with discs), otherwise use trackCode
-        var trackParam = originalTrackCode.HasValue ? originalTrackCode.Value.ToString() : trackCode;
-
-        // If downloadCode is provided and follows disc pattern (e.g., "iam-1"), it's a no-language publication
         var isDiscStyleDownload = !string.IsNullOrEmpty(downloadCode) &&
             downloadCode.Contains('-') &&
             downloadCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase);
-
-        // No-language publications always use "E"
         var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleDownload;
         var effectiveLanguageCode = effectiveIsNoLanguage ? "E" : languageCode;
-
         var langParam = string.IsNullOrEmpty(effectiveLanguageCode) ? "&langwritten=E" : $"&langwritten={effectiveLanguageCode}";
-        return $"?output=json&pub={pubCode}&fileformat=MP3{langParam}&track={trackParam}";
+        return $"?output=json&pub={pubCode}&fileformat=MP3{langParam}";
     }
 
     /// <summary>
@@ -108,10 +90,6 @@ public static class LookUpPathBuilder
     /// <returns>The lookup path query string for Mediator API</returns>
     public static string BuildDramaTrackLookUpPath(string categoryKey, string languageCode, string trackCode, string? naturalKey = null)
     {
-        if (!string.IsNullOrEmpty(naturalKey))
-        {
-            return $"?category={categoryKey}&lang={languageCode}&naturalKey={naturalKey}";
-        }
-        return $"?category={categoryKey}&lang={languageCode}&track={trackCode}";
+        return $"?category={categoryKey}&lang={languageCode}";
     }
 }

@@ -303,6 +303,7 @@ public static class ServiceRegistrationHelper
             options.UseSqlite(
                 string.Format(AppConstants.Database.MediaIndexDatabaseConnectionStringFormat, databasePath),
                 b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+            options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
         });
 
         // Register TaskScheduler for compatibility - use default scheduler instead of UI context

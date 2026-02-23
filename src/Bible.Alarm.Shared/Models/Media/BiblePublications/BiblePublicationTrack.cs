@@ -60,10 +60,9 @@ public sealed class BiblePublicationTrack : IComparable
     public BiblePublicationSection? Section { get; set; }
 
     /// <summary>
-    /// Navigation property to UrlParams (one-to-many, optional).
-    /// Contains URL parameters as key-value pairs needed to construct the file URL.
+    /// Navigation property to TrackUrl (1:1). CDN URL stored there from pub/section fetch response.
     /// </summary>
-    public List<UrlParam> UrlParams { get; set; } = [];
+    public TrackUrl? TrackUrl { get; set; }
 
     public int CompareTo(object? obj)
     {

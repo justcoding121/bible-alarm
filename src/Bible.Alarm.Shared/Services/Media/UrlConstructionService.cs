@@ -18,7 +18,7 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 namespace Bible.Alarm.Shared.Services.Media;
 
 /// <summary>
-/// Service for constructing download URLs from track UrlParams and fixed base URLs.
+/// Resolves track CDN URLs from TrackUrl. When absent, returns null; CDN URLs come from section/pub fetch and are stored in TrackUrl.
 /// </summary>
 public class UrlConstructionService : IUrlConstructionService
 {
@@ -57,7 +57,7 @@ public class UrlConstructionService : IUrlConstructionService
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
-            .Include(t => t.UrlParams)
+            .Include(t => t.TrackUrl)
             .FirstOrDefaultAsync(t => t.Id == trackId);
 
         if (track == null || track.Publication == null)
@@ -65,49 +65,8 @@ public class UrlConstructionService : IUrlConstructionService
             return new List<string>();
         }
 
-        var baseUrls = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrls;
-        var urls = new List<string>();
-        foreach (var baseUrl in baseUrls)
-        {
-            var url = ConstructUrl(baseUrl, track);
-            if (!string.IsNullOrEmpty(url))
-            {
-                urls.Add(url);
-            }
-        }
-
-        return urls;
-    }
-
-    /// <summary>
-    /// Constructs a single URL for a track using a base URL string.
-    /// </summary>
-    private static string ConstructUrl(string baseUrl, BiblePublicationTrack track)
-    {
-        var queryParams = new Dictionary<string, string>();
-        foreach (var param in track.UrlParams.Where(p => p.IsQueryParam))
-        {
-            queryParams[param.Key] = param.Value;
-        }
-
-        if (!queryParams.ContainsKey("output"))
-        {
-            queryParams["output"] = "json";
-        }
-
-        if (queryParams.TryGetValue("fileformat", out var ff))
-        {
-            queryParams["fileformat"] = ff.ToUpperInvariant();
-        }
-
-        if (queryParams.Count == 0)
-        {
-            return baseUrl.TrimEnd('/');
-        }
-
-        var queryString = string.Join("&", queryParams.Select(kvp =>
-            $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
-        return $"{baseUrl.TrimEnd('/')}?{queryString}";
+        var url = track.TrackUrl?.Url;
+        return string.IsNullOrEmpty(url) ? new List<string>() : new List<string> { url };
     }
 
     /// <summary>
@@ -133,7 +92,7 @@ public class UrlConstructionService : IUrlConstructionService
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
-            .Include(t => t.UrlParams)
+            .Include(t => t.TrackUrl)
             .Where(t => t.Publication != null && t.Publication.PublicationCode == publicationCode);
 
         if (isNoLanguagePublication)
@@ -167,23 +126,12 @@ public class UrlConstructionService : IUrlConstructionService
             return new List<string>();
         }
 
-        var baseUrls = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrls;
-        var urls = new List<string>();
-        foreach (var baseUrl in baseUrls)
-        {
-            var url = ConstructUrl(baseUrl, track);
-            if (!string.IsNullOrEmpty(url))
-            {
-                urls.Add(url);
-            }
-        }
-
-        return urls;
+        var url = track.TrackUrl?.Url;
+        return string.IsNullOrEmpty(url) ? new List<string>() : new List<string> { url };
     }
 
     /// <summary>
-    /// Constructs the lookup path (query string) for a track by publication code, language code, section code, and track number.
-    /// Returns the query string part (e.g., "?output=json&pub=nwt&booknum=1&fileformat=MP3&langwritten=E&track=1").
+    /// Resolves the track CDN URL or a synthetic query string for fetch. Returns TrackUrl.Url when present; otherwise a query string built from pub/lang/section/track for RefreshUrlAsync.
     /// </summary>
     public async Task<string?> ConstructTrackLookUpPathAsync(
         string publicationCode,
@@ -249,7 +197,7 @@ public class UrlConstructionService : IUrlConstructionService
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
-            .Include(t => t.UrlParams)
+            .Include(t => t.TrackUrl)
             .Where(t => t.Publication != null && t.Publication.PublicationCode == publicationCode);
 
         if (!string.IsNullOrEmpty(effectiveLanguageCode))
@@ -272,7 +220,6 @@ public class UrlConstructionService : IUrlConstructionService
             query = query.Where(t => t.Section == null);
         }
 
-        // Resolve track by TrackCode (string)
         query = query.Where(t => t.TrackCode == normalizedTrackCode);
 
         var track = await query.SingleOrDefaultAsync();
@@ -282,19 +229,6 @@ public class UrlConstructionService : IUrlConstructionService
             return null;
         }
 
-        var baseUrl = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrls[0];
-        var fullUrl = ConstructUrl(baseUrl, track);
-
-        if (string.IsNullOrEmpty(fullUrl))
-        {
-            return null;
-        }
-
-        // Extract query string from full URL
-        var uri = new Uri(fullUrl);
-        var queryString = uri.Query;
-        
-        // Return with leading ? if not empty
-        return string.IsNullOrEmpty(queryString) ? null : queryString;
+        return track.TrackUrl?.Url;
     }
 }

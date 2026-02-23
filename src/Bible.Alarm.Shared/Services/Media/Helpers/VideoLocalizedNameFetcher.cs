@@ -54,7 +54,7 @@ internal sealed class VideoLocalizedNameFetcher
 
         try
         {
-            var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
+            var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}";
             var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
             var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery, cancellationToken);
             if (jsonString == null)

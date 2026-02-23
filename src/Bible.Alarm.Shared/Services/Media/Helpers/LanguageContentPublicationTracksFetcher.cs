@@ -98,7 +98,7 @@ internal sealed class LanguageContentPublicationTracksFetcher
             var existingPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Tracks)
-                    .ThenInclude(t => t.UrlParams)
+                    .ThenInclude(t => t.TrackUrl)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == publicationCodeForDb &&
@@ -131,14 +131,11 @@ internal sealed class LanguageContentPublicationTracksFetcher
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication, cancellationToken);
 
                 case Models.Enums.HarvestType.Flat:
-                    // Music and Video use flat-track fetching
                     var isMusic = categoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
                     var fileFormat = isVideo ? "MP4" : "MP3";
-                    var trackParam = isVideo ? "&track=" : "";
-
                     return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication,
-                        isVideo, isMusic, fileFormat, trackParam, null, cancellationToken);
+                        isVideo, isMusic, fileFormat, null, cancellationToken);
 
                 case Models.Enums.HarvestType.Sectioned:
                 default:

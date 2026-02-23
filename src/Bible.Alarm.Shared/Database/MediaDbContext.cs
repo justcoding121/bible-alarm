@@ -24,7 +24,7 @@ public class MediaDbContext : DbContext
     public DbSet<BiblePublicationTrack> BiblePublicationTracks { get; set; }
     public DbSet<PublicationLanguage> PublicationLanguages { get; set; }
     public DbSet<SectionLanguage> SectionLanguages { get; set; }
-    public DbSet<UrlParam> UrlParams { get; set; }
+    public DbSet<TrackUrl> TrackUrls { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -44,12 +44,11 @@ public class MediaDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // UrlParams are only stored for tracks (complete params needed to fetch that track)
-        // Sections and publications build URLs in code using harvest-type logic
-        modelBuilder.Entity<UrlParam>()
-            .HasOne(up => up.BiblePublicationTrack)
-            .WithMany(bt => bt.UrlParams)
-            .HasForeignKey(up => up.BiblePublicationTrackId)
+        // TrackUrl: 1:1 with BiblePublicationTrack; stores CDN URL from pub/section fetch response
+        modelBuilder.Entity<TrackUrl>()
+            .HasOne(tu => tu.BiblePublicationTrack)
+            .WithOne(bt => bt.TrackUrl)
+            .HasForeignKey<TrackUrl>(tu => tu.BiblePublicationTrackId)
             .IsRequired(false);
 
         // Language relationship is already optional (LanguageId is nullable)

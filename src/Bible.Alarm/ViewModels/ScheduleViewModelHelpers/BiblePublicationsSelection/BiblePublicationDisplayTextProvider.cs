@@ -3,7 +3,7 @@ using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Services.Media;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
@@ -22,12 +22,14 @@ public sealed class BiblePublicationDisplayTextProvider
     private readonly IState<ApplicationState> state;
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
+    private readonly ICategoryNameService categoryNameService;
 
-    public BiblePublicationDisplayTextProvider(IState<ApplicationState> state, ILogger logger, IMediaService mediaService)
+    public BiblePublicationDisplayTextProvider(IState<ApplicationState> state, ILogger logger, IMediaService mediaService, ICategoryNameService categoryNameService)
     {
         this.state = state;
         this.logger = logger;
         this.mediaService = mediaService;
+        this.categoryNameService = categoryNameService;
     }
 
     /// <summary>
@@ -199,6 +201,11 @@ public sealed class BiblePublicationDisplayTextProvider
 
         if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
         {
+            var displayName = categoryNameService.GetName(currentSchedule.BiblePublicationCategoryName, AppConstants.Media.DefaultLanguageCode);
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                return displayName;
+            }
             return currentSchedule.BiblePublicationCategoryName;
         }
 

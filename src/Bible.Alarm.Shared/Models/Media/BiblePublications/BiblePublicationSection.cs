@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -37,7 +38,7 @@ public sealed class BiblePublicationSection : IComparable
     [Required]
     public List<BiblePublicationTrack> Tracks { get; set; } = [];
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
         if (obj is not BiblePublicationSection other)
         {

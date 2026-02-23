@@ -122,7 +122,7 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             var query = dbContext.BiblePublicationTracks
                 .AsNoTracking()
                 .Include(t => t.Section)
-                .Include(t => t.UrlParams)
+                .Include(t => t.TrackUrl)
                 .Where(t => t.BiblePublicationId == publicationId)
                 .Where(t =>
                     string.IsNullOrWhiteSpace(sectionCode)

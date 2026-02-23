@@ -109,32 +109,6 @@ internal sealed class DramaTrackParser
             return null;
         }
 
-        var trackUrlParams = new List<UrlParam>
-        {
-            new UrlParam { Key = "fileformat", Value = isVideo ? "mp4" : "mp3", IsQueryParam = true },
-            new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
-            new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
-        };
-
-        if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
-        {
-            var docidValue = sectionCode.Substring(6);
-            trackUrlParams.Insert(0, new UrlParam { Key = "docid", Value = docidValue, IsQueryParam = true });
-            if (trackNumber.HasValue)
-            {
-                trackUrlParams.Add(new UrlParam { Key = "track", Value = trackNumber.Value.ToString(), IsQueryParam = true });
-            }
-        }
-        else
-        {
-            trackUrlParams.Insert(0, new UrlParam { Key = "pub", Value = sectionCode, IsQueryParam = true });
-            if (trackNumber.HasValue && !omitTrackFromUrlParams)
-            {
-                var numberKey = useIssueParameter ? "issue" : "track";
-                trackUrlParams.Add(new UrlParam { Key = numberKey, Value = trackNumber.Value.ToString(), IsQueryParam = true });
-            }
-        }
-
         string trackCode;
         if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
         {
@@ -150,7 +124,7 @@ internal sealed class DramaTrackParser
         {
             TrackCode = trackCode,
             Title = title,
-            UrlParams = trackUrlParams
+            TrackUrl = new TrackUrl { Url = url }
         };
     }
 

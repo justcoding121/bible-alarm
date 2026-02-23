@@ -24,7 +24,6 @@ using BiblePublicationSection = Bible.Alarm.AudioLinksHarvestor.Models.BiblePubl
 using BiblePublicationTrack = Bible.Alarm.AudioLinksHarvestor.Models.BiblePublications.BiblePublicationTrack;
 using SharedBiblePublicationSection = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection;
 using SharedBiblePublicationTrack = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack;
-using SharedUrlParam = Bible.Alarm.Shared.Models.Media.BiblePublications.UrlParam;
 using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.DramaTrack;
 using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.MusicTrack;
 using Publication = Bible.Alarm.AudioLinksHarvestor.Models.Publication;
@@ -47,6 +46,7 @@ internal class DbSeeder : IDataPersister
     private readonly TestModeSeeder testModeSeeder;
     private readonly EnglishSeeder englishSeeder;
     private readonly MelodyMusicSeeder melodyMusicSeeder;
+    private readonly SpanishSeeder spanishSeeder;
     private readonly string failedListPath;
 
     /// <summary>
@@ -71,6 +71,7 @@ internal class DbSeeder : IDataPersister
         this.testModeSeeder = new TestModeSeeder(logger, scopeFactory, dataStore);
         this.englishSeeder = new EnglishSeeder(logger, scopeFactory, dataStore);
         this.melodyMusicSeeder = new MelodyMusicSeeder(logger, scopeFactory, dataStore);
+        this.spanishSeeder = new SpanishSeeder(logger, scopeFactory);
     }
 
     public async Task Seed(IReadOnlySet<string>? publicationFilter = null)
@@ -155,6 +156,16 @@ internal class DbSeeder : IDataPersister
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             await sectionLanguageSeeder.SeedSectionLanguages(db);
         }
+
+        // Add Spanish (S) to discovery tables and seed Spanish using same ad-hoc fetch as schedule page
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            await publicationLanguageSeeder.SyncPublicationLanguagesForSpanishAsync(db);
+            await sectionLanguageSeeder.SyncSectionLanguagesForSpanishAsync(db);
+            await db.SaveChangesAsync();
+        }
+        await spanishSeeder.SeedSpanishAsync();
         
         // In test mode, also seed MY and A after English
         if (isTestRun)

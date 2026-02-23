@@ -112,7 +112,9 @@ internal sealed class DramaTrackFetcher
         }
         else
         {
-            queryString = $"?output=json&pub={sectionCode}&{(JwSourceHelper.SectionCodesUsingIssueParameter.Contains(sectionCode) ? "issue" : "track")}={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+            var effectiveTrack = JwSourceHelper.SectionCodesSingleTrackZero.Contains(sectionCode) ? 0 : trackNumber;
+            var useIssue = JwSourceHelper.SectionCodesUsingIssueParameter.Contains(sectionCode) || JwSourceHelper.LooksLikeIssueNumber(trackNumber);
+            queryString = $"?output=json&pub={sectionCode}&{(useIssue ? "issue" : "track")}={effectiveTrack}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
@@ -129,7 +131,7 @@ internal sealed class DramaTrackFetcher
     {
         var isVideo = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
         var fileFormat = isVideo ? "MP4" : "MP3";
-        var useIssueParam = JwSourceHelper.SectionCodesUsingIssueParameter.Contains(sectionCode);
+        var useIssueParam = JwSourceHelper.SectionCodesUsingIssueParameter.Contains(sectionCode) || JwSourceHelper.LooksLikeIssueNumber(trackNumber);
         string queryString;
         if (sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
         {
@@ -142,7 +144,8 @@ internal sealed class DramaTrackFetcher
         }
         else
         {
-            queryString = $"?output=json&pub={sectionCode}&{(useIssueParam ? "issue" : "track")}={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+            var effectiveTrack = JwSourceHelper.SectionCodesSingleTrackZero.Contains(sectionCode) ? 0 : trackNumber;
+            queryString = $"?output=json&pub={sectionCode}&{(useIssueParam ? "issue" : "track")}={effectiveTrack}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
 
         var sectionJsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
@@ -162,8 +165,9 @@ internal sealed class DramaTrackFetcher
         var allowAudioDescriptionTitles = normalizedPublicationCode.EndsWith("AD", StringComparison.OrdinalIgnoreCase);
         var useDocidParam = sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase);
         var omitTrackFromUrlParams = !useDocidParam && JwSourceHelper.SectionCodesSingleTrackNoParam.Contains(sectionCode);
+        var effectiveTrackForParams = JwSourceHelper.SectionCodesSingleTrackZero.Contains(sectionCode) ? 0 : trackNumber;
         return trackParser.ParseTracksFromJson(
-            sectionFilesElement, normalizedLanguageCode, sectionCode, isVideo, trackNumber, allowAudioDescriptionTitles, useIssueParam, omitTrackFromUrlParams, useDocidParam);
+            sectionFilesElement, normalizedLanguageCode, sectionCode, isVideo, effectiveTrackForParams, allowAudioDescriptionTitles, useIssueParam, omitTrackFromUrlParams, useDocidParam);
     }
 
     /// <summary>

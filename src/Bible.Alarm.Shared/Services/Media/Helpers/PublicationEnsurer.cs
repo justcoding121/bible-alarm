@@ -69,6 +69,17 @@ internal sealed class PublicationEnsurer
 
             if (existingPublication != null)
             {
+                if (existingPublication.HarvestType == null)
+                {
+                    var backfillHarvestType = PublicationTypeHelper.GetHarvestType(lowerCode);
+                    var toUpdate = await db.BiblePublications
+                        .FirstOrDefaultAsync(bp => bp.Id == existingPublication.Id, cancellationToken);
+                    if (toUpdate != null)
+                    {
+                        toUpdate.HarvestType = backfillHarvestType;
+                        await db.SaveChangesAsync(cancellationToken);
+                    }
+                }
                 logger.Debug("Publication {PublicationCode} for language {LanguageCode} already exists, skipping fetch",
                     publicationCode, languageCode);
                 return true;

@@ -140,14 +140,14 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             // Melody music is now stored as a sectioned publication (e.g., iam has sections like "iam-1", "iam-2")
-            // Include sections and their tracks (with UrlParams for OriginalTrackCode)
+            // Include sections and their tracks (with TrackUrl for CDN URL)
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.BiblePublicationCategories)
                 .ThenInclude(x => x.Category)
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
-                    .ThenInclude(t => t.UrlParams)
+                    .ThenInclude(t => t.TrackUrl)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
                     && x.LanguageId == null
@@ -181,7 +181,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             }
 
             // Map BiblePublicationTrack to MusicTrack
-            // For sectioned melody (e.g. iam): set DownloadCode = section code (e.g. iam-1) and OriginalTrackCode from UrlParams so LookUpPath uses pub=sectionCode.
+            // For sectioned melody (e.g. iam): set DownloadCode = section code (e.g. iam-1) and OriginalTrackCode from TrackCode.
             // Handle duplicate track codes by taking the first occurrence
             var musicTracks = allTracks
                 .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
@@ -206,14 +206,14 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Get the publication with sections and track UrlParams
+            // Get the publication with sections and track TrackUrl
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.BiblePublicationCategories)
                 .ThenInclude(x => x.Category)
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
-                    .ThenInclude(t => t.UrlParams)
+                    .ThenInclude(t => t.TrackUrl)
                 .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
                     && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
@@ -252,20 +252,16 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
 
     /// <summary>
     /// Maps a BiblePublicationTrack to MusicTrack, setting DownloadCode (section/disc code) and OriginalTrackCode
-    /// from Section and UrlParams so that LookUpPath uses pub=sectionCode (e.g. iam-1) for melody music.
+    /// from Section and TrackCode so that LookUpPath uses pub=sectionCode (e.g. iam-1) for melody music.
     /// </summary>
     /// <param name="sectionCodeFallback">When provided (e.g. from GetTracksBySectionCodeAsync), used if track.Section is not populated.</param>
     private static MusicTrack MapBiblePublicationTrackToMusicTrack(BiblePublicationTrack t, string? sectionCodeFallback = null)
     {
         var downloadCode = t.Section?.SectionCode ?? sectionCodeFallback;
         int? originalTrackCode = null;
-        if (t.UrlParams != null)
+        if (int.TryParse(t.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackCode))
         {
-            var trackParam = t.UrlParams.FirstOrDefault(p => p.Key == "track");
-            if (trackParam != null && int.TryParse(trackParam.Value, out var trackCode))
-            {
-                originalTrackCode = trackCode;
-            }
+            originalTrackCode = trackCode;
         }
 
         // Parse TrackCode as int for MusicTrack.Number (for backward compatibility with MusicTrack model)

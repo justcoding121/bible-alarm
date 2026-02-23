@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -45,254 +46,25 @@ internal sealed class FlatPublicationFetcher
         bool isVideo,
         bool isMusic,
         string fileFormat,
-        string trackParam,
         Language? language = null,
         CancellationToken cancellationToken = default)
     {
-        var tracks = new List<BiblePublicationTrack>();
         string? localizedPubName = null;
-        
-        // For videos, fetch localized name from Mediator API (similar to dramas)
-        // The GETPUBMEDIALINKS API might return English name even when requesting other languages
         if (isVideo && !normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
             localizedPubName = await videoLocalizedNameFetcher.FetchVideoLocalizedNameFromMediatorAsync(
                 normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
         }
-        
-        var trackCode = 1;
-        var consecutiveFailures = 0;
-        const int MaxConsecutiveFailures = 3;
-        var fetchedAllVideoTracks = false;
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants().ToList();
-
-        // Some video publications (e.g. thv) return all tracks in one response when no track param is used
-        if (isVideo && !string.IsNullOrEmpty(trackParam))
-        {
-            var (allTracksResult, fetchedPubName) = await TryFetchAllVideoTracksInOneRequestAsync(
-                baseUrls, normalizedPublicationCode, normalizedLanguageCode, fileFormat, cancellationToken);
-            if (allTracksResult.Count > 0)
-            {
-                tracks.AddRange(allTracksResult);
-                if (fetchedPubName != null)
-                {
-                    localizedPubName = fetchedPubName;
-                }
-                fetchedAllVideoTracks = true;
-            }
-        }
-
-        while (!fetchedAllVideoTracks && consecutiveFailures < MaxConsecutiveFailures)
-        {
-            try
-            {
-                var queryString = $"?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0{trackParam}{trackCode}&langwritten={normalizedLanguageCode}";
-                var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
-                if (jsonString == null)
-                {
-                    consecutiveFailures++;
-                    trackCode++;
-                    continue;
-                }
-                using var doc = JsonDocument.Parse(jsonString);
-                var root = doc.RootElement;
-
-                if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
-                {
-                    consecutiveFailures++;
-                    trackCode++;
-                    continue;
-                }
-
-                if (!filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles))
-                {
-                    consecutiveFailures++;
-                    trackCode++;
-                    continue;
-                }
-
-                if (!languageFiles.TryGetProperty(fileFormat, out var formatFiles))
-                {
-                    consecutiveFailures++;
-                    trackCode++;
-                    continue;
-                }
-
-                // Extract localized publication name (only once)
-                // For videos, we already tried Mediator API first, so only use pubName as fallback
-                // For videos, validate that pubName is not in English when requesting non-English language
-                if (localizedPubName == null && root.TryGetProperty("pubName", out var pubNameElement))
-                {
-                    var rawName = pubNameElement.GetString();
-                    var extractedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
-                    
-                    // For videos, if we're requesting a non-English language and the name is in English, skip it
-                    // This prevents using English names for non-English languages
-                    if (isVideo && !normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase) && 
-                        !string.IsNullOrEmpty(extractedName))
-                    {
-                        // Check if the name contains known English video names
-                        var knownEnglishNames = new[] { "The Good News According to Jesus", "Good news according to Jesus" };
-                        var isEnglishName = knownEnglishNames.Any(en => extractedName.Contains(en, StringComparison.OrdinalIgnoreCase));
-                        
-                        if (isEnglishName)
-                        {
-                            logger.Debug("API returned English name '{ExtractedName}' for video {PublicationCode} in language {LanguageCode}. Skipping and using fallback.",
-                                extractedName, normalizedPublicationCode, normalizedLanguageCode);
-                            extractedName = null; // Don't use the English name
-                        }
-                    }
-                    
-                    localizedPubName = extractedName;
-                }
-
-                // Process files based on type
-                if (isVideo)
-                {
-                    // For video, find preferred quality (240p) or fallback to first available
-                    JsonElement? selectedFile = null;
-                    foreach (var file in formatFiles.EnumerateArray())
-                    {
-                        if (file.TryGetProperty("label", out var labelElement))
-                        {
-                            var label = labelElement.GetString();
-                            if (label == "240p")
-                            {
-                                selectedFile = file;
-                                break;
-                            }
-                        }
-                        selectedFile ??= file;
-                    }
-
-                    if (selectedFile.HasValue)
-                    {
-                        var fileElement = selectedFile.Value;
-                        if (fileElement.TryGetProperty("file", out var fileInfo) &&
-                            fileInfo.TryGetProperty("url", out var urlElement))
-                        {
-                            var url = urlElement.GetString();
-                            if (!string.IsNullOrEmpty(url))
-                            {
-                                string title = "Unknown";
-                                if (fileElement.TryGetProperty("title", out var titleElement))
-                                {
-                                    var rawTitle = titleElement.GetString();
-                                    title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
-                                }
-
-                                var trackUrlParams = new List<UrlParam>
-                                {
-                                    new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true },
-                                    new UrlParam { Key = "track", Value = trackCode.ToString(), IsQueryParam = true },
-                                    new UrlParam { Key = "fileformat", Value = fileFormat.ToLowerInvariant(), IsQueryParam = true },
-                                    new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
-                                    new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
-                                };
-
-                                // TrackCode is the track param value from URL params
-                                var track = new BiblePublicationTrack
-                                {
-                                    TrackCode = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                                    Title = title,
-                                    UrlParams = trackUrlParams
-                                };
-                                tracks.Add(track);
-                                consecutiveFailures = 0;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // For music, process all tracks in the response
-                    foreach (var musicFile in formatFiles.EnumerateArray())
-                    {
-                        if (!musicFile.TryGetProperty("file", out var fileElement) ||
-                            !fileElement.TryGetProperty("url", out var urlElement))
-                        {
-                            continue;
-                        }
-
-                        var url = urlElement.GetString();
-                        if (string.IsNullOrEmpty(url))
-                        {
-                            continue;
-                        }
-
-                        if (!musicFile.TryGetProperty("track", out var trackElement))
-                        {
-                            continue;
-                        }
-
-                        var apiTrackCode = trackElement.GetInt32();
-                        if (apiTrackCode == 0 || url.EndsWith(".zip"))
-                        {
-                            continue;
-                        }
-
-                        string title = "Unknown";
-                        if (musicFile.TryGetProperty("title", out var titleElement))
-                        {
-                            var rawTitle = titleElement.GetString();
-                            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
-                        }
-
-                        if (title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))
-                        {
-                            continue;
-                        }
-
-                        var trackUrlParams = new List<UrlParam>
-                        {
-                            new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true },
-                            new UrlParam { Key = "track", Value = apiTrackCode.ToString(), IsQueryParam = true },
-                            new UrlParam { Key = "fileformat", Value = fileFormat.ToLowerInvariant(), IsQueryParam = true },
-                            new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
-                            new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
-                        };
-
-                        // TrackCode is the apiTrackCode from the API response (track param value)
-                        var bibleTrack = new BiblePublicationTrack
-                        {
-                            TrackCode = apiTrackCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                            Title = title,
-                            UrlParams = trackUrlParams
-                        };
-                        tracks.Add(bibleTrack);
-                        trackCode++;
-                    }
-                    consecutiveFailures = 0;
-                    break; // Music returns all tracks in one response
-                }
-
-                trackCode++;
-            }
-            catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
-            {
-                consecutiveFailures++;
-                trackCode++;
-                continue;
-            }
-            catch (Exception ex)
-            {
-                if (NetworkExceptionHelper.IsNetworkFailure(ex))
-                {
-                    throw;
-                }
-
-                logger.Warning(ex, "Failed to fetch track {TrackCode} for publication {PublicationCode} in language {LanguageCode}",
-                    trackCode, normalizedPublicationCode, normalizedLanguageCode);
-                consecutiveFailures++;
-                trackCode++;
-                continue;
-            }
-        }
+        var (tracks, fetchedPubName) = await TryFetchAllTracksInOneRequestAsync(
+            baseUrls, normalizedPublicationCode, normalizedLanguageCode, fileFormat, cancellationToken);
+        if (fetchedPubName != null)
+            localizedPubName = fetchedPubName;
 
         if (tracks.Count == 0)
         {
-            logger.Warning("No tracks found for publication {PublicationCode} in language {LanguageCode}",
+            logger.Warning("No tracks returned for flat publication {PublicationCode} in language {LanguageCode} (fetch-all, no track param)",
                 normalizedPublicationCode, normalizedLanguageCode);
             return false;
         }
@@ -326,7 +98,7 @@ internal sealed class FlatPublicationFetcher
         {
             existingPublication = await db.BiblePublications
                 .Include(bp => bp.Tracks)
-                .ThenInclude(t => t.UrlParams)
+                .ThenInclude(t => t.TrackUrl)
                 .Include(bp => bp.BiblePublicationCategories)
                 .ThenInclude(bpc => bpc.Category)
                 .FirstOrDefaultAsync(
@@ -338,7 +110,7 @@ internal sealed class FlatPublicationFetcher
         {
             existingPublication = await db.BiblePublications
                 .Include(bp => bp.Tracks)
-                .ThenInclude(t => t.UrlParams)
+                .ThenInclude(t => t.TrackUrl)
                 .Include(bp => bp.BiblePublicationCategories)
                 .ThenInclude(bpc => bpc.Category)
                 .FirstOrDefaultAsync(
@@ -353,9 +125,9 @@ internal sealed class FlatPublicationFetcher
                 normalizedPublicationCode, normalizedLanguageCode ?? "(null)");
             foreach (var track in existingPublication.Tracks)
             {
-                if (track.UrlParams.Count > 0)
+                if (track.TrackUrl != null)
                 {
-                    db.UrlParams.RemoveRange(track.UrlParams);
+                    db.TrackUrls.Remove(track.TrackUrl);
                 }
             }
             db.BiblePublicationTracks.RemoveRange(existingPublication.Tracks);
@@ -389,6 +161,7 @@ internal sealed class FlatPublicationFetcher
                 LanguageId = resolvedLanguage?.Id,
                 IsVideo = isVideo,
                 IsMusic = isMusic || isMusicCategory,
+                HarvestType = HarvestType.Flat,
                 Tracks = tracks,
                 Sections = new List<BiblePublicationSection>()
             };
@@ -422,11 +195,9 @@ internal sealed class FlatPublicationFetcher
     }
 
     /// <summary>
-    /// Tries to fetch all video tracks in one request (no track param). Many video publications (e.g. thv) return
-    /// all tracks in files.lang.MP4 when the track parameter is omitted. The API also supports per-track requests
-    /// (track=1, track=2, …); we try fetch-all first for efficiency (one request vs many).
+    /// Fetches all tracks in one request (no track param). GETPUBMEDIALINKS returns all tracks when track is omitted.
     /// </summary>
-    private async Task<(List<BiblePublicationTrack> Tracks, string? LocalizedPubName)> TryFetchAllVideoTracksInOneRequestAsync(
+    private async Task<(List<BiblePublicationTrack> Tracks, string? LocalizedPubName)> TryFetchAllTracksInOneRequestAsync(
         List<string> baseUrls,
         string normalizedPublicationCode,
         string normalizedLanguageCode,
@@ -509,20 +280,11 @@ internal sealed class FlatPublicationFetcher
                     title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
                 }
 
-                var trackUrlParams = new List<UrlParam>
-                {
-                    new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true },
-                    new UrlParam { Key = "track", Value = kv.Key.ToString(), IsQueryParam = true },
-                    new UrlParam { Key = "fileformat", Value = fileFormat.ToLowerInvariant(), IsQueryParam = true },
-                    new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
-                    new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
-                };
-
                 result.Add(new BiblePublicationTrack
                 {
                     TrackCode = kv.Key.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     Title = title,
-                    UrlParams = trackUrlParams
+                    TrackUrl = new TrackUrl { Url = url }
                 });
             }
 
@@ -541,8 +303,7 @@ internal sealed class FlatPublicationFetcher
                 throw;
             }
 
-            logger.Debug(ex, "Fetch-all (no track param) failed for publication {PublicationCode}, will try track-by-track",
-                normalizedPublicationCode);
+            logger.Debug(ex, "Fetch-all (no track param) failed for publication {PublicationCode}", normalizedPublicationCode);
             return (new List<BiblePublicationTrack>(), null);
         }
     }

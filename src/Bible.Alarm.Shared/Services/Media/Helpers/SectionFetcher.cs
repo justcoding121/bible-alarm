@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -111,6 +112,10 @@ internal sealed class SectionFetcher
         {
             publication = existingPublication;
             publication.IsMusic = isMusicPub;
+            if (publication.HarvestType == null)
+            {
+                publication.HarvestType = HarvestType.Sectioned;
+            }
             SyncPublicationCategories(publication, categoriesForPub);
         }
         else
@@ -127,6 +132,7 @@ internal sealed class SectionFetcher
                 LanguageId = language.Id,
                 IsVideo = isVideoDrama,
                 IsMusic = isMusicPub,
+                HarvestType = HarvestType.Sectioned,
                 Tracks = new List<BiblePublicationTrack>(),
                 Sections = new List<BiblePublicationSection>()
             };

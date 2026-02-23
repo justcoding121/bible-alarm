@@ -165,6 +165,51 @@ internal sealed class PublicationLanguageSeeder
         await SeedEnglishForAllPublications(db);
     }
 
+    /// <summary>
+    /// Adds Spanish (S) to PublicationLanguages for every publication that has English (E).
+    /// Enables ad-hoc fetch and Spanish seeding to run for all publications we seeded in E.
+    /// Call after SyncPublicationLanguagesForEnglishAsync.
+    /// </summary>
+    public async Task SyncPublicationLanguagesForSpanishAsync(MediaDbContext db)
+    {
+        const string SpanishCode = "S";
+        var spanishLanguage = await languageSeeder.GetOrCreateLanguageByCode(db, SpanishCode);
+
+        var englishPublicationLanguages = await db.PublicationLanguages
+            .Include(pl => pl.Language)
+            .Include(pl => pl.Category)
+            .Where(pl => pl.Language != null && pl.Language.LanguageCode == "E")
+            .ToListAsync();
+
+        var added = 0;
+        foreach (var plE in englishPublicationLanguages)
+        {
+            var exists = await db.PublicationLanguages
+                .AnyAsync(pl => pl.PublicationCode == plE.PublicationCode && pl.LanguageId == spanishLanguage.Id);
+            if (exists)
+            {
+                continue;
+            }
+
+            db.PublicationLanguages.Add(new PublicationLanguage
+            {
+                PublicationCode = plE.PublicationCode,
+                Language = spanishLanguage,
+                LanguageId = spanishLanguage.Id,
+                HarvestType = plE.HarvestType,
+                Category = plE.Category,
+                CategoryId = plE.CategoryId
+            });
+            added++;
+        }
+
+        if (added > 0)
+        {
+            await db.SaveChangesAsync();
+            logger.Information("SyncPublicationLanguagesForSpanish: Added Spanish (S) for {Count} publication(s)", added);
+        }
+    }
+
     private async Task SeedEnglishForAllPublications(MediaDbContext db)
     {
         // Get all English publications

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -72,4 +73,9 @@ public sealed class BiblePublication : TranslatedPublication
     /// </summary>
     [Required]
     public bool IsMusic { get; set; }
+
+    /// <summary>
+    /// How this publication is fetched (section vs flat vs mediator). Used when re-fetching on CDN failure.
+    /// </summary>
+    public HarvestType? HarvestType { get; set; }
 }
