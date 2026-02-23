@@ -41,6 +41,14 @@ public static class JwSourceHelper
     };
 
     /// <summary>
+    /// Publication codes that should be flagged IsMusic = true even when not under the Music category (e.g. Series that are music).
+    /// </summary>
+    public static HashSet<string> MusicFlagPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SeriesBJFSongs"
+    };
+
+    /// <summary>
     /// Video publication codes used for seeding.
     /// </summary>
     public static HashSet<string> VideoPublicationCodes => new(StringComparer.OrdinalIgnoreCase)

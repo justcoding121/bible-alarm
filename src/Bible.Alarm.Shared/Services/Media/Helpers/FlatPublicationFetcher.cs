@@ -362,7 +362,8 @@ internal sealed class FlatPublicationFetcher
             existingPublication.Tracks.Clear();
             existingPublication.Name = localizedPubName ?? englishPublication.Name;
             existingPublication.IsVideo = isVideo;
-            existingPublication.IsMusic = isMusic || categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
+            existingPublication.IsMusic = isMusic || categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
+                JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
             SyncPublicationCategories(existingPublication, categories);
             foreach (var track in tracks)
             {
@@ -375,7 +376,8 @@ internal sealed class FlatPublicationFetcher
         else
         {
             var publicationName = localizedPubName ?? englishPublication.Name;
-            var isMusicCategory = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
+            var isMusicCategory = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
+                JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
             var publication = new BiblePublication
             {
                 PublicationCode = normalizedPublicationCode,

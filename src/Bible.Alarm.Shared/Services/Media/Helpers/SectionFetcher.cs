@@ -104,7 +104,8 @@ internal sealed class SectionFetcher
         var isBible = category.CategoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         string? localizedPubName = null;
 
-        var isMusicPub = categoriesForPub.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
+        var isMusicPub = categoriesForPub.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
+            JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
         BiblePublication publication;
         if (existingPublication != null)
         {
