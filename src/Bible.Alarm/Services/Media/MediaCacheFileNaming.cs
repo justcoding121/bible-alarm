@@ -33,32 +33,34 @@ internal static class MediaCacheFileNaming
     }
 
     /// <summary>
-    /// Gets the file extension from a lookup path based on fileformat parameter or default to .mp3
+    /// Gets the file extension from a lookup path.
+    /// LookUpPath can be a query string (e.g. ?output=json&amp;fileformat=MP4) or a CDN URL (mediator/VOD content).
     /// </summary>
     private static string GetFileExtensionFromLookUpPath(string lookUpPath)
     {
-        // Check for fileformat parameter in lookup path
+        // When LookUpPath is a CDN URL (mediator/VOD), UrlConstructionService returns track.TrackUrl.Url;
+        // it has no fileformat param, so infer extension from the URL path.
+        if (Uri.TryCreate(lookUpPath, UriKind.Absolute, out var uri) &&
+            uri.Scheme is "http" or "https" &&
+            !string.IsNullOrEmpty(uri.AbsolutePath))
+        {
+            var path = uri.AbsolutePath;
+            if (path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)) return ".mp4";
+            if (path.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase)) return ".mp3";
+            if (path.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase)) return ".m4a";
+            if (path.EndsWith(".aac", StringComparison.OrdinalIgnoreCase)) return ".aac";
+        }
+
+        // Query-string style lookup path (GETPUBMEDIALINKS refetch)
         if (lookUpPath.Contains("fileformat=MP4", StringComparison.OrdinalIgnoreCase))
-        {
             return ".mp4";
-        }
-
         if (lookUpPath.Contains("fileformat=MP3", StringComparison.OrdinalIgnoreCase))
-        {
             return ".mp3";
-        }
-
         if (lookUpPath.Contains("fileformat=M4A", StringComparison.OrdinalIgnoreCase))
-        {
             return ".m4a";
-        }
-
         if (lookUpPath.Contains("fileformat=AAC", StringComparison.OrdinalIgnoreCase))
-        {
             return ".aac";
-        }
 
-        // Default to mp3 for backwards compatibility
         return AppConstants.Media.MediaFileExtension;
     }
 }

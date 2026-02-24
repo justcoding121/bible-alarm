@@ -390,9 +390,10 @@ public sealed class DisplayMetadataService(
                 {
                     file = File.Create(filePath);
                 }
-                catch (Exception ex) when (filePath.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
+                catch (Exception ex)
                 {
-                    logger.Debug(ex, "TagLib auto-detect failed for .mp4 path, trying video/mp4 then audio/mpeg: {FilePath}", filePath);
+                    // Cache filenames may not match content (e.g. .mp3 path with MP4 content). Try explicit mimetypes.
+                    logger.Debug(ex, "TagLib auto-detect failed for {FilePath}, trying video/mp4 then audio/mpeg", filePath);
                     try
                     {
                         file = File.Create(filePath, "video/mp4", ReadStyle.None);
