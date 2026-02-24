@@ -189,12 +189,6 @@
                                                 Spacing="{DynamicResource SpacingSmall}"
                                                 VerticalOptions="Center"
                                                 HorizontalOptions="End">
-                                                <Label
-                                                    FontSize="{DynamicResource SmallMediumFontSize}"
-                                                    Text="{Binding DownloadProgressText}"
-                                                    TextColor="{DynamicResource TextPrimaryColor}"
-                                                    VerticalOptions="Center"
-                                                    IsVisible="{Binding IsNavigating}" />
                                                 <ActivityIndicator
                                                     IsRunning="{Binding IsNavigating}"
                                                     IsVisible="{Binding IsNavigating}"

@@ -134,18 +134,12 @@
                                                 TextColor="{DynamicResource TextPrimaryColor}"
                                                 VerticalOptions="Center"
                                                 VerticalTextAlignment="Center" />
-                                            <!-- Progress indicator with percentage - shows when IsNavigating is true -->
+                                            <!-- Progress indicator - shows when IsNavigating is true -->
                                             <HorizontalStackLayout Grid.Column="1"
                                                 Margin="12,0,0,0"
                                                 Spacing="{DynamicResource SpacingSmall}"
                                                 VerticalOptions="Center"
                                                 HorizontalOptions="End">
-                                                <Label
-                                                    FontSize="{DynamicResource SmallMediumFontSize}"
-                                                    Text="{Binding DownloadProgressText}"
-                                                    TextColor="{DynamicResource TextPrimaryColor}"
-                                                    VerticalOptions="Center"
-                                                    IsVisible="{Binding IsNavigating}" />
                                                 <ActivityIndicator
                                                     IsRunning="{Binding IsNavigating}"
                                                     IsVisible="{Binding IsNavigating}"
