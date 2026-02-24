@@ -302,8 +302,11 @@ public static class ServiceRegistrationHelper
             var databasePath = Path.Combine(storageService.StorageRoot, AppConstants.Database.MediaIndexDatabaseFileName);
             options.UseSqlite(
                 string.Format(AppConstants.Database.MediaIndexDatabaseConnectionStringFormat, databasePath),
-                b => b.MigrationsAssembly("Bible.Alarm.Shared"));
-            options.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                b =>
+                {
+                    b.MigrationsAssembly("Bible.Alarm.Shared");
+                    b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                });
         });
 
         // Register TaskScheduler for compatibility - use default scheduler instead of UI context

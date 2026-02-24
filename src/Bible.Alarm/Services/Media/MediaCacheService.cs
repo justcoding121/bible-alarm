@@ -5,8 +5,10 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using System.Net.Http;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
@@ -21,7 +23,9 @@ public sealed class MediaCacheService(
     IMediaService mediaService,
     INetworkStatusService networkStatusService,
     IMediaUrlRefreshService urlRefreshService,
-    IAlarmScheduleService alarmScheduleService)
+    IAlarmScheduleService alarmScheduleService,
+    ILanguageContentService languageContentService,
+    IUrlConstructionService urlConstructionService)
     : IMediaCacheService, IDisposable
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory;
@@ -131,7 +135,7 @@ public sealed class MediaCacheService(
             // Download with individual error handling - don't let one failure stop others
             try
             {
-                var cachedUrl = await DownloadAndCacheTrackAsync(playItem, scheduleId);
+                var cachedUrl = await DownloadAndCacheTrackWithRefetchOn404Async(playItem, scheduleId);
                 if (cachedUrl == null)
                 {
                     // Download failed - log but continue with next track
@@ -207,7 +211,7 @@ public sealed class MediaCacheService(
 
         try
         {
-            var result = await DownloadAndCacheTrackAsync(playItem, scheduleId, cancellationToken);
+            var result = await DownloadAndCacheTrackWithRefetchOn404Async(playItem, scheduleId, cancellationToken);
             return result != null;
         }
         catch (OperationCanceledException)
@@ -218,6 +222,73 @@ public sealed class MediaCacheService(
         {
             logger.Warning(ex, "Background cache failed for track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// True only when the exception indicates the server reported the resource as invalid (e.g. 404/410).
+    /// Excludes network failures, timeouts, and I/O errors.
+    /// </summary>
+    private static bool IsInvalidFileServerError(Exception ex)
+    {
+        if (ex is not HttpRequestException)
+        {
+            return false;
+        }
+        var msg = ex.Message ?? string.Empty;
+        return msg.Contains("404", StringComparison.Ordinal) || msg.Contains("410", StringComparison.Ordinal);
+    }
+
+    private async Task<string?> RefetchSectionOrPubAndGetNewUrlAsync(TrackMetadata metadata, CancellationToken cancellationToken)
+    {
+        var pub = metadata.PublicationCode ?? string.Empty;
+        var lang = metadata.LanguageCode ?? string.Empty;
+        var section = metadata.SectionCode;
+        var track = metadata.TrackCode ?? string.Empty;
+
+        if (string.IsNullOrEmpty(pub) || string.IsNullOrEmpty(lang) || string.IsNullOrEmpty(track))
+        {
+            logger.Warning("Refetch skipped: missing metadata PublicationCode, LanguageCode, or TrackCode");
+            return null;
+        }
+
+        bool ok;
+        if (!string.IsNullOrWhiteSpace(section))
+        {
+            ok = await languageContentService.FetchSectionTracksAsync(pub, section.Trim(), lang, cancellationToken);
+        }
+        else
+        {
+            ok = await languageContentService.FetchPublicationTracksAsync(pub, lang, cancellationToken);
+        }
+
+        if (!ok)
+        {
+            logger.Warning("Refetch failed for pub={PublicationCode}, lang={LanguageCode}, section={SectionCode}", pub, lang, section ?? "(flat)");
+            return null;
+        }
+
+        var urls = await urlConstructionService.ConstructTrackUrlsAsync(pub, lang, section, track);
+        return urls.Count > 0 ? urls[0] : null;
+    }
+
+    private async Task<string?> DownloadAndCacheTrackWithRefetchOn404Async(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await DownloadAndCacheTrackAsync(playItem, scheduleId, cancellationToken);
+        }
+        catch (HttpRequestException ex) when (IsInvalidFileServerError(ex))
+        {
+            logger.Information(ex, "CDN returned not found for track; refetching section/pub: LookUpPath={LookUpPath}", playItem.Metadata.LookUpPath);
+            var newUrl = await RefetchSectionOrPubAndGetNewUrlAsync(playItem.Metadata, cancellationToken);
+            if (string.IsNullOrEmpty(newUrl))
+            {
+                logger.Warning("Refetch did not yield a new URL; failing so UI can show error");
+                throw;
+            }
+            playItem.Url = newUrl;
+            return await DownloadAndCacheTrackAsync(playItem, scheduleId, cancellationToken);
         }
     }
 
