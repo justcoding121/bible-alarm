@@ -1,4 +1,6 @@
 #nullable enable
+using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.iOS.Services.CarPlay.Interfaces;
 using CarPlay;
 using Foundation;
 using Serilog;
@@ -50,6 +52,16 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
             // Create and set the schedule list template
             SetRootTemplate();
+
+            var rotationService = ServiceProviderManager.GetService<ICarPlayDefaultScheduleRotationService>();
+            if (rotationService != null)
+            {
+                rotationService.Start();
+            }
+            else
+            {
+                logger.Debug("[CarPlay] Rotation service not available (DI may not be ready)");
+            }
         }
         catch (Exception ex)
         {
@@ -70,6 +82,16 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             Current = null;
             interfaceController = null;
             scheduleListTemplate = null;
+
+            try
+            {
+                var rotationService = ServiceProviderManager.GetService<ICarPlayDefaultScheduleRotationService>();
+                rotationService?.Stop();
+            }
+            catch (Exception rotationEx)
+            {
+                logger.Warning(rotationEx, "[CarPlay] Failed to stop rotation service");
+            }
         }
         catch (Exception ex)
         {

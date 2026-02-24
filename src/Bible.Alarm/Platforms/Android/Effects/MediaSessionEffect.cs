@@ -237,6 +237,9 @@ public class MediaSessionEffect(
             // Set to stopped state (idle, ready to play)
             mediaSessionManager.UpdatePlaybackStateForStop();
 
+            // Persist this schedule as "last shown" for 5-minute rotation so the next rotation shows the next schedule
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(action.ScheduleId);
+
             // Only start Android Auto foreground service if the car is still connected.
             // Re-check via the CarConnection content provider (not the stale binding flag)
             // to handle race conditions where the user disconnected during metadata update.

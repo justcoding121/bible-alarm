@@ -115,6 +115,43 @@ public sealed class DefaultScheduleService(
         return metadata;
     }
 
+    public async Task<ScheduleTrackMetadata> GetNextScheduleInRotationMetadataAsync()
+    {
+        var schedules = applicationState.Value.Schedules;
+        if (schedules == null || schedules.Count == 0)
+        {
+            logger.Warning("GetNextScheduleInRotationMetadataAsync: No schedules in state; returning fallback");
+            return new ScheduleTrackMetadata
+            {
+                ScheduleId = 0,
+                Title = string.Empty,
+                Artist = string.Empty,
+                Album = null,
+                ArtworkUrl = null
+            };
+        }
+
+        var ordered = schedules.OrderBy(s => s.Id).ToList();
+        var lastId = AndroidAutoRotationHelper.GetLastRotationScheduleId();
+        var index = lastId.HasValue
+            ? ordered.FindIndex(s => s.Id == lastId.Value)
+            : -1;
+        if (index < 0)
+        {
+            index = 0;
+        }
+        else
+        {
+            index = (index + 1) % ordered.Count;
+        }
+
+        var scheduleId = ordered[index].Id;
+        var metadata = await GetTrackMetadataForScheduleAsync(scheduleId);
+        AndroidAutoRotationHelper.SetLastRotationScheduleId(scheduleId);
+        logger.Debug("GetNextScheduleInRotationMetadataAsync: Rotated to schedule index {Index}, ScheduleId={ScheduleId}", index, scheduleId);
+        return metadata;
+    }
+
     private async Task<ScheduleTrackMetadata> GetTrackMetadataForScheduleAsync(int scheduleId)
     {
         // Get the first track from the schedule

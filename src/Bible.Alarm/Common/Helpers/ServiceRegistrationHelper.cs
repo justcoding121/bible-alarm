@@ -261,6 +261,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<MediaSessionEffect>();
         // Register global audio focus effect that manages audio focus based on playback state
         services.AddSingleton<AudioFocusEffect>();
+        // Default schedule rotation when Android Auto connected and not playing (every 5 min)
+        services.AddSingleton<Bible.Alarm.Platforms.Android.Services.AndroidAuto.Interfaces.IAndroidAutoDefaultScheduleRotationService, Bible.Alarm.Platforms.Android.Services.AndroidAuto.AndroidAutoDefaultScheduleRotationService>();
 #elif IOS
         services.AddSingleton<INotificationService, IOsNotificationService>();
         services.AddSingleton<IToastService, IOsToastService>();
@@ -271,6 +273,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IiOSNowPlayingInfoManager, iOSNowPlayingInfoManager>();
         // Register iOS MediaSession effect for syncing playback state with system media controls
         services.AddSingleton<iOSMediaSessionEffect>();
+        // Default schedule rotation when CarPlay connected and not playing (every 5 min)
+        services.AddSingleton<Bible.Alarm.Platforms.iOS.Services.CarPlay.Interfaces.ICarPlayDefaultScheduleRotationService, Bible.Alarm.Platforms.iOS.Services.CarPlay.CarPlayDefaultScheduleRotationService>();
 #elif WINDOWS
         // Register WindowsNotificationService by interface; INotificationService resolves to same instance
         services.AddSingleton<IWindowsNotificationService, WindowsNotificationService>();

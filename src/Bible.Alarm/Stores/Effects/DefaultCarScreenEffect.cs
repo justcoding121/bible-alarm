@@ -48,5 +48,41 @@ public class DefaultCarScreenEffect(
 
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Handles rotation of the default schedule shown on Android Auto (every 5 minutes when car connected and not playing).
+    /// Fetches next schedule in rotation and dispatches SetDefaultScheduleMetadataAction; Android effect updates MediaSession.
+    /// </summary>
+    [EffectMethod]
+    public Task HandleRotateDefaultSchedule(RotateDefaultScheduleAction action, FluxorDispatcher dispatcher)
+    {
+        logger.Debug("RotateDefaultScheduleAction received - fetching next schedule in rotation in background");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var metadata = await defaultScheduleService.GetNextScheduleInRotationMetadataAsync();
+
+                logger.Information("RotateDefaultScheduleAction: Fetched next schedule in rotation - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
+                    metadata.ScheduleId, metadata.Title, metadata.Artist);
+
+                dispatcher.Dispatch(new SetDefaultScheduleMetadataAction
+                {
+                    ScheduleId = metadata.ScheduleId,
+                    Title = metadata.Title,
+                    Artist = metadata.Artist,
+                    Album = metadata.Album,
+                    ArtworkUrl = metadata.ArtworkUrl
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error handling RotateDefaultScheduleAction (background)");
+            }
+        });
+
+        return Task.CompletedTask;
+    }
 }
 

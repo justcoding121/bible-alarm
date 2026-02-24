@@ -9,6 +9,7 @@ using Android.Support.V4.Media.Session;
 using AndroidX.Media;
 using AndroidX.Media.Session;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
@@ -77,6 +78,16 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
             // Initialize state subscription in background
             _ = stateSubscriptionManager.InitializeStateSubscriptionAsync();
+
+            var rotationService = ServiceProviderManager.GetService<IAndroidAutoDefaultScheduleRotationService>();
+            if (rotationService != null)
+            {
+                rotationService.Start();
+            }
+            else
+            {
+                logger.Debug("LegacyMediaBrowserService.OnCreate: rotation service not available (DI may not be ready)");
+            }
         }
         catch (Exception ex)
         {
@@ -265,6 +276,16 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         logger.Information("⚠️ LegacyMediaBrowserService.OnUnbind() called - Client disconnected");
 
+        try
+        {
+            var rotationService = ServiceProviderManager.GetService<IAndroidAutoDefaultScheduleRotationService>();
+            rotationService?.Stop();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "LegacyMediaBrowserService.OnUnbind: failed to stop rotation service");
+        }
+
         // Mark Android Auto as disconnected and stop foreground service
         ForegroundServiceCoordinator.OnAndroidAutoDisconnected();
 
@@ -279,6 +300,16 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     public override void OnDestroy()
     {
         logger.Information("✅ LegacyMediaBrowserService destroyed - Clearing local MediaSession reference");
+
+        try
+        {
+            var rotationService = ServiceProviderManager.GetService<IAndroidAutoDefaultScheduleRotationService>();
+            rotationService?.Stop();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "LegacyMediaBrowserService.OnDestroy: failed to stop rotation service");
+        }
 
         // Fallback: If OnUnbind wasn't called (e.g., when Android Auto emulator is closed),
         // mark Android Auto as disconnected and stop foreground service

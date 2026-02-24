@@ -25,5 +25,11 @@ public interface IDefaultScheduleService
     /// Gets the first schedule ID from the application state.
     /// </summary>
     int? GetFirstScheduleId();
+
+    /// <summary>
+    /// Gets metadata for the next schedule in rotation (for Android Auto default-schedule cycling).
+    /// Uses the order of Schedules in state; advances to (currentIndex + 1) % count and persists the shown schedule id.
+    /// </summary>
+    Task<ScheduleTrackMetadata> GetNextScheduleInRotationMetadataAsync();
 }
 

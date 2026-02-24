@@ -210,6 +210,9 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                 action.Album,
                 action.ArtworkUrl);
 
+            // Persist for CarPlay/Android Auto 5-minute rotation so next rotation shows the next schedule
+            Bible.Alarm.Common.Helpers.AndroidAutoRotationHelper.SetLastRotationScheduleId(action.ScheduleId);
+
             // Ensure Play is shown (Pause hidden) when displaying default schedule after stop
             remoteCommandManager.UpdateCommandAvailability(canPlayNext: true, canPlayPrevious: true, isPlaying: false);
 
