@@ -340,10 +340,9 @@ public static class ApplicationReducer
             // Language code can be changed by:
             // 1. Category change (will default language to E)
             // 2. User explicitly changing the language
-            // 3. Selecting a no-language publication (resets to E for consistency)
-            // 
-            // When a no-language publication is selected, reset language to "E" (English default).
-            // This ensures the schedule's language is consistent with what the publication modal will show.
+            //
+            // When a no-language publication is selected (e.g. "iam"), preserve the current schedule language
+            // so the language row stays at the user's choice (e.g. MY) after the publication modal closes.
             var isNoLanguagePublication = string.IsNullOrEmpty(biblePub.LanguageCode);
             var languageChanged = !isNoLanguagePublication && 
                                   !string.IsNullOrEmpty(updatedCurrentSchedule.BiblePublicationLanguageCode) &&
@@ -351,12 +350,8 @@ public static class ApplicationReducer
             
             if (isNoLanguagePublication)
             {
-                // No-language publication selected - reset language to English default.
-                // This ensures cascade consistency: the language row shows the default language and publications modal
-                // will show English publications + non-languaged publications.
-                updatedCurrentSchedule.BiblePublicationLanguageCode = AppConstants.Media.DefaultLanguageCode;
-                updatedCurrentSchedule.BiblePublicationLanguageName = null;
-                updatedCurrentSchedule.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
+                // No-language publication selected - preserve current language (code, name, direction).
+                // DeepClone already copied them; do not overwrite so the language row stays e.g. MY.
             }
             else if (languageChanged)
             {

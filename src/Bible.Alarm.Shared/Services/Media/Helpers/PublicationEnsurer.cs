@@ -49,83 +49,76 @@ internal sealed class PublicationEnsurer
     {
         try
         {
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-
-            var lowerCode = publicationCode.ToLowerInvariant();
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
-
-            // Check if publication already exists for this language
-            var existingPublication = await db.BiblePublications
-                .AsNoTracking()
-                .Include(bp => bp.Language)
-                .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == publicationCodeForDb &&
-                          bp.Language != null &&
-                          bp.Language.LanguageCode == normalizedLanguageCode,
-                    cancellationToken);
-
-            if (existingPublication != null)
+            Models.Enums.HarvestType? harvestTypeToFetch = null;
+            using (var scope = scopeFactory.CreateScope())
             {
-                if (existingPublication.HarvestType == null)
+                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+                var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+                var lowerCode = publicationCode.ToLowerInvariant();
+                var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
+
+                // Check if publication already exists for this language
+                var existingPublication = await db.BiblePublications
+                    .AsNoTracking()
+                    .Include(bp => bp.Language)
+                    .FirstOrDefaultAsync(
+                        bp => bp.PublicationCode == publicationCodeForDb &&
+                              bp.Language != null &&
+                              bp.Language.LanguageCode == normalizedLanguageCode,
+                        cancellationToken);
+
+                if (existingPublication != null)
                 {
-                    var backfillHarvestType = PublicationTypeHelper.GetHarvestType(lowerCode);
-                    var toUpdate = await db.BiblePublications
-                        .FirstOrDefaultAsync(bp => bp.Id == existingPublication.Id, cancellationToken);
-                    if (toUpdate != null)
+                    if (existingPublication.HarvestType == null)
                     {
-                        toUpdate.HarvestType = backfillHarvestType;
-                        await db.SaveChangesAsync(cancellationToken);
+                        var backfillHarvestType = PublicationTypeHelper.GetHarvestType(lowerCode);
+                        var toUpdate = await db.BiblePublications
+                            .FirstOrDefaultAsync(bp => bp.Id == existingPublication.Id, cancellationToken);
+                        if (toUpdate != null)
+                        {
+                            toUpdate.HarvestType = backfillHarvestType;
+                            await db.SaveChangesAsync(cancellationToken);
+                        }
                     }
+                    logger.Debug("Publication {PublicationCode} for language {LanguageCode} already exists, skipping fetch",
+                        publicationCode, languageCode);
+                    return true;
                 }
-                logger.Debug("Publication {PublicationCode} for language {LanguageCode} already exists, skipping fetch",
-                    publicationCode, languageCode);
-                return true;
+
+                // Publication doesn't exist - check if it's available in PublicationLanguage with a HarvestType
+                var publicationLanguage = await db.PublicationLanguages
+                    .AsNoTracking()
+                    .Include(pl => pl.Language)
+                    .Include(pl => pl.Category)
+                    .FirstOrDefaultAsync(
+                        pl => pl.PublicationCode == publicationCodeForDb &&
+                              pl.Language != null &&
+                              pl.Language.LanguageCode == normalizedLanguageCode,
+                        cancellationToken);
+
+                if (publicationLanguage == null)
+                {
+                    logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode} (not in PublicationLanguages)",
+                        languageCode, publicationCode);
+                    return false;
+                }
+
+                if (publicationLanguage.LanguageId == null)
+                {
+                    logger.Warning("Publication {PublicationCode} doesn't support ad-hoc fetching with language code (has LanguageId = NULL in PublicationLanguages)",
+                        publicationCode);
+                    return false;
+                }
+
+                harvestTypeToFetch = publicationLanguage.HarvestType ??
+                    PublicationTypeHelper.GetHarvestType(lowerCode);
             }
 
-            // Publication doesn't exist - check if it's available in PublicationLanguage with a HarvestType
-            // Use case-sensitive code for dramas when querying database
-            // HarvestType is sufficient to determine if ad-hoc fetching is possible
-            var publicationLanguage = await db.PublicationLanguages
-                .AsNoTracking()
-                .Include(pl => pl.Language)
-                .Include(pl => pl.Category)
-                .FirstOrDefaultAsync(
-                    pl => pl.PublicationCode == publicationCodeForDb &&
-                          pl.Language != null &&
-                          pl.Language.LanguageCode == normalizedLanguageCode,
-                    cancellationToken);
-
-            if (publicationLanguage == null)
+            // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
+            if (harvestTypeToFetch == Models.Enums.HarvestType.Sectioned)
             {
-                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode} (not in PublicationLanguages)",
-                    languageCode, publicationCode);
-                return false;
-            }
-
-            // If PublicationLanguage has LanguageId == null, it means the publication doesn't have language-specific content
-            // and can't be ad-hoc fetched with a language code
-            if (publicationLanguage.LanguageId == null)
-            {
-                logger.Warning("Publication {PublicationCode} doesn't support ad-hoc fetching with language code (has LanguageId = NULL in PublicationLanguages)",
-                    publicationCode);
-                return false;
-            }
-
-            // Determine harvest type to decide which fetch method to use
-            var harvestType = publicationLanguage.HarvestType ?? 
-                PublicationTypeHelper.GetHarvestType(lowerCode);
-
-            // Fetch based on harvest type
-            // Progress milestones:
-            // - Sectioned: 50% after publication+section saved, 100% after tracks saved
-            // - Non-sectioned: 50% after publication saved, 100% after tracks saved
-            if (harvestType == Models.Enums.HarvestType.Sectioned)
-            {
-                // Publication has sections - fetch only the first section with tracks (for language selection)
-                // This avoids fetching all sections when user just selects a language
                 progress?.UpdateProgress(0.0);
                 var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken, progress);
                 if (result)
@@ -136,8 +129,6 @@ internal sealed class PublicationEnsurer
             }
             else
             {
-                // Publication has flat tracks - fetch tracks
-                // 50% milestone for publication structure, 100% when tracks saved
                 progress?.UpdateProgress(0.0);
                 var result = await languageContentService.FetchPublicationTracksAsync(publicationCode, languageCode, cancellationToken);
                 if (result)
@@ -174,101 +165,96 @@ internal sealed class PublicationEnsurer
     {
         try
         {
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // Skip English - it's pre-harvested
             if (normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
             {
                 logger.Debug("Skipping fetch for English language - already pre-harvested");
                 return true;
             }
 
-            // Get available publications from PublicationLanguage, sorted by priority
-            var availablePublications = await db.PublicationLanguages
-                .AsNoTracking()
-                .Include(pl => pl.Language)
-                .Include(pl => pl.Category)
-                .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
-                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
-                .Select(pl => pl.PublicationCode)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            if (availablePublications.Count == 0)
+            (string PublicationCode, Models.Enums.HarvestType HarvestType)[] candidates;
+            using (var scope = scopeFactory.CreateScope())
             {
-                logger.Warning("No publications available for language {LanguageCode} in category {CategoryName}",
-                    languageCode, categoryName ?? "all");
-                return false;
-            }
+                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var sortedPublications = availablePublications
-                .OrderBy(pub => pub, PublicationCodeHelper.PublicationCodeComparer)
-                .ToList();
-
-            // Try each publication until one succeeds
-            foreach (var publicationCode in sortedPublications)
-            {
-                // publicationCode from PublicationLanguages is already case-sensitive for dramas
-                // Use it as-is for database queries
-                var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-                var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? publicationCode;
-
-                var existing = await db.BiblePublications
-                    .AsNoTracking()
-                    .Include(bp => bp.Language)
-                    .AnyAsync(
-                        bp => bp.PublicationCode == publicationCodeForDb &&
-                              bp.Language != null &&
-                              bp.Language.LanguageCode == normalizedLanguageCode,
-                        cancellationToken);
-
-                if (existing)
-                {
-                    logger.Debug("Publication {PublicationCode} already exists for language {LanguageCode}",
-                        publicationCode, languageCode);
-                    // Try next publication
-                    continue;
-                }
-
-                // Get PublicationLanguage to determine harvest type
-                // Use case-sensitive code for dramas when querying database
-                var publicationLanguage = await db.PublicationLanguages
+                var availablePublications = await db.PublicationLanguages
                     .AsNoTracking()
                     .Include(pl => pl.Language)
                     .Include(pl => pl.Category)
-                    .FirstOrDefaultAsync(
-                        pl => pl.PublicationCode == publicationCodeForDb &&
-                              pl.Language != null &&
-                              pl.Language.LanguageCode == normalizedLanguageCode,
-                        cancellationToken);
+                    .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
+                    .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
+                    .Select(pl => pl.PublicationCode)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
 
-                if (publicationLanguage == null)
+                if (availablePublications.Count == 0)
                 {
-                    continue;
+                    logger.Warning("No publications available for language {LanguageCode} in category {CategoryName}",
+                        languageCode, categoryName ?? "all");
+                    return false;
                 }
 
-                var harvestType = publicationLanguage.HarvestType ??
-                    PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+                var sortedPublicationCodes = availablePublications
+                    .OrderBy(pub => pub, PublicationCodeHelper.PublicationCodeComparer)
+                    .ToList();
 
+                var list = new System.Collections.Generic.List<(string PublicationCode, Models.Enums.HarvestType HarvestType)>();
+                foreach (var publicationCode in sortedPublicationCodes)
+                {
+                    var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+                    var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? publicationCode;
+
+                    var existing = await db.BiblePublications
+                        .AsNoTracking()
+                        .Include(bp => bp.Language)
+                        .AnyAsync(
+                            bp => bp.PublicationCode == publicationCodeForDb &&
+                                  bp.Language != null &&
+                                  bp.Language.LanguageCode == normalizedLanguageCode,
+                            cancellationToken);
+
+                    if (existing)
+                    {
+                        logger.Debug("Publication {PublicationCode} already exists for language {LanguageCode}",
+                            publicationCode, languageCode);
+                        continue;
+                    }
+
+                    var publicationLanguage = await db.PublicationLanguages
+                        .AsNoTracking()
+                        .Include(pl => pl.Language)
+                        .Include(pl => pl.Category)
+                        .FirstOrDefaultAsync(
+                            pl => pl.PublicationCode == publicationCodeForDb &&
+                                  pl.Language != null &&
+                                  pl.Language.LanguageCode == normalizedLanguageCode,
+                            cancellationToken);
+
+                    if (publicationLanguage == null)
+                    {
+                        continue;
+                    }
+
+                    var harvestType = publicationLanguage.HarvestType ??
+                        PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+                    list.Add((publicationCode, harvestType));
+                }
+
+                candidates = list.ToArray();
+            }
+
+            // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
+            foreach (var (publicationCode, harvestType) in candidates)
+            {
                 bool success = false;
                 if (harvestType == Models.Enums.HarvestType.Sectioned)
                 {
-                    // Fetch first section only with tracks
                     success = await FetchFirstSectionWithTracksAsync(
                         publicationCode, languageCode, cancellationToken);
                 }
-                else if (harvestType == Models.Enums.HarvestType.Flat)
+                else if (harvestType == Models.Enums.HarvestType.Flat || harvestType == Models.Enums.HarvestType.MediatorSectioned)
                 {
-                    // Fetch all tracks (flat publication)
-                    success = await languageContentService.FetchPublicationTracksAsync(
-                        publicationCode, languageCode, cancellationToken);
-                }
-                else if (harvestType == Models.Enums.HarvestType.MediatorSectioned)
-                {
-                    // Drama - fetch all tracks (they're flat)
                     success = await languageContentService.FetchPublicationTracksAsync(
                         publicationCode, languageCode, cancellationToken);
                 }
@@ -310,6 +296,13 @@ internal sealed class PublicationEnsurer
     /// Creates the publication if it doesn't exist.
     /// Progress milestones: 50% after publication+section saved, 100% after tracks saved.
     /// </summary>
+    private enum FirstSectionAction
+    {
+        FetchSectionTracksOnly,
+        FetchAllSectionsThenTracks,
+        FetchFirstSectionThenTracks,
+    }
+
     private async Task<bool> FetchFirstSectionWithTracksAsync(
         string publicationCode,
         string languageCode,
@@ -318,104 +311,110 @@ internal sealed class PublicationEnsurer
     {
         try
         {
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? publicationCode;
-
-            // Get first section code from SectionLanguages.
-            // IMPORTANT: SectionCodeHelper.SectionCodeComparer is a custom comparer and cannot be translated to SQL.
-            // Fetch candidate section codes from DB and apply the comparer in-memory.
-            // Use case-sensitive code for dramas when querying database.
-            var sectionCodes = await db.SectionLanguages
-                .AsNoTracking()
-                .Where(sl => sl.PublicationCode == publicationCodeForDb &&
-                             sl.Language != null &&
-                             sl.Language.LanguageCode == normalizedLanguageCode)
-                .Select(sl => sl.SectionCode)
-                .ToListAsync(cancellationToken);
-
-            var firstSectionCode = sectionCodes
-                .OrderBy(code => code, SectionCodeHelper.SectionCodeComparer)
-                .FirstOrDefault();
-
-            if (string.IsNullOrEmpty(firstSectionCode))
+            string? firstSectionCode = null;
+            FirstSectionAction? action = null;
+            using (var scope = scopeFactory.CreateScope())
             {
-                logger.Warning("No sections found for publication {PublicationCode} in language {LanguageCode}",
-                    publicationCode, languageCode);
-                return false;
-            }
+                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Check if publication exists (publicationCodeForDb already set above)
-            var existingPublication = await db.BiblePublications
-                .Include(bp => bp.Language)
-                .Include(bp => bp.BiblePublicationCategories)
-                .ThenInclude(bp => bp.Category)
-                .Include(bp => bp.Sections)
-                .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == publicationCodeForDb &&
-                          bp.Language != null &&
-                          bp.Language.LanguageCode == normalizedLanguageCode,
-                    cancellationToken);
+                var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+                var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            if (existingPublication != null)
-            {
-                // Publication exists - check if first section exists
-                var firstSection = existingPublication.Sections
-                    .FirstOrDefault(s => s.SectionCode.Equals(firstSectionCode, StringComparison.OrdinalIgnoreCase));
+                var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? publicationCode;
 
-                if (firstSection != null)
+                var sectionCodes = await db.SectionLanguages
+                    .AsNoTracking()
+                    .Where(sl => sl.PublicationCode == publicationCodeForDb &&
+                                 sl.Language != null &&
+                                 sl.Language.LanguageCode == normalizedLanguageCode)
+                    .Select(sl => sl.SectionCode)
+                    .ToListAsync(cancellationToken);
+
+                firstSectionCode = sectionCodes
+                    .OrderBy(code => code, SectionCodeHelper.SectionCodeComparer)
+                    .FirstOrDefault();
+
+                if (string.IsNullOrEmpty(firstSectionCode))
                 {
-                    // Section exists - check if it has tracks
-                    await db.Entry(firstSection).Collection(s => s.Tracks).LoadAsync(cancellationToken);
-                    if (firstSection.Tracks != null && firstSection.Tracks.Count > 0)
-                    {
-                        logger.Debug("First section {SectionCode} already has tracks for publication {PublicationCode}",
-                            firstSectionCode, publicationCode);
-                        // All data already saved - report 100%
-                        progress?.UpdateProgress(1.0);
-                        return true;
-                    }
+                    logger.Warning("No sections found for publication {PublicationCode} in language {LanguageCode}",
+                        publicationCode, languageCode);
+                    return false;
+                }
 
-                    // Section exists but no tracks - 50% milestone (publication+section saved)
-                    progress?.UpdateProgress(0.5);
-                    // Fetch tracks - will be 100% when complete
-                    return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
+                var existingPublication = await db.BiblePublications
+                    .Include(bp => bp.Language)
+                    .Include(bp => bp.BiblePublicationCategories)
+                    .ThenInclude(bp => bp.Category)
+                    .Include(bp => bp.Sections)
+                    .FirstOrDefaultAsync(
+                        bp => bp.PublicationCode == publicationCodeForDb &&
+                              bp.Language != null &&
+                              bp.Language.LanguageCode == normalizedLanguageCode,
+                        cancellationToken);
+
+                if (existingPublication != null)
+                {
+                    var firstSection = existingPublication.Sections
+                        .FirstOrDefault(s => s.SectionCode.Equals(firstSectionCode, StringComparison.OrdinalIgnoreCase));
+
+                    if (firstSection != null)
+                    {
+                        await db.Entry(firstSection).Collection(s => s.Tracks).LoadAsync(cancellationToken);
+                        if (firstSection.Tracks != null && firstSection.Tracks.Count > 0)
+                        {
+                            logger.Debug("First section {SectionCode} already has tracks for publication {PublicationCode}",
+                                firstSectionCode, publicationCode);
+                            progress?.UpdateProgress(1.0);
+                            return true;
+                        }
+
+                        action = FirstSectionAction.FetchSectionTracksOnly;
+                    }
+                    else
+                    {
+                        action = FirstSectionAction.FetchAllSectionsThenTracks;
+                    }
                 }
                 else
                 {
-                    // Publication exists but first section doesn't - need to fetch all sections
-                    // (FetchPublicationSectionsAsync will replace the publication, which is okay)
+                    action = FirstSectionAction.FetchFirstSectionThenTracks;
+                }
+            }
+
+            // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
+            if (action == null || string.IsNullOrEmpty(firstSectionCode))
+            {
+                return false;
+            }
+
+            switch (action.Value)
+            {
+                case FirstSectionAction.FetchSectionTracksOnly:
+                    progress?.UpdateProgress(0.5);
+                    return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
+                case FirstSectionAction.FetchAllSectionsThenTracks:
+                {
                     var sectionsFetched = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
                     if (sectionsFetched)
                     {
-                        // 50% milestone - sections saved to DB
                         progress?.UpdateProgress(0.5);
-                        // Now fetch tracks for first section
                         return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
                     }
                     return false;
                 }
-            }
-            else
-            {
-                // Publication doesn't exist - fetch only the first section to create publication, then fetch tracks
-                // This avoids fetching all sections when we only need the first one
-                var firstSectionFetched = await FetchSingleSectionForNewPublicationAsync(
-                    publicationCode, firstSectionCode, languageCode, cancellationToken);
-
-                if (firstSectionFetched)
+                case FirstSectionAction.FetchFirstSectionThenTracks:
                 {
-                    // 50% milestone - publication+section saved to DB
-                    progress?.UpdateProgress(0.5);
-                    // Now fetch tracks for first section
-                    return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
+                    var firstSectionFetched = await FetchSingleSectionForNewPublicationAsync(
+                        publicationCode, firstSectionCode, languageCode, cancellationToken);
+                    if (firstSectionFetched)
+                    {
+                        progress?.UpdateProgress(0.5);
+                        return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
+                    }
+                    return false;
                 }
-
-                return false;
+                default:
+                    return false;
             }
         }
         catch (HttpRequestException)

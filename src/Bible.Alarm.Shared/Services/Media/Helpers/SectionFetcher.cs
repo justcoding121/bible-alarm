@@ -15,6 +15,7 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Helpers.SectionFetcherHelpers;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -95,7 +96,7 @@ internal sealed class SectionFetcher
         if (missingSectionCodes.Count == 0 && existingPublication != null)
         {
             SyncPublicationCategories(existingPublication, categoriesForPub);
-            await db.SaveChangesAsync(effectiveToken);
+            await SaveChangesWithRetryAsync(db, effectiveToken);
             logger.Debug("All sections already exist for publication {PublicationCode} in language {LanguageCode}",
                 normalizedPublicationCode, normalizedLanguageCode);
             progress?.UpdateProgress(1.0);
@@ -137,7 +138,7 @@ internal sealed class SectionFetcher
                 Sections = new List<BiblePublicationSection>()
             };
             db.BiblePublications.Add(publication);
-            await db.SaveChangesAsync(effectiveToken);
+            await SaveChangesWithRetryAsync(db, effectiveToken);
         }
 
         var totalSections = missingSectionCodes.Count;
@@ -236,7 +237,7 @@ internal sealed class SectionFetcher
                 };
 
                 publication.Sections.Add(section);
-                await db.SaveChangesAsync(effectiveToken);
+                await SaveChangesWithRetryAsync(db, effectiveToken);
 
                 // Add tracks to section
                 foreach (var track in tracks)
@@ -245,7 +246,7 @@ internal sealed class SectionFetcher
                     track.Publication = publication;
                 }
                 section.Tracks.AddRange(tracks);
-                await db.SaveChangesAsync(effectiveToken);
+                await SaveChangesWithRetryAsync(db, effectiveToken);
 
                 completedSections++;
 
@@ -289,7 +290,7 @@ internal sealed class SectionFetcher
                 normalizedPublicationCode, normalizedLanguageCode);
             // Clean up the empty publication
             db.BiblePublications.Remove(publication);
-            await db.SaveChangesAsync(effectiveToken);
+            await SaveChangesWithRetryAsync(db, effectiveToken);
             return false;
         }
 
@@ -311,6 +312,51 @@ internal sealed class SectionFetcher
         CancellationToken cancellationToken)
     {
         return sectionTracksLoader.FetchSectionTracksAsync(db, normalizedPublicationCode, normalizedSectionCode, normalizedLanguageCode, publicationCodeForDb, publication, section, cancellationToken);
+    }
+
+    /// <summary>
+    /// Saves changes with retry on SQLite busy/locked (transient lock contention during section harvest).
+    /// </summary>
+    private async Task SaveChangesWithRetryAsync(MediaDbContext db, CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 4;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+            catch (DbUpdateException ex) when (attempt < maxAttempts)
+            {
+                if (IsSqliteBusyOrLocked(ex))
+                {
+                    logger.Debug("SaveChanges failed with database locked (attempt {Attempt}/{Max}), retrying",
+                        attempt, maxAttempts);
+                    await Task.Delay(100 * attempt, cancellationToken);
+                    continue;
+                }
+                throw;
+            }
+        }
+    }
+
+    private static bool IsSqliteBusyOrLocked(Exception ex)
+    {
+        const int sqliteBusy = 5;
+        const int sqliteLocked = 6;
+        for (var e = ex; e != null; e = e.InnerException)
+        {
+            if (e is SqliteException sqliteEx)
+            {
+                var code = (int)sqliteEx.SqliteErrorCode;
+                if (code == sqliteBusy || code == sqliteLocked)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static void SyncPublicationCategories(BiblePublication publication, List<Category> categories)

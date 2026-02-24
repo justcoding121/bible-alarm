@@ -192,46 +192,49 @@ public sealed class TrackNavigatorSectionHarvester
 
             sectionFetchProgress?.UpdateProgress(0.5);
 
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-            var normalizedSectionCode = sectionCode.ToLowerInvariant();
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            var publicationCodeForDb = GetPublicationCodeForDb(normalizedPublicationCode,
-                PublicationTypeHelper.IsDrama(normalizedPublicationCode));
-
-            var publication = await db.BiblePublications
-                .Include(bp => bp.Sections)
-                .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == publicationCodeForDb &&
-                          bp.Language != null &&
-                          bp.Language.LanguageCode == normalizedLanguageCode);
-
-            if (publication == null)
+            using (var scope = scopeFactory.CreateScope())
             {
-                logger?.Warning("Publication not found after EnsurePublicationExistsAsync");
-                return false;
-            }
+                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var section = publication.Sections.FirstOrDefault(s =>
-                s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+                var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+                var normalizedSectionCode = sectionCode.ToLowerInvariant();
+                var normalizedLanguageCode = languageCode.ToUpperInvariant();
+                var publicationCodeForDb = GetPublicationCodeForDb(normalizedPublicationCode,
+                    PublicationTypeHelper.IsDrama(normalizedPublicationCode));
 
-            if (section == null)
-            {
-                logger?.Information("Section entity doesn't exist, creating it");
-                section = new BiblePublicationSection
+                var publication = await db.BiblePublications
+                    .Include(bp => bp.Sections)
+                    .FirstOrDefaultAsync(
+                        bp => bp.PublicationCode == publicationCodeForDb &&
+                              bp.Language != null &&
+                              bp.Language.LanguageCode == normalizedLanguageCode);
+
+                if (publication == null)
                 {
-                    Name = sectionCode,
-                    SectionCode = normalizedSectionCode,
-                    BiblePublication = publication,
-                    BiblePublicationId = publication.Id,
-                    Tracks = new List<BiblePublicationTrack>()
-                };
-                publication.Sections.Add(section);
-                await db.SaveChangesAsync();
+                    logger?.Warning("Publication not found after EnsurePublicationExistsAsync");
+                    return false;
+                }
+
+                var section = publication.Sections.FirstOrDefault(s =>
+                    s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+
+                if (section == null)
+                {
+                    logger?.Information("Section entity doesn't exist, creating it");
+                    section = new BiblePublicationSection
+                    {
+                        Name = sectionCode,
+                        SectionCode = normalizedSectionCode,
+                        BiblePublication = publication,
+                        BiblePublicationId = publication.Id,
+                        Tracks = new List<BiblePublicationTrack>()
+                    };
+                    publication.Sections.Add(section);
+                    await db.SaveChangesAsync();
+                }
             }
 
+            // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
             var success = await languageContentService.FetchSectionTracksAsync(
                 publicationCode,
                 sectionCode,

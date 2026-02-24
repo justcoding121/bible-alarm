@@ -96,10 +96,17 @@ public static class BiblePublicationCascadeScheduleUpdater
 
         if (publicationWithoutLanguage)
         {
-            updatedSchedule.BiblePublicationLanguageCode = AppConstants.Media.DefaultLanguageCode;
-            updatedSchedule.BiblePublicationLanguageName = null;
-            updatedSchedule.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
-            logger.Debug("BiblePublicationCascadeHandler: Setting language to English default for no-language publication={PublicationCode}", publicationCode);
+            updatedSchedule.BiblePublicationLanguageCode = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode)
+                ? currentSchedule.BiblePublicationLanguageCode
+                : AppConstants.Media.DefaultLanguageCode;
+            updatedSchedule.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
+            updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageDirection)
+                ? currentSchedule.BiblePublicationLanguageDirection
+                : AppConstants.Media.TextDirectionLeftToRight;
+            logger.Debug("BiblePublicationCascadeHandler: {Action} language for no-language publication={PublicationCode} (LanguageCode: {LanguageCode})",
+                string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode) ? "Setting default" : "Preserving",
+                publicationCode,
+                updatedSchedule.BiblePublicationLanguageCode ?? "null");
         }
         else if (string.IsNullOrWhiteSpace(updatedSchedule.BiblePublicationLanguageCode) && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode))
         {

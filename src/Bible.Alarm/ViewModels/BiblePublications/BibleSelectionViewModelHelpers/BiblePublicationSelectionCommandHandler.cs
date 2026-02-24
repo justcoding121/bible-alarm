@@ -88,11 +88,11 @@ public sealed class BiblePublicationSelectionCommandHandler
             // The caller sets IsNavigating; progress will be set by ModalOverlayFetchProgressReporter only when a fetch actually happens.
 
             // No DB probing: the tapped publication row already knows whether it has LanguageId or not.
-            // If it's a publication without language FK, use default language code for cascade consistency.
-            // This ensures the schedule's language is consistent with what the publication modal will show.
+            // If it's a publication without language FK (e.g. iam), use the current schedule's language
+            // so the language row stays at the user's choice (e.g. MY) after the modal closes.
             // Otherwise, prefer the currently-selected language in the UI, then fall back to schedule language.
             var languageCode = x.IsPublicationWithoutLanguage
-                ? AppConstants.Media.DefaultLanguageCode
+                ? (currentSchedule.BiblePublicationLanguageCode ?? AppConstants.Media.DefaultLanguageCode)
                 : (currentSchedule.BiblePublicationLanguageCode ??
                    getCurrentLanguage()?.Code ??
                    x.PublicationLanguageCode ??

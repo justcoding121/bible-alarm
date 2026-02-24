@@ -13,8 +13,11 @@ public interface IScheduleInitializationService
 
     /// <summary>
     /// Loads an existing schedule from the database and maps it to a ScheduleStateItem.
+    /// When <paramref name="existingFromState"/> is provided and the schedule has a no-language publication (e.g. iam),
+    /// the loaded item's language display is preferred from <paramref name="existingFromState"/> if it differs (e.g. state has MY, DB has E)
+    /// so View Schedule shows the same language as the home list.
     /// </summary>
-    Task<ScheduleStateItem?> LoadExistingScheduleAsync(int scheduleId, bool isEnabled);
+    Task<ScheduleStateItem?> LoadExistingScheduleAsync(int scheduleId, bool isEnabled, ScheduleStateItem? existingFromState = null);
 
     Task CompleteScheduleLoadAsync();
 

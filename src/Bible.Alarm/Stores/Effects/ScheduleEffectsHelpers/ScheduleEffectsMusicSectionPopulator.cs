@@ -26,7 +26,8 @@ public static class ScheduleEffectsMusicSectionPopulator
     {
         try
         {
-            var isMelodyMusic = string.IsNullOrEmpty(scheduleStateItem.MusicLanguageCode);
+            var isMelodyMusic = !string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationCode)
+                && JwSourceHelper.MelodyMusicPublicationCodes.Contains(scheduleStateItem.MusicPublicationCode);
             if (!isMelodyMusic ||
                 string.IsNullOrWhiteSpace(scheduleStateItem.MusicTrackCode) ||
                 string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationCode))

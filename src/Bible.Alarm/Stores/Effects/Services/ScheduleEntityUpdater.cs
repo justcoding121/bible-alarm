@@ -202,9 +202,7 @@ public static class ScheduleEntityUpdater
             oldTrackCode);
 
         existing.Music.PublicationCode = schedule.MusicPublicationCode ?? string.Empty;
-        // For no-language publications (instrumental music), LanguageCode should be null (not "E")
-        // "E" is only used in state/UI as a fallback, but should not be persisted to DB
-        // This will be normalized by ScheduleSaveService, but we also normalize here for consistency
+        // For no-language music (e.g. iam), we store the schedule's current language (e.g. MY), same as Bible container.
         existing.Music.LanguageCode = schedule.MusicLanguageCode;
         existing.Music.SectionCode = schedule.MusicSectionCode;
         existing.Music.TrackCode = schedule.MusicTrackCode ?? string.Empty;

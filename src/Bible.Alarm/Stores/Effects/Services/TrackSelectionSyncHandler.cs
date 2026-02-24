@@ -285,11 +285,10 @@ public sealed class TrackSelectionSyncHandler
 
     private static bool HasLanguageCodeChanged(ScheduleStateItem currentSchedule, MusicStateItem actionMusic)
     {
-        // Check if the language code changed (which also indicates music type change)
-        // NULL/empty = melody/instrumental, non-empty = vocal
-        var currentIsMelody = string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
-        var actionIsMelody = string.IsNullOrEmpty(actionMusic.LanguageCode);
-        return currentIsMelody != actionIsMelody || currentSchedule.MusicLanguageCode != actionMusic.LanguageCode;
+        var effectiveNewLanguageCode = !string.IsNullOrWhiteSpace(actionMusic.LanguageCode)
+            ? actionMusic.LanguageCode
+            : (currentSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
+        return currentSchedule.MusicLanguageCode != effectiveNewLanguageCode;
     }
 
     private bool ShouldSyncMusic(ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool languageCodeChanged)
@@ -369,13 +368,15 @@ public sealed class TrackSelectionSyncHandler
             ? (actionMusic.Id > 0 ? (int?)actionMusic.Id : null)
             : currentSchedule.MusicId;
         updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
-        updatedSchedule.MusicLanguageCode = actionMusic.LanguageCode;
+        var useScheduleLanguage = string.IsNullOrWhiteSpace(actionMusic.LanguageCode);
+        updatedSchedule.MusicLanguageCode = useScheduleLanguage
+            ? (currentSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode)
+            : actionMusic.LanguageCode;
         updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
         updatedSchedule.MusicTrackCode = actionMusic.TrackCode;
         updatedSchedule.MusicRepeat = actionMusic.Repeat;
-        // Preserve music display names from current schedule (will be repopulated if needed)
-        updatedSchedule.MusicLanguageName = currentSchedule.MusicLanguageName;
-        updatedSchedule.MusicLanguageDirection = currentSchedule.MusicLanguageDirection;
+        updatedSchedule.MusicLanguageName = useScheduleLanguage ? currentSchedule.BiblePublicationLanguageName : currentSchedule.MusicLanguageName;
+        updatedSchedule.MusicLanguageDirection = useScheduleLanguage ? currentSchedule.MusicLanguageDirection : currentSchedule.MusicLanguageDirection;
         updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
         updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
     }

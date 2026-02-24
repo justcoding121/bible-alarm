@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
@@ -62,9 +63,10 @@ public sealed class ScheduleStateManager
 
         if (scheduleIdToLoad.HasValue)
         {
-            // View existing schedule flow: Load from DB on background thread
+            // View existing schedule flow: Load from DB on background thread. Pass in-memory schedule so no-language pub language (e.g. MY) is preferred over DB (e.g. E).
+            var existingFromState = state.Value.Schedules.FirstOrDefault(s => s.Id == scheduleIdToLoad.Value);
             logger.Debug("ScheduleStateManager: Loading schedule {ScheduleId} from database", scheduleIdToLoad.Value);
-            LoadExistingScheduleAsync(scheduleIdToLoad.Value, isEnabledToLoad);
+            LoadExistingScheduleAsync(scheduleIdToLoad.Value, isEnabledToLoad, existingFromState);
         }
         else if (currentSchedule != null)
         {
@@ -83,7 +85,7 @@ public sealed class ScheduleStateManager
     /// <summary>
     /// Loads an existing schedule from DB on background thread and dispatches ViewScheduleAction.
     /// </summary>
-    private void LoadExistingScheduleAsync(int scheduleId, bool isEnabled)
+    private void LoadExistingScheduleAsync(int scheduleId, bool isEnabled, ScheduleStateItem? existingFromState = null)
     {
         if (isInitializing) return;
         isInitializing = true;
@@ -92,7 +94,7 @@ public sealed class ScheduleStateManager
         {
             try
             {
-                var scheduleStateItem = await scheduleInitializationService.LoadExistingScheduleAsync(scheduleId, isEnabled);
+                var scheduleStateItem = await scheduleInitializationService.LoadExistingScheduleAsync(scheduleId, isEnabled, existingFromState);
 
                 if (scheduleStateItem == null)
                 {

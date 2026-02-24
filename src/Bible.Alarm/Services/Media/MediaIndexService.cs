@@ -5,6 +5,7 @@ using Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Polly;
@@ -17,7 +18,8 @@ public sealed class MediaIndexService(
     ILogger logger,
     IStorageService storageService,
     IMediaIndexVersionService versionService,
-    IServiceProvider serviceProvider)
+    IServiceProvider serviceProvider,
+    ILanguageContentService languageContentService)
     : IMediaIndexService
 {
     private const string OldMediaIndexSuffix = "_old";
@@ -113,7 +115,7 @@ public sealed class MediaIndexService(
         {
             CloseMediaDbContextConnections();
 
-            // Rename old DB so we can migrate non-English data from it after extraction.
+            // Rename old DB so we know a version update occurred (MigrateNonEnglishDataIfNeededAsync deletes it without reading).
             // Auxiliary files are renamed alongside the main DB so SQLite can recover WAL data.
             await fileOperationRetryPolicy.ExecuteAsync(async () =>
             {
@@ -141,20 +143,19 @@ public sealed class MediaIndexService(
         var newMediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
         var scheduleDbPath = Path.Combine(IndexRoot, AppConstants.Database.ScheduleDatabaseFileName);
 
+        // Delete old index without reading it; then fetch missing data into the new index only.
+        CleanupOldMediaIndex();
+
         try
         {
-            var migrator = new NonEnglishMediaDataMigrator(logger);
-            await migrator.MigrateAsync(oldMediaIndexDbPath, newMediaIndexDbPath, scheduleDbPath);
+            var fetcher = new ScheduleMediaBootstrapFetcher(logger, languageContentService);
+            await fetcher.FetchMissingAsync(scheduleDbPath);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Non-English media data migration failed (partially or fully)");
+            logger.Error(ex, "Schedule media bootstrap fetch failed (partially or fully)");
         }
 
-        CleanupOldMediaIndex();
-
-        // Always verify after migration: delete schedules whose non-English publication
-        // can't be found in the new media index (prevents home page display failures)
         try
         {
             var cleanup = new OrphanedScheduleCleanup(logger);

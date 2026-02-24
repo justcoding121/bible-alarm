@@ -40,68 +40,70 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
     {
         try
         {
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
-
-            var publication = await db.BiblePublications
-                .Include(bp => bp.Sections)
-                .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == publicationCodeForDb &&
-                          bp.Language != null &&
-                          bp.Language.LanguageCode == normalizedLanguageCode,
-                    cancellationToken);
-
-            if (publication == null)
+            int missingCount;
+            using (var scope = scopeFactory.CreateScope())
             {
-                logger.Warning("Publication {PublicationCode} not found for language {LanguageCode}",
-                    publicationCode, languageCode);
-                return false;
+                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+                var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+                var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+                var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
+
+                var publication = await db.BiblePublications
+                    .Include(bp => bp.Sections)
+                    .FirstOrDefaultAsync(
+                        bp => bp.PublicationCode == publicationCodeForDb &&
+                              bp.Language != null &&
+                              bp.Language.LanguageCode == normalizedLanguageCode,
+                        cancellationToken);
+
+                if (publication == null)
+                {
+                    logger.Warning("Publication {PublicationCode} not found for language {LanguageCode}",
+                        publicationCode, languageCode);
+                    return false;
+                }
+
+                // Get all available sections from SectionLanguages
+                // Use case-sensitive code for dramas when querying database
+                var availableSectionCodes = await db.SectionLanguages
+                    .AsNoTracking()
+                    .Include(sl => sl.Language)
+                    .Where(sl => sl.PublicationCode == publicationCodeForDb &&
+                                 sl.Language != null &&
+                                 sl.Language.LanguageCode == normalizedLanguageCode)
+                    .Select(sl => sl.SectionCode)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                // Get existing section codes
+                var existingSectionCodes = publication.Sections
+                    .Select(s => s.SectionCode.ToLowerInvariant())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                // Find missing sections
+                var missingSectionCodes = availableSectionCodes
+                    .Where(sc => !existingSectionCodes.Contains(sc.ToLowerInvariant()))
+                    .ToList();
+
+                missingCount = missingSectionCodes.Count;
+
+                if (missingCount == 0)
+                {
+                    logger.Debug("All sections already exist for publication {PublicationCode} in language {LanguageCode}",
+                        publicationCode, languageCode);
+                    return true;
+                }
             }
 
-            // Get all available sections from SectionLanguages
-            // Use case-sensitive code for dramas when querying database
-            var availableSectionCodes = await db.SectionLanguages
-                .AsNoTracking()
-                .Include(sl => sl.Language)
-                .Where(sl => sl.PublicationCode == publicationCodeForDb &&
-                           sl.Language != null &&
-                           sl.Language.LanguageCode == normalizedLanguageCode)
-                .Select(sl => sl.SectionCode)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            // Get existing section codes
-            var existingSectionCodes = publication.Sections
-                .Select(s => s.SectionCode.ToLowerInvariant())
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            // Find missing sections
-            var missingSectionCodes = availableSectionCodes
-                .Where(sc => !existingSectionCodes.Contains(sc.ToLowerInvariant()))
-                .ToList();
-
-            if (missingSectionCodes.Count == 0)
-            {
-                logger.Debug("All sections already exist for publication {PublicationCode} in language {LanguageCode}",
-                    publicationCode, languageCode);
-                return true;
-            }
-
+            // Scope disposed here so only one connection is open during fetch (avoids SQLite "database is locked")
             logger.Information("Found {Count} missing sections for publication {PublicationCode} in language {LanguageCode}, fetching...",
-                missingSectionCodes.Count, publicationCode, languageCode);
+                missingCount, publicationCode, languageCode);
 
-            // Show progress UI (and cancel button) as soon as we know we're fetching
             progress?.SetIsVisible(true);
             try
             {
-                // Fetch sections - SectionFetcher handles incremental fetching (only missing sections)
-                // Existing sections are preserved, allowing proper resume on retry
-                // Progress is divided equally among sections (reported after each section is saved to DB)
                 var result = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken, progress);
                 return result;
             }

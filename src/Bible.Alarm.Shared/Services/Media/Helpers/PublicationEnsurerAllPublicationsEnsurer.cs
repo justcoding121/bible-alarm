@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -38,42 +39,41 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
     {
         try
         {
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-
-            // Skip English - it's pre-harvested
-            if (normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+            List<string> missingPublications;
+            using (var scope = scopeFactory.CreateScope())
             {
-                logger.Debug("Skipping fetch for English language - already pre-harvested");
-                return true;
+                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+                var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+                if (normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.Debug("Skipping fetch for English language - already pre-harvested");
+                    return true;
+                }
+
+                var availablePublications = await db.PublicationLanguages
+                    .AsNoTracking()
+                    .Include(pl => pl.Language)
+                    .Include(pl => pl.Category)
+                    .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
+                    .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
+                    .Select(pl => pl.PublicationCode)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                var existingPublications = await db.BiblePublications
+                    .AsNoTracking()
+                    .Include(bp => bp.Language)
+                    .Where(bp => bp.Language != null && bp.Language.LanguageCode == normalizedLanguageCode)
+                    .Select(bp => bp.PublicationCode)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                missingPublications = availablePublications
+                    .Where(pub => !existingPublications.Contains(pub))
+                    .ToList();
             }
-
-            // Get all available publications from PublicationLanguage
-            var availablePublications = await db.PublicationLanguages
-                .AsNoTracking()
-                .Include(pl => pl.Language)
-                .Include(pl => pl.Category)
-                .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
-                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
-                .Select(pl => pl.PublicationCode)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            // Get existing publications (use case-sensitive codes as stored in database)
-            var existingPublications = await db.BiblePublications
-                .AsNoTracking()
-                .Include(bp => bp.Language)
-                .Where(bp => bp.Language != null && bp.Language.LanguageCode == normalizedLanguageCode)
-                .Select(bp => bp.PublicationCode)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            // Find missing publications
-            var missingPublications = availablePublications
-                .Where(pub => !existingPublications.Contains(pub))
-                .ToList();
 
             if (missingPublications.Count == 0)
             {
@@ -85,27 +85,21 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
             logger.Information("Found {Count} missing publications for language {LanguageCode} in category {CategoryName}, fetching...",
                 missingPublications.Count, languageCode, categoryName ?? "all");
 
-            // Use progress token if available, otherwise use provided token
             var effectiveToken = progress?.CancellationToken ?? cancellationToken;
 
-            // Show progress bar and set initial progress
             progress?.SetIsVisible(true);
             progress?.UpdateProgress(0.0);
 
-            // Fetch each missing publication with progress updates AFTER each save
-            // Progress is divided equally: e.g., 10 publications = 10%, 20%, ...100%
             var successCount = 0;
             var totalCount = missingPublications.Count;
             for (int i = 0; i < totalCount; i++)
             {
-                // Check for cancellation before each publication
                 effectiveToken.ThrowIfCancellationRequested();
 
                 var publicationCode = missingPublications[i];
 
                 try
                 {
-                    // Don't pass progress to inner call - we update progress at this level after each publication
                     var success = await ensurePublicationExists(publicationCode, languageCode, effectiveToken, null);
                     if (success)
                     {
@@ -114,13 +108,11 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
                 }
                 catch (OperationCanceledException)
                 {
-                    // Re-throw cancellation - data saved so far is preserved
                     logger.Information("Publication fetch cancelled at {CompletedCount}/{TotalCount} for language {LanguageCode}",
                         successCount, totalCount, languageCode);
                     throw;
                 }
 
-                // Update progress AFTER successful fetch/save - divided equally among publications
                 var progressPercent = (double)(i + 1) / totalCount;
                 progress?.UpdateProgress(progressPercent);
             }
@@ -128,7 +120,6 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
             logger.Information("Successfully fetched {SuccessCount} out of {TotalCount} publications for language {LanguageCode}",
                 successCount, missingPublications.Count, languageCode);
 
-            // Hide progress bar after completion
             progress?.SetIsVisible(false);
 
             return successCount > 0;

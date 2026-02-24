@@ -149,9 +149,27 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         TrackMetadata trackMetadata,
         string? nextTrackCode)
     {
+        var scheduleToUse = await alarmScheduleService.GetScheduleByIdAsync(
+            (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
+        var effectiveMetadata = trackMetadata;
+        if (scheduleToUse?.BiblePublicationSchedule != null
+            && trackMetadata.PlayType == PlayType.Bible
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode))
+        {
+            var preservedLang = scheduleToUse.BiblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
+        }
+        else if (scheduleToUse?.Music != null
+            && trackMetadata.PlayType == PlayType.Music
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode))
+        {
+            var preservedLang = scheduleToUse.Music.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
+        }
+
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
-            schedule => PlaylistTrackUpdater.UpdateScheduleForPlayedTrackInternal(schedule, trackMetadata, nextTrackCode),
+            schedule => PlaylistTrackUpdater.UpdateScheduleForPlayedTrackInternal(schedule, effectiveMetadata, nextTrackCode),
             cancellationTokenSource.Token);
     }
     public async Task MarkTrackAsFinished(TrackMetadata trackMetadata)
@@ -159,10 +177,28 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         // Get next track/track before updating
         var nextTrackInfo = await GetNextTrackInfoAsync(trackMetadata);
 
+        var scheduleToUse = await alarmScheduleService.GetScheduleByIdAsync(
+            (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
+        var effectiveMetadata = trackMetadata;
+        if (scheduleToUse?.BiblePublicationSchedule != null
+            && trackMetadata.PlayType == PlayType.Bible
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode))
+        {
+            var preservedLang = scheduleToUse.BiblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
+        }
+        else if (scheduleToUse?.Music != null
+            && trackMetadata.PlayType == PlayType.Music
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode))
+        {
+            var preservedLang = scheduleToUse.Music.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
+        }
+
         // Update schedule using service
         var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
-            schedule => UpdateScheduleForFinishedTrackInternal(schedule, trackMetadata, nextTrackInfo),
+            schedule => UpdateScheduleForFinishedTrackInternal(schedule, effectiveMetadata, nextTrackInfo),
             cancellationTokenSource.Token);
 
         if (trackMetadata.PlayType == PlayType.Bible && nextTrackInfo.NextTrack != null)
@@ -204,6 +240,26 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return next.Metadata.TrackCode;
         }
         return null;
+    }
+
+    private static TrackMetadata CloneTrackMetadataWithLanguage(TrackMetadata source, string languageCode)
+    {
+        var copy = new TrackMetadata
+        {
+            ScheduleId = source.ScheduleId,
+            NotificationTime = source.NotificationTime,
+            IsBibleContent = source.IsBibleContent,
+            LanguageCode = languageCode,
+            PublicationCode = source.PublicationCode,
+            NaturalKey = source.NaturalKey,
+            DownloadCode = source.DownloadCode,
+            OriginalTrackCode = source.OriginalTrackCode,
+            SectionCode = source.SectionCode,
+            TrackCode = source.TrackCode,
+            FinishedDuration = source.FinishedDuration,
+            IsLastTrack = source.IsLastTrack,
+        };
+        return copy;
     }
 
     private static void UpdateScheduleForFinishedTrackInternal(

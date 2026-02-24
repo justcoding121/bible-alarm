@@ -180,11 +180,13 @@ public sealed class MusicStateChangeHandler
                 return;
             }
 
+            var scheduleLanguageCode = latestSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode;
             var clonedSchedule = latestSchedule.DeepClone();
             clonedSchedule.MusicEnabled = true;
             clonedSchedule.MusicPublicationCode = defaultPublicationCode;
             clonedSchedule.MusicPublicationName = defaultPublicationName;
-            clonedSchedule.MusicLanguageCode = null;
+            clonedSchedule.MusicLanguageCode = scheduleLanguageCode;
+            clonedSchedule.MusicLanguageName = latestSchedule.BiblePublicationLanguageName;
             clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
             clonedSchedule.MusicSectionName = chosenSection?.Name;
             clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
@@ -247,7 +249,7 @@ public sealed class MusicStateChangeHandler
                         propertyNotifier.NotifyAllMusicPropertiesChanged();
                     });
 
-                    if (string.IsNullOrEmpty(currentSchedule.MusicLanguageCode))
+                    if (string.IsNullOrEmpty(currentSchedule.MusicLanguageCode) && string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
                     {
                         _ = displayTextProvider.EnsureDefaultLanguageNameLoadedAsync(onPropertyChanged);
                     }
@@ -292,7 +294,8 @@ public sealed class MusicStateChangeHandler
             }
             isPropertyChangeScheduled = true;
 
-            var isMelodyMusic = string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
+            var isMelodyMusic = !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode)
+                && Bible.Alarm.Shared.Helpers.JwSourceHelper.MelodyMusicPublicationCodes.Contains(currentSchedule.MusicPublicationCode);
             var capturedMusicEnabled = currentSchedule.MusicEnabled;
 
             MainThread.BeginInvokeOnMainThread(() =>
@@ -373,7 +376,8 @@ public sealed class MusicStateChangeHandler
         var currentSchedule = state.Value.CurrentSchedule;
         var sectionCodeChanged = currentSchedule?.MusicSectionCode != stateTracker.LastMusicSectionCode;
         var trackCodeChanged = stateHolder.Music?.TrackCode != newMusic.TrackCode;
-        var isMelodyMusic = string.IsNullOrEmpty(newMusic.LanguageCode);
+        var isMelodyMusic = !string.IsNullOrWhiteSpace(newMusic.PublicationCode)
+            && Bible.Alarm.Shared.Helpers.JwSourceHelper.MelodyMusicPublicationCodes.Contains(newMusic.PublicationCode);
 
         MainThread.BeginInvokeOnMainThread(() =>
         {

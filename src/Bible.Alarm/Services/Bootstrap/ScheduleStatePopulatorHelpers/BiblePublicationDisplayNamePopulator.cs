@@ -104,11 +104,10 @@ internal sealed class BiblePublicationDisplayNamePopulator
             return;
         }
 
-        var isNonLanguagePublication = string.IsNullOrWhiteSpace(biblePublication.LanguageCode);
+        // Use media index: if publication is no-language (e.g. iam), use no-language lookups regardless of schedule's stored LanguageCode (e.g. MY).
+        var isNoLanguagePublication = lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode);
 
-        // For non-language publications (LanguageCode is null in DB, LanguageId == null in media index),
-        // check no-language lookups first since they're specifically designed for LanguageId == null publications.
-        if (isNonLanguagePublication)
+        if (isNoLanguagePublication)
         {
             if (lookupData.NoLanguagePublications.TryGetValue(biblePublication.PublicationCode, out var noLangMeta))
             {
@@ -130,9 +129,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
             }
         }
 
-        // For language-bound publications, or fallback for non-language if no-language lookup didn't find it.
-        // Use default language code for non-language publications to match LookupKeys collection.
-        var effectiveLanguageCode = (isNonLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode)
+        // For language-bound publications, or fallback if no-language lookup didn't find it.
+        var effectiveLanguageCode = (isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode)
             ?? AppConstants.Media.DefaultLanguageCode;
         var publicationKey = (effectiveLanguageCode, biblePublication.PublicationCode);
         if (lookupData.Publications.TryGetValue(publicationKey, out var publication))
@@ -178,11 +176,10 @@ internal sealed class BiblePublicationDisplayNamePopulator
             return;
         }
 
-        var isNonLanguagePublication = string.IsNullOrWhiteSpace(biblePublication.LanguageCode);
+        // Use media index: if publication is no-language (e.g. iam), use no-language lookups regardless of schedule's stored LanguageCode (e.g. MY).
+        var isNoLanguagePublication = lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode);
 
-        // For non-language publications (LanguageCode is null in DB, LanguageId == null in media index),
-        // check no-language lookups first since they're specifically designed for LanguageId == null publications.
-        if (isNonLanguagePublication)
+        if (isNoLanguagePublication)
         {
             if (lookupData.NoLanguageSections.TryGetValue((biblePublication.PublicationCode, sectionCode), out var noLangSectionName))
             {
@@ -193,9 +190,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
             }
         }
 
-        // For language-bound publications, or fallback for non-language if no-language lookup didn't find it.
-        // Use default language code for non-language publications to match LookupKeys collection.
-        var effectiveLanguageCode = (isNonLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode)
+        // For language-bound publications, or fallback if no-language lookup didn't find it.
+        var effectiveLanguageCode = (isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode)
             ?? AppConstants.Media.DefaultLanguageCode;
         var sectionKey = (effectiveLanguageCode, biblePublication.PublicationCode, sectionCode);
         if (lookupData.Sections.TryGetValue(sectionKey, out var sectionName))
@@ -218,11 +214,10 @@ internal sealed class BiblePublicationDisplayNamePopulator
             return;
         }
 
-        var isNonLanguagePublication = string.IsNullOrWhiteSpace(biblePublication.LanguageCode);
+        // Use media index: if publication is no-language (e.g. iam), use no-language lookups regardless of schedule's stored LanguageCode (e.g. MY).
+        var isNoLanguagePublication = lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode);
 
-        // For non-language publications (LanguageCode is null in DB, LanguageId == null in media index),
-        // check no-language lookups first since they're specifically designed for LanguageId == null publications.
-        if (isNonLanguagePublication)
+        if (isNoLanguagePublication)
         {
             var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
             if (lookupData.NoLanguageTrackTitles.TryGetValue((biblePublication.PublicationCode, normalizedSectionCode, biblePublication.TrackCode), out var noLangTitle))
@@ -234,9 +229,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
             }
         }
 
-        // For language-bound publications, or fallback for non-language if no-language lookup didn't find it.
-        // Use default language code for non-language publications to match LookupKeys collection.
-        var effectiveLanguageCode = (isNonLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode)
+        // For language-bound publications, or fallback if no-language lookup didn't find it.
+        var effectiveLanguageCode = (isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode)
             ?? AppConstants.Media.DefaultLanguageCode;
         var publicationKey = (effectiveLanguageCode, biblePublication.PublicationCode);
         if (lookupData.Publications.TryGetValue(publicationKey, out var publication))

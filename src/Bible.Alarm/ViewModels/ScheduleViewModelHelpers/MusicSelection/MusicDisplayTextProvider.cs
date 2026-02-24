@@ -137,10 +137,20 @@ public sealed class MusicDisplayTextProvider
             return currentSchedule.MusicLanguageCode!;
         }
 
-        // When music is enabled but LanguageCode is null (non-languaged publications like "iam"),
-        // default to English for display purposes - fetch name from DB
+        // When music is enabled but LanguageCode is null (no-language publications like "iam"),
+        // use the schedule's Bible/main language for display if set (e.g. MY -> Malayalam), else default to English.
         if (currentSchedule.MusicEnabled)
         {
+            if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageName))
+            {
+                return currentSchedule.BiblePublicationLanguageName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode))
+            {
+                return currentSchedule.BiblePublicationLanguageCode;
+            }
+
             // Return cached value if available
             if (!string.IsNullOrEmpty(cachedDefaultLanguageName))
             {

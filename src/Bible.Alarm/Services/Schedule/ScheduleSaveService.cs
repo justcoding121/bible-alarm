@@ -306,27 +306,13 @@ public sealed class ScheduleSaveService : IScheduleSaveService
     }
 
     /// <summary>
-    /// Normalizes LanguageCode only for begin-with-music (AlarmMusic) no-language publications.
-    /// BiblePublicationSchedule (schedule content) always keeps the selected language so the schedule page can show language + pubs when viewed again; playback uses the publications table to decide API fetch.
+    /// No longer normalizes Music.LanguageCode for no-language publications.
+    /// For no-language music (e.g. iam), we store the schedule's current language (e.g. MY) in Music.LanguageCode,
+    /// same as Bible container stores BiblePublicationSchedule.LanguageCode, so the schedule page shows the correct language when viewed again.
     /// </summary>
-    private async Task NormalizeLanguageCodeForNoLanguagePublicationsAsync(AlarmSchedule model)
+    private Task NormalizeLanguageCodeForNoLanguagePublicationsAsync(AlarmSchedule model)
     {
-        if (mediaService == null)
-        {
-            return;
-        }
-
-        // Only normalize begin-with-music (AlarmMusic) for no-language; do not null BiblePublicationSchedule.LanguageCode
-        if (model.Music != null && !string.IsNullOrEmpty(model.Music.PublicationCode))
-        {
-            var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.Music.PublicationCode);
-            if (isNoLanguage && model.Music.LanguageCode == AppConstants.Media.DefaultLanguageCode)
-            {
-                logger.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting Music.LanguageCode to null for no-language publication {PublicationCode}",
-                    model.Music.PublicationCode);
-                model.Music.LanguageCode = null;
-            }
-        }
+        return Task.CompletedTask;
     }
 }
 

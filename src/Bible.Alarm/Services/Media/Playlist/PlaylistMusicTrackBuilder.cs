@@ -13,9 +13,9 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// <summary>
 /// Handles building music tracks for playlists.
 /// Separated from PlaylistService for better modularity.
-/// Music type (melody vs. vocal) is inferred from LanguageCode:
-/// - NULL LanguageCode = melody/instrumental music (non-languaged)
-/// - Non-NULL LanguageCode = vocal music (languaged)
+/// Music type (melody vs. vocal) is inferred by checking the publication (same as Bible container):
+/// - No-language publication (LanguageId == null in BiblePublications) = melody/instrumental → melody path
+/// - Languaged publication = vocal → vocal path (uses stored LanguageCode for track lookup)
 /// </summary>
 public class PlaylistMusicTrackBuilder
 {
@@ -55,17 +55,21 @@ public class PlaylistMusicTrackBuilder
     }
 
     /// <summary>
-    /// Determines if the music is melody (instrumental) based on LanguageCode.
-    /// Melody music has NULL LanguageCode (non-languaged publications like "iam").
+    /// Determines if the music publication is no-language (melody/instrumental) by checking the publication,
+    /// same as Bible container. Uses BiblePublications.LanguageId == null, not stored LanguageCode.
     /// </summary>
-    private static bool IsMelodyMusic(AlarmMusic? music)
+    private async Task<bool> IsNoLanguageMusicPublicationAsync(AlarmSchedule schedule)
     {
-        return music != null && string.IsNullOrEmpty(music.LanguageCode);
+        if (schedule?.Music == null || string.IsNullOrWhiteSpace(schedule.Music.PublicationCode))
+        {
+            return false;
+        }
+        return await mediaService.IsPublicationWithoutLanguageAsync(schedule.Music.PublicationCode);
     }
 
     public async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
     {
-        if (IsMelodyMusic(schedule.Music))
+        if (await IsNoLanguageMusicPublicationAsync(schedule))
         {
             return await GetNextMelodyTrackAsync(schedule, next);
         }
@@ -77,7 +81,7 @@ public class PlaylistMusicTrackBuilder
 
     public async Task<PlayItem> PreviousMusicUrlToPlay(AlarmSchedule schedule)
     {
-        if (IsMelodyMusic(schedule.Music))
+        if (await IsNoLanguageMusicPublicationAsync(schedule))
         {
             return await GetPreviousMelodyTrackAsync(schedule);
         }
@@ -169,8 +173,7 @@ public class PlaylistMusicTrackBuilder
     private async Task<PlayItem> GetNextVocalTrackAsync(AlarmSchedule schedule, bool next)
     {
         var vocalMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
-        // Vocal music requires a language code - should not be null if we're here
-        // (IsMelodyMusic would have routed to melody track methods if LanguageCode was null)
+        // Vocal music: we're here because publication has a language (IsNoLanguageMusicPublicationAsync routed melody elsewhere)
         var vocalTracks = await GetVocalTracksCachedAsync(vocalMusic);
         var trackKey = GetNextTrackKey(vocalTracks, vocalMusic.TrackCode, next);
         var vocalTrack = vocalTracks[trackKey];
@@ -180,7 +183,7 @@ public class PlaylistMusicTrackBuilder
     private async Task<PlayItem> GetPreviousVocalTrackAsync(AlarmSchedule schedule)
     {
         var vocalMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
-        // Vocal music requires a language code - should not be null if we're here
+        // Vocal music: publication has a language (no-language routed to melody path)
 
         var vocalTracks = await GetVocalTracksCachedAsync(vocalMusic);
         var trackKey = GetPreviousTrackKey(vocalTracks, vocalMusic.TrackCode);

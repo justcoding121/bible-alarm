@@ -65,7 +65,7 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         return scheduleStateItem;
     }
 
-    public async Task<ScheduleStateItem?> LoadExistingScheduleAsync(int scheduleId, bool isEnabled)
+    public async Task<ScheduleStateItem?> LoadExistingScheduleAsync(int scheduleId, bool isEnabled, ScheduleStateItem? existingFromState = null)
     {
         if (alarmScheduleService == null)
         {
@@ -96,6 +96,20 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
 
             // Populate display names
             await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, schedule);
+
+            // For no-language publications (e.g. iam), prefer in-memory language from state so View Schedule matches home list (e.g. MY not E).
+            if (existingFromState != null &&
+                !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCode) &&
+                BiblePublicationService != null &&
+                await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleStateItem.BiblePublicationCode) &&
+                !string.IsNullOrWhiteSpace(existingFromState.BiblePublicationLanguageCode) &&
+                existingFromState.BiblePublicationLanguageCode != scheduleStateItem.BiblePublicationLanguageCode)
+            {
+                scheduleStateItem.BiblePublicationLanguageCode = existingFromState.BiblePublicationLanguageCode;
+                scheduleStateItem.BiblePublicationLanguageName = existingFromState.BiblePublicationLanguageName;
+                logger.Debug("LoadExistingScheduleAsync: Preferring no-language pub display language from state for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                    scheduleId, scheduleStateItem.BiblePublicationLanguageCode);
+            }
 
             logger.Debug("LoadExistingScheduleAsync: Loaded schedule {ScheduleId} with display names", scheduleId);
             return scheduleStateItem;

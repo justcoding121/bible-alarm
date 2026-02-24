@@ -47,7 +47,9 @@ public static class ApplicationMusicReducer
         {
             var music = action.CurrentMusic;
             updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
-            updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
+            updatedCurrentSchedule.MusicLanguageCode = !string.IsNullOrWhiteSpace(music.LanguageCode)
+                ? music.LanguageCode
+                : (updatedCurrentSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackCode = music.TrackCode;
@@ -57,16 +59,16 @@ public static class ApplicationMusicReducer
             // language row stays "English" and is not overwritten with null (which would show "E").
             updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
                 ? music.LanguageName
-                : (string.IsNullOrEmpty(music.LanguageCode) ? null : updatedCurrentSchedule.MusicLanguageName);
+                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.BiblePublicationLanguageName : updatedCurrentSchedule.MusicLanguageName);
             updatedCurrentSchedule.MusicLanguageDirection = !string.IsNullOrEmpty(music.LanguageDirection)
                 ? music.LanguageDirection
-                : (string.IsNullOrEmpty(music.LanguageCode) ? null : updatedCurrentSchedule.MusicLanguageDirection);
+                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageDirection : updatedCurrentSchedule.MusicLanguageDirection);
             updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
             updatedCurrentSchedule.MusicSectionName = music.SectionName; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
             Log.Debug("ApplicationMusicReducer.OnMusicTrackSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, TrackCode={TrackCode}, TrackName={TrackName}",
-                music.LanguageCode ?? "(null)", music.TrackCode, music.TrackName);
+                updatedCurrentSchedule.MusicLanguageCode ?? "(null)", music.TrackCode, music.TrackName);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
@@ -83,23 +85,25 @@ public static class ApplicationMusicReducer
         {
             var music = action.CurrentMusic;
             updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
-            updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
+            updatedCurrentSchedule.MusicLanguageCode = !string.IsNullOrWhiteSpace(music.LanguageCode)
+                ? music.LanguageCode
+                : (updatedCurrentSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode;
             updatedCurrentSchedule.MusicTrackCode = music.TrackCode;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
             updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
                 ? music.LanguageName
-                : (string.IsNullOrEmpty(music.LanguageCode) ? null : updatedCurrentSchedule.MusicLanguageName);
+                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.BiblePublicationLanguageName : updatedCurrentSchedule.MusicLanguageName);
             updatedCurrentSchedule.MusicLanguageDirection = !string.IsNullOrEmpty(music.LanguageDirection)
                 ? music.LanguageDirection
-                : (string.IsNullOrEmpty(music.LanguageCode) ? null : updatedCurrentSchedule.MusicLanguageDirection);
+                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageDirection : updatedCurrentSchedule.MusicLanguageDirection);
             updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
             updatedCurrentSchedule.MusicSectionName = music.SectionName;
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
             Log.Debug("ApplicationMusicReducer.OnMusicSectionSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, SectionCode={SectionCode}, SectionName={SectionName}, TrackCode={TrackCode}",
-                music.LanguageCode ?? "(null)", music.SectionCode, music.SectionName, music.TrackCode);
+                updatedCurrentSchedule.MusicLanguageCode ?? "(null)", music.SectionCode, music.SectionName, music.TrackCode);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);

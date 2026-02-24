@@ -6,9 +6,10 @@ public interface IMediaIndexService : IDisposable
     string IndexRoot { get; }
 
     /// <summary>
-    /// Migrates non-English publication data from old media index to new packaged media index.
-    /// Must be called after both database bootstrap and resource bootstrap complete,
-    /// so the schedule DB is readable and the new media index is extracted.
+    /// On version update (old media index was replaced by new packaged index), fetches missing
+    /// non-English publication/section data for all schedules into the new media index, then
+    /// cleans up orphaned schedule references. Must be called after resource bootstrap so
+    /// the new media index is extracted and the schedule DB is readable.
     /// </summary>
     Task MigrateNonEnglishDataIfNeededAsync();
 }

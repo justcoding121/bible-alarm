@@ -179,8 +179,8 @@ public class ScheduleEffects(
                 
                 // Even when not saving, we may need to populate missing display names (e.g., section name from track number)
                 // This is especially important when switching music types where track number is preserved but section name is missing
-                // Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal
-                var isMelodyMusic = string.IsNullOrEmpty(action.Schedule.MusicLanguageCode);
+                var isMelodyMusic = !string.IsNullOrWhiteSpace(action.Schedule.MusicPublicationCode)
+                    && Bible.Alarm.Shared.Helpers.JwSourceHelper.MelodyMusicPublicationCodes.Contains(action.Schedule.MusicPublicationCode);
                 if (action.MusicUpdated && isMelodyMusic &&
                     !string.IsNullOrWhiteSpace(action.Schedule.MusicTrackCode) &&
                     string.IsNullOrWhiteSpace(action.Schedule.MusicSectionName) &&

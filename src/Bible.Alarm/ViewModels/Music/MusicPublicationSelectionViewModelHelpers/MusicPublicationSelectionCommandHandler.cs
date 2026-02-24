@@ -90,8 +90,9 @@ public sealed class MusicPublicationSelectionCommandHandler(
 
                     // Prefer preserving current section if same publication; otherwise take first section.
                     var selectedSection = sections.First();
-                    // Check if current schedule is for melody music (no language code) and same publication
-                    if (string.IsNullOrEmpty(currentSchedule?.MusicLanguageCode) &&
+                    var isCurrentMelody = !string.IsNullOrWhiteSpace(currentSchedule?.MusicPublicationCode)
+                        && Bible.Alarm.Shared.Helpers.JwSourceHelper.MelodyMusicPublicationCodes.Contains(currentSchedule.MusicPublicationCode);
+                    if (isCurrentMelody &&
                         currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
                     {
@@ -116,8 +117,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     }
 
                     // Preserve current track if it's valid for this section; otherwise pick random track within the section.
-                    // Check if current schedule is for melody music (no language code) and same publication/section
-                    if (string.IsNullOrEmpty(currentSchedule?.MusicLanguageCode) &&
+                    if (isCurrentMelody &&
                         currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         string.Equals(currentSchedule.MusicSectionCode, selectedSectionCode, StringComparison.OrdinalIgnoreCase) &&
                         !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
@@ -144,9 +144,9 @@ public sealed class MusicPublicationSelectionCommandHandler(
                         return;
                     }
 
-                    // Use current track if same publication, otherwise random
-                    // Check if current schedule is for melody music (no language code) and same publication
-                    if (string.IsNullOrEmpty(currentSchedule?.MusicLanguageCode) &&
+                    var isCurrentMelodyFlat = !string.IsNullOrWhiteSpace(currentSchedule?.MusicPublicationCode)
+                        && Bible.Alarm.Shared.Helpers.JwSourceHelper.MelodyMusicPublicationCodes.Contains(currentSchedule.MusicPublicationCode);
+                    if (isCurrentMelodyFlat &&
                         currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
                         int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedFlatTrackNum) &&

@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -231,107 +232,107 @@ public sealed class MusicCascadeHandler
         logger.Information("MusicCascadeHandler: Language cascade - language={LanguageCode}",
             languageCode);
 
-        // Get first publication based on language selection
         string? publicationCode = null;
         string? publicationName = null;
         bool publicationWithoutLanguage = false;
         string? effectiveLanguageCode = languageCode;
+        bool needHarvest = false;
 
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        if (!string.IsNullOrEmpty(languageCode))
+        using (var scope = scopeFactory.CreateScope())
         {
-            // Language is selected - get publications for that language AND non-languaged publications
-            // Prefer languaged publications first, but if none found, use non-languaged
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            var publicationLanguage = await db.PublicationLanguages
-                .AsNoTracking()
-                .Include(pl => pl.Language)
-                .Include(pl => pl.Category)
-                .Where(pl => pl.Language != null &&
-                           pl.Language.LanguageCode == normalizedLanguageCode &&
-                           pl.Category != null &&
-                           pl.Category.CategoryCode == "Music")
-                .OrderBy(pl => pl.Id)
-                .FirstOrDefaultAsync();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            if (publicationLanguage != null)
+            if (!string.IsNullOrEmpty(languageCode))
             {
-                publicationCode = publicationLanguage.PublicationCode;
-                
-                // Check if publication exists in BiblePublications
-                var publication = await db.BiblePublications
+                var normalizedLanguageCode = languageCode.ToUpperInvariant();
+                var publicationLanguage = await db.PublicationLanguages
                     .AsNoTracking()
-                    .Where(bp => bp.PublicationCode == publicationCode &&
-                               bp.LanguageId != null &&
-                               bp.Language != null &&
-                               bp.Language.LanguageCode == normalizedLanguageCode)
+                    .Include(pl => pl.Language)
+                    .Include(pl => pl.Category)
+                    .Where(pl => pl.Language != null &&
+                               pl.Language.LanguageCode == normalizedLanguageCode &&
+                               pl.Category != null &&
+                               pl.Category.CategoryCode == "Music")
+                    .OrderBy(pl => pl.Id)
                     .FirstOrDefaultAsync();
 
-                if (publication != null)
+                if (publicationLanguage != null)
                 {
-                    publicationName = publication.Name;
-                }
-                else
-                {
-                    // Publication doesn't exist yet - harvest it
-                    if (!await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode))
-                    {
-                        logger.Warning("MusicCascadeHandler: Failed to harvest publication={PublicationCode}", publicationCode);
-                        return;
-                    }
-                    
-                    // Invalidate cache after downloading to ensure UI display/selectability checks use fresh data.
-                    mediaService.InvalidateBiblePublicationsCache(languageCode, "Music");
+                    publicationCode = publicationLanguage.PublicationCode;
 
-                    // Re-query to get the actual publication
-                    publication = await db.BiblePublications
+                    var publication = await db.BiblePublications
                         .AsNoTracking()
                         .Where(bp => bp.PublicationCode == publicationCode &&
                                    bp.LanguageId != null &&
                                    bp.Language != null &&
                                    bp.Language.LanguageCode == normalizedLanguageCode)
                         .FirstOrDefaultAsync();
-                    
-                    publicationName = publication?.Name ?? publicationCode;
+
+                    if (publication != null)
+                    {
+                        publicationName = publication.Name;
+                    }
+                    else
+                    {
+                        needHarvest = true;
+                    }
+                }
+                else
+                {
+                    var noLangPublication = await db.BiblePublications
+                        .AsNoTracking()
+                        .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
+                                   bp.LanguageId == null)
+                        .OrderBy(bp => bp.Id)
+                        .FirstOrDefaultAsync();
+
+                    if (noLangPublication != null)
+                    {
+                        publicationCode = noLangPublication.PublicationCode;
+                        publicationName = noLangPublication.Name;
+                        publicationWithoutLanguage = true;
+                        effectiveLanguageCode = null;
+                    }
                 }
             }
             else
             {
-                // No languaged publication found for this language - fall back to non-languaged (like "iam")
-                var noLangPublication = await db.BiblePublications
+                var publication = await db.BiblePublications
                     .AsNoTracking()
                     .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
                                bp.LanguageId == null)
                     .OrderBy(bp => bp.Id)
                     .FirstOrDefaultAsync();
 
-                if (noLangPublication != null)
+                if (publication != null)
                 {
-                    publicationCode = noLangPublication.PublicationCode;
-                    publicationName = noLangPublication.Name;
+                    publicationCode = publication.PublicationCode;
+                    publicationName = publication.Name;
                     publicationWithoutLanguage = true;
-                    // For non-languaged publications, we store null for LanguageCode
-                    effectiveLanguageCode = null;
                 }
             }
         }
-        else
-        {
-            // No language selected - get first non-languaged publication (like "iam")
-            var publication = await db.BiblePublications
-                .AsNoTracking()
-                .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
-                           bp.LanguageId == null)
-                .OrderBy(bp => bp.Id)
-                .FirstOrDefaultAsync();
 
-            if (publication != null)
+        if (needHarvest && !string.IsNullOrEmpty(publicationCode))
+        {
+            if (!await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode))
             {
-                publicationCode = publication.PublicationCode;
-                publicationName = publication.Name;
-                publicationWithoutLanguage = true;
+                logger.Warning("MusicCascadeHandler: Failed to harvest publication={PublicationCode}", publicationCode);
+                return;
+            }
+            mediaService.InvalidateBiblePublicationsCache(languageCode, "Music");
+            using (var scope2 = scopeFactory.CreateScope())
+            {
+                var db2 = scope2.ServiceProvider.GetRequiredService<MediaDbContext>();
+                var normalizedLanguageCode = languageCode.ToUpperInvariant();
+                var publication = await db2.BiblePublications
+                    .AsNoTracking()
+                    .Where(bp => bp.PublicationCode == publicationCode &&
+                               bp.LanguageId != null &&
+                               bp.Language != null &&
+                               bp.Language.LanguageCode == normalizedLanguageCode)
+                    .FirstOrDefaultAsync();
+                publicationName = publication?.Name ?? publicationCode;
             }
         }
 
@@ -342,7 +343,6 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        // Get section and track
         var (sectionCode, sectionName, trackCode, trackTitle) =
             await MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(
                 mediaService,
@@ -357,19 +357,27 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        // Align with Bible cascade: set modal counts so row badges match (category = "Music").
-        var tempSchedule = currentSchedule.DeepClone();
-        tempSchedule.MusicPublicationCode = publicationCode;
-        tempSchedule.MusicLanguageCode = publicationWithoutLanguage ? null : languageCode;
-        var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, tempSchedule);
-        var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, tempSchedule);
+        int? publicationModalItemCount;
+        int? sectionModalItemCount;
+        using (var scopeCounts = scopeFactory.CreateScope())
+        {
+            var dbCounts = scopeCounts.ServiceProvider.GetRequiredService<MediaDbContext>();
+            var tempSchedule = currentSchedule.DeepClone();
+            tempSchedule.MusicPublicationCode = publicationCode;
+            tempSchedule.MusicLanguageCode = publicationWithoutLanguage
+                ? (currentSchedule.BiblePublicationLanguageCode ?? AppConstants.Media.DefaultLanguageCode)
+                : languageCode;
+            publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(dbCounts, tempSchedule);
+            sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(dbCounts, tempSchedule);
+        }
 
-        // If using a non-languaged publication, clear the language code from state
+        // If using a no-language publication (e.g. iam), store the schedule's current language (like Bible container).
         if (publicationWithoutLanguage)
         {
+            var scheduleLanguageCode = currentSchedule.BiblePublicationLanguageCode ?? AppConstants.Media.DefaultLanguageCode;
             var updatedSchedule = currentSchedule.DeepClone();
-            updatedSchedule.MusicLanguageCode = null;
-            updatedSchedule.MusicLanguageName = null;
+            updatedSchedule.MusicLanguageCode = scheduleLanguageCode;
+            updatedSchedule.MusicLanguageName = currentSchedule.BiblePublicationLanguageName;
             updatedSchedule.MusicPublicationCode = publicationCode;
             updatedSchedule.MusicPublicationName = publicationName;
             updatedSchedule.MusicSectionCode = sectionCode;
