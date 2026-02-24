@@ -13,9 +13,8 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// <summary>
 /// Handles building music tracks for playlists.
 /// Separated from PlaylistService for better modularity.
-/// Music type (melody vs. vocal) is inferred by checking the publication (same as Bible container):
-/// - No-language publication (LanguageId == null in BiblePublications) = melody/instrumental → melody path
-/// - Languaged publication = vocal → vocal path (uses stored LanguageCode for track lookup)
+/// Save: For non-language music we save the language code selected on the row (e.g. MY) to AlarmMusic.LanguageCode so state is preserved on view schedule (like Bible).
+/// Playback: We identify no-language pub by publication (IsPublicationWithoutLanguageAsync), not by stored LanguageCode. If no-language → melody path (track lookup by pub/section only). If languaged → vocal path (uses stored LanguageCode for track lookup). Same pattern as Bible schedule playback.
 /// </summary>
 public class PlaylistMusicTrackBuilder
 {

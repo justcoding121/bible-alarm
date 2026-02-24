@@ -371,13 +371,13 @@ public sealed class MusicCascadeHandler
             sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(dbCounts, tempSchedule);
         }
 
-        // If using a no-language publication (e.g. iam), store the schedule's current language (like Bible container).
+        // If using a no-language publication (e.g. iam), preserve existing music display language only.
         if (publicationWithoutLanguage)
         {
-            var scheduleLanguageCode = currentSchedule.BiblePublicationLanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            var scheduleLanguageCode = currentSchedule.MusicLanguageCode ?? AppConstants.Media.DefaultLanguageCode;
             var updatedSchedule = currentSchedule.DeepClone();
             updatedSchedule.MusicLanguageCode = scheduleLanguageCode;
-            updatedSchedule.MusicLanguageName = currentSchedule.BiblePublicationLanguageName;
+            updatedSchedule.MusicLanguageName = currentSchedule.MusicLanguageName;
             updatedSchedule.MusicPublicationCode = publicationCode;
             updatedSchedule.MusicPublicationName = publicationName;
             updatedSchedule.MusicSectionCode = sectionCode;

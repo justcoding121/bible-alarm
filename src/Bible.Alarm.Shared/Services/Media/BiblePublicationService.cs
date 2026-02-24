@@ -433,6 +433,75 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
+    public async Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var pub = await GetByLanguageAndCodeWithSectionsAsync(languageCode, publicationCode, cancellationToken);
+            if (pub != null)
+            {
+                var categoryCode = pub.PrimaryCategory?.CategoryCode;
+                return (categoryCode, pub.IsMusic);
+            }
+
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var noLangPub = await dbContext.BiblePublications
+                .AsNoTracking()
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
+                .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (noLangPub == null)
+            {
+                return null;
+            }
+
+            var catCode = noLangPub.PrimaryCategory?.CategoryCode;
+            return (catCode, noLangPub.IsMusic);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error getting publication category info. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+                languageCode, publicationCode);
+            throw;
+        }
+    }
+
+    public async Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var languageBound = await GetByLanguageCodeAsync(languageCode, categoryCode, cancellationToken);
+            var codes = new HashSet<string>(languageBound.Keys, StringComparer.OrdinalIgnoreCase);
+
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var noLangCodes = await dbContext.BiblePublications
+                .AsNoTracking()
+                .Where(x => x.LanguageId == null && x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryCode))
+                .Select(x => x.PublicationCode)
+                .ToListAsync(cancellationToken);
+
+            foreach (var code in noLangCodes)
+            {
+                codes.Add(code);
+            }
+
+            var comparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryCode);
+            return codes.OrderBy(c => c, comparer).ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error getting publication codes in category order. LanguageCode={LanguageCode}, CategoryCode={CategoryCode}",
+                languageCode, categoryCode);
+            throw;
+        }
+    }
+
     public void Dispose()
     {
         if (isDisposed)

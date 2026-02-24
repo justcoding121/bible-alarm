@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -225,12 +226,44 @@ public class ScheduleEffects(
         }
     }
 
+    /// <summary>
+    /// When Bible publication changes (category/publication/language/section/track), populates display names and BiblePublicationIsMusic
+    /// so the music container visibility updates without a full save.
+    /// </summary>
+    [EffectMethod]
+    public async Task HandleUpdateScheduleFromViewModelPopulateBibleDisplayNames(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            if (!action.BiblePublicationUpdated || action.ShouldSave)
+            {
+                return;
+            }
+
+            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
+            var currentSchedule = currentState.Value.CurrentSchedule;
+            if (currentSchedule == null || currentSchedule.Id != action.Schedule.Id)
+            {
+                return;
+            }
+
+            var scheduleCopy = currentSchedule.DeepClone();
+            var alarmSchedule = mapper.Map<AlarmSchedule>(scheduleCopy);
+            await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleCopy, alarmSchedule);
+            dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleCopy));
+            Log.Debug("ScheduleEffects: Populated Bible display names (BiblePublicationIsMusic={IsMusic}) for ScheduleId={ScheduleId}", scheduleCopy.BiblePublicationIsMusic, scheduleCopy.Id);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "ScheduleEffects: Error populating Bible display names after BiblePublicationUpdated");
+        }
+    }
+
     [EffectMethod]
     public async Task HandleUpdateScheduleFromViewModelPopulateModalCounts(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
     {
         try
         {
-            // Only compute/refresh discovery-based modal counts during live edits (never during saves).
             if (action.ShouldSave)
             {
                 return;
@@ -243,7 +276,6 @@ public class ScheduleEffects(
                 return;
             }
 
-            // Ensure we update the currently edited schedule only.
             if (currentSchedule.Id != action.Schedule.Id)
             {
                 return;

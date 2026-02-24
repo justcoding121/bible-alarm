@@ -165,21 +165,20 @@ public sealed class BiblePublicationDisplayTextProvider
             // IMPORTANT:
             // PublicationTypeHelper.HasSectionStructure(pubCode) is true for both Bible (book+chapter)
             // and some non-Bible sectioned catalogs (e.g., music like "iam").
-            // Only label as "Chapter" when the publication is actually in the Bible category.
             var categoryName =
                 currentSchedule.BiblePublicationCategoryName
                 ?? JwSourceHelper.GetCategoryName(pubCode)
                 ?? string.Empty;
 
             var isBible = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
-            var isMusic = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
+            var isMusicPublication = currentSchedule.BiblePublicationIsMusic;
 
             if (isBible && PublicationTypeHelper.HasSectionStructure(pubCode))
             {
                 return $"Chapter {currentSchedule.BiblePublicationTrackCode}";
             }
 
-            if (isMusic && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationName))
+            if (isMusicPublication && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationName))
             {
                 return $"{currentSchedule.BiblePublicationName} {currentSchedule.BiblePublicationTrackCode}";
             }

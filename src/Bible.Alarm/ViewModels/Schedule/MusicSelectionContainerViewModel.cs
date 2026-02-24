@@ -59,8 +59,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
     /// <summary>
     /// Gets whether the music selection container should be visible.
-    /// Returns false when the category is "Music", true otherwise.
-    /// This property is computed from the current schedule's category.
+    /// Returns false when the selected publication is a music publication (BiblePublicationIsMusic).
     /// </summary>
     public bool IsMusicSelectionVisible
     {
@@ -69,14 +68,10 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
-                // Hide container when no schedule is active (e.g., during navigation)
                 return false;
             }
 
-            var categoryName = currentSchedule.BiblePublicationCategoryName;
-            var isMusicCategory = !string.IsNullOrWhiteSpace(categoryName) &&
-                                  string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
-            return !isMusicCategory;
+            return !currentSchedule.BiblePublicationIsMusic;
         }
     }
 

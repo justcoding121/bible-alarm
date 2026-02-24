@@ -131,6 +131,21 @@ public static class DisplayNamePreservationHelper
             actionSchedule.MusicPublicationName = existingScheduleItem.MusicPublicationName;
         }
 
+        // Only preserve music section name when both have sectioned music (mirrors Bible section preservation).
+        var actionMusicSectioned = !string.IsNullOrWhiteSpace(actionSchedule.MusicPublicationCode) &&
+            PublicationTypeHelper.HasSectionStructure(actionSchedule.MusicPublicationCode);
+        var existingMusicSectioned = !string.IsNullOrWhiteSpace(existingScheduleItem.MusicPublicationCode) &&
+            PublicationTypeHelper.HasSectionStructure(existingScheduleItem.MusicPublicationCode);
+        if (actionMusicSectioned == existingMusicSectioned && actionMusicSectioned)
+        {
+            if (string.IsNullOrWhiteSpace(actionSchedule.MusicSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicSectionName))
+            {
+                Log.Debug("ApplicationReducer: Preserving existing MusicSectionName: {SectionName}",
+                    existingScheduleItem.MusicSectionName);
+                actionSchedule.MusicSectionName = existingScheduleItem.MusicSectionName;
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(actionSchedule.MusicTrackName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicTrackName))
         {
             actionSchedule.MusicTrackName = existingScheduleItem.MusicTrackName;

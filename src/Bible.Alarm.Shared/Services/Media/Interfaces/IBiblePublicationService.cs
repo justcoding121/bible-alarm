@@ -50,5 +50,17 @@ public interface IBiblePublicationService : IDisposable
     /// Used for instrumental music and other language-independent content.
     /// </summary>
     Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the primary category code and IsMusic for a publication (language-bound or no-language).
+    /// Returns null if the publication is not found.
+    /// </summary>
+    Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets publication codes in category in display order (as in UI).
+    /// Includes both language-bound publications for the given language and no-language publications in the category.
+    /// </summary>
+    Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode, CancellationToken cancellationToken = default);
 }
 

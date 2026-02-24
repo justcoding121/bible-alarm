@@ -180,13 +180,13 @@ public sealed class MusicStateChangeHandler
                 return;
             }
 
-            var scheduleLanguageCode = latestSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode;
+            var scheduleLanguageCode = latestSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode;
             var clonedSchedule = latestSchedule.DeepClone();
             clonedSchedule.MusicEnabled = true;
             clonedSchedule.MusicPublicationCode = defaultPublicationCode;
             clonedSchedule.MusicPublicationName = defaultPublicationName;
             clonedSchedule.MusicLanguageCode = scheduleLanguageCode;
-            clonedSchedule.MusicLanguageName = latestSchedule.BiblePublicationLanguageName;
+            clonedSchedule.MusicLanguageName = latestSchedule.MusicLanguageName;
             clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
             clonedSchedule.MusicSectionName = chosenSection?.Name;
             clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
@@ -249,7 +249,7 @@ public sealed class MusicStateChangeHandler
                         propertyNotifier.NotifyAllMusicPropertiesChanged();
                     });
 
-                    if (string.IsNullOrEmpty(currentSchedule.MusicLanguageCode) && string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+                    if (string.IsNullOrEmpty(currentSchedule.MusicLanguageCode))
                     {
                         _ = displayTextProvider.EnsureDefaultLanguageNameLoadedAsync(onPropertyChanged);
                     }

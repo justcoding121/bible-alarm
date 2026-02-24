@@ -91,12 +91,10 @@ internal sealed class DefaultMusicPopulator
             foreach (var (schedule, stateItem) in schedulesNeedingMusic)
             {
                 var randomTrack = melodyMusic.Tracks[RandomNumberGenerator.GetInt32(trackCount)];
-                var scheduleLanguageCode = schedule.BiblePublicationSchedule?.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
-
                 stateItem.MusicPublicationCode = defaultPublicationCode;
                 stateItem.MusicPublicationName = defaultPublicationName;
-                stateItem.MusicLanguageCode = scheduleLanguageCode;
-                stateItem.MusicLanguageName = stateItem.BiblePublicationLanguageName;
+                stateItem.MusicLanguageCode = AppConstants.Media.DefaultLanguageCode;
+                stateItem.MusicLanguageName = null;
                 stateItem.MusicTrackCode = TrackCodeHelper.GetFromTrack(randomTrack);
                 stateItem.MusicRepeat = false;
                 // Titles for melody tracks should come from harvested track titles as-is.

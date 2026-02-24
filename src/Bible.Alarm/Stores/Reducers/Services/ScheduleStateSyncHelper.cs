@@ -106,19 +106,13 @@ public static class ScheduleStateSyncHelper
 
     public static bool HasValidBiblePublicationProperties(ScheduleStateItem schedule)
     {
-        // Music category doesn't require language code
-        var isMusicCategory = !string.IsNullOrWhiteSpace(schedule.BiblePublicationCategoryName) &&
-                              string.Equals(schedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
-
-        // Basic required properties for all content types
         if (string.IsNullOrWhiteSpace(schedule.BiblePublicationCode) ||
             string.IsNullOrWhiteSpace(schedule.BiblePublicationTrackCode))
         {
             return false;
         }
 
-        // Language code is required for non-Music categories
-        if (!isMusicCategory && string.IsNullOrWhiteSpace(schedule.BiblePublicationLanguageCode))
+        if (!schedule.BiblePublicationIsMusic && string.IsNullOrWhiteSpace(schedule.BiblePublicationLanguageCode))
         {
             return false;
         }
@@ -212,6 +206,7 @@ public static class ScheduleStateSyncHelper
             LanguageName = updatedCurrentSchedule.MusicLanguageName,
             LanguageDirection = updatedCurrentSchedule.MusicLanguageDirection,
             PublicationName = updatedCurrentSchedule.MusicPublicationName,
+            SectionName = updatedCurrentSchedule.MusicSectionName,
             TrackName = updatedCurrentSchedule.MusicTrackName
         };
     }

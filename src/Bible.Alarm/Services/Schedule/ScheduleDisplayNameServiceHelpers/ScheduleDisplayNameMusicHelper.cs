@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -30,9 +31,38 @@ public sealed class ScheduleDisplayNameMusicHelper
 
     public async Task PopulateAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
     {
-        var isMelodyMusic = string.IsNullOrEmpty(music.LanguageCode);
+        // Melody = no-language publication (e.g. iam). Use publication list so saved display language (e.g. MY) is preserved on load.
+        var melodyReleases = await mediaService.GetMelodyMusicReleases();
+        var isMelodyPublication = !string.IsNullOrWhiteSpace(music.PublicationCode) &&
+            (melodyReleases.ContainsKey(music.PublicationCode) ||
+             melodyReleases.Keys.Any(k => string.Equals(k, music.PublicationCode, StringComparison.OrdinalIgnoreCase)));
+        var isMelodyMusic = isMelodyPublication;
 
-        if (!isMelodyMusic && !string.IsNullOrWhiteSpace(music.LanguageCode))
+        if (isMelodyPublication)
+        {
+            try
+            {
+                var languagesDict = await mediaService.GetVocalMusicLanguages();
+                var displayLanguageCode = !string.IsNullOrWhiteSpace(music.LanguageCode) ? music.LanguageCode : AppConstants.Media.DefaultLanguageCode;
+                if (languagesDict.TryGetValue(displayLanguageCode, out var language))
+                {
+                    scheduleStateItem.MusicLanguageName = languageNameService.GetNameCached(language.Id) ?? displayLanguageCode;
+                    scheduleStateItem.MusicLanguageDirection = language.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
+                }
+                else
+                {
+                    scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? "English" : music.LanguageCode;
+                    scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error populating MusicLanguageName for melody");
+                scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? "English" : music.LanguageCode;
+                scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(music.LanguageCode))
         {
             try
             {
@@ -54,29 +84,6 @@ public sealed class ScheduleDisplayNameMusicHelper
                 scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
-        else if (isMelodyMusic)
-        {
-            try
-            {
-                var languagesDict = await mediaService.GetVocalMusicLanguages();
-                if (languagesDict.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
-                {
-                    scheduleStateItem.MusicLanguageName = languageNameService.GetNameCached(englishLanguage.Id) ?? "English";
-                    scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
-                }
-                else
-                {
-                    scheduleStateItem.MusicLanguageName = "English";
-                    scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Error populating MusicLanguageName for melody");
-                scheduleStateItem.MusicLanguageName = "English";
-                scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
-            }
-        }
 
         if (!string.IsNullOrWhiteSpace(music.PublicationCode))
         {
@@ -92,13 +99,24 @@ public sealed class ScheduleDisplayNameMusicHelper
                 else if (isMelodyMusic)
                 {
                     var releases = await mediaService.GetMelodyMusicReleases();
-                    if (releases.TryGetValue(music.PublicationCode, out var melodyRelease))
+                    var set = releases.TryGetValue(music.PublicationCode, out var melodyRelease);
+                    if (!set && !string.IsNullOrEmpty(music.PublicationCode))
+                    {
+                        var match = releases.FirstOrDefault(kv => string.Equals(kv.Key, music.PublicationCode, StringComparison.OrdinalIgnoreCase));
+                        set = match.Key != null;
+                        melodyRelease = match.Value;
+                    }
+                    if (set && melodyRelease != null)
                         scheduleStateItem.MusicPublicationName = melodyRelease.Name;
+                    if (string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
+                        scheduleStateItem.MusicPublicationName = GetMelodyPublicationDisplayNameFallback(music.PublicationCode);
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicPublicationName");
+                if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
+                    scheduleStateItem.MusicPublicationName = GetMelodyPublicationDisplayNameFallback(music.PublicationCode);
             }
         }
 
@@ -134,12 +152,18 @@ public sealed class ScheduleDisplayNameMusicHelper
                         logger.Debug("Populated MusicSectionName '{MusicSectionName}' for publication {PublicationCode}, section {SectionCode}", section, music.PublicationCode, music.SectionCode);
                     }
                     else
+                    {
                         logger.Warning("Music section name not found for publication {PublicationCode}, section {SectionCode}", music.PublicationCode, music.SectionCode);
+                        if (isMelodyMusic)
+                            scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicSectionName for publication {PublicationCode}, section {SectionCode}", music.PublicationCode, music.SectionCode);
+                if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicSectionName))
+                    scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
             }
         }
 
@@ -172,5 +196,31 @@ public sealed class ScheduleDisplayNameMusicHelper
                 logger.Warning(ex, "Error populating MusicTrackName");
             }
         }
+    }
+
+    /// <summary>
+    /// Fallback display name for known melody publication codes when media lookup fails.
+    /// Ensures the schedule view never shows raw codes (e.g. "iam") for common melody releases.
+    /// </summary>
+    private static string? GetMelodyPublicationDisplayNameFallback(string? publicationCode)
+    {
+        if (string.IsNullOrWhiteSpace(publicationCode))
+            return null;
+        return string.Equals(publicationCode, "iam", StringComparison.OrdinalIgnoreCase) ? "Kingdom Melodies" : null;
+    }
+
+    /// <summary>
+    /// Fallback section display name for melody (e.g. "iam-1" -> "Volume 1") when DB lookup fails.
+    /// </summary>
+    private static string? GetMelodySectionDisplayNameFallback(string? publicationCode, string? sectionCode)
+    {
+        if (string.IsNullOrWhiteSpace(publicationCode) || string.IsNullOrWhiteSpace(sectionCode))
+            return null;
+        if (!string.Equals(publicationCode, "iam", StringComparison.OrdinalIgnoreCase))
+            return null;
+        if (sectionCode.Length > 4 && sectionCode.StartsWith("iam-", StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(sectionCode.AsSpan(4), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var vol))
+            return "Volume " + vol.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return null;
     }
 }

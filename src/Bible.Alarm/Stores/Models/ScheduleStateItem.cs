@@ -84,6 +84,13 @@ public sealed class ScheduleStateItem : IComparable
     public string? BiblePublicationName { get; set; }
 
     /// <summary>
+    /// Whether the selected Bible publication is a music publication (from media index).
+    /// Used to show/hide the music (begin-with-music) container. Populated during display name population.
+    /// Not persisted to database.
+    /// </summary>
+    public bool BiblePublicationIsMusic { get; set; }
+
+    /// <summary>
     /// Bible reading section name for display purposes.
     /// This is populated during bootstrap from Bible section service.
     /// Not persisted to database.

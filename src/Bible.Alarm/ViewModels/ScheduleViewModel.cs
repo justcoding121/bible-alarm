@@ -411,7 +411,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Determines if MusicSelectionContainer should be visible.
-    /// Returns false when Music category is selected (Music category publications don't use the music selection container).
+    /// Returns false when the selected publication is a music publication (BiblePublicationIsMusic).
     /// </summary>
     public bool IsMusicSelectionVisible
     {
@@ -424,14 +424,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                 return false; // Hide container when no schedule is active (e.g., during navigation)
             }
 
-            var categoryName = currentSchedule.BiblePublicationCategoryName;
-            var isMusicCategory = !string.IsNullOrWhiteSpace(categoryName) &&
-                                  string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
-            var isVisible = !isMusicCategory;
-            
-            logger.Debug("IsMusicSelectionVisible: Category='{Category}', IsMusicCategory={IsMusicCategory}, Returning={IsVisible}",
-                categoryName ?? "(null)", isMusicCategory, isVisible);
-            
+            var isVisible = !currentSchedule.BiblePublicationIsMusic;
+            logger.Debug("IsMusicSelectionVisible: BiblePublicationIsMusic={IsMusic}, Returning={IsVisible}",
+                currentSchedule.BiblePublicationIsMusic, isVisible);
             return isVisible;
         }
     }

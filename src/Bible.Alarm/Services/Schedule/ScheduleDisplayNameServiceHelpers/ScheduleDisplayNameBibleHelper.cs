@@ -106,6 +106,7 @@ public sealed class ScheduleDisplayNameBibleHelper
                 {
                     if (!string.IsNullOrWhiteSpace(publication.Name))
                         scheduleStateItem.BiblePublicationName = publication.Name;
+                    scheduleStateItem.BiblePublicationIsMusic = publication.IsMusic;
                     if (publication.PrimaryCategory != null)
                     {
                         scheduleStateItem.BiblePublicationCategoryId = publication.PrimaryCategoryId;

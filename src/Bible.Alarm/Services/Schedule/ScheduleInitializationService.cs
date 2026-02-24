@@ -111,6 +111,20 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
                     scheduleId, scheduleStateItem.BiblePublicationLanguageCode);
             }
 
+            // Prefer music display names from state when codes match, so View Schedule shows names (e.g. Kingdom Melodies) not codes (iam).
+            if (existingFromState != null &&
+                scheduleStateItem.MusicPublicationCode == existingFromState.MusicPublicationCode &&
+                scheduleStateItem.MusicSectionCode == existingFromState.MusicSectionCode &&
+                scheduleStateItem.MusicTrackCode == existingFromState.MusicTrackCode)
+            {
+                if (!string.IsNullOrWhiteSpace(existingFromState.MusicPublicationName))
+                    scheduleStateItem.MusicPublicationName = existingFromState.MusicPublicationName;
+                if (!string.IsNullOrWhiteSpace(existingFromState.MusicSectionName))
+                    scheduleStateItem.MusicSectionName = existingFromState.MusicSectionName;
+                if (!string.IsNullOrWhiteSpace(existingFromState.MusicTrackName))
+                    scheduleStateItem.MusicTrackName = existingFromState.MusicTrackName;
+            }
+
             logger.Debug("LoadExistingScheduleAsync: Loaded schedule {ScheduleId} with display names", scheduleId);
             return scheduleStateItem;
         }

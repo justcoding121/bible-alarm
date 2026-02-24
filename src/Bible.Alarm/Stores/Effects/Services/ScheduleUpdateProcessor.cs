@@ -132,6 +132,17 @@ public sealed class ScheduleUpdateProcessor
         // Populate display names from media index (single-schedule hydration).
         await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, savedSchedule);
 
+        // After save: preserve music language display names from action so home list shows e.g. Malayalam not English for melody (PopulateDisplayNamesAsync may not resolve MY in time; action has the UI value).
+        if (action.Schedule != null && !string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationCode) &&
+            scheduleStateItem.MusicPublicationCode == action.Schedule.MusicPublicationCode &&
+            scheduleStateItem.MusicLanguageCode == action.Schedule.MusicLanguageCode)
+        {
+            if (!string.IsNullOrWhiteSpace(action.Schedule.MusicLanguageName))
+                scheduleStateItem.MusicLanguageName = action.Schedule.MusicLanguageName;
+            if (!string.IsNullOrWhiteSpace(action.Schedule.MusicLanguageDirection))
+                scheduleStateItem.MusicLanguageDirection = action.Schedule.MusicLanguageDirection;
+        }
+
         return scheduleStateItem;
     }
 
@@ -201,7 +212,7 @@ public sealed class ScheduleUpdateProcessor
             }
         }
 
-        // Check Music publication (instrumental music is no-language)
+        // Check Music publication (instrumental/melody is no-language). We persist the row's display language (e.g. MY) for no-language music; only null when it is the default "E" (legacy).
         if (model.Music != null && !string.IsNullOrEmpty(model.Music.PublicationCode))
         {
             var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.Music.PublicationCode);

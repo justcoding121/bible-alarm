@@ -47,19 +47,18 @@ public static class ApplicationMusicReducer
         {
             var music = action.CurrentMusic;
             updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
+            // For melody (no-language pub), preserve existing music display language (e.g. MY) so it can be saved and restored on view schedule.
             updatedCurrentSchedule.MusicLanguageCode = !string.IsNullOrWhiteSpace(music.LanguageCode)
                 ? music.LanguageCode
-                : (updatedCurrentSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
+                : (updatedCurrentSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackCode = music.TrackCode;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
-            // Display names: use action when provided. When switching to vocal (LanguageCode set) but action has no
-            // LanguageName (e.g. tapped osg from merged list without selecting language), preserve existing so the
-            // language row stays "English" and is not overwritten with null (which would show "E").
+            // Display names: use action when provided. For melody, preserve existing music language name/direction only.
             updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
                 ? music.LanguageName
-                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.BiblePublicationLanguageName : updatedCurrentSchedule.MusicLanguageName);
+                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageName : updatedCurrentSchedule.MusicLanguageName);
             updatedCurrentSchedule.MusicLanguageDirection = !string.IsNullOrEmpty(music.LanguageDirection)
                 ? music.LanguageDirection
                 : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageDirection : updatedCurrentSchedule.MusicLanguageDirection);
@@ -85,16 +84,17 @@ public static class ApplicationMusicReducer
         {
             var music = action.CurrentMusic;
             updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
+            // For melody (no-language pub), preserve existing music display language (e.g. MY) so it can be saved and restored on view schedule.
             updatedCurrentSchedule.MusicLanguageCode = !string.IsNullOrWhiteSpace(music.LanguageCode)
                 ? music.LanguageCode
-                : (updatedCurrentSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
+                : (updatedCurrentSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode;
             updatedCurrentSchedule.MusicTrackCode = music.TrackCode;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
             updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
                 ? music.LanguageName
-                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.BiblePublicationLanguageName : updatedCurrentSchedule.MusicLanguageName);
+                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageName : updatedCurrentSchedule.MusicLanguageName);
             updatedCurrentSchedule.MusicLanguageDirection = !string.IsNullOrEmpty(music.LanguageDirection)
                 ? music.LanguageDirection
                 : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageDirection : updatedCurrentSchedule.MusicLanguageDirection);

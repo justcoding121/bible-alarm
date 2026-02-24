@@ -274,7 +274,8 @@ internal sealed class LookupDataLoader
                     p.PublicationCode,
                     p.Name,
                     CategoryId = firstCat?.CategoryId ?? 0,
-                    CategoryCode = firstCat?.Category?.CategoryCode ?? JwSourceHelper.GetCategoryCode(p.PublicationCode) ?? string.Empty
+                    CategoryCode = firstCat?.Category?.CategoryCode ?? JwSourceHelper.GetCategoryCode(p.PublicationCode) ?? string.Empty,
+                    p.IsMusic
                 };
             })
             .ToList();
@@ -292,7 +293,7 @@ internal sealed class LookupDataLoader
                 g =>
                 {
                     var first = g.First();
-                    return new NoLanguagePublicationMeta(first.Name ?? string.Empty, first.CategoryId, first.CategoryCode);
+                    return new NoLanguagePublicationMeta(first.Name ?? string.Empty, first.CategoryId, first.CategoryCode, first.IsMusic);
                 },
                 StringComparer.OrdinalIgnoreCase);
 
@@ -406,6 +407,6 @@ internal sealed class LookupDataLoader
         Dictionary<(string PublicationCode, string SectionCode), SortedDictionary<int, MusicTrack>> MelodyTracksBySection,
         Dictionary<string, MelodyMusic> MelodyReleases);
 
-    public sealed record NoLanguagePublicationMeta(string Name, int CategoryId, string CategoryName);
+    public sealed record NoLanguagePublicationMeta(string Name, int CategoryId, string CategoryName, bool IsMusic);
 }
 

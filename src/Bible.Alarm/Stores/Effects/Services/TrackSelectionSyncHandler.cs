@@ -287,7 +287,7 @@ public sealed class TrackSelectionSyncHandler
     {
         var effectiveNewLanguageCode = !string.IsNullOrWhiteSpace(actionMusic.LanguageCode)
             ? actionMusic.LanguageCode
-            : (currentSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
+            : (currentSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
         return currentSchedule.MusicLanguageCode != effectiveNewLanguageCode;
     }
 
@@ -369,13 +369,14 @@ public sealed class TrackSelectionSyncHandler
             : currentSchedule.MusicId;
         updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
         var useScheduleLanguage = string.IsNullOrWhiteSpace(actionMusic.LanguageCode);
+        // For melody (no-language pub), preserve existing music display language (e.g. MY) so it is saved and restored on view schedule.
         updatedSchedule.MusicLanguageCode = useScheduleLanguage
-            ? (currentSchedule.BiblePublicationLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode)
+            ? (currentSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode)
             : actionMusic.LanguageCode;
         updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
         updatedSchedule.MusicTrackCode = actionMusic.TrackCode;
         updatedSchedule.MusicRepeat = actionMusic.Repeat;
-        updatedSchedule.MusicLanguageName = useScheduleLanguage ? currentSchedule.BiblePublicationLanguageName : currentSchedule.MusicLanguageName;
+        updatedSchedule.MusicLanguageName = useScheduleLanguage ? currentSchedule.MusicLanguageName : currentSchedule.MusicLanguageName;
         updatedSchedule.MusicLanguageDirection = useScheduleLanguage ? currentSchedule.MusicLanguageDirection : currentSchedule.MusicLanguageDirection;
         updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
         updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
@@ -383,9 +384,11 @@ public sealed class TrackSelectionSyncHandler
 
     private async Task SetMusicDisplayNamesAsync(ScheduleStateItem updatedSchedule, MusicStateItem actionMusic)
     {
-        // Use display names from the action when present (same as Bible container).
-        updatedSchedule.MusicLanguageName = actionMusic.LanguageName;
-        updatedSchedule.MusicLanguageDirection = actionMusic.LanguageDirection;
+        // Use display names from the action when present. For melody (no LanguageName), keep values set in UpdateMusicProperties (e.g. MY display).
+        if (!string.IsNullOrEmpty(actionMusic.LanguageName))
+            updatedSchedule.MusicLanguageName = actionMusic.LanguageName;
+        if (!string.IsNullOrEmpty(actionMusic.LanguageDirection))
+            updatedSchedule.MusicLanguageDirection = actionMusic.LanguageDirection;
         updatedSchedule.MusicPublicationName = actionMusic.PublicationName;
         updatedSchedule.MusicSectionName = actionMusic.SectionName;
         updatedSchedule.MusicTrackName = actionMusic.TrackName;
