@@ -67,7 +67,7 @@ public static class ScheduleStateSyncHelper
                current.MusicRepeat == action.MusicRepeat &&
                current.BiblePublicationLanguageCode == action.BiblePublicationLanguageCode &&
                current.BiblePublicationCode == action.BiblePublicationCode &&
-               string.Equals(currentSectionCode, actionSectionCode, StringComparison.OrdinalIgnoreCase) &&
+               SectionCodeHelper.CodeEquals(currentSectionCode, actionSectionCode) &&
                current.BiblePublicationTrackCode == action.BiblePublicationTrackCode &&
                current.BiblePublicationModalItemCount == action.BiblePublicationModalItemCount &&
                current.BiblePublicationSectionModalItemCount == action.BiblePublicationSectionModalItemCount &&

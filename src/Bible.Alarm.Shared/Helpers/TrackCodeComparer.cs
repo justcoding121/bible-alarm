@@ -15,42 +15,6 @@ public static class TrackCodeComparer
 
     private sealed class NaturalTrackCodeComparer : IComparer<string>
     {
-        public int Compare(string? x, string? y)
-        {
-            if (x == null && y == null)
-            {
-                return 0;
-            }
-            if (x == null)
-            {
-                return -1;
-            }
-            if (y == null)
-            {
-                return 1;
-            }
-
-            var aIsInt = int.TryParse(x, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var aInt);
-            var bIsInt = int.TryParse(y, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var bInt);
-
-            // If both are numeric, compare numerically ("2" < "10")
-            if (aIsInt && bIsInt)
-            {
-                return aInt.CompareTo(bInt);
-            }
-
-            // If only one is numeric, keep numeric codes grouped first
-            if (aIsInt && !bIsInt)
-            {
-                return -1;
-            }
-            if (!aIsInt && bIsInt)
-            {
-                return 1;
-            }
-
-            // Otherwise compare as strings
-            return string.Compare(x, y, StringComparison.OrdinalIgnoreCase);
-        }
+        public int Compare(string? x, string? y) => CodeComparisonHelper.Compare(x, y);
     }
 }

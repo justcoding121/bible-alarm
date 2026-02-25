@@ -34,7 +34,7 @@ public static class MusicTrackLookupHelper
 
         foreach (var kvp in tracks)
         {
-            if (string.Equals(kvp.Value.TrackCode, trackCode, StringComparison.OrdinalIgnoreCase))
+            if (CodeComparisonHelper.Equals(kvp.Value.TrackCode, trackCode))
             {
                 result = (kvp.Key, kvp.Value);
                 return true;

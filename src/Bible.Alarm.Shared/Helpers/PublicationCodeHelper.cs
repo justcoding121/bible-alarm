@@ -49,6 +49,11 @@ public static class PublicationCodeHelper
         => string.IsNullOrWhiteSpace(publicationCode) ? null : publicationCode.Trim();
 
     /// <summary>
+    /// Returns true when both publication codes are equal: if both numeric, same integer value; otherwise string equal (ignore case).
+    /// </summary>
+    public static bool CodeEquals(string? a, string? b) => CodeComparisonHelper.Equals(Normalize(a), Normalize(b));
+
+    /// <summary>
     /// Gets the sort priority for a publication code.
     /// Lower is higher priority.
     /// </summary>
@@ -110,8 +115,7 @@ public static class PublicationCodeHelper
                 return priorityCompare;
             }
 
-            // Stable fallback: compare codes case-insensitively.
-            return StringComparer.OrdinalIgnoreCase.Compare(a, b);
+            return CodeComparisonHelper.Compare(a, b);
         }
     }
 
@@ -141,7 +145,7 @@ public static class PublicationCodeHelper
             var priorityCompare = aPriority.CompareTo(bPriority);
             if (priorityCompare != 0) return priorityCompare;
 
-            return StringComparer.OrdinalIgnoreCase.Compare(a, b);
+            return CodeComparisonHelper.Compare(a, b);
         }
 
         private int GetPriorityForCodes(string code)

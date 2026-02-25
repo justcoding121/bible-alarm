@@ -197,7 +197,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         var firstSongPublication = songPublications.Values
             .FirstOrDefault(p =>
                 IsHarvestedPublication(p) &&
-                p.PublicationCode.Equals(firstPublicationCode, StringComparison.OrdinalIgnoreCase))
+                Bible.Alarm.Shared.Helpers.PublicationCodeHelper.CodeEquals(p.PublicationCode, firstPublicationCode))
             ?? songPublications.Values
                 .Where(IsHarvestedPublication)
                 .OrderBy(p => p.Id)

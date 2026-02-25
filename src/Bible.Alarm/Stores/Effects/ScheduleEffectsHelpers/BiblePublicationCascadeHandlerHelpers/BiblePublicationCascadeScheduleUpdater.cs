@@ -35,16 +35,16 @@ public static class BiblePublicationCascadeScheduleUpdater
         var currentTrackCode = currentSchedule.BiblePublicationTrackCode;
         var currentTrackTitle = currentSchedule.BiblePublicationTrackTitle;
         var currentPublicationCode = currentSchedule.BiblePublicationCode;
-        var publicationChanged = !string.Equals(currentPublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase);
-        var sectionChanged = !string.Equals(currentSectionCode, normalizedSectionCode, StringComparison.OrdinalIgnoreCase);
-        var trackChanged = currentTrackCode != trackCode;
+        var publicationChanged = !PublicationCodeHelper.CodeEquals(currentPublicationCode, publicationCode);
+        var sectionChanged = !SectionCodeHelper.CodeEquals(currentSectionCode, normalizedSectionCode);
+        var trackChanged = !CodeComparisonHelper.Equals(currentTrackCode, trackCode);
         var publicationModalCountChanged = currentSchedule.BiblePublicationModalItemCount != publicationModalItemCount;
         var sectionModalCountChanged = currentSchedule.BiblePublicationSectionModalItemCount != sectionModalItemCount;
         var trackModalCountChanged = currentSchedule.BiblePublicationTrackModalItemCount != trackModalItemCount;
 
-        if (currentSchedule.BiblePublicationCode == publicationCode &&
-            string.Equals(currentSectionCode, normalizedSectionCode, StringComparison.OrdinalIgnoreCase) &&
-            currentTrackCode == trackCode &&
+        if (PublicationCodeHelper.CodeEquals(currentSchedule.BiblePublicationCode, publicationCode) &&
+            SectionCodeHelper.CodeEquals(currentSectionCode, normalizedSectionCode) &&
+            CodeComparisonHelper.Equals(currentTrackCode, trackCode) &&
             currentTrackTitle == trackTitle &&
             !publicationModalCountChanged &&
             !sectionModalCountChanged &&

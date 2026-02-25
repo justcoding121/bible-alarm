@@ -156,7 +156,7 @@ public sealed class MusicTrackListManager(
         }
 
         var track = tracks.FirstOrDefault(t => !string.IsNullOrWhiteSpace(current.TrackCode) &&
-            string.Equals(t.TrackCode, current.TrackCode, StringComparison.OrdinalIgnoreCase));
+            Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Equals(t.TrackCode, current.TrackCode));
         if (track == null && !string.IsNullOrWhiteSpace(current.TrackCode) &&
             int.TryParse(current.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
         {

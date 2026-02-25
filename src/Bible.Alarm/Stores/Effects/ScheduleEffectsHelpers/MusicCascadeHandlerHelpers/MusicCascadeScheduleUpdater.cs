@@ -31,15 +31,15 @@ public static class MusicCascadeScheduleUpdater
         var currentTrackCode = currentSchedule.MusicTrackCode;
         var currentTrackTitle = currentSchedule.MusicTrackName;
         var currentPublicationCode = currentSchedule.MusicPublicationCode;
-        var publicationChanged = !string.Equals(currentPublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase);
-        var sectionChanged = !string.Equals(currentSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase);
-        var trackChanged = currentTrackCode != trackCode;
+        var publicationChanged = !Bible.Alarm.Shared.Helpers.PublicationCodeHelper.CodeEquals(currentPublicationCode, publicationCode);
+        var sectionChanged = !Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, sectionCode);
+        var trackChanged = !Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Equals(currentTrackCode, trackCode);
         var publicationModalCountChanged = currentSchedule.MusicPublicationModalItemCount != publicationModalItemCount;
         var sectionModalCountChanged = currentSchedule.MusicSectionModalItemCount != sectionModalItemCount;
 
-        if (currentSchedule.MusicPublicationCode == publicationCode &&
-            string.Equals(currentSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase) &&
-            currentTrackCode == trackCode &&
+        if (Bible.Alarm.Shared.Helpers.PublicationCodeHelper.CodeEquals(currentSchedule.MusicPublicationCode, publicationCode) &&
+            Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, sectionCode) &&
+            Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Equals(currentTrackCode, trackCode) &&
             currentTrackTitle == trackTitle &&
             !publicationModalCountChanged &&
             !sectionModalCountChanged)

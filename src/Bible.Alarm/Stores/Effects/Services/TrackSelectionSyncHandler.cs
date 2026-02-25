@@ -103,7 +103,7 @@ public sealed class TrackSelectionSyncHandler
             var alreadyInSync = 
                 currentSchedule.BiblePublicationLanguageCode == biblePub.LanguageCode &&
                 currentSchedule.BiblePublicationCode == biblePub.PublicationCode &&
-                string.Equals(currentSectionCode, actionSectionCode, StringComparison.OrdinalIgnoreCase) &&
+                Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, actionSectionCode) &&
                 currentSchedule.BiblePublicationTrackCode == biblePub.TrackCode;
             
             if (alreadyInSync)

@@ -23,48 +23,14 @@ public static class SectionCodeHelper
     public static string? Normalize(string? sectionCode)
         => string.IsNullOrWhiteSpace(sectionCode) ? null : sectionCode.Trim();
 
+    /// <summary>
+    /// Returns true when both section codes are equal: if both numeric, same integer value; otherwise string equal (ignore case).
+    /// </summary>
+    public static bool CodeEquals(string? a, string? b) => CodeComparisonHelper.Equals(Normalize(a), Normalize(b));
+
     private sealed class NaturalSectionCodeComparer : IComparer<string?>
     {
-        public int Compare(string? x, string? y)
-        {
-            var a = Normalize(x);
-            var b = Normalize(y);
-
-            if (a == null && b == null)
-            {
-                return 0;
-            }
-            if (a == null)
-            {
-                return -1;
-            }
-            if (b == null)
-            {
-                return 1;
-            }
-
-            var aIsInt = int.TryParse(a, out var aInt);
-            var bIsInt = int.TryParse(b, out var bInt);
-
-            // If both are numeric, compare numerically ("2" < "10")
-            if (aIsInt && bIsInt)
-            {
-                return aInt.CompareTo(bInt);
-            }
-
-            // If only one is numeric, keep numeric codes grouped first
-            if (aIsInt && !bIsInt)
-            {
-                return -1;
-            }
-            if (!aIsInt && bIsInt)
-            {
-                return 1;
-            }
-
-            // Otherwise compare as strings
-            return StringComparer.OrdinalIgnoreCase.Compare(a, b);
-        }
+        public int Compare(string? x, string? y) => CodeComparisonHelper.Compare(Normalize(x), Normalize(y));
     }
 }
 

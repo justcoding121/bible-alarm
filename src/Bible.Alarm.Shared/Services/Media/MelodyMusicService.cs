@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -226,9 +227,9 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             }
 
             // Find the section by section code
-            var section = publication.Sections?.FirstOrDefault(s => 
-                s.SectionCode != null && 
-                s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
+            var section = publication.Sections?.FirstOrDefault(s =>
+                s.SectionCode != null &&
+                SectionCodeHelper.CodeEquals(s.SectionCode, sectionCode));
 
             if (section == null || section.Tracks == null || section.Tracks.Count == 0)
             {

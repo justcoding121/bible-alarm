@@ -71,12 +71,6 @@ public sealed class BiblePublicationTrack : IComparable
             return 1;
         }
 
-        // Compare TrackCode as string, but try to parse as int for numeric comparison when both are numeric
-        if (int.TryParse(TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var thisNum) &&
-            int.TryParse(other.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var otherNum))
-        {
-            return thisNum.CompareTo(otherNum);
-        }
-        return string.Compare(TrackCode, other.TrackCode, StringComparison.OrdinalIgnoreCase);
+        return Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Compare(TrackCode, other.TrackCode);
     }
 }

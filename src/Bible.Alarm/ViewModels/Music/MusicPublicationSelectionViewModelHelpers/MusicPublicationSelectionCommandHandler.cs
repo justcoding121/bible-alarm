@@ -98,7 +98,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     {
                         var match = sections.FirstOrDefault(kvp =>
                             kvp.Value != null &&
-                            string.Equals(kvp.Value.SectionCode, currentSchedule.MusicSectionCode, StringComparison.OrdinalIgnoreCase));
+                            Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(kvp.Value.SectionCode, currentSchedule.MusicSectionCode));
                         if (!EqualityComparer<KeyValuePair<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>>.Default.Equals(match, default))
                         {
                             selectedSection = match;
@@ -119,7 +119,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     // Preserve current track if it's valid for this section; otherwise pick random track within the section.
                     if (isCurrentMelody &&
                         currentSchedule?.MusicPublicationCode == songPublication.Code &&
-                        string.Equals(currentSchedule.MusicSectionCode, selectedSectionCode, StringComparison.OrdinalIgnoreCase) &&
+                        Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSchedule.MusicSectionCode, selectedSectionCode) &&
                         !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
                         sectionTracks.TryGetValue(currentSchedule.MusicTrackCode, out var existingTrack))
                     {
