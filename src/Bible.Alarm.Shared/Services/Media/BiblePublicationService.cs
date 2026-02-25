@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
@@ -325,14 +326,13 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // Query PublicationLanguages table for discovery - shows all available publications
-            // Include both publications WITH language and publications WITHOUT language (LanguageId == null)
+            // Query PublicationLanguages table for discovery. Non-language publications (LanguageId == null) only under English.
             var query = dbContext.PublicationLanguages
                 .AsNoTracking()
                 .Include(x => x.Language)
                 .Include(x => x.Category)
                 .Where(x => (x.Language != null && x.Language.LanguageCode == normalizedLanguageCode) ||
-                           (x.LanguageId == null));
+                           (string.Equals(normalizedLanguageCode, AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase) && x.LanguageId == null));
 
             // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))

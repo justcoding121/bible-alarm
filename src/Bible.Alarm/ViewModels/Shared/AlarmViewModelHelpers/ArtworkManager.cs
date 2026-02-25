@@ -20,6 +20,7 @@ public sealed class ArtworkManager(ILogger logger)
     {
         if (!forceReload && lastArtworkUrl == artworkUrl)
         {
+            setIsArtworkLoading(false);
             return;
         }
 
@@ -31,6 +32,10 @@ public sealed class ArtworkManager(ILogger logger)
             if (artworkSource != null)
             {
                 ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            }
+            else
+            {
+                setIsArtworkLoading(false);
             }
             return;
         }
@@ -147,6 +152,7 @@ public sealed class ArtworkManager(ILogger logger)
     {
         if (!File.Exists(filePath))
         {
+            logger.Debug("Artwork file not found, clearing: {FilePath}", filePath);
             ClearArtwork(setArtworkSource, setIsArtworkLoading);
             return;
         }

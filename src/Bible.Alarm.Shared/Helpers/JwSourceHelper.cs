@@ -41,6 +41,17 @@ public static class JwSourceHelper
     };
 
     /// <summary>
+    /// Music category publications that use Mediator API for discovery (MediatorSectioned, video).
+    /// Tracks come from category.media[]; same harvest path as other mediator categories (e.g. DramaHarvester).
+    /// </summary>
+    public static HashSet<string> MusicMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "VODConvMusic",
+        "MakingMusic",
+        "VODSingToJah"
+    };
+
+    /// <summary>
     /// Publication codes that should be flagged IsMusic = true even when not under the Music category (e.g. Children Songs, Video Series songs).
     /// </summary>
     public static HashSet<string> MusicFlagPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
@@ -176,7 +187,10 @@ public static class JwSourceHelper
         "VODIntExpEndurance",
         "VODIntExpYouth",
         "OriginsLife",
-        "VODIntExpArchives"
+        "VODIntExpArchives",
+        "VODConvMusic",
+        "MakingMusic",
+        "VODSingToJah"
     };
 
     /// <summary>
@@ -475,6 +489,7 @@ public static class JwSourceHelper
             foreach (var code in OrganizationPublicationCodes) set.Add(code);
             foreach (var code in FaithAndBiblePublicationCodes) set.Add(code);
             foreach (var code in InterviewsAndExperiencesPublicationCodes) set.Add(code);
+            foreach (var code in MusicMediatorPublicationCodes) set.Add(code);
             return set;
         }
     }
@@ -549,6 +564,7 @@ public static class JwSourceHelper
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var code in BiblePublicationCodes) set.Add(code);
             foreach (var code in VocalMusicPublicationCodes) set.Add(code);
+            foreach (var code in MusicMediatorPublicationCodes) set.Add(code);
             foreach (var code in DramaCategoryCodes) set.Add(code);
             foreach (var code in VideoPublicationCodes) set.Add(code);
             foreach (var code in ChildrenPublicationCodes) set.Add(code);
@@ -583,6 +599,10 @@ public static class JwSourceHelper
                 musicCodes.Add(code);
             }
             foreach (var code in MelodyMusicPublicationCodes)
+            {
+                musicCodes.Add(code);
+            }
+            foreach (var code in MusicMediatorPublicationCodes)
             {
                 musicCodes.Add(code);
             }

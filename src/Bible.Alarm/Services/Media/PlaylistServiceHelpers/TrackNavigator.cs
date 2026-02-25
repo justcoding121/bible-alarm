@@ -147,32 +147,9 @@ public sealed class TrackNavigator
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, nextTrack.Value);
         }
 
-        // No next track in this section: try next section, or next publication in category if at last section.
-        var discoveredSectionCodes = await SectionHarvester.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
-        var orderedSectionCodes = discoveredSectionCodes.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
-        var currentSectionIndex = orderedSectionCodes.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
-        var isLastSection = currentSectionIndex >= 0 && currentSectionIndex == orderedSectionCodes.Count - 1;
-
-        if (isLastSection)
-        {
-            var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
-            if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) && !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
-            {
-                var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode);
-                var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
-                if (pubIndex >= 0)
-                {
-                    var nextPubIndex = (pubIndex + 1) % orderedPubCodes.Count;
-                    var nextPubCode = orderedPubCodes[nextPubIndex];
-                    var firstTrack = await GetFirstTrackOfPublicationAsync(languageCode, nextPubCode, sectionFetchProgress);
-                    if (firstTrack is { } ft)
-                    {
-                        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(ft.Item1, ft.Item2);
-                    }
-                }
-            }
-        }
-
+        // No next track in this section: go to next section (wrap within same publication).
+        // Cross-publication wrap is not done here because the caller builds the play item with the
+        // current publication code and would fail.
         var nextSection = await GetNextBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode, sectionFetchProgress);
         if (nextSection.Value == null)
         {
@@ -246,32 +223,9 @@ public sealed class TrackNavigator
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, previousTrack.Value);
         }
 
-        // No previous track in this section: try previous section, or previous publication in category if at first section.
-        var discoveredSectionCodesPrev = await SectionHarvester.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
-        var orderedSectionCodesPrev = discoveredSectionCodesPrev.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
-        var currentSectionIndexPrev = orderedSectionCodesPrev.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
-        var isFirstSection = currentSectionIndexPrev == 0;
-
-        if (isFirstSection)
-        {
-            var categoryInfoPrev = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
-            if (categoryInfoPrev is { } infoPrev && !string.IsNullOrWhiteSpace(infoPrev.CategoryCode) && !string.Equals(infoPrev.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !infoPrev.IsMusic)
-            {
-                var orderedPubCodesPrev = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, infoPrev.CategoryCode);
-                var pubIndexPrev = orderedPubCodesPrev.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
-                if (pubIndexPrev >= 0)
-                {
-                    var prevPubIndex = (pubIndexPrev - 1 + orderedPubCodesPrev.Count) % orderedPubCodesPrev.Count;
-                    var prevPubCode = orderedPubCodesPrev[prevPubIndex];
-                    var lastTrack = await GetLastTrackOfPublicationAsync(languageCode, prevPubCode, sectionFetchProgress);
-                    if (lastTrack is { } lt)
-                    {
-                        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(lt.Item1, lt.Item2);
-                    }
-                }
-            }
-        }
-
+        // No previous track in this section: go to previous section (wrap within same publication).
+        // Cross-publication wrap is not done here because the caller builds the play item with the
+        // current publication code and would fail (e.g. "Track not found: pub=CurrentPub, track=OtherPubTrackCode").
         var previousSection = await GetPreviousBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode, sectionFetchProgress);
         if (previousSection.Value == null)
         {

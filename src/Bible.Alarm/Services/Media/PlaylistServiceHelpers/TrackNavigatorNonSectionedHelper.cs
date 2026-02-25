@@ -55,26 +55,9 @@ public sealed class TrackNavigatorNonSectionedHelper
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, nextTrack);
         }
 
-        if (getFirstTrackOfPublicationAsync != null)
-        {
-            var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
-            if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) && !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
-            {
-                var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode);
-                var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
-                if (pubIndex >= 0)
-                {
-                    var nextPubIndex = (pubIndex + 1) % orderedPubCodes.Count;
-                    var nextPubCode = orderedPubCodes[nextPubIndex];
-                    var firstTrack = await getFirstTrackOfPublicationAsync(languageCode, nextPubCode, sectionFetchProgress);
-                    if (firstTrack is { } ft)
-                    {
-                        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(ft.Item1, ft.Item2);
-                    }
-                }
-            }
-        }
-
+        // At last track: wrap within same publication only. Cross-publication wrap would require
+        // the caller to use the other publication's code when building the play item, which is not
+        // supported by the current API.
         return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.First());
     }
 
@@ -103,26 +86,9 @@ public sealed class TrackNavigatorNonSectionedHelper
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, previousTrack);
         }
 
-        if (getLastTrackOfPublicationAsync != null)
-        {
-            var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
-            if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) && !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
-            {
-                var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode);
-                var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
-                if (pubIndex >= 0)
-                {
-                    var prevPubIndex = (pubIndex - 1 + orderedPubCodes.Count) % orderedPubCodes.Count;
-                    var prevPubCode = orderedPubCodes[prevPubIndex];
-                    var lastTrack = await getLastTrackOfPublicationAsync(languageCode, prevPubCode, sectionFetchProgress);
-                    if (lastTrack is { } lt)
-                    {
-                        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(lt.Item1, lt.Item2);
-                    }
-                }
-            }
-        }
-
+        // At first track: wrap within same publication only. Cross-publication wrap would require
+        // the caller to use the other publication's code when building the play item, which is not
+        // supported by the current API and would fail (e.g. "Track not found: pub=CurrentPub, track=OtherPubTrackCode").
         return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.Last());
     }
 
