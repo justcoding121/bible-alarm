@@ -207,7 +207,7 @@ internal static class HarvestValidator
 
         foreach (var publicationCode in codesToValidate)
         {
-            var codeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(publicationCode.ToLowerInvariant()) ?? publicationCode;
+            var codeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(publicationCode.ToLowerInvariant()) ?? publicationCode;
             var pub = await db.BiblePublications
                 .AsNoTracking()
                 .Include(bp => bp.Language)

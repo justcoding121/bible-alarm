@@ -62,7 +62,7 @@ internal sealed class EnglishContentSeeder
             const string EnglishCode = "E";
             var normalizedLanguageCode = EnglishCode.ToUpperInvariant();
 
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
             // Data-driven check: Determine if publication has LanguageId == null
             // Check both BiblePublications and PublicationLanguages to determine if this publication needs a language

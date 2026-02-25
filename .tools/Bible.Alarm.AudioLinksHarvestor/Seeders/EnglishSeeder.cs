@@ -50,7 +50,7 @@ internal sealed class EnglishSeeder
         foreach (var publicationCode in allPublicationCodes)
         {
             var normalizedCode = publicationCode.ToLowerInvariant();
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedCode) ?? normalizedCode;
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedCode) ?? normalizedCode;
 
             var hasNullLanguage = await db.BiblePublications
                 .AsNoTracking()

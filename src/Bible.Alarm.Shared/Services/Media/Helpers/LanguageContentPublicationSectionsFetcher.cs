@@ -45,7 +45,7 @@ internal sealed class LanguageContentPublicationSectionsFetcher
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
             var lowerCode = publicationCode.ToLowerInvariant();
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
 
             // Get PublicationLanguage to determine harvest type
             // HarvestType is sufficient to determine if ad-hoc fetching is possible

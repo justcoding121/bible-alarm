@@ -61,7 +61,16 @@ public static class JwSourceHelper
     };
 
     /// <summary>
+    /// Publication codes that are in Music category (or mediator music) but should be treated as IsMusic = false for cross-pub next/prev.
+    /// </summary>
+    public static HashSet<string> IsMusicExcludedPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
+    {
+        "MakingMusic"
+    };
+
+    /// <summary>
     /// Returns true if the publication code is considered music (vocal, melody, mediator music, or music-flag).
+    /// Excludes codes in IsMusicExcludedPublicationCodes (e.g. MakingMusic).
     /// Used when BiblePublication is not yet harvested so we can still skip cross-pub from music in prev/next logic.
     /// </summary>
     public static bool IsMusicPublicationCode(string? publicationCode)
@@ -69,6 +78,8 @@ public static class JwSourceHelper
         if (string.IsNullOrWhiteSpace(publicationCode))
             return false;
         var code = publicationCode.Trim();
+        if (IsMusicExcludedPublicationCodes.Contains(code))
+            return false;
         return VocalMusicPublicationCodes.Contains(code) ||
                MelodyMusicPublicationCodes.Contains(code) ||
                MusicMediatorPublicationCodes.Contains(code) ||
@@ -105,7 +116,7 @@ public static class JwSourceHelper
     /// Canonical drama and Mediator API publication/category codes in exact casing for DB and Mediator API.
     /// Used to resolve normalized (lowercase) code to the form required by the API and database.
     /// </summary>
-    private static readonly string[] CanonicalDramaPublicationCodes =
+    private static readonly string[] CanonicalMediatorPublicationCodes =
     {
         "Dramas",
         "DramaticBibleReadings",
@@ -214,7 +225,7 @@ public static class JwSourceHelper
     /// Returns the canonical (exact-case) publication code for a drama, or null if not a drama.
     /// Use for DB queries and Mediator API category key.
     /// </summary>
-    public static string? GetCanonicalDramaPublicationCode(string? normalizedPublicationCode)
+    public static string? GetCanonicalMediatorPublicationCode(string? normalizedPublicationCode)
     {
         if (string.IsNullOrEmpty(normalizedPublicationCode))
         {
@@ -222,7 +233,7 @@ public static class JwSourceHelper
         }
 
         var normalized = normalizedPublicationCode.ToLowerInvariant();
-        foreach (var code in CanonicalDramaPublicationCodes)
+        foreach (var code in CanonicalMediatorPublicationCodes)
         {
             if (code.Equals(normalized, StringComparison.OrdinalIgnoreCase))
             {
@@ -236,7 +247,7 @@ public static class JwSourceHelper
     /// <summary>
     /// Returns true if the publication's primary category is Dramas (DramaCategoryCodes or VideoPublicationCodes).
     /// Use when deciding whether to show a publication under the Dramas list; excludes Series/Children pubs
-    /// that are only in CanonicalDramaPublicationCodes for API/DB resolution.
+    /// that are only in CanonicalMediatorPublicationCodes for API/DB resolution.
     /// </summary>
     public static bool IsInDramasCategory(string? publicationCode)
     {

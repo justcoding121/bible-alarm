@@ -50,7 +50,7 @@ internal sealed class LanguageContentFirstSectionFetcher
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
             var lowerCode = publicationCode.ToLowerInvariant();
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
 
             // Get PublicationLanguage to determine category
             var publicationLanguage = await db.PublicationLanguages

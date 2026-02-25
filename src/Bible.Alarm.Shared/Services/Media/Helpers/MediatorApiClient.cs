@@ -35,7 +35,7 @@ internal sealed class MediatorApiClient
         string normalizedLanguageCode,
         CancellationToken cancellationToken)
     {
-        var canonicalCode = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode);
+        var canonicalCode = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode);
         if (canonicalCode == null)
         {
             logger.Warning("Unknown mediator publication code: {PublicationCode}", normalizedPublicationCode);

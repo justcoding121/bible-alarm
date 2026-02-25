@@ -46,7 +46,7 @@ internal sealed class LanguageContentSectionTracksFetcher
             var normalizedSectionCode = sectionCode.ToLowerInvariant();
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? publicationCode;
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? publicationCode;
 
             // Get the publication for this language
             var publication = await db.BiblePublications

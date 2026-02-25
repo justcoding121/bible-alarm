@@ -48,7 +48,7 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
                 var normalizedPublicationCode = publicationCode.ToLowerInvariant();
                 var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-                var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
+                var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
                 var publication = await db.BiblePublications
                     .Include(bp => bp.Sections)

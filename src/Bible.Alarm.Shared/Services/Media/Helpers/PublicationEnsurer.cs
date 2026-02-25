@@ -57,7 +57,7 @@ internal sealed class PublicationEnsurer
                 var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
                 var lowerCode = publicationCode.ToLowerInvariant();
-                var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
+                var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
 
                 // Check if publication already exists for this language
                 var existingPublication = await db.BiblePublications
@@ -203,7 +203,7 @@ internal sealed class PublicationEnsurer
                 foreach (var publicationCode in sortedPublicationCodes)
                 {
                     var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-                    var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? publicationCode;
+                    var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? publicationCode;
 
                     var existing = await db.BiblePublications
                         .AsNoTracking()
@@ -320,7 +320,7 @@ internal sealed class PublicationEnsurer
                 var normalizedPublicationCode = publicationCode.ToLowerInvariant();
                 var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-                var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? publicationCode;
+                var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? publicationCode;
 
                 var sectionCodes = await db.SectionLanguages
                     .AsNoTracking()

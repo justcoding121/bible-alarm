@@ -98,7 +98,7 @@ internal sealed class PublicationLanguageSeeder
     {
         var normalizedPublicationCode = publicationCode.ToLowerInvariant();
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
+        var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
         // Get or create language
         var language = await languageSeeder.GetOrCreateLanguageByCode(db, normalizedLanguageCode);
@@ -129,8 +129,9 @@ internal sealed class PublicationLanguageSeeder
         var exists = await db.PublicationLanguages
             .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == language.Id);
 
-        var isMusic = string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
-                  JwSourceHelper.IsMusicPublicationCode(publicationCode);
+        var isMusic = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCode) &&
+            (string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
+             JwSourceHelper.IsMusicPublicationCode(publicationCode));
 
         if (!exists)
         {
@@ -251,8 +252,9 @@ internal sealed class PublicationLanguageSeeder
                 continue;
             }
 
-            var isMusic = string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
-                JwSourceHelper.IsMusicPublicationCode(publicationCode);
+            var isMusic = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCode) &&
+                (string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
+                 JwSourceHelper.IsMusicPublicationCode(publicationCode));
 
             var exists = await db.PublicationLanguages
                 .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);

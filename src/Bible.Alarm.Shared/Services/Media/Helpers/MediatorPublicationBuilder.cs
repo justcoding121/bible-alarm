@@ -79,8 +79,9 @@ internal sealed class MediatorPublicationBuilder
             existingPublication.Tracks.Clear();
             existingPublication.Name = finalPublicationName;
             existingPublication.IsVideo = isVideo;
-            existingPublication.IsMusic = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
-                JwSourceHelper.MusicFlagPublicationCodes.Contains(publicationCodeForDb);
+            existingPublication.IsMusic = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCodeForDb) &&
+                (categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
+                 JwSourceHelper.MusicFlagPublicationCodes.Contains(publicationCodeForDb));
 
             SyncPublicationCategories(existingPublication, categories);
 
@@ -98,8 +99,9 @@ internal sealed class MediatorPublicationBuilder
             return true;
         }
 
-        var isMusicPub = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
-            JwSourceHelper.MusicFlagPublicationCodes.Contains(publicationCodeForDb);
+        var isMusicPub = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCodeForDb) &&
+            (categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
+             JwSourceHelper.MusicFlagPublicationCodes.Contains(publicationCodeForDb));
         var publication = new BiblePublication
         {
             PublicationCode = publicationCodeForDb,
@@ -148,7 +150,7 @@ internal sealed class MediatorPublicationBuilder
 
     public string GetPublicationCodeForDb(string normalizedPublicationCode)
     {
-        var canonical = Bible.Alarm.Shared.Helpers.JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode);
+        var canonical = Bible.Alarm.Shared.Helpers.JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode);
         if (canonical != null)
         {
             return canonical;

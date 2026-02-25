@@ -116,7 +116,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             // Use canonical case for drama codes (VODMoviesBibleTimes, etc.); otherwise preserve input
             var lowerCode = publicationCode.ToLowerInvariant();
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
+            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
 
             var key = new PublicationCacheKey(normalizedLanguageCode, publicationCodeForDb);
             var now = DateTimeOffset.UtcNow;
@@ -477,8 +477,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             }
 
             var categoryCodeFromDiscovery = pl.Category.CategoryCode;
-            var isMusicInferred = string.Equals(categoryCodeFromDiscovery, "Music", StringComparison.OrdinalIgnoreCase) ||
-                                  JwSourceHelper.IsMusicPublicationCode(publicationCode);
+            var isMusicInferred = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCode) &&
+                (string.Equals(categoryCodeFromDiscovery, "Music", StringComparison.OrdinalIgnoreCase) ||
+                 JwSourceHelper.IsMusicPublicationCode(publicationCode));
             return (categoryCodeFromDiscovery, isMusicInferred);
         }
         catch (Exception ex)
@@ -526,7 +527,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
     {
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var lowerCode = publicationCode.ToLowerInvariant();
-        var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
+        var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
         var key = new PublicationCacheKey(normalizedLanguageCode, publicationCodeForDb);
         publicationWithTracksCache.TryRemove(key, out _);
         publicationWithSectionsCache.TryRemove(key, out _);
