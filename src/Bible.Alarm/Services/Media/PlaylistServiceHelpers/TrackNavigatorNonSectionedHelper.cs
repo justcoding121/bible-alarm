@@ -7,27 +7,33 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Serilog;
 
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 /// <summary>
 /// Handles next/previous track navigation for non-sectioned publications (dramas, videos).
-/// When at end/start of publication, can move to next/previous publication in category (same language) if not Bible and not Music.
+/// Jump to another publication only when current pub is not in Bible category and current pub is not music (IsMusic false).
+/// When jumping, only consider target publications that are also not music (IsMusic false) to avoid getting stuck inside a sectioned music pub.
+/// If no such target exists or the jump fails, wraps to the last/first track of the same publication.
 /// </summary>
 public sealed class TrackNavigatorNonSectionedHelper
 {
     private readonly IBiblePublicationService biblePublicationService;
     private readonly Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getFirstTrackOfPublicationAsync;
     private readonly Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getLastTrackOfPublicationAsync;
+    private readonly ILogger? logger;
 
     public TrackNavigatorNonSectionedHelper(
         IBiblePublicationService biblePublicationService,
         Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getFirstTrackOfPublicationAsync = null,
-        Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getLastTrackOfPublicationAsync = null)
+        Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getLastTrackOfPublicationAsync = null,
+        ILogger? logger = null)
     {
         this.biblePublicationService = biblePublicationService;
         this.getFirstTrackOfPublicationAsync = getFirstTrackOfPublicationAsync;
         this.getLastTrackOfPublicationAsync = getLastTrackOfPublicationAsync;
+        this.logger = logger;
     }
 
     public async System.Threading.Tasks.Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextAsync(
@@ -58,18 +64,35 @@ public sealed class TrackNavigatorNonSectionedHelper
         if (getFirstTrackOfPublicationAsync != null)
         {
             var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
-            if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) && !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
+            if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) &&
+                !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
             {
                 var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode);
                 var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
                 if (pubIndex >= 0)
                 {
-                    var nextPubIndex = (pubIndex + 1) % orderedPubCodes.Count;
-                    var nextPubCode = orderedPubCodes[nextPubIndex];
-                    var firstTrack = await getFirstTrackOfPublicationAsync(languageCode, nextPubCode, sectionFetchProgress);
-                    if (firstTrack is { } ft)
+                    for (var i = 1; i <= orderedPubCodes.Count; i++)
                     {
-                        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(ft.Item1, ft.Item2);
+                        var nextPubIndex = (pubIndex + i) % orderedPubCodes.Count;
+                        var nextPubCode = orderedPubCodes[nextPubIndex];
+                        var nextPubInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, nextPubCode);
+                        if (nextPubInfo is { } np && np.IsMusic)
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            var firstTrack = await getFirstTrackOfPublicationAsync(languageCode, nextPubCode, sectionFetchProgress);
+                            if (firstTrack is { } ft)
+                            {
+                                return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(ft.Item1, ft.Item2);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger?.Debug(ex, "Failed to get first track for next pub {PublicationCode}, skipping", nextPubCode);
+                        }
                     }
                 }
             }
@@ -106,18 +129,35 @@ public sealed class TrackNavigatorNonSectionedHelper
         if (getLastTrackOfPublicationAsync != null)
         {
             var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
-            if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) && !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
+            if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) &&
+                !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
             {
                 var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode);
                 var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
                 if (pubIndex >= 0)
                 {
-                    var prevPubIndex = (pubIndex - 1 + orderedPubCodes.Count) % orderedPubCodes.Count;
-                    var prevPubCode = orderedPubCodes[prevPubIndex];
-                    var lastTrack = await getLastTrackOfPublicationAsync(languageCode, prevPubCode, sectionFetchProgress);
-                    if (lastTrack is { } lt)
+                    for (var i = 1; i <= orderedPubCodes.Count; i++)
                     {
-                        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(lt.Item1, lt.Item2);
+                        var prevPubIndex = (pubIndex - i + orderedPubCodes.Count) % orderedPubCodes.Count;
+                        var prevPubCode = orderedPubCodes[prevPubIndex];
+                        var prevPubInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, prevPubCode);
+                        if (prevPubInfo is { } pp && pp.IsMusic)
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            var lastTrack = await getLastTrackOfPublicationAsync(languageCode, prevPubCode, sectionFetchProgress);
+                            if (lastTrack is { } lt)
+                            {
+                                return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(lt.Item1, lt.Item2);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger?.Debug(ex, "Failed to get last track for previous pub {PublicationCode}, skipping", prevPubCode);
+                        }
                     }
                 }
             }

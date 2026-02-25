@@ -298,6 +298,59 @@ public partial class BusyOverlay : ContentView
         }
     }
 
+    /// <summary>
+    /// Applies the hide state (opacity 0, input transparent, stop spinner). Used when the normal
+    /// hide transition was skipped due to re-entrancy so the overlay does not stay visible forever.
+    /// </summary>
+    private static void DeferredApplyHide(BusyOverlay overlay)
+    {
+        void ApplyHide()
+        {
+            overlay.InputTransparent = true;
+            if (overlay.overlayGrid != null)
+            {
+                overlay.overlayGrid.Opacity = 0;
+                overlay.overlayGrid.InputTransparent = true;
+            }
+            overlay.CancelHardTimeout();
+            overlay.StopSpinnerAfterDelay();
+            overlay.isProcessingVisibilityChange = false;
+            logger.Debug("BusyOverlay.DeferredApplyHide: Applied hide (opacity 0, input transparent)");
+        }
+
+        try
+        {
+            overlay.Dispatcher.Dispatch(() =>
+            {
+                try
+                {
+                    ApplyHide();
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "BusyOverlay.DeferredApplyHide: Failed to apply hide");
+                    overlay.isProcessingVisibilityChange = false;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "BusyOverlay.DeferredApplyHide: Failed to dispatch, using MainThread");
+            try
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try { ApplyHide(); }
+                    catch { overlay.isProcessingVisibilityChange = false; }
+                });
+            }
+            catch
+            {
+                overlay.isProcessingVisibilityChange = false;
+            }
+        }
+    }
+
     private static void OnIsVisibleChanged(BindableObject bindable, object oldValue, object newValue)
     {
         // The XAML bindings using x:Reference should update automatically
@@ -314,11 +367,19 @@ public partial class BusyOverlay : ContentView
                 return;
             }
 
-            // Guard against rapid toggling - if we're already processing a change, skip
-            // This prevents infinite loops when binding and explicit sets conflict
+            // Guard against rapid toggling - if we're already processing a change, skip (unless hiding)
+            // This prevents infinite loops when binding and explicit sets conflict.
+            // When transitioning to false (hide), we must not skip: otherwise the overlay can stay visible
+            // forever (e.g. track modal sets IsBusy=false before the "show" dispatch has run).
             if (overlay.isProcessingVisibilityChange)
             {
-                logger.Debug("BusyOverlay.OnIsVisibleChanged: Skipping - already processing visibility change");
+                if (newBoolValue)
+                {
+                    logger.Debug("BusyOverlay.OnIsVisibleChanged: Skipping - already processing visibility change");
+                    return;
+                }
+                logger.Debug("BusyOverlay.OnIsVisibleChanged: Deferring hide - already processing visibility change");
+                DeferredApplyHide(overlay);
                 return;
             }
 

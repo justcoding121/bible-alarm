@@ -8,22 +8,24 @@ using Serilog;
 namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 
 /// <summary>
-/// Fetches missing non-English publication/section data into the new media index during bootstrap
-/// after a version update. Runs after OrphanedScheduleCleanup (schedules with pub codes not in the
-/// new index are already deleted). Reads schedule references (PublicationCode, LanguageCode,
-/// SectionCode only—CategoryCode on AlarmSchedule is not used) and ensures each (PublicationCode,
-/// LanguageCode) and referenced section is harvested. No retries—failed fetches are logged and skipped;
-/// if all schedules were removed by cleanup, ScheduleBootstrapService.SeedAndMigrateAsync seeds a
-/// default schedule on home load.
+/// Fetches missing non-EnglishSpanish publication/section data into the new media index during
+/// bootstrap. Only fetches pub/section that are valid (present in discovery tables; discovery has
+/// all languages including E/S). Invalid pub/section are skipped; salvage cleanup handles deletion.
 /// </summary>
 internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageContentService languageContentService)
 {
+    private const string SpanishLanguageCode = "S";
+
     private record ScheduleMediaReference(
         string PublicationCode,
         string LanguageCode,
         string? SectionCode);
 
-    public async Task FetchMissingAsync(string scheduleDbPath)
+    /// <summary>
+    /// Fetches only for refs whose pub (and section when present) are in discovery tables.
+    /// When mediaIndexDbPath is provided, invalid pub/section are skipped; salvage does cleanup.
+    /// </summary>
+    public async Task FetchMissingAsync(string scheduleDbPath, string? mediaIndexDbPath = null)
     {
         if (!File.Exists(scheduleDbPath))
         {
@@ -31,15 +33,25 @@ internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageCon
             return;
         }
 
-        var references = await ReadNonEnglishReferencesAsync(scheduleDbPath);
+        var references = await ReadNonEnglishSpanishReferencesAsync(scheduleDbPath);
         if (references.Count == 0)
         {
-            logger.Information("No non-English schedule references found; skipping schedule media bootstrap fetch");
+            logger.Information("No non-EnglishSpanish schedule references found; skipping schedule media bootstrap fetch");
             return;
         }
 
+        if (!string.IsNullOrEmpty(mediaIndexDbPath) && File.Exists(mediaIndexDbPath))
+        {
+            references = await FilterToValidPubAndSectionInDiscoveryAsync(mediaIndexDbPath, references);
+            if (references.Count == 0)
+            {
+                logger.Information("No non-EnglishSpanish references with valid (discovery) pub/section; skipping fetch");
+                return;
+            }
+        }
+
         logger.Information(
-            "Fetching missing non-English media for {Count} schedule reference(s) into new media index",
+            "Fetching missing non-EnglishSpanish media for {Count} valid schedule reference(s) into new media index",
             references.Count);
 
         var publicationGroups = references
@@ -108,7 +120,7 @@ internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageCon
         logger.Information("Schedule media bootstrap fetch completed");
     }
 
-    private static async Task<List<ScheduleMediaReference>> ReadNonEnglishReferencesAsync(
+    private static async Task<List<ScheduleMediaReference>> ReadNonEnglishSpanishReferencesAsync(
         string scheduleDbPath)
     {
         var references = new List<ScheduleMediaReference>();
@@ -119,13 +131,14 @@ internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageCon
         cmd.CommandText = """
             SELECT DISTINCT PublicationCode, LanguageCode, SectionCode
             FROM BiblePublicationSchedules
-            WHERE LanguageCode IS NOT NULL AND LanguageCode != @defaultLang
+            WHERE LanguageCode IS NOT NULL AND LanguageCode NOT IN (@e, @s)
             UNION
             SELECT DISTINCT PublicationCode, LanguageCode, SectionCode
             FROM AlarmMusic
-            WHERE LanguageCode IS NOT NULL AND LanguageCode != @defaultLang
+            WHERE LanguageCode IS NOT NULL AND LanguageCode NOT IN (@e, @s)
             """;
-        cmd.Parameters.AddWithValue("@defaultLang", AppConstants.Media.DefaultLanguageCode);
+        cmd.Parameters.AddWithValue("@e", AppConstants.Media.DefaultLanguageCode);
+        cmd.Parameters.AddWithValue("@s", SpanishLanguageCode);
 
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -137,5 +150,70 @@ internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageCon
         }
 
         return references;
+    }
+
+    /// <summary>
+    /// Keeps only refs whose pub is in PublicationLanguages and (when section present) section is in SectionLanguages.
+    /// Discovery tables include all languages (E/S and others).
+    /// </summary>
+    private static async Task<List<ScheduleMediaReference>> FilterToValidPubAndSectionInDiscoveryAsync(
+        string mediaIndexDbPath,
+        List<ScheduleMediaReference> references)
+    {
+        var filtered = new List<ScheduleMediaReference>();
+        using var connection = new SqliteConnection($"Data Source={mediaIndexDbPath};Mode=ReadOnly");
+        await connection.OpenAsync();
+
+        foreach (var r in references)
+        {
+            if (!await PublicationExistsInDiscoveryAsync(connection, r.PublicationCode, r.LanguageCode))
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(r.SectionCode) &&
+                !await SectionExistsInDiscoveryAsync(connection, r.PublicationCode, r.SectionCode, r.LanguageCode))
+            {
+                continue;
+            }
+
+            filtered.Add(r);
+        }
+
+        return filtered;
+    }
+
+    private static async Task<bool> PublicationExistsInDiscoveryAsync(
+        SqliteConnection connection,
+        string pubCode,
+        string langCode)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT COUNT(1) FROM PublicationLanguages pl
+            JOIN Languages l ON pl.LanguageId = l.Id
+            WHERE pl.PublicationCode = @pubCode AND l.LanguageCode = @langCode
+            """;
+        cmd.Parameters.AddWithValue("@pubCode", pubCode);
+        cmd.Parameters.AddWithValue("@langCode", langCode);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+    }
+
+    private static async Task<bool> SectionExistsInDiscoveryAsync(
+        SqliteConnection connection,
+        string pubCode,
+        string sectionCode,
+        string langCode)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT COUNT(1) FROM SectionLanguages sl
+            JOIN Languages l ON sl.LanguageId = l.Id
+            WHERE sl.PublicationCode = @pubCode AND sl.SectionCode = @sectionCode AND l.LanguageCode = @langCode
+            """;
+        cmd.Parameters.AddWithValue("@pubCode", pubCode);
+        cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
+        cmd.Parameters.AddWithValue("@langCode", langCode);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
     }
 }

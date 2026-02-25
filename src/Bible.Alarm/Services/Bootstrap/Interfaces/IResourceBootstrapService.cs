@@ -18,8 +18,8 @@ public interface IResourceBootstrapService
     bool WasMediaIndexReplacedThisRun();
 
     /// <summary>
-    /// Migrates non-English media data from old media index to new packaged index.
-    /// Only run when <see cref="WasMediaIndexReplacedThisRun"/> is true (version change).
+    /// Runs only on version change (new media index already copied and overwritten). Handles orphaned
+    /// schedule/alarm music first, then runs the ad-hoc non-EnglishSpanish fetch for remaining schedules.
     /// Must be called after both database and resource bootstrap complete.
     /// </summary>
     Task MigrateNonEnglishMediaDataAsync();

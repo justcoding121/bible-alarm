@@ -272,7 +272,10 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             initComplete = true;
         }
 
-        if (needsRepopulation && !isDisposed && !isSelectingSection)
+        var sectionsEmpty = Sections == null || Sections.Count == 0;
+        var shouldRepopulate = needsRepopulation || sectionsEmpty;
+
+        if (shouldRepopulate && !isDisposed && !isSelectingSection)
         {
             fetchCts?.CancelAsync();
             fetchCts?.Dispose();
@@ -298,7 +301,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (!isDisposed && !isSelectingSection)
+                {
                     ShowProgress = false;
+                    IsBusy = false;
+                    CanCancelFetch = false;
+                }
                 if (!isDisposed)
                     SetSelectedSection();
             });

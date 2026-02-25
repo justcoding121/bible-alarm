@@ -38,6 +38,7 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
             sectionCollectionView,
             getSelectedItem: () => ViewModel?.SelectedSection,
             refreshAction: ViewModel != null ? async () => await ViewModel.RefreshFromState() : null,
+            getItemCountFromViewModel: vm => (vm as MusicSectionSelectionViewModel)?.Sections?.Count ?? 0,
             onFetchFailed: async (errorMessage) =>
             {
                 await this.Dispatcher.DispatchAsync(async () =>

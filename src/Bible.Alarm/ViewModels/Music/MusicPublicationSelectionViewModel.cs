@@ -338,8 +338,13 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     /// <summary>
     /// Refreshes only the languages list for the language selection modal.
     /// </summary>
-    public Task RefreshLanguagesAsync() =>
-        initHandler.RefreshLanguagesAsync(state, PopulateLanguages);
+    public async Task RefreshLanguagesAsync()
+    {
+        await initHandler.RefreshLanguagesAsync(state, PopulateLanguages);
+
+        // Signal that load is complete so ModalScrollHelper.WaitForNotBusyAsync returns (matches Bible language modal).
+        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+    }
 
     /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
@@ -373,6 +378,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             PopulateLanguages,
             PopulateSongPublications,
             SetSelectedSongPublication);
+
+        // Signal that data load is complete so ModalScrollHelper.WaitForNotBusyAsync returns (matches Bible publication modal).
+        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
     private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false, IFetchProgress? progress = null, CancellationToken cancellationToken = default)

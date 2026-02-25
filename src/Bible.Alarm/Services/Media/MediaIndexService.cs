@@ -141,6 +141,10 @@ public sealed class MediaIndexService(
         await versionService.SaveCurrentVersionAsync();
     }
 
+    /// <summary>
+    /// Runs only on version change (new media index was just copied and overwritten). Runs ad-hoc
+    /// non-EnglishSpanish fetch first for valid pubs, then comparison/cleanup of schedule/alarm music.
+    /// </summary>
     public async Task MigrateNonEnglishDataIfNeededAsync()
     {
         var oldMediaIndexDbPath = GetOldMediaIndexPath();
@@ -152,8 +156,19 @@ public sealed class MediaIndexService(
         var newMediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
         var scheduleDbPath = Path.Combine(IndexRoot, AppConstants.Database.ScheduleDatabaseFileName);
 
-        // Delete old index without reading it. Then delete schedules whose pub codes are not in the new index, then fetch missing non-English data.
         CleanupOldMediaIndex();
+
+        // Ad-hoc fetch first for non-EnglishSpanish (valid pubs only), so the new index has more data.
+        // Then run comparison/cleanup so we evaluate against a fuller index.
+        try
+        {
+            var fetcher = new ScheduleMediaBootstrapFetcher(logger, languageContentService);
+            await fetcher.FetchMissingAsync(scheduleDbPath, newMediaIndexDbPath);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Schedule media bootstrap fetch failed (partially or fully)");
+        }
 
         try
         {
@@ -162,17 +177,7 @@ public sealed class MediaIndexService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to cleanup orphaned schedules (pub codes not in new media index)");
-        }
-
-        try
-        {
-            var fetcher = new ScheduleMediaBootstrapFetcher(logger, languageContentService);
-            await fetcher.FetchMissingAsync(scheduleDbPath);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Schedule media bootstrap fetch failed (partially or fully)");
+            logger.Error(ex, "Failed to cleanup orphaned schedules (comparison against fetched tables)");
         }
     }
 

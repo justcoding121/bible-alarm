@@ -94,6 +94,7 @@ internal sealed class MediatorApiClient
         }
 
         var tracks = new List<MediatorTrack>();
+        var index = 0;
         foreach (var mediaItem in mediaArray.EnumerateArray())
         {
             if (mediaItem.TryGetProperty("primaryCategory", out var primaryCatElement))
@@ -103,31 +104,7 @@ internal sealed class MediatorApiClient
                     continue;
             }
 
-            if (!mediaItem.TryGetProperty("naturalKey", out var naturalKeyElement))
-                continue;
-
-            var naturalKey = naturalKeyElement.GetString() ?? "";
-            string trackCode;
-            if (naturalKey.StartsWith("docid-", StringComparison.OrdinalIgnoreCase))
-            {
-                var parts = naturalKey.Split('_');
-                if (parts.Length < 3 || !int.TryParse(parts[2], out var docidTrack) || docidTrack < 1)
-                    continue;
-                var docidValue = parts[0].Substring(6);
-                if (string.IsNullOrEmpty(docidValue)) continue;
-                trackCode = $"{docidValue}-{docidTrack}";
-            }
-            else if (naturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
-            {
-                var pubParts = naturalKey.Split('_');
-                if (pubParts.Length < 3) continue;
-                var sectionCode = pubParts[0].Substring(4);
-                var trackPart = pubParts[2];
-                var trackNumber = int.TryParse(trackPart, out var n) && n >= 1 ? n : (string.Equals(trackPart, "x", StringComparison.OrdinalIgnoreCase) ? 1 : 0);
-                if (trackNumber < 1) continue;
-                trackCode = $"{sectionCode}-{trackNumber}";
-            }
-            else
+            if (!mediaItem.TryGetProperty("naturalKey", out var _))
                 continue;
 
             if (!mediaItem.TryGetProperty("files", out var filesElement) || filesElement.ValueKind != JsonValueKind.Array)
@@ -153,6 +130,8 @@ internal sealed class MediatorApiClient
                 title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
             }
 
+            index++;
+            var trackCode = index.ToString();
             tracks.Add(new MediatorTrack(trackCode, title, url));
         }
 

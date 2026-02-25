@@ -36,7 +36,8 @@ public sealed class TrackNavigator
         NonSectionedHelper = new TrackNavigatorNonSectionedHelper(
             biblePublicationService,
             GetFirstTrackOfPublicationAsync,
-            GetLastTrackOfPublicationAsync);
+            GetLastTrackOfPublicationAsync,
+            logger);
         SectionHarvester = new TrackNavigatorSectionHarvester(
             mediaService,
             languageContentService,

@@ -119,7 +119,7 @@ public class UrlConstructionService : IUrlConstructionService
         // Query by TrackCode (string)
         query = query.Where(t => t.TrackCode == normalizedTrackCode);
 
-        var track = await query.SingleOrDefaultAsync();
+        var track = await query.FirstOrDefaultAsync();
 
         if (track == null)
         {
@@ -222,7 +222,7 @@ public class UrlConstructionService : IUrlConstructionService
 
         query = query.Where(t => t.TrackCode == normalizedTrackCode);
 
-        var track = await query.SingleOrDefaultAsync();
+        var track = await query.FirstOrDefaultAsync();
 
         if (track == null || track.Publication == null)
         {

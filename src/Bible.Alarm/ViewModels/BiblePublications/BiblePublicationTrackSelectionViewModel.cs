@@ -160,14 +160,13 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
             stateManager.SetInitComplete(true);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
             await Initialize(newLanguageCode, newPublicationCode, newSectionCode);
-            // Set selected track after tracks are populated
             SetSelectedTrack();
-            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
         else
         {
-            // Update selected track when state changes (e.g., after navigating back)
             SetSelectedTrack();
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
     }
 

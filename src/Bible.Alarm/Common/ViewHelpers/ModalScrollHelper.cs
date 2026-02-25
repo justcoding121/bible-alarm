@@ -59,6 +59,7 @@ public static class ModalScrollHelper
     /// <param name="getSelectedItem">Function to get the selected item (called AFTER refresh to get fresh reference)</param>
     /// <param name="refreshAction">Optional async action to refresh/load data</param>
     /// <param name="onFetchFailed">Callback when fetch fails - should close modal and show toast</param>
+    /// <param name="getItemCountFromViewModel">Optional: return list count from ViewModel; used when CollectionView binding is delayed (e.g. reopen modal on Windows).</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Result indicating success, failure, or cancellation</returns>
     public static async Task<ModalAppearingResult> HandleModalAppearingAsync(
@@ -68,6 +69,7 @@ public static class ModalScrollHelper
         Func<object?>? getSelectedItem,
         Func<Task>? refreshAction = null,
         Func<string, Task>? onFetchFailed = null,
+        Func<IListViewModel, int>? getItemCountFromViewModel = null,
         CancellationToken cancellationToken = default)
     {
         if (viewModel == null) return ModalAppearingResult.Success;
@@ -104,12 +106,23 @@ public static class ModalScrollHelper
                     return ModalAppearingResult.FetchFailed;
                 }
 
+                // Wait for ViewModel to finish (IsBusy = false) so ObservableCollection updates are applied and binding can update (matches Bible section modal behavior).
+                await CollectionViewHelper.WaitForNotBusyAsync(() => viewModel.IsBusy, cancellationToken: cancellationToken);
+                await Task.Yield();
+                // Yield to UI thread so binding/layout can propagate (avoids "No items loaded" on Windows when pre-harvested).
+                await MainThread.InvokeOnMainThreadAsync(() => { });
+                await Task.Delay(100, cancellationToken);
             }
 
             // Wait for CollectionView to have items in its ItemsSource
             if (collectionView != null)
             {
-                var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken);
+                var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken: cancellationToken);
+                if (!hasItems && getItemCountFromViewModel != null && viewModel != null && getItemCountFromViewModel(viewModel) > 0)
+                {
+                    await Task.Delay(500, cancellationToken);
+                    hasItems = await WaitForItemsInSourceAsync(collectionView, maxWaitMs: 3000, cancellationToken: cancellationToken);
+                }
                 if (!hasItems)
                 {
                     Log.Warning("No items loaded into CollectionView after refresh");
@@ -138,12 +151,13 @@ public static class ModalScrollHelper
             }
 
             // Reveal list and hide spinner
+            var vm = viewModel;
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
                     collectionView.Opacity = 1;
 
-                viewModel.IsBusy = false;
+                vm.IsBusy = false;
             });
 
             return ModalAppearingResult.Success;
@@ -217,7 +231,7 @@ public static class ModalScrollHelper
 
             if (collectionView != null)
             {
-                var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken);
+                var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken: cancellationToken);
                 if (!hasItems)
                 {
                     Log.Warning("No items loaded into CollectionView after refresh");
@@ -325,11 +339,12 @@ public static class ModalScrollHelper
     /// Waits for the CollectionView's ItemsSource to contain items.
     /// Returns true if items were found, false if timeout occurred.
     /// </summary>
-    private static async Task<bool> WaitForItemsInSourceAsync(MauiCollectionView collectionView, CancellationToken cancellationToken)
+    private static async Task<bool> WaitForItemsInSourceAsync(MauiCollectionView collectionView, int maxWaitMs = -1, CancellationToken cancellationToken = default)
     {
+        var timeout = maxWaitMs >= 0 ? maxWaitMs : MaxRenderWaitMs;
         var startTime = Environment.TickCount;
 
-        while (Environment.TickCount - startTime < MaxRenderWaitMs)
+        while (Environment.TickCount - startTime < timeout)
         {
             cancellationToken.ThrowIfCancellationRequested();
 

@@ -82,6 +82,7 @@ public sealed class BiblePublicationSectionSelectionRefreshHandler
                 {
                     ctx.SetCanCancelFetch(false);
                     ctx.SetShowProgress(false);
+                    ctx.SetIsBusy(false);
                     ctx.SetScreenOn(false);
                 }
             });

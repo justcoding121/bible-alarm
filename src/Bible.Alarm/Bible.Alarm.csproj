@@ -21,8 +21,8 @@
 		<ApplicationTitle>Bible Alarm</ApplicationTitle>
 		
 		<!-- Display Version -->
-		<ApplicationDisplayVersion>3.21</ApplicationDisplayVersion>
-		<ApplicationVersion>388</ApplicationVersion>
+		<ApplicationDisplayVersion>3.22</ApplicationDisplayVersion>
+		<ApplicationVersion>389</ApplicationVersion>
 		<!-- Single source for version-change checks: media index and schedule DB use Bible.Alarm assembly version -->
 		<AssemblyInformationalVersion>$(ApplicationDisplayVersion)</AssemblyInformationalVersion>
 

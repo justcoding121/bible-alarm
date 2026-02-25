@@ -296,7 +296,12 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 if (!isDisposed && !isSelectingSection)
+                {
+                    ShowProgress = false;
+                    IsBusy = false;
+                    CanCancelFetch = false;
                     SetSelectedSection();
+                }
             });
         }
     }

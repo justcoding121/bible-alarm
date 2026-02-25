@@ -148,38 +148,27 @@ public sealed class BiblePublicationSelectionDataProvider
             // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
             // downloadAll=false when language changes (only download first publication in cascade)
             Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? publicationsData = null;
-            
-            // Retry logic: If downloadAll=true and non-English, retry fetching until all publications are harvested
-            // For non-English languages, publications need to be fetched, so we retry with increasing delays
-            if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-            {
-                // Get cancellation token from progress tracker (same CTS from modal)
-                var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
 
-                // First, check if publications are already harvested (without showing progress)
-                // This prevents progress bar from flashing at 0% when data is already available
+            if (downloadAll)
+            {
+                // Always check DB first: if all expected publications are already harvested, use that and skip fetch/progress
                 var initialPublications = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
-                
-                // Get expected publication count from PublicationLanguages discovery table
                 var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
                 var actualPublicationCount = initialPublications?.Values.Count ?? 0;
-                
-                // Check if we have ALL expected publications AND they're all harvested (not placeholders)
-                var hasAllExpectedPublications = actualPublicationCount >= expectedPublicationCount;
-                var allPublicationsHarvested = hasAllExpectedPublications && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
-                    !string.IsNullOrEmpty(p.Name) && 
-                    p.Name != p.PublicationCode && 
-                    p.Id > 0);
+                var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
+                var allPublicationsHarvested = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
+                    !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0);
 
                 if (allPublicationsHarvested)
                 {
-                    // All expected publications are already harvested - use the initial query result, no need to show progress
                     Log.Debug("PopulatePublicationsAsync: All {ExpectedCount} expected publications already harvested for language={LanguageCode}, category={CategoryName}, skipping fetch",
                         expectedPublicationCount, languageCode, currentCategoryName);
                     publicationsData = initialPublications;
                 }
                 else
                 {
+                    // Not pre-harvested: show progress and fetch (with retry until harvested or timeout)
+                    var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
                     // Publications are not fully harvested - show progress and retry fetching
                     // Up to 10 retries
                     const int maxRetries = 10;
@@ -353,7 +342,7 @@ public sealed class BiblePublicationSelectionDataProvider
             }
             else
             {
-                // For English or when downloadAll=false, just fetch once
+                // downloadAll=false (e.g. language change): single fetch
                 publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
             }
             

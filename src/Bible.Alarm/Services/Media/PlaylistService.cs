@@ -14,10 +14,12 @@ using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media;
 
@@ -26,6 +28,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
     private readonly IDispatcher dispatcher;
+    private readonly IState<ApplicationState> applicationState;
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IGeneralSettingsService generalSettingsService;
     private readonly IBiblePublicationService BiblePublicationService;
@@ -60,6 +63,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         ILogger logger,
         IMediaService mediaService,
         IDispatcher dispatcher,
+        IState<ApplicationState> applicationState,
         IAlarmScheduleService alarmScheduleService,
         IGeneralSettingsService generalSettingsService,
         IBiblePublicationService BiblePublicationService,
@@ -73,6 +77,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.logger = logger;
         this.mediaService = mediaService;
         this.dispatcher = dispatcher;
+        this.applicationState = applicationState;
         this.alarmScheduleService = alarmScheduleService;
         this.generalSettingsService = generalSettingsService;
         this.BiblePublicationService = BiblePublicationService;
@@ -145,6 +150,23 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return next.Metadata.TrackCode;
     }
 
+    /// <summary>
+    /// For no-language Bible publications (e.g. iam), preserves the display language. When the DB has null
+    /// (normalized from E), use the schedule's language from Fluxor state so we retain e.g. MY after playback.
+    /// </summary>
+    private string GetPreservedLanguageForNoLanguageBibleSchedule(int scheduleId, string? dbLanguageCode)
+    {
+        if (!string.IsNullOrWhiteSpace(dbLanguageCode))
+            return dbLanguageCode;
+        var state = applicationState.Value;
+        if (state.CurrentSchedule?.Id == scheduleId && !string.IsNullOrWhiteSpace(state.CurrentSchedule.BiblePublicationLanguageCode))
+            return state.CurrentSchedule.BiblePublicationLanguageCode;
+        var fromList = state.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        return !string.IsNullOrWhiteSpace(fromList?.BiblePublicationLanguageCode)
+            ? fromList.BiblePublicationLanguageCode
+            : AppConstants.Media.DefaultLanguageCode;
+    }
+
     private async Task<AlarmSchedule> UpdateScheduleForPlayedTrack(
         TrackMetadata trackMetadata,
         string? nextTrackCode)
@@ -156,7 +178,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             && trackMetadata.PlayType == PlayType.Bible
             && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode))
         {
-            var preservedLang = scheduleToUse.BiblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
         }
         else if (scheduleToUse?.Music != null
@@ -184,7 +206,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             && trackMetadata.PlayType == PlayType.Bible
             && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode))
         {
-            var preservedLang = scheduleToUse.BiblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
         }
         else if (scheduleToUse?.Music != null

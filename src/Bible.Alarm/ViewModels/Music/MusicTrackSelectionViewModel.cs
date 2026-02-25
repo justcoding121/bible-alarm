@@ -130,17 +130,26 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         var finalStateValue = state.Value;
         if (finalStateValue.CurrentSchedule == null || string.IsNullOrEmpty(publicationCode))
         {
-            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             return;
         }
 
-        stateManager.HandleMusicChanged(
-            state,
-            busy => propertyManager.IsBusy = busy,
-            async (lang, pub) => await Initialize(lang, pub),
-            () => SetSelectedTrack());
+        stateManager.InitializeCurrent(state);
 
-        // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+        var languageCode = finalStateValue.CurrentSchedule.MusicLanguageCode;
+        var pubCode = finalStateValue.CurrentSchedule.MusicPublicationCode ?? string.Empty;
+
+        if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
+            await Initialize(languageCode, pubCode);
+            SetSelectedTrack();
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        }
+        else
+        {
+            SetSelectedTrack();
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        }
     }
 
     private void OnMusicInitialized(object? o, EventArgs eventArgs)

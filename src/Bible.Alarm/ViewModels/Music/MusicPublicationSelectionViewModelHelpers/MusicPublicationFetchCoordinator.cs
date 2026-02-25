@@ -27,26 +27,38 @@ internal sealed class MusicPublicationFetchCoordinator
         CancellationToken cancellationToken = default)
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
-        // For instrumental music, we need publications without language
-        // For vocal music, we need publications with language (or both)
-        Dictionary<string, BiblePublication>? publicationsData = null;
-        
-        // Check if this is instrumental music (no language code)
         var isMelodyMusic = string.IsNullOrEmpty(current?.LanguageCode) && string.IsNullOrEmpty(languageCode);
+        var effectiveLanguageCode = isMelodyMusic ? AppConstants.Media.DefaultLanguageCode : languageCode;
+
+        if (string.IsNullOrEmpty(effectiveLanguageCode) && !isMelodyMusic)
+            return null;
+
+        Dictionary<string, BiblePublication>? publicationsData = null;
+
+        if (downloadAll)
+        {
+            // Always check DB first: if all expected publications are already harvested, use that and skip fetch/progress (matches Bible).
+            var initialPublications = await mediaService.GetBiblePublications(effectiveLanguageCode, "Music", downloadAll: false, null);
+            var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(effectiveLanguageCode, "Music");
+            var actualPublicationCount = initialPublications?.Values.Count ?? 0;
+            var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
+            var allPublicationsHarvested = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
+                !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0);
+
+            if (allPublicationsHarvested)
+            {
+                Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already harvested for language={LanguageCode}, category=Music, skipping fetch",
+                    expectedPublicationCount, effectiveLanguageCode);
+                return initialPublications;
+            }
+        }
 
         if (isMelodyMusic)
         {
-            // When in melody mode, show BOTH melody (e.g. Kingdom Melodies) and vocal English (e.g. Original Songs)
-            // so the user can switch without having to select "Vocal" and language first.
-            // GetBiblePublications with default language code returns publications with default language and publications without language FK.
             publicationsData = await mediaService.GetBiblePublications(AppConstants.Media.DefaultLanguageCode, "Music", downloadAll, progress);
         }
         else if (!string.IsNullOrEmpty(languageCode))
         {
-            // Language selected - GetBiblePublications returns BOTH:
-            // 1. Publications with LanguageId != null (filtered by language code)
-            // 2. Publications with LanguageId == null (no language FK)
-            // This is data-driven and works for any category
             publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll, progress);
         }
         else
@@ -54,14 +66,11 @@ internal sealed class MusicPublicationFetchCoordinator
             return null;
         }
 
-        // Retry logic: If downloadAll=true and non-English, retry fetching until all publications are harvested
-        // For non-English languages, publications need to be fetched, so we retry with increasing delays
         if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             publicationsData = await RetryFetchUntilHarvestedAsync(languageCode, progress, cancellationToken);
         }
 
-        // Final fallback if nothing came back
         if (publicationsData == null && !string.IsNullOrEmpty(languageCode))
         {
             publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll, progress);

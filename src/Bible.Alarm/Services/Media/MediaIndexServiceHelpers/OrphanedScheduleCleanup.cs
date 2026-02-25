@@ -6,14 +6,18 @@ using Serilog;
 namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 
 /// <summary>
-/// After media index replacement, verifies that all schedule references can be resolved in the new
-/// media index using discovery tables (PublicationLanguages + Languages). Runs before the non-English
-/// fetch. Deletes schedules whose main publication isn't discoverable, and resets music for schedules
-/// whose music publication isn't discoverable. Only schedules with no discovery entry are removed.
+/// Runs after ad-hoc fetch (version change). Existence lookup: by lang+pub+section+track for language-based
+/// pubs, or by pub+section+track for non-langed pubs; category is not used for lookup. For schedules with
+/// null CategoryCode, assigns first matching category from media index using the Bible pub code.
 /// </summary>
 internal sealed class OrphanedScheduleCleanup(ILogger logger)
 {
-    private record ScheduleRef(int AlarmScheduleId, string PublicationCode, string LanguageCode);
+    private record ScheduleRef(
+        int AlarmScheduleId,
+        string PublicationCode,
+        string LanguageCode,
+        string? SectionCode,
+        string TrackCode);
 
     public async Task CleanupAsync(string mediaIndexDbPath, string scheduleDbPath)
     {
@@ -24,16 +28,16 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
 
         var bibleRefs = await ReadRefsAsync(scheduleDbPath,
             """
-            SELECT AlarmScheduleId, PublicationCode, LanguageCode
+            SELECT AlarmScheduleId, PublicationCode, LanguageCode, SectionCode, TrackCode
             FROM BiblePublicationSchedules
-            WHERE PublicationCode IS NOT NULL AND PublicationCode != '' AND LanguageCode IS NOT NULL
+            WHERE PublicationCode IS NOT NULL AND PublicationCode != '' AND LanguageCode IS NOT NULL AND TrackCode IS NOT NULL AND TrackCode != ''
             """);
 
         var musicRefs = await ReadRefsAsync(scheduleDbPath,
             """
-            SELECT AlarmScheduleId, PublicationCode, LanguageCode
+            SELECT AlarmScheduleId, PublicationCode, LanguageCode, SectionCode, TrackCode
             FROM AlarmMusic
-            WHERE PublicationCode IS NOT NULL AND PublicationCode != '' AND LanguageCode IS NOT NULL
+            WHERE PublicationCode IS NOT NULL AND PublicationCode != '' AND LanguageCode IS NOT NULL AND TrackCode IS NOT NULL AND TrackCode != ''
             """);
 
         if (bibleRefs.Count == 0 && musicRefs.Count == 0)
@@ -50,12 +54,12 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
 
             foreach (var r in bibleRefs)
             {
-                if (!await PublicationExistsAsync(mediaConn, r.PublicationCode, r.LanguageCode))
+                if (!await TrackExistsInHarvestedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
                 {
                     scheduleIdsToDelete.Add(r.AlarmScheduleId);
                     logger.Warning(
-                        "Publication {PubCode}/{LangCode} not in discovery tables; deleting schedule {ScheduleId}",
-                        r.PublicationCode, r.LanguageCode, r.AlarmScheduleId);
+                        "Schedule {ScheduleId} pub/section/track {PubCode}/{SectionCode}/{TrackCode} not in fetched tables; deleting schedule",
+                        r.AlarmScheduleId, r.PublicationCode, r.SectionCode ?? "(none)", r.TrackCode);
                 }
             }
 
@@ -66,38 +70,142 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                     continue;
                 }
 
-                if (!await PublicationExistsAsync(mediaConn, r.PublicationCode, r.LanguageCode))
+                if (!await TrackExistsInHarvestedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
                 {
                     musicScheduleIdsToReset.Add(r.AlarmScheduleId);
                     logger.Warning(
-                        "Music pub {PubCode}/{LangCode} not in discovery tables; resetting music for schedule {ScheduleId}",
-                        r.PublicationCode, r.LanguageCode, r.AlarmScheduleId);
+                        "Alarm music schedule {ScheduleId} pub/section/track {PubCode}/{SectionCode}/{TrackCode} not in fetched tables; resetting music",
+                        r.AlarmScheduleId, r.PublicationCode, r.SectionCode ?? "(none)", r.TrackCode);
                 }
             }
-        }
-
-        if (scheduleIdsToDelete.Count == 0 && musicScheduleIdsToReset.Count == 0)
-        {
-            logger.Information("All schedule references verified in discovery tables");
-            return;
         }
 
         using var scheduleConn = new SqliteConnection($"Data Source={scheduleDbPath}");
         await scheduleConn.OpenAsync();
 
-        foreach (var scheduleId in scheduleIdsToDelete)
+        if (scheduleIdsToDelete.Count > 0 || musicScheduleIdsToReset.Count > 0)
         {
-            await DeleteAlarmScheduleAsync(scheduleConn, scheduleId);
+            foreach (var scheduleId in scheduleIdsToDelete)
+            {
+                await DeleteAlarmScheduleAsync(scheduleConn, scheduleId);
+            }
+
+            foreach (var scheduleId in musicScheduleIdsToReset)
+            {
+                await ResetAlarmMusicAsync(scheduleConn, scheduleId);
+            }
+
+            logger.Information(
+                "Cleaned up {DeletedCount} orphaned schedule(s) and reset music for {ResetCount} schedule(s)",
+                scheduleIdsToDelete.Count, musicScheduleIdsToReset.Count);
+        }
+        else
+        {
+            logger.Information("All schedule references verified in fetched tables");
         }
 
-        foreach (var scheduleId in musicScheduleIdsToReset)
+        await AssignCategoryCodeForNullSchedulesAsync(mediaIndexDbPath, scheduleConn);
+    }
+
+    /// <summary>
+    /// For schedules with null CategoryCode, assigns first matching category from media index using the schedule's Bible pub code.
+    /// </summary>
+    private async Task AssignCategoryCodeForNullSchedulesAsync(
+        string mediaIndexDbPath,
+        SqliteConnection scheduleConn)
+    {
+        var nullCategoryRefs = await ReadSchedulesWithNullCategoryAndBiblePubAsync(scheduleConn);
+        if (nullCategoryRefs.Count == 0)
         {
-            await ResetAlarmMusicAsync(scheduleConn, scheduleId);
+            return;
         }
 
-        logger.Information(
-            "Cleaned up {DeletedCount} orphaned schedule(s) and reset music for {ResetCount} schedule(s)",
-            scheduleIdsToDelete.Count, musicScheduleIdsToReset.Count);
+        var updated = 0;
+        using (var mediaConn = new SqliteConnection($"Data Source={mediaIndexDbPath};Mode=ReadOnly"))
+        {
+            await mediaConn.OpenAsync();
+
+            foreach (var (scheduleId, publicationCode, languageCode) in nullCategoryRefs)
+            {
+                var categoryCode = await GetFirstCategoryCodeForPubAsync(mediaConn, publicationCode, languageCode);
+                if (string.IsNullOrEmpty(categoryCode))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    using var cmd = scheduleConn.CreateCommand();
+                    cmd.CommandText = "UPDATE AlarmSchedules SET CategoryCode = @code WHERE Id = @id";
+                    cmd.Parameters.AddWithValue("@code", categoryCode);
+                    cmd.Parameters.AddWithValue("@id", scheduleId);
+                    var n = await cmd.ExecuteNonQueryAsync();
+                    if (n > 0)
+                    {
+                        updated++;
+                        logger.Debug("Assigned CategoryCode {CategoryCode} for schedule {ScheduleId} from pub {PubCode}/{LangCode}",
+                            categoryCode, scheduleId, publicationCode, languageCode);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Failed to assign CategoryCode for schedule {ScheduleId}", scheduleId);
+                }
+            }
+        }
+
+        if (updated > 0)
+        {
+            logger.Information("Assigned CategoryCode (first match by pub) for {Count} schedule(s) with null CategoryCode", updated);
+        }
+    }
+
+    private static async Task<List<(int AlarmScheduleId, string PublicationCode, string LanguageCode)>> ReadSchedulesWithNullCategoryAndBiblePubAsync(
+        SqliteConnection scheduleConn)
+    {
+        var list = new List<(int, string, string)>();
+        using var cmd = scheduleConn.CreateCommand();
+        cmd.CommandText = """
+            SELECT bps.AlarmScheduleId, bps.PublicationCode, bps.LanguageCode
+            FROM BiblePublicationSchedules bps
+            JOIN AlarmSchedules a ON a.Id = bps.AlarmScheduleId
+            WHERE a.CategoryCode IS NULL
+              AND bps.PublicationCode IS NOT NULL AND bps.PublicationCode != ''
+              AND bps.LanguageCode IS NOT NULL AND bps.LanguageCode != ''
+            """;
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            list.Add((reader.GetInt32(0), reader.GetString(1), reader.GetString(2)));
+        }
+
+        return list;
+    }
+
+    /// <summary>
+    /// Returns first category code for pub (by lang for language-based pub, or by pub only for non-langed pub).
+    /// </summary>
+    private static async Task<string?> GetFirstCategoryCodeForPubAsync(
+        SqliteConnection mediaConn,
+        string pubCode,
+        string langCode)
+    {
+        using var cmd = mediaConn.CreateCommand();
+        cmd.CommandText = """
+            SELECT c.CategoryCode FROM BiblePublications p
+            LEFT JOIN Languages l ON p.LanguageId = l.Id
+            JOIN BiblePublicationCategories bpc ON p.Id = bpc.BiblePublicationId
+            JOIN Categories c ON bpc.CategoryId = c.Id
+            WHERE p.PublicationCode = @pubCode AND (l.LanguageCode = @langCode OR p.LanguageId IS NULL)
+            ORDER BY c.Id
+            LIMIT 1
+            """;
+        cmd.Parameters.AddWithValue("@pubCode", pubCode);
+        cmd.Parameters.AddWithValue("@langCode", langCode);
+
+        var result = await cmd.ExecuteScalarAsync();
+        return result is string s ? s : null;
     }
 
     private static async Task<List<ScheduleRef>> ReadRefsAsync(string scheduleDbPath, string query)
@@ -115,33 +223,58 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
             refs.Add(new ScheduleRef(
                 reader.GetInt32(0),
                 reader.GetString(1),
-                reader.GetString(2)));
+                reader.GetString(2),
+                reader.IsDBNull(3) ? null : reader.GetString(3),
+                reader.GetString(4)));
         }
 
         return refs;
     }
 
     /// <summary>
-    /// Returns true if the publication is known for the language in the new index (discovery tables).
-    /// Uses PublicationLanguages + Languages, not harvested BiblePublications, so we only treat as
-    /// orphan when the publication isn't even discoverable for that language.
+    /// Existence lookup by: lang code + pub code + section code + track code for language-based pubs;
+    /// for non-langed pubs (e.g. instrumental music) by pub code + section code + track code only.
+    /// Category code is not used for this lookup.
     /// </summary>
-    private static async Task<bool> PublicationExistsAsync(
+    private static async Task<bool> TrackExistsInHarvestedAsync(
         SqliteConnection connection,
         string pubCode,
-        string langCode)
+        string langCode,
+        string? sectionCode,
+        string trackCode)
     {
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
-            SELECT COUNT(1) FROM PublicationLanguages pl
-            JOIN Languages l ON pl.LanguageId = l.Id
-            WHERE pl.PublicationCode = @pubCode AND l.LanguageCode = @langCode
-            """;
-        cmd.Parameters.AddWithValue("@pubCode", pubCode);
-        cmd.Parameters.AddWithValue("@langCode", langCode);
+        if (string.IsNullOrEmpty(sectionCode))
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = """
+                SELECT COUNT(1) FROM BiblePublicationTracks t
+                JOIN BiblePublications p ON t.BiblePublicationId = p.Id
+                LEFT JOIN Languages l ON p.LanguageId = l.Id
+                WHERE p.PublicationCode = @pubCode AND t.BiblePublicationSectionId IS NULL AND t.TrackCode = @trackCode
+                  AND (l.LanguageCode = @langCode OR p.LanguageId IS NULL)
+                """;
+            cmd.Parameters.AddWithValue("@pubCode", pubCode);
+            cmd.Parameters.AddWithValue("@langCode", langCode);
+            cmd.Parameters.AddWithValue("@trackCode", trackCode);
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+        }
 
-        var count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-        return count > 0;
+        using (var cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = """
+                SELECT COUNT(1) FROM BiblePublicationTracks t
+                JOIN BiblePublicationSections s ON t.BiblePublicationSectionId = s.Id
+                JOIN BiblePublications p ON s.BiblePublicationId = p.Id
+                LEFT JOIN Languages l ON p.LanguageId = l.Id
+                WHERE p.PublicationCode = @pubCode AND s.SectionCode = @sectionCode AND t.TrackCode = @trackCode
+                  AND (l.LanguageCode = @langCode OR p.LanguageId IS NULL)
+                """;
+            cmd.Parameters.AddWithValue("@pubCode", pubCode);
+            cmd.Parameters.AddWithValue("@langCode", langCode);
+            cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
+            cmd.Parameters.AddWithValue("@trackCode", trackCode);
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+        }
     }
 
     private async Task DeleteAlarmScheduleAsync(SqliteConnection connection, int scheduleId)

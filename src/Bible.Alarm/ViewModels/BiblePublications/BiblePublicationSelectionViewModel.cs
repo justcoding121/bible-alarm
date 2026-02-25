@@ -182,9 +182,12 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         {
             // Populate languages for the language modal
             await dataProvider.PopulateLanguagesAsync(null, propertyManager.Languages);
-            
+
             // Update CurrentLanguage after population so scroll-to-selected works
             propertyManager.UpdateCurrentLanguageFromLanguages();
+
+            // Signal that load is complete so ModalScrollHelper.WaitForNotBusyAsync returns
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
         catch (Exception ex)
         {
@@ -229,14 +232,17 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
         try
         {
-            // Populate publications. ModalScrollHelper sets IsBusy = false after list is rendered.
+            // Populate publications.
             await stateHandler.RefreshFromStateAsync(
                 busy => propertyManager.IsBusy = busy,
                 propertyManager.Publications,
                 progressReporter);
-            
+
             // Set the selected publication after population so scroll-to-selected works
             propertyManager.SetSelectedPublication();
+
+            // Signal that data load is complete so ModalScrollHelper.WaitForNotBusyAsync returns and can proceed to verify items/render. Modal sets IsBusy = false again when revealing.
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
         catch (OperationCanceledException)
         {

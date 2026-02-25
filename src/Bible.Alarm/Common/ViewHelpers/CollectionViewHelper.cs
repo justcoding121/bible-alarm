@@ -1,6 +1,5 @@
 #nullable enable
 using System.Collections;
-using Polly;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 #if WINDOWS
 using Microsoft.Maui.Essentials;
@@ -97,9 +96,8 @@ public static class CollectionViewHelper
     }
 
     /// <summary>
-    /// Waits for a ViewModel's IsBusy property to become false using Polly retry policy.
-    /// This is useful for ensuring data is loaded before attempting to scroll to an item.
-    /// Default timeout is 10 seconds to allow for slower operations while preventing indefinite spinning.
+    /// Waits for a ViewModel's IsBusy property to become false by polling. Does not throw;
+    /// returns false only when the timeout is exhausted. Avoids flooding debug output with exceptions.
     /// </summary>
     public static async Task<bool> WaitForNotBusyAsync(Func<bool> isBusyGetter, int maxWaitSeconds = 10, int delayMs = 100, CancellationToken cancellationToken = default)
     {
@@ -108,41 +106,24 @@ public static class CollectionViewHelper
             return false;
         }
 
-        // Check immediately first - if not busy, return immediately
         if (!isBusyGetter())
         {
             return true;
         }
 
-        var maxRetries = (maxWaitSeconds * 1000) / delayMs;
+        var deadline = DateTime.UtcNow.AddSeconds(maxWaitSeconds);
 
-        // Use Polly to retry checking the condition until it becomes false
-        var retryPolicy = Policy
-            .Handle<InvalidOperationException>() // Throw when still busy, retry
-            .WaitAndRetryAsync(
-                retryCount: maxRetries,
-                sleepDurationProvider: _ => TimeSpan.FromMilliseconds(delayMs));
-
-        try
+        while (DateTime.UtcNow < deadline)
         {
-            await retryPolicy.ExecuteAsync(async ct =>
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Delay(delayMs, cancellationToken);
+            if (!isBusyGetter())
             {
-                // Small delay before checking to avoid tight loop
-                await Task.Delay(10, ct);
-                if (isBusyGetter())
-                {
-                    throw new InvalidOperationException("Still busy");
-                }
-            }, cancellationToken);
+                return true;
+            }
+        }
 
-            // Successfully waited for IsBusy to become false
-            return true;
-        }
-        catch
-        {
-            // Exhausted retries - still busy after max wait time
-            return false;
-        }
+        return false;
     }
 }
 

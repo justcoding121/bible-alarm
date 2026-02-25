@@ -49,6 +49,7 @@ public sealed class MusicSectionSelectionRefreshHandler
                     {
                         ctx.SetCanCancelFetch(false);
                         ctx.SetShowProgress(false);
+                        ctx.SetIsBusy(false);
                         ctx.SetScreenOn(false);
                     }
                 });
@@ -67,6 +68,7 @@ public sealed class MusicSectionSelectionRefreshHandler
                 {
                     ctx.SetCanCancelFetch(false);
                     ctx.SetShowProgress(false);
+                    ctx.SetIsBusy(false);
                     ctx.SetScreenOn(false);
                 }
             });
@@ -81,6 +83,7 @@ public sealed class MusicSectionSelectionRefreshHandler
                 {
                     ctx.SetCanCancelFetch(false);
                     ctx.SetShowProgress(false);
+                    ctx.SetIsBusy(false);
                 }
             });
         }
@@ -94,6 +97,7 @@ public sealed class MusicSectionSelectionRefreshHandler
                 {
                     ctx.SetCanCancelFetch(false);
                     ctx.SetShowProgress(false);
+                    ctx.SetIsBusy(false);
                 }
             });
             throw;
@@ -108,6 +112,7 @@ public sealed class MusicSectionSelectionRefreshHandler
                 {
                     ctx.SetCanCancelFetch(false);
                     ctx.SetShowProgress(false);
+                    ctx.SetIsBusy(false);
                 }
             });
             throw;
