@@ -53,8 +53,8 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         var dbDirectory = System.IO.Path.GetDirectoryName(dbPath) ?? "";
         var storageRoot = storageService.StorageRoot;
 
-        // Delete old database files and their auxiliary files if they exist
-        // These are previous database names that are no longer used
+        // Delete only legacy-named database files (never the current schedule DB file if it exists).
+        // Recovery path below may delete the current file when migration fails due to corruption.
         var oldDbPath1 = System.IO.Path.Combine(dbDirectory, "bibleAlarm.db");
         await DeleteOldDatabaseFilesAsync(oldDbPath1, "old Schedule database (bibleAlarm.db)");
         

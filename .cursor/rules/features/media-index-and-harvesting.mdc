@@ -404,8 +404,8 @@ Helpers: `src/Bible.Alarm/Services/Media/MediaIndexServiceHelpers/`
 1. `MediaIndexService.ClearCopyIndexFromResource()` **renames** the old `mediaIndex.db` to `mediaIndex_old.db` (so we know a version update occurred), then extracts the new packaged index.
 2. After both database and resource bootstrap complete, `MigrateNonEnglishDataIfNeededAsync()` runs only when the old index file exists (i.e. this was a version update):
    - **Delete old index first** (no read): `CleanupOldMediaIndex()` deletes `mediaIndex_old.db` and auxiliary files. We do not read from the old file.
-   - **Fetch into new index only**: `ScheduleMediaBootstrapFetcher` reads non-English refs from the Schedule DB and for each `(PublicationCode, LanguageCode)` calls `EnsurePublicationExistsAsync`, then `FetchSectionTracksAsync` for each referenced section. **No retries**—one attempt per publication/section so bootstrap is not delayed. Failures are logged and skipped.
-   - **Orphan cleanup**: `OrphanedScheduleCleanup` verifies all non-English schedule references exist in the new media index. If a `BiblePublicationSchedule`'s publication can't be found → deletes the entire alarm schedule. If an `AlarmMusic` publication can't be found → resets music (disables `MusicEnabled`, deletes `AlarmMusic` row). If all schedules are removed, `ScheduleBootstrapService.SeedAndMigrateAsync()` seeds a default schedule when the DB is empty on home/schedule load.
+   - **Orphan cleanup (before fetch)**: `OrphanedScheduleCleanup` verifies all schedule references exist in the new media index. Schedules whose main publication can't be found are deleted; music is reset for schedules whose music publication can't be found. This runs before the fetch so the fetch only sees schedules whose pub codes exist in the new index.
+   - **Fetch into new index only**: `ScheduleMediaBootstrapFetcher` reads non-English refs from the Schedule DB and for each `(PublicationCode, LanguageCode)` calls `EnsurePublicationExistsAsync`, then `FetchSectionTracksAsync` for each referenced section. **No retries**—one attempt per publication/section so bootstrap is not delayed. Failures are logged and skipped. If all schedules were removed by cleanup, `ScheduleBootstrapService.SeedAndMigrateAsync()` seeds a default schedule when the DB is empty on home/schedule load.
 
 ### Ordering guarantee
 
@@ -414,7 +414,7 @@ This runs in `BootstrapOrchestrator` after `Task.WhenAll(database, resources, fl
 ### Key design decisions
 
 - **Fetch, not copy**: Avoids schema coupling between old and new media index (e.g. UrlParams vs TrackUrls). Uses the same ad-hoc harvest path as the rest of the app (`ILanguageContentService`).
-- **Same schedule sources**: Bible container (`BiblePublicationSchedules`) and music container (`AlarmMusic`) are both considered; only rows with `LanguageCode IS NOT NULL AND != 'E'` are fetched (no-language music is in the packaged index).
+- **Same schedule sources**: Bible container (`BiblePublicationSchedules`) and music container (`AlarmMusic`) are both considered. Orphan cleanup runs first (delete/reset schedules with pub codes not in the new index), then fetch (non-English only).
 - **No retries**: Bootstrap does not retry failed fetches; schedules that can't be resolved are removed by orphan cleanup. Empty schedule list is handled by existing default-schedule seed on home load.
 - **Graceful degradation**: Fetch failures are non-fatal per publication/section. Orphaned schedule cleanup acts as a safety net, deleting or resetting schedules that can't resolve their media data after fetch.
 

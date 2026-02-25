@@ -109,9 +109,12 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                     Log.Logger.Information("[BOOTSTRAP] Media index verification/copy completed in {ElapsedMs:F2}ms", verifyMediaElapsed);
 #endif
 
-                    // After both database and resource bootstrap complete, migrate non-English media
-                    // data from old media index to new packaged index (only runs on version change)
-                    await resourceBootstrapService.MigrateNonEnglishMediaDataAsync();
+                    // After both database and resource bootstrap complete, run non-English fetch only on version change
+                    // (when media index was replaced this run), not on every bootstrap
+                    if (resourceBootstrapService.WasMediaIndexReplacedThisRun())
+                    {
+                        await resourceBootstrapService.MigrateNonEnglishMediaDataAsync();
+                    }
 
                     // Warm in-memory caches for category and language display names (current app language "E")
                     // so UI lookups avoid DB hits. Future app languages can be warmed similarly.

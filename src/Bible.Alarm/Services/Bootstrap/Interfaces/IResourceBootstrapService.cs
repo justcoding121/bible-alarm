@@ -13,7 +13,13 @@ public interface IResourceBootstrapService
     Task CopyResourcesAsync();
 
     /// <summary>
+    /// True when the media index was replaced this bootstrap run (version change).
+    /// </summary>
+    bool WasMediaIndexReplacedThisRun();
+
+    /// <summary>
     /// Migrates non-English media data from old media index to new packaged index.
+    /// Only run when <see cref="WasMediaIndexReplacedThisRun"/> is true (version change).
     /// Must be called after both database and resource bootstrap complete.
     /// </summary>
     Task MigrateNonEnglishMediaDataAsync();

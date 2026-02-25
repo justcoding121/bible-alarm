@@ -1,15 +1,14 @@
 #nullable enable
 
-using Bible.Alarm.Shared.Constants;
 using Microsoft.Data.Sqlite;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 
 /// <summary>
-/// After media index replacement, verifies that all non-English schedule references
-/// can be resolved in the new media index. Deletes schedules whose main publication
-/// can't be found, and resets music for schedules whose music publication can't be found.
+/// After media index replacement, verifies that all schedule references can be resolved in the new
+/// media index. Runs before the non-English fetch. Deletes schedules whose main publication can't
+/// be found, and resets music for schedules whose music publication can't be found.
 /// </summary>
 internal sealed class OrphanedScheduleCleanup(ILogger logger)
 {
@@ -26,14 +25,14 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
             """
             SELECT AlarmScheduleId, PublicationCode, LanguageCode
             FROM BiblePublicationSchedules
-            WHERE LanguageCode IS NOT NULL AND LanguageCode != @defaultLang
+            WHERE PublicationCode IS NOT NULL AND PublicationCode != '' AND LanguageCode IS NOT NULL
             """);
 
         var musicRefs = await ReadRefsAsync(scheduleDbPath,
             """
             SELECT AlarmScheduleId, PublicationCode, LanguageCode
             FROM AlarmMusic
-            WHERE LanguageCode IS NOT NULL AND LanguageCode != @defaultLang
+            WHERE PublicationCode IS NOT NULL AND PublicationCode != '' AND LanguageCode IS NOT NULL
             """);
 
         if (bibleRefs.Count == 0 && musicRefs.Count == 0)
@@ -78,7 +77,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
 
         if (scheduleIdsToDelete.Count == 0 && musicScheduleIdsToReset.Count == 0)
         {
-            logger.Information("All non-English schedule references verified in new media index");
+            logger.Information("All schedule references verified in new media index");
             return;
         }
 
@@ -108,7 +107,6 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
 
         using var cmd = connection.CreateCommand();
         cmd.CommandText = query;
-        cmd.Parameters.AddWithValue("@defaultLang", AppConstants.Media.DefaultLanguageCode);
 
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())

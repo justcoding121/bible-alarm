@@ -31,6 +31,8 @@ public class ResourceBootstrapService : IResourceBootstrapService
         await CopySilentMp3ToStorageAsync();
     }
 
+    public bool WasMediaIndexReplacedThisRun() => mediaIndexService.WasIndexReplacedThisRun;
+
     public async Task MigrateNonEnglishMediaDataAsync()
     {
         await mediaIndexService.MigrateNonEnglishDataIfNeededAsync();

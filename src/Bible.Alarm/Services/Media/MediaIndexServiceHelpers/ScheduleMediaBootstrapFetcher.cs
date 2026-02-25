@@ -9,10 +9,12 @@ namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 
 /// <summary>
 /// Fetches missing non-English publication/section data into the new media index during bootstrap
-/// after a version update. Reads schedule references from the Schedule DB and ensures each
-/// (PublicationCode, LanguageCode) and referenced section is harvested via the language content service.
-/// No retries—failed fetches are left for OrphanedScheduleCleanup to remove; if all schedules are
-/// removed, ScheduleBootstrapService.SeedAndMigrateAsync seeds a default schedule on home load.
+/// after a version update. Runs after OrphanedScheduleCleanup (schedules with pub codes not in the
+/// new index are already deleted). Reads schedule references (PublicationCode, LanguageCode,
+/// SectionCode only—CategoryCode on AlarmSchedule is not used) and ensures each (PublicationCode,
+/// LanguageCode) and referenced section is harvested. No retries—failed fetches are logged and skipped;
+/// if all schedules were removed by cleanup, ScheduleBootstrapService.SeedAndMigrateAsync seeds a
+/// default schedule on home load.
 /// </summary>
 internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageContentService languageContentService)
 {

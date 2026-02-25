@@ -30,6 +30,7 @@ public sealed class MediaIndexService(
 
     private readonly SemaphoreSlim @lock = new(1);
     private static bool verified;
+    private static bool wasIndexReplacedThisRun;
 
     // Polly retry policy for file operations that may fail due to file locking
     // Retries with exponential backoff to handle cases where database connections haven't fully closed
@@ -45,6 +46,12 @@ public sealed class MediaIndexService(
                     retryCount, timespan.TotalMilliseconds);
             });
 
+    /// <summary>
+    /// True when the media index was replaced this bootstrap run (version change or recovery).
+    /// Used to run non-English fetch only on version change, not every launch.
+    /// </summary>
+    public bool WasIndexReplacedThisRun => wasIndexReplacedThisRun;
+
     public async Task Verify()
     {
         await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
@@ -54,6 +61,7 @@ public sealed class MediaIndexService(
                 return;
             }
 
+            wasIndexReplacedThisRun = false;
             if (await IndexDoNotExistOrIsOutdated())
             {
                 await ClearCopyIndexFromResource();
@@ -113,6 +121,7 @@ public sealed class MediaIndexService(
 
         if (await storageService.FileExists(mediaIndexDbPath))
         {
+            wasIndexReplacedThisRun = true;
             CloseMediaDbContextConnections();
 
             // Rename old DB so we know a version update occurred (MigrateNonEnglishDataIfNeededAsync deletes it without reading).
@@ -143,8 +152,18 @@ public sealed class MediaIndexService(
         var newMediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
         var scheduleDbPath = Path.Combine(IndexRoot, AppConstants.Database.ScheduleDatabaseFileName);
 
-        // Delete old index without reading it; then fetch missing data into the new index only.
+        // Delete old index without reading it. Then delete schedules whose pub codes are not in the new index, then fetch missing non-English data.
         CleanupOldMediaIndex();
+
+        try
+        {
+            var cleanup = new OrphanedScheduleCleanup(logger);
+            await cleanup.CleanupAsync(newMediaIndexDbPath, scheduleDbPath);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to cleanup orphaned schedules (pub codes not in new media index)");
+        }
 
         try
         {
@@ -154,16 +173,6 @@ public sealed class MediaIndexService(
         catch (Exception ex)
         {
             logger.Error(ex, "Schedule media bootstrap fetch failed (partially or fully)");
-        }
-
-        try
-        {
-            var cleanup = new OrphanedScheduleCleanup(logger);
-            await cleanup.CleanupAsync(newMediaIndexDbPath, scheduleDbPath);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Failed to verify/cleanup orphaned non-English schedules");
         }
     }
 
