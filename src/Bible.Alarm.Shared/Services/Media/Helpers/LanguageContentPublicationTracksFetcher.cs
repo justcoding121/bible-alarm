@@ -16,20 +16,20 @@ internal sealed class LanguageContentPublicationTracksFetcher
 {
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger logger;
-    private readonly DramaFetcher dramaFetcher;
+    private readonly MediatorFetcher mediatorFetcher;
     private readonly FlatPublicationFetcher flatPublicationFetcher;
     private readonly IInternetConnectivityChecker? internetConnectivityChecker;
 
     public LanguageContentPublicationTracksFetcher(
         IServiceScopeFactory scopeFactory,
         ILogger logger,
-        DramaFetcher dramaFetcher,
+        MediatorFetcher mediatorFetcher,
         FlatPublicationFetcher flatPublicationFetcher,
         IInternetConnectivityChecker? internetConnectivityChecker = null)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.dramaFetcher = dramaFetcher ?? throw new ArgumentNullException(nameof(dramaFetcher));
+        this.mediatorFetcher = mediatorFetcher ?? throw new ArgumentNullException(nameof(mediatorFetcher));
         this.flatPublicationFetcher = flatPublicationFetcher ?? throw new ArgumentNullException(nameof(flatPublicationFetcher));
         this.internetConnectivityChecker = internetConnectivityChecker;
     }
@@ -127,7 +127,7 @@ internal sealed class LanguageContentPublicationTracksFetcher
             {
                 case Models.Enums.HarvestType.MediatorSectioned:
                     // Drama publications use Mediator API
-                    return await dramaFetcher.FetchDramaPublicationTracksAsync(
+                    return await mediatorFetcher.FetchMediatorPublicationTracksAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication, cancellationToken);
 
                 case Models.Enums.HarvestType.Flat:

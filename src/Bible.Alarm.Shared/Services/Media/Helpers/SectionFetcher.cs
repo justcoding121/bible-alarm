@@ -26,7 +26,7 @@ internal sealed class SectionFetcher
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
     private readonly EnglishTrackParser trackParser;
-    private readonly DramaTrackParser dramaTrackParser;
+    private readonly MediatorTrackParser mediatorTrackParser;
     private readonly SectionFetcherSectionTracksLoader sectionTracksLoader;
 
     public SectionFetcher(HttpClient httpClient, ILogger logger)
@@ -34,7 +34,7 @@ internal sealed class SectionFetcher
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.trackParser = new EnglishTrackParser(logger);
-        this.dramaTrackParser = new DramaTrackParser(logger);
+        this.mediatorTrackParser = new MediatorTrackParser(logger);
         this.sectionTracksLoader = new SectionFetcherSectionTracksLoader(httpClient, logger);
     }
 
@@ -223,7 +223,7 @@ internal sealed class SectionFetcher
                 else
                 {
                     var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
-                    tracks = dramaTrackParser.ParseTracksFromJson(
+                    tracks = mediatorTrackParser.ParseTracksFromJson(
                         filesElement, normalizedLanguageCode, sectionCode, isVideoDrama);
                 }
 

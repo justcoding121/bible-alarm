@@ -9,7 +9,7 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
-internal static class DramaCategoryLanguageExtractor
+internal static class MediatorCategoryLanguageExtractor
 {
     internal static HashSet<string> ExtractLanguagesFromCategory(string jsonString, ILogger logger)
     {

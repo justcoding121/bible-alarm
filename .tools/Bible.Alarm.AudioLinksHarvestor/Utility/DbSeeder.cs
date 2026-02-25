@@ -24,7 +24,7 @@ using BiblePublicationSection = Bible.Alarm.AudioLinksHarvestor.Models.BiblePubl
 using BiblePublicationTrack = Bible.Alarm.AudioLinksHarvestor.Models.BiblePublications.BiblePublicationTrack;
 using SharedBiblePublicationSection = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection;
 using SharedBiblePublicationTrack = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack;
-using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.DramaTrack;
+using MediatorTrack = Bible.Alarm.AudioLinksHarvestor.Models.MediatorTrack;
 using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.MusicTrack;
 using Publication = Bible.Alarm.AudioLinksHarvestor.Models.Publication;
 using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.VideoEpisode;
@@ -250,15 +250,15 @@ internal class DbSeeder : IDataPersister
         return Task.CompletedTask;
     }
 
-    public Task SaveDramaPublication(
+    public Task SaveMediatorPublication(
         string languageCode,
         string publicationCode,
         string publicationName,
-        Dictionary<string, List<DramaTrack>> tracksBySection,
+        Dictionary<string, List<MediatorTrack>> tracksBySection,
         Dictionary<string, string> sectionNames)
     {
         var key = (languageCode.ToUpperInvariant(), publicationCode.ToLowerInvariant());
-        dataStore.DramaPublications[key] = (publicationName, tracksBySection, sectionNames);
+        dataStore.MediatorPublications[key] = (publicationName, tracksBySection, sectionNames);
         return Task.CompletedTask;
     }
 

@@ -4,7 +4,7 @@ using System;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Models;
 
-public class DramaTrack : IComparable
+public class MediatorTrack : IComparable
 {
     public string TrackCode { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
@@ -13,11 +13,10 @@ public class DramaTrack : IComparable
 
     public int CompareTo(object? obj)
     {
-        if (obj is not DramaTrack other)
+        if (obj is not MediatorTrack other)
         {
             return 1;
         }
-        // Compare TrackCode as string, but try to parse as int for numeric comparison when both are numeric
         if (int.TryParse(TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var thisNum) &&
             int.TryParse(other.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var otherNum))
         {

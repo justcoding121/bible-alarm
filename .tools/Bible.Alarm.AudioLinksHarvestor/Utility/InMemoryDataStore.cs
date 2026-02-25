@@ -16,8 +16,8 @@ internal class InMemoryDataStore
     // Bible Publications: (languageCode, publicationCode) -> (publicationName, sections, sectionCodeTrackMap)
     public ConcurrentDictionary<(string LanguageCode, string PublicationCode), (string PublicationName, Dictionary<int, BiblePublicationSection> Sections, Dictionary<int, Dictionary<int, BiblePublicationTrack>> SectionCodeTrackMap)> BiblePublications { get; } = new();
 
-    // Drama Publications: (languageCode, publicationCode) -> (publicationName, tracksBySection, sectionNames)
-    public ConcurrentDictionary<(string LanguageCode, string PublicationCode), (string PublicationName, Dictionary<string, List<DramaTrack>> TracksBySection, Dictionary<string, string> SectionNames)> DramaPublications { get; } = new();
+    // Mediator publications: (languageCode, publicationCode) -> (publicationName, tracksBySection, sectionNames)
+    public ConcurrentDictionary<(string LanguageCode, string PublicationCode), (string PublicationName, Dictionary<string, List<MediatorTrack>> TracksBySection, Dictionary<string, string> SectionNames)> MediatorPublications { get; } = new();
 
     // Music Publications: (publicationCode, languageCode?) -> (publicationName, tracks)
     public ConcurrentDictionary<(string PublicationCode, string? LanguageCode), (string PublicationName, List<MusicTrack> Tracks)> MusicTracks { get; } = new();

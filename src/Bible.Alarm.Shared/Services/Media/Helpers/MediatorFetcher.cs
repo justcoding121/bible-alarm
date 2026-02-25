@@ -17,22 +17,22 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Helper class for fetching drama publications.
+/// Helper class for fetching mediator (MediatorSectioned) publications.
 /// </summary>
-internal sealed class DramaFetcher
+internal sealed class MediatorFetcher
 {
     private readonly ILogger logger;
-    private readonly DramaMediatorApiClient mediatorApiClient;
-    private readonly DramaPublicationBuilder publicationBuilder;
+    private readonly MediatorApiClient mediatorApiClient;
+    private readonly MediatorPublicationBuilder publicationBuilder;
 
-    public DramaFetcher(HttpClient httpClient, ILogger logger)
+    public MediatorFetcher(HttpClient httpClient, ILogger logger)
     {
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.mediatorApiClient = new DramaMediatorApiClient(httpClient ?? throw new ArgumentNullException(nameof(httpClient)), this.logger);
-        this.publicationBuilder = new DramaPublicationBuilder(this.logger);
+        this.mediatorApiClient = new MediatorApiClient(httpClient ?? throw new ArgumentNullException(nameof(httpClient)), this.logger);
+        this.publicationBuilder = new MediatorPublicationBuilder(this.logger);
     }
 
-    public async Task<bool> FetchDramaPublicationTracksAsync(
+    public async Task<bool> FetchMediatorPublicationTracksAsync(
         MediaDbContext db,
         string normalizedPublicationCode,
         string normalizedLanguageCode,
@@ -42,12 +42,12 @@ internal sealed class DramaFetcher
         var (localizedPubName, mediatorTracks) = await mediatorApiClient.FetchCategoryAndTracksAsync(
             normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
 
-        logger.Information("DramaFetcher: Found {ItemCount} tracks from mediator for publication {PublicationCode} in language {LanguageCode}",
+        logger.Information("MediatorFetcher: Found {ItemCount} tracks from mediator for publication {PublicationCode} in language {LanguageCode}",
             mediatorTracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         if (mediatorTracks.Count == 0)
         {
-            logger.Warning("DramaFetcher: No tracks found for publication {PublicationCode} in language {LanguageCode}",
+            logger.Warning("MediatorFetcher: No tracks found for publication {PublicationCode} in language {LanguageCode}",
                 normalizedPublicationCode, normalizedLanguageCode);
             return false;
         }
@@ -59,7 +59,7 @@ internal sealed class DramaFetcher
             TrackUrl = new TrackUrl { Url = m.Url }
         }).ToList();
 
-        logger.Information("DramaFetcher: Fetched {TrackCount} tracks for publication {PublicationCode} in language {LanguageCode}",
+        logger.Information("MediatorFetcher: Fetched {TrackCount} tracks for publication {PublicationCode} in language {LanguageCode}",
             tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         if (tracks.Count == 0)
@@ -90,7 +90,7 @@ internal sealed class DramaFetcher
             db, publicationCodeForDb, localizedPubName, language, category, tracks, cancellationToken);
     }
 
-    public async Task<bool> FetchEnglishDramaPublicationAsync(
+    public async Task<bool> FetchEnglishMediatorPublicationAsync(
         MediaDbContext db,
         string normalizedPublicationCode,
         string normalizedLanguageCode,
@@ -101,12 +101,12 @@ internal sealed class DramaFetcher
         var (localizedPubName, mediatorTracks) = await mediatorApiClient.FetchCategoryAndTracksAsync(
             normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
 
-        logger.Information("DramaFetcher: Found {ItemCount} tracks from mediator for publication {PublicationCode} in language {LanguageCode}",
+        logger.Information("MediatorFetcher: Found {ItemCount} tracks from mediator for publication {PublicationCode} in language {LanguageCode}",
             mediatorTracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         if (mediatorTracks.Count == 0)
         {
-            logger.Warning("DramaFetcher: No tracks found for publication {PublicationCode} in language {LanguageCode}",
+            logger.Warning("MediatorFetcher: No tracks found for publication {PublicationCode} in language {LanguageCode}",
                 normalizedPublicationCode, normalizedLanguageCode);
             return false;
         }
@@ -118,7 +118,7 @@ internal sealed class DramaFetcher
             TrackUrl = new TrackUrl { Url = m.Url }
         }).ToList();
 
-        logger.Information("DramaFetcher: Fetched {TrackCount} tracks for publication {PublicationCode} in language {LanguageCode}",
+        logger.Information("MediatorFetcher: Fetched {TrackCount} tracks for publication {PublicationCode} in language {LanguageCode}",
             tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         // Build and save publication

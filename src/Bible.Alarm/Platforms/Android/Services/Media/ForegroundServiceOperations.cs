@@ -147,9 +147,12 @@ internal static class ForegroundServiceOperations
             }
 
             var notificationManager = NotificationManagerCompat.From(context);
-            notificationManager.Cancel(ForegroundNotificationHelper.NotificationId);
-            logger.Debug("Cancelled foreground notification (ID: {NotificationId}) from application context",
-                ForegroundNotificationHelper.NotificationId);
+            if (notificationManager != null)
+            {
+                notificationManager.Cancel(ForegroundNotificationHelper.NotificationId);
+                logger.Debug("Cancelled foreground notification (ID: {NotificationId}) from application context",
+                    ForegroundNotificationHelper.NotificationId);
+            }
         }
         catch (Exception ex)
         {

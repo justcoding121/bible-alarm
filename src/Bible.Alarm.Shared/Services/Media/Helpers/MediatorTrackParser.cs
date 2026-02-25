@@ -11,13 +11,13 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Helper class for parsing drama tracks from JSON responses.
+/// Helper class for parsing mediator/video tracks from JSON responses.
 /// </summary>
-internal sealed class DramaTrackParser
+internal sealed class MediatorTrackParser
 {
     private readonly ILogger logger;
 
-    public DramaTrackParser(ILogger logger)
+    public MediatorTrackParser(ILogger logger)
     {
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }

@@ -164,7 +164,7 @@ public class MediaReader(string indexRoot)
                                                 .ToDictionary(x => x.Number, x => x));
     }
 
-    public async Task<Dictionary<string, Language>> GetDramaLanguages()
+    public async Task<Dictionary<string, Language>> GetMediatorLanguages()
     {
         var root = indexRoot;
         // Unified structure: Dramas/languages.json (no Audio/Video prefix)
@@ -174,7 +174,7 @@ public class MediaReader(string indexRoot)
             .ToDictionary(x => x.Code.ToUpperInvariant(), x => x); // Normalize keys to uppercase
     }
 
-    public async Task<Dictionary<string, Publication>> GetDramaPublications(string languageCode)
+    public async Task<Dictionary<string, Publication>> GetMediatorPublications(string languageCode)
     {
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/publications.json (no Audio/Video prefix)
@@ -186,7 +186,7 @@ public class MediaReader(string indexRoot)
             .ToDictionary(x => x.Code, x => x);
     }
 
-    public async Task<SortedDictionary<string, DramaTrack>> GetDramaTracks(string languageCode, string categoryKey)
+    public async Task<SortedDictionary<string, MediatorTrack>> GetMediatorTracks(string languageCode, string categoryKey)
     {
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/{categoryKey}/tracks.json (no Audio/Video prefix)
@@ -195,11 +195,11 @@ public class MediaReader(string indexRoot)
         var normalizedCategoryKey = categoryKey.ToUpperInvariant();
         var trackIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedCategoryKey, "tracks.json");
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
-        return new SortedDictionary<string, DramaTrack>(JsonSerializer.Deserialize<IEnumerable<DramaTrack>>(dramaTracks)!
+        return new SortedDictionary<string, MediatorTrack>(JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
             .ToDictionary(x => x.TrackCode, x => x));
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationSection>> GetDramaPublicationSections(string languageCode, string publicationCode)
+    public async Task<SortedDictionary<int, BiblePublicationSection>> GetMediatorPublicationSections(string languageCode, string publicationCode)
     {
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/{publicationCode}/sections.json
@@ -211,7 +211,7 @@ public class MediaReader(string indexRoot)
         return new SortedDictionary<int, BiblePublicationSection>(sections.ToDictionary(x => x.Number, x => x));
     }
 
-    public async Task<SortedDictionary<string, DramaTrack>> GetDramaPublicationTracks(string languageCode, string publicationCode, string sectionCode)
+    public async Task<SortedDictionary<string, MediatorTrack>> GetMediatorPublicationTracks(string languageCode, string publicationCode, string sectionCode)
     {
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/{publicationCode}/{sectionCode}/tracks.json
@@ -220,7 +220,7 @@ public class MediaReader(string indexRoot)
         var normalizedSectionCode = sectionCode.ToUpperInvariant();
         var trackIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedPublicationCode, normalizedSectionCode, "tracks.json");
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
-        return new SortedDictionary<string, DramaTrack>(JsonSerializer.Deserialize<IEnumerable<DramaTrack>>(dramaTracks)!
+        return new SortedDictionary<string, MediatorTrack>(JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
             .ToDictionary(x => x.TrackCode, x => x));
     }
 

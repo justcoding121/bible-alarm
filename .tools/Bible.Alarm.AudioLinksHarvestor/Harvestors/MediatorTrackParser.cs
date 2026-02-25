@@ -9,9 +9,9 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
-internal static class DramaTrackParser
+internal static class MediatorTrackParser
 {
-    internal static (List<DramaTrack>? Tracks, string? SectionName) ParseTracksFromGetPubMediaLinks(
+    internal static (List<MediatorTrack>? Tracks, string? SectionName) ParseTracksFromGetPubMediaLinks(
         string jsonString,
         string sectionCode,
         string languageCode,
@@ -21,7 +21,7 @@ internal static class DramaTrackParser
         bool useIssueParameter = false,
         bool useDocidParam = false)
     {
-        var tracks = new List<DramaTrack>();
+        var tracks = new List<MediatorTrack>();
         string? sectionName = null;
         var formatKey = isVideo ? "MP4" : "MP3";
 
@@ -105,7 +105,7 @@ internal static class DramaTrackParser
                     trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
                 var lookUpPath = lookUpPathBase;
 
-                tracks.Add(new DramaTrack
+                tracks.Add(new MediatorTrack
                 {
                     TrackCode = trackCode,
                     Title = title,

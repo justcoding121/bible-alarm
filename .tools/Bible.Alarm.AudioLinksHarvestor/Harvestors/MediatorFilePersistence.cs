@@ -10,12 +10,15 @@ using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
-internal static class DramaFilePersistence
+internal static class MediatorFilePersistence
 {
-    internal static void SaveDramaSectionsAndTracks(
+    /// <summary>
+    /// Saves mediator publication sections and tracks to disk. On-disk path remains "Dramas" for backward compatibility.
+    /// </summary>
+    internal static void SaveMediatorSectionsAndTracks(
         string publicationCode,
         string languageCode,
-        Dictionary<string, List<DramaTrack>> tracksBySection,
+        Dictionary<string, List<MediatorTrack>> tracksBySection,
         Dictionary<string, string> sectionNames)
     {
         // Unified structure: media/Dramas/{languageCode}/{publicationCode}/sections.json

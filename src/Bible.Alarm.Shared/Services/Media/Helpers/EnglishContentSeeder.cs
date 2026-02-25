@@ -26,7 +26,7 @@ internal sealed class EnglishContentSeeder
     private readonly IServiceScopeFactory scopeFactory;
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
-    private readonly DramaFetcher dramaFetcher;
+    private readonly MediatorFetcher mediatorFetcher;
     private readonly FlatPublicationFetcher flatPublicationFetcher;
     private readonly EnglishSectionFetcher sectionFetcher;
     private readonly EnglishPublicationBuilder publicationBuilder;
@@ -35,13 +35,13 @@ internal sealed class EnglishContentSeeder
         IServiceScopeFactory scopeFactory,
         HttpClient httpClient,
         ILogger logger,
-        DramaFetcher dramaFetcher,
+        MediatorFetcher mediatorFetcher,
         FlatPublicationFetcher flatPublicationFetcher)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.dramaFetcher = dramaFetcher ?? throw new ArgumentNullException(nameof(dramaFetcher));
+        this.mediatorFetcher = mediatorFetcher ?? throw new ArgumentNullException(nameof(mediatorFetcher));
         this.flatPublicationFetcher = flatPublicationFetcher ?? throw new ArgumentNullException(nameof(flatPublicationFetcher));
         
         var trackParser = new EnglishTrackParser(logger);
@@ -234,7 +234,7 @@ internal sealed class EnglishContentSeeder
                 }
 
                 case Models.Enums.HarvestType.MediatorSectioned:
-                    return await dramaFetcher.FetchEnglishDramaPublicationAsync(
+                    return await mediatorFetcher.FetchEnglishMediatorPublicationAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, language, category, cancellationToken);
 
                 case Models.Enums.HarvestType.Flat:
@@ -300,7 +300,7 @@ internal sealed class EnglishContentSeeder
         
         if (isDrama)
         {
-            return await dramaFetcher.FetchEnglishDramaPublicationAsync(
+            return await mediatorFetcher.FetchEnglishMediatorPublicationAsync(
                 db, normalizedPublicationCode, normalizedLanguageCode, language, category, cancellationToken);
         }
 

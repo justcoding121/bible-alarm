@@ -30,7 +30,7 @@ public sealed class LanguageContentService : ILanguageContentService
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger logger;
     private readonly HttpClient httpClient;
-    private readonly DramaFetcher dramaFetcher;
+    private readonly MediatorFetcher mediatorFetcher;
     private readonly VideoLocalizedNameFetcher videoLocalizedNameFetcher;
     private readonly FlatPublicationFetcher flatPublicationFetcher;
     private readonly SectionFetcher sectionFetcher;
@@ -51,12 +51,12 @@ public sealed class LanguageContentService : ILanguageContentService
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.videoLocalizedNameFetcher = new VideoLocalizedNameFetcher(httpClient, logger);
-        this.dramaFetcher = new DramaFetcher(httpClient, logger);
+        this.mediatorFetcher = new MediatorFetcher(httpClient, logger);
         this.flatPublicationFetcher = new FlatPublicationFetcher(httpClient, logger, videoLocalizedNameFetcher);
         this.sectionFetcher = new SectionFetcher(httpClient, logger);
-        this.englishContentSeeder = new EnglishContentSeeder(scopeFactory, httpClient, logger, dramaFetcher, flatPublicationFetcher);
+        this.englishContentSeeder = new EnglishContentSeeder(scopeFactory, httpClient, logger, mediatorFetcher, flatPublicationFetcher);
         this.publicationEnsurer = new PublicationEnsurer(scopeFactory, logger, this);
-        this.publicationTracksFetcher = new LanguageContentPublicationTracksFetcher(scopeFactory, logger, dramaFetcher, flatPublicationFetcher, internetConnectivityChecker);
+        this.publicationTracksFetcher = new LanguageContentPublicationTracksFetcher(scopeFactory, logger, mediatorFetcher, flatPublicationFetcher, internetConnectivityChecker);
         this.publicationSectionsFetcher = new LanguageContentPublicationSectionsFetcher(scopeFactory, logger, sectionFetcher, internetConnectivityChecker);
         this.sectionTracksFetcher = new LanguageContentSectionTracksFetcher(scopeFactory, logger, sectionFetcher, internetConnectivityChecker);
         this.firstSectionFetcher = new LanguageContentFirstSectionFetcher(scopeFactory, logger, this, sectionFetcher, internetConnectivityChecker);

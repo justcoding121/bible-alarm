@@ -20,12 +20,12 @@ internal interface IDataPersister
         Dictionary<int, BiblePublicationSection> sections,
         Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionCodeTrackMap);
 
-    // Drama Publications
-    Task SaveDramaPublication(
+    // Mediator publications (dramas, series, children, music video, etc.)
+    Task SaveMediatorPublication(
         string languageCode,
         string publicationCode,
         string publicationName,
-        Dictionary<string, List<DramaTrack>> tracksBySection,
+        Dictionary<string, List<MediatorTrack>> tracksBySection,
         Dictionary<string, string> sectionNames);
 
     // Music Publications

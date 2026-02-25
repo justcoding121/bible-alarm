@@ -14,14 +14,14 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Helper class for interacting with the Mediator API to fetch drama categories and section codes.
+/// Helper class for interacting with the Mediator API to fetch mediator categories and section codes.
 /// </summary>
-internal sealed class DramaMediatorApiClient
+internal sealed class MediatorApiClient
 {
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
 
-    public DramaMediatorApiClient(HttpClient httpClient, ILogger logger)
+    public MediatorApiClient(HttpClient httpClient, ILogger logger)
     {
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -38,7 +38,7 @@ internal sealed class DramaMediatorApiClient
         var categoryKey = Bible.Alarm.Shared.Helpers.JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode);
         if (categoryKey == null)
         {
-            logger.Warning("Unknown drama publication code: {PublicationCode}", normalizedPublicationCode);
+            logger.Warning("Unknown mediator publication code: {PublicationCode}", normalizedPublicationCode);
             return (null, new List<MediatorTrack>());
         }
 
@@ -47,7 +47,7 @@ internal sealed class DramaMediatorApiClient
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery, cancellationToken);
         if (jsonString == null)
         {
-            logger.Warning("Failed to fetch drama category {CategoryKey} for language {LanguageCode}",
+            logger.Warning("Failed to fetch mediator category {CategoryKey} for language {LanguageCode}",
                 categoryKey, normalizedLanguageCode);
             return (null, new List<MediatorTrack>());
         }
@@ -56,7 +56,7 @@ internal sealed class DramaMediatorApiClient
 
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("category", out var categoryElement))
         {
-            logger.Warning("Invalid response structure for drama category {CategoryKey}", categoryKey);
+            logger.Warning("Invalid response structure for mediator category {CategoryKey}", categoryKey);
             return (null, new List<MediatorTrack>());
         }
 
@@ -88,7 +88,7 @@ internal sealed class DramaMediatorApiClient
 
         if (!categoryElement.TryGetProperty("media", out var mediaArray) || mediaArray.ValueKind != JsonValueKind.Array)
         {
-            logger.Warning("No media items found in drama category {CategoryKey}", categoryKey);
+            logger.Warning("No media items found in mediator category {CategoryKey}", categoryKey);
             return (localizedPubName, new List<MediatorTrack>());
         }
 

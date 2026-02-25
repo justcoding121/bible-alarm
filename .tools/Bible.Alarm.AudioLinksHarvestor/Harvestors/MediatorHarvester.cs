@@ -17,12 +17,12 @@ using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
-internal class DramaHarvester : BaseHarvester
+internal class MediatorHarvester : BaseHarvester
 {
     private readonly IDataPersister? dataPersister;
     private readonly SignLanguageChecker signLanguageChecker;
 
-    public DramaHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
+    public MediatorHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
         this.dataPersister = dataPersister;
@@ -34,7 +34,7 @@ internal class DramaHarvester : BaseHarvester
     /// </summary>
     private readonly ConcurrentDictionary<(string LanguageCode, string CategoryKey), string> localizedCategoryNames = new();
 
-    internal async Task HarvestDramaLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
+    internal async Task HarvestMediatorLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {
         // Track publications per language: languageCode -> set of publication codes
         var languageCodeToPublications = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
@@ -46,9 +46,9 @@ internal class DramaHarvester : BaseHarvester
             : mediatorCodes.ToList();
         foreach (var publicationCode in codesToHarvest)
         {
-            Logger.Information("Harvesting Drama publication: {PublicationCode}", publicationCode);
+            Logger.Information("Harvesting Mediator publication: {PublicationCode}", publicationCode);
 
-            await HarvestDramaPublication(
+            await HarvestMediatorPublication(
                 publicationCode,
                 publicationCode,
                 languageCodeToPublications,
@@ -57,7 +57,7 @@ internal class DramaHarvester : BaseHarvester
 
     }
 
-    private async Task HarvestDramaPublication(
+    private async Task HarvestMediatorPublication(
         string publicationCode,
         string publicationName,
         ConcurrentDictionary<string, ConcurrentDictionary<string, string>> languageCodeToPublications,
@@ -82,7 +82,7 @@ internal class DramaHarvester : BaseHarvester
         }
 
         // Parse the category response to get all unique languages
-        var languagesFromCategory = DramaCategoryLanguageExtractor.ExtractLanguagesFromCategory(jsonString, Logger);
+        var languagesFromCategory = MediatorCategoryLanguageExtractor.ExtractLanguagesFromCategory(jsonString, Logger);
         if (languagesFromCategory.Count == 0)
         {
             Logger.Warning("No languages found for publication {PublicationCode}. Skipping.", publicationCode);
@@ -99,7 +99,7 @@ internal class DramaHarvester : BaseHarvester
         }
 
         // Extract language info from English category response
-        var discoveredLanguages = DramaCategoryLanguageExtractor.ExtractLanguageInfoFromCategory(jsonString, languagesFromCategory, Logger);
+        var discoveredLanguages = MediatorCategoryLanguageExtractor.ExtractLanguageInfoFromCategory(jsonString, languagesFromCategory, Logger);
 
         // Filter out sign languages from discovered languages
         discoveredLanguages = await signLanguageChecker.FilterSignLanguagesAsync(discoveredLanguages);
@@ -164,7 +164,7 @@ internal class DramaHarvester : BaseHarvester
             return;
         }
 
-        var (allTracks, localizedPublicationName) = DramaSectionCodeExtractor.ExtractTracksFromMediatorCategory(
+        var (allTracks, localizedPublicationName) = MediatorSectionCodeExtractor.ExtractTracksFromMediatorCategory(
             jsonString,
             publicationCode,
             normalizedLanguageCode,
@@ -184,7 +184,7 @@ internal class DramaHarvester : BaseHarvester
         var finalPublicationName = localizedPublicationName ?? publicationName;
         publicationsForLanguage[publicationCode] = finalPublicationName;
 
-        var tracksBySection = new Dictionary<string, List<DramaTrack>>(StringComparer.OrdinalIgnoreCase)
+        var tracksBySection = new Dictionary<string, List<MediatorTrack>>(StringComparer.OrdinalIgnoreCase)
         {
             [publicationCode] = allTracks
         };
@@ -192,11 +192,11 @@ internal class DramaHarvester : BaseHarvester
 
         if (dataPersister != null)
         {
-            await dataPersister.SaveDramaPublication(normalizedLanguageCode, publicationCode, finalPublicationName, tracksBySection, sectionNames);
+            await dataPersister.SaveMediatorPublication(normalizedLanguageCode, publicationCode, finalPublicationName, tracksBySection, sectionNames);
         }
         else
         {
-            DramaFilePersistence.SaveDramaSectionsAndTracks(publicationCode, normalizedLanguageCode, tracksBySection, sectionNames);
+            MediatorFilePersistence.SaveMediatorSectionsAndTracks(publicationCode, normalizedLanguageCode, tracksBySection, sectionNames);
         }
 
         Logger.Information("Saved {Count} tracks for publication {PublicationCode} ({LanguageCode})", allTracks.Count, publicationCode, normalizedLanguageCode);

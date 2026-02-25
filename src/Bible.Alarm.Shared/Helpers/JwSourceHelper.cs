@@ -42,7 +42,7 @@ public static class JwSourceHelper
 
     /// <summary>
     /// Music category publications that use Mediator API for discovery (MediatorSectioned, video).
-    /// Tracks come from category.media[]; same harvest path as other mediator categories (e.g. DramaHarvester).
+    /// Tracks come from category.media[]; same harvest path as other mediator categories (e.g. MediatorHarvester).
     /// </summary>
     public static HashSet<string> MusicMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
@@ -397,7 +397,7 @@ public static class JwSourceHelper
     };
 
     /// <summary>
-    /// Series publications that use Mediator API for discovery (MediatorSectioned). Used by DramaHarvester.
+    /// Series publications that use Mediator API for discovery (MediatorSectioned). Used by MediatorHarvester.
     /// </summary>
     public static HashSet<string> SeriesMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {

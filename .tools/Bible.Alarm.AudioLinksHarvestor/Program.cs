@@ -94,13 +94,13 @@ public class Program
             {
                 b.MigrationsAssembly("Bible.Alarm.Shared");
                 b.CommandTimeout(60);
+                b.UseQuerySplittingBehavior(Microsoft.EntityFrameworkCore.QuerySplittingBehavior.SplitQuery);
             });
-            options.UseQuerySplittingBehavior(Microsoft.EntityFrameworkCore.QuerySplittingBehavior.SplitQuery);
         });
 
         services.AddTransient<BibleHarvester>();
         services.AddTransient<MusicHarvester>();
-        services.AddTransient<DramaHarvester>();
+        services.AddTransient<MediatorHarvester>();
         services.AddTransient<VideoHarvester>();
         services.AddTransient<DbSeeder>();
         services.AddTransient<DownloadUtility>();
@@ -162,7 +162,7 @@ public class Program
                 // Create harvesters with dataPersister
                 var bibleHarvester = new BibleHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
                 var musicHarvester = new MusicHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
-                var dramaHarvester = new DramaHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
+                var mediatorHarvester = new MediatorHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
                 var videoHarvester = new VideoHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
 
                 // Create a dictionary with publication codes (names will be extracted from API)
@@ -202,9 +202,9 @@ public class Program
                     musicHarvester.HarvestBrochuresAndBookletsLinks(isTestRun, publicationFilter)
                 };
 
-                var dramaTasks = new List<Task>
+                var mediatorTasks = new List<Task>
                 {
-                    dramaHarvester.HarvestDramaLinks(isTestRun, publicationFilter)
+                    mediatorHarvester.HarvestMediatorLinks(isTestRun, publicationFilter)
                 };
 
                 var videoTasks = new List<Task>
@@ -212,7 +212,7 @@ public class Program
                     videoHarvester.HarvestVideoLinks(isTestRun, publicationFilter)
                 };
 
-                await Task.WhenAll([.. bibleTasks, .. musicTasks, .. dramaTasks, .. videoTasks]);
+                await Task.WhenAll([.. bibleTasks, .. musicTasks, .. mediatorTasks, .. videoTasks]);
                 logger.Information("=== HARVESTING PHASE COMPLETED ===\n");
 
                 // Capture localized publication names from Bible harvester

@@ -16,15 +16,15 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Helper class for fetching drama tracks from GETPUBMEDIALINKS API.
+/// Helper class for fetching mediator tracks from GETPUBMEDIALINKS API.
 /// </summary>
-internal sealed class DramaTrackFetcher
+internal sealed class MediatorTrackFetcher
 {
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
-    private readonly DramaTrackParser trackParser;
+    private readonly MediatorTrackParser trackParser;
 
-    public DramaTrackFetcher(HttpClient httpClient, ILogger logger, DramaTrackParser trackParser)
+    public MediatorTrackFetcher(HttpClient httpClient, ILogger logger, MediatorTrackParser trackParser)
     {
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -43,7 +43,7 @@ internal sealed class DramaTrackFetcher
         var successful = 0;
         var failed = 0;
 
-        logger.Information("DramaTrackFetcher: Processing {ItemCount} media items for publication {PublicationCode} in language {LanguageCode}",
+        logger.Information("MediatorTrackFetcher: Processing {ItemCount} media items for publication {PublicationCode} in language {LanguageCode}",
             mediaItems.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         foreach (var (sectionCode, trackNumber) in mediaItems)
@@ -58,21 +58,21 @@ internal sealed class DramaTrackFetcher
                 {
                     allTracks.AddRange(tracks);
                     successful++;
-                    logger.Debug("DramaTrackFetcher: Fetched track {SectionCode}-{TrackNumber}",
+                    logger.Debug("MediatorTrackFetcher: Fetched track {SectionCode}-{TrackNumber}",
                         sectionCode, trackNumber);
                 }
                 else
                 {
                     failed++;
                     var url = BuildTrackRequestUrl(sectionCode, trackNumber, normalizedPublicationCode, normalizedLanguageCode);
-                    logger.Warning("DramaTrackFetcher: No track found for {SectionCode} track {TrackNumber}. URL: {Url}",
+                    logger.Warning("MediatorTrackFetcher: No track found for {SectionCode} track {TrackNumber}. URL: {Url}",
                         sectionCode, trackNumber, url);
                 }
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
                 failed++;
-                logger.Debug("DramaTrackFetcher: {SectionCode} track {TrackNumber} not available for {PublicationCode} in {LanguageCode}",
+                logger.Debug("MediatorTrackFetcher: {SectionCode} track {TrackNumber} not available for {PublicationCode} in {LanguageCode}",
                     sectionCode, trackNumber, normalizedPublicationCode, normalizedLanguageCode);
                 continue;
             }
@@ -84,13 +84,13 @@ internal sealed class DramaTrackFetcher
                 }
 
                 failed++;
-                logger.Warning(ex, "DramaTrackFetcher: Failed to fetch {SectionCode} track {TrackNumber} for {PublicationCode} in {LanguageCode}",
+                logger.Warning(ex, "MediatorTrackFetcher: Failed to fetch {SectionCode} track {TrackNumber} for {PublicationCode} in {LanguageCode}",
                     sectionCode, trackNumber, normalizedPublicationCode, normalizedLanguageCode);
                 continue;
             }
         }
 
-        logger.Information("DramaTrackFetcher: Completed. Successful: {SuccessfulCount}, Failed: {FailedCount}, Total tracks: {TrackCount}",
+        logger.Information("MediatorTrackFetcher: Completed. Successful: {SuccessfulCount}, Failed: {FailedCount}, Total tracks: {TrackCount}",
             successful, failed, allTracks.Count);
 
         return allTracks;
@@ -202,7 +202,7 @@ internal sealed class DramaTrackFetcher
 
         if (allTracks.Count > 0)
         {
-            logger.Information("DramaTrackFetcher: Sequential fetch for {SectionCode} returned {TrackCount} tracks (track 1..{LastTrack})",
+            logger.Information("MediatorTrackFetcher: Sequential fetch for {SectionCode} returned {TrackCount} tracks (track 1..{LastTrack})",
                 sectionCode, allTracks.Count, trackNumber - 1);
         }
 

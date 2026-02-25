@@ -81,14 +81,14 @@ public static class LookUpPathBuilder
     }
 
     /// <summary>
-    /// Builds a lookup path for a drama/video track using the Mediator API.
+    /// Builds a lookup path for a mediator track using the Mediator API.
     /// </summary>
-    /// <param name="categoryKey">The category key (e.g., "Dramas", "DramaticBibleReadings", "gnj")</param>
+    /// <param name="categoryKey">The category key (e.g., "Dramas", "DramaticBibleReadings", "MakingMusic")</param>
     /// <param name="languageCode">The language code (e.g., "E" for English)</param>
     /// <param name="trackCode">The track number</param>
     /// <param name="naturalKey">Optional natural key for more precise lookup (e.g., "pub-dwj_E_1_AUDIO")</param>
     /// <returns>The lookup path query string for Mediator API</returns>
-    public static string BuildDramaTrackLookUpPath(string categoryKey, string languageCode, string trackCode, string? naturalKey = null)
+    public static string BuildMediatorTrackLookUpPath(string categoryKey, string languageCode, string trackCode, string? naturalKey = null)
     {
         return $"?category={categoryKey}&lang={languageCode}";
     }

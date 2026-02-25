@@ -9,19 +9,19 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
-internal static class DramaSectionCodeExtractor
+internal static class MediatorSectionCodeExtractor
 {
     /// <summary>
     /// Extracts tracks with CDN URLs directly from the mediator response. Use this for mediator publications;
     /// do not call GETPUBMEDIALINKS when using mediator.
     /// </summary>
-    internal static (List<DramaTrack> Tracks, string? LocalizedPublicationName) ExtractTracksFromMediatorCategory(
+    internal static (List<MediatorTrack> Tracks, string? LocalizedPublicationName) ExtractTracksFromMediatorCategory(
         string jsonString,
         string publicationCode,
         string languageCode,
         ILogger logger)
     {
-        var tracks = new List<DramaTrack>();
+        var tracks = new List<MediatorTrack>();
         string? localizedPublicationName = null;
 
         try
@@ -114,7 +114,7 @@ internal static class DramaSectionCodeExtractor
                     title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
                 }
 
-                tracks.Add(new DramaTrack
+                tracks.Add(new MediatorTrack
                 {
                     TrackCode = trackCode,
                     Title = title,

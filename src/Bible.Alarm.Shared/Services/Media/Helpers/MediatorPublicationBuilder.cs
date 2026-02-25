@@ -15,14 +15,14 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Helper class for building and saving drama publications.
+/// Helper class for building and saving mediator (MediatorSectioned) publications.
 /// One publication row per (PublicationCode, LanguageId); categories are for UX filtering only.
 /// </summary>
-internal sealed class DramaPublicationBuilder
+internal sealed class MediatorPublicationBuilder
 {
     private readonly ILogger logger;
 
-    public DramaPublicationBuilder(ILogger logger)
+    public MediatorPublicationBuilder(ILogger logger)
     {
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -45,7 +45,7 @@ internal sealed class DramaPublicationBuilder
     {
         if (tracks.Count == 0)
         {
-            logger.Warning("No tracks found for drama {PublicationCode}", publicationCodeForDb);
+            logger.Warning("No tracks found for mediator publication {PublicationCode}", publicationCodeForDb);
             return false;
         }
 
@@ -125,7 +125,7 @@ internal sealed class DramaPublicationBuilder
         db.BiblePublications.Add(publication);
         await db.SaveChangesAsync(cancellationToken);
 
-        logger.Information("Successfully fetched {Count} tracks for drama {PublicationCode}",
+        logger.Information("Successfully fetched {Count} tracks for mediator publication {PublicationCode}",
             tracks.Count, publicationCodeForDb);
 
         return true;
@@ -154,7 +154,7 @@ internal sealed class DramaPublicationBuilder
             return canonical;
         }
 
-        logger.Warning("Unknown drama publication code: {PublicationCode}", normalizedPublicationCode);
+        logger.Warning("Unknown mediator publication code: {PublicationCode}", normalizedPublicationCode);
         return normalizedPublicationCode;
     }
 }
