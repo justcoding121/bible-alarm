@@ -61,6 +61,21 @@ public static class JwSourceHelper
     };
 
     /// <summary>
+    /// Returns true if the publication code is considered music (vocal, melody, mediator music, or music-flag).
+    /// Used when BiblePublication is not yet harvested so we can still skip cross-pub from music in prev/next logic.
+    /// </summary>
+    public static bool IsMusicPublicationCode(string? publicationCode)
+    {
+        if (string.IsNullOrWhiteSpace(publicationCode))
+            return false;
+        var code = publicationCode.Trim();
+        return VocalMusicPublicationCodes.Contains(code) ||
+               MelodyMusicPublicationCodes.Contains(code) ||
+               MusicMediatorPublicationCodes.Contains(code) ||
+               MusicFlagPublicationCodes.Contains(code);
+    }
+
+    /// <summary>
     /// Video publication codes used for seeding.
     /// </summary>
     public static HashSet<string> VideoPublicationCodes => new(StringComparer.OrdinalIgnoreCase)

@@ -113,6 +113,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     LanguageId = table.Column<int>(type: "INTEGER", nullable: true),
                     HarvestType = table.Column<int>(type: "INTEGER", nullable: true),
+                    IsMusic = table.Column<bool>(type: "INTEGER", nullable: false),
                     CategoryId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>

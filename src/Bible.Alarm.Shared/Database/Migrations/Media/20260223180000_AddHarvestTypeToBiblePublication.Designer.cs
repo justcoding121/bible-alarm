@@ -140,6 +140,9 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.Property<int?>("HarvestType")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsMusic")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("LanguageId")
                         .HasColumnType("INTEGER");
 

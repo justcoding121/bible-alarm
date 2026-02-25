@@ -498,17 +498,18 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         var nextTrackCode = TrackCodeHelper.GetFromTrack(next.Value);
         var nextSectionCode = next.Key?.SectionCode;
+        var nextPublicationCode = next.Value.Publication?.PublicationCode ?? currentTrackMetadata.PublicationCode;
 
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, nextSectionCode, StringComparison.OrdinalIgnoreCase);
         if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)
         {
-            await scheduleDisplayRefresher.RefreshAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, nextSectionCode, cancellationTokenSource.Token);
+            await scheduleDisplayRefresher.RefreshAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, nextPublicationCode, nextSectionCode, cancellationTokenSource.Token);
         }
 
         return await biblePlayItemBuilder.BuildPlayItemAsync(
             currentTrackMetadata.ScheduleId,
             currentTrackMetadata.LanguageCode,
-            currentTrackMetadata.PublicationCode,
+            nextPublicationCode,
             nextSectionCode,
             nextTrackCode);
     }
@@ -555,17 +556,18 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         var prevTrackCode = TrackCodeHelper.GetFromTrack(previous.Value);
         var prevSectionCode = previous.Key?.SectionCode;
+        var prevPublicationCode = previous.Value.Publication?.PublicationCode ?? currentTrackMetadata.PublicationCode;
 
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, prevSectionCode, StringComparison.OrdinalIgnoreCase);
         if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)
         {
-            await scheduleDisplayRefresher.RefreshAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, prevSectionCode, cancellationTokenSource.Token);
+            await scheduleDisplayRefresher.RefreshAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, prevPublicationCode, prevSectionCode, cancellationTokenSource.Token);
         }
 
         return await biblePlayItemBuilder.BuildPlayItemAsync(
             currentTrackMetadata.ScheduleId,
             currentTrackMetadata.LanguageCode,
-            currentTrackMetadata.PublicationCode,
+            prevPublicationCode,
             prevSectionCode,
             prevTrackCode);
     }

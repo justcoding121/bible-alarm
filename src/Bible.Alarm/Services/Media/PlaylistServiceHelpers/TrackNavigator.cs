@@ -19,6 +19,7 @@ public sealed class TrackNavigator
 {
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService biblePublicationService;
+    private readonly ILanguageContentService? languageContentService;
     private readonly ILogger? logger;
 
     public TrackNavigator(
@@ -30,6 +31,7 @@ public sealed class TrackNavigator
     {
         this.mediaService = mediaService;
         this.biblePublicationService = biblePublicationService;
+        this.languageContentService = languageContentService;
         this.logger = logger;
         NonSectionedHelper = new TrackNavigatorNonSectionedHelper(
             biblePublicationService,
@@ -417,6 +419,25 @@ public sealed class TrackNavigator
             return (null, first);
         }
 
+        if (languageContentService != null && (pubWithTracks == null || pubWithTracks.Tracks == null || pubWithTracks.Tracks.Count == 0))
+        {
+            var ensured = await languageContentService.EnsurePublicationExistsAsync(
+                publicationCode,
+                languageCode,
+                CancellationToken.None,
+                sectionFetchProgress);
+            if (ensured)
+            {
+                biblePublicationService.InvalidatePublicationCaches(languageCode, publicationCode);
+                pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+                if (pubWithTracks?.Tracks != null && pubWithTracks.Tracks.Count > 0)
+                {
+                    var first = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
+                    return (null, first);
+                }
+            }
+        }
+
         var discoveredSectionCodes = await SectionHarvester.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
         if (discoveredSectionCodes.Count == 0)
         {
@@ -458,6 +479,25 @@ public sealed class TrackNavigator
         {
             var last = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).Last();
             return (null, last);
+        }
+
+        if (languageContentService != null && (pubWithTracks == null || pubWithTracks.Tracks == null || pubWithTracks.Tracks.Count == 0))
+        {
+            var ensured = await languageContentService.EnsurePublicationExistsAsync(
+                publicationCode,
+                languageCode,
+                CancellationToken.None,
+                sectionFetchProgress);
+            if (ensured)
+            {
+                biblePublicationService.InvalidatePublicationCaches(languageCode, publicationCode);
+                pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+                if (pubWithTracks?.Tracks != null && pubWithTracks.Tracks.Count > 0)
+                {
+                    var last = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).Last();
+                    return (null, last);
+                }
+            }
         }
 
         var discoveredSectionCodes = await SectionHarvester.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);

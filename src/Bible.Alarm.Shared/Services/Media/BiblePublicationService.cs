@@ -190,6 +190,11 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                     publicationCodeForDb, publication.Tracks.Count, distinctByCode.Count);
                 publication.Tracks = distinctByCode;
             }
+
+            foreach (var track in publication.Tracks)
+            {
+                track.Publication = publication;
+            }
         }
 
         logger.Debug("GetByLanguageAndCodeWithTracksAsync: Loaded publication={PublicationName}, TracksCount={TracksCount} for language={LanguageCode}, code={PublicationCode} (dbCode={DbCode})",
@@ -454,13 +459,27 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (noLangPub == null)
+            if (noLangPub != null)
+            {
+                var catCode = noLangPub.PrimaryCategory?.CategoryCode;
+                return (catCode, noLangPub.IsMusic);
+            }
+
+            var pl = await dbContext.PublicationLanguages
+                .AsNoTracking()
+                .Include(x => x.Category)
+                .Where(x => x.PublicationCode == publicationCode)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (pl?.Category == null)
             {
                 return null;
             }
 
-            var catCode = noLangPub.PrimaryCategory?.CategoryCode;
-            return (catCode, noLangPub.IsMusic);
+            var categoryCodeFromDiscovery = pl.Category.CategoryCode;
+            var isMusicInferred = string.Equals(categoryCodeFromDiscovery, "Music", StringComparison.OrdinalIgnoreCase) ||
+                                  JwSourceHelper.IsMusicPublicationCode(publicationCode);
+            return (categoryCodeFromDiscovery, isMusicInferred);
         }
         catch (Exception ex)
         {
@@ -474,19 +493,20 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
     {
         try
         {
-            var languageBound = await GetByLanguageCodeAsync(languageCode, categoryCode, cancellationToken);
-            var codes = new HashSet<string>(languageBound.Keys, StringComparer.OrdinalIgnoreCase);
+            var discoveredForLanguage = await GetAvailablePublicationCodesAsync(languageCode, categoryCode, cancellationToken);
+            var discoveredForDefault = await GetAvailablePublicationCodesAsync(AppConstants.Media.DefaultLanguageCode, categoryCode, cancellationToken);
+            var harvested = await GetByLanguageCodeAsync(languageCode, categoryCode, cancellationToken);
 
-            using var scope = scopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var noLangCodes = await dbContext.BiblePublications
-                .AsNoTracking()
-                .Where(x => x.LanguageId == null && x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryCode))
-                .Select(x => x.PublicationCode)
-                .ToListAsync(cancellationToken);
-
-            foreach (var code in noLangCodes)
+            var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var code in discoveredForLanguage)
+            {
+                codes.Add(code);
+            }
+            foreach (var code in discoveredForDefault)
+            {
+                codes.Add(code);
+            }
+            foreach (var code in harvested.Keys)
             {
                 codes.Add(code);
             }
@@ -500,6 +520,16 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 languageCode, categoryCode);
             throw;
         }
+    }
+
+    public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+    {
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+        var lowerCode = publicationCode.ToLowerInvariant();
+        var publicationCodeForDb = JwSourceHelper.GetCanonicalDramaPublicationCode(lowerCode) ?? publicationCode;
+        var key = new PublicationCacheKey(normalizedLanguageCode, publicationCodeForDb);
+        publicationWithTracksCache.TryRemove(key, out _);
+        publicationWithSectionsCache.TryRemove(key, out _);
     }
 
     public void Dispose()

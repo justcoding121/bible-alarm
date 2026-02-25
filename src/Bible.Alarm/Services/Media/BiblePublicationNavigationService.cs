@@ -108,6 +108,10 @@ public sealed class BiblePublicationNavigationService(
             schedule.SectionCode = prevTrack.Key?.SectionCode;
             schedule.TrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(prevTrack.Value);
             schedule.FinishedDuration = TimeSpan.Zero;
+            if (prevTrack.Value.Publication != null)
+            {
+                schedule.PublicationCode = prevTrack.Value.Publication.PublicationCode;
+            }
             return true;
         }
         catch (Exception ex)
@@ -143,6 +147,10 @@ public sealed class BiblePublicationNavigationService(
 
             schedule.SectionCode = nextTrack.Key?.SectionCode;
             schedule.TrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(nextTrack.Value);
+            if (nextTrack.Value.Publication != null)
+            {
+                schedule.PublicationCode = nextTrack.Value.Publication.PublicationCode;
+            }
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }

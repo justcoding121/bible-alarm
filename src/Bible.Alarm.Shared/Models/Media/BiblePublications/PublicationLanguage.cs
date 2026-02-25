@@ -56,6 +56,12 @@ public sealed class PublicationLanguage
     public Media.Category Category { get; set; } = null!;
 
     /// <summary>
+    /// True when this publication is music (vocal, melody, or music-flag). Set during discovery/harvest.
+    /// Used for prev/next cross-pub logic when BiblePublication is not yet harvested.
+    /// </summary>
+    public bool IsMusic { get; set; }
+
+    /// <summary>
     /// Navigation property to SectionLanguages (sections available in this language for this publication)
     /// </summary>
     public List<SectionLanguage> SectionLanguages { get; set; } = [];

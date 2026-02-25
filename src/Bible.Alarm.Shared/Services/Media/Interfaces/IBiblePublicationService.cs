@@ -62,5 +62,11 @@ public interface IBiblePublicationService : IDisposable
     /// Includes both language-bound publications for the given language and no-language publications in the category.
     /// </summary>
     Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Invalidates cached publication data for the given language and code so the next load fetches from DB.
+    /// Call after ad-hoc fetch (e.g. EnsurePublicationExistsAsync) so navigation sees the new data.
+    /// </summary>
+    void InvalidatePublicationCaches(string languageCode, string publicationCode);
 }
 
