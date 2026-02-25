@@ -4,6 +4,7 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
@@ -59,7 +60,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
     /// <summary>
     /// Gets whether the music selection container should be visible.
-    /// Returns false when the selected publication is a music publication (BiblePublicationIsMusic).
+    /// Returns false when the selected publication is a music publication (BiblePublicationIsMusic or publication code in MusicFlagPublicationCodes).
     /// </summary>
     public bool IsMusicSelectionVisible
     {
@@ -71,7 +72,10 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 return false;
             }
 
-            return !currentSchedule.BiblePublicationIsMusic;
+            var pubCode = currentSchedule.BiblePublicationCode;
+            var isMusicPublication = currentSchedule.BiblePublicationIsMusic ||
+                (!string.IsNullOrWhiteSpace(pubCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(pubCode));
+            return !isMusicPublication;
         }
     }
 

@@ -45,8 +45,9 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         model.NumberOfTracksToPlay = currentSchedule?.NumberOfTracksToPlay ?? 0;
         model.AlwaysPlayFromStart = currentSchedule?.AlwaysPlayFromStart ?? false;
 
-        // Persist category code only for non-music publication schedules (music publication schedules do not need category code)
-        var isMusicPublication = currentSchedule?.BiblePublicationIsMusic ?? false;
+        var pubCode = currentSchedule?.BiblePublicationCode;
+        var isMusicPublication = (currentSchedule?.BiblePublicationIsMusic ?? false) ||
+            (!string.IsNullOrWhiteSpace(pubCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(pubCode));
         model.CategoryCode = isMusicPublication ? null : (string.IsNullOrWhiteSpace(currentSchedule?.BiblePublicationCategoryName) ? null : currentSchedule.BiblePublicationCategoryName);
 
         // For Bible/Music schedule content, always keep the selected language (even for no-language pubs) so the schedule page can show language + pubs. Only normalize begin-with-music (AlarmMusic) for no-language.
@@ -174,10 +175,11 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 
         scheduleStateItem.BiblePublicationCategoryId = currentSchedule.BiblePublicationCategoryId;
         scheduleStateItem.BiblePublicationCategoryName = currentSchedule.BiblePublicationCategoryName;
-        scheduleStateItem.BiblePublicationIsMusic = currentSchedule.BiblePublicationIsMusic;
 
-        // Ensure MusicEnabled, NumberOfTracksToPlay, AlwaysPlayFromStart, and all display names are set from CurrentSchedule state
-        if (currentSchedule.BiblePublicationIsMusic)
+        var isMusicPub = currentSchedule.BiblePublicationIsMusic ||
+            (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(currentSchedule.BiblePublicationCode));
+        scheduleStateItem.BiblePublicationIsMusic = isMusicPub;
+        if (isMusicPub)
         {
             scheduleStateItem.MusicEnabled = false;
             scheduleStateItem.MusicTrackCode = null;
@@ -224,8 +226,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             scheduleStateItem.BiblePublicationName ?? "null",
             scheduleStateItem.MusicTrackName ?? "null");
 
-        // If music was updated, always use music properties from CurrentSchedule state
-        if (musicUpdated && !currentSchedule.BiblePublicationIsMusic)
+        if (musicUpdated && !isMusicPub)
         {
             logger.Information("PrepareScheduleStateItem: musicUpdated=true, overriding with CurrentSchedule state");
             if (!string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&

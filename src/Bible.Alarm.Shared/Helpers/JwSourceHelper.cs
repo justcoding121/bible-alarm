@@ -41,10 +41,11 @@ public static class JwSourceHelper
     };
 
     /// <summary>
-    /// Publication codes that should be flagged IsMusic = true even when not under the Music category (e.g. Series that are music).
+    /// Publication codes that should be flagged IsMusic = true even when not under the Music category (e.g. Children Songs, Video Series songs).
     /// </summary>
     public static HashSet<string> MusicFlagPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
+        "ChildrenSongs",
         "SeriesBJFSongs"
     };
 

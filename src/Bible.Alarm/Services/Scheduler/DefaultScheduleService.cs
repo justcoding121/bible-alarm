@@ -131,10 +131,24 @@ public sealed class DefaultScheduleService(
             };
         }
 
-        var ordered = schedules.OrderBy(s => s.Id).ToList();
+        // Exclude Music-category schedules so we don't get stuck in a music-only schedule during rotation
+        var rotatable = schedules.Where(s => !s.BiblePublicationIsMusic).OrderBy(s => s.Id).ToList();
+        if (rotatable.Count == 0)
+        {
+            logger.Warning("GetNextScheduleInRotationMetadataAsync: No non-Music schedules; returning fallback");
+            return new ScheduleTrackMetadata
+            {
+                ScheduleId = 0,
+                Title = string.Empty,
+                Artist = string.Empty,
+                Album = null,
+                ArtworkUrl = null
+            };
+        }
+
         var lastId = AndroidAutoRotationHelper.GetLastRotationScheduleId();
         var index = lastId.HasValue
-            ? ordered.FindIndex(s => s.Id == lastId.Value)
+            ? rotatable.FindIndex(s => s.Id == lastId.Value)
             : -1;
         if (index < 0)
         {
@@ -142,13 +156,13 @@ public sealed class DefaultScheduleService(
         }
         else
         {
-            index = (index + 1) % ordered.Count;
+            index = (index + 1) % rotatable.Count;
         }
 
-        var scheduleId = ordered[index].Id;
+        var scheduleId = rotatable[index].Id;
         var metadata = await GetTrackMetadataForScheduleAsync(scheduleId);
         AndroidAutoRotationHelper.SetLastRotationScheduleId(scheduleId);
-        logger.Debug("GetNextScheduleInRotationMetadataAsync: Rotated to schedule index {Index}, ScheduleId={ScheduleId}", index, scheduleId);
+        logger.Debug("GetNextScheduleInRotationMetadataAsync: Rotated to schedule index {Index}, ScheduleId={ScheduleId} (Music schedules skipped)", index, scheduleId);
         return metadata;
     }
 

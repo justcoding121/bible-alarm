@@ -112,7 +112,9 @@ public static class ScheduleStateSyncHelper
             return false;
         }
 
-        if (!schedule.BiblePublicationIsMusic && string.IsNullOrWhiteSpace(schedule.BiblePublicationLanguageCode))
+        var isMusicPub = schedule.BiblePublicationIsMusic ||
+            (!string.IsNullOrWhiteSpace(schedule.BiblePublicationCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(schedule.BiblePublicationCode));
+        if (!isMusicPub && string.IsNullOrWhiteSpace(schedule.BiblePublicationLanguageCode))
         {
             return false;
         }

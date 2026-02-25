@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -411,7 +412,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Determines if MusicSelectionContainer should be visible.
-    /// Returns false when the selected publication is a music publication (BiblePublicationIsMusic).
+    /// Returns false when the selected publication is a music publication (BiblePublicationIsMusic or publication code in MusicFlagPublicationCodes).
     /// </summary>
     public bool IsMusicSelectionVisible
     {
@@ -421,12 +422,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (currentSchedule == null)
             {
                 logger.Debug("IsMusicSelectionVisible: CurrentSchedule is null, returning false (hide container)");
-                return false; // Hide container when no schedule is active (e.g., during navigation)
+                return false;
             }
 
-            var isVisible = !currentSchedule.BiblePublicationIsMusic;
-            logger.Debug("IsMusicSelectionVisible: BiblePublicationIsMusic={IsMusic}, Returning={IsVisible}",
-                currentSchedule.BiblePublicationIsMusic, isVisible);
+            var pubCode = currentSchedule.BiblePublicationCode;
+            var isMusicPublication = currentSchedule.BiblePublicationIsMusic ||
+                (!string.IsNullOrWhiteSpace(pubCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(pubCode));
+            var isVisible = !isMusicPublication;
+            logger.Debug("IsMusicSelectionVisible: BiblePublicationIsMusic={IsMusic}, PubCode={PubCode}, IsMusicPublication={IsMusicPub}, Returning={IsVisible}",
+                currentSchedule.BiblePublicationIsMusic, pubCode ?? "(null)", isMusicPublication, isVisible);
             return isVisible;
         }
     }

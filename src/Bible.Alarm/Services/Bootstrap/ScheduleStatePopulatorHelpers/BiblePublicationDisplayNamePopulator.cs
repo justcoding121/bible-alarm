@@ -118,7 +118,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
                         noLangMeta.Name, schedule.Id, biblePublication.PublicationCode);
                 }
 
-                scheduleStateItem.BiblePublicationIsMusic = noLangMeta.IsMusic;
+                scheduleStateItem.BiblePublicationIsMusic = noLangMeta.IsMusic ||
+                    JwSourceHelper.MusicFlagPublicationCodes.Contains(biblePublication.PublicationCode);
                 if (!string.IsNullOrWhiteSpace(noLangMeta.CategoryName)) // CategoryName holds CategoryCode for display/filter
                 {
                     scheduleStateItem.BiblePublicationCategoryId = noLangMeta.CategoryId;
@@ -143,7 +144,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
                     publication.Name, schedule.Id, biblePublication.PublicationCode, effectiveLanguageCode);
             }
 
-            scheduleStateItem.BiblePublicationIsMusic = publication.IsMusic;
+            scheduleStateItem.BiblePublicationIsMusic = publication.IsMusic ||
+                JwSourceHelper.MusicFlagPublicationCodes.Contains(biblePublication.PublicationCode);
             // Populate category from publication
             if (publication.PrimaryCategory != null)
             {

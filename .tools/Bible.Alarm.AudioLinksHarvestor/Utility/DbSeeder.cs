@@ -222,7 +222,8 @@ internal class DbSeeder : IDataPersister
         bool isVideo = false)
     {
         var normalizedCode = publication.Code.ToLowerInvariant();
-        var isMusic = category.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
+        var isMusic = category.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase) ||
+                      JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedCode);
         var biblePublication = new BiblePublication
         {
             Name = publication.Name,

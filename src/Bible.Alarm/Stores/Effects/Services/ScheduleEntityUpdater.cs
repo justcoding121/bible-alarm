@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -19,7 +20,9 @@ public static class ScheduleEntityUpdater
     {
         UpdateBasicScheduleProperties(existing, dbSchedule);
 
-        var isMusicPublicationSchedule = action.Schedule?.BiblePublicationIsMusic ?? false;
+        var pubCode = action.Schedule?.BiblePublicationCode;
+        var isMusicPublicationSchedule = (action.Schedule?.BiblePublicationIsMusic ?? false) ||
+            (!string.IsNullOrWhiteSpace(pubCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(pubCode));
         if (isMusicPublicationSchedule)
         {
             if (existing.Music != null)

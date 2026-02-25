@@ -349,9 +349,9 @@ public class ScheduleEffects(
     }
 
     /// <summary>
-    /// Effect: Sync CurrentBiblePublicationSchedule to CurrentSchedule when TrackSelectedAction is dispatched.
-    /// This ensures that when sub-pages update CurrentBiblePublicationSchedule, CurrentSchedule is also updated
-    /// so the schedule page displays the changes immediately.
+    /// Effect: After Bible track selection, populate display names (including BiblePublicationIsMusic) so the music container
+    /// visibility updates when switching between music and non-music publications (e.g. ChildrenSongs → ChildrenMovies).
+    /// Then refresh modal counts.
     /// </summary>
     [EffectMethod]
     public async Task HandleBiblePublicationTrackSelected(Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction action, IDispatcher dispatcher)
@@ -365,11 +365,18 @@ public class ScheduleEffects(
                 return;
             }
 
-            await TryDispatchModalCountsUpdateAsync(currentSchedule, dispatcher, reason: "Bible TrackSelectedAction");
+            var scheduleCopy = currentSchedule.DeepClone();
+            var alarmSchedule = mapper.Map<AlarmSchedule>(scheduleCopy);
+            await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleCopy, alarmSchedule);
+            dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleCopy));
+            Log.Debug("ScheduleEffects: Populated Bible display names after track selection (BiblePublicationIsMusic={IsMusic}, PubCode={PubCode})",
+                scheduleCopy.BiblePublicationIsMusic, scheduleCopy.BiblePublicationCode);
+
+            await TryDispatchModalCountsUpdateAsync(scheduleCopy, dispatcher, reason: "Bible TrackSelectedAction");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleBiblePublicationTrackSelected (modal counts)");
+            Log.Error(ex, "ScheduleEffects: Error in HandleBiblePublicationTrackSelected");
         }
     }
 
