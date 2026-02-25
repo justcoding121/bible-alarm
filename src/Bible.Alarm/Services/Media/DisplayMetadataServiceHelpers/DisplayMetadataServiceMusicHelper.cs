@@ -90,9 +90,8 @@ internal sealed class DisplayMetadataServiceMusicHelper
 
         var tracks = await mediaService.GetVocalMusicTracks(trackMetadata.LanguageCode, trackMetadata.PublicationCode);
         if (!string.IsNullOrWhiteSpace(trackMetadata.TrackCode) &&
-            int.TryParse(trackMetadata.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-            tracks.TryGetValue(trackNum, out var vocalTrack))
-            meta.Title = vocalTrack.Title;
+            Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, trackMetadata.TrackCode, out var vocalPair))
+            meta.Title = vocalPair.Track.Title;
     }
 
     private static string? NormalizeTitle(string? rawTitle)

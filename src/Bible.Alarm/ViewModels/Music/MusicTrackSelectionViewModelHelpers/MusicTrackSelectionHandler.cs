@@ -45,7 +45,7 @@ public sealed class MusicTrackSelectionHandler(
 
         if (current == null)
             current = new AlarmMusic();
-        current.TrackCode = track.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        current.TrackCode = track.TrackCode;
         current.Repeat = track.Repeat;
 
         var trackSelectedItem = new MusicStateItem
@@ -55,7 +55,7 @@ public sealed class MusicTrackSelectionHandler(
             SectionCode = PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode)
                 ? currentSchedule.MusicSectionCode
                 : null,
-            TrackCode = track.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            TrackCode = track.TrackCode,
             Repeat = track.Repeat,
             LanguageName = currentSchedule.MusicLanguageName,
             LanguageDirection = currentSchedule.MusicLanguageDirection,

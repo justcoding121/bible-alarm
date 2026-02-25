@@ -212,10 +212,9 @@ public sealed class DisplayMetadataService(
             var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode);
             var trackCode = trackMetadata.OriginalTrackCode?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? trackMetadata.TrackCode;
             if (!string.IsNullOrWhiteSpace(trackCode) &&
-                int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum) &&
-                tracks.TryGetValue(parsedTrackNum, out var melodyTrack))
+                Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, trackCode, out var melodyPair))
             {
-                meta.Title = NormalizeTitle(melodyTrack.Title);
+                meta.Title = NormalizeTitle(melodyPair.Track.Title);
             }
         }
         catch (Exception ex)

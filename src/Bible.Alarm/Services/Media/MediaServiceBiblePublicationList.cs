@@ -42,30 +42,26 @@ internal static class MediaServiceBiblePublicationList
         var downloadedPublications = await biblePublicationService.GetByLanguageCodeAsync(
             languageCode, categoryName, cancellationToken);
 
-        // Non-language publications (LanguageId == null) only under English on schedule page.
+        // Include non-language publications (LanguageId == null) for the category in every language.
         Dictionary<string, BiblePublication> publicationsWithoutLanguage = new();
-        var includeNoLanguagePubs = string.Equals(languageCode, AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase);
-        if (includeNoLanguagePubs)
+        using (var scope = scopeFactory.CreateScope())
         {
-            using (var scope = scopeFactory.CreateScope())
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            var query = db.BiblePublications
+                .AsNoTracking()
+                .Include(x => x.BiblePublicationCategories)
+                .ThenInclude(x => x.Category)
+                .Where(x => x.LanguageId == null);
+
+            if (!string.IsNullOrWhiteSpace(categoryName))
             {
-                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                var query = db.BiblePublications
-                    .AsNoTracking()
-                    .Include(x => x.BiblePublicationCategories)
-                    .ThenInclude(x => x.Category)
-                    .Where(x => x.LanguageId == null);
+                query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
+            }
 
-                if (!string.IsNullOrWhiteSpace(categoryName))
-                {
-                    query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
-                }
-
-                var pubsWithoutLang = await query.ToListAsync(cancellationToken);
-                foreach (var pub in pubsWithoutLang)
-                {
-                    publicationsWithoutLanguage[pub.PublicationCode] = pub;
-                }
+            var pubsWithoutLang = await query.ToListAsync(cancellationToken);
+            foreach (var pub in pubsWithoutLang)
+            {
+                publicationsWithoutLanguage[pub.PublicationCode] = pub;
             }
         }
 
@@ -84,15 +80,12 @@ internal static class MediaServiceBiblePublicationList
             result[downloadedPub.PublicationCode] = downloadedPub;
         }
 
-        if (includeNoLanguagePubs)
+        foreach (var pubWithoutLang in publicationsWithoutLanguage.Values)
         {
-            foreach (var pubWithoutLang in publicationsWithoutLanguage.Values)
-            {
-                var code = pubWithoutLang.PublicationCode;
-                if (result.ContainsKey(code))
-                    continue;
-                result[code] = pubWithoutLang;
-            }
+            var code = pubWithoutLang.PublicationCode;
+            if (result.ContainsKey(code))
+                continue;
+            result[code] = pubWithoutLang;
         }
 
         // Create placeholders for publications that are available but not yet downloaded
@@ -109,8 +102,7 @@ internal static class MediaServiceBiblePublicationList
         {
             Log.Debug("GetBiblePublications: Creating placeholders for {Count} publications not yet downloaded", missingPublicationCodes.Count);
 
-            // Get Category and Language info from PublicationLanguages for missing publications with LanguageId
-            // Use case-sensitive codes: "Dramas", "DramaticBibleReadings", "DramasGoodNews" (preserve exact case)
+            // Get Category and Language info from PublicationLanguages: current language + non-languaged.
             var publicationLanguageInfo = await dbContext.PublicationLanguages
                 .AsNoTracking()
                 .Include(pl => pl.Category)
@@ -119,16 +111,12 @@ internal static class MediaServiceBiblePublicationList
                 .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
                 .ToListAsync(cancellationToken);
 
-            List<PublicationLanguage> publicationLanguagesWithoutLanguage = new();
-            if (includeNoLanguagePubs)
-            {
-                publicationLanguagesWithoutLanguage = await dbContext.PublicationLanguages
-                    .AsNoTracking()
-                    .Include(pl => pl.Category)
-                    .Where(pl => pl.LanguageId == null)
-                    .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
-                    .ToListAsync(cancellationToken);
-            }
+            var publicationLanguagesWithoutLanguage = await dbContext.PublicationLanguages
+                .AsNoTracking()
+                .Include(pl => pl.Category)
+                .Where(pl => pl.LanguageId == null)
+                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
+                .ToListAsync(cancellationToken);
 
             var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -184,45 +172,42 @@ internal static class MediaServiceBiblePublicationList
             }
         }
 
-        if (includeNoLanguagePubs)
+        var publicationLanguagesWithoutLanguageForPlaceholders = await dbContext.PublicationLanguages
+            .AsNoTracking()
+            .Include(pl => pl.Category)
+            .Where(pl => pl.LanguageId == null)
+            .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
+            .ToListAsync(cancellationToken);
+
+        foreach (var plInfo in publicationLanguagesWithoutLanguageForPlaceholders)
         {
-            var publicationLanguagesWithoutLanguageForPlaceholders = await dbContext.PublicationLanguages
-                .AsNoTracking()
-                .Include(pl => pl.Category)
-                .Where(pl => pl.LanguageId == null)
-                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
-                .ToListAsync(cancellationToken);
-
-            foreach (var plInfo in publicationLanguagesWithoutLanguageForPlaceholders)
+            var codeForKey = plInfo.PublicationCode;
+            var lowerCode = codeForKey.ToLowerInvariant();
+            if (PublicationTypeHelper.IsDrama(lowerCode))
             {
-                var codeForKey = plInfo.PublicationCode;
-                var lowerCode = codeForKey.ToLowerInvariant();
-                if (PublicationTypeHelper.IsDrama(lowerCode))
-                {
-                    codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                        ? "Dramas"
-                        : "DramaticBibleReadings";
-                }
+                codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
 
-                if (!result.ContainsKey(codeForKey) && plInfo.Category != null)
+            if (!result.ContainsKey(codeForKey) && plInfo.Category != null)
+            {
+                var isMusic = plInfo.Category.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
+                var placeholder = new BiblePublication
                 {
-                    var isMusic = plInfo.Category.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
-                    var placeholder = new BiblePublication
-                    {
-                        Id = 0,
-                        PublicationCode = codeForKey,
-                        Name = codeForKey,
-                        BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = plInfo.CategoryId, Category = plInfo.Category } },
-                        LanguageId = null,
-                        Language = null,
-                        Sections = new List<BiblePublicationSection>(),
-                        Tracks = new List<BiblePublicationTrack>(),
-                        IsVideo = false,
-                        IsMusic = isMusic
-                    };
+                    Id = 0,
+                    PublicationCode = codeForKey,
+                    Name = codeForKey,
+                    BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = plInfo.CategoryId, Category = plInfo.Category } },
+                    LanguageId = null,
+                    Language = null,
+                    Sections = new List<BiblePublicationSection>(),
+                    Tracks = new List<BiblePublicationTrack>(),
+                    IsVideo = false,
+                    IsMusic = isMusic
+                };
 
-                    result[placeholder.PublicationCode] = placeholder;
-                }
+                result[placeholder.PublicationCode] = placeholder;
             }
         }
 

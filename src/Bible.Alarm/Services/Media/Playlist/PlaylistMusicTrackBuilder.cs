@@ -197,18 +197,19 @@ public class PlaylistMusicTrackBuilder
             throw new InvalidOperationException("No tracks available");
         }
 
-        if (!int.TryParse(currentTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var currentTrackNum))
+        var keys = tracks.Keys.ToList();
+        var currentKey = MusicTrackLookupHelper.GetKeyByCode(tracks, currentTrackCode);
+        if (!currentKey.HasValue)
         {
-            return tracks.Keys.First();
+            return next ? keys[0] : keys[^1];
         }
 
         if (!next)
         {
-            return tracks.ContainsKey(currentTrackNum) ? currentTrackNum : tracks.Keys.First();
+            return currentKey.Value;
         }
 
-        var keys = tracks.Keys.ToList();
-        var currentIndex = keys.IndexOf(currentTrackNum);
+        var currentIndex = keys.IndexOf(currentKey.Value);
         if (currentIndex < 0)
         {
             return keys[0];
@@ -223,13 +224,14 @@ public class PlaylistMusicTrackBuilder
             throw new InvalidOperationException("No tracks available");
         }
 
-        if (!int.TryParse(currentTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var currentTrackNum))
+        var keys = tracks.Keys.ToList();
+        var currentKey = MusicTrackLookupHelper.GetKeyByCode(tracks, currentTrackCode);
+        if (!currentKey.HasValue)
         {
-            return tracks.Keys.Last();
+            return keys[^1];
         }
 
-        var keys = tracks.Keys.ToList();
-        var currentIndex = keys.IndexOf(currentTrackNum);
+        var currentIndex = keys.IndexOf(currentKey.Value);
         if (currentIndex < 0)
         {
             return keys[^1];

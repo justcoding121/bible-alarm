@@ -180,17 +180,18 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 allTracks.AddRange(publication.Tracks);
             }
 
-            // Map BiblePublicationTrack to MusicTrack
-            // For sectioned melody (e.g. iam): set DownloadCode = section code (e.g. iam-1) and OriginalTrackCode from TrackCode.
-            // Handle duplicate track codes by taking the first occurrence
-            var musicTracks = allTracks
+            // Map BiblePublicationTrack to MusicTrack; key by index so TrackCode can be non-numeric (e.g. mediator).
+            var orderedTracks = allTracks
                 .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
                 .GroupBy(t => t.TrackCode)
                 .Select(g => g.First())
-                .Select(t => MapBiblePublicationTrackToMusicTrack(t))
-                .ToDictionary(x => x.Number, x => x);
-            
-            return new SortedDictionary<int, MusicTrack>(musicTracks);
+                .ToList();
+            var dict = new Dictionary<int, MusicTrack>();
+            for (var i = 0; i < orderedTracks.Count; i++)
+            {
+                dict[i] = MapBiblePublicationTrackToMusicTrack(orderedTracks[i], i);
+            }
+            return new SortedDictionary<int, MusicTrack>(dict);
         }
         catch (Exception ex)
         {
@@ -234,13 +235,16 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 return new SortedDictionary<int, MusicTrack>();
             }
 
-            // Map BiblePublicationTrack to MusicTrack (use sectionCode so LookUpPath uses pub=sectionCode)
-            var musicTracks = section.Tracks
+            // Map BiblePublicationTrack to MusicTrack; key by index. sectionCode used as DownloadCode fallback.
+            var orderedTracks = section.Tracks
                 .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
-                .Select(t => MapBiblePublicationTrackToMusicTrack(t, sectionCode))
-                .ToDictionary(x => x.Number, x => x);
-
-            return new SortedDictionary<int, MusicTrack>(musicTracks);
+                .ToList();
+            var dict = new Dictionary<int, MusicTrack>();
+            for (var i = 0; i < orderedTracks.Count; i++)
+            {
+                dict[i] = MapBiblePublicationTrackToMusicTrack(orderedTracks[i], i, sectionCode);
+            }
+            return new SortedDictionary<int, MusicTrack>(dict);
         }
         catch (Exception ex)
         {
@@ -251,24 +255,23 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
     }
 
     /// <summary>
-    /// Maps a BiblePublicationTrack to MusicTrack, setting DownloadCode (section/disc code) and OriginalTrackCode
-    /// from Section and TrackCode so that LookUpPath uses pub=sectionCode (e.g. iam-1) for melody music.
+    /// Maps a BiblePublicationTrack to MusicTrack, setting DownloadCode (section/disc code), TrackCode and OriginalTrackCode.
+    /// Number is set by the caller (index). TrackCode stores the original string for lookup and schedule persistence.
     /// </summary>
     /// <param name="sectionCodeFallback">When provided (e.g. from GetTracksBySectionCodeAsync), used if track.Section is not populated.</param>
-    private static MusicTrack MapBiblePublicationTrackToMusicTrack(BiblePublicationTrack t, string? sectionCodeFallback = null)
+    private static MusicTrack MapBiblePublicationTrackToMusicTrack(BiblePublicationTrack t, int index, string? sectionCodeFallback = null)
     {
         var downloadCode = t.Section?.SectionCode ?? sectionCodeFallback;
         int? originalTrackCode = null;
-        if (int.TryParse(t.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackCode))
+        if (int.TryParse(t.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackCode))
         {
-            originalTrackCode = trackCode;
+            originalTrackCode = parsedTrackCode;
         }
 
-        // Parse TrackCode as int for MusicTrack.Number (for backward compatibility with MusicTrack model)
-        var trackNumber = int.TryParse(t.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var num) ? num : 0;
         return new MusicTrack
         {
-            Number = trackNumber,
+            Number = index,
+            TrackCode = t.TrackCode,
             Title = t.Title,
             Url = string.Empty,
             LookUpPath = string.Empty,

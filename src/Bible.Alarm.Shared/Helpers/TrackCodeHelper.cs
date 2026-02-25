@@ -1,6 +1,8 @@
 #nullable enable
+using System.Globalization;
 using System.Linq;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Models.Media.Music;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -17,5 +19,16 @@ public static class TrackCodeHelper
     public static string GetFromTrack(BiblePublicationTrack track)
     {
         return track.TrackCode;
+    }
+
+    /// <summary>
+    /// Gets the stable track code from a MusicTrack (for schedule persistence and lookup).
+    /// Uses TrackCode when set; otherwise falls back to Number for backward compatibility.
+    /// </summary>
+    public static string GetFromTrack(MusicTrack track)
+    {
+        if (!string.IsNullOrEmpty(track.TrackCode))
+            return track.TrackCode;
+        return track.Number.ToString(CultureInfo.InvariantCulture);
     }
 }

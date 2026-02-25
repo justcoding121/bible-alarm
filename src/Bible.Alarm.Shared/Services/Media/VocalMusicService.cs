@@ -179,19 +179,24 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
 
             var tracks = publication.Tracks.Where(t => t.BiblePublicationSectionId == null)
                 .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-            // Map BiblePublicationTrack to MusicTrack
-            // Parse TrackCode as int for MusicTrack.Number (for backward compatibility with MusicTrack model)
-            var musicTracks = tracks.Select(t => new MusicTrack
+
+            var dict = new Dictionary<int, MusicTrack>();
+            for (var i = 0; i < tracks.Count; i++)
             {
-                Number = int.TryParse(t.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var num) ? num : 0,
-                Title = t.Title,
-                Url = string.Empty, // URLs are computed on-demand
-                LookUpPath = string.Empty,
-                DownloadCode = null,
-                OriginalTrackCode = null
-            }).ToDictionary(x => x.Number, x => x);
-            
-            return new SortedDictionary<int, MusicTrack>(musicTracks);
+                var t = tracks[i];
+                dict[i] = new MusicTrack
+                {
+                    Number = i,
+                    TrackCode = t.TrackCode,
+                    Title = t.Title,
+                    Url = string.Empty,
+                    LookUpPath = string.Empty,
+                    DownloadCode = null,
+                    OriginalTrackCode = null
+                };
+            }
+
+            return new SortedDictionary<int, MusicTrack>(dict);
         }
         catch (Exception ex)
         {

@@ -149,17 +149,16 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     if (isCurrentMelodyFlat &&
                         currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
-                        int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedFlatTrackNum) &&
-                        tracks.TryGetValue(parsedFlatTrackNum, out var currentTrack))
+                        Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, currentSchedule.MusicTrackCode, out var flatPair))
                     {
-                        trackCode = currentSchedule.MusicTrackCode;
-                        trackName = currentTrack.Title;
+                        trackCode = TrackCodeHelper.GetFromTrack(flatPair.Track);
+                        trackName = flatPair.Track.Title;
                     }
                     else
                     {
                         var tracksList = tracks.Values.ToList();
                         var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                        trackCode = randomTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        trackCode = TrackCodeHelper.GetFromTrack(randomTrack);
                         trackName = randomTrack.Title;
                     }
                 }

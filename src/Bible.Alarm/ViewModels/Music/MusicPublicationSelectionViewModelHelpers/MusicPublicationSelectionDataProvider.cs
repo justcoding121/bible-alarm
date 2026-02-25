@@ -217,15 +217,14 @@ public sealed class MusicPublicationSelectionDataProvider(
 
         if (isSameSongPublication &&
             !string.IsNullOrWhiteSpace(currentSchedule?.MusicTrackCode) &&
-            int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum) &&
-            tracks.TryGetValue(parsedTrackNum, out var currentTrack))
+            Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, currentSchedule.MusicTrackCode, out var pair))
         {
-            return (currentSchedule.MusicTrackCode, currentTrack.Title);
+            return (TrackCodeHelper.GetFromTrack(pair.Track), pair.Track.Title);
         }
 
         var tracksList = tracks.Values.ToList();
         var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-        return (randomTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture), randomTrack.Title);
+        return (TrackCodeHelper.GetFromTrack(randomTrack), randomTrack.Title);
     }
 
     public async Task<(string? PublicationCode, string TrackCode, string TrackName, string PublicationName)> GetFirstSongPublicationAndTrackForLanguageAsync(

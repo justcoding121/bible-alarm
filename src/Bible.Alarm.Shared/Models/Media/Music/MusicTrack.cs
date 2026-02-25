@@ -10,7 +10,16 @@ namespace Bible.Alarm.Shared.Models.Media.Music;
 /// </summary>
 public class MusicTrack : IComparable
 {
+    /// <summary>
+    /// Display/order index (0-based or 1-based). Used for ordering when TrackCode is non-numeric.
+    /// </summary>
     public int Number { get; set; }
+
+    /// <summary>
+    /// Original track code from the source (e.g. "1", "jwb-201708", "502014202-1"). Use for schedule persistence and lookup.
+    /// </summary>
+    public string? TrackCode { get; set; }
+
     public string Title { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
 

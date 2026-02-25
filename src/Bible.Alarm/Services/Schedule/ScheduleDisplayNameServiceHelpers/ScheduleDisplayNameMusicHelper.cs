@@ -179,14 +179,14 @@ public sealed class ScheduleDisplayNameMusicHelper
                         tracks = string.IsNullOrWhiteSpace(music.SectionCode) ? new SortedDictionary<int, Bible.Alarm.Shared.Models.Media.Music.MusicTrack>() : await Task.Run(async () => await mediaService.GetMelodyMusicTracksBySection(music.PublicationCode, music.SectionCode));
                     else
                         tracks = await Task.Run(async () => await mediaService.GetMelodyMusicTracks(music.PublicationCode));
-                    if (!string.IsNullOrWhiteSpace(music.TrackCode) && int.TryParse(music.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) && tracks.TryGetValue(trackNum, out var track))
-                        trackName = DisplayNameNormalizer.NormalizeTrackTitle(track.Title) ?? track.Title;
+                    if (!string.IsNullOrWhiteSpace(music.TrackCode) && Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, music.TrackCode, out var melodyPair))
+                        trackName = DisplayNameNormalizer.NormalizeTrackTitle(melodyPair.Track.Title) ?? melodyPair.Track.Title;
                 }
                 else if (!string.IsNullOrWhiteSpace(music.LanguageCode) && !string.IsNullOrWhiteSpace(music.PublicationCode))
                 {
                     var tracks = await Task.Run(async () => await mediaService.GetVocalMusicTracks(music.LanguageCode, music.PublicationCode));
-                    if (!string.IsNullOrWhiteSpace(music.TrackCode) && int.TryParse(music.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) && tracks.TryGetValue(trackNum, out var track))
-                        trackName = track.Title;
+                    if (!string.IsNullOrWhiteSpace(music.TrackCode) && Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, music.TrackCode, out var vocalPair))
+                        trackName = vocalPair.Track.Title;
                 }
                 if (!string.IsNullOrWhiteSpace(trackName))
                     scheduleStateItem.MusicTrackName = trackName;

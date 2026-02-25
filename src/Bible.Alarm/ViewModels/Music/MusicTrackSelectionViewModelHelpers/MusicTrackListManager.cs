@@ -156,8 +156,12 @@ public sealed class MusicTrackListManager(
         }
 
         var track = tracks.FirstOrDefault(t => !string.IsNullOrWhiteSpace(current.TrackCode) &&
-            int.TryParse(current.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-            t.Number == trackNum);
+            string.Equals(t.TrackCode, current.TrackCode, StringComparison.OrdinalIgnoreCase));
+        if (track == null && !string.IsNullOrWhiteSpace(current.TrackCode) &&
+            int.TryParse(current.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
+        {
+            track = tracks.FirstOrDefault(t => t.Number == trackNum);
+        }
         if (track != null)
         {
             setSelectedTrack(track);

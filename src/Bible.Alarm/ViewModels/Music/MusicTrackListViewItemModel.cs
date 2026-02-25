@@ -1,5 +1,7 @@
 #nullable enable
+using System.Globalization;
 using System.Net;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.Music;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -34,8 +36,12 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
         set => SetProperty(ref isNavigating, value);
     }
 
-    // LookUpPath is no longer stored in the database - it's computed at runtime by TrackMetadata
     public int Number => track.Number;
+
+    /// <summary>
+    /// Track code for schedule persistence and lookup (numeric or non-numeric, e.g. "1", "jwb-201708").
+    /// </summary>
+    public string TrackCode => TrackCodeHelper.GetFromTrack(track);
 
     /// <summary>
     /// Gets the track title with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.

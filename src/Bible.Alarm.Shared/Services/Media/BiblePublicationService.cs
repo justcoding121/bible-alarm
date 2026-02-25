@@ -331,13 +331,12 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // Query PublicationLanguages table for discovery. Non-language publications (LanguageId == null) only under English.
+            // Query PublicationLanguages: current language + non-languaged (LanguageId == null) for the category.
             var query = dbContext.PublicationLanguages
                 .AsNoTracking()
                 .Include(x => x.Language)
                 .Include(x => x.Category)
-                .Where(x => (x.Language != null && x.Language.LanguageCode == normalizedLanguageCode) ||
-                           (string.Equals(normalizedLanguageCode, AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase) && x.LanguageId == null));
+                .Where(x => (x.Language != null && x.Language.LanguageCode == normalizedLanguageCode) || x.LanguageId == null);
 
             // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
@@ -384,12 +383,12 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // Query PublicationLanguages table ordered by Id (first by ID order)
+            // Query PublicationLanguages: current language + non-languaged (LanguageId == null), ordered by Id.
             var query = dbContext.PublicationLanguages
                 .AsNoTracking()
                 .Include(x => x.Language)
                 .Include(x => x.Category)
-                .Where(x => x.Language != null && x.Language.LanguageCode == normalizedLanguageCode);
+                .Where(x => (x.Language != null && x.Language.LanguageCode == normalizedLanguageCode) || x.LanguageId == null);
 
             // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
