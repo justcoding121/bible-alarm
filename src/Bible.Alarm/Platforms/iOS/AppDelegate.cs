@@ -2,8 +2,8 @@
 
 using BackgroundTasks;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.iOS.Helpers;
-using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -27,7 +27,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     public AppDelegate()
     {
-        LogSetup.Initialize(IOsVersionFinder.Default, [], "iOS");
+        LogSetup.Initialize(new AssemblyAppVersionFinder(), [], "iOS");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }

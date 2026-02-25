@@ -200,14 +200,18 @@ internal sealed class SectionLanguageSeeder
                     // Can't create SectionLanguage without PublicationLanguage
                     return;
                 }
-                
+
+                var isMusic = string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
+                    JwSourceHelper.IsMusicPublicationCode(publicationCode);
+
                 publicationLanguage = new PublicationLanguage
                 {
                     PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
                     Language = language,
                     HarvestType = harvestType,
                     Category = category,
-                    CategoryId = category.Id
+                    CategoryId = category.Id,
+                    IsMusic = isMusic
                 };
                 db.PublicationLanguages.Add(publicationLanguage);
                 // Save to get the ID
@@ -303,7 +307,8 @@ internal sealed class SectionLanguageSeeder
                         Language = null,
                         HarvestType = harvestType,
                         Category = category,
-                        CategoryId = category.Id
+                        CategoryId = category.Id,
+                        IsMusic = publication.IsMusic
                     };
                     db.PublicationLanguages.Add(publicationLanguage);
                     await db.SaveChangesAsync();

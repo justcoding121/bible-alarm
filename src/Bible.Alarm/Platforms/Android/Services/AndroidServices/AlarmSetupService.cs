@@ -3,8 +3,8 @@ using Android.Content;
 using Android.OS;
 using Android.Runtime;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
-using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Java.Lang;
 using Serilog;
@@ -23,7 +23,7 @@ public class AlarmSetupService : Service, IDisposable
 
     public AlarmSetupService()
     {
-        LogSetup.Initialize(AndroidVersionFinder.Default,
+        LogSetup.Initialize(new AssemblyAppVersionFinder(),
             [$"AndroidSdk {Build.VERSION.SdkInt}"], DevicePlatform.Android.ToString());
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;

@@ -129,6 +129,9 @@ internal sealed class PublicationLanguageSeeder
         var exists = await db.PublicationLanguages
             .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == language.Id);
 
+        var isMusic = string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
+                  JwSourceHelper.IsMusicPublicationCode(publicationCode);
+
         if (!exists)
         {
             var publicationLanguage = new PublicationLanguage
@@ -137,7 +140,8 @@ internal sealed class PublicationLanguageSeeder
                 Language = language,
                 HarvestType = harvestType,
                 Category = category,
-                CategoryId = category.Id
+                CategoryId = category.Id,
+                IsMusic = isMusic
             };
             db.PublicationLanguages.Add(publicationLanguage);
             addedInBatch.Add(key);
@@ -152,6 +156,7 @@ internal sealed class PublicationLanguageSeeder
                 existing.HarvestType = harvestType;
                 existing.Category = category;
                 existing.CategoryId = category.Id;
+                existing.IsMusic = isMusic;
             }
         }
     }
@@ -198,7 +203,8 @@ internal sealed class PublicationLanguageSeeder
                 LanguageId = spanishLanguage.Id,
                 HarvestType = plE.HarvestType,
                 Category = plE.Category,
-                CategoryId = plE.CategoryId
+                CategoryId = plE.CategoryId,
+                IsMusic = plE.IsMusic
             });
             added++;
         }
@@ -245,6 +251,9 @@ internal sealed class PublicationLanguageSeeder
                 continue;
             }
 
+            var isMusic = string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
+                JwSourceHelper.IsMusicPublicationCode(publicationCode);
+
             var exists = await db.PublicationLanguages
                 .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
 
@@ -256,7 +265,8 @@ internal sealed class PublicationLanguageSeeder
                     Language = englishLanguage,
                     HarvestType = harvestType,
                     Category = category,
-                    CategoryId = category.Id
+                    CategoryId = category.Id,
+                    IsMusic = isMusic
                 };
                 db.PublicationLanguages.Add(publicationLanguage);
             }
@@ -270,6 +280,7 @@ internal sealed class PublicationLanguageSeeder
                     existing.HarvestType = harvestType;
                     existing.Category = category;
                     existing.CategoryId = category.Id;
+                    existing.IsMusic = isMusic;
                 }
             }
         }
@@ -330,7 +341,8 @@ internal sealed class PublicationLanguageSeeder
                 Language = englishLanguage,
                 HarvestType = harvestType,
                 Category = dramasCategory,
-                CategoryId = dramasCategory.Id
+                CategoryId = dramasCategory.Id,
+                IsMusic = false
             });
         }
     }
@@ -397,7 +409,8 @@ internal sealed class PublicationLanguageSeeder
                     Language = null,
                     HarvestType = harvestType,
                     Category = category,
-                    CategoryId = category.Id
+                    CategoryId = category.Id,
+                    IsMusic = publication.IsMusic
                 };
                 db.PublicationLanguages.Add(publicationLanguage);
                 logger.Debug("Added PublicationLanguage entry for {PublicationCode} without language (Category: {CategoryCode})",
@@ -413,6 +426,7 @@ internal sealed class PublicationLanguageSeeder
                     existing.HarvestType = harvestType;
                     existing.Category = publication.PrimaryCategory;
                     existing.CategoryId = publication.PrimaryCategoryId;
+                    existing.IsMusic = publication.IsMusic;
                 }
             }
         }

@@ -110,10 +110,16 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
 #endif
 
                     // After both database and resource bootstrap complete, run non-English fetch only on version change
-                    // (when media index was replaced this run), not on every bootstrap
+                    // (when media index was replaced this run), not on every bootstrap.
+                    // Version used for "replace or not" is Bible.Alarm assembly version (ApplicationDisplayVersion from csproj).
                     if (resourceBootstrapService.WasMediaIndexReplacedThisRun())
                     {
+                        Log.Logger.Information("[BOOTSTRAP] Media index was replaced this run (version change), running non-English fetch and orphan cleanup");
                         await resourceBootstrapService.MigrateNonEnglishMediaDataAsync();
+                    }
+                    else
+                    {
+                        Log.Logger.Debug("[BOOTSTRAP] Media index was not replaced this run, skipping non-English fetch (runs only on version change)");
                     }
 
                     // Warm in-memory caches for category and language display names (current app language "E")

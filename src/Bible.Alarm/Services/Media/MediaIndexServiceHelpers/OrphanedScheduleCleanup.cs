@@ -7,8 +7,9 @@ namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 
 /// <summary>
 /// After media index replacement, verifies that all schedule references can be resolved in the new
-/// media index. Runs before the non-English fetch. Deletes schedules whose main publication can't
-/// be found, and resets music for schedules whose music publication can't be found.
+/// media index using discovery tables (PublicationLanguages + Languages). Runs before the non-English
+/// fetch. Deletes schedules whose main publication isn't discoverable, and resets music for schedules
+/// whose music publication isn't discoverable. Only schedules with no discovery entry are removed.
 /// </summary>
 internal sealed class OrphanedScheduleCleanup(ILogger logger)
 {
@@ -53,7 +54,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 {
                     scheduleIdsToDelete.Add(r.AlarmScheduleId);
                     logger.Warning(
-                        "Publication {PubCode}/{LangCode} not in new media index; deleting schedule {ScheduleId}",
+                        "Publication {PubCode}/{LangCode} not in discovery tables; deleting schedule {ScheduleId}",
                         r.PublicationCode, r.LanguageCode, r.AlarmScheduleId);
                 }
             }
@@ -69,7 +70,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 {
                     musicScheduleIdsToReset.Add(r.AlarmScheduleId);
                     logger.Warning(
-                        "Music pub {PubCode}/{LangCode} not in new media index; resetting music for schedule {ScheduleId}",
+                        "Music pub {PubCode}/{LangCode} not in discovery tables; resetting music for schedule {ScheduleId}",
                         r.PublicationCode, r.LanguageCode, r.AlarmScheduleId);
                 }
             }
@@ -77,7 +78,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
 
         if (scheduleIdsToDelete.Count == 0 && musicScheduleIdsToReset.Count == 0)
         {
-            logger.Information("All schedule references verified in new media index");
+            logger.Information("All schedule references verified in discovery tables");
             return;
         }
 
@@ -120,6 +121,11 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
         return refs;
     }
 
+    /// <summary>
+    /// Returns true if the publication is known for the language in the new index (discovery tables).
+    /// Uses PublicationLanguages + Languages, not harvested BiblePublications, so we only treat as
+    /// orphan when the publication isn't even discoverable for that language.
+    /// </summary>
     private static async Task<bool> PublicationExistsAsync(
         SqliteConnection connection,
         string pubCode,
@@ -127,9 +133,9 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
     {
         using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT COUNT(1) FROM BiblePublications bp
-            JOIN Languages l ON bp.LanguageId = l.Id
-            WHERE bp.PublicationCode = @pubCode AND l.LanguageCode = @langCode
+            SELECT COUNT(1) FROM PublicationLanguages pl
+            JOIN Languages l ON pl.LanguageId = l.Id
+            WHERE pl.PublicationCode = @pubCode AND l.LanguageCode = @langCode
             """;
         cmd.Parameters.AddWithValue("@pubCode", pubCode);
         cmd.Parameters.AddWithValue("@langCode", langCode);

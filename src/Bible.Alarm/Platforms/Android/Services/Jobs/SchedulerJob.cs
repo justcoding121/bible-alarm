@@ -1,7 +1,7 @@
 using Android.App;
 using Android.App.Job;
 using Bible.Alarm.Common;
-using Bible.Alarm.Platforms.Android.Services.Platform;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 using AndroidBuild = Android.OS.Build;
@@ -22,7 +22,7 @@ public class SchedulerJob : JobService
     public SchedulerJob(ILogger logger)
     {
         this.logger = logger;
-        LogSetup.Initialize(AndroidVersionFinder.Default,
+        LogSetup.Initialize(new AssemblyAppVersionFinder(),
             [$"AndroidSdk {AndroidBuild.VERSION.SdkInt}"], "Android");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

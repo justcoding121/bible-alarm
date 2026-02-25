@@ -4,7 +4,6 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
-using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 
@@ -23,7 +22,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
     public AlarmRingerReceiver()
     {
-        LogSetup.Initialize(AndroidVersionFinder.Default,
+        LogSetup.Initialize(new AssemblyAppVersionFinder(),
             [$"AndroidSdk {Build.VERSION.SdkInt}"], "Android");
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;

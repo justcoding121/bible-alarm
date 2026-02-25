@@ -230,14 +230,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IPlatformBootstrapService, WindowsPlatformBootstrapService>();
 #endif
 
-        // Register platform-specific version finder
-#if ANDROID
-        services.AddSingleton<IVersionFinder, AndroidVersionFinder>();
-#elif IOS
-        services.AddSingleton<IVersionFinder, IOsVersionFinder>();
-#elif WINDOWS
-        services.AddSingleton<IVersionFinder, WindowsVersionFinder>();
-#endif
+        // Single version source from Bible.Alarm assembly (ApplicationDisplayVersion in csproj)
+        services.AddSingleton<IVersionFinder, AssemblyAppVersionFinder>();
 
         // Register platform-specific services
 #if ANDROID

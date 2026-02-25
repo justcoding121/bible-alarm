@@ -1,11 +1,9 @@
 #if IOS
-using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Platforms.iOS.Handlers;
 #endif
 
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Handlers;
-using Bible.Alarm.Platforms.Android.Services.Platform;
 #endif
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
@@ -16,7 +14,6 @@ using Serilog;
 using Syncfusion.Licensing;
 using Syncfusion.Maui.Core.Hosting;
 #if WINDOWS
-using Bible.Alarm.Platforms.Windows.Services.Platform;
 using Bible.Alarm.Platforms.Windows.Handlers;
 #endif
 
@@ -35,22 +32,14 @@ public static class MauiProgram
         }
 
 #if WINDOWS
-        // Initialize Serilog for Windows before registering services
-        // This ensures Log.Logger is properly configured before services try to use it
-        var versionFinder = new WindowsVersionFinder();
-        SerilogSetup.Initialize(versionFinder, [], "Windows", isLoggingEnabled: true);
+        // Initialize Serilog before registering services (version from Bible.Alarm assembly / csproj)
+        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], "Windows", isLoggingEnabled: true);
         Log.Logger.Information("CreateMauiApp called!");
 #elif ANDROID
-        // Initialize Serilog for Android before registering services
-        // This ensures Log.Logger is properly configured before services try to use it
-        var versionFinder = AndroidVersionFinder.Default;
-        SerilogSetup.Initialize(versionFinder, [], "Android", isLoggingEnabled: true);
+        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], "Android", isLoggingEnabled: true);
         Log.Logger.Information("CreateMauiApp called!");
 #elif IOS
-        // Initialize Serilog for iOS before registering services
-        // This ensures Log.Logger is properly configured before services try to use it
-        var versionFinder = IOsVersionFinder.Default;
-        SerilogSetup.Initialize(versionFinder, [], "iOS", isLoggingEnabled: true);
+        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], "iOS", isLoggingEnabled: true);
         Log.Logger.Information("CreateMauiApp called!");
 #endif
 

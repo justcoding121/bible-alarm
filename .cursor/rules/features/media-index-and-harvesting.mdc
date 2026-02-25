@@ -385,7 +385,7 @@ On first run (or if missing), the app extracts the embedded resource:
 - `src/Bible.Alarm/Services/Media/MediaIndexService.cs`
   - copies embedded `index.zip` into storage root
   - extracts to produce `mediaIndex.db`
-  - writes a version stamp via `IMediaIndexVersionService`
+  - writes a version stamp via `IMediaIndexVersionService` (version = Bible.Alarm assembly `AssemblyInformationalVersion`, set from `ApplicationDisplayVersion` in csproj)
 
 Notes:
 - The code currently assumes the media index is updated by **app updates**, not by downloading a new index from the network (see comments in `MediaIndexService`).
