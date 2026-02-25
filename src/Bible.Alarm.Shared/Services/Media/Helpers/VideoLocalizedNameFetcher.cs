@@ -26,17 +26,17 @@ internal sealed class VideoLocalizedNameFetcher
 
     /// <summary>
     /// Fetches localized publication name for videos from Mediator API.
-    /// Maps publication codes to Mediator API category keys (e.g., "gnj" -> "DramasGoodNews").
+    /// Maps publication codes to Mediator API category keys (same as pub code for DramasGoodNews, VOD*, etc.).
     /// </summary>
     public async Task<string?> FetchVideoLocalizedNameFromMediatorAsync(
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         CancellationToken cancellationToken = default)
     {
-        // Map video publication codes to Mediator API category keys
+        // Map video publication codes to Mediator API category keys (exact casing for API)
         string? categoryKey = normalizedPublicationCode.ToLowerInvariant() switch
         {
-            "gnj" => "DramasGoodNews",
+            "dramasgoodnews" => "DramasGoodNews",
             "vodmoviesbibletimes" => "VODMoviesBibleTimes",
             "vodmoviesmodernday" => "VODMoviesModernDay",
             "vodmoviesanimated" => "VODMoviesAnimated",

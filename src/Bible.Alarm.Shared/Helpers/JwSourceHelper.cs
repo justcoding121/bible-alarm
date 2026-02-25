@@ -65,7 +65,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> VideoPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "gnj",
+        "DramasGoodNews",
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
         "VODMoviesAnimated",
@@ -79,6 +79,7 @@ public static class JwSourceHelper
     {
         "Dramas",
         "DramaticBibleReadings",
+        "DramasGoodNews",
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
         "VODMoviesAnimated",
@@ -93,6 +94,7 @@ public static class JwSourceHelper
     {
         "Dramas",
         "DramaticBibleReadings",
+        "DramasGoodNews",
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
         "VODMoviesAnimated",
@@ -469,7 +471,7 @@ public static class JwSourceHelper
 
     /// <summary>
     /// All publication codes that use Mediator API for discovery (MediatorSectioned). Used by GetHarvestType and IsVideo.
-    /// Excludes flat-audio (Article Series, Books, Yearbooks, Brochures) and flat video (gnj) which use GETPUBMEDIALINKS only.
+    /// Excludes flat-audio (Article Series, Books, Yearbooks, Brochures) which use GETPUBMEDIALINKS only.
     /// </summary>
     public static HashSet<string> AllMediatorPublicationCodes
     {
@@ -495,9 +497,19 @@ public static class JwSourceHelper
     }
 
     /// <summary>
-    /// Publication codes that are harvested but not validated via Mediator API (they use GETPUBMEDIALINKS only, e.g. gnj).
+    /// Publication codes that are harvested but not validated via Mediator API (they use GETPUBMEDIALINKS only).
+    /// Empty: all video/drama use Mediator API (pub code = category key, e.g. DramasGoodNews).
     /// </summary>
-    public static HashSet<string> MediatorValidationExclusionCodes => new(StringComparer.OrdinalIgnoreCase) { "gnj" };
+    public static HashSet<string> MediatorValidationExclusionCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Returns the Mediator API category key for the given publication code.
+    /// Publication code and category key are the same for all mediator publications (e.g. DramasGoodNews).
+    /// </summary>
+    public static string GetMediatorCategoryKey(string publicationCode)
+    {
+        return publicationCode ?? string.Empty;
+    }
 
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that use issue= rather than track= for the numeric identifier (e.g. mwbv, jwb, jwbls use YYYYMM issue ids).

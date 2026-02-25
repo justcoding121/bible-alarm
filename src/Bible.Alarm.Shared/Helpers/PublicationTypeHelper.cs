@@ -27,7 +27,7 @@ public static class PublicationTypeHelper
 
     private static readonly HashSet<string> VideoPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "gnj", // Good News According to Jesus (video)
+        "DramasGoodNews", // Good News According to Jesus (video, Mediator API)
         "VODMoviesBibleTimes", // Bible Times (video, Mediator API)
         "VODMoviesModernDay", // Modern-Day (video, Mediator API)
         "VODMoviesAnimated", // Animated (video, Mediator API)
@@ -180,7 +180,7 @@ public static class PublicationTypeHelper
             return HarvestType.Sectioned; // Default to Bible structure
         }
 
-        // Flat-video-only publications (e.g. gnj) have no Mediator category; use GETPUBMEDIALINKS only
+        // Publications excluded from Mediator use GETPUBMEDIALINKS only (MediatorValidationExclusionCodes is currently empty)
         if (JwSourceHelper.MediatorValidationExclusionCodes.Contains(publicationCode))
         {
             return HarvestType.Flat;

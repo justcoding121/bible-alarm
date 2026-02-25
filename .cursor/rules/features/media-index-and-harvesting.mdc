@@ -36,7 +36,7 @@ Base URL for GETPUBMEDIALINKS: `https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIAL
 |-----------------------------|-------------------|--------------|----------------|
 | Bible | nwt, bi12 | Sectioned | Yes |
 | Music | osg, sjjc, sjji, snv, pksjj (vocal); iam (melody) | Flat (vocal); Sectioned (iam) | Yes (vocal); No (iam) |
-| Dramas | Dramas, DramaticBibleReadings, gnj, VODMoviesBibleTimes, VODMoviesModernDay, VODMoviesAnimated, VODMoviesExtras | MediatorSectioned (Dramas, DramaticBibleReadings, VOD*); Flat (gnj). VOD* + gnj = MP4. | Yes |
+| Dramas | Dramas, DramaticBibleReadings, DramasGoodNews, VODMoviesBibleTimes, VODMoviesModernDay, VODMoviesAnimated, VODMoviesExtras | MediatorSectioned (all). MP4. | Yes |
 | Books | wcg, lff, rr, lvs, lfb, yb17, yb16, bhs, jy, kr, ia, mb, jr, bt, lv, cf, jd, bh, my, lr, cl, fy, gt | Flat (MP3, GETPUBMEDIALINKS pub=code, no track param) | Yes |
 | Yearbooks | yb15, yb14, yb13, yb12, yb11, yb10 | Flat (MP3, GETPUBMEDIALINKS pub=code, no track param) | Yes |
 | Broadcasting | StudioMonthlyPrograms, StudioTalks, StudioNewsReports | MediatorSectioned (video) | Yes |
@@ -181,7 +181,7 @@ Enum:
 
 ### 3) MediatorSectioned
 
-- publications: all in **JwSourceHelper.AllMediatorPublicationCodes**: **Dramas** (Dramas, DramaticBibleReadings, VODMovies*), **Video** (gnj, VODMovies*), **Series** (VODLFFVideosAD, SeriesDigForTreasures, Series*, VODLovePeople, etc.), **Children**, **Broadcasting**, **Teenagers**, **Family**, **Programs and Events**, **Activities**, **Meetings and Ministry**, **Organization**, **Faith and Bible**, **Interviews and Experiences**.
+- publications: all in **JwSourceHelper.AllMediatorPublicationCodes**: **Dramas** (Dramas, DramaticBibleReadings, DramasGoodNews, VODMovies*), **Series** (VODLFFVideosAD, SeriesDigForTreasures, Series*, VODLovePeople, etc.), **Children**, **Broadcasting**, **Teenagers**, **Family**, **Programs and Events**, **Activities**, **Meetings and Ministry**, **Organization**, **Faith and Bible**, **Interviews and Experiences**.
 - shape: **Mediator API only** for track CDN URLs. Single mediator response `GET /categories/{lang}/{categoryKey}` contains all tracks: `category.media[].files[].progressiveDownloadURL` is the CDN URL; `naturalKey` gives TrackCode (e.g. `pub-iaoh_E_12_AUDIO` → `iaoh-12`). Do **not** call GETPUBMEDIALINKS for mediator publications. When using GETPUBMEDIALINKS for other pubs we do not call mediator. **Track param is never passed** anywhere.
 
 ---
@@ -320,18 +320,13 @@ Examples:
 
 **TrackCode Source**: `track` from JSON response. Match track in response by track number.
 
-### Video Publications (gnj)
+### Video Publications (DramasGoodNews)
 
-**Format** (pub-level; no `track=`): `?output=json&pub={pubCode}&fileformat=MP4&alllangs=0&langwritten={langCode}`
-
-Example:
-- **gnj** (all episodes): `?output=json&pub=gnj&fileformat=MP4&alllangs=0&langwritten=E`
-
-**Note**: Uses `MP4` format instead of `MP3`. Response contains all episodes; track numbers from JSON or sequential (1, 2, 3...).
+**Mediator only**: Use Mediator API `GET /apis/mediator/v1/categories/{lang}/DramasGoodNews`. Same as other mediator publications; no GETPUBMEDIALINKS. Pub code = category key.
 
 ### Harvest validation (sample vs API)
 
-After seeding, the harvester runs **HarvestValidator** (`.tools/Bible.Alarm.AudioLinksHarvestor/Utility/HarvestValidator.cs`): it loads sample tracks from the DB (nwt, bi12, sjjc, osg, iam, gnj, thv, Dramas, SeriesDigForTreasures, VODMoviesBibleTimes, etc.). For GETPUBMEDIALINKS publications it builds the URL at **section or publication level** (no `track=`) from **UrlParams**, fetches the API, and compares. For mediator publications validation may use mediator or stored CDN. It compares:
+After seeding, the harvester runs **HarvestValidator** (`.tools/Bible.Alarm.AudioLinksHarvestor/Utility/HarvestValidator.cs`): it loads sample tracks from the DB (nwt, bi12, sjjc, osg, iam, DramasGoodNews, thv, Dramas, SeriesDigForTreasures, VODMoviesBibleTimes, etc.). For GETPUBMEDIALINKS publications it builds the URL at **section or publication level** (no `track=`) from **UrlParams**, fetches the API, and compares. For mediator publications validation may use mediator or stored CDN. It compares:
 - **Publication name**: API `pubName` vs DB `BiblePublication.Name`. For **sectioned/mediator** publications the API often returns the **section or episode title** (e.g. "Genesis", "Kingdom Melodies, Volume 1", "JW Broadcasting") rather than the publication name; the validator treats title match as pass for these.
 - **Track title**: API first track `title` vs DB `BiblePublicationTrack.Title`.
 

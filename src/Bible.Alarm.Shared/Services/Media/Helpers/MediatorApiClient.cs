@@ -35,13 +35,14 @@ internal sealed class MediatorApiClient
         string normalizedLanguageCode,
         CancellationToken cancellationToken)
     {
-        var categoryKey = Bible.Alarm.Shared.Helpers.JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode);
-        if (categoryKey == null)
+        var canonicalCode = JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode);
+        if (canonicalCode == null)
         {
             logger.Warning("Unknown mediator publication code: {PublicationCode}", normalizedPublicationCode);
             return (null, new List<MediatorTrack>());
         }
 
+        var categoryKey = JwSourceHelper.GetMediatorCategoryKey(canonicalCode);
         var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}";
         var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery, cancellationToken);
@@ -170,6 +171,7 @@ internal sealed class MediatorApiClient
         "2019Convention", "2020Convention", "2021Convention", "2022Convention", "2023Convention", "2024Convention", "2025Convention",
         "ChildrenMovies", "ChildrenSongs", "FamilyMovies", "FamilyWorship", "TeenMovies", "TeenSocialLife", "TeenGoals", "TeenSpiritualGrowth", "TeenWhatPeersSay",
         "VODMoviesAnimated", "VODMoviesBibleTimes", "VODMoviesModernDay", "VODMoviesExtras",
+        "DramasGoodNews",
         "SeriesWhatPeersSay", "SeriesDigForTreasures", "SeriesBJFLessons"
     };
 

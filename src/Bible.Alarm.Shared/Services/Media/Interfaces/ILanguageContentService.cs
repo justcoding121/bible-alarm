@@ -25,7 +25,7 @@ public interface ILanguageContentService
     /// Fetches all tracks for a flat-track publication (Music/Video - both use same GETPUBMEDIALINKS pattern).
     /// Deletes any existing data before inserting new.
     /// </summary>
-    /// <param name="publicationCode">The publication code (e.g., "osg", "gnj")</param>
+    /// <param name="publicationCode">The publication code (e.g., "osg", "DramasGoodNews")</param>
     /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful, false otherwise</returns>

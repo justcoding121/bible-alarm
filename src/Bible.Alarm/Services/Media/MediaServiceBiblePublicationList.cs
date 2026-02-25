@@ -110,7 +110,7 @@ internal static class MediaServiceBiblePublicationList
             Log.Debug("GetBiblePublications: Creating placeholders for {Count} publications not yet downloaded", missingPublicationCodes.Count);
 
             // Get Category and Language info from PublicationLanguages for missing publications with LanguageId
-            // Use case-sensitive codes: "Dramas", "DramaticBibleReadings", "gnj" (preserve exact case)
+            // Use case-sensitive codes: "Dramas", "DramaticBibleReadings", "DramasGoodNews" (preserve exact case)
             var publicationLanguageInfo = await dbContext.PublicationLanguages
                 .AsNoTracking()
                 .Include(pl => pl.Category)

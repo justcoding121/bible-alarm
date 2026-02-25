@@ -226,7 +226,7 @@ internal sealed class PublicationLanguageSeeder
         {
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
 
-            // Preserve actual publication code from BiblePublications (VODMoviesBibleTimes, Dramas, gnj, etc.)
+            // Preserve actual publication code from BiblePublications (VODMoviesBibleTimes, Dramas, DramasGoodNews, etc.)
             var publicationCodeForDb = publicationCode;
 
             var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);

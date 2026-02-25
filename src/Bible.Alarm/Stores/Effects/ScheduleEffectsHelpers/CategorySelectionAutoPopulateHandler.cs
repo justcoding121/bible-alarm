@@ -170,7 +170,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 foreach (var pl in publicationLanguages)
                 {
                     // For dramas, use case-sensitive publication codes in DB ("Dramas"/"DramaticBibleReadings").
-                    // For others (e.g. gnj), preserve exact case.
+                    // For others (e.g. DramasGoodNews), preserve exact case.
                     var lowerCode = pl.PublicationCode.ToLowerInvariant();
                     var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
                     var publicationCodeForDb = isDrama

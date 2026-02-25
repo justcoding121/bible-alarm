@@ -63,7 +63,8 @@ internal class MediatorHarvester : BaseHarvester
         ConcurrentDictionary<string, ConcurrentDictionary<string, string>> languageCodeToPublications,
         bool isTestRun)
     {
-        var pathAndQuery = $"/categories/E/{publicationCode}";
+        var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
+        var pathAndQuery = $"/categories/E/{categoryKey}";
         string? jsonString;
         try
         {
@@ -141,7 +142,8 @@ internal class MediatorHarvester : BaseHarvester
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         Logger.Information("Harvesting {PublicationName} for language {LanguageCode}", publicationName, normalizedLanguageCode);
 
-        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{publicationCode}";
+        var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
+        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}";
         string? jsonString;
         try
         {

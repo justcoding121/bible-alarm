@@ -169,7 +169,7 @@ internal static class HarvestValidator
         TryAdd("sjjc", null, "1");
         TryAdd("osg", null, "1");
         TryAdd("iam", "iam-1", "1");
-        TryAdd("gnj", null, "1");
+        TryAdd("DramasGoodNews", null, "1");
         TryAdd("thv", null, "1");
         TryAdd("Dramas", null, null);
         TryAdd("SeriesDigForTreasures", null, null);
@@ -297,7 +297,8 @@ internal static class HarvestValidator
             .ToList();
         foreach (var publicationCode in codesToValidate)
         {
-            var pathAndQuery = $"/categories/E/{publicationCode}";
+            var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
+            var pathAndQuery = $"/categories/E/{categoryKey}";
             string? jsonString;
             try
             {

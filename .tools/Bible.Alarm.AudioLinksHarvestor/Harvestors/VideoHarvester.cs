@@ -35,14 +35,14 @@ internal class VideoHarvester : BaseHarvester
     /// Codes come from centralized JwSourceHelper.VideoPublicationCodes.
     /// </summary>
     private static readonly Dictionary<string, string> VideoPublicationCodeToNameMappings = new([
-        new KeyValuePair<string, string>("gnj", "The Good News According to Jesus")
+        new KeyValuePair<string, string>("DramasGoodNews", "The Good News According to Jesus")
     ]);
 
     /// <summary>
-    /// Maps publication codes to Mediator API category keys for fetching localized names.
+    /// Maps publication codes to Mediator API category keys for fetching localized names (pub code = category key for video).
     /// </summary>
     private static readonly Dictionary<string, string> PublicationCodeToCategoryKey = new([
-        new KeyValuePair<string, string>("gnj", "DramasGoodNews")
+        new KeyValuePair<string, string>("DramasGoodNews", "DramasGoodNews")
     ]);
 
     /// <summary>
@@ -57,9 +57,14 @@ internal class VideoHarvester : BaseHarvester
         var languageCodeToInfo = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
         var languageCodeToPublications = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
+        // Only harvest here publications that use GETPUBMEDIALINKS for language discovery.
+        // All video/drama (DramasGoodNews, VOD*, etc.) use the Mediator API and are harvested by MediatorHarvester.
         var videoCodes = publicationFilter != null
             ? SharedHelpers.JwSourceHelper.VideoPublicationCodes.Where(c => publicationFilter.Contains(c)).ToList()
             : SharedHelpers.JwSourceHelper.VideoPublicationCodes.ToList();
+        videoCodes = videoCodes
+            .Where(c => SharedHelpers.JwSourceHelper.MediatorValidationExclusionCodes.Contains(c))
+            .ToList();
         foreach (var publicationCode in videoCodes)
         {
             var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
@@ -113,9 +118,13 @@ internal class VideoHarvester : BaseHarvester
             AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
         }
 
+        // Only use GETPUBMEDIALINKS for series that are not Mediator-only (e.g. thv). Mediator series are harvested by MediatorHarvester.
         var seriesCodes = publicationFilter != null
             ? SharedHelpers.JwSourceHelper.SeriesPublicationCodes.Where(c => publicationFilter.Contains(c)).ToList()
             : SharedHelpers.JwSourceHelper.SeriesPublicationCodes.ToList();
+        seriesCodes = seriesCodes
+            .Where(c => !SharedHelpers.JwSourceHelper.AllMediatorPublicationCodes.Contains(c))
+            .ToList();
         foreach (var publicationCode in seriesCodes)
         {
             var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
