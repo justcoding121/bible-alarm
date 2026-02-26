@@ -13,6 +13,11 @@ public sealed class DayShadowConverter : IValueConverter
             return null;
         }
 
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            return null;
+        }
+
         DaysOfWeek daysOfWeek;
 
         // Get DaysOfWeek from the view model

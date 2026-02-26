@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Runtime.InteropServices;
 using Bible.Alarm.ViewModels.BiblePublications;
+using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
@@ -364,6 +365,12 @@ internal static class CollectionViewScrollExecutor
             else if (item is BiblePublicationTrackListViewItemModel trackItem &&
                      itemsList[i] is BiblePublicationTrackListViewItemModel listTrackItem &&
                      trackItem.TrackCode == listTrackItem.TrackCode)
+            {
+                return i;
+            }
+            else if (item is MusicTrackListViewItemModel musicTrackItem &&
+                     itemsList[i] is MusicTrackListViewItemModel listMusicTrackItem &&
+                     Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Equals(musicTrackItem.TrackCode, listMusicTrackItem.TrackCode))
             {
                 return i;
             }

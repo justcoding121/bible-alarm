@@ -207,10 +207,9 @@ public sealed class ScheduleDisplayNameBibleHelper
                             {
                                 var melodyTracks = await mediaService.GetMelodyMusicTracksBySection(publicationCode, sectionCodeForTracks);
                                 if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) &&
-                                    int.TryParse(biblePublicationSchedule.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var melodyTrackNum) &&
-                                    melodyTracks.TryGetValue(melodyTrackNum, out var melodyTrack) && melodyTrack != null)
+                                    Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(melodyTracks, biblePublicationSchedule.TrackCode, out var melodyPair))
                                 {
-                                    var normalized = DisplayNameNormalizer.NormalizeTrackTitle(melodyTrack.Title);
+                                    var normalized = DisplayNameNormalizer.NormalizeTrackTitle(melodyPair.Track.Title);
                                     if (!string.IsNullOrWhiteSpace(normalized))
                                     {
                                         scheduleStateItem.BiblePublicationTrackTitle = normalized;

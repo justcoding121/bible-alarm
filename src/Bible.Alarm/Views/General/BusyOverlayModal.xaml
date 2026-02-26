@@ -9,8 +9,14 @@
               HorizontalOptions="Center">
             <Frame BackgroundColor="{DynamicResource CardBackgroundColor}"
                    CornerRadius="16"
-                   Padding="20"
-                   HasShadow="True">
+                   Padding="20">
+                <Frame.HasShadow>
+                    <OnPlatform x:TypeArguments="x:Boolean">
+                        <On Platform="WinUI" Value="False" />
+                        <On Platform="Android" Value="True" />
+                        <On Platform="iOS" Value="True" />
+                    </OnPlatform>
+                </Frame.HasShadow>
                 <ActivityIndicator
                     x:Name="busyIndicator"
                     IsRunning="True"

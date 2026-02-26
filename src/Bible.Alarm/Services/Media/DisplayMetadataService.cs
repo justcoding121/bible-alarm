@@ -210,7 +210,7 @@ public sealed class DisplayMetadataService(
         try
         {
             var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode);
-            var trackCode = trackMetadata.OriginalTrackCode?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? trackMetadata.TrackCode;
+            var trackCode = trackMetadata.TrackCode;
             if (!string.IsNullOrWhiteSpace(trackCode) &&
                 Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, trackCode, out var melodyPair))
             {

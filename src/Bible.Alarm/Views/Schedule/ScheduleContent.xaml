@@ -11,6 +11,7 @@
              xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
+             xmlns:helpers="clr-namespace:Bible.Alarm.Common.ViewHelpers;assembly=Bible.Alarm"
              x:DataType="vm:ScheduleViewModel"
              HorizontalOptions="Fill"
              VerticalOptions="Fill">
@@ -75,7 +76,7 @@
                             <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
                         <Border.Shadow>
-                            <Shadow Brush="#20000000" 
+                            <helpers:PlatformShadow Brush="#20000000" 
                                     Offset="0,2" 
                                     Radius="4" 
                                     Opacity="0.2" />
@@ -118,7 +119,7 @@
                         <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="#20000000" 
+                        <helpers:PlatformShadow Brush="#20000000" 
                                 Offset="0,2" 
                                 Radius="4" 
                                 Opacity="0.2" />
@@ -175,7 +176,7 @@
                             <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
                         <Border.Shadow>
-                            <Shadow Brush="#40000000" 
+                            <helpers:PlatformShadow Brush="#40000000" 
                                     Offset="0,2" 
                                     Radius="4" 
                                     Opacity="0.3" />
@@ -218,7 +219,7 @@
                         <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="#40000000" 
+                        <helpers:PlatformShadow Brush="#40000000" 
                                 Offset="0,2" 
                                 Radius="4" 
                                 Opacity="0.3" />
@@ -301,7 +302,7 @@
                                 <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="#40000000" 
+                                <helpers:PlatformShadow Brush="#40000000" 
                                         Offset="0,2" 
                                         Radius="4" 
                                         Opacity="0.3" />
@@ -345,7 +346,7 @@
                             <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
                         <Border.Shadow>
-                            <Shadow Brush="#40000000" 
+                            <helpers:PlatformShadow Brush="#40000000" 
                                     Offset="0,2" 
                                     Radius="4" 
                                     Opacity="0.3" />

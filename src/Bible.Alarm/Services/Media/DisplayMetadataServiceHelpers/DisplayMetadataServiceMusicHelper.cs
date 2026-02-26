@@ -41,11 +41,10 @@ internal sealed class DisplayMetadataServiceMusicHelper
         else
             tracks = await mediaService.GetMelodyMusicTracks(trackMetadata.PublicationCode);
 
-        var trackCode = trackMetadata.OriginalTrackCode?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? trackMetadata.TrackCode;
+        var trackCode = trackMetadata.TrackCode;
         if (!string.IsNullOrWhiteSpace(trackCode) &&
-            int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-            tracks.TryGetValue(trackNum, out var melodyTrack))
-            meta.Title = NormalizeTitle(melodyTrack.Title);
+            Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, trackCode, out var melodyPair))
+            meta.Title = NormalizeTitle(melodyPair.Track.Title);
 
         try
         {

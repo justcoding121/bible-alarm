@@ -17,6 +17,7 @@
     xmlns:enums="clr-namespace:Bible.Alarm.Shared.Models.Enums;assembly=Bible.Alarm.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
+    xmlns:helpers="clr-namespace:Bible.Alarm.Common.ViewHelpers;assembly=Bible.Alarm"
     x:DataType="vm:HomeViewModel"
     Title="Bible Alarm"
     NavigationPage.HasNavigationBar="False">
@@ -89,7 +90,7 @@
                                 <RoundRectangle CornerRadius="{StaticResource CornerRadiusLarge}" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="#40000000" 
+                                <helpers:PlatformShadow Brush="#40000000" 
                                         Offset="0,2" 
                                         Radius="4" 
                                         Opacity="0.3" />
@@ -145,7 +146,7 @@
                             <RoundRectangle CornerRadius="{StaticResource CornerRadiusLarge}" />
                         </Border.StrokeShape>
                         <Border.Shadow>
-                            <Shadow Brush="#40000000" 
+                            <helpers:PlatformShadow Brush="#40000000" 
                                     Offset="0,2" 
                                     Radius="4" 
                                     Opacity="0.3" />
@@ -234,7 +235,7 @@
                                         <RoundRectangle CornerRadius="{StaticResource CornerRadiusLarge}" />
                                     </Border.StrokeShape>
                                     <Border.Shadow>
-                                        <Shadow Brush="#20000000" 
+                                        <helpers:PlatformShadow Brush="#20000000" 
                                                     Offset="0,2" 
                                                     Radius="8" 
                                                     Opacity="0.15" />
@@ -281,7 +282,7 @@
                                                         <RoundRectangle CornerRadius="100" />
                                                     </Border.StrokeShape>
                                                     <Border.Shadow>
-                                                        <Shadow Brush="#60000000" 
+                                                        <helpers:PlatformShadow Brush="#60000000" 
                                                                     Offset="0,3" 
                                                                     Radius="10" 
                                                                     Opacity="0.35" />
@@ -654,7 +655,7 @@
                     VerticalOptions="End"
                     InputTransparent="True">
                 <Button.Shadow>
-                    <Shadow Brush="#40000000" 
+                    <helpers:PlatformShadow Brush="#40000000" 
                             Offset="0,4" 
                             Radius="8" 
                             Opacity="0.4" />
@@ -694,7 +695,7 @@
                 </OnPlatform>
             </Button.Margin>
             <Button.Shadow>
-                <Shadow Brush="#40000000" 
+                <helpers:PlatformShadow Brush="#40000000" 
                         Offset="0,4" 
                         Radius="8" 
                         Opacity="0.4" />
@@ -725,7 +726,7 @@
                 </OnPlatform>
             </Button.Margin>
             <Button.Shadow>
-                <Shadow Brush="#40000000" 
+                <helpers:PlatformShadow Brush="#40000000" 
                         Offset="0,4" 
                         Radius="8" 
                         Opacity="0.4" />

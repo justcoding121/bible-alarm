@@ -11,6 +11,7 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:helpers="clr-namespace:Bible.Alarm.Common.ViewHelpers;assembly=Bible.Alarm"
     x:DataType="vm:NotificationPermissionViewModel"
     mc:Ignorable="d">
     <ContentPage.Resources>
@@ -28,7 +29,7 @@
                         <RoundRectangle CornerRadius="20" />
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                        <helpers:PlatformShadow LightBrush="#E0E0E0" DarkBrush="#000000"
                                 Offset="0,8"
                                 Opacity="0.15"
                                 Radius="16" />
@@ -100,7 +101,7 @@
                                 <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                <helpers:PlatformShadow LightBrush="#E0E0E0" DarkBrush="#000000"
                                         Offset="0,4"
                                         Opacity="0.2"
                                         Radius="8" />
@@ -129,7 +130,7 @@
                                 <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                <helpers:PlatformShadow LightBrush="#E0E0E0" DarkBrush="#000000"
                                         Offset="0,4"
                                         Opacity="0.2"
                                         Radius="8" />
@@ -158,7 +159,7 @@
                                 <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                <helpers:PlatformShadow LightBrush="#E0E0E0" DarkBrush="#000000"
                                         Offset="0,2"
                                         Opacity="0.1"
                                         Radius="4" />
