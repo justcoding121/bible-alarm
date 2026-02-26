@@ -79,12 +79,8 @@ internal sealed class MusicSectionSelectionCommandHandler
                 return;
             }
 
-            // Use the first track from the selected section.
-            // Persist the track's TrackCode (DB value, typically "1") so playback lookup matches the media index; do not use Number (0-based index).
             var firstTrack = tracks.Values.First();
-            var trackCodeToSave = !string.IsNullOrEmpty(firstTrack.TrackCode)
-                ? firstTrack.TrackCode
-                : firstTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var trackCodeToSave = firstTrack.TrackCode ?? string.Empty;
 
             // Create MusicStateItem with selected section and track
             var musicStateItem = new MusicStateItem

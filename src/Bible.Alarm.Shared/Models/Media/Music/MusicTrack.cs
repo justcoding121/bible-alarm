@@ -1,46 +1,36 @@
 #nullable enable
 
 using System;
+using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Shared.Models.Media.Music;
 
 /// <summary>
 /// Represents a music track. Used for compatibility with existing music services.
 /// Maps from BiblePublicationTrack for music publications.
+/// Order by TrackCode (numeric when both parse as int, otherwise string).
 /// </summary>
 public class MusicTrack : IComparable
 {
     /// <summary>
-    /// Display/order index (0-based or 1-based). Used for ordering when TrackCode is non-numeric.
-    /// </summary>
-    public int Number { get; set; }
-
-    /// <summary>
-    /// Original track code from the source (e.g. "1", "jwb-201708", "502014202-1"). Use for schedule persistence and lookup.
+    /// Track code from the source (e.g. "1", "110", "jwb-201708"). Use for schedule persistence, lookup and ordering.
     /// </summary>
     public string? TrackCode { get; set; }
 
     public string Title { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
 
-    // LookUpPath is no longer stored in the database - it's computed at runtime
-    // Keeping the property for backward compatibility with JSON deserialization
     public string LookUpPath { get; set; } = string.Empty;
 
     /// <summary>
     /// Download code used to fetch this track (e.g., "iam-1", "iam-2" for melody music discs).
-    /// This is needed for melody music publications that use multiple disc codes.
-    /// For regular publications, this will be the same as the publication code.
     /// </summary>
     public string? DownloadCode { get; set; }
 
-    /// <summary>
-    /// Original track number from the API response (within the disc).
-    /// This is needed for melody music with multiple discs, where the API expects the track number within that specific disc,
-    /// not the sequential track number across all discs.
-    /// For regular publications, this will be the same as Number.
-    /// </summary>
-    public int? OriginalTrackCode { get; set; }
-
-    public int CompareTo(object? obj) => Number.CompareTo((obj as MusicTrack)?.Number ?? 0);
+    public int CompareTo(object? obj)
+    {
+        if (obj is not MusicTrack other)
+            return 0;
+        return CodeComparisonHelper.Compare(TrackCode, other.TrackCode);
+    }
 }

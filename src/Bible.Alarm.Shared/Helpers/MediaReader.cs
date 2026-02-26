@@ -84,9 +84,12 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         var trackIndex = Path.Combine(root, "Music", "Melodies", publicationCode, "tracks.json");
         var fileContent = await File.ReadAllTextAsync(trackIndex);
-        return new SortedDictionary<int, MusicTrack>(JsonSerializer
-            .Deserialize<IEnumerable<MusicTrack>>(fileContent)!
-            .ToDictionary(x => x.Number, x => x));
+        var list = JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(fileContent)!.ToList();
+        list.Sort((a, b) => a.CompareTo(b));
+        var dict = new Dictionary<int, MusicTrack>();
+        for (var i = 0; i < list.Count; i++)
+            dict[i] = list[i];
+        return new SortedDictionary<int, MusicTrack>(dict);
     }
 
     public async Task<Dictionary<string, Language>> GetVocalMusicLanguages()
@@ -111,8 +114,11 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         var trackIndex = Path.Combine(root, "Music", "Vocals", languageCode, publicationCode, "tracks.json");
         var melodyTracks = await File.ReadAllTextAsync(trackIndex);
-        return new SortedDictionary<int, MusicTrack>(JsonSerializer
-            .Deserialize<IEnumerable<MusicTrack>>(melodyTracks)!
-            .ToDictionary(x => x.Number, x => x));
+        var list = JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(melodyTracks)!.ToList();
+        list.Sort((a, b) => a.CompareTo(b));
+        var dict = new Dictionary<int, MusicTrack>();
+        for (var i = 0; i < list.Count; i++)
+            dict[i] = list[i];
+        return new SortedDictionary<int, MusicTrack>(dict);
     }
 }

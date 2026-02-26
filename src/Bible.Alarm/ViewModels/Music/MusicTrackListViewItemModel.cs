@@ -36,8 +36,6 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
         set => SetProperty(ref isNavigating, value);
     }
 
-    public int Number => track.Number;
-
     /// <summary>
     /// Track code for schedule persistence and lookup (numeric or non-numeric, e.g. "1", "jwb-201708").
     /// </summary>
@@ -63,10 +61,7 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
     public int CompareTo(object? obj)
     {
         if (obj is MusicTrackListViewItemModel other)
-        {
-            return Number.CompareTo(other.Number);
-        }
-
+            return Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Compare(TrackCode, other.TrackCode);
         return 0;
     }
 }

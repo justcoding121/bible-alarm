@@ -180,22 +180,19 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             var tracks = publication.Tracks.Where(t => t.BiblePublicationSectionId == null)
                 .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
 
-            var dict = new Dictionary<int, MusicTrack>();
-            for (var i = 0; i < tracks.Count; i++)
+            var trackList = tracks.Select(t => new MusicTrack
             {
-                var t = tracks[i];
-                dict[i] = new MusicTrack
-                {
-                    Number = i,
-                    TrackCode = t.TrackCode,
-                    Title = t.Title,
-                    Url = string.Empty,
-                    LookUpPath = string.Empty,
-                    DownloadCode = null,
-                    OriginalTrackCode = null
-                };
-            }
+                TrackCode = t.TrackCode,
+                Title = t.Title,
+                Url = string.Empty,
+                LookUpPath = string.Empty,
+                DownloadCode = null
+            }).ToList();
+            trackList.Sort((a, b) => a.CompareTo(b));
 
+            var dict = new Dictionary<int, MusicTrack>();
+            for (var i = 0; i < trackList.Count; i++)
+                dict[i] = trackList[i];
             return new SortedDictionary<int, MusicTrack>(dict);
         }
         catch (Exception ex)
