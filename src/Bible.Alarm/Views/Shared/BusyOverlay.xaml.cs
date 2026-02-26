@@ -306,6 +306,14 @@ public partial class BusyOverlay : ContentView
     {
         void ApplyHide()
         {
+            if (overlay.Window == null)
+            {
+                overlay.CancelHardTimeout();
+                overlay.StopSpinnerAfterDelay();
+                overlay.isProcessingVisibilityChange = false;
+                return;
+            }
+
             overlay.InputTransparent = true;
             if (overlay.overlayGrid != null)
             {
@@ -325,6 +333,20 @@ public partial class BusyOverlay : ContentView
                 try
                 {
                     ApplyHide();
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    logger.Warning(ex, "BusyOverlay.DeferredApplyHide: Object disposed, skipping UI update");
+                    overlay.CancelHardTimeout();
+                    overlay.StopSpinnerAfterDelay();
+                    overlay.isProcessingVisibilityChange = false;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    logger.Warning(ex, "BusyOverlay.DeferredApplyHide: MAUI InvalidOperationException, skipping UI update");
+                    overlay.CancelHardTimeout();
+                    overlay.StopSpinnerAfterDelay();
+                    overlay.isProcessingVisibilityChange = false;
                 }
                 catch (Exception ex)
                 {
@@ -395,6 +417,17 @@ public partial class BusyOverlay : ContentView
             // This bypasses any binding delays and ensures the overlay behaves correctly as soon as IsVisible is set
             void Apply()
             {
+                // On Windows, when the overlay is hidden very quickly (e.g. state update right after show),
+                // the dispatched callback can run after the view was detached or during layout teardown.
+                // Touching InputTransparent/Opacity then can throw InvalidOperationException in MAUI.
+                if (overlay.Window == null)
+                {
+                    overlay.CancelHardTimeout();
+                    if (!newBoolValue)
+                        overlay.StopSpinnerAfterDelay();
+                    return;
+                }
+
                 // Set InputTransparent on the ContentView itself (this is critical - parent must allow input through)
                 overlay.InputTransparent = inputTransparent;
 
@@ -442,9 +475,22 @@ public partial class BusyOverlay : ContentView
                     {
                         Apply();
                     }
+                    catch (ObjectDisposedException ex)
+                    {
+                        logger.Warning(ex, "BusyOverlay.OnIsVisibleChanged: Object disposed during visibility apply, skipping UI update");
+                        overlay.CancelHardTimeout();
+                        if (!newBoolValue)
+                            overlay.StopSpinnerAfterDelay();
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        logger.Warning(ex, "BusyOverlay.OnIsVisibleChanged: MAUI InvalidOperationException during visibility apply (view may be detached), skipping UI update");
+                        overlay.CancelHardTimeout();
+                        if (!newBoolValue)
+                            overlay.StopSpinnerAfterDelay();
+                    }
                     finally
                     {
-                        // Always reset the flag, even if Apply() throws
                         overlay.isProcessingVisibilityChange = false;
                     }
                 });
@@ -460,9 +506,22 @@ public partial class BusyOverlay : ContentView
                         {
                             Apply();
                         }
+                        catch (ObjectDisposedException ex2)
+                        {
+                            logger.Warning(ex2, "BusyOverlay.OnIsVisibleChanged: Object disposed during visibility apply (MainThread fallback)");
+                            overlay.CancelHardTimeout();
+                            if (!newBoolValue)
+                                overlay.StopSpinnerAfterDelay();
+                        }
+                        catch (InvalidOperationException ex2)
+                        {
+                            logger.Warning(ex2, "BusyOverlay.OnIsVisibleChanged: MAUI InvalidOperationException during visibility apply (MainThread fallback)");
+                            overlay.CancelHardTimeout();
+                            if (!newBoolValue)
+                                overlay.StopSpinnerAfterDelay();
+                        }
                         finally
                         {
-                            // Always reset the flag, even if Apply() throws
                             overlay.isProcessingVisibilityChange = false;
                         }
                     });
@@ -470,7 +529,6 @@ public partial class BusyOverlay : ContentView
                 catch (Exception ex2)
                 {
                     logger.Warning(ex2, "BusyOverlay.OnIsVisibleChanged: Failed to apply UI update on MainThread");
-                    // Reset flag even on failure
                     overlay.isProcessingVisibilityChange = false;
                 }
             }

@@ -33,13 +33,14 @@ internal sealed class MusicPublicationFetchCoordinator
         if (string.IsNullOrEmpty(effectiveLanguageCode) && !isMelodyMusic)
             return null;
 
+        var languageForFetch = effectiveLanguageCode ?? string.Empty;
         Dictionary<string, BiblePublication>? publicationsData = null;
 
         if (downloadAll)
         {
             // Always check DB first: if all expected publications are already harvested, use that and skip fetch/progress (matches Bible).
-            var initialPublications = await mediaService.GetBiblePublications(effectiveLanguageCode, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
-            var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(effectiveLanguageCode, "Music", requireIsMusicForMusicCategory: true);
+            var initialPublications = await mediaService.GetBiblePublications(languageForFetch, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
+            var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageForFetch, "Music", requireIsMusicForMusicCategory: true);
             var actualPublicationCount = initialPublications?.Values.Count ?? 0;
             var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
             var allPublicationsHarvested = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
@@ -48,7 +49,7 @@ internal sealed class MusicPublicationFetchCoordinator
             if (allPublicationsHarvested)
             {
                 Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already harvested for language={LanguageCode}, category=Music, skipping fetch",
-                    expectedPublicationCount, effectiveLanguageCode);
+                    expectedPublicationCount, languageForFetch);
                 return initialPublications;
             }
         }

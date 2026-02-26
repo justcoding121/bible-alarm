@@ -176,7 +176,8 @@ public static class ModalScrollHelper
                 if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
                     collectionView.Opacity = 1;
 
-                vm.IsBusy = false;
+                if (vm != null)
+                    vm.IsBusy = false;
             });
 
             return ModalAppearingResult.Success;

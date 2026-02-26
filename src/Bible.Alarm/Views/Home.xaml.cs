@@ -179,7 +179,15 @@ public partial class Home : BaseContentPage, IDisposable
     {
         base.OnAppearing();
         Log.Information("Home.OnAppearing called");
-        
+
+        // Restore CollectionView ItemsSource so the list is populated when returning to Home.
+        // We clear it in OnDisappearing to avoid VirtualView null crash on Windows when
+        // state updates (e.g. from Schedule page) trigger collection changes after the handler is disconnected.
+        if (viewModel != null)
+        {
+            SchedulesCollectionView.ItemsSource = viewModel.Schedules;
+        }
+
         // Reset schedule state when navigating back to home
         // This ensures only one schedule is in state at any time
         viewModel?.ResetScheduleState();
@@ -191,6 +199,15 @@ public partial class Home : BaseContentPage, IDisposable
         Log.Information("Home.OnAppearing: Calling UpdateFloatingButtonVisibility");
         viewModel?.UpdateFloatingButtonVisibility();
         Log.Information("Home.OnAppearing: UpdateFloatingButtonVisibility completed");
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        // Clear ItemsSource so MAUI's CollectionView handler does not receive collection change
+        // events after the page is no longer visible. On Windows, delayed OnItemsVectorChanged
+        // callbacks can run with VirtualView == null and throw InvalidOperationException.
+        SchedulesCollectionView.ItemsSource = null;
     }
 
     protected override bool OnBackButtonPressed() =>
