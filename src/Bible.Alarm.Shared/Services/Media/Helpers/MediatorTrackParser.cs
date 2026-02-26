@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text.Json;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Serilog;
@@ -104,7 +105,7 @@ internal sealed class MediatorTrackParser
             }
         }
 
-        if (!allowAudioDescriptionTitles && title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))
+        if (!allowAudioDescriptionTitles && AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(normalizedLanguageCode, title))
         {
             return null;
         }

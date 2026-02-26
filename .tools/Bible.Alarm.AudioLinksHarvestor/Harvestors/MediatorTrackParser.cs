@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using Bible.Alarm.AudioLinksHarvestor.Models;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
@@ -96,6 +97,11 @@ internal static class MediatorTrackParser
                         var rawTitle = titleTextElement.GetString();
                         title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
                     }
+                }
+
+                if (AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(languageCode, title))
+                {
+                    continue;
                 }
 
                 string trackCode;

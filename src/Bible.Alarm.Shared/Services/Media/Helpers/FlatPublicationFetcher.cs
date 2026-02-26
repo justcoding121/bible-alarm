@@ -280,6 +280,11 @@ internal sealed class FlatPublicationFetcher
                     title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
                 }
 
+                if (AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(normalizedLanguageCode, title))
+                {
+                    continue;
+                }
+
                 result.Add(new BiblePublicationTrack
                 {
                     TrackCode = kv.Key.ToString(System.Globalization.CultureInfo.InvariantCulture),

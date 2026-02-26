@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\CategoryNames\*.json" />
+    <EmbeddedResource Include="Resources\AudioDescriptionTitlePhrases.json" />
   </ItemGroup>
 
   <ItemGroup>

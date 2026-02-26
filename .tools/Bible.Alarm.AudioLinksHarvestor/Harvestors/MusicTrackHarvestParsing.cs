@@ -8,6 +8,7 @@ using System.Net;
 using System.Text.Json;
 using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
@@ -33,7 +34,7 @@ internal static class MusicTrackHarvestParsing
                 continue;
             }
 
-            if (track == 0 || url.EndsWith(".zip") || ShouldSkipTrack(title))
+            if (track == 0 || url.EndsWith(".zip") || AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(languageCode, title))
             {
                 continue;
             }
@@ -90,11 +91,6 @@ internal static class MusicTrackHarvestParsing
         }
 
         return true;
-    }
-
-    private static bool ShouldSkipTrack(string title)
-    {
-        return title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase);
     }
 
     private static MusicTrack CreateMusicTrack(

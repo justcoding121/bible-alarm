@@ -47,7 +47,6 @@ public static class PublicationTypeHelper
     /// </summary>
     private static readonly HashSet<string> SeriesMediatorPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODLFFVideosAD", // Enjoy Life Forever!—Videos
         "SeriesDigForTreasures" // Dig for Treasures in God's Word
     };
 

@@ -125,7 +125,6 @@ public static class JwSourceHelper
         "VODMoviesModernDay",
         "VODMoviesAnimated",
         "VODMoviesExtras",
-        "VODLFFVideosAD",
         "SeriesDigForTreasures",
         "SeriesBJFLessons",
         "StudioMonthlyPrograms",
@@ -395,7 +394,6 @@ public static class JwSourceHelper
     public static HashSet<string> SeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         "thv",
-        "VODLFFVideosAD",
         "SeriesDigForTreasures",
         "SeriesBJFSongs",
         "SeriesBJFLessons",
@@ -429,7 +427,6 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> SeriesMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODLFFVideosAD",
         "SeriesDigForTreasures",
         "SeriesBJFSongs",
         "SeriesBJFLessons",
