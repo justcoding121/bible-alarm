@@ -23,7 +23,7 @@ public static class MediaServiceVocalMusicHelper
         CancellationToken cancellationToken)
     {
         var availablePublicationCodes = await biblePublicationService.GetAvailablePublicationCodesAsync(
-            languageCode, "Music", cancellationToken);
+            languageCode, "Music", true, cancellationToken);
 
         Log.Debug("GetVocalMusicReleases: Found {Count} available publication codes for language={LanguageCode}",
             availablePublicationCodes.Count, languageCode);
@@ -39,7 +39,8 @@ public static class MediaServiceVocalMusicHelper
                 .Include(x => x.BiblePublicationCategories)
                 .ThenInclude(x => x.Category)
                 .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
-                           x.LanguageId == null)
+                           x.LanguageId == null &&
+                           x.IsMusic)
                 .ToListAsync(cancellationToken);
 
             foreach (var pub in pubsWithoutLang)

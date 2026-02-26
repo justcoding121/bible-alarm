@@ -25,12 +25,12 @@ internal static class MediaServiceBiblePublicationList
         string languageCode,
         string? categoryName = null,
         bool downloadAll = false,
-        IFetchProgress? progress = null)
+        IFetchProgress? progress = null,
+        bool requireIsMusicForMusicCategory = false)
     {
         // Step 1: Get all available publication codes from PublicationLanguages (discovery table)
-        // This shows all publications that are available for this language/category, even if not yet downloaded
         var availablePublicationCodes = await biblePublicationService.GetAvailablePublicationCodesAsync(
-            languageCode, categoryName, cancellationToken);
+            languageCode, categoryName, requireIsMusicForMusicCategory, cancellationToken);
 
         Log.Debug(
             "GetBiblePublications: Found {Count} available publication codes from PublicationLanguages for language={LanguageCode}, category={CategoryName}",
@@ -40,7 +40,7 @@ internal static class MediaServiceBiblePublicationList
 
         // Step 2: Get downloaded publications from BiblePublications table
         var downloadedPublications = await biblePublicationService.GetByLanguageCodeAsync(
-            languageCode, categoryName, cancellationToken);
+            languageCode, categoryName, requireIsMusicForMusicCategory, cancellationToken);
 
         // Include non-language publications (LanguageId == null) for the category in every language.
         Dictionary<string, BiblePublication> publicationsWithoutLanguage = new();
@@ -56,6 +56,10 @@ internal static class MediaServiceBiblePublicationList
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
+                if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(x => x.IsMusic);
+                }
             }
 
             var pubsWithoutLang = await query.ToListAsync(cancellationToken);
@@ -103,20 +107,28 @@ internal static class MediaServiceBiblePublicationList
             Log.Debug("GetBiblePublications: Creating placeholders for {Count} publications not yet downloaded", missingPublicationCodes.Count);
 
             // Get Category and Language info from PublicationLanguages: current language + non-languaged.
-            var publicationLanguageInfo = await dbContext.PublicationLanguages
+            var publicationLanguageInfoQuery = dbContext.PublicationLanguages
                 .AsNoTracking()
                 .Include(pl => pl.Category)
                 .Include(pl => pl.Language)
                 .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
-                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
-                .ToListAsync(cancellationToken);
+                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName));
+            if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+            {
+                publicationLanguageInfoQuery = publicationLanguageInfoQuery.Where(pl => pl.IsMusic);
+            }
+            var publicationLanguageInfo = await publicationLanguageInfoQuery.ToListAsync(cancellationToken);
 
-            var publicationLanguagesWithoutLanguage = await dbContext.PublicationLanguages
+            var publicationLanguagesWithoutLanguageQuery = dbContext.PublicationLanguages
                 .AsNoTracking()
                 .Include(pl => pl.Category)
                 .Where(pl => pl.LanguageId == null)
-                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
-                .ToListAsync(cancellationToken);
+                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName));
+            if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+            {
+                publicationLanguagesWithoutLanguageQuery = publicationLanguagesWithoutLanguageQuery.Where(pl => pl.IsMusic);
+            }
+            var publicationLanguagesWithoutLanguage = await publicationLanguagesWithoutLanguageQuery.ToListAsync(cancellationToken);
 
             var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -172,12 +184,16 @@ internal static class MediaServiceBiblePublicationList
             }
         }
 
-        var publicationLanguagesWithoutLanguageForPlaceholders = await dbContext.PublicationLanguages
+        var publicationLanguagesWithoutLanguageForPlaceholdersQuery = dbContext.PublicationLanguages
             .AsNoTracking()
             .Include(pl => pl.Category)
             .Where(pl => pl.LanguageId == null)
-            .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
-            .ToListAsync(cancellationToken);
+            .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName));
+        if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+        {
+            publicationLanguagesWithoutLanguageForPlaceholdersQuery = publicationLanguagesWithoutLanguageForPlaceholdersQuery.Where(pl => pl.IsMusic);
+        }
+        var publicationLanguagesWithoutLanguageForPlaceholders = await publicationLanguagesWithoutLanguageForPlaceholdersQuery.ToListAsync(cancellationToken);
 
         foreach (var plInfo in publicationLanguagesWithoutLanguageForPlaceholders)
         {
@@ -244,7 +260,7 @@ internal static class MediaServiceBiblePublicationList
                 // After EnsureAllPublicationsForLanguageAsync runs, those publications may now exist in BiblePublications with localized names.
                 // Refresh downloaded publications and overwrite placeholders so UI can display localized names immediately.
                 var refreshedDownloadedPublications =
-                    await biblePublicationService.GetByLanguageCodeAsync(languageCode, categoryName, cancellationToken);
+                    await biblePublicationService.GetByLanguageCodeAsync(languageCode, categoryName, requireIsMusicForMusicCategory, cancellationToken);
 
                 foreach (var refreshed in refreshedDownloadedPublications.Values)
                 {

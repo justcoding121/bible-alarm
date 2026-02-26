@@ -5,6 +5,7 @@ using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -19,6 +20,7 @@ namespace Bible.Alarm.ViewModels.Music;
 public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
+    private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly MusicTrackStateManager stateManager;
@@ -40,6 +42,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         IDispatcher dispatcher)
     {
         this.logger = logger;
+        this.mediaService = mediaService;
         this.state = state;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
@@ -137,8 +140,11 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
 
         var languageCode = finalStateValue.CurrentSchedule.MusicLanguageCode;
         var pubCode = finalStateValue.CurrentSchedule.MusicPublicationCode ?? string.Empty;
+        var currentSectionCode = finalStateValue.CurrentSchedule.MusicSectionCode;
+        var isSectionedPub = !string.IsNullOrEmpty(pubCode) && PublicationTypeHelper.HasSectionStructure(pubCode);
+        var sectionChanged = isSectionedPub && currentSectionCode != stateManager.LastLoadedSectionCode;
 
-        if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0)
+        if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0 || sectionChanged)
         {
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
             await Initialize(languageCode, pubCode);
@@ -222,10 +228,12 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
 
     private async Task Initialize(string? languageCode, string publicationCode)
     {
-        // Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
-        var isMelodyMusic = string.IsNullOrEmpty(languageCode);
+        // Determine melody vs vocal by checking the publication in the media index,
+        // not by languageCode (which can be set to "E" by the reducer for display purposes).
+        var isMelodyMusic = await mediaService.IsPublicationWithoutLanguageAsync(publicationCode);
         var currentSectionCode = state.Value.CurrentSchedule?.MusicSectionCode;
         await listManager.PopulateTracks(isMelodyMusic, languageCode, publicationCode, currentSectionCode, propertyManager.Tracks);
+        stateManager.SetLastLoadedSection(currentSectionCode);
         foreach (var track in propertyManager.Tracks)
             listManager.SubscribeToTrackEvents(track, propertyManager.Tracks);
         listManager.SetupCollectionChangedHandler(propertyManager.Tracks);

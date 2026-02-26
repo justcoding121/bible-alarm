@@ -50,7 +50,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         if (biblePublicationService != null)
         {
             var availablePublicationCodes =
-                await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music");
+                await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music", true);
 
             // Get publications without LanguageId from BiblePublications (data-driven)
             if (scopeFactory == null)
@@ -166,7 +166,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         // Step 3: Get the downloaded publication using GetBiblePublications (same API as Bible publication)
         // Data is already saved, just reading from DB - no progress updates needed
-        var songPublications = await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false, null);
+        var songPublications = await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
 
         if (songPublications == null || songPublications.Count == 0)
         {

@@ -333,7 +333,9 @@ public sealed class CategorySelectionAutoPopulateHandler
             // Set category from action - this is the ONLY place category should be set
             updatedSchedule.BiblePublicationCategoryId = action.CategoryId;
             updatedSchedule.BiblePublicationCategoryName = action.CategoryName;
-            
+            // Music container visibility: hide when main content is music (category Music), show otherwise
+            updatedSchedule.BiblePublicationIsMusic = string.Equals(action.CategoryName, "Music", StringComparison.OrdinalIgnoreCase);
+
             // For publications without language (LanguageId == null), set language to English default.
             // This ensures cascade consistency: the language row shows "English" and publications modal
             // will show English publications + non-languaged publications.

@@ -203,7 +203,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         return publication;
     }
 
-    public async Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -220,6 +220,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
+                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(x => x.IsMusic);
+                }
             }
 
             var publicationsList = await query.ToListAsync(cancellationToken);
@@ -251,22 +255,23 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
-    public async Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default)
     {
         try
         {
-            // Fast path: return cached result if available
+            // Fast path: return cached result if available (cache key includes filter for Music so music container vs Bible container don't share)
             var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
+            var cacheKey = normalizedCategory == null ? null : (filterIsMusicWhenMusicCategory && string.Equals(normalizedCategory, "Music", StringComparison.OrdinalIgnoreCase) ? "Music~IsMusicOnly" : normalizedCategory);
             lock (distinctLanguagesCacheLock)
             {
-                if (normalizedCategory == null && cachedDistinctLanguagesAll != null)
+                if (cacheKey == null && cachedDistinctLanguagesAll != null)
                 {
                     // Return a copy to avoid callers mutating the cached dictionary.
                     return new Dictionary<string, Language>(cachedDistinctLanguagesAll);
                 }
 
-                if (normalizedCategory != null &&
-                    cachedDistinctLanguagesByCategory.TryGetValue(normalizedCategory, out var cachedForCategory))
+                if (cacheKey != null &&
+                    cachedDistinctLanguagesByCategory.TryGetValue(cacheKey, out var cachedForCategory))
                 {
                     return new Dictionary<string, Language>(cachedForCategory);
                 }
@@ -287,6 +292,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
+                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(x => x.IsMusic);
+                }
             }
 
             var publicationLanguagesCount = await query.CountAsync(cancellationToken);
@@ -303,13 +312,13 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             // Cache result for subsequent calls
             lock (distinctLanguagesCacheLock)
             {
-                if (normalizedCategory == null)
+                if (cacheKey == null)
                 {
                     cachedDistinctLanguagesAll = result;
                 }
                 else
                 {
-                    cachedDistinctLanguagesByCategory[normalizedCategory] = result;
+                    cachedDistinctLanguagesByCategory[cacheKey] = result;
                 }
             }
 
@@ -322,7 +331,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
-    public async Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default)
+    public async Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -342,6 +351,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
+                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(x => x.IsMusic);
+                }
             }
 
             var publicationCodes = await query
@@ -374,7 +387,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
-    public async Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default)
+    public async Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -394,6 +407,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
+                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(x => x.IsMusic);
+                }
             }
 
             var firstPublicationCode = await query
@@ -493,9 +510,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
     {
         try
         {
-            var discoveredForLanguage = await GetAvailablePublicationCodesAsync(languageCode, categoryCode, cancellationToken);
-            var discoveredForDefault = await GetAvailablePublicationCodesAsync(AppConstants.Media.DefaultLanguageCode, categoryCode, cancellationToken);
-            var harvested = await GetByLanguageCodeAsync(languageCode, categoryCode, cancellationToken);
+            var discoveredForLanguage = await GetAvailablePublicationCodesAsync(languageCode, categoryCode, false, cancellationToken);
+            var discoveredForDefault = await GetAvailablePublicationCodesAsync(AppConstants.Media.DefaultLanguageCode, categoryCode, false, cancellationToken);
+            var harvested = await GetByLanguageCodeAsync(languageCode, categoryCode, false, cancellationToken);
 
             var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var code in discoveredForLanguage)

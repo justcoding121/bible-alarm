@@ -13,11 +13,15 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// </summary>
 public static class PlaylistTrackUpdater
 {
-    public static void UpdateMusicTrack(AlarmSchedule schedule, string? nextTrackCode)
+    public static void UpdateMusicTrack(AlarmSchedule schedule, string? nextTrackCode, string? nextSectionCode = null)
     {
         if (schedule.Music != null && !schedule.Music.Repeat && !string.IsNullOrWhiteSpace(nextTrackCode))
         {
             schedule.Music.TrackCode = nextTrackCode;
+            if (!string.IsNullOrWhiteSpace(nextSectionCode))
+            {
+                schedule.Music.SectionCode = nextSectionCode;
+            }
         }
     }
 
@@ -36,11 +40,15 @@ public static class PlaylistTrackUpdater
         biblePublicationSchedule.FinishedDuration = trackMetadata.FinishedDuration;
     }
 
-    public static void UpdateMusicTrackForFinished(AlarmSchedule schedule, string? nextTrackCode)
+    public static void UpdateMusicTrackForFinished(AlarmSchedule schedule, string? nextTrackCode, string? nextSectionCode = null)
     {
         if (schedule.Music != null && !schedule.Music.Repeat && !string.IsNullOrWhiteSpace(nextTrackCode))
         {
             schedule.Music.TrackCode = nextTrackCode;
+            if (!string.IsNullOrWhiteSpace(nextSectionCode))
+            {
+                schedule.Music.SectionCode = nextSectionCode;
+            }
         }
     }
 
@@ -69,11 +77,12 @@ public static class PlaylistTrackUpdater
     public static void UpdateScheduleForPlayedTrackInternal(
         AlarmSchedule schedule,
         TrackMetadata trackMetadata,
-        string? nextTrackCode)
+        string? nextTrackCode,
+        string? nextSectionCode = null)
     {
         if (trackMetadata.PlayType == PlayType.Music)
         {
-            UpdateMusicTrack(schedule, nextTrackCode);
+            UpdateMusicTrack(schedule, nextTrackCode, nextSectionCode);
         }
         else
         {

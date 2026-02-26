@@ -10,4 +10,5 @@ namespace Bible.Alarm.Services.Media.PlaylistInternal;
 /// </summary>
 internal sealed record NextTrackInfo(
     string? NextTrackCode,
-    KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? NextTrack);
+    KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? NextTrack,
+    string? NextSectionCode = null);

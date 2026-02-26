@@ -43,7 +43,7 @@ public sealed class MusicPublicationSelectionDataProvider(
         {
             // Do ALL processing on background thread to avoid blocking spinner animation
             // Use GetBiblePublicationLanguages with category="Music" (same API as Bible publication)
-            var languagesFromDb = await mediaService.GetBiblePublicationLanguages("Music");
+            var languagesFromDb = await mediaService.GetBiblePublicationLanguages("Music", requireIsMusicForMusicCategory: true);
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
             var languageIds = languagesFromDb.Values.Select(l => l.Id).ToList();

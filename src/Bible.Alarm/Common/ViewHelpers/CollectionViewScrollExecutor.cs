@@ -167,6 +167,10 @@ internal static class CollectionViewScrollExecutor
                                 // Delay after scrolling to let the layout settle
                                 await Task.Delay(150, cancellationToken);
                             }
+                            catch (OperationCanceledException)
+                            {
+                                // Expected when user taps an item and cancellation token is signalled
+                            }
                             catch (Exception ex)
                             {
                                 Log.Logger.Debug(ex, "Error in MainThread scrolling operation");

@@ -8,8 +8,8 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IMediaService : IDisposable
 {
-    Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null);
-    Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null);
+    Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false);
+    Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null, bool requireIsMusicForMusicCategory = false);
     Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode, IFetchProgress? progress = null);
     Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode);
     Task<BiblePublicationSection?> GetBiblePublicationSection(string languageCode, string versionCode, string sectionCode);
@@ -28,6 +28,6 @@ public interface IMediaService : IDisposable
     void InvalidateBiblePublicationsCache(string languageCode, string? categoryName = null);
     Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode);
     Task<int> GetExpectedSectionCountAsync(string languageCode, string publicationCode);
-    Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName);
+    Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName, bool requireIsMusicForMusicCategory = false);
     Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode);
 }

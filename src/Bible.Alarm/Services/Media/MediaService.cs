@@ -45,7 +45,7 @@ public sealed class MediaService(
     private readonly ConcurrentDictionary<BiblePublicationsCacheKey, BiblePublicationsCacheEntry> biblePublicationsCache = new();
     private readonly ConcurrentDictionary<string, bool> publicationWithoutLanguageCache = new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly record struct BiblePublicationsCacheKey(string LanguageCode, string? CategoryName);
+    private readonly record struct BiblePublicationsCacheKey(string LanguageCode, string? CategoryName, bool RequireIsMusicForMusicCategory);
 
     private sealed class BiblePublicationsCacheEntry(DateTimeOffset createdAt, Lazy<Task<Dictionary<string, BiblePublication>>> value)
     {
@@ -53,13 +53,13 @@ public sealed class MediaService(
         public Lazy<Task<Dictionary<string, BiblePublication>>> Value { get; } = value;
     }
 
-    public async Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null)
+    public async Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false)
     {
         await mediaIndexService.Verify();
-        return await BiblePublicationService.GetDistinctLanguagesAsync(categoryName, cancellationTokenSource.Token);
+        return await BiblePublicationService.GetDistinctLanguagesAsync(categoryName, requireIsMusicForMusicCategory, cancellationTokenSource.Token);
     }
 
-    public async Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null)
+    public async Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null, bool requireIsMusicForMusicCategory = false)
     {
         // Cache only the "read-only" variant used by UI display/selectability checks.
         // If downloadAll=true or progress is provided, we must execute fresh to support downloads/progress reporting.
@@ -77,7 +77,8 @@ public sealed class MediaService(
                 languageCode,
                 categoryName,
                 downloadAll,
-                progress);
+                progress,
+                requireIsMusicForMusicCategory);
             
             // Invalidate cache after downloading to ensure selectability checks use fresh data
             if (downloadAll)
@@ -90,23 +91,25 @@ public sealed class MediaService(
 
         var normalizedLanguage = languageCode ?? string.Empty;
         var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
-        var key = new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory);
+        var requireIsMusic = requireIsMusicForMusicCategory && string.Equals(normalizedCategory, "Music", StringComparison.OrdinalIgnoreCase);
+        var key = new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory, requireIsMusic);
         var now = DateTimeOffset.UtcNow;
 
         static Lazy<Task<Dictionary<string, BiblePublication>>> CreateLazy(
             MediaService self,
             string lang,
-            string? cat)
-            => new(() => self.LoadBiblePublicationsUncachedAsync(lang, cat),
+            string? cat,
+            bool requireIsMusicForMusicCategory)
+            => new(() => self.LoadBiblePublicationsUncachedAsync(lang, cat, requireIsMusicForMusicCategory),
                 LazyThreadSafetyMode.ExecutionAndPublication);
 
         var entry = biblePublicationsCache.AddOrUpdate(
             key,
-            _ => new BiblePublicationsCacheEntry(now, CreateLazy(this, normalizedLanguage, normalizedCategory)),
+            _ => new BiblePublicationsCacheEntry(now, CreateLazy(this, normalizedLanguage, normalizedCategory, requireIsMusic)),
             (_, existing) =>
                 now - existing.CreatedAt <= BiblePublicationsCacheTtl
                     ? existing
-                    : new BiblePublicationsCacheEntry(now, CreateLazy(this, normalizedLanguage, normalizedCategory)));
+                    : new BiblePublicationsCacheEntry(now, CreateLazy(this, normalizedLanguage, normalizedCategory, requireIsMusic)));
 
         try
         {
@@ -120,7 +123,7 @@ public sealed class MediaService(
         }
     }
 
-    private async Task<Dictionary<string, BiblePublication>> LoadBiblePublicationsUncachedAsync(string languageCode, string? categoryName)
+    private async Task<Dictionary<string, BiblePublication>> LoadBiblePublicationsUncachedAsync(string languageCode, string? categoryName, bool requireIsMusicForMusicCategory = false)
     {
         await mediaIndexService.Verify();
         return await MediaServiceBiblePublicationList.GetBiblePublicationsAsync(
@@ -131,7 +134,8 @@ public sealed class MediaService(
             languageCode,
             categoryName,
             downloadAll: false,
-            progress: null);
+            progress: null,
+            requireIsMusicForMusicCategory);
     }
 
     /// <summary>
@@ -142,8 +146,11 @@ public sealed class MediaService(
     {
         var normalizedLanguage = languageCode ?? string.Empty;
         var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
-        var key = new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory);
-        biblePublicationsCache.TryRemove(key, out _);
+        biblePublicationsCache.TryRemove(new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory, false), out _);
+        if (string.Equals(normalizedCategory, "Music", StringComparison.OrdinalIgnoreCase))
+        {
+            biblePublicationsCache.TryRemove(new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory, true), out _);
+        }
     }
 
     public async Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode)
@@ -324,7 +331,7 @@ public sealed class MediaService(
         // Avoid N+1 queries in VocalMusicService.GetDistinctLanguagesAsync.
         // PublicationLanguages already has the discovery data we need for Music languages.
         // This is cached inside BiblePublicationService, so repeated calls are cheap.
-        var result = await BiblePublicationService.GetDistinctLanguagesAsync("Music", cancellationTokenSource.Token);
+        var result = await BiblePublicationService.GetDistinctLanguagesAsync("Music", true, cancellationTokenSource.Token);
         Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: returned {Count} languages", result.Count);
 
         // If no vocal languages found, fall back to basic languages (English)
@@ -463,14 +470,15 @@ public sealed class MediaService(
             cancellationTokenSource.Token);
     }
 
-    public async Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName)
+    public async Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName, bool requireIsMusicForMusicCategory = false)
     {
         await mediaIndexService.Verify();
         return await MediaServiceExpectedCountHelper.GetExpectedPublicationCountAsync(
             scopeFactory,
             languageCode,
             categoryName,
-            cancellationTokenSource.Token);
+            cancellationTokenSource.Token,
+            requireIsMusicForMusicCategory);
     }
 
     public async Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode)

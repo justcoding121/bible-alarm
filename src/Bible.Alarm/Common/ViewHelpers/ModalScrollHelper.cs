@@ -118,19 +118,38 @@ public static class ModalScrollHelper
             if (collectionView != null)
             {
                 var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken: cancellationToken);
-                if (!hasItems && getItemCountFromViewModel != null && viewModel != null && getItemCountFromViewModel(viewModel) > 0)
+                var viewModelItemCountForRetry = 0;
+                if (!hasItems && getItemCountFromViewModel != null && viewModel != null)
+                {
+                    viewModelItemCountForRetry = await MainThread.InvokeOnMainThreadAsync(() => getItemCountFromViewModel(viewModel));
+                }
+                if (!hasItems && viewModelItemCountForRetry > 0)
                 {
                     await Task.Delay(500, cancellationToken);
                     hasItems = await WaitForItemsInSourceAsync(collectionView, maxWaitMs: 3000, cancellationToken: cancellationToken);
                 }
                 if (!hasItems)
                 {
-                    Log.Warning("No items loaded into CollectionView after refresh");
-                    if (onFetchFailed != null)
+                    // Use count from retry path if we have it; otherwise read on main thread so we see ViewModel state after any ObservableCollection updates
+                    var viewModelItemCount = viewModelItemCountForRetry;
+                    if (viewModelItemCount == 0 && getItemCountFromViewModel != null && viewModel != null)
                     {
-                        await onFetchFailed(DefaultFetchErrorMessage);
+                        viewModelItemCount = await MainThread.InvokeOnMainThreadAsync(() => getItemCountFromViewModel(viewModel));
                     }
-                    return ModalAppearingResult.FetchFailed;
+                    if (viewModelItemCount > 0)
+                    {
+                        // ViewModel has items but CollectionView binding is delayed (e.g. reopen on Windows) - reveal and continue
+                        hasItems = true;
+                    }
+                    else
+                    {
+                        Log.Warning("No items loaded into CollectionView after refresh");
+                        if (onFetchFailed != null)
+                        {
+                            await onFetchFailed(DefaultFetchErrorMessage);
+                        }
+                        return ModalAppearingResult.FetchFailed;
+                    }
                 }
             }
 

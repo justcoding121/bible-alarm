@@ -25,25 +25,27 @@ public interface IBiblePublicationService : IDisposable
 
     /// <summary>
     /// Gets all BiblePublications for a given language code, optionally filtered by category.
+    /// When category is Music, set filterIsMusicWhenMusicCategory true only for music container (begin-with-music); false for Bible pub container so all Music category pubs are listed.
     /// </summary>
-    Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default);
+    Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all distinct Languages from BiblePublications, optionally filtered by category.
+    /// When category is Music, set filterIsMusicWhenMusicCategory true only for music container; false for Bible pub container.
     /// </summary>
-    Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null, CancellationToken cancellationToken = default);
+    Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all available publication codes from PublicationLanguages for a given language and category.
-    /// This shows all discovered publications, even if not yet downloaded.
+    /// When category is Music, set filterIsMusicWhenMusicCategory true only for music container; false for Bible pub container.
     /// </summary>
-    Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default);
+    Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the first available publication code by ID order from PublicationLanguages for a given language and category.
-    /// Used for cascade downloading when a language is selected.
+    /// When category is Music, set filterIsMusicWhenMusicCategory true only for music container; false for Bible pub container.
     /// </summary>
-    Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default);
+    Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks if a publication exists with no language (LanguageId == null).

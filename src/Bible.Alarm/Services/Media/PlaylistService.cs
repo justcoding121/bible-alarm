@@ -111,11 +111,12 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     public async Task MarkTrackAsPlayed(TrackMetadata trackMetadata)
     {
         var trackChanged = await trackChangeDetector.CheckIfTrackChanged(trackMetadata);
-        var nextTrackCode = await GetNextTrackCodeIfNeeded(trackMetadata);
+        var (nextTrackCode, nextSectionCode) = await GetNextTrackCodeAndSectionIfNeededAsync(trackMetadata);
 
         var updatedSchedule = await UpdateScheduleForPlayedTrack(
             trackMetadata,
-            nextTrackCode);
+            nextTrackCode,
+            nextSectionCode);
 
         if (trackMetadata.PlayType == PlayType.Bible)
         {
@@ -131,11 +132,11 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
     }
 
-    private async Task<string?> GetNextTrackCodeIfNeeded(TrackMetadata trackMetadata)
+    private async Task<(string? TrackCode, string? SectionCode)> GetNextTrackCodeAndSectionIfNeededAsync(TrackMetadata trackMetadata)
     {
         if (trackMetadata.PlayType != PlayType.Music)
         {
-            return null;
+            return (null, null);
         }
 
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
@@ -143,11 +144,17 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         if (schedule?.Music == null || schedule.Music.Repeat)
         {
-            return null;
+            return (null, null);
         }
 
+        schedule.Music.TrackCode = trackMetadata.TrackCode;
+        if (!string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
+        {
+            schedule.Music.SectionCode = trackMetadata.DownloadCode;
+        }
         var next = await musicTrackBuilder.NextMusicUrlToPlay(schedule, true);
-        return next.Metadata.TrackCode;
+        var nextSectionCode = !string.IsNullOrWhiteSpace(next.Metadata.DownloadCode) ? next.Metadata.DownloadCode : null;
+        return (next.Metadata.TrackCode, nextSectionCode);
     }
 
     /// <summary>
@@ -167,9 +174,27 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             : AppConstants.Media.DefaultLanguageCode;
     }
 
+    /// <summary>
+    /// For no-language Music (e.g. iam as begin-with-music), preserves the display language. When the DB has null
+    /// (normalized from E), use the schedule's music language from Fluxor state so we retain e.g. MY after playback.
+    /// </summary>
+    private string GetPreservedLanguageForNoLanguageMusicSchedule(int scheduleId, string? dbLanguageCode)
+    {
+        if (!string.IsNullOrWhiteSpace(dbLanguageCode))
+            return dbLanguageCode;
+        var state = applicationState.Value;
+        if (state.CurrentSchedule?.Id == scheduleId && !string.IsNullOrWhiteSpace(state.CurrentSchedule.MusicLanguageCode))
+            return state.CurrentSchedule.MusicLanguageCode;
+        var fromList = state.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        return !string.IsNullOrWhiteSpace(fromList?.MusicLanguageCode)
+            ? fromList.MusicLanguageCode
+            : AppConstants.Media.DefaultLanguageCode;
+    }
+
     private async Task<AlarmSchedule> UpdateScheduleForPlayedTrack(
         TrackMetadata trackMetadata,
-        string? nextTrackCode)
+        string? nextTrackCode,
+        string? nextSectionCode = null)
     {
         var scheduleToUse = await alarmScheduleService.GetScheduleByIdAsync(
             (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
@@ -185,13 +210,13 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             && trackMetadata.PlayType == PlayType.Music
             && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode))
         {
-            var preservedLang = scheduleToUse.Music.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
         }
 
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
-            schedule => PlaylistTrackUpdater.UpdateScheduleForPlayedTrackInternal(schedule, effectiveMetadata, nextTrackCode),
+            schedule => PlaylistTrackUpdater.UpdateScheduleForPlayedTrackInternal(schedule, effectiveMetadata, nextTrackCode, nextSectionCode),
             cancellationTokenSource.Token);
     }
     public async Task MarkTrackAsFinished(TrackMetadata trackMetadata)
@@ -213,7 +238,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             && trackMetadata.PlayType == PlayType.Music
             && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode))
         {
-            var preservedLang = scheduleToUse.Music.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+            var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
         }
 
@@ -238,8 +263,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     {
         if (trackMetadata.PlayType == PlayType.Music)
         {
-            var nextTrackCode = await GetNextMusicTrackCodeAsync(trackMetadata);
-            return new NextTrackInfo(nextTrackCode, null);
+            var (nextTrackCode, nextSectionCode) = await GetNextMusicTrackCodeAndSectionAsync(trackMetadata);
+            return new NextTrackInfo(nextTrackCode, null, nextSectionCode);
         }
         else
         {
@@ -252,16 +277,21 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
     }
 
-    private async Task<string?> GetNextMusicTrackCodeAsync(TrackMetadata trackMetadata)
+    private async Task<(string? TrackCode, string? SectionCode)> GetNextMusicTrackCodeAndSectionAsync(TrackMetadata trackMetadata)
     {
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
             (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
         if (schedule?.Music != null && !schedule.Music.Repeat)
         {
+            if (!string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
+            {
+                schedule.Music.SectionCode = trackMetadata.DownloadCode;
+            }
             var next = await musicTrackBuilder.NextMusicUrlToPlay(schedule, true);
-            return next.Metadata.TrackCode;
+            var nextSectionCode = !string.IsNullOrWhiteSpace(next.Metadata.DownloadCode) ? next.Metadata.DownloadCode : null;
+            return (next.Metadata.TrackCode, nextSectionCode);
         }
-        return null;
+        return (null, null);
     }
 
     private static TrackMetadata CloneTrackMetadataWithLanguage(TrackMetadata source, string languageCode)
@@ -291,7 +321,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     {
         if (trackMetadata.PlayType == PlayType.Music)
         {
-            PlaylistTrackUpdater.UpdateMusicTrackForFinished(schedule, nextTrackInfo.NextTrackCode);
+            PlaylistTrackUpdater.UpdateMusicTrackForFinished(schedule, nextTrackInfo.NextTrackCode, nextTrackInfo.NextSectionCode);
         }
         else
         {
@@ -499,8 +529,11 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
                 throw new InvalidOperationException($"Schedule {scheduleId} has no music configured");
             }
 
-            // Ensure the builder advances relative to the current track.
             schedule.Music.TrackCode = currentTrackMetadata.TrackCode;
+            if (!string.IsNullOrWhiteSpace(currentTrackMetadata.DownloadCode))
+            {
+                schedule.Music.SectionCode = currentTrackMetadata.DownloadCode;
+            }
 
             return await musicTrackBuilder.NextMusicUrlToPlay(schedule, next: true);
         }
@@ -560,6 +593,10 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             }
 
             schedule.Music.TrackCode = currentTrackMetadata.TrackCode;
+            if (!string.IsNullOrWhiteSpace(currentTrackMetadata.DownloadCode))
+            {
+                schedule.Music.SectionCode = currentTrackMetadata.DownloadCode;
+            }
             return await musicTrackBuilder.PreviousMusicUrlToPlay(schedule);
         }
 

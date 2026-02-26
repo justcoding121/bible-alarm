@@ -17,6 +17,7 @@ public sealed class MusicTrackStateManager
     private bool initComplete;
     private string? lastLanguageCode;
     private string? lastPublicationCode;
+    private string? lastLoadedSectionCode;
 
     public void InitializeCurrent(IState<ApplicationState> state)
     {
@@ -28,11 +29,17 @@ public sealed class MusicTrackStateManager
             {
                 LanguageCode = currentSchedule.MusicLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
+                SectionCode = currentSchedule.MusicSectionCode,
                 TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
                 Repeat = currentSchedule.MusicRepeat ?? false
             };
             lastCurrent = current;
         }
+    }
+
+    public void SetLastLoadedSection(string? sectionCode)
+    {
+        lastLoadedSectionCode = sectionCode;
     }
 
     public void HandleMusicInitialized(IState<ApplicationState> state, Action<bool> setBusy, Func<Task> initializeTracks, Action setSelectedTrack)
@@ -59,6 +66,7 @@ public sealed class MusicTrackStateManager
         {
             LanguageCode = newLanguageCode,
             PublicationCode = newPublicationCode,
+            SectionCode = currentSchedule.MusicSectionCode,
             TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
@@ -98,9 +106,11 @@ public sealed class MusicTrackStateManager
         if (string.IsNullOrEmpty(newPublicationCode))
             return;
 
+        var newSectionCode = currentSchedule.MusicSectionCode;
         var languageCodeChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
-        var needsRepopulation = languageCodeChanged || publicationCodeChanged;
+        var sectionCodeChanged = lastLoadedSectionCode != newSectionCode;
+        var needsRepopulation = languageCodeChanged || publicationCodeChanged || sectionCodeChanged;
 
         if (!needsRepopulation && initComplete)
             return;
@@ -112,6 +122,7 @@ public sealed class MusicTrackStateManager
         {
             LanguageCode = newLanguageCode,
             PublicationCode = newPublicationCode,
+            SectionCode = newSectionCode,
             TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
@@ -137,4 +148,5 @@ public sealed class MusicTrackStateManager
     public bool InitComplete => initComplete;
     public string? LastLanguageCode => lastLanguageCode;
     public string? LastPublicationCode => lastPublicationCode;
+    public string? LastLoadedSectionCode => lastLoadedSectionCode;
 }

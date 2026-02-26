@@ -15,6 +15,7 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// Separated from PlaylistService for better modularity.
 /// Save: For non-language music we save the language code selected on the row (e.g. MY) to AlarmMusic.LanguageCode so state is preserved on view schedule (like Bible).
 /// Playback: We identify no-language pub by publication (IsPublicationWithoutLanguageAsync), not by stored LanguageCode. If no-language → melody path (track lookup by pub/section only). If languaged → vocal path (uses stored LanguageCode for track lookup). Same pattern as Bible schedule playback.
+/// Rotation: Music always stays within the same publication (never jumps to another pub). For sectioned melody: next advances to next section at section end, wrapping to first section after the last; previous wraps within the current section only (no jump to previous section).
 /// </summary>
 public class PlaylistMusicTrackBuilder
 {
@@ -150,23 +151,66 @@ public class PlaylistMusicTrackBuilder
     {
         var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
 
-        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
-        // Always select tracks from the schedule's selected disc (SectionCode) when sectioned.
-        var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
+        if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode) && !string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
+        {
+            var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
+            var keys = melodyTracks.Keys.ToList();
+            var currentKey = MusicTrackLookupHelper.GetKeyByCode(melodyTracks, melodyMusic.TrackCode);
+            var currentIndex = currentKey.HasValue ? keys.IndexOf(currentKey.Value) : -1;
 
-        var trackKey = GetNextTrackKey(melodyTracks, melodyMusic.TrackCode, next);
-        var melodyTrack = melodyTracks[trackKey];
-        return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+            if (next && keys.Count > 0 && currentIndex == keys.Count - 1)
+            {
+                var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(melodyMusic.PublicationCode);
+                var sectionCodes = sections.Keys.ToList();
+                var sectionIndex = sectionCodes.IndexOf(melodyMusic.SectionCode);
+                string? nextSectionCode = null;
+                if (sectionIndex >= 0 && sectionIndex < sectionCodes.Count - 1)
+                {
+                    nextSectionCode = sectionCodes[sectionIndex + 1];
+                }
+                else if (sectionCodes.Count > 0)
+                {
+                    nextSectionCode = sectionCodes[0];
+                }
+                if (!string.IsNullOrEmpty(nextSectionCode))
+                {
+                    var nextSectionTracks = await mediaService.GetMelodyMusicTracksBySection(melodyMusic.PublicationCode, nextSectionCode);
+                    if (nextSectionTracks.Count > 0)
+                    {
+                        var firstTrackKey = nextSectionTracks.Keys.Min();
+                        var firstTrack = nextSectionTracks[firstTrackKey];
+                        return await CreateMelodyPlayItem(schedule, melodyMusic, firstTrack);
+                    }
+                }
+            }
+
+            var trackKey = GetNextTrackKey(melodyTracks, melodyMusic.TrackCode, next);
+            var melodyTrack = melodyTracks[trackKey];
+            return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+        }
+
+        var tracks = await GetMelodyTracksCachedAsync(melodyMusic);
+        var key = GetNextTrackKey(tracks, melodyMusic.TrackCode, next);
+        var track = tracks[key];
+        return await CreateMelodyPlayItem(schedule, melodyMusic, track);
     }
 
     private async Task<PlayItem> GetPreviousMelodyTrackAsync(AlarmSchedule schedule)
     {
         var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
-        var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
 
-        var trackKey = GetPreviousTrackKey(melodyTracks, melodyMusic.TrackCode);
-        var melodyTrack = melodyTracks[trackKey];
-        return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+        if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode) && !string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
+        {
+            var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
+            var trackKey = GetPreviousTrackKey(melodyTracks, melodyMusic.TrackCode);
+            var melodyTrack = melodyTracks[trackKey];
+            return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+        }
+
+        var tracks = await GetMelodyTracksCachedAsync(melodyMusic);
+        var key = GetPreviousTrackKey(tracks, melodyMusic.TrackCode);
+        var track = tracks[key];
+        return await CreateMelodyPlayItem(schedule, melodyMusic, track);
     }
 
     private async Task<PlayItem> GetNextVocalTrackAsync(AlarmSchedule schedule, bool next)
@@ -242,28 +286,31 @@ public class PlaylistMusicTrackBuilder
 
     private async Task<PlayItem> CreateMelodyPlayItem(AlarmSchedule schedule, AlarmMusic melodyMusic, MusicTrack melodyTrack)
     {
-        // Compute URL on-demand using TrackMetadata
+        // Use the track's TrackCode (DB value, e.g. "1") for lookup and metadata; Number is 0-based index and does not match media index.
+        var trackCodeForLookup = !string.IsNullOrEmpty(melodyTrack.TrackCode)
+            ? melodyTrack.TrackCode
+            : melodyTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = schedule.Id,
             PublicationCode = melodyMusic.PublicationCode,
-            TrackCode = melodyTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            TrackCode = trackCodeForLookup,
             DownloadCode = melodyTrack.DownloadCode, // Store disc code (e.g., "iam-1", "iam-2") for melody music
             OriginalTrackCode = melodyTrack.OriginalTrackCode // Store original track number from API (within the disc)
             // LanguageCode is empty for melody music
         };
 
         // Lookup path from media index only (we only play harvested tracks).
-        // For melodies, DB has pub=section (disc) code (e.g. iam-1). Pass sectionCode = DownloadCode.
         var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             melodyMusic.PublicationCode,
             null, // Melodies don't have language
             melodyTrack.DownloadCode, // Section/disc code (e.g. "iam-1")
-            melodyTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            trackCodeForLookup);
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={melodyMusic.PublicationCode}, section={melodyTrack.DownloadCode}, track={melodyTrack.Number}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={melodyMusic.PublicationCode}, section={melodyTrack.DownloadCode}, track={trackCodeForLookup}. Only harvested tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 

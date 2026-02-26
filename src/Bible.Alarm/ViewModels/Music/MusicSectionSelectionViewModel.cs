@@ -120,15 +120,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             (pub) => _ = Initialize(pub),
             SetSelectedSection);
 
-        // Only subscribe OnMusicSectionChanged to state changes
-        // OnMusicSectionInitialized will only be called once manually in the constructor
+        // Only subscribe OnMusicSectionChanged to state changes.
+        // Do NOT fire-and-forget RefreshFromState here - let the modal's HandleModalAppearingAsync
+        // be the single caller so there is no race with semaphore or empty Sections on Windows.
         state.StateChanged += OnMusicSectionChanged;
         WeakReferenceMessenger.Default.Register<ModalOverlayFetchProgressMessage>(this);
-
-        // Always trigger initialization immediately to ensure we read the latest state
-        // This is especially important when the modal opens after a publication change
-        // This should only run once, not on every state change
-        OnMusicSectionInitialized(null, EventArgs.Empty);
     }
 
     private void OnMusicSectionChanged(object? sender, EventArgs e)
@@ -225,12 +221,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
 
     private async Task RefreshFromStateInternal()
     {
-        // Prevent re-entrant calls during initialization or section selection
-        if (isInitializing && initComplete)
-        {
-            return;
-        }
-
         // Don't refresh if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
         if (isSelectingSection)
         {
@@ -249,15 +239,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         var currentSchedule = stateValue.CurrentSchedule;
         var publicationCode = currentSchedule.MusicPublicationCode;
         var sectionCode = currentSchedule.MusicSectionCode;
-        
-        // Only handle instrumental music (no language code) for now
-        // Vocal music sections use the Bible publication section selection
-        // Music type is inferred: NULL/empty LanguageCode = instrumental
-        var isMelodyMusic = string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
-        if (!isMelodyMusic)
-        {
-            return;
-        }
 
         // Check if publication code changed (need to repopulate sections)
         var publicationCodeChanged = lastPublicationCode != publicationCode;

@@ -46,7 +46,8 @@ public static class MediaServiceExpectedCountHelper
         IServiceScopeFactory scopeFactory,
         string? languageCode,
         string categoryName,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool requireIsMusicForMusicCategory = false)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -55,6 +56,11 @@ public static class MediaServiceExpectedCountHelper
         var query = db.PublicationLanguages
             .AsNoTracking()
             .Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
+
+        if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(pl => pl.IsMusic);
+        }
 
         if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
         {

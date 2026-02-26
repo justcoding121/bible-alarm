@@ -56,10 +56,10 @@ internal sealed class MusicSectionSelectionCommandHandler
             }
 
             var publicationCode = currentSchedule.MusicPublicationCode;
-            // May be null for instrumental music
             var languageCode = currentSchedule.MusicLanguageCode;
-            // Music type is inferred: NULL/empty LanguageCode = instrumental (melody)
-            var isMelodyMusic = string.IsNullOrEmpty(languageCode);
+            // Determine melody vs vocal by checking the publication in the media index,
+            // not by languageCode (which can be set to "E" by the reducer for display purposes).
+            var isMelodyMusic = await mediaService.IsPublicationWithoutLanguageAsync(publicationCode);
 
             // Get tracks for the selected section (DB query only, no fetch)
             SortedDictionary<int, MusicTrack> tracks;
@@ -79,8 +79,12 @@ internal sealed class MusicSectionSelectionCommandHandler
                 return;
             }
 
-            // Use the first track from the selected section
+            // Use the first track from the selected section.
+            // Persist the track's TrackCode (DB value, typically "1") so playback lookup matches the media index; do not use Number (0-based index).
             var firstTrack = tracks.Values.First();
+            var trackCodeToSave = !string.IsNullOrEmpty(firstTrack.TrackCode)
+                ? firstTrack.TrackCode
+                : firstTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             // Create MusicStateItem with selected section and track
             var musicStateItem = new MusicStateItem
@@ -88,7 +92,7 @@ internal sealed class MusicSectionSelectionCommandHandler
                 LanguageCode = languageCode,
                 PublicationCode = publicationCode,
                 SectionCode = selectedSection.Section.SectionCode,
-                TrackCode = firstTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                TrackCode = trackCodeToSave,
                 Repeat = currentSchedule.MusicRepeat ?? false,
                 // Store display names
                 PublicationName = currentSchedule.MusicPublicationName,

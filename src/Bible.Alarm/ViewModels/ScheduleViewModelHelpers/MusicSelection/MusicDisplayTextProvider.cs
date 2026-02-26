@@ -411,7 +411,7 @@ public sealed class MusicDisplayTextProvider
 
         try
         {
-            var languages = await mediaService.GetBiblePublicationLanguages("Music");
+            var languages = await mediaService.GetBiblePublicationLanguages("Music", requireIsMusicForMusicCategory: true);
             return languages.Count > 1;
         }
         catch

@@ -63,12 +63,8 @@ public class MusicSectionSelectionStateChangeHandler
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        
-        // Only handle instrumental music (no language code) for now
-        // Vocal music sections use the Bible publication section selection
-        // Music type is inferred: NULL/empty LanguageCode = instrumental
-        var isMelodyMusic = string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
-        if (!isMelodyMusic || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
+
+        if (string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
         {
             return;
         }
