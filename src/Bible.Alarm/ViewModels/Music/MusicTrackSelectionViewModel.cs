@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -234,9 +235,13 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         var currentSectionCode = state.Value.CurrentSchedule?.MusicSectionCode;
         await listManager.PopulateTracks(isMelodyMusic, languageCode, publicationCode, currentSectionCode, propertyManager.Tracks);
         stateManager.SetLastLoadedSection(currentSectionCode);
-        foreach (var track in propertyManager.Tracks)
-            listManager.SubscribeToTrackEvents(track, propertyManager.Tracks);
-        listManager.SetupCollectionChangedHandler(propertyManager.Tracks);
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            var tracksSnapshot = propertyManager.Tracks.ToList();
+            foreach (var track in tracksSnapshot)
+                listManager.SubscribeToTrackEvents(track, propertyManager.Tracks);
+            listManager.SetupCollectionChangedHandler(propertyManager.Tracks);
+        });
     }
 
     public void Dispose()

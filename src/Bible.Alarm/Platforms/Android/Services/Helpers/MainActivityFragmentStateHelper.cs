@@ -12,6 +12,10 @@ namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 
 /// <summary>
 /// Handles fragment state management for MainActivity to prevent NavigationRootManager crashes.
+/// Fragment "No view found for id" often occurs when deploying a debug build over an existing
+/// production install (saved state from the old build references different resource IDs).
+/// The app will schedule a restart and kill the process; after one or two restarts it should run.
+/// If it keeps crashing, the user can clear app data or uninstall before installing debug.
 /// </summary>
 public static class MainActivityFragmentStateHelper
 {
@@ -41,11 +45,12 @@ public static class MainActivityFragmentStateHelper
 
     /// <summary>
     /// Checks if an IllegalArgumentException is a fragment restoration error.
+    /// Matches any "No view found for id" (e.g. id/legacy) which can occur when installing
+    /// debug over production (resource IDs differ) or when the fragment container is missing.
     /// </summary>
     public static bool IsFragmentRestorationError(IllegalArgumentException ex)
     {
-        return ex.Message?.Contains("No view found for id") == true &&
-               ex.Message?.Contains("legacy") == true;
+        return ex.Message?.Contains("No view found for id") == true;
     }
 
     /// <summary>
@@ -53,8 +58,7 @@ public static class MainActivityFragmentStateHelper
     /// </summary>
     public static bool IsFragmentRestorationError(Java.Lang.RuntimeException ex)
     {
-        if (ex.Message?.Contains("No view found for id") == true &&
-            ex.Message?.Contains("legacy") == true)
+        if (ex.Message?.Contains("No view found for id") == true)
         {
             return true;
         }

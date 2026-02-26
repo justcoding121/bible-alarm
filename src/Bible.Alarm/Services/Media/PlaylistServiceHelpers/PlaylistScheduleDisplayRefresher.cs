@@ -1,8 +1,11 @@
 #nullable enable
 
+using System.Linq;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -12,25 +15,47 @@ using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 /// <summary>
-/// Refreshes schedule display names after navigating to a newly harvested section.
+/// Refreshes schedule display names (section, track) after navigating to a newly harvested section during playback.
+/// Preserves the Bible schedule language code from DB/state; language code is only updated when the user clicks Save on the schedule page.
 /// </summary>
 public sealed class PlaylistScheduleDisplayRefresher
 {
     private readonly IAlarmScheduleService? alarmScheduleService;
     private readonly IScheduleDisplayNameService? scheduleDisplayNameService;
+    private readonly IState<ApplicationState> applicationState;
     private readonly IDispatcher dispatcher;
     private readonly ILogger logger;
 
     public PlaylistScheduleDisplayRefresher(
         IAlarmScheduleService? alarmScheduleService,
         IScheduleDisplayNameService? scheduleDisplayNameService,
+        IState<ApplicationState> applicationState,
         IDispatcher dispatcher,
         ILogger logger)
     {
         this.alarmScheduleService = alarmScheduleService;
         this.scheduleDisplayNameService = scheduleDisplayNameService;
+        this.applicationState = applicationState;
         this.dispatcher = dispatcher;
         this.logger = logger;
+    }
+
+    /// <summary>
+    /// Preserves the Bible schedule language code: use BiblePublicationSchedule.LanguageCode from DB when set.
+    /// When DB has null (e.g. no-language publication iam), keep the value already in state so we do not
+    /// overwrite it. Language code may only be updated when the user clicks Save on the schedule page.
+    /// </summary>
+    private string GetBiblePublicationLanguageCodeToPreserve(int scheduleId, string? dbLanguageCode)
+    {
+        if (!string.IsNullOrWhiteSpace(dbLanguageCode))
+            return dbLanguageCode;
+        var state = applicationState.Value;
+        if (state.CurrentSchedule?.Id == scheduleId && !string.IsNullOrWhiteSpace(state.CurrentSchedule.BiblePublicationLanguageCode))
+            return state.CurrentSchedule.BiblePublicationLanguageCode;
+        var fromList = state.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        return !string.IsNullOrWhiteSpace(fromList?.BiblePublicationLanguageCode)
+            ? fromList.BiblePublicationLanguageCode
+            : AppConstants.Media.DefaultLanguageCode;
     }
 
     public async Task RefreshAsync(int scheduleId, string languageCode, string publicationCode, string? sectionCode, CancellationToken cancellationToken)
@@ -53,6 +78,8 @@ public sealed class PlaylistScheduleDisplayRefresher
                 return;
             }
 
+            var languageCodeToPreserve = GetBiblePublicationLanguageCodeToPreserve(schedule.Id, schedule.BiblePublicationSchedule.LanguageCode);
+
             var tempSchedule = new AlarmSchedule
             {
                 Id = schedule.Id,
@@ -69,7 +96,7 @@ public sealed class PlaylistScheduleDisplayRefresher
                 AlwaysPlayFromStart = schedule.AlwaysPlayFromStart,
                 BiblePublicationSchedule = new BiblePublicationSchedule
                 {
-                    LanguageCode = schedule.BiblePublicationSchedule.LanguageCode ?? languageCode,
+                    LanguageCode = languageCodeToPreserve,
                     PublicationCode = schedule.BiblePublicationSchedule.PublicationCode ?? publicationCode,
                     SectionCode = sectionCode,
                     TrackCode = schedule.BiblePublicationSchedule.TrackCode

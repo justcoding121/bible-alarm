@@ -45,77 +45,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <!-- Category Name with icon -->
-            <core:SfEffectsView Grid.Row="0"
-                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
-                                 TouchUpEffects="None"
-                                 RippleBackground="{StaticResource PrimaryColor}"
-                                 HighlightBackground="{StaticResource PrimaryLightColor}"
-                                 RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="False">
-                <core:SfEffectsView.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectCategoryCommand}"
-                                          NumberOfTapsRequired="1" />
-                </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="BibleCategoryButton"
-                      Margin="0"
-                      Padding="16,16"
-                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                      MinimumHeightRequest="56"
-                      HorizontalOptions="Fill"
-                      VerticalOptions="Fill">
-                    <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                
-                <!-- Category Name -->
-                <Label Grid.Column="0"
-                       FontSize="{StaticResource LargeFontSize}"
-                       FontAttributes="None"
-                       HorizontalOptions="Fill"
-                       HorizontalTextAlignment="Start"
-                       LineBreakMode="WordWrap"
-                       Text="{Binding CategoryDisplayText}"
-                       TextColor="{StaticResource PrimaryColor}"
-                       VerticalOptions="Center"
-                       VerticalTextAlignment="Center" />
-                
-                <!-- Category Icon -->
-                <Border Grid.Column="1"
-                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                        HeightRequest="{StaticResource IconSmallContainerSize}"
-                        HorizontalOptions="End"
-                        Margin="12,0,0,0"
-                        StrokeThickness="0"
-                        VerticalOptions="Center"
-                        WidthRequest="{StaticResource IconSmallContainerSize}">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Label
-                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{StaticResource IconStandardFontSize}"
-                        HorizontalOptions="Center"
-                        HorizontalTextAlignment="Center"
-                        InputTransparent="True"
-                        Text="{x:Static fn:GlyphNames.Folder}"
-                        TextColor="{DynamicResource TextSecondaryColor}"
-                        VerticalOptions="Center"
-                        VerticalTextAlignment="Center" />
-                </Border>
-                </Grid>
-            </core:SfEffectsView>
-            <!-- Divider -->
-            <BoxView Grid.Row="1"
-                     HeightRequest="1"
-                     BackgroundColor="{DynamicResource DividerColor}"
-                     Margin="0"
-                     HorizontalOptions="Fill"
-                     IsVisible="{Binding IsLanguageVisible}" />
             <!-- Language Name with icon -->
-            <core:SfEffectsView Grid.Row="2"
-                                 IsVisible="{Binding IsLanguageVisible}"
+            <core:SfEffectsView Grid.Row="0"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                  TouchUpEffects="None"
                                  RippleBackground="{StaticResource PrimaryColor}"
@@ -169,6 +100,73 @@
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
                         Text="{x:Static fn:GlyphNames.Language}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
+                        VerticalOptions="Center"
+                        VerticalTextAlignment="Center" />
+                </Border>
+                </Grid>
+            </core:SfEffectsView>
+            <!-- Divider -->
+            <BoxView Grid.Row="1"
+                     HeightRequest="1"
+                     BackgroundColor="{DynamicResource DividerColor}"
+                     Margin="0"
+                     HorizontalOptions="Fill" />
+            <!-- Category Name with icon -->
+            <core:SfEffectsView Grid.Row="2"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectCategoryCommand}"
+                                          NumberOfTapsRequired="1" />
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="BibleCategoryButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <!-- Category Name -->
+                <Label Grid.Column="0"
+                       FontSize="{StaticResource LargeFontSize}"
+                       FontAttributes="None"
+                       HorizontalOptions="Fill"
+                       HorizontalTextAlignment="Start"
+                       LineBreakMode="WordWrap"
+                       Text="{Binding CategoryDisplayText}"
+                       TextColor="{StaticResource PrimaryColor}"
+                       VerticalOptions="Center"
+                       VerticalTextAlignment="Center" />
+                
+                <!-- Category Icon -->
+                <Border Grid.Column="1"
+                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                        HeightRequest="{StaticResource IconSmallContainerSize}"
+                        HorizontalOptions="End"
+                        Margin="12,0,0,0"
+                        StrokeThickness="0"
+                        VerticalOptions="Center"
+                        WidthRequest="{StaticResource IconSmallContainerSize}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Label
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="{StaticResource IconStandardFontSize}"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
+                        InputTransparent="True"
+                        Text="{x:Static fn:GlyphNames.Folder}"
                         TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />

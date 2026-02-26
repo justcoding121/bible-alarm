@@ -93,7 +93,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         trackNavigator = new TrackNavigator(mediaService, BiblePublicationService, languageContentService, scopeFactory, logger);
         scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);
         scheduleDisplayRefresher = scheduleDisplayNameService != null && alarmScheduleService != null
-            ? new PlaylistScheduleDisplayRefresher(alarmScheduleService, scheduleDisplayNameService, dispatcher, logger)
+            ? new PlaylistScheduleDisplayRefresher(alarmScheduleService, scheduleDisplayNameService, applicationState, dispatcher, logger)
             : null;
         biblePlayItemBuilder = new PlaylistBiblePlayItemBuilder(urlConstructionService, urlRefreshService);
     }
@@ -158,8 +158,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     }
 
     /// <summary>
-    /// For no-language Bible publications (e.g. iam), preserves the display language. When the DB has null
-    /// (normalized from E), use the schedule's language from Fluxor state so we retain e.g. MY after playback.
+    /// Bible schedule language code: use DB when set; when DB has null (e.g. no-language pub iam), use the value
+    /// already in state so we do not overwrite it. Language is only updated when the user clicks Save on the schedule page.
     /// </summary>
     private string GetPreservedLanguageForNoLanguageBibleSchedule(int scheduleId, string? dbLanguageCode)
     {
@@ -175,8 +175,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     }
 
     /// <summary>
-    /// For no-language Music (e.g. iam as begin-with-music), preserves the display language. When the DB has null
-    /// (normalized from E), use the schedule's music language from Fluxor state so we retain e.g. MY after playback.
+    /// Music schedule language code: use DB when set; when DB has null (e.g. no-language pub), use the value
+    /// already in state so we do not overwrite it. Language is only updated when the user clicks Save on the schedule page.
     /// </summary>
     private string GetPreservedLanguageForNoLanguageMusicSchedule(int scheduleId, string? dbLanguageCode)
     {
