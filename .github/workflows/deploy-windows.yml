@@ -213,6 +213,17 @@ jobs:
         }
         Write-Host "Uploading bundle: $($msixPath.FullName) (target: $(if ($isBeta) { 'Beta Test flight' } else { 'Production' }))"
         
+        # Validate required secrets so we never send a request with an empty/invalid token
+        $missing = @()
+        if (-not $env:AZURE_AD_TENANT_ID) { $missing += "AZURE_AD_TENANT_ID" }
+        if (-not $env:AZURE_AD_CLIENT_ID) { $missing += "AZURE_AD_CLIENT_ID" }
+        if (-not $env:AZURE_AD_CLIENT_SECRET) { $missing += "AZURE_AD_CLIENT_SECRET" }
+        if (-not $env:STORE_APP_ID) { $missing += "MICROSOFT_STORE_APP_ID" }
+        if ($missing.Count -gt 0) {
+            Write-Error "Missing or empty GitHub secrets (token would be invalid): $($missing -join ', '). Add them in repo Settings > Secrets and variables > Actions."
+            exit 1
+        }
+        
         # 1. Token resource must be Dev Center, not Graph, or Store API returns Unauthorized
         $tokenUrl = "https://login.microsoftonline.com/$env:AZURE_AD_TENANT_ID/oauth2/token"
         $body = @{
@@ -222,8 +233,18 @@ jobs:
             resource      = "https://manage.devcenter.microsoft.com"
         }
         
-        $tokenResponse = Invoke-RestMethod -Uri $tokenUrl -Method Post -Body $body
+        try {
+            $tokenResponse = Invoke-RestMethod -Uri $tokenUrl -Method Post -Body $body
+        } catch {
+            Write-Error "Token request failed. Check AZURE_AD_TENANT_ID, AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET and that the Azure AD app has Partner Center Manager role and is added as Manager in Partner Center. Error: $($_.Exception.Message)"
+            exit 1
+        }
         $accessToken = $tokenResponse.access_token
+        if (-not $accessToken) {
+            Write-Error "Token response did not contain access_token. Azure may have returned an error body. Check the app registration and Partner Center permissions."
+            exit 1
+        }
+        Write-Host "Access token obtained successfully (length: $($accessToken.Length))"
         
         # 3. POST to create submission requires Authorization and Content-Type
         $headers = @{
