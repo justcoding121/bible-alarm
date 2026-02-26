@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Globalization;
 using Microsoft.Maui.Controls.Xaml;
 
@@ -7,6 +9,7 @@ namespace Bible.Alarm.Common.ViewHelpers;
 /// Returns a <see cref="Shadow"/> on Android/iOS and null on WinUI to avoid
 /// GetAlphaMaskAsync ArgumentException crash on Windows.
 /// </summary>
+[AcceptEmptyServiceProvider]
 public sealed class PlatformShadowExtension : IMarkupExtension<Shadow?>
 {
     public string? Brush { get; set; }

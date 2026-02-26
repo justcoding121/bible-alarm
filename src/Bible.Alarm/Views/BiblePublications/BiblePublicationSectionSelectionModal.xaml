@@ -174,16 +174,14 @@
                         <On Platform="WinUI" Value="true" />
                     </OnPlatform>
                 </core:SfEffectsView.IsVisible>
-                <core:SfEffectsView.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding CloseModalCommand}" />
-                </core:SfEffectsView.GestureRecognizers>
                 <Border x:Name="CloseButton"
                     BackgroundColor="{DynamicResource CardBackgroundColor}"
                     HorizontalOptions="Fill"
                     VerticalOptions="Fill"
-                    Padding="20,12"
-                    InputTransparent="True"
-                    IsEnabled="False">
+                    Padding="20,12">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding CloseModalCommand}" />
+                    </Border.GestureRecognizers>
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="12" />
                     </Border.StrokeShape>

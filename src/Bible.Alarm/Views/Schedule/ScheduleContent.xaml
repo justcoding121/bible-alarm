@@ -62,25 +62,17 @@
                             <On Platform="WinUI" Value="true" />
                         </OnPlatform>
                     </core:SfEffectsView.IsVisible>
-                    <core:SfEffectsView.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding CancelCommand}" />
-                    </core:SfEffectsView.GestureRecognizers>
                     <Border x:Name="CancelButton"
                             AutomationId="CancelButton"
                             BackgroundColor="{DynamicResource DividerColor}"
                             HorizontalOptions="Fill"
-                            VerticalOptions="Fill"
-                            InputTransparent="True"
-                            IsEnabled="False">
+                            VerticalOptions="Fill">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding CancelCommand}" />
+                        </Border.GestureRecognizers>
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
-                        <Border.Shadow>
-                            <helpers:PlatformShadow Brush="#20000000" 
-                                    Offset="0,2" 
-                                    Radius="4" 
-                                    Opacity="0.2" />
-                        </Border.Shadow>
                         <Label Text="{x:Static fn:GlyphNames.ArrowLeft}" 
                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
                                FontSize="{StaticResource IconStandardFontSize}"
@@ -90,10 +82,11 @@
                                IsVisible="{Binding IsCancelBusy, Converter={StaticResource negateBooleanConverter}}" />
                     </Border>
                 </core:SfEffectsView>
-                <!-- Loading indicator overlay - shows when IsCancelBusy is true -->
+                <!-- Loading indicator overlay - shows when IsCancelBusy is true; InputTransparent so it never blocks the button -->
                 <ActivityIndicator
                         IsRunning="{Binding IsCancelBusy}"
                         IsVisible="{Binding IsCancelBusy}"
+                        InputTransparent="True"
                         Color="{DynamicResource TextSecondaryColor}"
                         WidthRequest="{DynamicResource SpinnerFontSize}"
                         HeightRequest="{DynamicResource SpinnerFontSize}"
@@ -162,25 +155,17 @@
                             <On Platform="WinUI" Value="true" />
                         </OnPlatform>
                     </core:SfEffectsView.IsVisible>
-                    <core:SfEffectsView.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding SaveCommand}" />
-                    </core:SfEffectsView.GestureRecognizers>
                     <Border x:Name="SaveButton"
                             AutomationId="SaveButton"
                             BackgroundColor="{StaticResource PrimaryColor}"
                             HorizontalOptions="Fill"
-                            VerticalOptions="Fill"
-                            InputTransparent="True"
-                            IsEnabled="False">
+                            VerticalOptions="Fill">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SaveCommand}" />
+                        </Border.GestureRecognizers>
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
-                        <Border.Shadow>
-                            <helpers:PlatformShadow Brush="#40000000" 
-                                    Offset="0,2" 
-                                    Radius="4" 
-                                    Opacity="0.3" />
-                        </Border.Shadow>
                         <Label Text="{x:Static fn:GlyphNames.FloppyDisk}" 
                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
                                FontSize="{StaticResource IconStandardFontSize}"
@@ -190,10 +175,11 @@
                                IsVisible="{Binding IsSaveBusy, Converter={StaticResource negateBooleanConverter}}" />
                     </Border>
                 </core:SfEffectsView>
-                <!-- Loading indicator overlay - shows when IsSaveBusy is true -->
+                <!-- Loading indicator overlay - shows when IsSaveBusy is true; InputTransparent so it never blocks the button -->
                 <ActivityIndicator
                         IsRunning="{Binding IsSaveBusy}"
                         IsVisible="{Binding IsSaveBusy}"
+                        InputTransparent="True"
                         Color="White"
                         WidthRequest="{DynamicResource SpinnerFontSize}"
                         HeightRequest="{DynamicResource SpinnerFontSize}"
@@ -288,25 +274,17 @@
                                 <On Platform="WinUI" Value="true" />
                             </OnPlatform>
                         </core:SfEffectsView.IsVisible>
-                        <core:SfEffectsView.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding DeleteCommand}" />
-                        </core:SfEffectsView.GestureRecognizers>
                         <Border x:Name="DeleteButton"
                                 IsVisible="{Binding IsExistingSchedule}"
                                 BackgroundColor="{StaticResource ErrorColor}"
                                 HorizontalOptions="Fill"
-                                VerticalOptions="Fill"
-                                InputTransparent="True"
-                                IsEnabled="False">
+                                VerticalOptions="Fill">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding DeleteCommand}" />
+                            </Border.GestureRecognizers>
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                             </Border.StrokeShape>
-                            <Border.Shadow>
-                                <helpers:PlatformShadow Brush="#40000000" 
-                                        Offset="0,2" 
-                                        Radius="4" 
-                                        Opacity="0.3" />
-                            </Border.Shadow>
                             <Label Text="{x:Static fn:GlyphNames.Trash}" 
                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
                                    FontSize="{StaticResource IconStandardFontSize}"
@@ -316,10 +294,11 @@
                                    IsVisible="{Binding IsDeleteBusy, Converter={StaticResource negateBooleanConverter}}" />
                         </Border>
                     </core:SfEffectsView>
-                    <!-- Loading indicator overlay - shows when IsDeleteBusy is true -->
+                    <!-- Loading indicator overlay - shows when IsDeleteBusy is true; InputTransparent so it never blocks the button -->
                     <ActivityIndicator
                             IsRunning="{Binding IsDeleteBusy}"
                             IsVisible="{Binding IsDeleteBusy}"
+                            InputTransparent="True"
                             Color="White"
                             WidthRequest="{DynamicResource SpinnerFontSize}"
                             HeightRequest="{DynamicResource SpinnerFontSize}"

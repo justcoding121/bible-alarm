@@ -43,42 +43,30 @@ public partial class ScheduleContent : ContentView
 
     private void WireUpButtons()
     {
-        // Wire up Cancel button handlers
-        if (CancelButtonNoEffects != null)
+        WireUpTappedHandler(CancelButtonNoEffects);
+        WireUpTappedHandler(SaveButtonNoEffects);
+        WireUpTappedHandler(DeleteButtonNoEffectsBorder);
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
         {
-            foreach (var gesture in CancelButtonNoEffects.GestureRecognizers)
-            {
-                if (gesture is TapGestureRecognizer tapGesture)
-                {
-                    tapGesture.Tapped -= OnButtonTapped;
-                    tapGesture.Tapped += OnButtonTapped;
-                }
-            }
+            WireUpTappedHandler(CancelButton);
+            WireUpTappedHandler(SaveButton);
+            WireUpTappedHandler(DeleteButton);
+        }
+    }
+
+    private void WireUpTappedHandler(View? view)
+    {
+        if (view == null)
+        {
+            return;
         }
 
-        // Wire up Save button handlers
-        if (SaveButtonNoEffects != null)
+        foreach (var gesture in view.GestureRecognizers)
         {
-            foreach (var gesture in SaveButtonNoEffects.GestureRecognizers)
+            if (gesture is TapGestureRecognizer tapGesture)
             {
-                if (gesture is TapGestureRecognizer tapGesture)
-                {
-                    tapGesture.Tapped -= OnButtonTapped;
-                    tapGesture.Tapped += OnButtonTapped;
-                }
-            }
-        }
-
-        // Wire up Delete button handlers
-        if (DeleteButtonNoEffectsBorder != null)
-        {
-            foreach (var gesture in DeleteButtonNoEffectsBorder.GestureRecognizers)
-            {
-                if (gesture is TapGestureRecognizer tapGesture)
-                {
-                    tapGesture.Tapped -= OnButtonTapped;
-                    tapGesture.Tapped += OnButtonTapped;
-                }
+                tapGesture.Tapped -= OnButtonTapped;
+                tapGesture.Tapped += OnButtonTapped;
             }
         }
     }

@@ -11,6 +11,7 @@ public partial class Home : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool hasHandledFirstLoad;
+    private bool itemsSourceClearedOnDisappearing;
     private readonly HomeViewModel viewModel;
 
     public Home(HomeViewModel vm)
@@ -180,12 +181,14 @@ public partial class Home : BaseContentPage, IDisposable
         base.OnAppearing();
         Log.Information("Home.OnAppearing called");
 
-        // Restore CollectionView ItemsSource so the list is populated when returning to Home.
-        // We clear it in OnDisappearing to avoid VirtualView null crash on Windows when
-        // state updates (e.g. from Schedule page) trigger collection changes after the handler is disconnected.
-        if (viewModel != null)
+        // Restore CollectionView ItemsSource only when returning from a child page (after OnDisappearing cleared it).
+        // On first appear we do not set ItemsSource so the XAML binding stays in effect; when bootstrap loads
+        // schedules and replaces Schedules, the binding updates and the list shows. If we set ItemsSource here
+        // on first load we overwrite the binding and the list never updates until the user navigates away and back.
+        if (viewModel != null && itemsSourceClearedOnDisappearing)
         {
             SchedulesCollectionView.ItemsSource = viewModel.Schedules;
+            itemsSourceClearedOnDisappearing = false;
         }
 
         // Reset schedule state when navigating back to home
@@ -208,6 +211,7 @@ public partial class Home : BaseContentPage, IDisposable
         // events after the page is no longer visible. On Windows, delayed OnItemsVectorChanged
         // callbacks can run with VirtualView == null and throw InvalidOperationException.
         SchedulesCollectionView.ItemsSource = null;
+        itemsSourceClearedOnDisappearing = true;
     }
 
     protected override bool OnBackButtonPressed() =>
