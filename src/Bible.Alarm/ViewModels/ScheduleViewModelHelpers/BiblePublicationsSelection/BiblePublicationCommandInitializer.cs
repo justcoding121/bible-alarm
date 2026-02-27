@@ -13,6 +13,7 @@ using Bible.Alarm.ViewModels.Categories;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -83,7 +84,8 @@ public sealed class BiblePublicationCommandInitializer
             // If not selectable, don't open the modal
             var mediaService = serviceProvider.GetRequiredService<IMediaService>();
             var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
-            var displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService, categoryNameService);
+            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+            var displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService, categoryNameService, scopeFactory);
             var isSelectable = await displayTextProvider.GetIsPublicationSelectableAsync();
             if (!isSelectable)
             {

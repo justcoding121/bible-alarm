@@ -185,9 +185,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
             // Update CurrentLanguage after population so scroll-to-selected works
             propertyManager.UpdateCurrentLanguageFromLanguages();
-
-            // Signal that load is complete so ModalScrollHelper.WaitForNotBusyAsync returns
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
         catch (Exception ex)
         {
@@ -240,9 +237,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
             // Set the selected publication after population so scroll-to-selected works
             propertyManager.SetSelectedPublication();
-
-            // Signal that data load is complete so ModalScrollHelper.WaitForNotBusyAsync returns and can proceed to verify items/render. Modal sets IsBusy = false again when revealing.
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
         catch (OperationCanceledException)
         {

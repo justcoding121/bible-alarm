@@ -158,15 +158,12 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0)
         {
             stateManager.SetInitComplete(true);
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
             await Initialize(newLanguageCode, newPublicationCode, newSectionCode);
             SetSelectedTrack();
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
         else
         {
             SetSelectedTrack();
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
     }
 

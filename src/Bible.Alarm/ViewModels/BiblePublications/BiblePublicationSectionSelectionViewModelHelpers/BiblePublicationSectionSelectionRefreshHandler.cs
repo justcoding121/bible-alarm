@@ -31,7 +31,6 @@ public sealed class BiblePublicationSectionSelectionRefreshHandler
             {
                 if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
                 {
-                    ctx.SetIsBusy(true);
                     ctx.SetScreenOn(true);
                 }
             });
@@ -82,7 +81,6 @@ public sealed class BiblePublicationSectionSelectionRefreshHandler
                 {
                     ctx.SetCanCancelFetch(false);
                     ctx.SetShowProgress(false);
-                    ctx.SetIsBusy(false);
                     ctx.SetScreenOn(false);
                 }
             });

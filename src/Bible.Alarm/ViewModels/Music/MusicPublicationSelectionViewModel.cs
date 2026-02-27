@@ -110,6 +110,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
             propertyManager.IsBusy = true;
+            bool modalOpened = false;
 
             try
             {
@@ -131,10 +132,12 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                 }
 
                 await navigationService.OpenLanguageModalAsync(this);
+                modalOpened = true;
             }
             finally
             {
-                propertyManager.IsBusy = false;
+                if (!modalOpened)
+                    propertyManager.IsBusy = false;
             }
         });
 
@@ -341,9 +344,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     public async Task RefreshLanguagesAsync()
     {
         await initHandler.RefreshLanguagesAsync(state, PopulateLanguages);
-
-        // Signal that load is complete so ModalScrollHelper.WaitForNotBusyAsync returns (matches Bible language modal).
-        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
     /// <summary>
@@ -378,9 +378,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             PopulateLanguages,
             PopulateSongPublications,
             SetSelectedSongPublication);
-
-        // Signal that data load is complete so ModalScrollHelper.WaitForNotBusyAsync returns (matches Bible publication modal).
-        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
     private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false, IFetchProgress? progress = null, CancellationToken cancellationToken = default)

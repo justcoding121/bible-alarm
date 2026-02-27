@@ -13,6 +13,7 @@ using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -96,7 +97,7 @@ public sealed class MusicCommandInitializer
         {
             // Check if publication is selectable (multiple options available)
             // If not selectable, don't open the modal
-            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>());
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger: logger);
             var isSelectable = await displayTextProvider.GetIsSongPublicationSelectableAsync();
             if (!isSelectable)
             {

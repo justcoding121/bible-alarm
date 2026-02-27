@@ -12,6 +12,7 @@ using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -99,7 +100,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         // Initialize helper classes
         commandInitializer = new MusicCommandInitializer(
             logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider, toastService);
-        displayTextProvider = new MusicDisplayTextProvider(state, mediaService);
+        var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+        displayTextProvider = new MusicDisplayTextProvider(state, mediaService, serviceScopeFactory: serviceScopeFactory, logger: logger);
         propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
         // Set property change notifier so display provider can notify when language name loads asynchronously
         displayTextProvider.SetPropertyChangeNotifier(propertyName => OnPropertyChanged(propertyName));
@@ -255,14 +257,14 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
             // Only recompute when music-related inputs change (prevents DB calls on unrelated state updates,
             // e.g., changing the Bible publication category).
+            // Modal counts are not included because selectability now queries the discovery DB directly
+            // with its own caching, making it resilient to stale Fluxor state.
             var signature = string.Join('|',
                 currentSchedule.MusicEnabled.ToString(),
                 currentSchedule.MusicLanguageCode ?? string.Empty,
                 currentSchedule.MusicPublicationCode ?? string.Empty,
                 currentSchedule.MusicSectionCode ?? string.Empty,
-                currentSchedule.MusicTrackCode?.ToString() ?? string.Empty,
-                currentSchedule.MusicPublicationModalItemCount?.ToString() ?? string.Empty,
-                currentSchedule.MusicSectionModalItemCount?.ToString() ?? string.Empty);
+                currentSchedule.MusicTrackCode?.ToString() ?? string.Empty);
 
             if (string.Equals(signature, lastSelectabilitySignature, StringComparison.Ordinal))
             {

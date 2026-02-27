@@ -147,15 +147,12 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
 
         if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0 || sectionChanged)
         {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
             await Initialize(languageCode, pubCode);
             SetSelectedTrack();
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
         else
         {
             SetSelectedTrack();
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
     }
 

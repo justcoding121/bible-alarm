@@ -298,7 +298,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 if (!isDisposed && !isSelectingSection)
                 {
                     ShowProgress = false;
-                    IsBusy = false;
                     CanCancelFetch = false;
                     SetSelectedSection();
                 }

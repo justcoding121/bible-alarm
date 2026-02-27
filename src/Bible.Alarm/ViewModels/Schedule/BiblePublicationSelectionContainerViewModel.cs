@@ -12,6 +12,7 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fluxor;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -76,7 +77,8 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         commandInitializer = new BiblePublicationCommandInitializer(logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider);
         var mediaService = serviceProvider.GetRequiredService<Bible.Alarm.Services.Media.Interfaces.IMediaService>();
         var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
-        displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService, categoryNameService);
+        var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+        displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService, categoryNameService, serviceScopeFactory);
         propertyChangeDetector = new BiblePublicationPropertyChangeDetector(displayTextProvider);
         propertyNotifier = new BiblePublicationPropertyNotifier(propertyName => OnPropertyChanged(propertyName));
 
@@ -394,14 +396,13 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             }
 
             // Only recompute when relevant inputs change (prevents DB calls on unrelated state updates).
+            // Modal counts are not included because selectability now queries the discovery DB directly
+            // with its own caching, making it resilient to stale Fluxor state.
             var signature = string.Join('|',
                 currentSchedule.BiblePublicationCategoryName ?? string.Empty,
                 currentSchedule.BiblePublicationLanguageCode ?? string.Empty,
                 currentSchedule.BiblePublicationCode ?? string.Empty,
-                currentSchedule.BiblePublicationSectionCode ?? string.Empty,
-                currentSchedule.BiblePublicationModalItemCount?.ToString() ?? string.Empty,
-                currentSchedule.BiblePublicationSectionModalItemCount?.ToString() ?? string.Empty,
-                currentSchedule.BiblePublicationTrackModalItemCount?.ToString() ?? string.Empty);
+                currentSchedule.BiblePublicationSectionCode ?? string.Empty);
 
             if (string.Equals(signature, lastSelectabilitySignature, StringComparison.Ordinal))
             {

@@ -49,7 +49,6 @@ public sealed class MusicPublicationSelectionRefreshHandler
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            propertyManager.IsBusy = true;
             propertyManager.CanCancelFetch = true;
             propertyManager.ShowProgress = true;
             propertyManager.ProgressText = "0%";

@@ -284,7 +284,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                 if (!isDisposed && !isSelectingSection)
                 {
                     ShowProgress = false;
-                    IsBusy = false;
                     CanCancelFetch = false;
                 }
                 if (!isDisposed)

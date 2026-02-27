@@ -2,11 +2,15 @@
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Fluxor;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
+using Serilog;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 
@@ -15,6 +19,8 @@ public sealed class MusicDisplayTextProvider
     private readonly IState<ApplicationState> state;
     private readonly IMediaService mediaService;
     private readonly ILanguageNameService? languageNameService;
+    private readonly IServiceScopeFactory? serviceScopeFactory;
+    private readonly ILogger? logger;
 
     private string? cachedSongPublicationName;
     private string? lastMusicPublicationCode;
@@ -26,11 +32,18 @@ public sealed class MusicDisplayTextProvider
     private bool isLoadingDefaultLanguageName;
     private Action<string>? propertyChangeNotifier;
 
-    public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService, ILanguageNameService? languageNameService = null)
+    private string? cachedMusicPubSelectableKey;
+    private bool cachedMusicPubSelectableValue;
+    private string? cachedMusicSectionSelectableKey;
+    private bool cachedMusicSectionSelectableValue;
+
+    public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService, ILanguageNameService? languageNameService = null, IServiceScopeFactory? serviceScopeFactory = null, ILogger? logger = null)
     {
         this.state = state;
         this.mediaService = mediaService;
         this.languageNameService = languageNameService;
+        this.serviceScopeFactory = serviceScopeFactory;
+        this.logger = logger;
     }
 
     /// <summary>
@@ -423,42 +436,126 @@ public sealed class MusicDisplayTextProvider
 
     /// <summary>
     /// Checks if there are multiple publications available for the current language.
-    /// Returns true if there are 2 or more publications, false if only 1 or 0.
+    /// Queries the discovery table directly with caching to avoid stale Fluxor state.
     /// </summary>
-    public Task<bool> GetIsSongPublicationSelectableAsync()
+    public async Task<bool> GetIsSongPublicationSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null)
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        // Use discovery-based expected modal count from state (set on initial load + cascades).
-        var expectedCount = currentSchedule.MusicPublicationModalItemCount;
-        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
+        if (serviceScopeFactory == null)
+        {
+            var expectedCount = currentSchedule.MusicPublicationModalItemCount;
+            return expectedCount.HasValue && expectedCount.Value > 1;
+        }
+
+        var languageCode = currentSchedule.MusicLanguageCode;
+        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
+        var cacheKey = effectiveLanguageCode;
+
+        if (string.Equals(cacheKey, cachedMusicPubSelectableKey, StringComparison.Ordinal))
+        {
+            return cachedMusicPubSelectableValue;
+        }
+
+        try
+        {
+            var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
+
+            using var scope = serviceScopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var query = db.PublicationLanguages
+                .AsNoTracking()
+                .Where(pl => pl.Category != null && pl.Category.CategoryCode == "Music");
+
+            query = query.Where(pl =>
+                (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
+                pl.LanguageId == null);
+
+            var count = await query
+                .Select(pl => pl.PublicationCode)
+                .Distinct()
+                .CountAsync();
+
+            var result = count > 1;
+            cachedMusicPubSelectableKey = cacheKey;
+            cachedMusicPubSelectableValue = result;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger?.Warning(ex, "Failed to query music publication count for selectability. Language={Language}", languageCode);
+            return false;
+        }
     }
 
     /// <summary>
     /// Checks if there are multiple sections available for the current music publication.
-    /// Returns true if there are 2 or more sections, false if only 1 or 0.
+    /// Queries the discovery table directly with caching to avoid stale Fluxor state.
     /// </summary>
-    public Task<bool> GetIsMusicSectionSelectableAsync()
+    public async Task<bool> GetIsMusicSectionSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        // If publication doesn't have sections, it's not selectable
         if (!GetIsMusicSectionVisible())
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        // Use discovery-based expected modal count from state (set on initial load + cascades).
-        var expectedCount = currentSchedule.MusicSectionModalItemCount;
-        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
+        if (serviceScopeFactory == null)
+        {
+            var expectedCount = currentSchedule.MusicSectionModalItemCount;
+            return expectedCount.HasValue && expectedCount.Value > 1;
+        }
+
+        var publicationCode = currentSchedule.MusicPublicationCode;
+        var languageCode = currentSchedule.MusicLanguageCode;
+        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
+        var cacheKey = $"{publicationCode}|{effectiveLanguageCode}";
+
+        if (string.Equals(cacheKey, cachedMusicSectionSelectableKey, StringComparison.Ordinal))
+        {
+            return cachedMusicSectionSelectableValue;
+        }
+
+        try
+        {
+            var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
+
+            using var scope = serviceScopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var query = db.SectionLanguages
+                .AsNoTracking()
+                .Where(sl => sl.PublicationCode == publicationCode);
+
+            query = query.Where(sl =>
+                (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
+                sl.LanguageId == null);
+
+            var count = await query
+                .Select(sl => sl.SectionCode)
+                .Distinct()
+                .CountAsync();
+
+            var result = count > 1;
+            cachedMusicSectionSelectableKey = cacheKey;
+            cachedMusicSectionSelectableValue = result;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger?.Warning(ex, "Failed to query music section count for selectability. Publication={Publication}, Language={Language}", publicationCode, languageCode);
+            return false;
+        }
     }
 
     /// <summary>

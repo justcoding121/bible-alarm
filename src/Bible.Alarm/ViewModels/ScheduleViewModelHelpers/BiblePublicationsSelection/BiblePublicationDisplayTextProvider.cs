@@ -2,6 +2,7 @@
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -23,13 +24,20 @@ public sealed class BiblePublicationDisplayTextProvider
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
     private readonly ICategoryNameService categoryNameService;
+    private readonly IServiceScopeFactory serviceScopeFactory;
 
-    public BiblePublicationDisplayTextProvider(IState<ApplicationState> state, ILogger logger, IMediaService mediaService, ICategoryNameService categoryNameService)
+    private string? cachedPubSelectableKey;
+    private bool cachedPubSelectableValue;
+    private string? cachedSectionSelectableKey;
+    private bool cachedSectionSelectableValue;
+
+    public BiblePublicationDisplayTextProvider(IState<ApplicationState> state, ILogger logger, IMediaService mediaService, ICategoryNameService categoryNameService, IServiceScopeFactory serviceScopeFactory)
     {
         this.state = state;
         this.logger = logger;
         this.mediaService = mediaService;
         this.categoryNameService = categoryNameService;
+        this.serviceScopeFactory = serviceScopeFactory;
     }
 
     /// <summary>
@@ -280,43 +288,145 @@ public sealed class BiblePublicationDisplayTextProvider
 
     /// <summary>
     /// Checks if there are multiple publications available for the current language and category.
-    /// Returns true if there are 2 or more publications, false if only 1 or 0.
+    /// Queries the discovery table directly with caching to avoid stale Fluxor state.
     /// </summary>
-    public Task<bool> GetIsPublicationSelectableAsync()
+    public async Task<bool> GetIsPublicationSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null)
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        // Use discovery-based expected modal count from state (set on initial load + cascades).
-        // This avoids per-row DB queries just to decide whether to show a right-arrow.
-        var expectedCount = currentSchedule.BiblePublicationModalItemCount;
-        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
+        var categoryName = currentSchedule.BiblePublicationCategoryName;
+        if (string.IsNullOrWhiteSpace(categoryName))
+        {
+            return false;
+        }
+
+        var languageCode = currentSchedule.BiblePublicationLanguageCode;
+        var cacheKey = $"{categoryName}|{languageCode ?? string.Empty}";
+
+        if (string.Equals(cacheKey, cachedPubSelectableKey, StringComparison.Ordinal))
+        {
+            return cachedPubSelectableValue;
+        }
+
+        try
+        {
+            var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+
+            using var scope = serviceScopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var query = db.PublicationLanguages
+                .AsNoTracking()
+                .Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
+
+            if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+            {
+                query = query.Where(pl =>
+                    (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
+                    pl.LanguageId == null);
+            }
+            else
+            {
+                query = query.Where(pl => pl.LanguageId == null);
+            }
+
+            var publicationCodes = await query
+                .Select(pl => pl.PublicationCode)
+                .ToListAsync();
+
+            var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var code in publicationCodes)
+            {
+                var lower = code.ToLowerInvariant();
+                if (PublicationTypeHelper.IsDrama(lower))
+                {
+                    unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings");
+                }
+                else
+                {
+                    unique.Add(code);
+                }
+            }
+
+            var result = unique.Count > 1;
+            cachedPubSelectableKey = cacheKey;
+            cachedPubSelectableValue = result;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to query publication count for selectability. Category={Category}, Language={Language}", categoryName, languageCode);
+            return false;
+        }
     }
 
     /// <summary>
     /// Checks if there are multiple sections available for the current publication.
-    /// Returns true if there are 2 or more sections, false if only 1 or 0.
+    /// Queries the discovery table directly with caching to avoid stale Fluxor state.
     /// </summary>
-    public Task<bool> GetIsSectionSelectableAsync()
+    public async Task<bool> GetIsSectionSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        // If publication doesn't have sections, it's not selectable
         if (!GetIsSectionVisible())
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        // Use discovery-based expected modal count from state (set on initial load + cascades).
-        var expectedCount = currentSchedule.BiblePublicationSectionModalItemCount;
-        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
+        var publicationCode = currentSchedule.BiblePublicationCode;
+        var languageCode = currentSchedule.BiblePublicationLanguageCode;
+        var cacheKey = $"{publicationCode}|{languageCode ?? string.Empty}";
+
+        if (string.Equals(cacheKey, cachedSectionSelectableKey, StringComparison.Ordinal))
+        {
+            return cachedSectionSelectableValue;
+        }
+
+        try
+        {
+            var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+
+            using var scope = serviceScopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var query = db.SectionLanguages
+                .AsNoTracking()
+                .Where(sl => sl.PublicationCode == publicationCode);
+
+            if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+            {
+                query = query.Where(sl =>
+                    (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
+                    sl.LanguageId == null);
+            }
+            else
+            {
+                query = query.Where(sl => sl.LanguageId == null);
+            }
+
+            var count = await query
+                .Select(sl => sl.SectionCode)
+                .Distinct()
+                .CountAsync();
+
+            var result = count > 1;
+            cachedSectionSelectableKey = cacheKey;
+            cachedSectionSelectableValue = result;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to query section count for selectability. Publication={Publication}, Language={Language}", publicationCode, languageCode);
+            return false;
+        }
     }
 
     /// <summary>
