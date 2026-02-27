@@ -117,8 +117,7 @@ internal sealed class LanguageContentPublicationTracksFetcher
             // Use HarvestType from PublicationLanguage to determine fetching method
             var category = publicationLanguage.Category;
             var categoryCode = category.CategoryCode;
-            var isVideo = categoryCode.Equals("Dramas", StringComparison.OrdinalIgnoreCase) &&
-                         PublicationTypeHelper.IsVideo(lowerCode);
+            var isVideo = PublicationTypeHelper.IsVideo(lowerCode);
 
             var harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(lowerCode);
             await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);

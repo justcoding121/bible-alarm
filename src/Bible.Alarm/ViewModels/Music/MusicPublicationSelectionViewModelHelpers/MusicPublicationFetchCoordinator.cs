@@ -118,6 +118,7 @@ internal sealed class MusicPublicationFetchCoordinator
         var startTime = DateTime.UtcNow;
         var allHarvested = false;
         var attempt = 0;
+        var previousHarvestedCount = -1;
 
         Serilog.Log.Information("PopulateSongPublications: Starting fetch with retries for language={LanguageCode}, category=Music",
             languageCode);
@@ -170,6 +171,18 @@ internal sealed class MusicPublicationFetchCoordinator
                     }
                     else
                     {
+                        var currentHarvestedCount = reQueriedData?.Values.Count(p =>
+                            !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0) ?? 0;
+
+                        if (currentHarvestedCount > 0 && currentHarvestedCount <= previousHarvestedCount)
+                        {
+                            Serilog.Log.Information("PopulateSongPublications: No progress between retries ({HarvestedCount} harvested, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}",
+                                currentHarvestedCount, retryExpectedCount, languageCode);
+                            publicationsData = reQueriedData;
+                            break;
+                        }
+                        previousHarvestedCount = currentHarvestedCount;
+
                         // Log which publications are still placeholders or missing for debugging
                         if (reQueriedData != null)
                         {

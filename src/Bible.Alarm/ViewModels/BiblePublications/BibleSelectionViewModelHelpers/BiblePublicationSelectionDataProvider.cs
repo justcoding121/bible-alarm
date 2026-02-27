@@ -179,6 +179,7 @@ public sealed class BiblePublicationSelectionDataProvider
                     var startTime = DateTime.UtcNow;
                     var allHarvested = false;
                     var attempt = 0;
+                    var previousHarvestedCount = -1;
                     
                     Log.Information("PopulatePublicationsAsync: Starting fetch with retries for language={LanguageCode}, category={CategoryName}",
                         languageCode, currentCategoryName);
@@ -229,6 +230,18 @@ public sealed class BiblePublicationSelectionDataProvider
                             }
                             else
                             {
+                                var currentHarvestedCount = reQueriedData?.Values.Count(p =>
+                                    !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0) ?? 0;
+
+                                if (currentHarvestedCount > 0 && currentHarvestedCount <= previousHarvestedCount)
+                                {
+                                    Log.Information("PopulatePublicationsAsync: No progress between retries ({HarvestedCount} harvested, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}, category={CategoryName}",
+                                        currentHarvestedCount, retryExpectedCount, languageCode, currentCategoryName);
+                                    publicationsData = reQueriedData;
+                                    break;
+                                }
+                                previousHarvestedCount = currentHarvestedCount;
+
                                 // Log which publications are still placeholders or missing for debugging
                                 if (reQueriedData != null)
                                 {
@@ -330,6 +343,21 @@ public sealed class BiblePublicationSelectionDataProvider
             if (publicationsData == null)
             {
                 return (vms, mapping, null);
+            }
+
+            // Remove placeholder publications that couldn't be fetched (e.g. no tracks on the server)
+            var unfetchableCodes = publicationsData
+                .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || kvp.Value.Name == kvp.Value.PublicationCode)
+                .Select(kvp => kvp.Key)
+                .ToList();
+            if (unfetchableCodes.Count > 0)
+            {
+                foreach (var code in unfetchableCodes)
+                {
+                    publicationsData.Remove(code);
+                }
+                Log.Information("PopulatePublicationsAsync: Removed {Count} unfetchable placeholder publications: {Codes}",
+                    unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
             }
 
             foreach (var publication in publicationsData.Values)

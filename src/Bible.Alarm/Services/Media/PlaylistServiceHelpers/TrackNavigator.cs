@@ -446,28 +446,33 @@ public sealed class TrackNavigator
         }
 
         var orderedSectionCodes = discoveredSectionCodes.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
-        var firstSectionCode = orderedSectionCodes[0];
 
-        var harvested = await SectionHarvester.EnsureSectionHarvestedAsync(
-            languageCode,
-            publicationCode,
-            firstSectionCode,
-            sectionFetchProgress,
-            () => { lock (cacheLock) { sectionsCache.Remove(new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode)); } },
-            () => { lock (cacheLock) { tracksCache.Remove(new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, firstSectionCode.ToUpperInvariant())); } });
-        if (!harvested)
+        foreach (var candidateSectionCode in orderedSectionCodes)
         {
-            return null;
+            var harvested = await SectionHarvester.EnsureSectionHarvestedAsync(
+                languageCode,
+                publicationCode,
+                candidateSectionCode,
+                sectionFetchProgress,
+                () => { lock (cacheLock) { sectionsCache.Remove(new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode)); } },
+                () => { lock (cacheLock) { tracksCache.Remove(new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, candidateSectionCode.ToUpperInvariant())); } });
+            if (!harvested)
+            {
+                continue;
+            }
+
+            var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+            var tracks = await GetTracksCachedAsync(languageCode, publicationCode, candidateSectionCode);
+            if (sections.TryGetValue(candidateSectionCode, out var section) && tracks.Count > 0)
+            {
+                return (section, tracks.ElementAt(0).Value);
+            }
+
+            logger?.Information("GetFirstTrackOfPublicationAsync: Section {SectionCode} has no tracks after harvest, trying next section",
+                candidateSectionCode);
         }
 
-        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
-        var tracks = await GetTracksCachedAsync(languageCode, publicationCode, firstSectionCode);
-        if (!sections.TryGetValue(firstSectionCode, out var section) || tracks.Count == 0)
-        {
-            return null;
-        }
-
-        return (section, tracks.ElementAt(0).Value);
+        return null;
     }
 
     private async Task<(BiblePublicationSection? Section, BiblePublicationTrack Track)?> GetLastTrackOfPublicationAsync(
@@ -508,28 +513,35 @@ public sealed class TrackNavigator
         }
 
         var orderedSectionCodes = discoveredSectionCodes.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
-        var lastSectionCode = orderedSectionCodes[orderedSectionCodes.Count - 1];
 
-        var harvested = await SectionHarvester.EnsureSectionHarvestedAsync(
-            languageCode,
-            publicationCode,
-            lastSectionCode,
-            sectionFetchProgress,
-            () => { lock (cacheLock) { sectionsCache.Remove(new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode)); } },
-            () => { lock (cacheLock) { tracksCache.Remove(new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, lastSectionCode.ToUpperInvariant())); } });
-        if (!harvested)
+        for (var i = orderedSectionCodes.Count - 1; i >= 0; i--)
         {
-            return null;
+            var candidateSectionCode = orderedSectionCodes[i];
+
+            var harvested = await SectionHarvester.EnsureSectionHarvestedAsync(
+                languageCode,
+                publicationCode,
+                candidateSectionCode,
+                sectionFetchProgress,
+                () => { lock (cacheLock) { sectionsCache.Remove(new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode)); } },
+                () => { lock (cacheLock) { tracksCache.Remove(new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, candidateSectionCode.ToUpperInvariant())); } });
+            if (!harvested)
+            {
+                continue;
+            }
+
+            var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+            var tracks = await GetTracksCachedAsync(languageCode, publicationCode, candidateSectionCode);
+            if (sections.TryGetValue(candidateSectionCode, out var section) && tracks.Count > 0)
+            {
+                return (section, tracks.Last().Value);
+            }
+
+            logger?.Information("GetLastTrackOfPublicationAsync: Section {SectionCode} has no tracks after harvest, trying previous section",
+                candidateSectionCode);
         }
 
-        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
-        var tracks = await GetTracksCachedAsync(languageCode, publicationCode, lastSectionCode);
-        if (!sections.TryGetValue(lastSectionCode, out var section) || tracks.Count == 0)
-        {
-            return null;
-        }
-
-        return (section, tracks.Last().Value);
+        return null;
     }
 
 }

@@ -278,7 +278,7 @@ internal sealed class EnglishContentSeeder
         }
 
         var (sections, localizedPubName) = await sectionFetcher.FetchSectionsAsync(
-            db, normalizedPublicationCode, normalizedLanguageCode, categoryName, sectionCodes, cancellationToken);
+            db, normalizedPublicationCode, normalizedLanguageCode, categoryName, sectionCodes, isVideo, cancellationToken);
 
         return await publicationBuilder.BuildAndSavePublicationAsync(
             db, normalizedPublicationCode, localizedPubName, language, category,

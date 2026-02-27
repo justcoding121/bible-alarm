@@ -82,6 +82,35 @@ internal sealed class EnglishTrackParser
         return tracks;
     }
 
+    /// <summary>
+    /// Parses tracks for non-Bible, non-iam sectioned publications (e.g., video sections).
+    /// </summary>
+    public List<BiblePublicationTrack> ParseGenericTracks(
+        JsonElement filesElement,
+        string normalizedLanguageCode,
+        string fileFormat,
+        string sectionCode)
+    {
+        var tracks = new List<BiblePublicationTrack>();
+
+        if (filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) &&
+            languageFiles.TryGetProperty(fileFormat, out var formatFiles))
+        {
+            var trackNumber = 1;
+            foreach (var trackFile in formatFiles.EnumerateArray())
+            {
+                var track = ParseTrackFromJson(trackFile, trackNumber, sectionCode);
+                if (track != null)
+                {
+                    tracks.Add(track);
+                    trackNumber++;
+                }
+            }
+        }
+
+        return tracks;
+    }
+
     private BiblePublicationTrack? ParseTrackFromJson(
         JsonElement trackFile,
         int trackNumber,

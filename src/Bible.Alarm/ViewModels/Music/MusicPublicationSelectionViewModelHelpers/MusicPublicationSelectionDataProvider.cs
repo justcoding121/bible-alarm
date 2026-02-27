@@ -121,6 +121,21 @@ public sealed class MusicPublicationSelectionDataProvider(
 
         if (publicationsData != null && publicationsData.Count > 0)
         {
+            // Remove placeholder publications that couldn't be fetched (e.g. no tracks on the server)
+            var unfetchableCodes = publicationsData
+                .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || kvp.Value.Name == kvp.Value.PublicationCode)
+                .Select(kvp => kvp.Key)
+                .ToList();
+            if (unfetchableCodes.Count > 0)
+            {
+                foreach (var code in unfetchableCodes)
+                {
+                    publicationsData.Remove(code);
+                }
+                Serilog.Log.Information("PopulateSongPublications: Removed {Count} unfetchable placeholder publications: {Codes}",
+                    unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
+            }
+
             // Show ALL music publications (both with and without LanguageId)
             // This matches Bible container behavior - merging languaged and non-languaged publications
             foreach (var publication in publicationsData.Values)

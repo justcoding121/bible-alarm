@@ -41,8 +41,22 @@ internal sealed class EnglishSectionFetcher
         List<string> sectionCodes,
         CancellationToken cancellationToken)
     {
+        var isVideo = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
+        return await FetchSectionsAsync(db, normalizedPublicationCode, normalizedLanguageCode, categoryName, sectionCodes, isVideo, cancellationToken);
+    }
+
+    public async Task<(List<BiblePublicationSection> Sections, string? LocalizedPubName)> FetchSectionsAsync(
+        MediaDbContext db,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        string categoryName,
+        List<string> sectionCodes,
+        bool isVideo,
+        CancellationToken cancellationToken)
+    {
         // Data-driven: Check if publication has LanguageId == null (determines API parameter pattern)
         var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var fileFormat = isVideo ? "MP4" : "MP3";
         var publicationWithoutLanguage = await db.BiblePublications
             .AsNoTracking()
             .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode && bp.LanguageId == null, cancellationToken);
@@ -64,7 +78,7 @@ internal sealed class EnglishSectionFetcher
             {
                 var section = await FetchSingleSectionAsync(
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode,
-                    isBible, publicationWithoutLanguage, cancellationToken);
+                    isBible, publicationWithoutLanguage, fileFormat, cancellationToken);
 
                 if (section == null)
                 {
@@ -76,7 +90,7 @@ internal sealed class EnglishSectionFetcher
                 {
                     localizedPubName = await ExtractPublicationNameAsync(
                         sectionCode, normalizedPublicationCode, normalizedLanguageCode,
-                        isBible, publicationWithoutLanguage, cancellationToken);
+                        isBible, publicationWithoutLanguage, fileFormat, cancellationToken);
                 }
 
                 sections.Add(section);
@@ -104,13 +118,14 @@ internal sealed class EnglishSectionFetcher
         string normalizedLanguageCode,
         bool isBible,
         bool publicationWithoutLanguage,
+        string fileFormat,
         CancellationToken cancellationToken)
     {
         var queryString = isBible
-            ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
+            ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}"
             : publicationWithoutLanguage
-                ? $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten=E"
-                : $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+                ? $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten=E"
+                : $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
@@ -155,6 +170,12 @@ internal sealed class EnglishSectionFetcher
                 filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode);
             section.Tracks.AddRange(tracks);
         }
+        else
+        {
+            var tracks = trackParser.ParseGenericTracks(
+                filesElement, normalizedLanguageCode, fileFormat, sectionCode);
+            section.Tracks.AddRange(tracks);
+        }
 
         return section;
     }
@@ -165,6 +186,7 @@ internal sealed class EnglishSectionFetcher
         string normalizedLanguageCode,
         bool isBible,
         bool publicationWithoutLanguage,
+        string fileFormat,
         CancellationToken cancellationToken)
     {
         // For publications without language (like instrumental music), try to get name from database
@@ -177,8 +199,8 @@ internal sealed class EnglishSectionFetcher
         }
 
         var queryString = isBible
-            ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-            : $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+            ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}"
+            : $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
 
         try
         {

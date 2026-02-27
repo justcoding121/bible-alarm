@@ -76,6 +76,26 @@ internal sealed class MusicInstrumentalSectionListLoader
                 return (new List<BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
             }
 
+            // Remove placeholder sections that couldn't be fetched (e.g. no content on the server)
+            var unfetchableSectionCodes = sectionsFromDb.Values
+                .Where(s => s.Id == 0 || string.IsNullOrEmpty(s.Name))
+                .Select(s => s.SectionCode)
+                .ToList();
+            if (unfetchableSectionCodes.Count > 0)
+            {
+                foreach (var code in unfetchableSectionCodes)
+                {
+                    sectionsFromDb.Remove(code);
+                }
+                logger.Information("MusicInstrumentalSectionListLoader: Removed {Count} unfetchable placeholder sections: {Codes}",
+                    unfetchableSectionCodes.Count, string.Join(", ", unfetchableSectionCodes));
+            }
+
+            if (sectionsFromDb.Count == 0)
+            {
+                return (new List<BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
+            }
+
             var vms = new List<BiblePublicationSectionListViewItemModel>();
             BiblePublicationSectionListViewItemModel? selected = null;
 
@@ -128,6 +148,7 @@ internal sealed class MusicInstrumentalSectionListLoader
         var startTime = DateTime.UtcNow;
         var allHarvested = false;
         var attempt = 0;
+        var previousHarvestedCount = -1;
 
         logger.Information("MusicInstrumentalSectionListLoader: Starting fetch with retries for publication={PublicationCode}",
             publicationCode);
@@ -180,6 +201,18 @@ internal sealed class MusicInstrumentalSectionListLoader
                     }
                     else
                     {
+                        var currentHarvestedCount = reQueriedData?.Values.Count(s =>
+                            !string.IsNullOrEmpty(s.Name) && s.Id > 0) ?? 0;
+
+                        if (currentHarvestedCount > 0 && currentHarvestedCount <= previousHarvestedCount)
+                        {
+                            logger.Information("MusicInstrumentalSectionListLoader: No progress between retries ({HarvestedCount} harvested, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}",
+                                currentHarvestedCount, expectedSectionCount, publicationCode);
+                            sectionsData = reQueriedData;
+                            break;
+                        }
+                        previousHarvestedCount = currentHarvestedCount;
+
                         // Log which sections are still placeholders or missing for debugging
                         if (reQueriedData != null)
                         {
