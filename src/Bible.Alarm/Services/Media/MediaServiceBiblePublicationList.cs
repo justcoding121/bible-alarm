@@ -240,10 +240,6 @@ internal static class MediaServiceBiblePublicationList
         // - If downloadAll=false (language selected): don't download here (will be done in cascade)
         if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
-            // Show progress if callback provided
-            progress?.SetIsVisible(true);
-            progress?.UpdateProgress(0.0);
-
             try
             {
                 Log.Information(
@@ -288,10 +284,6 @@ internal static class MediaServiceBiblePublicationList
             catch (Exception ex)
             {
                 Log.Warning(ex, "Failed to ensure all publications for language {LanguageCode}", languageCode);
-            }
-            finally
-            {
-                progress?.SetIsVisible(false);
             }
         }
 

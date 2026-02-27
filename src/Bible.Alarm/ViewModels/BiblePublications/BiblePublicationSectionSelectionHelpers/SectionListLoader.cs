@@ -168,7 +168,6 @@ internal sealed class SectionListLoader
                 {
                     // Fetch sections (this triggers harvesting if needed)
                     // Pass progress to show download percentage during harvesting
-                    // Note: GetBiblePublicationSections will call SetIsVisible(true) internally, but we keep it visible between retries
                     sectionsData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
 
                     // Wait a bit for background harvesting to start (with cancellation support)
@@ -222,13 +221,6 @@ internal sealed class SectionListLoader
                             }
                         }
 
-                        // Re-show overlay after GetBiblePublicationSections completes (it hides it in finally block)
-                        // This keeps the overlay visible during retry delays
-                        if (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-                        {
-                            progress?.SetIsVisible(true);
-                        }
-
                         // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
                         var delay = Math.Min(retryDelay * attempt, 5000);
                         await Task.Delay(delay, cancellationToken);
@@ -258,13 +250,6 @@ internal sealed class SectionListLoader
 
                     logger.Warning(ex, "SectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, language={LanguageCode}, will retry",
                         attempt, publicationCode, languageCode);
-
-                    // Re-show overlay after exception (GetBiblePublicationSections hides it in finally block)
-                    // This keeps the overlay visible during retry delays
-                    if (attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-                    {
-                        progress?.SetIsVisible(true);
-                    }
 
                     // Wait before retrying on exception (with cancellation support)
                     var delay = Math.Min(retryDelay * attempt, 5000);

@@ -182,6 +182,27 @@ public sealed class TrackPlaybackHandler
             logger.Debug("[Resume] Marked Bible track as played: TrackKey: {TrackKey}", bibleTrackKey);
         }
 
+        // Validate seek position against track duration to prevent seeking past the end.
+        // Seeking past the end causes ExoPlayer to immediately fire endedState, which triggers
+        // auto-advance to the next track. This happens when FinishedDuration is stale
+        // (e.g. from a previously played longer track after a publication/track change).
+        if (seekPosition.HasValue)
+        {
+            var trackDuration = audioPlayer.Duration;
+            if (trackDuration > TimeSpan.Zero && seekPosition.Value >= trackDuration)
+            {
+                logger.Warning("[Resume] Seek position {SeekPosition} exceeds track duration {Duration} - starting from beginning. FinishedDuration may not have been reset after a publication/track change.",
+                    seekPosition.Value, trackDuration);
+                seekPosition = null;
+            }
+            else if (trackDuration == TimeSpan.Zero && seekPosition.Value > TimeSpan.Zero)
+            {
+                logger.Warning("[Resume] Track duration unavailable (zero) but seek position is {SeekPosition} - starting from beginning to avoid seeking into unknown territory",
+                    seekPosition.Value);
+                seekPosition = null;
+            }
+        }
+
 #if !IOS && !ANDROID
         // On non-iOS/Android platforms (Windows), seek BEFORE play
         if (seekPosition.HasValue)
@@ -221,6 +242,18 @@ public sealed class TrackPlaybackHandler
         // On iOS and Android, seek AFTER play starts - seekable ranges are more reliable once playing
         // On Android, this is critical when transitioning from music to Bible track because
         // SetSourceWithDummyQueue's player.SeekTo(currentItemIndex, 0) may interfere with seeking before play
+        if (seekPosition.HasValue)
+        {
+            // Re-validate after play started: duration is now more accurate from stream headers
+            var postPlayDuration = audioPlayer.Duration;
+            if (postPlayDuration > TimeSpan.Zero && seekPosition.Value >= postPlayDuration)
+            {
+                logger.Warning("[Resume] Post-play validation: seek position {SeekPosition} exceeds track duration {Duration} - skipping seek",
+                    seekPosition.Value, postPlayDuration);
+                seekPosition = null;
+            }
+        }
+
         if (seekPosition.HasValue)
         {
             logger.Debug("[Resume] Seeking AFTER play started to position: {Position}", seekPosition.Value);

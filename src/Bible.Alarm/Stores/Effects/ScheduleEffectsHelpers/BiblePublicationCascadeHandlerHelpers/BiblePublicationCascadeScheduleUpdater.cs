@@ -87,6 +87,14 @@ public static class BiblePublicationCascadeScheduleUpdater
         updatedSchedule.BiblePublicationSectionModalItemCount = sectionModalItemCount;
         updatedSchedule.BiblePublicationTrackModalItemCount = trackModalItemCount;
 
+        // Reset saved progress when track identity changes so stale seek positions
+        // don't carry over to a different track (which would cause seeking past the
+        // new track's duration and trigger auto-skip on ExoPlayer).
+        if (publicationChanged || sectionChanged || trackChanged)
+        {
+            updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
+        }
+
         if (string.IsNullOrWhiteSpace(updatedSchedule.BiblePublicationCategoryName) && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
         {
             updatedSchedule.BiblePublicationCategoryId = currentSchedule.BiblePublicationCategoryId;

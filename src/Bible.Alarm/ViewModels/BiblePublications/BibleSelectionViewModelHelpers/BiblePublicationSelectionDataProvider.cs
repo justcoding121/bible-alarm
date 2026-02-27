@@ -200,15 +200,7 @@ public sealed class BiblePublicationSelectionDataProvider
                         {
                             // Fetch publications (this triggers harvesting if needed)
                             // Pass progress to show download percentage during harvesting
-                            // Note: GetBiblePublications will call SetIsVisible(true) internally, but we keep it visible between retries
                             publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
-                            
-                            // Re-show overlay after GetBiblePublications completes (it hides it in finally block)
-                            // This keeps the overlay visible during retry delays
-                            if (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-                            {
-                                progress?.SetIsVisible(true);
-                            }
                             
                             // Wait a bit for background harvesting to start (with cancellation support)
                             await Task.Delay(500, cancellationToken);
@@ -262,13 +254,6 @@ public sealed class BiblePublicationSelectionDataProvider
                                         attempt);
                                 }
                                 
-                                // Re-show overlay after GetBiblePublications completes (it hides it in finally block)
-                                // This keeps the overlay visible during retry delays
-                                if (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-                                {
-                                    progress?.SetIsVisible(true);
-                                }
-                                
                                 // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
                                 var delay = Math.Min(retryDelay * attempt, 5000);
                                 await Task.Delay(delay, cancellationToken);
@@ -298,13 +283,6 @@ public sealed class BiblePublicationSelectionDataProvider
 
                             Log.Warning(ex, "PopulatePublicationsAsync: Attempt {Attempt} failed for language={LanguageCode}, will retry",
                                 attempt, languageCode);
-                            
-                            // Re-show overlay after exception (GetBiblePublications hides it in finally block)
-                            // This keeps the overlay visible during retry delays
-                            if (attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-                            {
-                                progress?.SetIsVisible(true);
-                            }
                             
                             // Wait before retrying on exception (with cancellation support)
                             var delay = Math.Min(retryDelay * attempt, 5000);

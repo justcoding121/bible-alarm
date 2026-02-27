@@ -190,9 +190,16 @@ public sealed class TrackSelectionSyncHandler
             updatedSchedule.BiblePublicationCode = biblePub.PublicationCode;
             updatedSchedule.BiblePublicationSectionCode = actionSectionCode;
             updatedSchedule.BiblePublicationTrackCode = biblePub.TrackCode;
-            // Do NOT reset progress here.
-            // Progress reset (BiblePublicationFinishedDuration/FInishedDuration) is only persisted on Save,
-            // after comparing the saved track identity to the originally-opened one.
+            // Reset saved progress when track identity changes so stale seek positions
+            // don't carry over to a different track (which would cause seeking past the
+            // new track's duration and trigger auto-skip on ExoPlayer).
+            // The DB reset still happens on Save via DetectBiblePublicationChanges.
+            if (languageChanged || publicationChanged ||
+                !Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, actionSectionCode) ||
+                currentSchedule.BiblePublicationTrackCode != biblePub.TrackCode)
+            {
+                updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
+            }
             
             // Copy display names from the action (populated from list items when user tapped)
             // When language or publication changes, always use new values (or clear if empty)

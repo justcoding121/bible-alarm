@@ -21,6 +21,12 @@ public class AudioPlayerMetadataHandler
     private readonly IDisplayMetadataService displayMetadataService;
     private readonly IDispatcher dispatcher;
 
+    // Tracks the last artwork URL dispatched to Fluxor so HandleMediaOpenedAsync
+    // does not clear artwork that SyncMetadataForTrackAsync already set.
+    // On some platforms the media player locks the cached file, causing TagLib
+    // extraction to fail during HandleMediaOpenedAsync (after PrepareAsync).
+    private string? lastDispatchedArtworkUrl;
+
     public AudioPlayerMetadataHandler(
         ILogger logger,
         IDisplayMetadataService displayMetadataService,
@@ -58,6 +64,10 @@ public class AudioPlayerMetadataHandler
     /// </summary>
     public async Task SyncMetadataForTrackAsync(AudioPlayerTrack track)
     {
+        // Reset so stale artwork from a previous track does not leak when
+        // neither SyncMetadata nor HandleMediaOpened can extract artwork.
+        lastDispatchedArtworkUrl = null;
+
         try
         {
             var metadata = await displayMetadataService.GetDisplayMetadataAsync(track);
@@ -182,6 +192,22 @@ public class AudioPlayerMetadataHandler
                 logger.Warning(ex, "Failed to save playing track artwork to file");
                 // Fall back to URL if file save failed
             }
+        }
+
+        // Preserve the previously dispatched artwork when extraction produced nothing.
+        // SyncMetadataForTrackAsync runs before PrepareAsync (file not locked) and sets
+        // artwork successfully.  HandleMediaOpenedAsync runs after (file may be locked
+        // by the media player on some platforms), so TagLib extraction can fail.
+        // Without this guard the second dispatch would clear the artwork.
+        if (artworkUrl != null)
+        {
+            lastDispatchedArtworkUrl = artworkUrl;
+        }
+        else if (lastDispatchedArtworkUrl != null)
+        {
+            logger.Debug("Artwork extraction produced no URL; preserving previously dispatched artwork: {ArtworkUrl}",
+                lastDispatchedArtworkUrl);
+            artworkUrl = lastDispatchedArtworkUrl;
         }
 
         dispatcher.Dispatch(new PlaybackMetadataChangedAction
