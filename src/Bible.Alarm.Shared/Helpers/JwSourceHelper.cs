@@ -278,7 +278,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> BooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "wcg", "lff", "rr", "lvs", "lfb", "yb17", "yb16", "bhs", "jy", "kr", "ia", "mb", "jr", "bt", "lv", "cf", "jd", "bh", "my", "lr", "cl", "fy", "gt"
+        "wcg", "lff", "rr", "lvs", "lfb", "bhs", "jy", "kr", "ia", "mb", "jr", "bt", "lv", "cf", "jd", "bh", "my", "lr", "cl", "fy", "gt"
     };
 
     /// <summary>
@@ -296,7 +296,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> YearbooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "yb15", "yb14", "yb13", "yb12", "yb11", "yb10"
+        "yb17", "yb16", "yb15", "yb14", "yb13", "yb12", "yb11", "yb10"
     };
 
     /// <summary>

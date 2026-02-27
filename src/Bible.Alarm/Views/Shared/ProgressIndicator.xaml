@@ -49,28 +49,30 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <!-- Row 0: Progress percent - only when fetch was decided (ShowProgress), not for DB-only load -->
-                <Label Grid.Row="0"
-                    FontSize="{DynamicResource LargeFontSize}"
-                    FontAttributes="Bold"
-                    HorizontalOptions="Fill"
-                    HorizontalTextAlignment="Center"
-                    Text="{Binding ProgressText}"
-                    TextColor="{DynamicResource TextPrimaryColor}"
-                    MinimumHeightRequest="{DynamicResource IconStandardContainerSize}"
-                    IsVisible="{Binding ShowProgress, FallbackValue=False}" />
-                <!-- Row 1: Progress bar - only when fetch was decided (ShowProgress), not for DB-only load -->
-                <ProgressBar Grid.Row="1"
-                    Margin="{DynamicResource MarginThickness10_5}"
-                    WidthRequest="{DynamicResource ContentWidthSmall}"
-                    HorizontalOptions="Center"
-                    Progress="{Binding ProgressPercent}"
-                    ProgressColor="{StaticResource PrimaryColor}"
-                    IsVisible="{Binding ShowProgress, FallbackValue=False}" />
-                <!-- Row 2: Spinner - visible when ShowProgress OR IsBusy -->
-                <Grid Grid.Row="2"
+                <!-- Row 0: Progress content (text + bar) wrapped in container for atomic hide.
+                     A single parent IsVisible ensures both disappear on the same frame,
+                     avoiding the native ProgressBar animation delay on Android. -->
+                <VerticalStackLayout Grid.Row="0"
+                    IsVisible="{Binding ShowProgress, FallbackValue=False}"
+                    Spacing="0">
+                    <Label
+                        FontSize="{DynamicResource LargeFontSize}"
+                        FontAttributes="Bold"
+                        HorizontalOptions="Fill"
+                        HorizontalTextAlignment="Center"
+                        Text="{Binding ProgressText}"
+                        TextColor="{DynamicResource TextPrimaryColor}"
+                        MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
+                    <ProgressBar
+                        Margin="{DynamicResource MarginThickness10_5}"
+                        WidthRequest="{DynamicResource ContentWidthSmall}"
+                        HorizontalOptions="Center"
+                        Progress="{Binding ProgressPercent}"
+                        ProgressColor="{StaticResource PrimaryColor}" />
+                </VerticalStackLayout>
+                <!-- Row 1: Spinner - visible when ShowProgress OR IsBusy -->
+                <Grid Grid.Row="1"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     HeightRequest="{DynamicResource SpinnerContainerSize}"
@@ -96,8 +98,8 @@
                         </ActivityIndicator.IsRunning>
                     </ActivityIndicator>
                 </Grid>
-                <!-- Row 3: Cancel (when progress) -->
-                <HorizontalStackLayout Grid.Row="3"
+                <!-- Row 2: Cancel (when progress) -->
+                <HorizontalStackLayout Grid.Row="2"
                     HorizontalOptions="Center"
                     Spacing="24"
                     Margin="0,12,0,0">

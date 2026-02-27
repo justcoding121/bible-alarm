@@ -83,6 +83,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         state.StateChanged += OnMusicChanged;
 
         WeakReferenceMessenger.Default.Register<ListItemFetchProgressMessage>(this);
+        WeakReferenceMessenger.Default.Register<ModalOverlayFetchProgressMessage>(this);
 
         // Check current state immediately in case state is already set
         // Use CurrentSchedule as source of truth

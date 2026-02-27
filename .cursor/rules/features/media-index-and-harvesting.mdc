@@ -37,8 +37,8 @@ Base URL for GETPUBMEDIALINKS: `https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIAL
 | Bible | nwt, bi12 | Sectioned | Yes |
 | Music | osg, sjjc, sjji, snv, pksjj (vocal); iam (melody) | Flat (vocal); Sectioned (iam) | Yes (vocal); No (iam) |
 | Dramas | Dramas, DramaticBibleReadings, DramasGoodNews, VODMoviesBibleTimes, VODMoviesModernDay, VODMoviesAnimated, VODMoviesExtras | MediatorSectioned (all). MP4. | Yes |
-| Books | wcg, lff, rr, lvs, lfb, yb17, yb16, bhs, jy, kr, ia, mb, jr, bt, lv, cf, jd, bh, my, lr, cl, fy, gt | Flat (MP3, GETPUBMEDIALINKS pub=code, no track param) | Yes |
-| Yearbooks | yb15, yb14, yb13, yb12, yb11, yb10 | Flat (MP3, GETPUBMEDIALINKS pub=code, no track param) | Yes |
+| Books | wcg, lff, rr, lvs, lfb, bhs, jy, kr, ia, mb, jr, bt, lv, cf, jd, bh, my, lr, cl, fy, gt | Flat (MP3, GETPUBMEDIALINKS pub=code, no track param) | Yes |
+| Yearbooks | yb17, yb16, yb15, yb14, yb13, yb12, yb11, yb10 | Flat (MP3, GETPUBMEDIALINKS pub=code, no track param) | Yes |
 | Broadcasting | StudioMonthlyPrograms, StudioTalks, StudioNewsReports | MediatorSectioned (video) | Yes |
 | BrochuresAndBooklets | lmd, wfg, lffi, th, rj, ypq, hf, jl, yc, hl, fg, ll, lc, lf, la, we | Flat (MP3, GETPUBMEDIALINKS pub=code, no track param) | Yes |
 | Children | SeriesBJFLessons, BJF, ChildrenSongs, ChildrenMovies | MediatorSectioned (video MP4) | Yes |

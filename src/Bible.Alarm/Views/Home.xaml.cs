@@ -12,6 +12,7 @@ public partial class Home : BaseContentPage, IDisposable
     private bool isDisposed;
     private bool hasHandledFirstLoad;
     private bool itemsSourceClearedOnDisappearing;
+    private bool disappearedForModal;
     private readonly HomeViewModel viewModel;
 
     public Home(HomeViewModel vm)
@@ -191,12 +192,18 @@ public partial class Home : BaseContentPage, IDisposable
             itemsSourceClearedOnDisappearing = false;
         }
 
-        // Reset schedule state when navigating back to home
-        // This ensures only one schedule is in state at any time
-        viewModel?.ResetScheduleState();
-        // Reset flag when page appears again (e.g., navigating back to it)
-        hasHandledFirstLoad = false;
-        Loaded += OnPageLoaded;
+        // Only reset schedule state and re-run bootstrap logic when returning from
+        // actual page navigation (schedule page), not when a modal is popped.
+        // Modals (playback, battery optimization, etc.) don't modify schedule state,
+        // and resetting here causes an unnecessary blank-then-reload flicker on the list.
+        if (!disappearedForModal)
+        {
+            viewModel?.ResetScheduleState();
+            hasHandledFirstLoad = false;
+            Loaded += OnPageLoaded;
+        }
+
+        disappearedForModal = false;
 
         // Update floating button visibility based on permissions
         Log.Information("Home.OnAppearing: Calling UpdateFloatingButtonVisibility");
@@ -207,11 +214,18 @@ public partial class Home : BaseContentPage, IDisposable
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Clear ItemsSource so MAUI's CollectionView handler does not receive collection change
-        // events after the page is no longer visible. On Windows, delayed OnItemsVectorChanged
-        // callbacks can run with VirtualView == null and throw InvalidOperationException.
-        SchedulesCollectionView.ItemsSource = null;
-        itemsSourceClearedOnDisappearing = true;
+
+        disappearedForModal = Navigation.ModalStack.Count > 0;
+
+        // On Windows, clear ItemsSource to prevent InvalidOperationException from
+        // delayed OnItemsVectorChanged callbacks running with VirtualView == null.
+        // On Android/iOS this is unnecessary and causes a visible blank-then-reload
+        // flicker when the page reappears (e.g., after closing the playback modal).
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            SchedulesCollectionView.ItemsSource = null;
+            itemsSourceClearedOnDisappearing = true;
+        }
     }
 
     protected override bool OnBackButtonPressed() =>

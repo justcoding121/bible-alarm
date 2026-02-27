@@ -66,7 +66,7 @@ public sealed class ModalOverlayFetchProgressReporter : IFetchProgress
             {
                 ModalType = modalType,
                 Progress = 0,
-                ProgressText = string.Empty,
+                ProgressText = isVisible ? "0%" : string.Empty,
                 IsVisible = isVisible
             }));
         }

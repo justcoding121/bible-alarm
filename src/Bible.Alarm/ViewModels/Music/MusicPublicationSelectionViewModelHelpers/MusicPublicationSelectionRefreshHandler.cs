@@ -50,9 +50,6 @@ public sealed class MusicPublicationSelectionRefreshHandler
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             propertyManager.CanCancelFetch = true;
-            propertyManager.ShowProgress = true;
-            propertyManager.ProgressText = "0%";
-            propertyManager.ProgressPercent = 0;
             DeviceDisplay.Current.KeepScreenOn = true;
         });
 
