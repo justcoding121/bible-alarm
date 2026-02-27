@@ -315,6 +315,28 @@ public static class ApplicationReducer
         return state;
     }
 
+    /// <summary>
+    /// Draft-only reducer: updates CurrentSchedule without touching the Schedules collection.
+    /// Used during browsing to populate display names on the schedule page
+    /// without leaking unsaved changes to the home page list items.
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnUpdateDraftSchedule(ApplicationState state, UpdateDraftScheduleAction action)
+    {
+        if (action.Schedule == null || state.CurrentSchedule == null)
+        {
+            return state;
+        }
+
+        if (state.CurrentSchedule.Id != action.Schedule.Id)
+        {
+            return state;
+        }
+
+        var updatedCurrentSchedule = action.Schedule.DeepClone();
+        return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
+    }
+
     [ReducerMethod]
     public static ApplicationState OnBiblePublicationTrackSelected(ApplicationState state, Actions.BiblePublications.TrackSelectedAction action)
     {

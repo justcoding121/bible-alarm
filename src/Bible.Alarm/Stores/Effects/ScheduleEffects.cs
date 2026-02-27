@@ -229,6 +229,8 @@ public class ScheduleEffects(
     /// <summary>
     /// When Bible publication changes (category/publication/language/section/track), populates display names and BiblePublicationIsMusic
     /// so the music container visibility updates without a full save.
+    /// Uses UpdateDraftScheduleAction to only update CurrentSchedule (schedule page draft)
+    /// without leaking unsaved changes to the home page Schedules collection.
     /// </summary>
     [EffectMethod]
     public async Task HandleUpdateScheduleFromViewModelPopulateBibleDisplayNames(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
@@ -250,7 +252,7 @@ public class ScheduleEffects(
             var scheduleCopy = currentSchedule.DeepClone();
             var alarmSchedule = mapper.Map<AlarmSchedule>(scheduleCopy);
             await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleCopy, alarmSchedule);
-            dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleCopy));
+            dispatcher.Dispatch(new UpdateDraftScheduleAction(scheduleCopy));
             Log.Debug("ScheduleEffects: Populated Bible display names (BiblePublicationIsMusic={IsMusic}) for ScheduleId={ScheduleId}", scheduleCopy.BiblePublicationIsMusic, scheduleCopy.Id);
         }
         catch (Exception ex)
@@ -352,6 +354,9 @@ public class ScheduleEffects(
     /// Effect: After Bible track selection, populate display names (including BiblePublicationIsMusic) so the music container
     /// visibility updates when switching between music and non-music publications (e.g. ChildrenSongs → ChildrenMovies).
     /// Then refresh modal counts.
+    /// Uses UpdateDraftScheduleAction to only update CurrentSchedule (schedule page draft)
+    /// without leaking unsaved changes to the home page Schedules collection or triggering
+    /// side effects like SetCarPlayScreenAction/preferences writes.
     /// </summary>
     [EffectMethod]
     public async Task HandleBiblePublicationTrackSelected(Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction action, IDispatcher dispatcher)
@@ -368,7 +373,7 @@ public class ScheduleEffects(
             var scheduleCopy = currentSchedule.DeepClone();
             var alarmSchedule = mapper.Map<AlarmSchedule>(scheduleCopy);
             await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleCopy, alarmSchedule);
-            dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleCopy));
+            dispatcher.Dispatch(new UpdateDraftScheduleAction(scheduleCopy));
             Log.Debug("ScheduleEffects: Populated Bible display names after track selection (BiblePublicationIsMusic={IsMusic}, PubCode={PubCode})",
                 scheduleCopy.BiblePublicationIsMusic, scheduleCopy.BiblePublicationCode);
 
