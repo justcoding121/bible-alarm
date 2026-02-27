@@ -425,8 +425,11 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             return;
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            propertyManager.ProgressPercent = p.Progress;
-            propertyManager.ProgressText = p.ProgressText;
+            if (p.IsVisible)
+            {
+                propertyManager.ProgressPercent = p.Progress;
+                propertyManager.ProgressText = p.ProgressText;
+            }
             propertyManager.ShowProgress = p.IsVisible;
         });
     }

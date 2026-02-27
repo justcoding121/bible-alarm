@@ -106,10 +106,15 @@ public static class ModalScrollHelper
                     return ModalAppearingResult.FetchFailed;
                 }
 
-                // Wait for ViewModel to finish (IsBusy = false) so ObservableCollection updates are applied and binding can update (matches Bible section modal behavior).
-                await CollectionViewHelper.WaitForNotBusyAsync(() => viewModel.IsBusy, cancellationToken: cancellationToken);
+                // Re-assert IsBusy so the overlay stays visible during render checks and scroll.
+                // The refreshAction may have set IsBusy = false to signal data loaded; we need the
+                // overlay to remain until the final reveal (after items are rendered and scrolled).
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (viewModel != null)
+                        viewModel.IsBusy = true;
+                });
                 await Task.Yield();
-                // Yield to UI thread so binding/layout can propagate (avoids "No items loaded" on Windows when pre-harvested).
                 await MainThread.InvokeOnMainThreadAsync(() => { });
                 await Task.Delay(100, cancellationToken);
             }
@@ -247,7 +252,10 @@ public static class ModalScrollHelper
                 }
             }
 
-            await CollectionViewHelper.WaitForNotBusyAsync(isBusyGetter, cancellationToken: cancellationToken);
+            // Yield to let bindings propagate after refresh
+            await Task.Yield();
+            await MainThread.InvokeOnMainThreadAsync(() => { });
+            await Task.Delay(100, cancellationToken);
 
             if (collectionView != null)
             {

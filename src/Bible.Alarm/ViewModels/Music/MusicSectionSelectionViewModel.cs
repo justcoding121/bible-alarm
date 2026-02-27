@@ -302,8 +302,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         {
             if (!isDisposed && !isSelectingSection)
             {
-                ProgressPercent = p.Progress;
-                ProgressText = p.ProgressText;
+                if (p.IsVisible)
+                {
+                    ProgressPercent = p.Progress;
+                    ProgressText = p.ProgressText;
+                }
                 ShowProgress = p.IsVisible;
             }
         });
