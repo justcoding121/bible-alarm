@@ -1,6 +1,94 @@
-# iOS Deployment to Connected Device
+# iOS Deployment to Connected Device and Simulator
 
-## Prerequisites
+## Deploy to iOS Simulator (Emulator)
+
+Use this when you want to run the app on the **currently selected or booted iOS Simulator** (e.g. from Xcode or Cursor).
+
+### Prerequisites
+
+- Xcode installed (Simulator app and runtimes)
+- .NET SDK with iOS workload (`dotnet workload install ios`)
+- **Xcode version**: Ideally matches the .NET for iOS workload. If the build reports "requires Xcode X.Y, current is X.Z", either install matching Xcode or use the workaround below (ValidateXcodeVersion=false).
+- **Xcode license**: Accept the license if prompted: `sudo xcodebuild -license`
+
+### Build and push to simulator (explicit steps)
+
+This is the reliable way to build, install, and launch on a specific simulator (e.g. after a workload update or when `dotnet -t:Run` is not used). It avoids the **static registrar hash mismatch** crash by using a single consistent toolchain per build.
+
+**1. (Optional) Clean first** — Do this if you recently ran `dotnet workload update`, or if the app crashes with "static registrar map for Microsoft.iOS is invalid" / runtime hash mismatch:
+
+```bash
+cd src/Bible.Alarm && rm -rf bin obj
+cd ../Bible.Alarm.Shared && rm -rf bin obj
+cd ../../libraries/CommunityToolkit.Maui.MediaElement && rm -rf bin obj
+```
+
+**2. Build** — From repo root or `src/Bible.Alarm`. Use `-p:ValidateXcodeVersion=false` if your Xcode version is newer than the workload expects (e.g. Xcode 26.3 vs 26.2):
+
+```bash
+export PATH="$HOME/.dotnet:$PATH"
+dotnet build -f net10.0-ios -c Debug -r iossimulator-arm64 -p:ValidateXcodeVersion=false
+```
+
+Omit `-p:ValidateXcodeVersion=false` when Xcode version matches the workload.
+
+**3. Install and launch** — Use the simulator UDID from `xcrun simctl list devices` (e.g. booted iPhone or a named device like "iPhone 6.5 Store"):
+
+```bash
+APP="src/Bible.Alarm/bin/Debug/net10.0-ios/iossimulator-arm64/Bible.Alarm.app"
+xcrun simctl install <SIMULATOR_UDID> "$APP"
+xcrun simctl launch <SIMULATOR_UDID> com.jthomas.info.Bible.Alarm
+open -a Simulator
+```
+
+Example with a specific simulator UDID:
+
+```bash
+xcrun simctl install A2D00586-09FF-4590-BEF7-0584008CFBAA "$APP"
+xcrun simctl launch A2D00586-09FF-4590-BEF7-0584008CFBAA com.jthomas.info.Bible.Alarm
+```
+
+**Why clean and explicit RID?** After a workload update, old `obj/` artifacts (e.g. static registrar for Microsoft.iOS) can be built with one runtime hash while the app bundle contains a different runtime, causing a SIGABRT in `load_aot_module`. A clean build ensures the registrar and runtime match.
+
+### Build and run on simulator (via Run target)
+
+From the repo root:
+
+```bash
+~/.dotnet/dotnet build src/Bible.Alarm/Bible.Alarm.csproj -f net10.0-ios -c Debug -t:Run
+```
+
+This builds, installs on the running (or default) simulator, and launches. No device name or RID is needed.
+
+### Build only (no deploy)
+
+```bash
+~/.dotnet/dotnet build src/Bible.Alarm/Bible.Alarm.csproj -f net10.0-ios -c Debug -r iossimulator-arm64
+```
+
+Add `-p:ValidateXcodeVersion=false` if you have an Xcode version mismatch.
+
+### If `dotnet` is not on PATH
+
+Use the full path:
+
+```bash
+~/.dotnet/dotnet build src/Bible.Alarm/Bible.Alarm.csproj -f net10.0-ios -c Debug -r iossimulator-arm64 -p:ValidateXcodeVersion=false
+```
+
+### Xcode version mismatch
+
+**Error**: `This version of .NET for iOS (X.Y) requires Xcode A.B. The current version of Xcode is A.C`
+
+- **Option 1**: Install the Xcode version required by the workload (see [Microsoft docs](https://aka.ms/xcode-requirement)).
+- **Option 2**: Update the workload: `dotnet workload update` (may then support newer Xcode).
+- **Option 3**: Build with the check disabled: add `-p:ValidateXcodeVersion=false` to the build. If you do this, **clean** (remove `bin`/`obj`) and rebuild so the static registrar and runtime are from the same toolchain; otherwise the app may crash at launch with "static registrar map for Microsoft.iOS is invalid".
+
+---
+
+## Deploy to Connected USB Device
+
+### Prerequisites
 
 - iPhone/iPad connected via USB
 - Device unlocked

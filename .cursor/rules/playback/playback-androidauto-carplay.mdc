@@ -244,5 +244,8 @@ Now Playing manager:
 Key behaviors:
 - updates `MPNowPlayingInfoCenter` for lock screen / control center / CarPlay
 - intentionally preserves artwork (never clears it) to avoid "empty lock screen" visuals
+- title/artist/album are truncated to avoid overlap on the CarPlay Now Playing screen; for melody (iam) tracks, `DisplayMetadataService` puts a short line in Title (e.g. publication name) and the track name in Artist so the top line does not overlap the two-line subtitle
+
+**Simulator vs device:** Layout and overlap issues (e.g. track name over subtitle) can appear on both iOS Simulator and a physical device. When testing Now Playing / CarPlay behavior, verify on a **real CarPlay connection** (iPhone + car or CarPlay simulator) when possible, since rendering may differ from the in-app simulator.
 
 The app also wires Remote Command Center to support play/pause/next/prev/seek from the system UI.

@@ -116,13 +116,44 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         });
     }
 
+    /// <summary>
+    /// Maximum lengths for Now Playing text to avoid overlap on CarPlay (title and two-line subtitle in fixed areas).
+    /// Clipping keeps title/artist to single-line display; verify on a real CarPlay connection when possible.
+    /// </summary>
+    private const int MaxTitleLength = 35;
+    private const int MaxArtistLength = 40;
+    private const int MaxAlbumLength = 40;
+
+    /// <summary>
+    /// Clips text to a single line (strips newlines) and truncates to maxLength to limit multiline on Now Playing.
+    /// </summary>
+    private static string ClipToSingleLine(string? value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        var singleLine = value
+            .Replace("\r\n", " ")
+            .Replace("\n", " ")
+            .Replace("\r", " ")
+            .Trim();
+
+        if (singleLine.Length <= maxLength)
+            return singleLine;
+        return singleLine.Substring(0, maxLength - 1).TrimEnd() + "…";
+    }
+
     private MPNowPlayingInfo CreateNowPlayingInfoWithArtwork(string? title, string? artist, string? album, TimeSpan duration, MPMediaItemArtwork? artwork)
     {
+        var displayTitle = ClipToSingleLine(title, MaxTitleLength);
+        var displayArtist = ClipToSingleLine(artist, MaxArtistLength);
+        var displayAlbum = ClipToSingleLine(album, MaxAlbumLength);
+
         var info = new MPNowPlayingInfo
         {
-            Title = title ?? "Bible Alarm",
-            Artist = artist ?? string.Empty,
-            AlbumTitle = album ?? string.Empty,
+            Title = string.IsNullOrEmpty(displayTitle) ? "Bible Alarm" : displayTitle,
+            Artist = displayArtist,
+            AlbumTitle = displayAlbum,
             PlaybackDuration = duration.TotalSeconds,
             ElapsedPlaybackTime = 0,
             PlaybackRate = currentStatus == PlayStatus.Playing ? 1.0 : 0.0,
@@ -164,12 +195,13 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                     return;
                 }
 
-                // Create new info using cached metadata
+                // Create new info using cached metadata (clip to single line for CarPlay/lock screen)
+                var titleDisplay = ClipToSingleLine(currentTitle, MaxTitleLength);
                 nowPlayingInfo = new MPNowPlayingInfo
                 {
-                    Title = currentTitle,
-                    Artist = currentArtist ?? string.Empty,
-                    AlbumTitle = currentAlbum ?? string.Empty,
+                    Title = string.IsNullOrEmpty(titleDisplay) ? "Bible Alarm" : titleDisplay,
+                    Artist = ClipToSingleLine(currentArtist, MaxArtistLength),
+                    AlbumTitle = ClipToSingleLine(currentAlbum, MaxAlbumLength),
                     MediaType = MPNowPlayingInfoMediaType.Audio
                 };
 

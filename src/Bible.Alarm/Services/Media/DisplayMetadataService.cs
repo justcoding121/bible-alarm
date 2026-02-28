@@ -132,15 +132,6 @@ public sealed class DisplayMetadataService(
                 
                 // Artist: Publication name + (jw.org)
                 meta.Artist = $"{publication.Name} (jw.org)";
-                
-                // Album: Language name (from LanguageNamesByLanguage for "E")
-                var languages = await mediaService.GetBiblePublicationLanguages();
-                if (languages.TryGetValue(trackMetadata.LanguageCode, out var language))
-                {
-                    meta.Album = languageNameService != null
-                        ? await languageNameService.GetNameAsync(language.Id, Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode) ?? language.LanguageCode
-                        : language.LanguageCode;
-                }
 
                 return;
             }
@@ -154,15 +145,6 @@ public sealed class DisplayMetadataService(
     {
         // Title: Section name + Track number
         meta.Title = $"{section.Name} {trackMetadata.TrackCode}";
-
-        // Description: Language name (from LanguageNamesByLanguage for "E")
-        var languages = await mediaService.GetBiblePublicationLanguages();
-        if (languages.TryGetValue(trackMetadata.LanguageCode, out var language))
-        {
-            meta.Album = languageNameService != null
-                ? await languageNameService.GetNameAsync(language.Id, Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode) ?? language.LanguageCode
-                : language.LanguageCode;
-        }
 
         // SubTitle: Publication name + (jw.org)
         if (biblePublicationService != null)
@@ -207,6 +189,7 @@ public sealed class DisplayMetadataService(
             return false;
         }
 
+        string? trackTitle = null;
         try
         {
             var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode);
@@ -214,7 +197,7 @@ public sealed class DisplayMetadataService(
             if (!string.IsNullOrWhiteSpace(trackCode) &&
                 Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, trackCode, out var melodyPair))
             {
-                meta.Title = NormalizeTitle(melodyPair.Track.Title);
+                trackTitle = NormalizeTitle(melodyPair.Track.Title);
             }
         }
         catch (Exception ex)
@@ -223,13 +206,14 @@ public sealed class DisplayMetadataService(
                 trackMetadata.PublicationCode, trackMetadata.DownloadCode, trackMetadata.TrackCode);
         }
 
+        string? releaseName = null;
         try
         {
             var releases = await mediaService.GetMelodyMusicReleases();
             if (releases.TryGetValue(trackMetadata.PublicationCode, out var release) &&
                 !string.IsNullOrWhiteSpace(release?.Name))
             {
-                meta.Artist = $"{release.Name} (jw.org)";
+                releaseName = release.Name;
             }
         }
         catch (Exception ex)
@@ -237,13 +221,14 @@ public sealed class DisplayMetadataService(
             logger.Debug(ex, "Failed to resolve melody release name for {PublicationCode}", trackMetadata.PublicationCode);
         }
 
+        string? sectionName = null;
         try
         {
             var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(trackMetadata.PublicationCode);
             if (sections.TryGetValue(trackMetadata.DownloadCode, out var section) &&
                 !string.IsNullOrWhiteSpace(section?.Name))
             {
-                meta.Album = section.Name;
+                sectionName = section.Name;
             }
         }
         catch (Exception ex)
@@ -252,9 +237,16 @@ public sealed class DisplayMetadataService(
                 trackMetadata.PublicationCode, trackMetadata.DownloadCode);
         }
 
-        // Ensure we at least have a title.
-        meta.Title ??= $"Track {trackMetadata.TrackCode}";
-        meta.Artist ??= "jw.org";
+        // CarPlay/lock screen: put short text in Title so it does not overlap the two-line subtitle.
+        // (Behavior may differ between Simulator and real CarPlay; verify on device when possible.)
+        // Title = publication or disc (short); Artist = track name; Album = disc/section.
+        meta.Title = !string.IsNullOrWhiteSpace(releaseName) ? releaseName : sectionName;
+        meta.Artist = trackTitle;
+        meta.Album = sectionName;
+        if (string.IsNullOrWhiteSpace(meta.Artist))
+            meta.Artist = "jw.org";
+        if (string.IsNullOrWhiteSpace(meta.Title))
+            meta.Title = "Melody";
 
         return true;
     }
