@@ -172,13 +172,24 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
                 }
             }
 #elif IOS
-            // UIViewControllerBasedStatusBarAppearance is set to false in Info.plist,
-            // so we use the app-level API; PreferredStatusBarStyle would require per–view-controller setup.
+            // UIViewControllerBasedStatusBarAppearance is false; UIStatusBarStyle in Info.plist sets default (DarkContent).
+            // Run on main thread so UIKit applies the style; plist default fixes light mode if this is ignored (e.g. scene delegate).
+            var style = isLightTheme ? UIKit.UIStatusBarStyle.DarkContent : UIKit.UIStatusBarStyle.LightContent;
+            logger.Debug("[STATUS-BAR] iOS: isLightTheme={IsLight}, style={Style}", isLightTheme, style);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
 #pragma warning disable CA1422
-            UIKit.UIApplication.SharedApplication.SetStatusBarStyle(
-                isLightTheme ? UIKit.UIStatusBarStyle.DarkContent : UIKit.UIStatusBarStyle.LightContent,
-                animated: true);
+                    UIKit.UIApplication.SharedApplication.SetStatusBarStyle(style, animated: true);
 #pragma warning restore CA1422
+                    logger.Debug("[STATUS-BAR] iOS: SetStatusBarStyle({Style}) completed on main thread", style);
+                }
+                catch (Exception ex)
+                {
+                    logger.Debug(ex, "[STATUS-BAR] iOS: SetStatusBarStyle failed");
+                }
+            });
 #endif
         }
         catch (Exception ex)

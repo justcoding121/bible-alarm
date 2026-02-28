@@ -46,6 +46,14 @@
 
 
 
+	<key>UIStatusBarStyle</key>
+
+
+
+	<string>UIStatusBarStyleDarkContent</string>
+
+
+
 	<key>UIDeviceFamily</key>
 
 

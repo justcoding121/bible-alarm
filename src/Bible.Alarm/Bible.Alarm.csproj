@@ -40,6 +40,8 @@
 		<AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidCreatePackagePerAbi>
 
 		<!-- iOS-specific -->
+		<!-- Allow Xcode 26.3 with .NET for iOS 26.2 workload (Xcode 26.3 has no new APIs; see https://github.com/dotnet/macios/issues/24464) -->
+		<ValidateXcodeVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">false</ValidateXcodeVersion>
 		<!-- Use interpreter for iOS to avoid EF Core (and other reflection-heavy code) crashes in Release AOT builds -->
 		<UseInterpreter Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">true</UseInterpreter>
 		<!-- Minimum OS version set to iOS 16.0 to support modern UNUserNotificationCenter.SetBadgeCount API -->
