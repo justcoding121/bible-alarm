@@ -35,7 +35,7 @@ public static class PlaylistTrackUpdater
             ? null
             : trackMetadata.SectionCode;
         biblePublicationSchedule.TrackCode = trackMetadata.TrackCode;
-        biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
+        // Language code is only updated when the user clicks Save on the schedule page; do not overwrite during playback.
         biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;
         biblePublicationSchedule.FinishedDuration = trackMetadata.FinishedDuration;
     }
@@ -69,7 +69,7 @@ public static class PlaylistTrackUpdater
         // Use SectionCode from the section, or null if section is null
         biblePublicationSchedule.SectionCode = nextTrack.Value.Key?.SectionCode;
         biblePublicationSchedule.TrackCode = TrackCodeHelper.GetFromTrack(nextTrack.Value.Value);
-        biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
+        // Language code is only updated when the user clicks Save on the schedule page; do not overwrite during playback.
         biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;
         biblePublicationSchedule.FinishedDuration = TimeSpan.Zero;
     }
