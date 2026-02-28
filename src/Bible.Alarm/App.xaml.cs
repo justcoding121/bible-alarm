@@ -118,6 +118,8 @@ public partial class App : Application
     protected override void OnResume()
     {
         base.OnResume();
+        // Re-apply status bar (e.g. on iOS) when app returns from background so it stays correct.
+        WindowSetupService.UpdateNavigationBarColors();
         appLifecycleService.OnResume();
     }
 

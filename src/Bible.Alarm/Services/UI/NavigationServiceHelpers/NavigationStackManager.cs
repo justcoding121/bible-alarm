@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using Bible.Alarm.Services.UI;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices;
 using Serilog;
@@ -55,6 +56,10 @@ public sealed class NavigationStackManager
         {
             disposable.Dispose();
         }
+
+        // Re-apply status bar (and nav bar) so the now-visible page has correct appearance.
+        // On iOS, dismissing a modal can leave the status bar in the modal's style (e.g. light content).
+        WindowSetupService.UpdateNavigationBarColors();
 
         if (DeviceInfo.Platform == DevicePlatform.WinUI)
         {
@@ -143,5 +148,8 @@ public sealed class NavigationStackManager
         {
             disposable.Dispose();
         }
+
+        // Re-apply status bar so the now-visible page has correct appearance (same as after modal pop).
+        WindowSetupService.UpdateNavigationBarColors();
     }
 }
