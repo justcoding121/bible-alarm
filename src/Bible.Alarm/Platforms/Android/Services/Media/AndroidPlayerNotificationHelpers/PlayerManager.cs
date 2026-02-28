@@ -277,13 +277,14 @@ public sealed class PlayerManager(ILogger logger)
                 else if (reason == AutomaticTransitionReason
                          && mediaId == "bible_alarm_next_dummy")
                 {
-                    if (!ShouldProcessMediaTransition(mediaId, "automatic transition"))
-                    {
-                        return;
-                    }
-
-                    logger.Information("AUTOMATIC TRANSITION - BLOCKING DUMMY NEXT TRACK");
-                    OnNextButtonPressed();
+                    // Do NOT call OnNextButtonPressed() here.
+                    // The automatic transition to the silent dummy is an ExoPlayer queue artifact,
+                    // not a user action. Calling PlayNextAsync would force IsIndefinitePlayback = true
+                    // and ignore the NumberOfTracksToPlay limit.
+                    // MediaElement's MediaEnded event fires after the silent dummy finishes
+                    // (ExoPlayer STATE_ENDED) and HandleMediaEndedAsync properly respects
+                    // the finite/indefinite playback mode.
+                    logger.Information("AUTOMATIC TRANSITION to dummy next track — ignored (MediaEnded will handle track end)");
                 }
             }
         }

@@ -188,3 +188,6 @@ Implementation:
 - `src/Bible.Alarm/Services/Media/PlaybackService.cs` (`PlayNextAsync` / `PlayPreviousAsync`)
 - `src/Bible.Alarm/Services/Media/Playback/PlaybackEventHandler.cs` (auto-extend vs stop at end)
 
+Important Android note:
+- On Android, ExoPlayer uses a dummy 3-item queue `[previous_dummy, current, next_dummy]` to enable system notification prev/next buttons. When the current track ends, ExoPlayer automatically transitions to the silent dummy next track. This automatic transition must NOT trigger `PlayNextAsync` (which would set `IsIndefinitePlayback = true` and break the `NumberOfTracksToPlay` limit). The `ExoPlayerListener` in `PlayerManager.cs` ignores automatic transitions to `bible_alarm_next_dummy`; the MediaElement `MediaEnded` event handles the track end properly.
+

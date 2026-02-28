@@ -66,6 +66,7 @@ Session behavior:
   - `stateManager.IsIndefinitePlayback = (schedule.NumberOfTracksToPlay <= 0)`
 - **Any manual next/prev press** immediately forces the current session to behave as indefinite:
   - `PlaybackService.PlayNextAsync()` and `PlayPreviousAsync()` set `stateManager.IsIndefinitePlayback = true`
+- **Automatic ExoPlayer transitions** to the dummy next track (when the real track finishes) must **NOT** trigger `PlayNextAsync`. The `ExoPlayerListener.OnMediaItemTransition` ignores automatic transitions to `bible_alarm_next_dummy`. Instead, the MediaElement `MediaEnded` event fires after the silent dummy finishes (ExoPlayer `STATE_ENDED`) and `HandleMediaEndedAsync` correctly respects the finite/indefinite mode.
 
 Playlist sizing:
 - Finite (`NumberOfTracksToPlay > 0`):
