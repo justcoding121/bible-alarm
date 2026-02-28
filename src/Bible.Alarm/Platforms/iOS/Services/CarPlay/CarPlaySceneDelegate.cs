@@ -164,14 +164,10 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
             var listItem = new CPListItem(title, subtitle);
 
-            // Set the handler for when user taps the item
             listItem.Handler = (item, completion) =>
             {
                 logger.Information("[CarPlay] User tapped schedule: {Title} (ID: {ScheduleId})", title, scheduleId);
-                CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId);
-
-                // Complete the handler - this dismisses any loading indicator
-                completion();
+                CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId, completion);
             };
 
             listItems.Add(listItem);
@@ -237,8 +233,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
                     var listItem = new CPListItem(title, subtitle);
                     listItem.Handler = (item, completion) =>
                     {
-                        CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId);
-                        completion();
+                        CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId, completion);
                     };
 
                     listItems.Add(listItem);
