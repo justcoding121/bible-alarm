@@ -27,6 +27,10 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     private double currentDuration;
     private PlayStatus currentStatus = PlayStatus.Stopped;
 
+    // Prevent the source UIImage from being garbage-collected while the
+    // MPMediaItemArtwork handler still references it across the managed/native boundary.
+    private UIImage? retainedArtworkImage;
+
     /// <summary>
     /// Updates the Now Playing metadata (title, artist, album, artwork).
     /// Call this when the track changes.
@@ -281,6 +285,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
             currentAlbum = null;
             currentArtworkUrl = null;
             currentArtwork = null;
+            retainedArtworkImage = null;
             currentDuration = 0;
             currentStatus = PlayStatus.Stopped;
         }
@@ -407,10 +412,12 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                 return null;
             }
 
-            // CarPlay and other system UIs request specific sizes via the handler.
-            // We must return an image scaled to the requested size for artwork to display correctly.
+            // Keep a strong managed reference so the GC does not collect the UIImage
+            // while the native MPMediaItemArtwork handler closure still needs it.
+            retainedArtworkImage = image;
+
             var boundsSize = new CGSize(Math.Max(image.Size.Width, 600), Math.Max(image.Size.Height, 600));
-            return new MPMediaItemArtwork(boundsSize, requestedSize => ScaleImageToSize(image, requestedSize));
+            return new MPMediaItemArtwork(boundsSize, requestedSize => ScaleImageToRequestedSize(image, requestedSize));
         }
         catch (Exception ex)
         {
@@ -421,10 +428,11 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     }
 
     /// <summary>
-    /// Scales a UIImage to the requested size (aspect fit). CarPlay and lock screen require
-    /// artwork to be resized to the exact size passed to the MPMediaItemArtwork handler.
+    /// Scales a UIImage to fill the exact requested size (aspect-fill, centered).
+    /// CarPlay and lock screen expect the returned image to match the requested
+    /// dimensions; returning a smaller image can cause artwork to not display.
     /// </summary>
-    private static UIImage ScaleImageToSize(UIImage image, CGSize requestedSize)
+    private static UIImage ScaleImageToRequestedSize(UIImage image, CGSize requestedSize)
     {
         if (requestedSize.Width <= 0 || requestedSize.Height <= 0)
         {
@@ -433,13 +441,21 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
         try
         {
-            var scale = Math.Min(requestedSize.Width / image.Size.Width, requestedSize.Height / image.Size.Height);
-            var width = (nfloat)(image.Size.Width * scale);
-            var height = (nfloat)(image.Size.Height * scale);
-            var size = new CGSize(width, height);
+            // Aspect-fill: scale so the image covers the entire requested rect,
+            // then center-crop to the exact requested size.
+            var scale = Math.Max(
+                requestedSize.Width / image.Size.Width,
+                requestedSize.Height / image.Size.Height);
 
-            var renderer = new UIGraphicsImageRenderer(size);
-            var scaledImage = renderer.CreateImage(_ => image.Draw(new CGRect(0, 0, width, height)));
+            var scaledWidth = (nfloat)(image.Size.Width * scale);
+            var scaledHeight = (nfloat)(image.Size.Height * scale);
+
+            var drawX = (requestedSize.Width - scaledWidth) / 2;
+            var drawY = (requestedSize.Height - scaledHeight) / 2;
+
+            var renderer = new UIGraphicsImageRenderer(requestedSize);
+            var scaledImage = renderer.CreateImage(_ =>
+                image.Draw(new CGRect(drawX, drawY, scaledWidth, scaledHeight)));
 
             return scaledImage ?? image;
         }
@@ -468,8 +484,9 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
             if (image != null)
             {
+                retainedArtworkImage = image;
                 var boundsSize = new CGSize(Math.Max(image.Size.Width, 600), Math.Max(image.Size.Height, 600));
-                return new MPMediaItemArtwork(boundsSize, requestedSize => ScaleImageToSize(image, requestedSize));
+                return new MPMediaItemArtwork(boundsSize, requestedSize => ScaleImageToRequestedSize(image, requestedSize));
             }
         }
         catch (Exception ex)
