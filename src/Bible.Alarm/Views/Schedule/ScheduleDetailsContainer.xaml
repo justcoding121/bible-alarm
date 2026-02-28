@@ -40,16 +40,16 @@
               HorizontalOptions="Center"
               VerticalOptions="Center"
               Padding="{StaticResource PaddingStandard}">
-            <!-- iOS: Use TitleFontSize to avoid UIDatePicker AM/PM triangle bug (custom/large fonts can show triangle instead of AM/PM) -->
-            <!-- iOS: MinimumWidthRequest so "hh:mm AM/PM" is not trimmed -->
+            <!-- iOS: Use TitleFontSize (not AlarmTimeFontSize) to avoid UIDatePicker AM/PM clipping/triangle bug; large custom fonts show triangle instead of AM/PM. -->
+            <!-- iOS: MinimumWidthRequest so "hh:mm AM/PM" is not trimmed (240pt gives AM/PM room). -->
             <TimePicker AutomationId="AlarmTimePicker"
                         BackgroundColor="Transparent"
                         TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter='PrimaryTextColor'}"
-                        FontSize="{StaticResource AlarmTimeFontSize}"
+                        FontSize="{OnPlatform iOS={DynamicResource TitleFontSize}, Default={StaticResource AlarmTimeFontSize}}"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
                         Margin="0"
-                        MinimumWidthRequest="{OnPlatform iOS=200, Default=0}"
+                        MinimumWidthRequest="{OnPlatform iOS=240, Default=0}"
                         Time="{Binding Time, Mode=TwoWay}"
                         ios:TimePicker.UpdateMode="WhenFinished">
                 <TimePicker.Format>hh:mm tt</TimePicker.Format>
