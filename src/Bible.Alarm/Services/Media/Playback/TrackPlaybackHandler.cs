@@ -186,6 +186,9 @@ public sealed class TrackPlaybackHandler
         // Seeking past the end causes ExoPlayer to immediately fire endedState, which triggers
         // auto-advance to the next track. This happens when FinishedDuration is stale
         // (e.g. from a previously played longer track after a publication/track change).
+        // Only reject the seek when duration is positively known and the seek exceeds it.
+        // When duration is still zero (not yet determined from stream), allow the seek through;
+        // the post-play validation on iOS/Android will catch it once duration is accurate.
         if (seekPosition.HasValue)
         {
             var trackDuration = audioPlayer.Duration;
@@ -193,12 +196,6 @@ public sealed class TrackPlaybackHandler
             {
                 logger.Warning("[Resume] Seek position {SeekPosition} exceeds track duration {Duration} - starting from beginning. FinishedDuration may not have been reset after a publication/track change.",
                     seekPosition.Value, trackDuration);
-                seekPosition = null;
-            }
-            else if (trackDuration == TimeSpan.Zero && seekPosition.Value > TimeSpan.Zero)
-            {
-                logger.Warning("[Resume] Track duration unavailable (zero) but seek position is {SeekPosition} - starting from beginning to avoid seeking into unknown territory",
-                    seekPosition.Value);
                 seekPosition = null;
             }
         }

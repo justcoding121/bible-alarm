@@ -132,10 +132,20 @@ public sealed class MusicTrackStateManager
         {
             Task.Run(async () =>
             {
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await initializeTracks(newLanguageCode, newPublicationCode);
-                await MainThread.InvokeOnMainThreadAsync(setSelectedTrack);
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+                try
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
+                    await initializeTracks(newLanguageCode, newPublicationCode);
+                    await MainThread.InvokeOnMainThreadAsync(setSelectedTrack);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Error in MusicTrackStateManager.HandleMusicChanged during track population");
+                }
+                finally
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
+                }
             });
         }
         else

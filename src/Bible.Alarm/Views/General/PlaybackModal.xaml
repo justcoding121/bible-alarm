@@ -275,23 +275,23 @@
                                             Radius="20" />
                                 </Border.Shadow>
                                 <Grid>
-                                    <!-- Album Artwork Image -->
+                                    <!-- Bell icon sits behind the artwork image as a permanent fallback.
+                                         When artwork loads it covers the bell; when it fails the bell shows through. -->
+                                    <Label
+                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                        FontSize="{DynamicResource AlarmBellIconFontSize}"
+                                        HorizontalOptions="Center"
+                                        HorizontalTextAlignment="Center"
+                                        Text="{x:Static fn:GlyphNames.Bell}"
+                                        TextColor="{DynamicResource PrimaryTextColor}"
+                                        VerticalOptions="Center" />
+                                    <!-- Album Artwork Image (renders on top of bell when loaded) -->
                                     <Image
                                         Aspect="AspectFill"
                                         HorizontalOptions="Fill"
                                         IsVisible="{Binding HasArtwork}"
                                         Source="{Binding ArtworkSource}"
                                         VerticalOptions="Fill" />
-                                    <!-- Fallback Bell Icon when no artwork -->
-                                    <Label
-                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                        FontSize="{DynamicResource AlarmBellIconFontSize}"
-                                        HorizontalOptions="Center"
-                                        HorizontalTextAlignment="Center"
-                                        IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
-                                        Text="{x:Static fn:GlyphNames.Bell}"
-                                        TextColor="{DynamicResource PrimaryTextColor}"
-                                        VerticalOptions="Center" />
                                 </Grid>
                             </Border>
                         </Grid>

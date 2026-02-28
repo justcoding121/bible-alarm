@@ -228,19 +228,18 @@
                             <RoundRectangle CornerRadius="8" />
                         </Border.StrokeShape>
                         <Grid>
+                            <Label FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                   FontSize="{DynamicResource AlarmBellIconFontSize}"
+                                   HorizontalOptions="Center"
+                                   HorizontalTextAlignment="Center"
+                                   Text="{x:Static fn:GlyphNames.Bell}"
+                                   TextColor="{DynamicResource TextPrimaryColor}"
+                                   VerticalOptions="Center" />
                             <Image Aspect="AspectFill"
                                    HorizontalOptions="Fill"
                                    IsVisible="{Binding HasArtwork}"
                                    Source="{Binding ArtworkSource}"
                                    VerticalOptions="Fill" />
-                            <Label FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                   FontSize="{DynamicResource AlarmBellIconFontSize}"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
-                                   Text="{x:Static fn:GlyphNames.Bell}"
-                                   TextColor="{DynamicResource TextPrimaryColor}"
-                                   VerticalOptions="Center" />
                         </Grid>
                     </Border>
                 </Grid>

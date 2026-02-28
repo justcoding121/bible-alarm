@@ -175,9 +175,19 @@ public sealed class TrackSelectionStateManager
         {
             Task.Run(async () =>
             {
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await initialize(newLanguageCode, newPublicationCode, newSectionCode);
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+                try
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
+                    await initialize(newLanguageCode, newPublicationCode, newSectionCode);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Error in TrackSelectionStateManager.HandleBiblePublicationChanged during track population");
+                }
+                finally
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
+                }
             });
         }
         else

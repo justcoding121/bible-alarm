@@ -288,18 +288,16 @@ public sealed class BiblePublicationSelectionStateHandler
                 try
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
-                    // Clear the mapping dictionary before repopulating
                     dataProvider.ClearPublicationVMsMapping();
-                    // Pass languageChanged flag to PopulatePublications so it can select default publication
-                    // When language changes, don't download all publications yet (only first publication in cascade)
-                    // Pass the category name explicitly to ensure correct filtering
                     await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged || categoryChanged, downloadAll: false, newCategoryName);
-                    // Note: Do NOT set IsBusy = false here - the modal controls this
                 }
                 catch (Exception ex)
                 {
                     Serilog.Log.Warning(ex, "Error in HandleBiblePublicationChangedAsync during publication population");
-                    // Note: Do NOT set IsBusy = false here - the modal controls this
+                }
+                finally
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
             });
         }

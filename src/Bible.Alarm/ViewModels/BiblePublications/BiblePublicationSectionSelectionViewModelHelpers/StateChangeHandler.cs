@@ -109,12 +109,14 @@ public class StateChangeHandler
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
                     initialize(newLanguageCode, newPublicationCode ?? string.Empty);
-                    // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "BiblePublicationSectionSelectionViewModel: OnBiblePublicationChanged - Error during repopulation");
-                    // Note: Do NOT set IsBusy = false here - the modal controls this
+                }
+                finally
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
             });
         }

@@ -145,14 +145,15 @@ public sealed class MusicPublicationSelectionStateManager
                 try
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                    // Pass language code (null for melody music)
                     await populateSongPublications(newLanguageCode);
-                    // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 }
                 catch (Exception ex)
                 {
                     Serilog.Log.Warning(ex, "Error in HandleMusicChanged during publication population");
-                    // Note: Do NOT set IsBusy = false here - the modal controls this
+                }
+                finally
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
                 }
             });
         }
