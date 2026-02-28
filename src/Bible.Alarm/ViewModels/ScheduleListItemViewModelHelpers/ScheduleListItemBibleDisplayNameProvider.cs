@@ -1,6 +1,8 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -10,34 +12,53 @@ namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 internal sealed class ScheduleListItemBibleDisplayNameProvider
 {
     private readonly IState<ApplicationState> applicationState;
+    private readonly ICategoryNameService categoryNameService;
 
-    public ScheduleListItemBibleDisplayNameProvider(IState<ApplicationState> applicationState)
+    public ScheduleListItemBibleDisplayNameProvider(IState<ApplicationState> applicationState, ICategoryNameService categoryNameService)
     {
         this.applicationState = applicationState;
+        this.categoryNameService = categoryNameService;
     }
 
-    public bool IsBibleCategory(int scheduleId)
+    public string GetCategoryDisplayName(int scheduleId)
+    {
+        var categoryCode = GetCategoryCode(scheduleId);
+        if (string.IsNullOrWhiteSpace(categoryCode))
+        {
+            return string.Empty;
+        }
+
+        return categoryNameService.GetName(categoryCode, AppConstants.Media.DefaultLanguageCode)
+            ?? categoryCode;
+    }
+
+    public string GetCategoryCode(int scheduleId)
     {
         if (scheduleId <= 0)
         {
-            return false;
+            return string.Empty;
         }
 
         var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
         if (scheduleStateItem == null)
         {
-            return false;
+            return string.Empty;
         }
 
-        if (string.Equals(scheduleStateItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase))
+        var categoryCode = scheduleStateItem.BiblePublicationCategoryName;
+        if (!string.IsNullOrWhiteSpace(categoryCode))
         {
-            return true;
+            return categoryCode;
         }
 
-        // Fallback: category name isn't persisted and might be temporarily missing.
-        // Infer from publication code.
-        var inferred = JwSourceHelper.GetCategoryName(scheduleStateItem.BiblePublicationCode ?? string.Empty);
-        return string.Equals(inferred, "Bible", StringComparison.OrdinalIgnoreCase);
+        return JwSourceHelper.GetCategoryName(scheduleStateItem.BiblePublicationCode ?? string.Empty)
+            ?? string.Empty;
+    }
+
+    public bool IsBibleCategory(int scheduleId)
+    {
+        var categoryCode = GetCategoryCode(scheduleId);
+        return string.Equals(categoryCode, "Bible", StringComparison.OrdinalIgnoreCase);
     }
 
     public string GetBiblePublicationName(int scheduleId)

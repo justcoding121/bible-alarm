@@ -15,6 +15,7 @@ The `CollectionView.ItemsSource` is:
 Each row is a `ScheduleListItemViewModel` and the template displays:
 - time + meridian + days-of-week badges
 - schedule name
+- category name (below schedule name, hidden when empty)
 - publication/section/track text (from state-derived display names)
 - language text
 - a “music enabled” icon

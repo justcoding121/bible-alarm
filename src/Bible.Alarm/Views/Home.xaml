@@ -542,6 +542,15 @@
                                                    Text="{Binding Name}"
                                                    TextColor="{DynamicResource TextPrimaryColor}"
                                                    LineBreakMode="WordWrap" />
+                                            <!-- 1b. Category name -->
+                                            <Label Margin="{DynamicResource MarginThickness0}"
+                                                   HorizontalOptions="Fill"
+                                                   HorizontalTextAlignment="Start"
+                                                   FontSize="{DynamicResource MediumFontSize}"
+                                                   Text="{Binding CategoryName}"
+                                                   TextColor="{DynamicResource PrimaryTextColor}"
+                                                   LineBreakMode="WordWrap"
+                                                   IsVisible="{Binding CategoryName, Converter={StaticResource isStringNotEmptyConverter}}" />
                                             <!-- 2. Schedule Publication Name -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"

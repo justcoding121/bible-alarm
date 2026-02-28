@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -29,7 +30,8 @@ public sealed class ScheduleListItemViewModel(
     IState<ApplicationState> applicationState,
     IState<PlaybackState> playbackState,
     IDispatcher dispatcher,
-    IMapper mapper)
+    IMapper mapper,
+    ICategoryNameService categoryNameService)
     : ObservableObject, IComparable, IDisposable
 {
     // Helper classes
@@ -38,7 +40,7 @@ public sealed class ScheduleListItemViewModel(
     private readonly ScheduleListItemCommandHandler commandHandler = new(logger, playbackService, playlistService);
     private readonly ScheduleListItemStateHandler stateHandler = new(logger, mapper, applicationState);
     private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, applicationState, playbackState);
-    private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider = new(applicationState);
+    private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider = new(applicationState, categoryNameService);
     private ScheduleListItemStateChangeApplier? stateChangeApplier;
     private ScheduleListItemStateChangeApplier StateChangeApplier => stateChangeApplier ??= new(logger, applicationState, stateHandler, propertyManager);
 
@@ -122,6 +124,7 @@ public sealed class ScheduleListItemViewModel(
         MainThread.BeginInvokeOnMainThread(() =>
         {
             OnPropertyChanged(nameof(Name));
+            OnPropertyChanged(nameof(CategoryName));
             OnPropertyChanged(nameof(TimeText));
             OnPropertyChanged(nameof(Hour));
             OnPropertyChanged(nameof(Minute));
@@ -224,6 +227,9 @@ public sealed class ScheduleListItemViewModel(
     public int ScheduleId => Schedule?.Id ?? 0;
 
     public string Name => DisplayTextHelper.NormalizeSingleLine(Schedule?.Name);
+
+    public string CategoryName
+        => bibleDisplayNameProvider.GetCategoryDisplayName(ScheduleId);
 
     public string SubTitle
     {

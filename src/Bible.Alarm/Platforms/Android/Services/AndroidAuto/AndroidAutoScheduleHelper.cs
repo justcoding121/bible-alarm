@@ -1,6 +1,8 @@
 #nullable enable
 using Bible.Alarm.Common;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -151,6 +153,15 @@ public static class AndroidAutoScheduleHelper
             subtitleParts.Add("🎵");
         }
 
+        var categoryCode = scheduleItem.BiblePublicationCategoryName
+            ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
+
+        if (!string.IsNullOrWhiteSpace(categoryCode))
+        {
+            var categoryDisplayName = ResolveCategoryDisplayName(categoryCode);
+            subtitleParts.Add(categoryDisplayName);
+        }
+
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))
         {
             subtitleParts.Add(scheduleItem.BiblePublicationLanguageName);
@@ -162,9 +173,7 @@ public static class AndroidAutoScheduleHelper
         }
 
         // Skip section name for Bible category since it's already shown in the title (e.g., "Leviticus 19")
-        var categoryName = scheduleItem.BiblePublicationCategoryName
-            ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
-        var isBibleCategory = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+        var isBibleCategory = string.Equals(categoryCode, "Bible", StringComparison.OrdinalIgnoreCase);
         
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
         if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName) && !isBibleCategory)
@@ -180,6 +189,21 @@ public static class AndroidAutoScheduleHelper
         var fallbackStatusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
         var fallbackTimeText = scheduleItem.TimeText;
         return $"• {fallbackStatusText} • {fallbackTimeText}";
+    }
+
+    private static string ResolveCategoryDisplayName(string categoryCode)
+    {
+        try
+        {
+            var categoryNameService = ServiceProviderManager.GetService<ICategoryNameService>();
+            return categoryNameService?.GetName(categoryCode, AppConstants.Media.DefaultLanguageCode)
+                ?? categoryCode;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to resolve category display name for code {CategoryCode}", categoryCode);
+            return categoryCode;
+        }
     }
 }
 
