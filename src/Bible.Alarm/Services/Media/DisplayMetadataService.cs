@@ -37,7 +37,7 @@ public sealed class DisplayMetadataService(
         await metadataFetchLock.WaitAsync();
         try
         {
-            return await GetDisplayMetadataCoreAsync(track);
+            return await GetDisplayMetadataCoreAsync(track, skipRemoteArtwork: false);
         }
         finally
         {
@@ -45,7 +45,15 @@ public sealed class DisplayMetadataService(
         }
     }
 
-    private async Task<MetaData> GetDisplayMetadataCoreAsync(AudioPlayerTrack track)
+    public async Task<MetaData> GetCoreDisplayMetadataAsync(AudioPlayerTrack track)
+    {
+        // No lock needed: this path only does DB/catalog lookups (no TagLib file access,
+        // no remote HTTP). Avoiding the lock prevents playback-start from being blocked
+        // by a long-running background artwork fetch holding metadataFetchLock.
+        return await GetDisplayMetadataCoreAsync(track, skipRemoteArtwork: true);
+    }
+
+    private async Task<MetaData> GetDisplayMetadataCoreAsync(AudioPlayerTrack track, bool skipRemoteArtwork = false)
     {
         var trackMetadata = track.PlayItem.Metadata;
         var meta = new MetaData();
@@ -54,11 +62,11 @@ public sealed class DisplayMetadataService(
         {
             if (trackMetadata.PlayType == PlayType.Bible)
             {
-                await SetBibleMetadataAsync(trackMetadata, meta, track.Uri);
+                await SetBibleMetadataAsync(trackMetadata, meta, track.Uri, skipRemoteArtwork);
             }
             else
             {
-                await SetMusicMetadataAsync(trackMetadata, meta, track.Uri);
+                await SetMusicMetadataAsync(trackMetadata, meta, track.Uri, skipRemoteArtwork);
             }
         }
         catch (Exception ex)
@@ -66,12 +74,12 @@ public sealed class DisplayMetadataService(
             logger.Warning(ex, "Failed to get display metadata for track");
         }
 
-        await ApplyFallbackMetadataIfNeededAsync(meta, track.Uri);
+        await ApplyFallbackMetadataIfNeededAsync(meta, track.Uri, skipRemoteArtwork);
 
         return meta;
     }
 
-    private async Task SetBibleMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
+    private async Task SetBibleMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri, bool skipRemoteArtwork = false)
     {
         // Melody disc-style publications (e.g. "iam") are stored as sectioned BiblePublications,
         // but their tracks are conceptually "melody music".
@@ -80,7 +88,10 @@ public sealed class DisplayMetadataService(
         // Ensure the alarm modal / now-playing metadata is still populated correctly from the melody catalog.
         if (await TrySetDiscStyleMelodyMetadataAsync(trackMetadata, meta))
         {
-            await TryExtractArtworkFromFileAsync(meta, uri, "Melody disc file");
+            if (!skipRemoteArtwork || !uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                await TryExtractArtworkFromFileAsync(meta, uri, "Melody disc file");
+            }
             return;
         }
 
@@ -103,8 +114,10 @@ public sealed class DisplayMetadataService(
             await SetBiblePublicationTrackMetadataAsync(trackMetadata, meta);
         }
 
-        // Try to extract artwork from file - works for both MP3 and MP4
-        await TryExtractArtworkFromFileAsync(meta, uri, "Bible file");
+        if (!skipRemoteArtwork || !uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            await TryExtractArtworkFromFileAsync(meta, uri, "Bible file");
+        }
     }
     
     private async Task SetBiblePublicationTrackMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
@@ -164,9 +177,12 @@ public sealed class DisplayMetadataService(
         meta.Artist = "jw.org";
     }
 
-    private Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
+    private Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri, bool skipRemoteArtwork = false)
     {
-        return musicHelper.SetMusicMetadataAsync(trackMetadata, meta, uri, () => TryExtractFileMetadataAsync(meta, uri));
+        Func<Task> extractFileMetadata = (skipRemoteArtwork && uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            ? () => Task.CompletedTask
+            : () => TryExtractFileMetadataAsync(meta, uri);
+        return musicHelper.SetMusicMetadataAsync(trackMetadata, meta, uri, extractFileMetadata);
     }
 
     private async Task<bool> TrySetDiscStyleMelodyMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
@@ -302,29 +318,42 @@ public sealed class DisplayMetadataService(
         }
     }
 
-    private async Task ApplyFallbackMetadataIfNeededAsync(MetaData meta, string uri)
+    private Task ApplyFallbackMetadataIfNeededAsync(MetaData meta, string uri, bool skipRemoteArtwork = false)
     {
-        // Fallback to file metadata if title is still empty
-        if (string.IsNullOrEmpty(meta.Title))
+        if (!string.IsNullOrEmpty(meta.Title))
         {
-            try
+            return Task.CompletedTask;
+        }
+
+        if (skipRemoteArtwork && uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            meta.Title = "Unknown Title";
+            meta.Artist ??= "jw.org";
+            return Task.CompletedTask;
+        }
+
+        return ApplyFallbackMetadataFromFileAsync(meta, uri);
+    }
+
+    private async Task ApplyFallbackMetadataFromFileAsync(MetaData meta, string uri)
+    {
+        try
+        {
+            var fileMeta = await ExtractMetadataFromFileAsync(uri);
+            meta.Title = fileMeta.Title ?? "Unknown Title";
+            if (string.IsNullOrEmpty(meta.Artist))
             {
-                var fileMeta = await ExtractMetadataFromFileAsync(uri);
-                meta.Title = fileMeta.Title ?? "Unknown Title";
-                if (string.IsNullOrEmpty(meta.Artist))
-                {
-                    meta.Artist = fileMeta.Artist;
-                }
-                if (fileMeta.ArtworkBytes != null && fileMeta.ArtworkBytes.Length > 0)
-                {
-                    meta.ArtworkBytes = fileMeta.ArtworkBytes;
-                }
+                meta.Artist = fileMeta.Artist;
             }
-            catch (Exception ex)
+            if (fileMeta.ArtworkBytes != null && fileMeta.ArtworkBytes.Length > 0)
             {
-                logger.Warning(ex, $"Failed to extract metadata from file {uri}");
-                meta.Title = "Unknown Title";
+                meta.ArtworkBytes = fileMeta.ArtworkBytes;
             }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to extract metadata from file {Uri}", uri);
+            meta.Title = "Unknown Title";
         }
     }
 

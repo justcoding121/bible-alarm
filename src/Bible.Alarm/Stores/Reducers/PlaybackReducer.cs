@@ -9,6 +9,7 @@ public static class PlaybackReducer
     [ReducerMethod]
     public static PlaybackState OnPlaybackStarted(PlaybackState state, PlaybackStartedAction action)
     {
+        var scheduleChanged = state.CurrentScheduleId != action.ScheduleId;
         return new PlaybackState(
             currentScheduleId: action.ScheduleId,
             isPreparingOrPlaying: true,
@@ -19,7 +20,7 @@ public static class PlaybackReducer
             title: state.Title,
             artist: state.Artist,
             album: state.Album,
-            artworkUrl: state.ArtworkUrl,
+            artworkUrl: scheduleChanged ? null : state.ArtworkUrl,
             duration: state.Duration,
             // Clear error when starting new playback
             errorMessage: null,
@@ -27,7 +28,7 @@ public static class PlaybackReducer
             defaultScheduleTitle: state.DefaultScheduleTitle,
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            defaultScheduleArtworkUrl: scheduleChanged ? null : state.DefaultScheduleArtworkUrl,
             isAutoAdvancing: state.IsAutoAdvancing);
     }
 

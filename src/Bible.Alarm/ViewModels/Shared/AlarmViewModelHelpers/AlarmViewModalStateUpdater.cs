@@ -22,7 +22,7 @@ public class AlarmViewModalStateUpdater
     private readonly Action<bool> setPlayVisible;
     private readonly Action<bool> setPauseVisible;
     private readonly Action<TimeSpan> setCurrentDuration;
-    private readonly Action<string?, bool> updateArtwork;
+    private readonly Action<string?, string?, bool> updateArtwork;
     private readonly Action notifyControlsEnabledChanged;
     private readonly Action notifyProgressTextChanged;
     private readonly Action notifyPreparationProgressChanged;
@@ -46,7 +46,7 @@ public class AlarmViewModalStateUpdater
         Action<bool> setPlayVisible,
         Action<bool> setPauseVisible,
         Action<TimeSpan> setCurrentDuration,
-        Action<string?, bool> updateArtwork,
+        Action<string?, string?, bool> updateArtwork,
         Action notifyControlsEnabledChanged,
         Action notifyProgressTextChanged,
         Action notifyPreparationProgressChanged,
@@ -132,12 +132,21 @@ public class AlarmViewModalStateUpdater
         setSubTitle(state.Artist ?? "");
         setDescription(state.Album ?? "");
 
-        var artworkUrl = state.ArtworkUrl;
+        // During active playback for a schedule, use only track artwork so we don't flash
+        // default schedule icon then track artwork (or flip between them). Use default schedule
+        // artwork only when not playing a specific schedule (e.g. idle/car screen).
+        var inPlayback = state.CurrentScheduleId.HasValue;
+        var artworkUrl = inPlayback
+            ? state.ArtworkUrl
+            : (state.ArtworkUrl ?? state.DefaultScheduleArtworkUrl);
+        var fallbackUrl = inPlayback
+            ? null
+            : (state.ArtworkUrl != null ? state.DefaultScheduleArtworkUrl : null);
         var shouldForceUpdate = trackChanged || (previousArtworkUrl != artworkUrl);
         if (shouldForceUpdate)
         {
             previousArtworkUrl = artworkUrl;
-            updateArtwork(artworkUrl, trackChanged);
+            updateArtwork(artworkUrl, fallbackUrl, trackChanged);
         }
     }
 

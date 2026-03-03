@@ -41,7 +41,11 @@ public class AudioPlayerMetadataHandler
     {
         try
         {
-            var metadata = await displayMetadataService.GetDisplayMetadataAsync(currentTrack);
+            // Use core metadata (DB-only) to avoid redundant remote artwork extraction.
+            // DispatchArtworkWhenReadyAsync already handles artwork asynchronously.
+            // Using the full GetDisplayMetadataAsync here would compete for metadataFetchLock
+            // and waste bandwidth on slow networks with duplicate HTTP Range requests.
+            var metadata = await displayMetadataService.GetCoreDisplayMetadataAsync(currentTrack);
             await ApplyMetadataToMediaElement(metadata, mediaElement);
             await SendMetadataMessageAsync(metadata, currentTrack);
         }
@@ -60,17 +64,16 @@ public class AudioPlayerMetadataHandler
 
     /// <summary>
     /// Syncs playback metadata (title, artist, album, artwork) to Fluxor and MediaSession for the given track.
-    /// Use when MediaOpened may not fire (e.g. Android queue-based track change) so Android Auto Now Playing shows the correct title.
+    /// Uses core metadata (DB only) first so playback is not blocked by slow remote artwork extraction on 4G.
+    /// Artwork is fetched asynchronously and dispatched when ready (player, notification, CarPlay/Android Auto).
     /// </summary>
     public async Task SyncMetadataForTrackAsync(AudioPlayerTrack track)
     {
-        // Reset so stale artwork from a previous track does not leak when
-        // neither SyncMetadata nor HandleMediaOpened can extract artwork.
         lastDispatchedArtworkUrl = null;
 
         try
         {
-            var metadata = await displayMetadataService.GetDisplayMetadataAsync(track);
+            var metadata = await displayMetadataService.GetCoreDisplayMetadataAsync(track);
             await SendMetadataMessageAsync(metadata, track);
         }
         catch (Exception ex)
@@ -82,6 +85,34 @@ public class AudioPlayerMetadataHandler
                 Artist = "Unknown Artist"
             };
             await SendMetadataMessageAsync(fallbackMeta, null);
+        }
+
+        DispatchArtworkWhenReadyAsync(track);
+    }
+
+    private const int ArtworkFetchTimeoutSeconds = 15;
+
+    private async void DispatchArtworkWhenReadyAsync(AudioPlayerTrack track)
+    {
+        try
+        {
+            var metadataTask = displayMetadataService.GetDisplayMetadataAsync(track);
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(ArtworkFetchTimeoutSeconds));
+            var completed = await Task.WhenAny(metadataTask, timeoutTask);
+            if (completed != metadataTask)
+            {
+                logger.Debug("Artwork fetch timed out after {Seconds}s (non-blocking)", ArtworkFetchTimeoutSeconds);
+                return;
+            }
+            var metadata = await metadataTask;
+            if (metadata.ArtworkBytes != null && metadata.ArtworkBytes.Length > 0 || !string.IsNullOrEmpty(metadata.ArtworkUrl))
+            {
+                await SendMetadataMessageAsync(metadata, track);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Background artwork fetch failed (non-blocking)");
         }
     }
 

@@ -90,7 +90,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             (p) => PlayVisible = p,
             (p) => PauseVisible = p,
             (d) => currentDuration = d,
-            (url, force) => UpdateArtwork(url, force),
+            (url, fallbackUrl, force) => UpdateArtwork(url, force, fallbackUrl),
             () => { OnPropertyChanged(nameof(AreControlsEnabled)); OnPropertyChanged(nameof(IsBuffering)); },
             () => OnPropertyChanged(nameof(ProgressText)),
             () => OnPropertyChanged(nameof(PreparationProgress)),
@@ -576,10 +576,9 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                     loadedTracks = loaded;
                     totalTracks = total;
                     PreparationProgress = progress;
-                    if (isPreparing && !preparing)
-                    {
-                        IsArtworkLoading = true;
-                    }
+                    // Do not set IsArtworkLoading = true here. Artwork loading is driven by UpdateArtwork
+                    // when state.ArtworkUrl or default is set. Setting it here when preparation ends caused
+                    // an endless spinner when artwork extraction failed or timed out (no URL dispatched).
 
                     if (preparing && !isPreparing && !showPercentForThisMessage)
                     {
@@ -604,13 +603,14 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         });
     }
 
-    private void UpdateArtwork(string? artworkUrl, bool forceReload = false)
+    private void UpdateArtwork(string? artworkUrl, bool forceReload = false, string? fallbackUrl = null)
     {
         artworkManager.UpdateArtwork(
             artworkUrl,
             (source) => ArtworkSource = source,
             (loading) => IsArtworkLoading = loading,
-            forceReload);
+            forceReload,
+            fallbackUrl);
     }
 
 

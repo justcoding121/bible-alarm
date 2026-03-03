@@ -27,12 +27,10 @@ public sealed class TrackPreparationHandler
 
     public async Task WaitForMediaReadyAsync()
     {
-        // On iOS, MediaElement may need a moment after PrepareAsync before it can play
-        // This is especially important when transitioning between tracks (Stop -> Prepare -> Play)
-        // Wait for the MediaElement to transition from "Opening" to a ready state (Paused, Playing, or Buffering)
-        // This ensures IsPreparingOrPlayingInternal will return true when we check it
-
-        var maxWaitTime = TimeSpan.FromSeconds(2);
+        // On iOS, MediaElement may need a moment after PrepareAsync before it can play.
+        // When streaming from CDN on slow networks (e.g. 4G), buffering can take several seconds.
+        // Wait for the MediaElement to transition from "Opening" to a ready state (Paused, Playing, or Buffering).
+        var maxWaitTime = TimeSpan.FromSeconds(10);
         var checkInterval = TimeSpan.FromMilliseconds(50);
         var elapsed = TimeSpan.Zero;
 

@@ -14,9 +14,9 @@ public sealed class ArtworkManager(ILogger logger)
 
 
     /// <summary>
-    /// Updates the artwork from a URL.
+    /// Updates the artwork from a URL. If loading fails (e.g. network or file missing), tries fallbackUrl (e.g. default schedule/Bible Alarm icon) so the spinner does not run forever.
     /// </summary>
-    public void UpdateArtwork(string? artworkUrl, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading, bool forceReload = false)
+    public void UpdateArtwork(string? artworkUrl, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading, bool forceReload = false, string? fallbackUrl = null)
     {
         if (!forceReload && lastArtworkUrl == artworkUrl)
         {
@@ -69,18 +69,45 @@ public sealed class ArtworkManager(ILogger logger)
             var filePath = ResolveFilePath(artworkUrl);
             if (!string.IsNullOrEmpty(filePath))
             {
-                LoadFromFile(filePath, setArtworkSource, setIsArtworkLoading);
+                if (LoadFromFile(filePath, setArtworkSource, setIsArtworkLoading))
+                {
+                    return;
+                }
             }
-            else
-            {
-                ClearArtwork(setArtworkSource, setIsArtworkLoading);
-            }
+
+            TryFallbackArtwork(fallbackUrl, setArtworkSource, setIsArtworkLoading);
         }
         catch (Exception ex)
         {
             logger.Debug(ex, "Error updating artwork from URL: {ArtworkUrl}", artworkUrl);
-            ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            TryFallbackArtwork(fallbackUrl, setArtworkSource, setIsArtworkLoading);
         }
+    }
+
+    private void TryFallbackArtwork(string? fallbackUrl, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
+    {
+        if (string.IsNullOrEmpty(fallbackUrl) || fallbackUrl == lastArtworkUrl)
+        {
+            ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            return;
+        }
+        try
+        {
+            if (TryLoadFromUri(fallbackUrl, setArtworkSource, setIsArtworkLoading))
+            {
+                return;
+            }
+            var filePath = ResolveFilePath(fallbackUrl);
+            if (!string.IsNullOrEmpty(filePath) && LoadFromFile(filePath, setArtworkSource, setIsArtworkLoading))
+            {
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Fallback artwork failed: {FallbackUrl}", fallbackUrl);
+        }
+        ClearArtwork(setArtworkSource, setIsArtworkLoading);
     }
 
     /// <summary>
@@ -146,22 +173,20 @@ public sealed class ArtworkManager(ILogger logger)
     }
 
     /// <summary>
-    /// Loads artwork from a file path.
+    /// Loads artwork from a file path. Returns true if loaded, false if failed (caller can try fallback).
     /// </summary>
-    private void LoadFromFile(string filePath, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
+    private bool LoadFromFile(string filePath, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
     {
         if (!File.Exists(filePath))
         {
-            logger.Debug("Artwork file not found, clearing: {FilePath}", filePath);
-            ClearArtwork(setArtworkSource, setIsArtworkLoading);
-            return;
+            logger.Debug("Artwork file not found: {FilePath}", filePath);
+            return false;
         }
 
         var fileInfo = new FileInfo(filePath);
         if (fileInfo.Length == 0)
         {
-            ClearArtwork(setArtworkSource, setIsArtworkLoading);
-            return;
+            return false;
         }
 
         if (DeviceInfo.Platform == DevicePlatform.Android)
@@ -172,6 +197,8 @@ public sealed class ArtworkManager(ILogger logger)
         {
             LoadFromFileOtherPlatforms(filePath, setArtworkSource, setIsArtworkLoading);
         }
+
+        return artworkSource != null;
     }
 
     /// <summary>
@@ -184,12 +211,10 @@ public sealed class ArtworkManager(ILogger logger)
             artworkBytes = File.ReadAllBytes(filePath);
             if (artworkBytes == null || artworkBytes.Length == 0)
             {
-                ClearArtwork(setArtworkSource, setIsArtworkLoading);
+                artworkSource = null;
                 return;
             }
 
-            // Store bytes in field to keep them alive, create new stream each time
-            // Capture for lambda
             var bytes = artworkBytes;
             artworkSource = ImageSource.FromStream(() => new MemoryStream(bytes));
             setArtworkSource(artworkSource);
@@ -217,13 +242,10 @@ public sealed class ArtworkManager(ILogger logger)
         catch (Exception ex)
         {
             logger.Debug(ex, "Failed to create ImageSource from file for artwork: {FilePath}", filePath);
-            ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            artworkSource = null;
         }
     }
 
-    /// <summary>
-    /// Fallback method for loading artwork from file.
-    /// </summary>
     private void LoadFromFileFallback(string filePath, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
     {
         try
@@ -235,7 +257,7 @@ public sealed class ArtworkManager(ILogger logger)
         catch (Exception ex)
         {
             logger.Debug(ex, "Failed to create ImageSource from file for artwork (fallback): {FilePath}", filePath);
-            ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            artworkSource = null;
         }
     }
 }
