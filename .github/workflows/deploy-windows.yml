@@ -375,6 +375,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.release_tag.outputs.tag }}
+        target_commitish: ${{ github.sha }}
         name: Bible Alarm Windows ${{ steps.get_version.outputs.version }}${{ github.ref == 'refs/heads/beta' && ' (beta)' || '' }}
         body: |
           **Version:** ${{ steps.get_version.outputs.version }}

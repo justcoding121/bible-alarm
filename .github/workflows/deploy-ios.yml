@@ -181,6 +181,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.version.outputs.version }}-ios${{ github.ref == 'refs/heads/beta' && '-beta' || '' }}
+        target_commitish: ${{ github.sha }}
         name: Bible Alarm iOS ${{ steps.version.outputs.version }}${{ github.ref == 'refs/heads/beta' && ' (beta)' || '' }}
         body: |
           **Version:** ${{ steps.version.outputs.version }}
