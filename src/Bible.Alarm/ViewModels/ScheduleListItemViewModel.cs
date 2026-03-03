@@ -502,9 +502,10 @@ public sealed class ScheduleListItemViewModel(
         }
 
         var isThisSchedulePlaying = state.CurrentScheduleId == scheduleId;
-        var isActiveStatus = state.Status is PlayStatus.Loading or PlayStatus.Playing or PlayStatus.Paused;
+        // Spinner should end when: another schedule is current, or this schedule is no longer "loading"
+        var spinnerShouldEnd = !isThisSchedulePlaying || state.Status != PlayStatus.Loading;
 
-        if (IsBusy && (!isThisSchedulePlaying || !isActiveStatus))
+        if (IsBusy && spinnerShouldEnd)
         {
             MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
         }

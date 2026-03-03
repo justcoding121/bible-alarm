@@ -296,16 +296,18 @@
                                                             TextColor="White"
                                                             HorizontalTextAlignment="Center"
                                                             VerticalTextAlignment="Center"
-                                                            IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}" />
+                                                            IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}, FallbackValue=True}" />
                                                 </Border>
                                             </core:SfEffectsView>
-                                            <!-- Loading indicator overlay - shows when IsBusy is true -->
+                                            <!-- Spinner only when IsBusy; explicit size so it always gets layout space -->
                                             <ActivityIndicator
                                                     IsRunning="{Binding IsBusy}"
-                                                    IsVisible="{Binding IsBusy}"
+                                                    IsVisible="{Binding IsBusy, FallbackValue=False}"
                                                     Color="White"
-                                                    WidthRequest="{DynamicResource SpinnerFontSize}"
-                                                    HeightRequest="{DynamicResource SpinnerFontSize}"
+                                                    WidthRequest="24"
+                                                    HeightRequest="24"
+                                                    MinimumWidthRequest="24"
+                                                    MinimumHeightRequest="24"
                                                     VerticalOptions="Center"
                                                     HorizontalOptions="Center"
                                                     Opacity="0.95" />
