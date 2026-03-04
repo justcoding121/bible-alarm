@@ -64,6 +64,35 @@ internal static class ForegroundNotificationHelper
     }
 
     /// <summary>
+    /// Creates a bare-minimum fallback notification when CreateMinimalNotification fails.
+    /// Uses framework resources where possible to avoid dependency on app resources.
+    /// </summary>
+    public static Notification CreateFallbackNotification(Service service)
+    {
+        var context = service?.ApplicationContext ?? Application.Context
+            ?? throw new InvalidOperationException("Context cannot be null");
+
+        try
+        {
+            CreateNotificationChannel(service);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "CreateFallbackNotification: channel creation failed");
+        }
+
+        var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
+        builder.SetSmallIcon(ResourceConstant.Drawable.ic_launcher_round);
+        builder.SetContentTitle("Bible Alarm");
+        builder.SetContentText("Loading...");
+        builder.SetOngoing(true);
+        builder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
+        builder.SetPriority(NotificationCompat.PriorityMin);
+
+        return builder.Build() ?? throw new InvalidOperationException("Failed to build fallback notification");
+    }
+
+    /// <summary>
     /// Creates a minimal notification for immediate foreground service start.
     /// No MediaSession, no PendingIntents, no artwork — just enough to satisfy Android's
     /// startForeground() requirement and keep the process alive.

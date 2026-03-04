@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- API 35+ (Android 15): Edge-to-edge by default. Omit deprecated statusBarColor and navigationBarColor. -->
+    <style name="MainTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="colorPrimary">#6B46C1</item>
+        <item name="colorPrimaryDark">#512BD4</item>
+        <item name="colorAccent">#6B46C1</item>
+        <item name="android:timePickerDialogTheme">@style/TimePickerDialogTheme</item>
+    </style>
+</resources>

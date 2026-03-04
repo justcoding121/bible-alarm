@@ -191,7 +191,8 @@ public class MauiMediaElement : CoordinatorLayout
 
     void HideSystemBarsForFullscreen(Window currentWindow, WindowInsetsControllerCompat? windowInsetsControllerCompat, int barTypes)
     {
-        WindowCompat.SetDecorFitsSystemWindows(currentWindow, false);
+        // Do not use WindowCompat.SetDecorFitsSystemWindows - deprecated for edge-to-edge (API 35+).
+        // On Android 15+ edge-to-edge is default; WindowInsetsController Hide/Show is sufficient.
 
         if (OperatingSystem.IsAndroidVersionAtLeast(30))
         {
@@ -225,8 +226,6 @@ public class MauiMediaElement : CoordinatorLayout
             windowInsetsControllerCompat.Show(barTypes);
             windowInsetsControllerCompat.SystemBarsBehavior = WindowInsetsControllerCompat.BehaviorDefault;
         }
-
-        WindowCompat.SetDecorFitsSystemWindows(currentWindow, true);
     }
 
     [SupportedOSPlatform("android30.0")]

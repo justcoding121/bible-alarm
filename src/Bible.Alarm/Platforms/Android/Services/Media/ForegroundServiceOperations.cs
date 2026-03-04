@@ -21,28 +21,54 @@ internal static class ForegroundServiceOperations
     /// Starts a minimal foreground service immediately with a bare notification.
     /// Called as the very first thing in OnCreate() to prevent the OS from killing the process.
     /// The notification will be replaced later with a proper MediaStyle notification.
+    /// CRITICAL: StartForeground MUST be called or Android throws RemoteServiceException.
+    /// We use a fallback path if the primary notification creation fails.
     /// </summary>
     public static void StartForegroundMinimal(Service service)
     {
+        Notification? notification = null;
         try
         {
             ForegroundNotificationHelper.CreateNotificationChannel(service);
-            var notification = ForegroundNotificationHelper.CreateMinimalNotification(service);
-
-            if (OperatingSystem.IsAndroidVersionAtLeast(29))
-            {
-                service.StartForeground(ForegroundNotificationHelper.NotificationId, notification, ForegroundService.TypeMediaPlayback);
-            }
-            else
-            {
-                service.StartForeground(ForegroundNotificationHelper.NotificationId, notification);
-            }
-
-            logger.Information("Minimal foreground service started immediately (pre-bootstrap)");
+            notification = ForegroundNotificationHelper.CreateMinimalNotification(service);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error starting minimal foreground service");
+            logger.Error(ex, "Error creating minimal notification, attempting fallback");
+            try
+            {
+                notification = ForegroundNotificationHelper.CreateFallbackNotification(service);
+            }
+            catch (Exception fallbackEx)
+            {
+                logger.Error(fallbackEx, "Fallback notification creation failed - app may crash with RemoteServiceException");
+            }
+        }
+
+        if (notification != null)
+        {
+            try
+            {
+                if (OperatingSystem.IsAndroidVersionAtLeast(29))
+                {
+                    service.StartForeground(ForegroundNotificationHelper.NotificationId, notification, ForegroundService.TypeMediaPlayback);
+                }
+                else
+                {
+                    service.StartForeground(ForegroundNotificationHelper.NotificationId, notification);
+                }
+                logger.Information("Minimal foreground service started immediately (pre-bootstrap)");
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "StartForeground failed - RemoteServiceException likely");
+                throw;
+            }
+        }
+        else
+        {
+            logger.Error("No notification could be created - calling StopSelf to avoid RemoteServiceException");
+            service.StopSelf();
         }
     }
 
