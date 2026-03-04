@@ -80,15 +80,29 @@ public sealed class PlaybackEventHandler
             {
                 // Indefinite playback: extend playlist and continue.
                 var appended = await tryAppendNextTrackAsync();
-                if (appended && playlist is not null && currentTrackIndex < playlist.Count - 1)
+
+                // Playlist is mutated in place by TryAppendNextTrackAsync; use updated count
+                var canAdvance = appended && playlist is not null && currentTrackIndex < playlist.Count - 1;
+
+                if (canAdvance)
                 {
                     dispatcher.Dispatch(new SetAutoAdvancingAction(true));
 
                     var nextTrackIndex = currentTrackIndex + 1;
                     setCurrentTrackIndex(nextTrackIndex);
                     navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
+                    logger.Information(
+                        "[PlaybackEventHandler] Indefinite: advancing to next track - ScheduleId={ScheduleId}, NextIndex={NextIndex}, PlaylistCount={Count}",
+                        currentScheduleId, nextTrackIndex, playlist.Count);
                     await playCurrentTrackAsync(false);
                     return;
+                }
+
+                if (appended && !canAdvance)
+                {
+                    logger.Warning(
+                        "HandleMediaEndedAsync: Append succeeded but cannot advance - ScheduleId={ScheduleId}, CurrentIndex={CurrentIndex}, PlaylistCount={Count}",
+                        currentScheduleId, currentTrackIndex, playlist?.Count ?? 0);
                 }
 
                 // Append failed (harvest/download error) - show error in modal with retry

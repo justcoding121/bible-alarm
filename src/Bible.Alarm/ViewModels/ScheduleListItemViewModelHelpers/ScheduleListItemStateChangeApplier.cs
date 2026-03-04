@@ -124,11 +124,14 @@ internal sealed class ScheduleListItemStateChangeApplier
             // Always notify SubTitle if any bible schedule property changed to ensure UI updates
             if (changeInfo.AnyBibleSchedulePropertyChanged)
             {
-                logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - Bible schedule property changed, notifying SubTitle for schedule {ScheduleId}",
+                logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - Bible schedule property changed, notifying display properties for schedule {ScheduleId}",
                     getScheduleId());
                 onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.SubTitle));
                 onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.Language));
                 onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.BiblePublicationName));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.BiblePublicationSectionName));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.BiblePublicationTrackName));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.BiblePublicationSectionAndTrackOneLine));
 
                 // Hide progress bar when subtitle is updated (indicates track change is complete)
                 WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());

@@ -81,8 +81,10 @@ public static class DisplayNamePreservationHelper
         var existingHasSectionStructure = !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationCode) &&
             PublicationTypeHelper.HasSectionStructure(existingScheduleItem.BiblePublicationCode);
 
-        // Only preserve section name if publication type hasn't changed and both are sectioned
-        if (actionHasSectionStructure == existingHasSectionStructure && actionHasSectionStructure)
+        // Only preserve section name if publication type hasn't changed, both are sectioned,
+        // and section CODE hasn't changed (playback track advance changes section/track; don't preserve stale names).
+        var sectionCodeUnchanged = string.Equals(actionSchedule.BiblePublicationSectionCode, existingScheduleItem.BiblePublicationSectionCode, StringComparison.OrdinalIgnoreCase);
+        if (actionHasSectionStructure == existingHasSectionStructure && actionHasSectionStructure && sectionCodeUnchanged)
         {
             if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationSectionName))
             {
@@ -91,8 +93,10 @@ public static class DisplayNamePreservationHelper
                 actionSchedule.BiblePublicationSectionName = existingScheduleItem.BiblePublicationSectionName;
             }
         }
-        // Only preserve track title if publication type hasn't changed and both are non-sectioned
-        else if (actionHasSectionStructure == existingHasSectionStructure && !actionHasSectionStructure)
+        // Only preserve track title if publication type hasn't changed, both are non-sectioned,
+        // and track CODE hasn't changed (playback track advance; don't preserve stale titles).
+        var trackCodeUnchanged = string.Equals(actionSchedule.BiblePublicationTrackCode, existingScheduleItem.BiblePublicationTrackCode, StringComparison.OrdinalIgnoreCase);
+        if (actionHasSectionStructure == existingHasSectionStructure && !actionHasSectionStructure && trackCodeUnchanged)
         {
             if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationTrackTitle))
             {
