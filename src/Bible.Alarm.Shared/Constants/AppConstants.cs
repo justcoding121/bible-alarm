@@ -128,7 +128,7 @@ public static class AppConstants
     {
         /// <summary>
         /// Media index update check interval in days (weekly = 7 days)
-        /// The harvester runs weekly on Sundays, so we check weekly to match the update frequency
+        /// The cataloger runs weekly on Sundays, so we check weekly to match the update frequency
         /// </summary>
         // Weekly
         public const int MediaIndexUpdateCheckDays = 7;

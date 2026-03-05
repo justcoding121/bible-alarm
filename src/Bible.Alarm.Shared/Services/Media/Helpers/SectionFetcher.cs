@@ -113,9 +113,9 @@ internal sealed class SectionFetcher
         {
             publication = existingPublication;
             publication.IsMusic = isMusicPub;
-            if (publication.HarvestType == null)
+            if (publication.CatalogType == null)
             {
-                publication.HarvestType = HarvestType.Sectioned;
+                publication.CatalogType = CatalogType.Sectioned;
             }
             SyncPublicationCategories(publication, categoriesForPub);
         }
@@ -133,7 +133,7 @@ internal sealed class SectionFetcher
                 LanguageId = language.Id,
                 IsVideo = isVideoDrama,
                 IsMusic = isMusicPub,
-                HarvestType = HarvestType.Sectioned,
+                CatalogType = CatalogType.Sectioned,
                 Tracks = new List<BiblePublicationTrack>(),
                 Sections = new List<BiblePublicationSection>()
             };
@@ -315,7 +315,7 @@ internal sealed class SectionFetcher
     }
 
     /// <summary>
-    /// Saves changes with retry on SQLite busy/locked (transient lock contention during section harvest).
+    /// Saves changes with retry on SQLite busy/locked (transient lock contention during section catalog).
     /// </summary>
     private async Task SaveChangesWithRetryAsync(MediaDbContext db, CancellationToken cancellationToken)
     {

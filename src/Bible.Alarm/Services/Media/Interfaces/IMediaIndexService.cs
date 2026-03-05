@@ -14,7 +14,7 @@ public interface IMediaIndexService : IDisposable
     /// <summary>
     /// Runs only on version change (new media index was copied and overwritten). Runs ad-hoc
     /// non-EnglishSpanish fetch first, then cleans up orphaned schedule/alarm music by comparing
-    /// only against fetched (harvested) tables. Must be called after resource bootstrap.
+    /// only against fetched (cataloged) tables. Must be called after resource bootstrap.
     /// </summary>
     Task MigrateNonEnglishDataIfNeededAsync();
 }

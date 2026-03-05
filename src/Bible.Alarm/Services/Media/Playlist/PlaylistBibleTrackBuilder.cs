@@ -12,7 +12,7 @@ namespace Bible.Alarm.Services.Media.Playlist;
 
 /// <summary>
 /// Handles building Bible tracks for playlists.
-/// Lookup path is always loaded from the media index (we only play harvested tracks).
+/// Lookup path is always loaded from the media index (we only play cataloged tracks).
 /// </summary>
 public class PlaylistBiblePublicationTrackBuilder
 {
@@ -222,7 +222,7 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackCode = resolvedTrackCode
         };
 
-        // Lookup path from media index only (we only play harvested tracks)
+        // Lookup path from media index only (we only play cataloged tracks)
         var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             biblePublicationSchedule.PublicationCode,
             effectiveLanguageCode,
@@ -231,7 +231,7 @@ public class PlaylistBiblePublicationTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? "(none)"}, track={resolvedTrackCode}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? "(none)"}, track={resolvedTrackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 
@@ -320,7 +320,7 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackCode = resolvedTrackCode
         };
 
-        // Lookup path from media index only (we only play harvested tracks)
+        // Lookup path from media index only (we only play cataloged tracks)
         var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             biblePublicationSchedule.PublicationCode,
             biblePublicationSchedule.LanguageCode,
@@ -329,7 +329,7 @@ public class PlaylistBiblePublicationTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={biblePublicationSchedule.LanguageCode}, track={track.TrackCode}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={biblePublicationSchedule.LanguageCode}, track={track.TrackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 
@@ -373,7 +373,7 @@ public class PlaylistBiblePublicationTrackBuilder
             IsLastTrack = !isIndefinite && remainingTracks == 1
         };
 
-        // Lookup path from media index only (we only play harvested tracks)
+        // Lookup path from media index only (we only play cataloged tracks)
         var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             biblePublicationSchedule.PublicationCode,
             effectiveLanguageCode,
@@ -382,7 +382,7 @@ public class PlaylistBiblePublicationTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? "(none)"}, track={trackCode}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? "(none)"}, track={trackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 
@@ -458,7 +458,7 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackCode = nextTrackCode
         };
 
-        // Lookup path from media index only (we only play harvested tracks)
+        // Lookup path from media index only (we only play cataloged tracks)
         var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             biblePublicationSchedule.PublicationCode,
             effectiveLanguageCode,
@@ -467,7 +467,7 @@ public class PlaylistBiblePublicationTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={nextSectionCode ?? "(none)"}, track={nextTrackCode}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={nextSectionCode ?? "(none)"}, track={nextTrackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 

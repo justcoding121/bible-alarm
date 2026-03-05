@@ -25,10 +25,10 @@ jobs:
       with:
         dotnet-version: '10.0.x'
 
-    - name: Run Link Harvestor
+    - name: Run Link Cataloger
       env:
-        HARVESTOR_LOG_LEVEL: Quiet
-      run: dotnet run --project .tools/Bible.Alarm.AudioLinksHarvestor/Bible.Alarm.AudioLinksHarvestor.csproj --configuration Release
+        CATALOGER_LOG_LEVEL: Quiet
+      run: dotnet run --project .tools/Bible.Alarm.Cataloger/Bible.Alarm.Cataloger.csproj --configuration Release
 
     - name: Commit changes
       uses: EndBug/add-and-commit@8c12ff729a98cfbcd3fe38b49f55eceb98a5ec02

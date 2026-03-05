@@ -48,7 +48,7 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
 
                 if (normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
                 {
-                    logger.Debug("Skipping fetch for English language - already pre-harvested");
+                    logger.Debug("Skipping fetch for English language - already pre-cataloged");
                     return true;
                 }
 

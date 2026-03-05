@@ -42,7 +42,7 @@ public static class JwSourceHelper
 
     /// <summary>
     /// Music category publications that use Mediator API for discovery (MediatorSectioned, video).
-    /// Tracks come from category.media[]; same harvest path as other mediator categories (e.g. MediatorHarvester).
+    /// Tracks come from category.media[]; same catalog path as other mediator categories (e.g. MediatorCataloger).
     /// </summary>
     public static HashSet<string> MusicMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
@@ -71,7 +71,7 @@ public static class JwSourceHelper
     /// <summary>
     /// Returns true if the publication code is considered music (vocal, melody, mediator music, or music-flag).
     /// Excludes codes in IsMusicExcludedPublicationCodes (e.g. MakingMusic).
-    /// Used when BiblePublication is not yet harvested so we can still skip cross-pub from music in prev/next logic.
+    /// Used when BiblePublication is not yet cataloged so we can still skip cross-pub from music in prev/next logic.
     /// </summary>
     public static bool IsMusicPublicationCode(string? publicationCode)
     {
@@ -423,7 +423,7 @@ public static class JwSourceHelper
     };
 
     /// <summary>
-    /// Series publications that use Mediator API for discovery (MediatorSectioned). Used by MediatorHarvester.
+    /// Series publications that use Mediator API for discovery (MediatorSectioned). Used by MediatorCataloger.
     /// </summary>
     public static HashSet<string> SeriesMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
@@ -493,7 +493,7 @@ public static class JwSourceHelper
     };
 
     /// <summary>
-    /// All publication codes that use Mediator API for discovery (MediatorSectioned). Used by GetHarvestType and IsVideo.
+    /// All publication codes that use Mediator API for discovery (MediatorSectioned). Used by GetCatalogType and IsVideo.
     /// Excludes flat-audio (Article Series, Books, Yearbooks, Brochures) which use GETPUBMEDIALINKS only.
     /// </summary>
     public static HashSet<string> AllMediatorPublicationCodes
@@ -520,7 +520,7 @@ public static class JwSourceHelper
     }
 
     /// <summary>
-    /// Publication codes that are harvested but not validated via Mediator API (they use GETPUBMEDIALINKS only).
+    /// Publication codes that are cataloged but not validated via Mediator API (they use GETPUBMEDIALINKS only).
     /// Empty: all video/drama use Mediator API (pub code = category key, e.g. DramasGoodNews).
     /// </summary>
     public static HashSet<string> MediatorValidationExclusionCodes => new(StringComparer.OrdinalIgnoreCase);
@@ -585,7 +585,7 @@ public static class JwSourceHelper
     };
 
     /// <summary>
-    /// All language-bound publication codes that should be harvested for English (E) in the harvester.
+    /// All language-bound publication codes that should be cataloged for English (E) in the cataloger.
     /// Includes Bible, Music (vocal only), Dramas, Video, Children, Series, Article Series, Books, Yearbooks,
     /// Brochures and Booklets, and all mediator-only categories (Broadcasting, Teenagers, Family, Programs and Events,
     /// Activities, Meetings and Ministry, Organization, Faith and Bible, Interviews and Experiences).

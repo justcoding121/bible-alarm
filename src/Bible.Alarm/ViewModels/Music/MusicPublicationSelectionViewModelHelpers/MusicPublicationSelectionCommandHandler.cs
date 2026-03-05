@@ -298,7 +298,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             }
 
             // Only update the UI selection after we know we have valid content.
-            // If fetching/harvesting fails, we must keep the previous language selection (and schedule state) unchanged.
+            // If fetching/cataloging fails, we must keep the previous language selection (and schedule state) unchanged.
             updateSelectedLanguage(language);
 
             var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode, trackCode, trackName, publicationName, currentSchedule);

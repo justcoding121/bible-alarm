@@ -93,7 +93,7 @@ Where:
 
 What happens:
 - Picks a language (preserve previous if possible; else default `E`)
-- Picks a valid publication for that category/language (may harvest ad-hoc if needed)
+- Picks a valid publication for that category/language (may catalog ad-hoc if needed)
 - Picks first valid section/track
 - Dispatches `UpdateScheduleFromViewModelAction(..., shouldSave:false)` to update state without writing DB yet.
 
@@ -108,7 +108,7 @@ Where:
 
 What happens:
 - Cascades Language → Publication → Section → Track
-- May call `ILanguageContentService.EnsurePublicationExistsAsync` to harvest a missing language/publication
+- May call `ILanguageContentService.EnsurePublicationExistsAsync` to catalog a missing language/publication
 - Updates state without saving to DB until the Save command (or until a specific interaction chooses `shouldSave:true`).
 - **Progress UX**:
   - language selection ad-hoc fetch may show a modal overlay/progress UI

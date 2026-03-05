@@ -105,7 +105,7 @@ public sealed class PlaybackEventHandler
                         currentScheduleId, currentTrackIndex, playlist?.Count ?? 0);
                 }
 
-                // Append failed (harvest/download error) - show error in modal with retry
+                // Append failed (catalog/download error) - show error in modal with retry
                 logger.Warning("HandleMediaEndedAsync: Failed to extend playlist for indefinite playback. Showing error in modal.");
                 await handlePlaybackFailureAsync();
                 return;

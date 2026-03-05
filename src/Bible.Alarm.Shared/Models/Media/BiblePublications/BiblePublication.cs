@@ -77,5 +77,5 @@ public sealed class BiblePublication : TranslatedPublication
     /// <summary>
     /// How this publication is fetched (section vs flat vs mediator). Used when re-fetching on CDN failure.
     /// </summary>
-    public HarvestType? HarvestType { get; set; }
+    public CatalogType? CatalogType { get; set; }
 }

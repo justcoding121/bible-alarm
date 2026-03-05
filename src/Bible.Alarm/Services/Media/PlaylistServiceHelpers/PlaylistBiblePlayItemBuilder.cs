@@ -51,7 +51,7 @@ public sealed class PlaylistBiblePlayItemBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={publicationCode}, lang={languageCode}, section={sectionCode ?? "(none)"}, track={trackCode}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={publicationCode}, lang={languageCode}, section={sectionCode ?? "(none)"}, track={trackCode}. Only cataloged tracks can be played.");
         }
         metadata.LookUpPath = lookUpPath;
 

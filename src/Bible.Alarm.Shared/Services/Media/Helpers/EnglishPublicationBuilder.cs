@@ -142,7 +142,7 @@ internal sealed class EnglishPublicationBuilder
             LanguageId = languageId,
             IsVideo = isVideo,
             IsMusic = isMusicPub,
-            HarvestType = HarvestType.Sectioned,
+            CatalogType = CatalogType.Sectioned,
             Tracks = new List<BiblePublicationTrack>(),
             Sections = sections
         };

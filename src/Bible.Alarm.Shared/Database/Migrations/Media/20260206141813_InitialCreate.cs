@@ -68,7 +68,8 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     IsVideo = table.Column<bool>(type: "INTEGER", nullable: false),
                     IsMusic = table.Column<bool>(type: "INTEGER", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
-                    PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false)
+                    PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    CatalogType = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -112,7 +113,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .Annotation("Sqlite:Autoincrement", true),
                     PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     LanguageId = table.Column<int>(type: "INTEGER", nullable: true),
-                    HarvestType = table.Column<int>(type: "INTEGER", nullable: true),
+                    CatalogType = table.Column<int>(type: "INTEGER", nullable: true),
                     IsMusic = table.Column<bool>(type: "INTEGER", nullable: false),
                     CategoryId = table.Column<int>(type: "INTEGER", nullable: false)
                 },

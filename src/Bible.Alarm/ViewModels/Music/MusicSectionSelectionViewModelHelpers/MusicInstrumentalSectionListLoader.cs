@@ -30,18 +30,18 @@ internal sealed class MusicInstrumentalSectionListLoader
         // Get cancellation token from progress tracker (same CTS from modal)
         var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
 
-        // First, check if sections are already harvested (without showing progress)
+        // First, check if sections are already cataloged (without showing progress)
         var initialSections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
         
         // Get expected section count for no-language publications from SectionLanguages discovery table
         var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
         var actualSectionCount = initialSections?.Values.Count ?? 0;
         
-        // Check if we have ALL expected sections AND they're all harvested (not placeholders)
-        // A section is harvested if it has a non-empty name and a persisted Id.
+        // Check if we have ALL expected sections AND they're all cataloged (not placeholders)
+        // A section is cataloged if it has a non-empty name and a persisted Id.
         // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
         var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-        var allSectionsHarvested = hasAllExpectedSections && initialSections != null && initialSections.Count > 0 && initialSections.Values.All(s =>
+        var allSectionsCataloged = hasAllExpectedSections && initialSections != null && initialSections.Count > 0 && initialSections.Values.All(s =>
             !string.IsNullOrEmpty(s.Name) &&
             s.Id > 0);
 
@@ -50,27 +50,27 @@ internal sealed class MusicInstrumentalSectionListLoader
         {
             SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsFromDb = null;
             
-            if (!allSectionsHarvested)
+            if (!allSectionsCataloged)
             {
-                // Sections are not fully harvested - show progress and cancel as soon as fetch is decided, then retry fetching
+                // Sections are not fully cataloged - show progress and cancel as soon as fetch is decided, then retry fetching
                 progress?.SetIsVisible(true);
                 progress?.UpdateProgress(0.0);
 
-                // Retry logic: Retry fetching until all sections are harvested (for future support when sections may not be pre-harvested)
-                sectionsFromDb = await RetryFetchUntilHarvestedAsync(publicationCode, progress, cancellationToken);
+                // Retry logic: Retry fetching until all sections are cataloged (for future support when sections may not be pre-cataloged)
+                sectionsFromDb = await RetryFetchUntilCatalogedAsync(publicationCode, progress, cancellationToken);
                 progress?.UpdateProgress(0.7);
             }
             else
             {
-                // All expected sections are already harvested - use the initial query result, no need to show progress
-                logger.Debug("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections already harvested for publication={PublicationCode}, skipping fetch",
+                // All expected sections are already cataloged - use the initial query result, no need to show progress
+                logger.Debug("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections already cataloged for publication={PublicationCode}, skipping fetch",
                     expectedSectionCount, publicationCode);
                 sectionsFromDb = initialSections;
             }
 
             if (sectionsFromDb == null || sectionsFromDb.Count == 0)
             {
-                logger.Warning("[MusicSectionSelection] LoadAsync: No sections found for publication={PublicationCode}. This publication may not be harvested yet or may not have sections.",
+                logger.Warning("[MusicSectionSelection] LoadAsync: No sections found for publication={PublicationCode}. This publication may not be cataloged yet or may not have sections.",
                     publicationCode);
 
                 return (new List<BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
@@ -116,7 +116,7 @@ internal sealed class MusicInstrumentalSectionListLoader
             vms.Sort();
 
             // Only update progress if we were fetching (progress was shown)
-            if (!allSectionsHarvested)
+            if (!allSectionsCataloged)
             {
                 progress?.UpdateProgress(0.9);
             }
@@ -125,7 +125,7 @@ internal sealed class MusicInstrumentalSectionListLoader
         });
 
         // Only update progress if we were fetching (progress was shown)
-        if (!allSectionsHarvested)
+        if (!allSectionsCataloged)
         {
             progress?.UpdateProgress(1.0);
             progress?.SetIsVisible(false);
@@ -134,7 +134,7 @@ internal sealed class MusicInstrumentalSectionListLoader
         return (items, selected);
     }
 
-    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> RetryFetchUntilHarvestedAsync(
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> RetryFetchUntilCatalogedAsync(
         string publicationCode,
         IFetchProgress? progress,
         CancellationToken cancellationToken)
@@ -146,9 +146,9 @@ internal sealed class MusicInstrumentalSectionListLoader
         // Total max wait time of 60 seconds
         var maxWaitTime = TimeSpan.FromSeconds(60);
         var startTime = DateTime.UtcNow;
-        var allHarvested = false;
+        var allCataloged = false;
         var attempt = 0;
-        var previousHarvestedCount = -1;
+        var previousCatalogedCount = -1;
 
         logger.Information("MusicInstrumentalSectionListLoader: Starting fetch with retries for publication={PublicationCode}",
             publicationCode);
@@ -161,7 +161,7 @@ internal sealed class MusicInstrumentalSectionListLoader
 
         try
         {
-            while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+            while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
             {
                 // Check for cancellation before each attempt
                 cancellationToken.ThrowIfCancellationRequested();
@@ -170,48 +170,48 @@ internal sealed class MusicInstrumentalSectionListLoader
 
                 try
                 {
-                    // Fetch sections (this may trigger harvesting if support is added in the future)
-                    // Pass progress to show download percentage during harvesting
+                    // Fetch sections (this may trigger cataloging if support is added in the future)
+                    // Pass progress to show download percentage during cataloging
                     sectionsData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
-                    // Wait a bit for background harvesting to start (with cancellation support)
+                    // Wait a bit for background cataloging to start (with cancellation support)
                     await Task.Delay(500, cancellationToken);
 
-                    // Re-query to check if sections are now harvested (no progress needed for re-query)
+                    // Re-query to check if sections are now cataloged (no progress needed for re-query)
                     var reQueriedData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
                     // Get expected section count to verify we have all sections
                     var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
                     var actualSectionCount = reQueriedData?.Values.Count ?? 0;
                     
-                    // Check if we have ALL expected sections AND they're all harvested (not placeholders)
-                    // A section is harvested if it has a non-empty name and a persisted Id.
+                    // Check if we have ALL expected sections AND they're all cataloged (not placeholders)
+                    // A section is cataloged if it has a non-empty name and a persisted Id.
                     // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
                     var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-                    var allSectionsHarvested = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
+                    var allSectionsCataloged = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
                         !string.IsNullOrEmpty(s.Name) &&
                         s.Id > 0);
 
-                    if (allSectionsHarvested)
+                    if (allSectionsCataloged)
                     {
                         sectionsData = reQueriedData;
-                        allHarvested = true;
-                        logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections harvested on attempt {Attempt} for publication={PublicationCode}",
+                        allCataloged = true;
+                        logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}",
                             expectedSectionCount, attempt, publicationCode);
                     }
                     else
                     {
-                        var currentHarvestedCount = reQueriedData?.Values.Count(s =>
+                        var currentCatalogedCount = reQueriedData?.Values.Count(s =>
                             !string.IsNullOrEmpty(s.Name) && s.Id > 0) ?? 0;
 
-                        if (currentHarvestedCount > 0 && currentHarvestedCount <= previousHarvestedCount)
+                        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                         {
-                            logger.Information("MusicInstrumentalSectionListLoader: No progress between retries ({HarvestedCount} harvested, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}",
-                                currentHarvestedCount, expectedSectionCount, publicationCode);
+                            logger.Information("MusicInstrumentalSectionListLoader: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}",
+                                currentCatalogedCount, expectedSectionCount, publicationCode);
                             sectionsData = reQueriedData;
                             break;
                         }
-                        previousHarvestedCount = currentHarvestedCount;
+                        previousCatalogedCount = currentCatalogedCount;
 
                         // Log which sections are still placeholders or missing for debugging
                         if (reQueriedData != null)
@@ -222,7 +222,7 @@ internal sealed class MusicInstrumentalSectionListLoader
 
                             if (placeholders.Count > 0)
                             {
-                                logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be harvested: {Placeholders}",
+                                logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be cataloged: {Placeholders}",
                                     attempt, placeholders.Count, string.Join(", ", placeholders));
                             }
                             else if (!hasAllExpectedSections)
@@ -279,12 +279,12 @@ internal sealed class MusicInstrumentalSectionListLoader
             progress?.SetIsVisible(false);
         }
 
-        if (!allHarvested)
+        if (!allCataloged)
         {
-            logger.Warning("MusicInstrumentalSectionListLoader: Timeout after {Attempts} attempts waiting for all sections to be harvested for publication {PublicationCode}. Some may still be placeholders.",
+            logger.Warning("MusicInstrumentalSectionListLoader: Timeout after {Attempts} attempts waiting for all sections to be cataloged for publication {PublicationCode}. Some may still be placeholders.",
                 attempt, publicationCode);
 
-            // Use the last fetched data even if not all are harvested
+            // Use the last fetched data even if not all are cataloged
             if (sectionsData == null || sectionsData.Count == 0)
             {
                 // Final attempt to get at least some data

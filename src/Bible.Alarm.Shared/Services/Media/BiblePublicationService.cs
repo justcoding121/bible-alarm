@@ -512,7 +512,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         {
             var discoveredForLanguage = await GetAvailablePublicationCodesAsync(languageCode, categoryCode, false, cancellationToken);
             var discoveredForDefault = await GetAvailablePublicationCodesAsync(AppConstants.Media.DefaultLanguageCode, categoryCode, false, cancellationToken);
-            var harvested = await GetByLanguageCodeAsync(languageCode, categoryCode, false, cancellationToken);
+            var cataloged = await GetByLanguageCodeAsync(languageCode, categoryCode, false, cancellationToken);
 
             var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var code in discoveredForLanguage)
@@ -523,7 +523,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             {
                 codes.Add(code);
             }
-            foreach (var code in harvested.Keys)
+            foreach (var code in cataloged.Keys)
             {
                 codes.Add(code);
             }

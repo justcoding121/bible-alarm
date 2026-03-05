@@ -199,7 +199,7 @@ public sealed class MediaService(
         // when the user explicitly opens the Sections modal (where we can show progress).
         // Other callers (playback navigation, playlist building, etc.) should remain read-only.
         //
-        // English sections are pre-harvested by the harvester.
+        // English sections are pre-cataloged by the cataloger.
         if (!string.IsNullOrEmpty(languageCode) &&
             !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase) &&
             progress != null)
@@ -252,14 +252,14 @@ public sealed class MediaService(
         // First, try to get sections from database
         var sections = await biblePublicationSectionService.GetSectionsByPublicationWithoutLanguageAsync(publicationCode, cancellationTokenSource.Token);
         
-        // If no sections found, the publication might not be harvested yet
-        // For publications without language (like "iam"), sections should be pre-harvested
-        // But if they're not, we can't harvest them here (no language code to use)
-        // The user should run the harvester to pre-harvest these publications
+        // If no sections found, the publication might not be cataloged yet
+        // For publications without language (like "iam"), sections should be pre-cataloged
+        // But if they're not, we can't catalog them here (no language code to use)
+        // The user should run the cataloger to pre-catalog these publications
         if (sections == null || sections.Count == 0)
         {
             Log.Warning("GetSectionsForPublicationWithoutLanguage: No sections found for publication {PublicationCode}. " +
-                "This publication may not be harvested yet. Publications without language (like 'iam') should be pre-harvested.",
+                "This publication may not be cataloged yet. Publications without language (like 'iam') should be pre-cataloged.",
                 publicationCode);
         }
         

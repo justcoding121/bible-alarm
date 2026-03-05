@@ -49,8 +49,8 @@ internal sealed class LanguageContentPublicationTracksFetcher
             var lowerCode = publicationCode.ToLowerInvariant();
             var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
 
-            // Get PublicationLanguage to determine harvest type and category
-            // HarvestType is sufficient to determine if ad-hoc fetching is possible
+            // Get PublicationLanguage to determine catalog type and category
+            // CatalogType is sufficient to determine if ad-hoc fetching is possible
             // Use case-sensitive code for dramas when querying database
             var publicationLanguage = await db.PublicationLanguages
                 .Include(pl => pl.Language)
@@ -114,31 +114,31 @@ internal sealed class LanguageContentPublicationTracksFetcher
                 await db.SaveChangesAsync(cancellationToken);
             }
 
-            // Use HarvestType from PublicationLanguage to determine fetching method
+            // Use CatalogType from PublicationLanguage to determine fetching method
             var category = publicationLanguage.Category;
             var categoryCode = category.CategoryCode;
             var isVideo = PublicationTypeHelper.IsVideo(lowerCode);
 
-            var harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(lowerCode);
+            var catalogType = publicationLanguage.CatalogType ?? PublicationTypeHelper.GetCatalogType(lowerCode);
             await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
 
-            switch (harvestType)
+            switch (catalogType)
             {
-                case Models.Enums.HarvestType.MediatorSectioned:
+                case Models.Enums.CatalogType.MediatorSectioned:
                     // Drama publications use Mediator API
                     return await mediatorFetcher.FetchMediatorPublicationTracksAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication, cancellationToken);
 
-                case Models.Enums.HarvestType.Flat:
+                case Models.Enums.CatalogType.Flat:
                     var isMusic = categoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
                     var fileFormat = isVideo ? "MP4" : "MP3";
                     return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication,
                         isVideo, isMusic, fileFormat, null, cancellationToken);
 
-                case Models.Enums.HarvestType.Sectioned:
+                case Models.Enums.CatalogType.Sectioned:
                 default:
-                    logger.Warning("Publication {PublicationCode} has Sectioned harvest type, use FetchPublicationSectionsAsync instead",
+                    logger.Warning("Publication {PublicationCode} has Sectioned catalog type, use FetchPublicationSectionsAsync instead",
                         publicationCode);
                     return false;
             }

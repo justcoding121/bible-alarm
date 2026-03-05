@@ -192,7 +192,7 @@ public sealed class AlarmSchedule : IComparable
         if (bibleLanguages.ContainsKey(DefaultLanguageCode))
         {
             // Fast path: try "nwt" directly (avoids loading all publications for the language).
-            // If it's not present or not harvested, we'll fall back to enumerating publications.
+            // If it's not present or not cataloged, we'll fall back to enumerating publications.
             if (PublicationTypeHelper.HasSectionStructure(PreferredPublicationCode))
             {
                 var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(

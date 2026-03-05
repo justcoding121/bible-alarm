@@ -368,7 +368,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={trackInfo.SectionCode ?? "(none)"}, track={trackInfo.Track.TrackCode}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={trackInfo.SectionCode ?? "(none)"}, track={trackInfo.Track.TrackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 

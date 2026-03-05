@@ -45,6 +45,9 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .HasColumnType("TEXT")
                         .HasColumnName("PublicationCode");
 
+                    b.Property<int?>("CatalogType")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("LanguageId");
@@ -134,7 +137,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.Property<int>("CategoryId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("HarvestType")
+                    b.Property<int?>("CatalogType")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsMusic")

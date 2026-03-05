@@ -36,11 +36,11 @@ internal sealed class SectionListLoader
         
         SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsFromDb = null;
         
-        // Retry logic: If non-English language, retry fetching until all sections are harvested
+        // Retry logic: If non-English language, retry fetching until all sections are cataloged
         // For non-English languages, sections need to be fetched, so we retry with increasing delays
         if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
-            // First, check if sections are already harvested (without showing progress)
+            // First, check if sections are already cataloged (without showing progress)
             // This prevents progress bar from flashing at 0% when data is already available
             var initialSections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
             
@@ -48,24 +48,24 @@ internal sealed class SectionListLoader
             var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
             var actualSectionCount = initialSections?.Values.Count ?? 0;
             
-            // Check if we have ALL expected sections AND they're all harvested (not placeholders)
-            // A section is harvested if it has a non-empty name and a persisted Id.
+            // Check if we have ALL expected sections AND they're all cataloged (not placeholders)
+            // A section is cataloged if it has a non-empty name and a persisted Id.
             // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
             var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-            var allSectionsHarvested = hasAllExpectedSections && initialSections != null && initialSections.Values.Count > 0 && initialSections.Values.All(s =>
+            var allSectionsCataloged = hasAllExpectedSections && initialSections != null && initialSections.Values.Count > 0 && initialSections.Values.All(s =>
                 !string.IsNullOrEmpty(s.Name) &&
                 s.Id > 0);
 
-            if (allSectionsHarvested)
+            if (allSectionsCataloged)
             {
-                // All expected sections are already harvested - use the initial query result, no need to show progress
-                logger.Debug("SectionListLoader: All {ExpectedCount} expected sections already harvested for publication={PublicationCode}, language={LanguageCode}, skipping fetch",
+                // All expected sections are already cataloged - use the initial query result, no need to show progress
+                logger.Debug("SectionListLoader: All {ExpectedCount} expected sections already cataloged for publication={PublicationCode}, language={LanguageCode}, skipping fetch",
                     expectedSectionCount, publicationCode, languageCode);
                 sectionsFromDb = initialSections;
             }
             else
             {
-                // Not all sections are harvested - show progress and cancel as soon as fetch is decided, then retry fetching
+                // Not all sections are cataloged - show progress and cancel as soon as fetch is decided, then retry fetching
                 progress?.SetIsVisible(true);
                 progress?.UpdateProgress(0.0);
 
@@ -79,7 +79,7 @@ internal sealed class SectionListLoader
                     logger.Debug("SectionListLoader: Only {ActualCount}/{ExpectedCount} sections found, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
                         actualSectionCount, expectedSectionCount, publicationCode, languageCode);
                 }
-                sectionsFromDb = await RetryFetchUntilHarvestedAsync(languageCode, publicationCode, progress, cancellationToken);
+                sectionsFromDb = await RetryFetchUntilCatalogedAsync(languageCode, publicationCode, progress, cancellationToken);
             }
         }
         else
@@ -93,7 +93,7 @@ internal sealed class SectionListLoader
         if (sectionsFromDb == null || sectionsFromDb.Count == 0)
         {
             logger.Warning(
-                "SectionListLoader: No sections found for publication={PublicationCode}, language={LanguageCode}. This publication may not be harvested yet or may not have sections.",
+                "SectionListLoader: No sections found for publication={PublicationCode}, language={LanguageCode}. This publication may not be cataloged yet or may not have sections.",
                 publicationCode,
                 languageCode ?? "(null)");
 
@@ -150,7 +150,7 @@ internal sealed class SectionListLoader
         return (vms, map);
     }
 
-    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> RetryFetchUntilHarvestedAsync(
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> RetryFetchUntilCatalogedAsync(
         string languageCode,
         string publicationCode,
         IFetchProgress? progress,
@@ -163,9 +163,9 @@ internal sealed class SectionListLoader
         // Total max wait time of 60 seconds
         var maxWaitTime = TimeSpan.FromSeconds(60);
         var startTime = DateTime.UtcNow;
-        var allHarvested = false;
+        var allCataloged = false;
         var attempt = 0;
-        var previousHarvestedCount = -1;
+        var previousCatalogedCount = -1;
 
         logger.Information("SectionListLoader: Starting fetch with retries for publication={PublicationCode}, language={LanguageCode}",
             publicationCode, languageCode);
@@ -180,7 +180,7 @@ internal sealed class SectionListLoader
 
         try
         {
-            while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+            while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
             {
                 // Check for cancellation before each attempt
                 cancellationToken.ThrowIfCancellationRequested();
@@ -189,48 +189,48 @@ internal sealed class SectionListLoader
 
                 try
                 {
-                    // Fetch sections (this triggers harvesting if needed)
-                    // Pass progress to show download percentage during harvesting
+                    // Fetch sections (this triggers cataloging if needed)
+                    // Pass progress to show download percentage during cataloging
                     sectionsData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
 
-                    // Wait a bit for background harvesting to start (with cancellation support)
+                    // Wait a bit for background cataloging to start (with cancellation support)
                     await Task.Delay(500, cancellationToken);
 
-                    // Re-query to check if sections are now harvested (no progress needed for re-query)
+                    // Re-query to check if sections are now cataloged (no progress needed for re-query)
                     var reQueriedData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
 
                     // Get expected section count to verify we have all sections
                     var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
                     var actualSectionCount = reQueriedData?.Values.Count ?? 0;
                     
-                    // Check if we have ALL expected sections AND they're all harvested (not placeholders)
-                    // A section is harvested if it has a non-empty name and a persisted Id.
+                    // Check if we have ALL expected sections AND they're all cataloged (not placeholders)
+                    // A section is cataloged if it has a non-empty name and a persisted Id.
                     // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
                     var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-                    var allSectionsHarvested = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
+                    var allSectionsCataloged = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
                         !string.IsNullOrEmpty(s.Name) &&
                         s.Id > 0);
 
-                    if (allSectionsHarvested)
+                    if (allSectionsCataloged)
                     {
                         sectionsData = reQueriedData;
-                        allHarvested = true;
-                        logger.Information("SectionListLoader: All {ExpectedCount} expected sections harvested on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
+                        allCataloged = true;
+                        logger.Information("SectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
                             expectedSectionCount, attempt, publicationCode, languageCode);
                     }
                     else
                     {
-                        var currentHarvestedCount = reQueriedData?.Values.Count(s =>
+                        var currentCatalogedCount = reQueriedData?.Values.Count(s =>
                             !string.IsNullOrEmpty(s.Name) && s.Id > 0) ?? 0;
 
-                        if (currentHarvestedCount > 0 && currentHarvestedCount <= previousHarvestedCount)
+                        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                         {
-                            logger.Information("SectionListLoader: No progress between retries ({HarvestedCount} harvested, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}, language={LanguageCode}",
-                                currentHarvestedCount, expectedSectionCount, publicationCode, languageCode);
+                            logger.Information("SectionListLoader: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}, language={LanguageCode}",
+                                currentCatalogedCount, expectedSectionCount, publicationCode, languageCode);
                             sectionsData = reQueriedData;
                             break;
                         }
-                        previousHarvestedCount = currentHarvestedCount;
+                        previousCatalogedCount = currentCatalogedCount;
 
                         // Log which sections are still placeholders or missing for debugging
                         if (reQueriedData != null)
@@ -241,7 +241,7 @@ internal sealed class SectionListLoader
 
                             if (placeholders.Count > 0)
                             {
-                                logger.Debug("SectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be harvested: {Placeholders}",
+                                logger.Debug("SectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be cataloged: {Placeholders}",
                                     attempt, placeholders.Count, string.Join(", ", placeholders));
                             }
                             else if (!hasAllExpectedSections)
@@ -298,12 +298,12 @@ internal sealed class SectionListLoader
             progress?.SetIsVisible(false);
         }
 
-        if (!allHarvested)
+        if (!allCataloged)
         {
-            logger.Warning("SectionListLoader: Timeout after {Attempts} attempts waiting for all sections to be harvested for publication {PublicationCode}, language {LanguageCode}. Some may still be placeholders.",
+            logger.Warning("SectionListLoader: Timeout after {Attempts} attempts waiting for all sections to be cataloged for publication {PublicationCode}, language {LanguageCode}. Some may still be placeholders.",
                 attempt, publicationCode, languageCode);
 
-            // Use the last fetched data even if not all are harvested
+            // Use the last fetched data even if not all are cataloged
             if (sectionsData == null || sectionsData.Count == 0)
             {
                 // Final attempt to get at least some data

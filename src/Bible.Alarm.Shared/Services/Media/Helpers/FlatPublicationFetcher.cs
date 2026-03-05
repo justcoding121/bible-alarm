@@ -161,7 +161,7 @@ internal sealed class FlatPublicationFetcher
                 LanguageId = resolvedLanguage?.Id,
                 IsVideo = isVideo,
                 IsMusic = isMusic || isMusicCategory,
-                HarvestType = HarvestType.Flat,
+                CatalogType = CatalogType.Flat,
                 Tracks = tracks,
                 Sections = new List<BiblePublicationSection>()
             };

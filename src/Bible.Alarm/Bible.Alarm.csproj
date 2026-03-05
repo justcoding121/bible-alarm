@@ -280,6 +280,10 @@
 	  <CodesignKey>Apple Development: Created via API (65WTR3TZ7L)</CodesignKey>
 	  <CodesignProvision>VS: com.jthomas.info.Bible.Alarm Development</CodesignProvision>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios'">
+	  <CodesignKey>Apple Development: Created via API (65WTR3TZ7L)</CodesignKey>
+	  <CodesignProvision>VS: com.jthomas.info.Bible.Alarm Development</CodesignProvision>
+	</PropertyGroup>
 
 	<!-- Platform-specific resources -->
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">

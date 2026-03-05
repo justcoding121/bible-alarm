@@ -133,7 +133,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             tracks = foundTracks;
 
             // If no tracks found in database, explicitly fetch them (matching cascade behavior)
-            // Tracks are NOT automatically fetched when sections are harvested
+            // Tracks are NOT automatically fetched when sections are cataloged
             if (tracks == null || tracks.Count == 0)
             {
                 Log.Information("GetFirstSectionAndTrackFromSectionsAsync: No tracks found in database, fetching tracks for first section...");
@@ -225,7 +225,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         Log.Debug("GetFirstTrackForNonSectionedAsync: Loaded publication={PublicationName}, TracksCount={TracksCount}",
             publication?.Name ?? "(null)", publication?.Tracks?.Count ?? 0);
 
-        // If no tracks found, ensure publication is harvested (for non-sectioned publications, this fetches tracks)
+        // If no tracks found, ensure publication is cataloged (for non-sectioned publications, this fetches tracks)
         if (publication == null || publication.Tracks == null || publication.Tracks.Count == 0)
         {
             Log.Information("GetFirstTrackForNonSectionedAsync: No tracks found in database, ensuring publication exists (will fetch tracks for non-sectioned publications)...");
@@ -233,23 +233,23 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             if (!string.IsNullOrEmpty(languageCode) && languageContentService != null)
             {
                 progress?.UpdateProgress(0.6);
-                var harvestSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode, default, progress);
+                var catalogSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode, default, progress);
 
-                if (harvestSuccess)
+                if (catalogSuccess)
                 {
-                    Log.Debug("GetFirstTrackForNonSectionedAsync: Publication harvested successfully, re-querying tracks");
+                    Log.Debug("GetFirstTrackForNonSectionedAsync: Publication cataloged successfully, re-querying tracks");
                     progress?.UpdateProgress(0.8);
                     publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
                 }
                 else
                 {
-                    Log.Warning("GetFirstTrackForNonSectionedAsync: Failed to harvest publication={PublicationCode} for language={LanguageCode}",
+                    Log.Warning("GetFirstTrackForNonSectionedAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}",
                         publicationCode, languageCode);
                 }
             }
             else if (string.IsNullOrEmpty(languageCode))
             {
-                // For publications without language (like "iam"), tracks should already be pre-harvested
+                // For publications without language (like "iam"), tracks should already be pre-cataloged
                 Log.Warning("GetFirstTrackForNonSectionedAsync: No tracks found for publication without language={PublicationCode}",
                     publicationCode);
             }
@@ -271,7 +271,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         return (null, trackCode, string.Empty, firstTrack.Title ?? string.Empty);
     }
 
-    internal async Task<bool> CheckIfPublicationWithFirstSectionHarvestedAsync(string publicationCode, string languageCode)
+    internal async Task<bool> CheckIfPublicationWithFirstSectionCatalogedAsync(string publicationCode, string languageCode)
     {
         try
         {
@@ -351,7 +351,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "CheckIfPublicationWithFirstSectionHarvestedAsync: Error checking if publication {PublicationCode} is harvested",
+            Log.Warning(ex, "CheckIfPublicationWithFirstSectionCatalogedAsync: Error checking if publication {PublicationCode} is cataloged",
                 publicationCode);
             return false;
         }

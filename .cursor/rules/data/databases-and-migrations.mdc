@@ -51,7 +51,7 @@ DbContext:
   - **Only tracks store UrlParams** - complete params needed to fetch that specific track
   - `UrlParams.BiblePublicationTrackId` → `BiblePublicationTracks.Id`
   - Each track's `UrlParams` contains all parameters needed to construct the full download URL (e.g., `pub`, `booknum`, `fileformat`, `langwritten`, `track`, `alllangs`)
-  - **Sections and Publications do NOT store UrlParams** - URLs are built in code using harvest-type logic (see `FlatPublicationFetcher.cs`, `SectionFetcher.cs`)
+  - **Sections and Publications do NOT store UrlParams** - URLs are built in code using catalog-type logic (see `FlatPublicationFetcher.cs`, `SectionFetcher.cs`)
 
 - `BiblePublications`
   - categories via **BiblePublicationCategories** only (no `CategoryId`/`Category` on `BiblePublication`)
@@ -101,7 +101,7 @@ The Media DB supports a few **independent axes**. Most bugs in cascade/playback/
 - `PublicationLanguages` (discovery table)
   - “catalog” of which languages exist per publication
   - `LanguageId` can be null for “no-language” availability rows
-  - includes optional `HarvestType` override (Flat / Sectioned / MediatorSectioned)
+  - includes optional `CatalogType` override (Flat / Sectioned / MediatorSectioned)
 
 - `SectionLanguages` (discovery table)
   - “catalog” of which languages exist per section of a publication

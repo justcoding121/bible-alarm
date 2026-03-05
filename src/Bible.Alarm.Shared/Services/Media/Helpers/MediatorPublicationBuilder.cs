@@ -30,7 +30,7 @@ internal sealed class MediatorPublicationBuilder
     /// <summary>
     /// Upserts a drama publication: if a BiblePublication with the same PublicationCode and LanguageId exists,
     /// updates it (replaces tracks and TrackUrls, syncs categories); otherwise inserts a new row.
-    /// Callers: (1) Harvester only calls this via SeedEnglishPublicationAsync for pubs that do not yet have English, so insert is the normal path.
+    /// Callers: (1) Cataloger only calls this via SeedEnglishPublicationAsync for pubs that do not yet have English, so insert is the normal path.
     /// (2) App on-demand fetch uses EnsurePublicationExistsAsync which skips when the row exists, or FetchPublicationTracksAsync which deletes then re-fetches; neither hits this with an existing row.
     /// The update path is for idempotency: e.g. SeedEnglishPublicationAsync invoked twice (race, future refresh-English, or logic change), so we update instead of creating a duplicate row.
     /// </summary>
@@ -113,7 +113,7 @@ internal sealed class MediatorPublicationBuilder
             LanguageId = language.Id,
             IsVideo = isVideo,
             IsMusic = isMusicPub,
-            HarvestType = HarvestType.MediatorSectioned,
+            CatalogType = CatalogType.MediatorSectioned,
             Tracks = tracks,
             Sections = new List<BiblePublicationSection>()
         };

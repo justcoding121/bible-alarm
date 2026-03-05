@@ -42,7 +42,7 @@ internal sealed class MusicSectionSelectionCommandHandler
         BiblePublicationSectionListViewItemModel selectedSection,
         Func<bool> isDisposed)
     {
-        // Do NOT check internet upfront - music sections are pre-harvested (DB query only, no fetch).
+        // Do NOT check internet upfront - music sections are pre-cataloged (DB query only, no fetch).
 
         // Progress will only be set if a fetch actually happens (not for DB-only queries)
         try

@@ -95,7 +95,7 @@ This app is non-commercial and free, with no advertisements; the publisher does 
 
 ## Regenerating the language list
 
-To refresh the list from the current media index (e.g. after re-running the harvester):
+To refresh the list from the current media index (e.g. after re-running the cataloger):
 
 ```bash
 dotnet run --project .tools/Bible.Alarm.DbMigration -- list-bible-languages

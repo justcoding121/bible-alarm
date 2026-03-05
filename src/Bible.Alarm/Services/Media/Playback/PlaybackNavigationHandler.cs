@@ -108,7 +108,7 @@ public sealed class PlaybackNavigationHandler
                 return;
             }
 
-            // Append failed (harvest/download error) - show error in modal with retry
+            // Append failed (catalog/download error) - show error in modal with retry
             logger.Warning("PlayNextAsync: Failed to extend playlist for indefinite playback. Showing error in modal.");
             await handlePlaybackFailureAsync();
             return;
@@ -181,7 +181,7 @@ public sealed class PlaybackNavigationHandler
                 return;
             }
 
-            // Prepend failed (harvest/download error) - show error in modal with retry
+            // Prepend failed (catalog/download error) - show error in modal with retry
             logger.Warning("PlayPreviousAsync: Failed to extend playlist backward. Showing error in modal.");
             await handlePlaybackFailureAsync();
         }

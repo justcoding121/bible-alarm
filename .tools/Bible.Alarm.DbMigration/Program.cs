@@ -380,7 +380,7 @@ class Program
         else if (contextName.Equals("Media", StringComparison.OrdinalIgnoreCase))
         {
             Console.WriteLine("Media database is managed separately (shipped as index.zip).");
-            Console.WriteLine("Use the harvester tool to regenerate the Media index database.");
+            Console.WriteLine("Use the cataloger tool to regenerate the Media index database.");
         }
         else
         {

@@ -58,26 +58,26 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                 return (pubCode, pub, true);
             }
 
-            // Publication has LanguageId - check if already harvested, then harvest if needed
+            // Publication has LanguageId - check if already cataloged, then catalog if needed
             if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
                     progress?.UpdateProgress(0.3);
 
-                    // Check if publication with first section and tracks is already harvested
-                    var isAlreadyHarvested = await sectionTrackResolver.CheckIfPublicationWithFirstSectionHarvestedAsync(
+                    // Check if publication with first section and tracks is already cataloged
+                    var isAlreadyCataloged = await sectionTrackResolver.CheckIfPublicationWithFirstSectionCatalogedAsync(
                         pubCode,
                         language.Code);
 
-                    if (!isAlreadyHarvested)
+                    if (!isAlreadyCataloged)
                     {
-                        // Harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
+                        // Catalog the publication (EnsurePublicationExistsAsync checks if it exists first)
                         await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, default, progress);
                     }
                     else
                     {
-                        Log.Debug("ChooseAsync: Publication={PublicationCode} for language={LanguageCode} already harvested with first section and tracks",
+                        Log.Debug("ChooseAsync: Publication={PublicationCode} for language={LanguageCode} already cataloged with first section and tracks",
                             pubCode,
                             language.Code);
                         progress?.UpdateProgress(0.5);
@@ -91,7 +91,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                         throw;
                     }
 
-                    Log.Debug(ex, "ChooseAsync: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
+                    Log.Debug(ex, "ChooseAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
                         pubCode,
                         language.Code);
                     continue;

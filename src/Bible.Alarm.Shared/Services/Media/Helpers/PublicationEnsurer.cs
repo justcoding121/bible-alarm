@@ -49,7 +49,7 @@ internal sealed class PublicationEnsurer
     {
         try
         {
-            Models.Enums.HarvestType? harvestTypeToFetch = null;
+            Models.Enums.CatalogType? catalogTypeToFetch = null;
             using (var scope = scopeFactory.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -71,14 +71,14 @@ internal sealed class PublicationEnsurer
 
                 if (existingPublication != null)
                 {
-                    if (existingPublication.HarvestType == null)
+                    if (existingPublication.CatalogType == null)
                     {
-                        var backfillHarvestType = PublicationTypeHelper.GetHarvestType(lowerCode);
+                        var backfillCatalogType = PublicationTypeHelper.GetCatalogType(lowerCode);
                         var toUpdate = await db.BiblePublications
                             .FirstOrDefaultAsync(bp => bp.Id == existingPublication.Id, cancellationToken);
                         if (toUpdate != null)
                         {
-                            toUpdate.HarvestType = backfillHarvestType;
+                            toUpdate.CatalogType = backfillCatalogType;
                             await db.SaveChangesAsync(cancellationToken);
                         }
                     }
@@ -87,7 +87,7 @@ internal sealed class PublicationEnsurer
                     return true;
                 }
 
-                // Publication doesn't exist - check if it's available in PublicationLanguage with a HarvestType
+                // Publication doesn't exist - check if it's available in PublicationLanguage with a CatalogType
                 var publicationLanguage = await db.PublicationLanguages
                     .AsNoTracking()
                     .Include(pl => pl.Language)
@@ -112,12 +112,12 @@ internal sealed class PublicationEnsurer
                     return false;
                 }
 
-                harvestTypeToFetch = publicationLanguage.HarvestType ??
-                    PublicationTypeHelper.GetHarvestType(lowerCode);
+                catalogTypeToFetch = publicationLanguage.CatalogType ??
+                    PublicationTypeHelper.GetCatalogType(lowerCode);
             }
 
             // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
-            if (harvestTypeToFetch == Models.Enums.HarvestType.Sectioned)
+            if (catalogTypeToFetch == Models.Enums.CatalogType.Sectioned)
             {
                 progress?.UpdateProgress(0.0);
                 var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken, progress);
@@ -169,11 +169,11 @@ internal sealed class PublicationEnsurer
 
             if (normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
             {
-                logger.Debug("Skipping fetch for English language - already pre-harvested");
+                logger.Debug("Skipping fetch for English language - already pre-cataloged");
                 return true;
             }
 
-            (string PublicationCode, Models.Enums.HarvestType HarvestType)[] candidates;
+            (string PublicationCode, Models.Enums.CatalogType CatalogType)[] candidates;
             using (var scope = scopeFactory.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -199,7 +199,7 @@ internal sealed class PublicationEnsurer
                     .OrderBy(pub => pub, PublicationCodeHelper.PublicationCodeComparer)
                     .ToList();
 
-                var list = new System.Collections.Generic.List<(string PublicationCode, Models.Enums.HarvestType HarvestType)>();
+                var list = new System.Collections.Generic.List<(string PublicationCode, Models.Enums.CatalogType CatalogType)>();
                 foreach (var publicationCode in sortedPublicationCodes)
                 {
                     var normalizedPublicationCode = publicationCode.ToLowerInvariant();
@@ -236,24 +236,24 @@ internal sealed class PublicationEnsurer
                         continue;
                     }
 
-                    var harvestType = publicationLanguage.HarvestType ??
-                        PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
-                    list.Add((publicationCode, harvestType));
+                    var catalogType = publicationLanguage.CatalogType ??
+                        PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
+                    list.Add((publicationCode, catalogType));
                 }
 
                 candidates = list.ToArray();
             }
 
             // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
-            foreach (var (publicationCode, harvestType) in candidates)
+            foreach (var (publicationCode, catalogType) in candidates)
             {
                 bool success = false;
-                if (harvestType == Models.Enums.HarvestType.Sectioned)
+                if (catalogType == Models.Enums.CatalogType.Sectioned)
                 {
                     success = await FetchFirstSectionWithTracksAsync(
                         publicationCode, languageCode, cancellationToken);
                 }
-                else if (harvestType == Models.Enums.HarvestType.Flat || harvestType == Models.Enums.HarvestType.MediatorSectioned)
+                else if (catalogType == Models.Enums.CatalogType.Flat || catalogType == Models.Enums.CatalogType.MediatorSectioned)
                 {
                     success = await languageContentService.FetchPublicationTracksAsync(
                         publicationCode, languageCode, cancellationToken);

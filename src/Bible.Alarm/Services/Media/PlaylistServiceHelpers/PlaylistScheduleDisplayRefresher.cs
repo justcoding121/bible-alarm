@@ -15,7 +15,7 @@ using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 /// <summary>
-/// Refreshes schedule display names (section, track) after navigating to a newly harvested section during playback.
+/// Refreshes schedule display names (section, track) after navigating to a newly cataloged section during playback.
 /// Preserves the Bible schedule language code from DB/state; language code is only updated when the user clicks Save on the schedule page.
 /// </summary>
 public sealed class PlaylistScheduleDisplayRefresher
@@ -116,12 +116,12 @@ public sealed class PlaylistScheduleDisplayRefresher
 
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
 
-            logger.Debug("Refreshed schedule display names after section harvest: ScheduleId={ScheduleId}, SectionCode={SectionCode}, SectionName={SectionName}",
+            logger.Debug("Refreshed schedule display names after section catalog: ScheduleId={ScheduleId}, SectionCode={SectionCode}, SectionName={SectionName}",
                 scheduleId, sectionCode, scheduleStateItem.BiblePublicationSectionName);
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to refresh schedule display names after section harvest: ScheduleId={ScheduleId}, SectionCode={SectionCode}",
+            logger.Warning(ex, "Failed to refresh schedule display names after section catalog: ScheduleId={ScheduleId}, SectionCode={SectionCode}",
                 scheduleId, sectionCode);
         }
     }

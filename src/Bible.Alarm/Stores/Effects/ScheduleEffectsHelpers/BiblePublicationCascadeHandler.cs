@@ -118,10 +118,10 @@ public sealed class BiblePublicationCascadeHandler
                 
                 if (canQueryWithLanguage)
                 {
-                    var wasHarvested = await languageContentService.EnsurePublicationExistsAsync(existingPublicationCode, languageCode);
-                    if (!wasHarvested)
+                    var wasCataloged = await languageContentService.EnsurePublicationExistsAsync(existingPublicationCode, languageCode);
+                    if (!wasCataloged)
                     {
-                        logger.Warning("BiblePublicationCascadeHandler: Failed to harvest existing publication={PublicationCode} for language={LanguageCode}", 
+                        logger.Warning("BiblePublicationCascadeHandler: Failed to catalog existing publication={PublicationCode} for language={LanguageCode}", 
                             existingPublicationCode, languageCode);
                         // Fall through to select a new publication
                     }
@@ -129,7 +129,7 @@ public sealed class BiblePublicationCascadeHandler
                     {
                         // Invalidate cache after downloading to ensure selectability checks use fresh data
                         mediaService.InvalidateBiblePublicationsCache(languageCode, categoryName);
-                        // Harvest succeeded - proceed to get section and track
+                        // Catalog succeeded - proceed to get section and track
                         var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
                         var languageModel = new LanguageListViewItemModel(new Language
                         {
@@ -148,7 +148,7 @@ public sealed class BiblePublicationCascadeHandler
 
                         if (string.IsNullOrWhiteSpace(resultTrackCode))
                         {
-                            logger.Warning("BiblePublicationCascadeHandler: No valid track found for existing publication={PublicationCode} after harvesting", existingPublicationCode);
+                            logger.Warning("BiblePublicationCascadeHandler: No valid track found for existing publication={PublicationCode} after cataloging", existingPublicationCode);
                             // Fall through to select a new publication
                         }
                         else
@@ -214,7 +214,7 @@ public sealed class BiblePublicationCascadeHandler
             .ToList();
 
         // Cascade must fetch MINIMUM data:
-        // - harvest ONLY the first viable publication (first section + tracks for first section)
+        // - catalog ONLY the first viable publication (first section + tracks for first section)
         // - never ensure ALL publications or ALL sections here
         foreach (var pl in publicationLanguages)
         {
@@ -228,11 +228,11 @@ public sealed class BiblePublicationCascadeHandler
                     : "DramaticBibleReadings")
                 : pl.PublicationCode;
 
-            var isHarvested = await languageContentService.EnsurePublicationExistsAsync(pl.PublicationCode, languageCode);
-            if (!isHarvested)
+            var isCataloged = await languageContentService.EnsurePublicationExistsAsync(pl.PublicationCode, languageCode);
+            if (!isCataloged)
             {
                 logger.Debug(
-                    "BiblePublicationCascadeHandler: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
+                    "BiblePublicationCascadeHandler: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
                     pl.PublicationCode,
                     languageCode);
                 continue;
@@ -251,7 +251,7 @@ public sealed class BiblePublicationCascadeHandler
             if (!canQueryWithLanguage)
             {
                 logger.Debug(
-                    "BiblePublicationCascadeHandler: Publication={PublicationCode} harvested but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
+                    "BiblePublicationCascadeHandler: Publication={PublicationCode} cataloged but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
                     pl.PublicationCode,
                     languageCode);
                 continue;
@@ -260,7 +260,7 @@ public sealed class BiblePublicationCascadeHandler
             publicationCode = publicationCodeForDb;
             publicationWithoutLanguage = false;
             logger.Debug(
-                "BiblePublicationCascadeHandler: Selected publication={PublicationCode} (harvested and queryable for language={LanguageCode})",
+                "BiblePublicationCascadeHandler: Selected publication={PublicationCode} (cataloged and queryable for language={LanguageCode})",
                 publicationCode,
                 languageCode);
             break;
@@ -293,7 +293,7 @@ public sealed class BiblePublicationCascadeHandler
                 languageCode, categoryName ?? "all");
             return;
         }
-        // Publication with LanguageId was harvested above (or already existed).
+        // Publication with LanguageId was cataloged above (or already existed).
 
         // Get section and track
         string? sectionCode = null;

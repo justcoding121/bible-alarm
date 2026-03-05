@@ -38,7 +38,7 @@ public sealed class TrackNavigator
             GetFirstTrackOfPublicationAsync,
             GetLastTrackOfPublicationAsync,
             logger);
-        SectionHarvester = new TrackNavigatorSectionHarvester(
+        SectionCataloger = new TrackNavigatorSectionCataloger(
             mediaService,
             languageContentService,
             scopeFactory,
@@ -47,7 +47,7 @@ public sealed class TrackNavigator
     }
 
     private TrackNavigatorNonSectionedHelper NonSectionedHelper { get; }
-    private TrackNavigatorSectionHarvester SectionHarvester { get; }
+    private TrackNavigatorSectionCataloger SectionCataloger { get; }
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
@@ -247,7 +247,7 @@ public sealed class TrackNavigator
     /// <summary>
     /// Gets the previous Bible section in publication order.
     /// Circular: previous of first section is the last section.
-    /// Checks discovered sections and harvests missing ones if needed.
+    /// Checks discovered sections and catalogs missing ones if needed.
     /// </summary>
     public async Task<KeyValuePair<string, BiblePublicationSection>> GetPreviousBiblePublicationSection(
         string languageCode,
@@ -261,7 +261,7 @@ public sealed class TrackNavigator
             throw new InvalidOperationException($"Invalid section code: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        var discoveredSectionCodes = await SectionHarvester.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        var discoveredSectionCodes = await SectionCataloger.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
         if (discoveredSectionCodes.Count == 0)
         {
             throw new InvalidOperationException($"No discovered sections found: languageCode={languageCode}, publicationCode={publicationCode}");
@@ -276,7 +276,7 @@ public sealed class TrackNavigator
         }
 
         // Try to find a valid previous section by iterating through discovered sections
-        // Skip sections that can't be harvested
+        // Skip sections that can't be cataloged
         var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
         var prevIndex = (currentIndex - 1 + orderedDiscoveredKeys.Count) % orderedDiscoveredKeys.Count;
         var attempts = 0;
@@ -286,7 +286,7 @@ public sealed class TrackNavigator
         {
             var prevSectionCode = orderedDiscoveredKeys[prevIndex];
 
-            // Check if section is already harvested
+            // Check if section is already cataloged
             if (sections.TryGetValue(prevSectionCode, out var prevSection))
             {
                 var tracks = await GetTracksCachedAsync(languageCode, publicationCode, prevSectionCode);
@@ -296,20 +296,20 @@ public sealed class TrackNavigator
                 }
             }
 
-            var harvested = await SectionHarvester.EnsureSectionHarvestedAsync(
+            var cataloged = await SectionCataloger.EnsureSectionCatalogedAsync(
                 languageCode,
                 publicationCode,
                 prevSectionCode,
                 sectionFetchProgress,
                 () => { lock (cacheLock) { sectionsCache.Remove(new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode)); } },
                 () => { lock (cacheLock) { tracksCache.Remove(new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, prevSectionCode.ToUpperInvariant())); } });
-            if (harvested)
+            if (cataloged)
             {
                 sections = await GetSectionsCachedAsync(languageCode, publicationCode);
 
                 if (sections.TryGetValue(prevSectionCode, out prevSection))
                 {
-                    // Verify tracks exist after harvesting
+                    // Verify tracks exist after cataloging
                     var tracks = await GetTracksCachedAsync(languageCode, publicationCode, prevSectionCode);
                     if (tracks.Count > 0)
                     {
@@ -329,7 +329,7 @@ public sealed class TrackNavigator
     /// <summary>
     /// Gets the next Bible section in publication order.
     /// Circular: next of last section is the first section.
-    /// Checks discovered sections and harvests missing ones if needed.
+    /// Checks discovered sections and catalogs missing ones if needed.
     /// </summary>
     public async Task<KeyValuePair<string, BiblePublicationSection>> GetNextBiblePublicationSection(
         string languageCode,
@@ -343,7 +343,7 @@ public sealed class TrackNavigator
             throw new InvalidOperationException($"Invalid section code: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        var discoveredSectionCodes = await SectionHarvester.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        var discoveredSectionCodes = await SectionCataloger.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
         if (discoveredSectionCodes.Count == 0)
         {
             throw new InvalidOperationException($"No discovered sections found: languageCode={languageCode}, publicationCode={publicationCode}");
@@ -358,7 +358,7 @@ public sealed class TrackNavigator
         }
 
         // Try to find a valid next section by iterating through discovered sections
-        // Skip sections that can't be harvested
+        // Skip sections that can't be cataloged
         var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
         var nextIndex = (currentIndex + 1) % orderedDiscoveredKeys.Count;
         var attempts = 0;
@@ -368,7 +368,7 @@ public sealed class TrackNavigator
         {
             var nextSectionCode = orderedDiscoveredKeys[nextIndex];
 
-            // Check if section is already harvested
+            // Check if section is already cataloged
             if (sections.TryGetValue(nextSectionCode, out var nextSection))
             {
                 var tracks = await GetTracksCachedAsync(languageCode, publicationCode, nextSectionCode);
@@ -378,20 +378,20 @@ public sealed class TrackNavigator
                 }
             }
 
-            var harvested = await SectionHarvester.EnsureSectionHarvestedAsync(
+            var cataloged = await SectionCataloger.EnsureSectionCatalogedAsync(
                 languageCode,
                 publicationCode,
                 nextSectionCode,
                 sectionFetchProgress,
                 () => { lock (cacheLock) { sectionsCache.Remove(new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode)); } },
                 () => { lock (cacheLock) { tracksCache.Remove(new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, nextSectionCode.ToUpperInvariant())); } });
-            if (harvested)
+            if (cataloged)
             {
                 sections = await GetSectionsCachedAsync(languageCode, publicationCode);
 
                 if (sections.TryGetValue(nextSectionCode, out nextSection))
                 {
-                    // Verify tracks exist after harvesting
+                    // Verify tracks exist after cataloging
                     var tracks = await GetTracksCachedAsync(languageCode, publicationCode, nextSectionCode);
                     if (tracks.Count > 0)
                     {
@@ -439,7 +439,7 @@ public sealed class TrackNavigator
             }
         }
 
-        var discoveredSectionCodes = await SectionHarvester.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        var discoveredSectionCodes = await SectionCataloger.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
         if (discoveredSectionCodes.Count == 0)
         {
             return null;
@@ -449,14 +449,14 @@ public sealed class TrackNavigator
 
         foreach (var candidateSectionCode in orderedSectionCodes)
         {
-            var harvested = await SectionHarvester.EnsureSectionHarvestedAsync(
+            var cataloged = await SectionCataloger.EnsureSectionCatalogedAsync(
                 languageCode,
                 publicationCode,
                 candidateSectionCode,
                 sectionFetchProgress,
                 () => { lock (cacheLock) { sectionsCache.Remove(new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode)); } },
                 () => { lock (cacheLock) { tracksCache.Remove(new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, candidateSectionCode.ToUpperInvariant())); } });
-            if (!harvested)
+            if (!cataloged)
             {
                 continue;
             }
@@ -468,7 +468,7 @@ public sealed class TrackNavigator
                 return (section, tracks.ElementAt(0).Value);
             }
 
-            logger?.Information("GetFirstTrackOfPublicationAsync: Section {SectionCode} has no tracks after harvest, trying next section",
+            logger?.Information("GetFirstTrackOfPublicationAsync: Section {SectionCode} has no tracks after catalog, trying next section",
                 candidateSectionCode);
         }
 
@@ -506,7 +506,7 @@ public sealed class TrackNavigator
             }
         }
 
-        var discoveredSectionCodes = await SectionHarvester.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        var discoveredSectionCodes = await SectionCataloger.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
         if (discoveredSectionCodes.Count == 0)
         {
             return null;
@@ -518,14 +518,14 @@ public sealed class TrackNavigator
         {
             var candidateSectionCode = orderedSectionCodes[i];
 
-            var harvested = await SectionHarvester.EnsureSectionHarvestedAsync(
+            var cataloged = await SectionCataloger.EnsureSectionCatalogedAsync(
                 languageCode,
                 publicationCode,
                 candidateSectionCode,
                 sectionFetchProgress,
                 () => { lock (cacheLock) { sectionsCache.Remove(new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode)); } },
                 () => { lock (cacheLock) { tracksCache.Remove(new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, candidateSectionCode.ToUpperInvariant())); } });
-            if (!harvested)
+            if (!cataloged)
             {
                 continue;
             }
@@ -537,7 +537,7 @@ public sealed class TrackNavigator
                 return (section, tracks.Last().Value);
             }
 
-            logger?.Information("GetLastTrackOfPublicationAsync: Section {SectionCode} has no tracks after harvest, trying previous section",
+            logger?.Information("GetLastTrackOfPublicationAsync: Section {SectionCode} has no tracks after catalog, trying previous section",
                 candidateSectionCode);
         }
 

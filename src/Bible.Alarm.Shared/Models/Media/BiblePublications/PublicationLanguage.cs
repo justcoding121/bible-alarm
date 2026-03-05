@@ -37,10 +37,10 @@ public sealed class PublicationLanguage
     public Media.Language? Language { get; set; }
 
     /// <summary>
-    /// The type of harvesting logic to use for this publication.
+    /// The type of cataloging logic to use for this publication.
     /// Determined during discovery based on publication code and category.
     /// </summary>
-    public HarvestType? HarvestType { get; set; }
+    public CatalogType? CatalogType { get; set; }
 
     /// <summary>
     /// Foreign key to Category
@@ -56,8 +56,8 @@ public sealed class PublicationLanguage
     public Media.Category Category { get; set; } = null!;
 
     /// <summary>
-    /// True when this publication is music (vocal, melody, or music-flag). Set during discovery/harvest.
-    /// Used for prev/next cross-pub logic when BiblePublication is not yet harvested.
+    /// True when this publication is music (vocal, melody, or music-flag). Set during discovery/catalog.
+    /// Used for prev/next cross-pub logic when BiblePublication is not yet cataloged.
     /// </summary>
     public bool IsMusic { get; set; }
 

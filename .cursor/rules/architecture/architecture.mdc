@@ -19,17 +19,17 @@ This project is a **.NET MAUI** app (Android/iOS/Windows) that helps users **wak
 - **Design constraints**:
   - alarms must work even when the app is not running (OS notifications/alarms + background bootstrap)
   - playback should survive platform lifecycle constraints (foreground services on Android, background audio on iOS)
-  - large media catalogs must be discoverable without shipping full audio (media index DB + ad-hoc harvesting + caching)
+  - large media catalogs must be discoverable without shipping full audio (media index DB + ad-hoc cataloging + caching)
 
 This file is meant to give Cursor **reliable navigation anchors**:
 - where the app starts and bootstraps
 - where data lives (two SQLite DBs)
 - where side-effects happen (Fluxor Effects)
 - how alarms trigger playback (platform services)
-- how the media index is built/updated (harvester tool + embedded resource)
+- how the media index is built/updated (cataloger tool + embedded resource)
 
 If you need deeper detail, also read:
-- `media-index-and-harvesting.mdc`
+- `media-index-and-cataloging.mdc`
 - `databases-and-migrations.mdc`
 - `bootstrap-state-and-scheduling.mdc`
 - `schedule-cascade-deep-dive.mdc`
@@ -58,7 +58,7 @@ If you need deeper detail, also read:
   - **Constants**: `Constants/AppConstants.cs`
   - **Shared services** (e.g. media fetching helpers): `Services/**`
 - **Tooling**
-  - **Media index harvester**: `.tools/Bible.Alarm.AudioLinksHarvestor/` (builds `mediaIndex.db` → `index.zip`)
+  - **Media index cataloger**: `.tools/Bible.Alarm.Cataloger/` (builds `mediaIndex.db` → `index.zip`)
   - **EF migration helper tool**: `.tools/Bible.Alarm.DbMigration/`
   - **Embedded media index artifact**: `.tools/_index/index.zip` (embedded into app)
 
@@ -129,7 +129,7 @@ Android Auto, alarm receivers, etc. can start the process without the UI. The bo
 
 - file: `mediaIndex.db` (`AppConstants.Database.MediaIndexDatabaseFileName`)
 - context: `src/Bible.Alarm.Shared/Database/MediaDbContext.cs`
-- populated by the harvester tool; shipped to app as `index.zip` embedded resource
+- populated by the cataloger tool; shipped to app as `index.zip` embedded resource
 
 See `databases-and-migrations.mdc` for schema + relationships.
 

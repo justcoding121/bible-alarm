@@ -151,25 +151,25 @@ public sealed class BiblePublicationSelectionDataProvider
 
             if (downloadAll)
             {
-                // Always check DB first: if all expected publications are already harvested, use that and skip fetch/progress
+                // Always check DB first: if all expected publications are already cataloged, use that and skip fetch/progress
                 var initialPublications = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
                 var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
                 var actualPublicationCount = initialPublications?.Values.Count ?? 0;
                 var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
-                var allPublicationsHarvested = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
+                var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
                     !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0);
 
-                if (allPublicationsHarvested)
+                if (allPublicationsCataloged)
                 {
-                    Log.Debug("PopulatePublicationsAsync: All {ExpectedCount} expected publications already harvested for language={LanguageCode}, category={CategoryName}, skipping fetch",
+                    Log.Debug("PopulatePublicationsAsync: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category={CategoryName}, skipping fetch",
                         expectedPublicationCount, languageCode, currentCategoryName);
                     publicationsData = initialPublications;
                 }
                 else
                 {
-                    // Not pre-harvested: show progress and fetch (with retry until harvested or timeout)
+                    // Not pre-cataloged: show progress and fetch (with retry until cataloged or timeout)
                     var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
-                    // Publications are not fully harvested - show progress and retry fetching
+                    // Publications are not fully cataloged - show progress and retry fetching
                     // Up to 10 retries
                     const int maxRetries = 10;
                     // Start with 1 second
@@ -177,9 +177,9 @@ public sealed class BiblePublicationSelectionDataProvider
                     // Total max wait time of 60 seconds
                     var maxWaitTime = TimeSpan.FromSeconds(60);
                     var startTime = DateTime.UtcNow;
-                    var allHarvested = false;
+                    var allCataloged = false;
                     var attempt = 0;
-                    var previousHarvestedCount = -1;
+                    var previousCatalogedCount = -1;
                     
                     Log.Information("PopulatePublicationsAsync: Starting fetch with retries for language={LanguageCode}, category={CategoryName}",
                         languageCode, currentCategoryName);
@@ -190,7 +190,7 @@ public sealed class BiblePublicationSelectionDataProvider
                     
                     try
                     {
-                        while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+                        while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
                     {
                         // Check for cancellation before each attempt
                         cancellationToken.ThrowIfCancellationRequested();
@@ -199,48 +199,48 @@ public sealed class BiblePublicationSelectionDataProvider
                         
                         try
                         {
-                            // Fetch publications (this triggers harvesting if needed)
-                            // Pass progress to show download percentage during harvesting
+                            // Fetch publications (this triggers cataloging if needed)
+                            // Pass progress to show download percentage during cataloging
                             publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
                             
-                            // Wait a bit for background harvesting to start (with cancellation support)
+                            // Wait a bit for background cataloging to start (with cancellation support)
                             await Task.Delay(500, cancellationToken);
                             
-                            // Re-query to check if publications are now harvested (no progress needed for re-query)
+                            // Re-query to check if publications are now cataloged (no progress needed for re-query)
                             var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
                             
                             // Get expected publication count to verify we have all publications
                             var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
                             var retryActualCount = reQueriedData?.Values.Count ?? 0;
                             
-                            // Check if we have ALL expected publications AND they're all harvested (not placeholders)
-                            // A publication is harvested if it has a name that's different from its code and has an ID > 0
+                            // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
+                            // A publication is cataloged if it has a name that's different from its code and has an ID > 0
                             var retryHasAllExpected = retryActualCount >= retryExpectedCount;
-                            var retryAllHarvested = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p => 
+                            var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p => 
                                 !string.IsNullOrEmpty(p.Name) && 
                                 p.Name != p.PublicationCode && 
                                 p.Id > 0);
                             
-                            if (retryAllHarvested)
+                            if (retryAllCataloged)
                             {
                                 publicationsData = reQueriedData;
-                                allHarvested = true;
-                                Log.Information("PopulatePublicationsAsync: All {ExpectedCount} expected publications harvested on attempt {Attempt} for language={LanguageCode}, category={CategoryName}",
+                                allCataloged = true;
+                                Log.Information("PopulatePublicationsAsync: All {ExpectedCount} expected publications cataloged on attempt {Attempt} for language={LanguageCode}, category={CategoryName}",
                                     retryExpectedCount, attempt, languageCode, currentCategoryName);
                             }
                             else
                             {
-                                var currentHarvestedCount = reQueriedData?.Values.Count(p =>
+                                var currentCatalogedCount = reQueriedData?.Values.Count(p =>
                                     !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0) ?? 0;
 
-                                if (currentHarvestedCount > 0 && currentHarvestedCount <= previousHarvestedCount)
+                                if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                                 {
-                                    Log.Information("PopulatePublicationsAsync: No progress between retries ({HarvestedCount} harvested, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}, category={CategoryName}",
-                                        currentHarvestedCount, retryExpectedCount, languageCode, currentCategoryName);
+                                    Log.Information("PopulatePublicationsAsync: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}, category={CategoryName}",
+                                        currentCatalogedCount, retryExpectedCount, languageCode, currentCategoryName);
                                     publicationsData = reQueriedData;
                                     break;
                                 }
-                                previousHarvestedCount = currentHarvestedCount;
+                                previousCatalogedCount = currentCatalogedCount;
 
                                 // Log which publications are still placeholders or missing for debugging
                                 if (reQueriedData != null)
@@ -252,7 +252,7 @@ public sealed class BiblePublicationSelectionDataProvider
                                     
                                     if (placeholders.Count > 0)
                                     {
-                                        Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                        Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be cataloged: {Placeholders}",
                                             attempt, placeholders.Count, string.Join(", ", placeholders));
                                     }
                                     else if (!retryHasAllExpected)
@@ -309,12 +309,12 @@ public sealed class BiblePublicationSelectionDataProvider
                         progress?.SetIsVisible(false);
                     }
                     
-                    if (!allHarvested)
+                    if (!allCataloged)
                     {
-                        Log.Warning("PopulatePublicationsAsync: Timeout after {Attempts} attempts waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.",
+                        Log.Warning("PopulatePublicationsAsync: Timeout after {Attempts} attempts waiting for all publications to be cataloged for language {LanguageCode}. Some may still be placeholders.",
                             attempt, languageCode);
                         
-                        // Use the last fetched data even if not all are harvested
+                        // Use the last fetched data even if not all are cataloged
                         if (publicationsData == null || publicationsData.Count == 0)
                         {
                             // Final attempt to get at least some data

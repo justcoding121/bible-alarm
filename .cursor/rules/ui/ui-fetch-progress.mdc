@@ -11,7 +11,7 @@ alwaysApply: false
   - **publication modal open**: fetch/download all publications for the current (language + category)
   - **section modal open**: ensure all sections exist for the current (language + publication)
   - **language selection ad-hoc fetch** (bigger operation; keep modal blocked)
-- **Item-click fetches** (publication/section row taps that may harvest/download) must:
+- **Item-click fetches** (publication/section row taps that may catalog/download) must:
   - **NOT** show a modal overlay
   - show **only row-end spinner + “NN%” text** on the tapped row
   - show **no progress bar**

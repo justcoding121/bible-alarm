@@ -148,7 +148,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                 else
                 {
                     // Ensure subsequent GetBiblePublications() sees fresh (non-placeholder) data.
-                    // Otherwise the cache can keep returning stale placeholder names after a successful harvest.
+                    // Otherwise the cache can keep returning stale placeholder names after a successful catalog.
                     mediaService.InvalidateBiblePublicationsCache(language.Code, "Music");
                 }
             }
@@ -173,7 +173,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
             return (null, string.Empty, string.Empty, string.Empty);
         }
 
-        static bool IsHarvestedPublication(Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication publication)
+        static bool IsCatalogedPublication(Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication publication)
         {
             if (publication.LanguageId == null)
             {
@@ -196,10 +196,10 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         // Prefer the publication we just ensured exists, and ignore placeholders.
         var firstSongPublication = songPublications.Values
             .FirstOrDefault(p =>
-                IsHarvestedPublication(p) &&
+                IsCatalogedPublication(p) &&
                 Bible.Alarm.Shared.Helpers.PublicationCodeHelper.CodeEquals(p.PublicationCode, firstPublicationCode))
             ?? songPublications.Values
-                .Where(IsHarvestedPublication)
+                .Where(IsCatalogedPublication)
                 .OrderBy(p => p.Id)
                 .FirstOrDefault();
 

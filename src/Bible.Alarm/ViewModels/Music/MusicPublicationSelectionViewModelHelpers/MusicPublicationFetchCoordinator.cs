@@ -38,17 +38,17 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (downloadAll)
         {
-            // Always check DB first: if all expected publications are already harvested, use that and skip fetch/progress (matches Bible).
+            // Always check DB first: if all expected publications are already cataloged, use that and skip fetch/progress (matches Bible).
             var initialPublications = await mediaService.GetBiblePublications(languageForFetch, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
             var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageForFetch, "Music", requireIsMusicForMusicCategory: true);
             var actualPublicationCount = initialPublications?.Values.Count ?? 0;
             var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
-            var allPublicationsHarvested = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
+            var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
                 !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0);
 
-            if (allPublicationsHarvested)
+            if (allPublicationsCataloged)
             {
-                Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already harvested for language={LanguageCode}, category=Music, skipping fetch",
+                Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category=Music, skipping fetch",
                     expectedPublicationCount, languageForFetch);
                 return initialPublications;
             }
@@ -69,7 +69,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
-            publicationsData = await RetryFetchUntilHarvestedAsync(languageCode, progress, cancellationToken);
+            publicationsData = await RetryFetchUntilCatalogedAsync(languageCode, progress, cancellationToken);
         }
 
         if (publicationsData == null && !string.IsNullOrEmpty(languageCode))
@@ -80,12 +80,12 @@ internal sealed class MusicPublicationFetchCoordinator
         return publicationsData;
     }
 
-    private async Task<Dictionary<string, BiblePublication>?> RetryFetchUntilHarvestedAsync(
+    private async Task<Dictionary<string, BiblePublication>?> RetryFetchUntilCatalogedAsync(
         string languageCode, 
         IFetchProgress? progress,
         CancellationToken cancellationToken)
     {
-        // First, check if publications are already harvested (without showing progress)
+        // First, check if publications are already cataloged (without showing progress)
         // This prevents progress bar from flashing at 0% when data is already available
         var initialPublications = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
         
@@ -93,22 +93,22 @@ internal sealed class MusicPublicationFetchCoordinator
         var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, "Music", requireIsMusicForMusicCategory: true);
         var actualPublicationCount = initialPublications?.Values.Count ?? 0;
         
-        // Check if we have ALL expected publications AND they're all harvested (not placeholders)
+        // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
         var hasAllExpectedPublications = actualPublicationCount >= expectedPublicationCount;
-        var allPublicationsHarvested = hasAllExpectedPublications && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
+        var allPublicationsCataloged = hasAllExpectedPublications && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
             !string.IsNullOrEmpty(p.Name) && 
             p.Name != p.PublicationCode && 
             p.Id > 0);
 
-        if (allPublicationsHarvested)
+        if (allPublicationsCataloged)
         {
-            // All expected publications are already harvested - use the initial query result, no need to show progress
-            Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already harvested for language={LanguageCode}, category=Music, skipping fetch",
+            // All expected publications are already cataloged - use the initial query result, no need to show progress
+            Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category=Music, skipping fetch",
                 expectedPublicationCount, languageCode);
             return initialPublications;
         }
 
-        // Publications are not fully harvested - show progress and retry fetching
+        // Publications are not fully cataloged - show progress and retry fetching
         // Up to 10 retries
         const int maxRetries = 10;
         // Start with 1 second
@@ -116,9 +116,9 @@ internal sealed class MusicPublicationFetchCoordinator
         // Total max wait time of 60 seconds
         var maxWaitTime = TimeSpan.FromSeconds(60);
         var startTime = DateTime.UtcNow;
-        var allHarvested = false;
+        var allCataloged = false;
         var attempt = 0;
-        var previousHarvestedCount = -1;
+        var previousCatalogedCount = -1;
 
         Serilog.Log.Information("PopulateSongPublications: Starting fetch with retries for language={LanguageCode}, category=Music",
             languageCode);
@@ -131,7 +131,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
         try
         {
-            while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+            while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
             {
                 // Check for cancellation before each attempt
                 cancellationToken.ThrowIfCancellationRequested();
@@ -140,48 +140,48 @@ internal sealed class MusicPublicationFetchCoordinator
 
                 try
                 {
-                    // Fetch publications (this triggers harvesting if needed)
-                    // Pass progress to show download percentage during harvesting
+                    // Fetch publications (this triggers cataloging if needed)
+                    // Pass progress to show download percentage during cataloging
                     publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: true, progress, requireIsMusicForMusicCategory: true);
 
-                    // Wait a bit for background harvesting to start (with cancellation support)
+                    // Wait a bit for background cataloging to start (with cancellation support)
                     await Task.Delay(500, cancellationToken);
 
-                    // Re-query to check if publications are now harvested (no progress needed for re-query)
+                    // Re-query to check if publications are now cataloged (no progress needed for re-query)
                     var reQueriedData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
 
                     // Get expected publication count to verify we have all publications
                     var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, "Music", requireIsMusicForMusicCategory: true);
                     var retryActualCount = reQueriedData?.Values.Count ?? 0;
                     
-                    // Check if we have ALL expected publications AND they're all harvested (not placeholders)
-                    // A publication is harvested if it has a name that's different from its code and has an ID > 0
+                    // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
+                    // A publication is cataloged if it has a name that's different from its code and has an ID > 0
                     var retryHasAllExpected = retryActualCount >= retryExpectedCount;
-                    var retryAllHarvested = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p =>
+                    var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p =>
                         !string.IsNullOrEmpty(p.Name) &&
                         p.Name != p.PublicationCode &&
                         p.Id > 0);
 
-                    if (retryAllHarvested)
+                    if (retryAllCataloged)
                     {
                         publicationsData = reQueriedData;
-                        allHarvested = true;
-                        Serilog.Log.Information("PopulateSongPublications: All {ExpectedCount} expected publications harvested on attempt {Attempt} for language={LanguageCode}",
+                        allCataloged = true;
+                        Serilog.Log.Information("PopulateSongPublications: All {ExpectedCount} expected publications cataloged on attempt {Attempt} for language={LanguageCode}",
                             retryExpectedCount, attempt, languageCode);
                     }
                     else
                     {
-                        var currentHarvestedCount = reQueriedData?.Values.Count(p =>
+                        var currentCatalogedCount = reQueriedData?.Values.Count(p =>
                             !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0) ?? 0;
 
-                        if (currentHarvestedCount > 0 && currentHarvestedCount <= previousHarvestedCount)
+                        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                         {
-                            Serilog.Log.Information("PopulateSongPublications: No progress between retries ({HarvestedCount} harvested, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}",
-                                currentHarvestedCount, retryExpectedCount, languageCode);
+                            Serilog.Log.Information("PopulateSongPublications: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}",
+                                currentCatalogedCount, retryExpectedCount, languageCode);
                             publicationsData = reQueriedData;
                             break;
                         }
-                        previousHarvestedCount = currentHarvestedCount;
+                        previousCatalogedCount = currentCatalogedCount;
 
                         // Log which publications are still placeholders or missing for debugging
                         if (reQueriedData != null)
@@ -193,7 +193,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
                             if (placeholders.Count > 0)
                             {
-                                Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: Still waiting for {Count} publications to be cataloged: {Placeholders}",
                                     attempt, placeholders.Count, string.Join(", ", placeholders));
                             }
                             else if (!retryHasAllExpected)
@@ -250,12 +250,12 @@ internal sealed class MusicPublicationFetchCoordinator
             progress?.SetIsVisible(false);
         }
 
-        if (!allHarvested)
+        if (!allCataloged)
         {
-            Serilog.Log.Warning("PopulateSongPublications: Timeout after {Attempts} attempts waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.",
+            Serilog.Log.Warning("PopulateSongPublications: Timeout after {Attempts} attempts waiting for all publications to be cataloged for language {LanguageCode}. Some may still be placeholders.",
                 attempt, languageCode);
 
-            // Use the last fetched data even if not all are harvested
+            // Use the last fetched data even if not all are cataloged
             if (publicationsData == null || publicationsData.Count == 0)
             {
                 // Final attempt to get at least some data

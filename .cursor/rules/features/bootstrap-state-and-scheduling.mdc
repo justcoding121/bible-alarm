@@ -120,7 +120,7 @@ Enforced in two layers:
 The schedule editor uses **cascade handlers** so that selecting higher-level fields (category/language/publication/section) auto-selects the next valid fields.
 
 If you’re working on this area, also read:
-- `schedule-cascade-deep-dive.mdc` (full “how it really works”, including ad-hoc harvest + no-language publications + save persistence)
+- `schedule-cascade-deep-dive.mdc` (full “how it really works”, including ad-hoc catalog + no-language publications + save persistence)
 
 ### Category cascade (category → language → publication → section → track)
 
@@ -129,8 +129,8 @@ If you’re working on this area, also read:
 Key behaviors:
 - tries to preserve previous language if it exists in the new category
 - otherwise defaults to English `"E"` when available
-- harvests the chosen publication on-demand via `ILanguageContentService.EnsurePublicationExistsAsync(...)` when needed
-- supports “no-language” publications (`LanguageId == null`) by selecting them without harvesting
+- catalogs the chosen publication on-demand via `ILanguageContentService.EnsurePublicationExistsAsync(...)` when needed
+- supports “no-language” publications (`LanguageId == null`) by selecting them without cataloging
 
 ### Bible cascade (language → publication → section → track)
 
@@ -160,7 +160,7 @@ Key behaviors:
 The app follows a “container + selection modal” pattern:
 - Home shows schedule list and navigates into schedule details
 - Schedule editor opens modals for category/language/publication/track/music selection
-- selection modals dispatch actions; reducers update state; effects may fetch/migrate/harvest and then dispatch more actions
+- selection modals dispatch actions; reducers update state; effects may fetch/migrate/catalog and then dispatch more actions
 
 Key rule: **Pages/ViewModels do not write to EF DbContexts directly**. Persistence happens through Fluxor Effects + schedule/media services.
 
@@ -190,7 +190,7 @@ These are registered in DI in `ServiceRegistrationHelper.RegisterViewModels()` a
   - publication modal: `BiblePublicationSelectionModal`
   - section modal: `BiblePublicationSectionSelectionModal`
   - track modal: `BiblePublicationTrackSelectionModal`
-  - underlying logic uses cascade + ad-hoc harvest when the selected language/publication isn’t seeded yet
+  - underlying logic uses cascade + ad-hoc catalog when the selected language/publication isn’t seeded yet
 
 - **Music selection flow**
   - music type modal: `MusicTypeSelectionModal`

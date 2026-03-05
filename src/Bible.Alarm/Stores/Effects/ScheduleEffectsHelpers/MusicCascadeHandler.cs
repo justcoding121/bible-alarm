@@ -236,7 +236,7 @@ public sealed class MusicCascadeHandler
         string? publicationName = null;
         bool publicationWithoutLanguage = false;
         string? effectiveLanguageCode = languageCode;
-        bool needHarvest = false;
+        bool needCatalog = false;
 
         using (var scope = scopeFactory.CreateScope())
         {
@@ -274,7 +274,7 @@ public sealed class MusicCascadeHandler
                     }
                     else
                     {
-                        needHarvest = true;
+                        needCatalog = true;
                     }
                 }
                 else
@@ -313,11 +313,11 @@ public sealed class MusicCascadeHandler
             }
         }
 
-        if (needHarvest && !string.IsNullOrEmpty(publicationCode))
+        if (needCatalog && !string.IsNullOrEmpty(publicationCode))
         {
             if (!await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode))
             {
-                logger.Warning("MusicCascadeHandler: Failed to harvest publication={PublicationCode}", publicationCode);
+                logger.Warning("MusicCascadeHandler: Failed to catalog publication={PublicationCode}", publicationCode);
                 return;
             }
             mediaService.InvalidateBiblePublicationsCache(languageCode, "Music");

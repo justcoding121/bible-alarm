@@ -8,7 +8,7 @@ namespace Bible.Alarm.Shared.Helpers;
 
 /// <summary>
 /// Helper for determining content structure based on publication code.
-/// There are three main harvesting types:
+/// There are three main cataloging types:
 /// 1. Bible (sectioned): Section → Track structure using booknum parameter
 /// 2. Drama (Mediator API): Flat tracks using Mediator API for discovery, then GETPUBMEDIALINKS with section codes
 /// 3. Flat (Music/Video): Flat tracks using GETPUBMEDIALINKS directly (MP3 for Music, MP4 for Video)
@@ -170,34 +170,34 @@ public static class PublicationTypeHelper
     }
 
     /// <summary>
-    /// Determines the harvest type for a given publication code.
+    /// Determines the catalog type for a given publication code.
     /// </summary>
-    public static HarvestType GetHarvestType(string? publicationCode)
+    public static CatalogType GetCatalogType(string? publicationCode)
     {
         if (string.IsNullOrEmpty(publicationCode))
         {
-            return HarvestType.Sectioned; // Default to Bible structure
+            return CatalogType.Sectioned; // Default to Bible structure
         }
 
         // Publications excluded from Mediator use GETPUBMEDIALINKS only (MediatorValidationExclusionCodes is currently empty)
         if (JwSourceHelper.MediatorValidationExclusionCodes.Contains(publicationCode))
         {
-            return HarvestType.Flat;
+            return CatalogType.Flat;
         }
 
         // All Mediator-based publications use Mediator API
         if (JwSourceHelper.AllMediatorPublicationCodes.Contains(publicationCode))
         {
-            return HarvestType.MediatorSectioned;
+            return CatalogType.MediatorSectioned;
         }
 
         // Bible and iam (Kingdom Melodies) have sections
         if (HasSectionStructure(publicationCode))
         {
-            return HarvestType.Sectioned;
+            return CatalogType.Sectioned;
         }
 
         // Music and Video are flat
-        return HarvestType.Flat;
+        return CatalogType.Flat;
     }
 }

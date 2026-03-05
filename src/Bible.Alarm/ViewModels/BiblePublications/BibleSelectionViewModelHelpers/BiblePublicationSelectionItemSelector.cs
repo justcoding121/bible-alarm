@@ -175,7 +175,7 @@ public sealed class BiblePublicationSelectionItemSelector
 
             foreach (var pl in publicationLanguages)
             {
-                // For non-English languages, harvest ONLY this publication (first section + its tracks for sectioned publications).
+                // For non-English languages, catalog ONLY this publication (first section + its tracks for sectioned publications).
                 // Progress is reported by EnsurePublicationExistsAsync: 50% (pub+section saved), 100% (tracks saved)
                 if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
                 {
@@ -201,14 +201,14 @@ public sealed class BiblePublicationSelectionItemSelector
                         }
 
                         Log.Debug(ex,
-                            "GetPublicationSectionAndTrackForLanguageAsync: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
+                            "GetPublicationSectionAndTrackForLanguageAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
                             pl.PublicationCode,
                             language.Code);
                         continue;
                     }
                 }
 
-                // Load the actual publication (with localized name) after harvest.
+                // Load the actual publication (with localized name) after catalog.
                 BiblePublication? candidate;
                 if (biblePublicationService != null)
                 {
@@ -275,7 +275,7 @@ public sealed class BiblePublicationSelectionItemSelector
         // For publications with LanguageId, use the language code
         string? languageCodeForQuery = publicationWithoutLanguage ? null : language.Code;
 
-        // Ensure publication is harvested before getting sections
+        // Ensure publication is cataloged before getting sections
         // For publications with LanguageId, EnsurePublicationExistsAsync should have been called above,
         // but we ensure it here as well to handle edge cases (no progress passed - just a safety check)
         if (!publicationWithoutLanguage && languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
@@ -300,7 +300,7 @@ public sealed class BiblePublicationSelectionItemSelector
         }
 
         // Try to get sections to determine if publication is sectioned or not
-        // IMPORTANT: Query sections directly from database first to avoid triggering full harvesting
+        // IMPORTANT: Query sections directly from database first to avoid triggering full cataloging
         // Only fetch sections if they don't exist yet
         SortedDictionary<string, BiblePublicationSection>? sections = null;
         if (publicationWithoutLanguage)
@@ -317,7 +317,7 @@ public sealed class BiblePublicationSelectionItemSelector
             {
                 sections = await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publicationCode, default);
                 
-                // If no sections found and publication was just harvested, it might be a non-sectioned publication
+                // If no sections found and publication was just cataloged, it might be a non-sectioned publication
                 // Or the publication might not exist yet - in that case, EnsurePublicationExistsAsync above should have created it
                 // For sectioned publications, EnsurePublicationExistsAsync fetches the FIRST section + tracks, so we should have at least one section now.
                 if (sections == null || sections.Count == 0)

@@ -1,5 +1,5 @@
 ---
-description: "Schedule page cascade deep dive (Bible container + Music container + ad-hoc harvest + save persistence)"
+description: "Schedule page cascade deep dive (Bible container + Music container + ad-hoc catalog + save persistence)"
 globs: "{src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs,src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/**,src/Bible.Alarm/ViewModels/Schedule/**,src/Bible.Alarm/ViewModels/BiblePublications/**,src/Bible.Alarm/ViewModels/Music/**,src/Bible.Alarm/Services/Schedule/**,src/Bible.Alarm/Services/Media/**,src/Bible.Alarm.Shared/Services/Media/**}"
 alwaysApply: false
 ---
@@ -12,13 +12,13 @@ The **Schedule** page has some of the most complicated logic in the app because 
 - **two music concepts** that must not conflict:
   - schedule category `"Music"` = the schedule’s **main** content is music (stored in `BiblePublicationSchedule`)
   - “begin with music” = optional pre-roll music (stored in `AlarmMusic` + `AlarmSchedule.MusicEnabled`)
-- **ad-hoc harvesting**: when a user picks a non-seeded language/publication, we fetch just enough into `mediaIndex.db` so cascade can proceed
+- **ad-hoc cataloging**: when a user picks a non-seeded language/publication, we fetch just enough into `mediaIndex.db` so cascade can proceed
 
 This doc answers:
 - how Bible container + Music container are initially populated (new vs existing schedule)
-- how cascade uses `mediaIndex.db` tables (and when it triggers ad-hoc harvest)
+- how cascade uses `mediaIndex.db` tables (and when it triggers ad-hoc catalog)
 - how Save persists the selections into the Schedule DB
-- how different publication shapes (harvest type / language/no-language / sectioned/non-sectioned) affect cascade
+- how different publication shapes (catalog type / language/no-language / sectioned/non-sectioned) affect cascade
 
 ---
 
@@ -91,9 +91,9 @@ And each handler **compares “current vs computed”** before dispatching to av
 
 These tables live in `mediaIndex.db` (`MediaDbContext`):
 - **Discovery / availability**
-  - `PublicationLanguages`: which language supports which publication, plus `HarvestType`
+  - `PublicationLanguages`: which language supports which publication, plus `CatalogType`
   - `SectionLanguages`: which language supports which *section* (for sectioned publications)
-- **Actual harvested content** (what UI can browse)
+- **Actual cataloged content** (what UI can browse)
   - `BiblePublications` (may have `LanguageId != null` or `LanguageId == null`)
   - `BiblePublicationSections`
   - `BiblePublicationTracks`
@@ -107,9 +107,9 @@ These tables live in `mediaIndex.db` (`MediaDbContext`):
 - choose publication:
   - query candidate publication codes from `PublicationLanguages` (sorted with priority, e.g. `nwt` first)
   - for each candidate:
-    - check “already harvested enough to use?” via `CheckIfPublicationWithFirstSectionHarvestedAsync(...)`
-    - if not harvested:
-      - trigger ad-hoc harvest via `ILanguageContentService.EnsurePublicationExistsAsync(pub, lang)`
+    - check “already cataloged enough to use?” via `CheckIfPublicationWithFirstSectionCatalogedAsync(...)`
+    - if not cataloged:
+      - trigger ad-hoc catalog via `ILanguageContentService.EnsurePublicationExistsAsync(pub, lang)`
     - verify it’s queryable **with language** (i.e. content landed in `BiblePublications` with `LanguageId != null`)
   - if no language-bound publication exists:
     - fall back to a **no-language publication** in that category (`BiblePublications.LanguageId == null`)
@@ -140,9 +140,9 @@ Key nuance for **existing schedules**:
 
 ---
 
-## Ad-hoc harvesting (how cascade “downloads a language”)
+## Ad-hoc cataloging (how cascade “downloads a language”)
 
-All ad-hoc harvesting is done by the shared service:
+All ad-hoc cataloging is done by the shared service:
 - `src/Bible.Alarm.Shared/Services/Media/LanguageContentService.cs`
 
 ### EnsurePublicationExistsAsync (what it really does)
@@ -150,10 +150,10 @@ All ad-hoc harvesting is done by the shared service:
 - Entry point: `ILanguageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode)`
 - Implementation: `PublicationEnsurer.EnsurePublicationExistsAsync(...)`
   - first checks if `BiblePublications` already contains the publication for that language
-  - then checks `PublicationLanguages` to confirm it’s available and to get `HarvestType`
+  - then checks `PublicationLanguages` to confirm it’s available and to get `CatalogType`
   - **refuses** to fetch if `PublicationLanguages.LanguageId == null` (no-language publications can’t be fetched “for a language”)
 
-Fetch strategy by `HarvestType`:
+Fetch strategy by `CatalogType`:
 - **Sectioned**
   - does **first-section-only** bootstrap for speed:
     - finds first section code from `SectionLanguages`
@@ -177,7 +177,7 @@ Critical subtlety:
 Think in these axes:
 - **Language-bound** vs **no-language** (`LanguageId != null` vs `LanguageId == null`)
 - **Sectioned** vs **non-sectioned** (sections exist vs flat tracks)
-- **Harvest type** (Flat / Sectioned / MediatorSectioned)
+- **Catalog type** (Flat / Sectioned / MediatorSectioned)
 
 If you’re debugging “why did we build the wrong URL?” or “why is section missing?” see the explicit Media DB shape matrix:
 - `.cursor/rules/databases-and-migrations.mdc` → “Media DB shape matrix (publication ↔ language ↔ sections)”
@@ -197,7 +197,7 @@ If you’re debugging “why did we build the wrong URL?” or “why is section
 - Examples: many “video-like” or “drama-like” publications that don’t have sections in DB
 - Cascade behavior:
   - section is cleared/hidden; the “track title” becomes the primary subtitle
-  - ad-hoc harvest for these is just `FetchPublicationTracksAsync(...)`
+  - ad-hoc catalog for these is just `FetchPublicationTracksAsync(...)`
 
 ### MediatorSectioned (dramas)
 
@@ -212,7 +212,7 @@ If you’re debugging “why did we build the wrong URL?” or “why is section
   - handler queries via “without language” paths:
     - sections: `IMediaService.GetSectionsForPublicationWithoutLanguage(code)`
     - tracks: direct DB query for `BiblePublications.LanguageId == null` (or `GetBiblePublicationTracks("", code, sectionIndex)`)
-  - ad-hoc harvest is **not** supported for these via `EnsurePublicationExistsAsync` (they’re expected to ship in the index already)
+  - ad-hoc catalog is **not** supported for these via `EnsurePublicationExistsAsync` (they’re expected to ship in the index already)
 
 ---
 
@@ -240,7 +240,7 @@ Music selection supports two modes:
   - publications selected from `PublicationLanguages`/`BiblePublications` where:
     - `Category == "Music"`
     - `LanguageId != null` for the chosen `MusicLanguageCode`
-  - may trigger ad-hoc harvest via `EnsurePublicationExistsAsync(pub, lang)`
+  - may trigger ad-hoc catalog via `EnsurePublicationExistsAsync(pub, lang)`
 
 Selectability (whether a row is tappable) also respects this filter:
 - `MusicDisplayTextProvider.GetIsSongPublicationSelectableAsync()`:
@@ -257,7 +257,7 @@ Algorithm:
 - if `MusicType == Music` (instrumental) and `MusicPublicationCode` missing:
   - select first **no-language** Music publication (`BiblePublications.LanguageId == null`)
 - if language is set but publication missing:
-  - select first music publication in that language (and harvest it if absent)
+  - select first music publication in that language (and catalog it if absent)
 - once publication is known:
   - pick section+track using `MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(...)`
 

@@ -456,7 +456,7 @@ public class ScheduleEffects(
 
     /// <summary>
     /// Effect: Auto-populate schedule when category is selected.
-    /// Finds first language and publication for the category, harvests if needed, and populates schedule.
+    /// Finds first language and publication for the category, catalogs if needed, and populates schedule.
     /// </summary>
     [EffectMethod]
     public async Task HandleCategorySelection(Bible.Alarm.Stores.Actions.BiblePublications.CategorySelectionAction action, IDispatcher dispatcher)

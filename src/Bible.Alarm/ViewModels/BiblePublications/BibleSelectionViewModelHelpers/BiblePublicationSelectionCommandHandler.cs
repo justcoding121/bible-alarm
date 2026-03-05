@@ -308,7 +308,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     x.Code, publicationCode, sectionCode, trackCode);
 
                 // Only update the UI selection after we know we have valid content.
-                // If fetching/harvesting fails, we must keep the previous language selection (and schedule state) unchanged.
+                // If fetching/cataloging fails, we must keep the previous language selection (and schedule state) unchanged.
                 updateSelectedLanguage(x);
 
                 var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(

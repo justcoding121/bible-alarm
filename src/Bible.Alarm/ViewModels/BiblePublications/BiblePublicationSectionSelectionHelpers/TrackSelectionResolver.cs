@@ -41,7 +41,7 @@ internal sealed class TrackSelectionResolver
         // Get tracks for the selected section using the latest language/publication from CurrentSchedule
         var tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionItem.Section.SectionCode);
 
-        // If no tracks found, check if section exists and harvest tracks if needed
+        // If no tracks found, check if section exists and catalog tracks if needed
         if ((tracks == null || tracks.Count == 0) &&
             !string.IsNullOrEmpty(languageCode) &&
             !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))

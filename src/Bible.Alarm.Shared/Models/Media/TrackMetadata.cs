@@ -47,7 +47,7 @@ public class TrackMetadata
 
     /// <summary>
     /// The lookup path (query string) for refreshing the URL from the API.
-    /// Must be set from the media index (UrlConstructionService) before use. We only play harvested tracks.
+    /// Must be set from the media index (UrlConstructionService) before use. We only play cataloged tracks.
     /// </summary>
     private string? _lookUpPath;
 

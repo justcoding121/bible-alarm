@@ -99,7 +99,7 @@ internal sealed class EnglishContentSeeder
             }
 
             // Determine category from publication code using centralized mapping
-            // Get or create PublicationLanguage to determine harvest type and category
+            // Get or create PublicationLanguage to determine catalog type and category
             // Use case-sensitive code for dramas when querying database
             var publicationLanguage = await db.PublicationLanguages
                 .Include(pl => pl.Category)
@@ -111,7 +111,7 @@ internal sealed class EnglishContentSeeder
                     cancellationToken);
 
             Category category;
-            Models.Enums.HarvestType harvestType;
+            Models.Enums.CatalogType catalogType;
             
             if (publicationLanguage == null)
             {
@@ -133,7 +133,7 @@ internal sealed class EnglishContentSeeder
                 }
 
                 category = tempCategory;
-                harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+                catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
                 
                 // Get or create English language
                 var englishLanguage = await db.Languages
@@ -149,7 +149,7 @@ internal sealed class EnglishContentSeeder
                 {
                     PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
                     Language = englishLanguage,
-                    HarvestType = harvestType,
+                    CatalogType = catalogType,
                     Category = category,
                     CategoryId = category.Id
                 };
@@ -159,7 +159,7 @@ internal sealed class EnglishContentSeeder
             else
             {
                 category = publicationLanguage.Category;
-                harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+                catalogType = publicationLanguage.CatalogType ?? PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
             }
 
             var categoryName = category.CategoryCode;
@@ -181,14 +181,14 @@ internal sealed class EnglishContentSeeder
                 return true;
             }
 
-            // Use HarvestType from PublicationLanguage to determine fetching method
-            switch (harvestType)
+            // Use CatalogType from PublicationLanguage to determine fetching method
+            switch (catalogType)
             {
-                case Models.Enums.HarvestType.Sectioned:
+                case Models.Enums.CatalogType.Sectioned:
                 {
                     List<string> sectionCodes;
                 
-                    // Data-driven: Get section codes from BiblePublications if already harvested, or use defaults
+                    // Data-driven: Get section codes from BiblePublications if already cataloged, or use defaults
                     // Check if publication already exists with sections
                     var existingPubWithSections = await db.BiblePublications
                         .AsNoTracking()
@@ -220,7 +220,7 @@ internal sealed class EnglishContentSeeder
                         else
                         {
                             // For other sectioned publications, try to get from SectionLanguages or use a default range
-                            // This is a fallback - ideally sections should be discovered during harvest phase
+                            // This is a fallback - ideally sections should be discovered during catalog phase
                             logger.Warning("No existing sections found for publication {PublicationCode}, using default section codes", publicationCode);
                             // Use a reasonable default - for music, typically 1-9 discs
                             sectionCodes = Enumerable.Range(1, 9).Select(i => $"{normalizedPublicationCode}-{i}").ToList();
@@ -233,11 +233,11 @@ internal sealed class EnglishContentSeeder
                         categoryName, isVideo, sectionCodes, cancellationToken);
                 }
 
-                case Models.Enums.HarvestType.MediatorSectioned:
+                case Models.Enums.CatalogType.MediatorSectioned:
                     return await mediatorFetcher.FetchEnglishMediatorPublicationAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, language, category, cancellationToken);
 
-                case Models.Enums.HarvestType.Flat:
+                case Models.Enums.CatalogType.Flat:
                 default:
                     return await FetchEnglishPublicationTracksAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, language, category, 

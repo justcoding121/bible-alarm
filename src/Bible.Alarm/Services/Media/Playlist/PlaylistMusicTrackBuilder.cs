@@ -307,7 +307,7 @@ public class PlaylistMusicTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={melodyMusic.PublicationCode}, section={melodyTrack.DownloadCode}, track={trackCode}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={melodyMusic.PublicationCode}, section={melodyTrack.DownloadCode}, track={trackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 
@@ -342,7 +342,7 @@ public class PlaylistMusicTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={vocalMusic.PublicationCode}, lang={vocalMusic.LanguageCode}, track={trackCode}. Only harvested tracks can be played.");
+                $"Track not found in media index: pub={vocalMusic.PublicationCode}, lang={vocalMusic.LanguageCode}, track={trackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 

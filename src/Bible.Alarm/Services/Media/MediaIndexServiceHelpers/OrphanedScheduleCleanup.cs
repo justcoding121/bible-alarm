@@ -54,7 +54,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
 
             foreach (var r in bibleRefs)
             {
-                if (!await TrackExistsInHarvestedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
+                if (!await TrackExistsInCatalogedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
                 {
                     scheduleIdsToDelete.Add(r.AlarmScheduleId);
                     logger.Warning(
@@ -70,7 +70,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                     continue;
                 }
 
-                if (!await TrackExistsInHarvestedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
+                if (!await TrackExistsInCatalogedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
                 {
                     musicScheduleIdsToReset.Add(r.AlarmScheduleId);
                     logger.Warning(
@@ -236,7 +236,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
     /// for non-langed pubs (e.g. instrumental music) by pub code + section code + track code only.
     /// Category code is not used for this lookup.
     /// </summary>
-    private static async Task<bool> TrackExistsInHarvestedAsync(
+    private static async Task<bool> TrackExistsInCatalogedAsync(
         SqliteConnection connection,
         string pubCode,
         string langCode,

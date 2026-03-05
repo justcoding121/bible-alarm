@@ -166,7 +166,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                     .ThenBy(pl => pl.Id)
                     .ToList();
 
-                // Try each publication: check if already harvested, harvest if needed, then verify it can be queried
+                // Try each publication: check if already cataloged, catalog if needed, then verify it can be queried
                 foreach (var pl in publicationLanguages)
                 {
                     // For dramas, use case-sensitive publication codes in DB ("Dramas"/"DramaticBibleReadings").
@@ -179,37 +179,37 @@ public sealed class CategorySelectionAutoPopulateHandler
                             : "DramaticBibleReadings")
                         : pl.PublicationCode;
 
-                    var isAlreadyHarvested = await CategorySelectionAutoPopulateHarvestCheck.CheckIfPublicationWithFirstSectionHarvestedAsync(
+                    var isAlreadyCataloged = await CategorySelectionAutoPopulateCatalogCheck.CheckIfPublicationWithFirstSectionCatalogedAsync(
                         logger, db, pl.PublicationCode, normalizedLanguageCode);
                     
-                    if (!isAlreadyHarvested)
+                    if (!isAlreadyCataloged)
                     {
                         fetchOccurred = true;
 
-                        // Try to harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
+                        // Try to catalog the publication (EnsurePublicationExistsAsync checks if it exists first)
                         // Progress will be reported via CategoryFetchProgressMessage when fetch actually happens
-                        var harvestProgressReporter = new Bible.Alarm.Common.Helpers.CategoryFetchProgressReporter(
+                        var catalogProgressReporter = new Bible.Alarm.Common.Helpers.CategoryFetchProgressReporter(
                             action.CategoryId, default);
 
-                        var isHarvested = await languageContentService.EnsurePublicationExistsAsync(
-                            pl.PublicationCode, selectedLanguage.LanguageCode, default, harvestProgressReporter);
+                        var isCataloged = await languageContentService.EnsurePublicationExistsAsync(
+                            pl.PublicationCode, selectedLanguage.LanguageCode, default, catalogProgressReporter);
                         
-                        if (!isHarvested)
+                        if (!isCataloged)
                         {
-                            logger.Debug("CategorySelectionAutoPopulateHandler: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
+                            logger.Debug("CategorySelectionAutoPopulateHandler: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
                                 pl.PublicationCode, selectedLanguage.LanguageCode);
                             continue;
                         }
                     }
                     else
                     {
-                        // Publication already harvested - no fetch needed, so no progress update
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Publication={PublicationCode} for language={LanguageCode} already harvested with first section and tracks",
+                        // Publication already cataloged - no fetch needed, so no progress update
+                        logger.Debug("CategorySelectionAutoPopulateHandler: Publication={PublicationCode} for language={LanguageCode} already cataloged with first section and tracks",
                             pl.PublicationCode, selectedLanguage.LanguageCode);
                     }
                     
                     // Verify the publication can be queried with the language (has LanguageId).
-                    // IMPORTANT: Re-check the DB after a harvest; a precomputed snapshot will be stale.
+                    // IMPORTANT: Re-check the DB after a catalog; a precomputed snapshot will be stale.
                     var canQueryWithLanguage = await db.BiblePublications
                         .AsNoTracking()
                         .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
@@ -221,13 +221,13 @@ public sealed class CategorySelectionAutoPopulateHandler
                     {
                         publicationCode = publicationCodeForDb;
                         publicationWithoutLanguage = false;
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode} (harvested and can be queried with language={LanguageCode})",
+                        logger.Debug("CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode} (cataloged and can be queried with language={LanguageCode})",
                             publicationCode, selectedLanguage.LanguageCode);
                         break;
                     }
                     else
                     {
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Publication={PublicationCode} harvested but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
+                        logger.Debug("CategorySelectionAutoPopulateHandler: Publication={PublicationCode} cataloged but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
                             pl.PublicationCode, selectedLanguage.LanguageCode);
                     }
                 }
@@ -258,7 +258,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             if (string.IsNullOrEmpty(publicationCode))
             {
                 var languageCodeForWarning = selectedLanguage?.LanguageCode ?? "N/A";
-                logger.Warning("CategorySelectionAutoPopulateHandler: No publication found or harvested for language={LanguageCode}, category={CategoryName}",
+                logger.Warning("CategorySelectionAutoPopulateHandler: No publication found or cataloged for language={LanguageCode}, category={CategoryName}",
                     languageCodeForWarning, action.CategoryName);
                 return;
             }
