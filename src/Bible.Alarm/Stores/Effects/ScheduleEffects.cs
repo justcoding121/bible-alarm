@@ -58,8 +58,7 @@ public class ScheduleEffects(
         mapper,
         alarmScheduleService,
         alarmService,
-        scheduleDisplayNameService: scheduleDisplayNameService,
-        mediaService: mediaService);
+        scheduleDisplayNameService: scheduleDisplayNameService);
     private readonly TrackSelectionSyncHandler trackSyncHandler = new(state);
 
     // Effect handlers - initialized lazily when first accessed

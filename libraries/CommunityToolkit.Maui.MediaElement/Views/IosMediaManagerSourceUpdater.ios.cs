@@ -29,7 +29,6 @@ internal static class IosMediaManagerSourceUpdater
         ILogger logger)
     {
         metaData ??= new(player);
-        Metadata.ClearNowPlaying();
         playerViewController?.ContentOverlayView?.Subviews.FirstOrDefault()?.RemoveFromSuperview();
 
         var asset = CreateAssetFromMediaSource(mediaElement.Source, logger);
@@ -102,8 +101,6 @@ internal static class IosMediaManagerSourceUpdater
         NSKeyValueObservingOptions valueObserverOptions,
         ILogger logger)
     {
-        metaData.SetMetadata(playerItem, mediaElement);
-
         currentItemErrorObserver?.Dispose();
 
         player.ReplaceCurrentItemWithPlayerItem(playerItem);

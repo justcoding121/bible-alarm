@@ -1,10 +1,8 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Common;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -25,20 +23,17 @@ public sealed class ScheduleUpdateProcessor
     private readonly IAlarmScheduleService? alarmScheduleService;
     private readonly IAlarmService? alarmService;
     private readonly IScheduleDisplayNameService scheduleDisplayNameService;
-    private readonly IMediaService? mediaService;
 
     public ScheduleUpdateProcessor(
         IMapper mapper,
         IAlarmScheduleService? alarmScheduleService = null,
         IAlarmService? alarmService = null,
-        IScheduleDisplayNameService? scheduleDisplayNameService = null,
-        IMediaService? mediaService = null)
+        IScheduleDisplayNameService? scheduleDisplayNameService = null)
     {
         this.mapper = mapper;
         this.alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
         this.alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
         this.scheduleDisplayNameService = scheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>()!;
-        this.mediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
     }
 
     /// <summary>
@@ -71,9 +66,9 @@ public sealed class ScheduleUpdateProcessor
                 action.Schedule!.NumberOfTracksToPlay, action.Schedule.AlwaysPlayFromStart);
             
             var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule!);
-            
-            // Normalize LanguageCode for no-language publications (set to null instead of "E")
-            await NormalizeLanguageCodeForNoLanguagePublicationsAsync(dbSchedule);
+
+            // Keep the selected language code (e.g. E, MY) for no-language publications so the UI
+            // shows the correct language name when the schedule is viewed again.
             
             Log.Information("UpdateScheduleInDatabaseAsync: After mapping - dbSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, dbSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
                 dbSchedule.NumberOfTracksToPlay, dbSchedule.AlwaysPlayFromStart);
@@ -189,40 +184,5 @@ public sealed class ScheduleUpdateProcessor
         }
     }
 
-    /// <summary>
-    /// Normalizes LanguageCode for no-language publications by setting it to null.
-    /// "E" is used in state/UI as a fallback but should not be persisted to DB.
-    /// </summary>
-    private async Task NormalizeLanguageCodeForNoLanguagePublicationsAsync(AlarmSchedule model)
-    {
-        if (mediaService == null)
-        {
-            return;
-        }
-
-        // Check Bible publication
-        if (model.BiblePublicationSchedule != null && !string.IsNullOrEmpty(model.BiblePublicationSchedule.PublicationCode))
-        {
-            var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.BiblePublicationSchedule.PublicationCode);
-            if (isNoLanguage && model.BiblePublicationSchedule.LanguageCode == "E")
-            {
-                Log.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting BiblePublicationSchedule.LanguageCode to null for no-language publication {PublicationCode}",
-                    model.BiblePublicationSchedule.PublicationCode);
-                model.BiblePublicationSchedule.LanguageCode = null;
-            }
-        }
-
-        // Check Music publication (instrumental/melody is no-language). We persist the row's display language (e.g. MY) for no-language music; only null when it is the default "E" (legacy).
-        if (model.Music != null && !string.IsNullOrEmpty(model.Music.PublicationCode))
-        {
-            var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.Music.PublicationCode);
-            if (isNoLanguage && model.Music.LanguageCode == AppConstants.Media.DefaultLanguageCode)
-            {
-                Log.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting Music.LanguageCode to null for no-language publication {PublicationCode}",
-                    model.Music.PublicationCode);
-                model.Music.LanguageCode = null;
-            }
-        }
-    }
 }
 

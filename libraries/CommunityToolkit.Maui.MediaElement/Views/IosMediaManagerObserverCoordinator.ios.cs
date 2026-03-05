@@ -85,7 +85,6 @@ internal sealed class IosMediaManagerObserverCoordinator
                 _ => mediaElement.CurrentState
             };
 
-            getMetaData()?.SetMetadata(getPlayerItem(), mediaElement);
             mediaElement.CurrentStateChanged(newState);
         });
 
@@ -94,12 +93,6 @@ internal sealed class IosMediaManagerObserverCoordinator
             if (!AreFloatingPointNumbersEqual(mediaElement.Speed, player.Rate))
             {
                 mediaElement.Speed = player.Rate;
-                var metaData = getMetaData();
-                if (metaData is not null)
-                {
-                    metaData.NowPlayingInfo.PlaybackRate = (float)mediaElement.Speed;
-                    MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = metaData.NowPlayingInfo;
-                }
             }
         });
 

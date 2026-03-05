@@ -31,7 +31,6 @@ sealed class Metadata
     public Metadata(PlatformMediaElement player)
     {
         this.player = player;
-        MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfoDefault;
 
         var commandCenter = MPRemoteCommandCenter.Shared;
 
@@ -65,7 +64,6 @@ sealed class Metadata
     /// </summary>
     public static void ClearNowPlaying()
     {
-        MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfoDefault;
     }
 
     /// <summary>

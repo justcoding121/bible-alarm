@@ -25,6 +25,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     private string? currentArtworkUrl;
     private MPMediaItemArtwork? currentArtwork;
     private double currentDuration;
+    private double currentPosition;
     private PlayStatus currentStatus = PlayStatus.Stopped;
 
     // Prevent the source UIImage from being garbage-collected while the
@@ -168,11 +169,42 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         return info;
     }
 
+    private static double GetPlaybackDurationSeconds(MPNowPlayingInfo info)
+    {
+        var d = info.PlaybackDuration;
+        return d.HasValue ? d.Value : 0d;
+    }
+
+    private static double GetElapsedPlaybackSeconds(MPNowPlayingInfo info)
+    {
+        var e = info.ElapsedPlaybackTime;
+        return e ?? 0;
+    }
+
+    /// <summary>
+    /// Creates a fresh MPNowPlayingInfo from cached metadata.
+    /// iOS can drop artwork when we modify a retrieved NowPlaying object and set it back;
+    /// building a fresh instance from our cache ensures artwork is always preserved on pause.
+    /// </summary>
+    private MPNowPlayingInfo? CreateFreshNowPlayingInfoFromCache(double durationSeconds, double elapsedSeconds, double playbackRate)
+    {
+        if (string.IsNullOrEmpty(currentTitle))
+        {
+            return null;
+        }
+
+        var info = CreateNowPlayingInfoWithArtwork(currentTitle, currentArtist, currentAlbum, TimeSpan.FromSeconds(durationSeconds), currentArtwork);
+        info.ElapsedPlaybackTime = elapsedSeconds;
+        info.PlaybackRate = playbackRate;
+        return info;
+    }
+
     /// <summary>
     /// Updates the playback position and rate.
     /// Call this periodically during playback (every few seconds) and on pause/resume.
+    /// Creates a fresh MPNowPlayingInfo from cache to avoid iOS dropping artwork when paused.
     /// </summary>
-    public void UpdatePlaybackPosition(TimeSpan currentPosition, TimeSpan duration, PlayStatus status)
+    public void UpdatePlaybackPosition(TimeSpan position, TimeSpan duration, PlayStatus status)
     {
         try
         {
@@ -184,55 +216,26 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
             currentStatus = status;
             currentDuration = duration.TotalSeconds;
+            currentPosition = position.TotalSeconds;
 
-            var nowPlayingInfo = MPNowPlayingInfoCenter.DefaultCenter.NowPlaying;
-            if (nowPlayingInfo == null)
+            // Ensure artwork is loaded if we have URL but not cached yet
+            if (currentArtwork == null && !string.IsNullOrEmpty(currentArtworkUrl))
             {
-                // Only create new info if we have valid metadata (means playback is active)
-                // If currentTitle is null, we've likely cleared the info and shouldn't recreate it
-                if (string.IsNullOrEmpty(currentTitle))
+                var artwork = LoadArtworkSync(currentArtworkUrl);
+                if (artwork != null)
                 {
-                    return;
-                }
-
-                // Create new info using cached metadata (clip to single line for CarPlay/lock screen)
-                var titleDisplay = ClipToSingleLine(currentTitle, MaxTitleLength);
-                nowPlayingInfo = new MPNowPlayingInfo
-                {
-                    Title = string.IsNullOrEmpty(titleDisplay) ? "Bible Alarm" : titleDisplay,
-                    Artist = ClipToSingleLine(currentArtist, MaxArtistLength),
-                    AlbumTitle = ClipToSingleLine(currentAlbum, MaxAlbumLength),
-                    MediaType = MPNowPlayingInfoMediaType.Audio
-                };
-
-                // Use cached artwork or load synchronously
-                if (currentArtwork != null)
-                {
-                    nowPlayingInfo.Artwork = currentArtwork;
-                }
-                else if (!string.IsNullOrEmpty(currentArtworkUrl))
-                {
-                    var artwork = LoadArtworkSync(currentArtworkUrl);
-                    if (artwork != null)
-                    {
-                        nowPlayingInfo.Artwork = artwork;
-                        currentArtwork = artwork;
-                    }
+                    currentArtwork = artwork;
                 }
             }
 
-            // Update position and rate
-            nowPlayingInfo.ElapsedPlaybackTime = currentPosition.TotalSeconds;
-            nowPlayingInfo.PlaybackDuration = duration.TotalSeconds;
-            nowPlayingInfo.PlaybackRate = status == PlayStatus.Playing ? 1.0 : 0.0;
-
-            // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
-            if (currentArtwork != null)
+            var freshInfo = CreateFreshNowPlayingInfoFromCache(
+                currentDuration,
+                currentPosition,
+                status == PlayStatus.Playing ? 1.0 : 0.0);
+            if (freshInfo != null)
             {
-                nowPlayingInfo.Artwork = currentArtwork;
+                MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = freshInfo;
             }
-
-            MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
         }
         catch (Exception ex)
         {
@@ -243,6 +246,8 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     /// <summary>
     /// Updates the playback rate (playing/paused state).
     /// Call this when play/pause state changes.
+    /// Creates a fresh MPNowPlayingInfo from cache instead of modifying the retrieved object;
+    /// iOS drops artwork when the retrieved NowPlaying is modified and set back.
     /// </summary>
     public void UpdatePlaybackStatus(PlayStatus status)
     {
@@ -250,21 +255,21 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         {
             currentStatus = status;
 
-            var nowPlayingInfo = MPNowPlayingInfoCenter.DefaultCenter.NowPlaying;
-            if (nowPlayingInfo == null)
+            var existingInfo = MPNowPlayingInfoCenter.DefaultCenter.NowPlaying;
+            if (existingInfo == null)
             {
                 return;
             }
 
-            nowPlayingInfo.PlaybackRate = status == PlayStatus.Playing ? 1.0 : 0.0;
+            var durationSeconds = currentDuration > 0 ? currentDuration : GetPlaybackDurationSeconds(existingInfo);
+            var elapsedSeconds = GetElapsedPlaybackSeconds(existingInfo);
+            var rate = status == PlayStatus.Playing ? 1.0 : 0.0;
 
-            // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
-            if (currentArtwork != null)
+            var freshInfo = CreateFreshNowPlayingInfoFromCache(durationSeconds, elapsedSeconds, rate);
+            if (freshInfo != null)
             {
-                nowPlayingInfo.Artwork = currentArtwork;
+                MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = freshInfo;
             }
-
-            MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
         }
         catch (Exception ex)
         {
@@ -274,6 +279,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
     /// <summary>
     /// Updates the duration (when track duration becomes known after buffering).
+    /// Creates a fresh MPNowPlayingInfo from cache to avoid iOS dropping artwork.
     /// </summary>
     public void UpdateDuration(TimeSpan duration)
     {
@@ -281,21 +287,20 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         {
             currentDuration = duration.TotalSeconds;
 
-            var nowPlayingInfo = MPNowPlayingInfoCenter.DefaultCenter.NowPlaying;
-            if (nowPlayingInfo == null)
+            var existingInfo = MPNowPlayingInfoCenter.DefaultCenter.NowPlaying;
+            if (existingInfo == null)
             {
                 return;
             }
 
-            nowPlayingInfo.PlaybackDuration = duration.TotalSeconds;
+            var elapsedSeconds = GetElapsedPlaybackSeconds(existingInfo);
+            var rate = currentStatus == PlayStatus.Playing ? 1.0 : 0.0;
 
-            // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
-            if (currentArtwork != null)
+            var freshInfo = CreateFreshNowPlayingInfoFromCache(currentDuration, elapsedSeconds, rate);
+            if (freshInfo != null)
             {
-                nowPlayingInfo.Artwork = currentArtwork;
+                MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = freshInfo;
             }
-
-            MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
         }
         catch (Exception ex)
         {
@@ -319,6 +324,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
             currentArtwork = null;
             retainedArtworkImage = null;
             currentDuration = 0;
+            currentPosition = 0;
             currentStatus = PlayStatus.Stopped;
         }
         catch (Exception ex)
