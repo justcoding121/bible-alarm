@@ -83,6 +83,16 @@ public class CarPlayScheduleListEffect
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Handles LastPlayedAtUtc update - refresh CarPlay list so recently played schedules appear first.
+    /// </summary>
+    [EffectMethod]
+    public Task HandleUpdateScheduleLastPlayed(UpdateScheduleLastPlayedAction action, FluxorDispatcher dispatcher)
+    {
+        RefreshCarPlayScheduleList("UpdateScheduleLastPlayed");
+        return Task.CompletedTask;
+    }
+
     private void RefreshCarPlayScheduleList(string triggerAction)
     {
         if (!CarPlaySceneDelegate.IsCarPlayConnected)

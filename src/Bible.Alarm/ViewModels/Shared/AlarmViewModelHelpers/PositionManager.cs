@@ -25,7 +25,7 @@ public sealed class PositionManager()
         if (message.CurrentPosition.HasValue)
         {
             var position = message.CurrentPosition.Value;
-            setCurrentTime($"{position.Minutes:00}:{position.Seconds:00}");
+            setCurrentTime(FormatTime(position));
 
             if (currentDuration.TotalSeconds > 0)
             {
@@ -146,11 +146,13 @@ public sealed class PositionManager()
     }
 
     /// <summary>
-    /// Calculates formatted time string from TimeSpan.
+    /// Calculates formatted time string from TimeSpan, including hours when >= 1h.
     /// </summary>
-    public string FormatTime(TimeSpan timeSpan)
+    public static string FormatTime(TimeSpan timeSpan)
     {
-        return $"{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
+        return timeSpan.TotalHours >= 1
+            ? $"{(int)timeSpan.TotalHours}:{timeSpan.Minutes:00}:{timeSpan.Seconds:00}"
+            : $"{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
     }
 
     /// <summary>

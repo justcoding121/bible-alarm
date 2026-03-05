@@ -141,7 +141,16 @@ public sealed class NavigationStackManager
         }
 
         var page = navigation.NavigationStack.LastOrDefault();
-        await navigation.PopAsync(animated: true);
+
+        try
+        {
+            await navigation.PopAsync(animated: true);
+        }
+        catch (Exception ex) when (IsAndroidNavControllerError(ex))
+        {
+            Log.Warning(ex, "NavigationStackManager.PopAsync: NavController back stack out of sync with MAUI navigation stack");
+            return;
+        }
 
         // Dispose the page if it implements IDisposable
         if (page is IDisposable disposable)
@@ -151,5 +160,19 @@ public sealed class NavigationStackManager
 
         // Re-apply status bar so the now-visible page has correct appearance (same as after modal pop).
         WindowSetupService.UpdateNavigationBarColors();
+    }
+
+    /// <summary>
+    /// Detects Android NavController back stack errors that occur when MAUI's managed
+    /// navigation stack is out of sync with the native Jetpack NavController back stack.
+    /// </summary>
+    internal static bool IsAndroidNavControllerError(Exception ex)
+    {
+#if ANDROID
+        return ex is Java.Lang.IllegalArgumentException
+            && ex.Message?.Contains("NavController's back stack") == true;
+#else
+        return false;
+#endif
     }
 }

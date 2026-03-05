@@ -90,7 +90,16 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             // This handles the edge case where another navigation already happened
             if (navigation.NavigationStack.LastOrDefault() == page)
             {
-                await navigation.PopAsync(animated: animated);
+                try
+                {
+                    await navigation.PopAsync(animated: animated);
+                }
+                catch (Exception ex) when (NavigationStackManager.IsAndroidNavControllerError(ex))
+                {
+                    Logger.Warning(ex, "PopToExistingHomeAsync: NavController back stack out of sync, aborting remaining pops");
+                    break;
+                }
+
                 if (page is IDisposable disposable)
                 {
                     disposable.Dispose();
@@ -166,7 +175,16 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             // This handles the edge case where another navigation already happened
             if (navigation.NavigationStack.LastOrDefault() == page)
             {
-                await navigation.PopAsync(animated: true);
+                try
+                {
+                    await navigation.PopAsync(animated: true);
+                }
+                catch (Exception ex) when (NavigationStackManager.IsAndroidNavControllerError(ex))
+                {
+                    Logger.Warning(ex, "PopAllPagesToRootAsync: NavController back stack out of sync, aborting remaining pops");
+                    break;
+                }
+
                 if (page is IDisposable disposable)
                 {
                     disposable.Dispose();

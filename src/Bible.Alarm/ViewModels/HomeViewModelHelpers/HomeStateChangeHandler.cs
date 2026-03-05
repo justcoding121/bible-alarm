@@ -180,8 +180,14 @@ public class HomeStateChangeHandler
             }
             else
             {
-                // No collection change, but still update existing items
-                if (stateValue.Schedules != null)
+                // No add/remove, but schedule properties (e.g. LastPlayedAtUtc) may have changed — sync to reorder
+                if (schedulePropertiesChanged && newSchedules != null && newSchedules.Count > 0)
+                {
+                    logger.Debug("OnStateChanged: Properties changed (e.g. LastPlayedAtUtc) — syncing collection to reorder");
+                    SyncCollectionToNewSchedules(newSchedules);
+                    notifySchedulesChanged?.Invoke();
+                }
+                else if (stateValue.Schedules != null)
                 {
                     viewModelManager.UpdateScheduleViewModels(stateValue.Schedules);
                 }

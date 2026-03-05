@@ -66,21 +66,13 @@ public sealed class PlayerManager(ILogger logger)
     /// </summary>
     public void ConfigurePlayerWithSources(IExoPlayer player, List<IMediaSource> sources)
     {
-        // When in STATE_ENDED, replacing the timeline causes MediaSessionImpl's PlayerInfo.Builder.build()
-        // to throw IllegalStateException. Stop() transitions to STATE_IDLE so SetMediaSources is safe.
-        player.Stop();
-
-        // Set media sources directly on the player
         player.SetMediaSources([.. sources]);
 
-        // CRITICAL: Call Prepare() AFTER setting the source to trigger TimelineChanged event
-        // This is what makes MediaSessionConnector see HasNextMediaItem and HasPreviousMediaItem = true
         player.Prepare();
 
         // Current item is always at index 1 (previous dummy is always at index 0).
         player.SeekTo(1, 0);
 
-        // Set up the ExoPlayer listener
         SetupExoPlayerListener(player);
     }
 

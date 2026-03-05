@@ -157,8 +157,10 @@ public class AndroidAutoScheduleChangeTracker
             // Note: MusicType is now inferred from MusicLanguageCode (null/empty = melody, otherwise = vocal)
             // Include BiblePublicationTrackTitle for dramas/videos where track title is shown
             // Include BiblePublicationName and BiblePublicationCategoryName since subtitle rendering depends on them
+            // Include LastPlayedAtUtc so list order refresh (recently played first) triggers when playback starts
             // NOTE: IsEnabled is intentionally excluded - enabling/disabling schedules should NOT refresh Android Auto
-            var signature = $"{schedule.Name}|{schedule.BiblePublicationCategoryName}|{schedule.BiblePublicationName}|{sectionCode}|{schedule.BiblePublicationTrackCode}|{schedule.BiblePublicationLanguageName}|{schedule.BiblePublicationSectionName}|{schedule.BiblePublicationTrackTitle}|{schedule.MusicEnabled}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackCode}";
+            var lastPlayed = schedule.LastPlayedAtUtc?.Ticks ?? 0;
+            var signature = $"{schedule.Name}|{schedule.BiblePublicationCategoryName}|{schedule.BiblePublicationName}|{sectionCode}|{schedule.BiblePublicationTrackCode}|{schedule.BiblePublicationLanguageName}|{schedule.BiblePublicationSectionName}|{schedule.BiblePublicationTrackTitle}|{schedule.MusicEnabled}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackCode}|{lastPlayed}";
             signatures[schedule.Id] = signature;
         }
 

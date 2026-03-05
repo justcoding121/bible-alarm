@@ -154,7 +154,7 @@ public class AlarmViewModalStateUpdater
     {
         var duration = state.Duration;
         setCurrentDuration(duration);
-        setEndTime($"{duration.Minutes:00}:{duration.Seconds:00}");
+        setEndTime(PositionManager.FormatTime(duration));
 
         setErrorMessage(state.ErrorMessage ?? "");
 

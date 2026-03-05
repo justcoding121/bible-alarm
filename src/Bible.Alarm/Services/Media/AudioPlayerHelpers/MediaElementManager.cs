@@ -99,14 +99,8 @@ public class MediaElementManager
             var processedUri = IosMediaElementHelper.ProcessUriForMediaElement(track.Uri, logger);
             IosMediaElementHelper.SetSourceAndVolume(newMediaElement, processedUri, logger);
 #elif ANDROID
-            // Handler is guaranteed to exist - GetMediaElementAsync() creates it for headless mode
-            // CRITICAL: We MUST set a valid Source on MediaElement itself
-            // even when using ExoPlayer directly for the queue.
-            // Otherwise, MediaElement stays in State.None forever.
             newMediaElement.Source = MediaSource.FromUri(track.Uri);
 
-            // Now set the real (multi-item) queue via ExoPlayer to enable Next/Previous buttons.
-            // Always includes both dummy items so HasPreviousMediaItem/HasNextMediaItem are true.
             androidPlayerNotificationService?.SetSourceWithDummyQueue(newMediaElement, track.Uri);
 #else
             newMediaElement.Source = track.Uri;

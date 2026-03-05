@@ -41,11 +41,11 @@ internal static class AndroidMediaManagerSourceUpdater
         mediaItem = await SetPlayerData(mediaElement, playerView, mediaItem, cancellationTokenSource.Token).ConfigureAwait(true);
         var item = mediaItem?.Build();
 
-        if (item?.MediaMetadata is not null)
-        {
-            player.SetMediaItem(item);
-            player.Prepare();
-        }
+        // Bible Alarm manages the ExoPlayer playlist directly via SetSourceWithDummyQueue
+        // (3-item queue with dummy prev/next for system media controls).
+        // Calling SetMediaItem here would replace that queue with a single item,
+        // causing a Media3 MediaSession IllegalStateException when the stale
+        // currentMediaItemIndex (from the old 3-item queue) exceeds the new 1-item timeline.
 
         if (item is not null && player.PlayerError is null)
         {
