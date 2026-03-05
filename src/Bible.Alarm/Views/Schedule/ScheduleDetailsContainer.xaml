@@ -11,6 +11,7 @@
         <converters:DayColorConverter x:Key="dayColorConverter" />
         <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
         <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
+        <converters:TimeToMeridianConverter x:Key="timeToMeridianConverter" />
         <!-- Local double resources: avoid Release InvalidCastException (generated code casts DynamicResource to double) -->
         <x:Double x:Key="SpacingStandard">12.0</x:Double>
         <x:Double x:Key="PaddingStandard">12.0</x:Double>
@@ -36,25 +37,29 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <!-- Time picker row: transparent background so it blends seamlessly with the page -->
-        <Grid Grid.Row="0"
+        <!-- iOS: show time and AM/PM separately to avoid UIDatePicker triangle rendering bug -->
+        <HorizontalStackLayout Grid.Row="0"
               HorizontalOptions="Center"
               VerticalOptions="Center"
-              Padding="{StaticResource PaddingStandard}">
-            <!-- iOS: Use TitleFontSize (not AlarmTimeFontSize) to avoid UIDatePicker AM/PM clipping/triangle bug; large custom fonts show triangle instead of AM/PM. -->
-            <!-- iOS: MinimumWidthRequest so "hh:mm AM/PM" is not trimmed (240pt gives AM/PM room). -->
+              Padding="{StaticResource PaddingStandard}"
+              Spacing="2">
             <TimePicker AutomationId="AlarmTimePicker"
                         BackgroundColor="Transparent"
                         TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter='PrimaryTextColor'}"
-                        FontSize="{OnPlatform iOS={DynamicResource TitleFontSize}, Default={StaticResource AlarmTimeFontSize}}"
+                        FontSize="{StaticResource AlarmTimeFontSize}"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
                         Margin="0"
-                        MinimumWidthRequest="{OnPlatform iOS=240, Default=0}"
                         Time="{Binding Time, Mode=TwoWay}"
-                        ios:TimePicker.UpdateMode="WhenFinished">
-                <TimePicker.Format>hh:mm tt</TimePicker.Format>
-            </TimePicker>
-        </Grid>
+                        Format="{OnPlatform iOS='hh:mm', Default='hh:mm tt'}"
+                        ios:TimePicker.UpdateMode="WhenFinished" />
+            <Label Text="{Binding Time, Converter={StaticResource timeToMeridianConverter}}"
+                   TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter='PrimaryTextColor'}"
+                   FontSize="{DynamicResource AlarmMeridianFontSize}"
+                   VerticalOptions="End"
+                   Margin="0,0,0,4"
+                   IsVisible="{OnPlatform iOS=True, Default=False}" />
+        </HorizontalStackLayout>
         <FlexLayout Grid.Row="1"
               Margin="0"
               HorizontalOptions="Center"

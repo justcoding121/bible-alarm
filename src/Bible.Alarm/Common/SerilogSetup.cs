@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
+#if IOS
+using Serilog.Sinks.SystemConsole.Themes;
+#endif
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Logging;
 #endif
@@ -83,7 +86,8 @@ public class SerilogSetup
         // Debug sink writes to System.Diagnostics.Debug (os_log) - may not be visible over network debugging
         // Wrap Console in Async to ensure non-blocking writes and better reliability over WiFi debugging
         loggerConfig.WriteTo.Async(a => a.Console(
-            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate));
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
+            theme: ConsoleTheme.None));
         loggerConfig.WriteTo.Async(a => a.Debug(
             outputTemplate: AppConstants.Logging.ConsoleOutputTemplate));
 

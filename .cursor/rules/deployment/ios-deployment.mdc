@@ -197,12 +197,16 @@ When `UIApplicationSceneManifest` is present in `Info.plist`:
 
 ## Known iOS UI quirks (Schedule page)
 
-**TimePicker AM/PM clipped / triangle:** On iOS, the native `UIDatePicker` used by MAUI’s `TimePicker` can clip the AM/PM label or show a triangle when the control uses a **large or custom font**. This is a known iOS/MAUI behavior. The Schedule page works around it by:
+**TimePicker AM/PM triangle bug:** On iOS, the native `UIDatePicker` used by MAUI’s `TimePicker` renders an inverted triangle instead of AM/PM text when the format includes `tt`, especially with larger font sizes. This is a known iOS/MAUI behavior that no font-size workaround reliably fixes.
 
-- Using **TitleFontSize** (not a larger fixed size) for the time picker on iOS only.
-- Setting **MinimumWidthRequest="240"** on iOS so the "hh:mm tt" text has enough width.
+**Current fix:** The Schedule page avoids the bug entirely by **not** including `tt` in the TimePicker format on iOS. Instead:
 
-See `ScheduleDetailsContainer.xaml` (TimePicker) and the inline comments there. On Android/Windows the time picker still uses the larger `AlarmTimeFontSize`.
+- TimePicker uses format `hh:mm` on iOS (no `tt`) — the picker wheel still shows AM/PM for selection.
+- A separate **Label** next to the TimePicker displays the AM/PM designator via `TimeToMeridianConverter`.
+- All platforms use `AlarmTimeFontSize` for the TimePicker; the AM/PM label uses `AlarmMeridianFontSize`.
+- On Android/Windows the TimePicker keeps format `hh:mm tt` and the label is hidden.
+
+See `ScheduleDetailsContainer.xaml` (TimePicker + Label) and `TimeToMeridianConverter.cs`.
 
 ---
 
