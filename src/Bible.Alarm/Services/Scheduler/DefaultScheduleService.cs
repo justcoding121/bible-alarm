@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
 using Bible.Alarm.Shared.Helpers;
@@ -225,16 +226,26 @@ public sealed class DefaultScheduleService(
             }
         }
 
-        logger.Debug("Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}, HasArtwork={HasArtwork}",
-            scheduleId, metadata.Title, metadata.Artist, metadata.Album, !string.IsNullOrEmpty(artworkUrl));
+        var title = metadata.Title ?? string.Empty;
+        var artist = metadata.Artist ?? string.Empty;
 
-        // Pass raw metadata values (null becomes empty string for non-nullable properties)
-        // Builders will handle empty string fallbacks
+        var scheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        if (scheduleItem != null)
+        {
+            title = ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem);
+            artist = ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem);
+            logger.Debug("Using listing-format metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}",
+                scheduleId, title, artist);
+        }
+
+        logger.Debug("Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}, HasArtwork={HasArtwork}",
+            scheduleId, title, artist, metadata.Album, !string.IsNullOrEmpty(artworkUrl));
+
         return new ScheduleTrackMetadata
         {
             ScheduleId = scheduleId,
-            Title = metadata.Title ?? string.Empty,
-            Artist = metadata.Artist ?? string.Empty,
+            Title = title,
+            Artist = artist,
             Album = metadata.Album,
             ArtworkUrl = artworkUrl
         };
@@ -242,8 +253,19 @@ public sealed class DefaultScheduleService(
 
     private ScheduleTrackMetadata CreateFallbackMetadata(int scheduleId, PlayItem firstPlayItem)
     {
-        // Generate meaningful values from available metadata, but pass empty if not available
-        // Builders will handle empty string fallbacks
+        var scheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        if (scheduleItem != null)
+        {
+            return new ScheduleTrackMetadata
+            {
+                ScheduleId = scheduleId,
+                Title = ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem),
+                Artist = ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem),
+                Album = null,
+                ArtworkUrl = null
+            };
+        }
+
         var title = firstPlayItem.Metadata?.PlayType == PlayType.Bible
             ? $"Section {firstPlayItem.Metadata.SectionCode} Track {firstPlayItem.Metadata.TrackCode}"
             : firstPlayItem.Metadata?.TrackCode != null

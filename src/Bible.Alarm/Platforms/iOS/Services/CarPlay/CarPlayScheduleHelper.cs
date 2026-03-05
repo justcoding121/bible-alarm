@@ -1,8 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common;
-using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Services.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -51,72 +49,8 @@ public static class CarPlayScheduleHelper
     /// Bible category: section name (e.g. "Hebrews 13"). Other categories: track name.
     /// Appends 🎵 to schedule name if music is enabled (or shows just 🎵 if schedule name is empty).
     /// </summary>
-    public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
-    {
-        if (!scheduleItem.BiblePublicationScheduleId.HasValue)
-        {
-            var scheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
-                ? scheduleItem.Name
-                : string.Empty;
-            
-            // If schedule name is empty and music is enabled, return just the music icon
-            if (string.IsNullOrWhiteSpace(scheduleName))
-            {
-                return scheduleItem.MusicEnabled ? "🎵" : "Unnamed schedule";
-            }
-            
-            // Append music icon to schedule name if music is enabled
-            return scheduleItem.MusicEnabled ? scheduleName + " 🎵" : scheduleName;
-        }
-
-        var categoryName = scheduleItem.BiblePublicationCategoryName
-            ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
-        var isBibleCategory = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
-
-        string? title = null;
-        if (isBibleCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
-        {
-            // For Bible category, show "BookName ChapterNumber" (e.g., "Genesis 1")
-            var sectionName = scheduleItem.BiblePublicationSectionName;
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackCode))
-            {
-                title = $"{sectionName} {scheduleItem.BiblePublicationTrackCode}";
-            }
-            else
-            {
-                title = sectionName;
-            }
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
-        {
-            title = scheduleItem.BiblePublicationTrackTitle;
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
-        {
-            title = scheduleItem.BiblePublicationName;
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
-        {
-            title = scheduleItem.Name;
-        }
-
-        if (!string.IsNullOrWhiteSpace(title))
-        {
-            return title;
-        }
-
-        // Fallback: if no title found, use schedule name or music icon
-        var fallbackScheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
-            ? scheduleItem.Name
-            : string.Empty;
-        
-        if (string.IsNullOrWhiteSpace(fallbackScheduleName))
-        {
-            return scheduleItem.MusicEnabled ? "🎵" : "Unnamed schedule";
-        }
-        
-        return scheduleItem.MusicEnabled ? fallbackScheduleName + " 🎵" : fallbackScheduleName;
-    }
+    public static string BuildScheduleTitle(ScheduleStateItem scheduleItem) =>
+        ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem);
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
@@ -124,85 +58,6 @@ public static class CarPlayScheduleHelper
     /// If schedule name is empty and music is enabled, shows just 🎵
     /// Bible category: Section names and track names are excluded since they're already shown in the title (e.g., "Leviticus 19").
     /// </summary>
-    public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
-    {
-        if (!scheduleItem.BiblePublicationScheduleId.HasValue)
-        {
-            var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
-            var timeText = scheduleItem.TimeText;
-            return $"• {statusText} • {timeText}";
-        }
-
-        var subtitleParts = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
-        {
-            // Append music icon to schedule name if music is enabled
-            var scheduleNameWithMusic = scheduleItem.MusicEnabled 
-                ? scheduleItem.Name + " 🎵" 
-                : scheduleItem.Name;
-            subtitleParts.Add(scheduleNameWithMusic);
-        }
-        else if (scheduleItem.MusicEnabled)
-        {
-            // If schedule name is empty but music is enabled, show just the music icon
-            subtitleParts.Add("🎵");
-        }
-
-        var categoryCode = scheduleItem.BiblePublicationCategoryName
-            ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
-
-        if (!string.IsNullOrWhiteSpace(categoryCode))
-        {
-            var categoryDisplayName = ResolveCategoryDisplayName(categoryCode);
-            var scheduleName = scheduleItem.Name?.Trim() ?? string.Empty;
-            if (!string.Equals(categoryDisplayName.Trim(), scheduleName, StringComparison.OrdinalIgnoreCase))
-            {
-                subtitleParts.Add(categoryDisplayName);
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))
-        {
-            subtitleParts.Add(scheduleItem.BiblePublicationLanguageName);
-        }
-
-        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
-        {
-            subtitleParts.Add(scheduleItem.BiblePublicationName);
-        }
-
-        // Skip section name for Bible category since it's already shown in the title (e.g., "Leviticus 19")
-        var isBibleCategory = string.Equals(categoryCode, "Bible", StringComparison.OrdinalIgnoreCase);
-        
-        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
-        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName) && !isBibleCategory)
-        {
-            subtitleParts.Add(scheduleItem.BiblePublicationSectionName);
-        }
-
-        if (subtitleParts.Count > 0)
-        {
-            return string.Join(" • ", subtitleParts);
-        }
-
-        var fallbackStatusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
-        var fallbackTimeText = scheduleItem.TimeText;
-        return $"• {fallbackStatusText} • {fallbackTimeText}";
-    }
-
-    private static string ResolveCategoryDisplayName(string categoryCode)
-    {
-        try
-        {
-            var categoryNameService = ServiceProviderManager.GetService<ICategoryNameService>();
-            return categoryNameService?.GetName(categoryCode, AppConstants.Media.DefaultLanguageCode)
-                ?? categoryCode;
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "[CarPlay] Failed to resolve category display name for code {CategoryCode}", categoryCode);
-            return categoryCode;
-        }
-    }
+    public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem) =>
+        ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem);
 }
