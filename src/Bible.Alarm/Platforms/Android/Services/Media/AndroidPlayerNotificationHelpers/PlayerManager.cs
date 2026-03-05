@@ -66,6 +66,13 @@ public sealed class PlayerManager(ILogger logger)
     /// </summary>
     public void ConfigurePlayerWithSources(IExoPlayer player, List<IMediaSource> sources)
     {
+        // Clear existing timeline before replacing. When the previous track ended naturally,
+        // ExoPlayer is in STATE_ENDED. Replacing the timeline directly in that state causes
+        // MediaSessionImpl.PlayerInfo.Builder.build() to throw IllegalStateException
+        // (copyWithTimelineAndSessionPositionInfo fails due to invalid session position).
+        // Clearing first transitions to IDLE, avoiding the invalid state.
+        player.ClearMediaItems();
+
         // Set media sources directly on the player
         player.SetMediaSources([.. sources]);
 

@@ -95,6 +95,12 @@ public sealed class AlarmSchedule : IComparable
     [MaxLength(100)]
     public string? CategoryCode { get; set; }
 
+    /// <summary>
+    /// UTC timestamp when this schedule was last played. Null if never played.
+    /// Used to sort home page list (recently played first).
+    /// </summary>
+    public DateTime? LastPlayedAtUtc { get; set; }
+
     public ICollection<AlarmNotification> AlarmNotifications { get; set; } = new List<AlarmNotification>();
 
     public DateTimeOffset NextFireDate()

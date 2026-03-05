@@ -298,6 +298,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             AlwaysPlayFromStart = source.AlwaysPlayFromStart,
             CurrentPlayItem = source.CurrentPlayItem,
             LatestAlarmNotificationId = source.LatestAlarmNotificationId,
+            LastPlayedAtUtc = source.LastPlayedAtUtc,
             BiblePublicationScheduleId = source.BiblePublicationScheduleId,
             BiblePublicationLanguageCode = source.BiblePublicationLanguageCode,
             BiblePublicationCode = source.BiblePublicationCode,

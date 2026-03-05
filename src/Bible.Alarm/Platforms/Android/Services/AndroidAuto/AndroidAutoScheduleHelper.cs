@@ -159,7 +159,11 @@ public static class AndroidAutoScheduleHelper
         if (!string.IsNullOrWhiteSpace(categoryCode))
         {
             var categoryDisplayName = ResolveCategoryDisplayName(categoryCode);
-            subtitleParts.Add(categoryDisplayName);
+            var scheduleName = scheduleItem.Name?.Trim() ?? string.Empty;
+            if (!string.Equals(categoryDisplayName.Trim(), scheduleName, StringComparison.OrdinalIgnoreCase))
+            {
+                subtitleParts.Add(categoryDisplayName);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))

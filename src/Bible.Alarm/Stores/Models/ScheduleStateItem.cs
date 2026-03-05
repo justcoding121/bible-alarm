@@ -27,6 +27,12 @@ public sealed class ScheduleStateItem : IComparable
     public PlayType CurrentPlayItem { get; set; }
     public long LatestAlarmNotificationId { get; set; }
 
+    /// <summary>
+    /// UTC timestamp when this schedule was last played. Null if never played.
+    /// Used for home page listing order (recently played first).
+    /// </summary>
+    public DateTime? LastPlayedAtUtc { get; set; }
+
     // Computed properties
     public int MeridianHour => Meridian == Meridian.Am ? Hour == 0 ? 12 : Hour : Hour == 12 ? 12 : Hour % 12;
     public Meridian Meridian => Hour < 12 ? Meridian.Am : Meridian.Pm;
@@ -177,13 +183,22 @@ public sealed class ScheduleStateItem : IComparable
     public int? MusicSectionModalItemCount { get; set; }
 
     /// <summary>
-    /// Compare by schedule ID for ObservableHashSet ordering.
+    /// Compare for ObservableHashSet ordering: recently played first, then by Id.
+    /// Schedules never played (LastPlayedAtUtc null) sort after played ones.
     /// </summary>
     public int CompareTo(object? obj)
     {
         if (obj is not ScheduleStateItem other)
         {
             return 1;
+        }
+
+        var thisPlayed = LastPlayedAtUtc ?? DateTime.MinValue;
+        var otherPlayed = other.LastPlayedAtUtc ?? DateTime.MinValue;
+        var playedCompare = otherPlayed.CompareTo(thisPlayed);
+        if (playedCompare != 0)
+        {
+            return playedCompare;
         }
 
         return Id.CompareTo(other.Id);

@@ -70,6 +70,7 @@ public static class ScheduleEntityUpdater
         existing.Name = dbSchedule.Name;
         existing.SnoozeMinutes = dbSchedule.SnoozeMinutes;
         existing.CategoryCode = dbSchedule.CategoryCode;
+        existing.LastPlayedAtUtc = dbSchedule.LastPlayedAtUtc;
     }
 
     /// <summary>

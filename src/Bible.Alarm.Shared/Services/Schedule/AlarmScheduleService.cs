@@ -48,6 +48,8 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
             query = query.Where(predicate);
         }
 
+        query = query.OrderByDescending(x => x.LastPlayedAtUtc ?? DateTime.MinValue).ThenBy(x => x.Id);
+
         return await query.ToListAsync(cancellationToken);
     }
 

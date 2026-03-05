@@ -29,7 +29,7 @@ public class HomeStateChangeHandler
 
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
-    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek)>? lastProcessedScheduleProperties;
+    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek, DateTime? LastPlayedAtUtc)>? lastProcessedScheduleProperties;
 
     public HomeStateChangeHandler(
         ILogger logger,
@@ -68,7 +68,7 @@ public class HomeStateChangeHandler
             var schedulesCountChanged = lastProcessedSchedulesCount != stateValue.Schedules.Count;
             var scheduleIdsChanged = lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
 
-            // Check if schedule properties (like track number, name, time, days of week) have changed
+            // Check if schedule properties (like track number, name, time, days of week, last played) have changed
             var currentScheduleProperties = stateValue.Schedules
                 .Where(s => s.Id > 0)
                 .ToDictionary(s => s.Id, s => (
@@ -77,7 +77,8 @@ public class HomeStateChangeHandler
                     Name: s.Name ?? string.Empty,
                     Hour: s.Hour,
                     Minute: s.Minute,
-                    DaysOfWeek: s.DaysOfWeek));
+                    DaysOfWeek: s.DaysOfWeek,
+                    LastPlayedAtUtc: s.LastPlayedAtUtc));
             var schedulePropertiesChanged = lastProcessedScheduleProperties == null ||
                 currentScheduleProperties.Any(kvp =>
                     !lastProcessedScheduleProperties.ContainsKey(kvp.Key) ||
@@ -86,7 +87,8 @@ public class HomeStateChangeHandler
                     lastProcessedScheduleProperties[kvp.Key].Name != kvp.Value.Name ||
                     lastProcessedScheduleProperties[kvp.Key].Hour != kvp.Value.Hour ||
                     lastProcessedScheduleProperties[kvp.Key].Minute != kvp.Value.Minute ||
-                    lastProcessedScheduleProperties[kvp.Key].DaysOfWeek != kvp.Value.DaysOfWeek);
+                    lastProcessedScheduleProperties[kvp.Key].DaysOfWeek != kvp.Value.DaysOfWeek ||
+                    Nullable.Compare(lastProcessedScheduleProperties[kvp.Key].LastPlayedAtUtc, kvp.Value.LastPlayedAtUtc) != 0);
 
             if (!schedulesCountChanged && !scheduleIdsChanged && !schedulePropertiesChanged && lastProcessedScheduleIds != null)
             {

@@ -155,6 +155,56 @@ public static class ApplicationReducer
     }
 
     /// <summary>
+    /// Updates LastPlayedAtUtc for a schedule and rebuilds the Schedules collection so home page re-sorts (recently played first).
+    /// </summary>
+    [ReducerMethod]
+    public static ApplicationState OnUpdateScheduleLastPlayed(ApplicationState state, UpdateScheduleLastPlayedAction action)
+    {
+        if (state.Schedules == null || state.Schedules.Count == 0)
+        {
+            return state;
+        }
+
+        var updated = false;
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+        foreach (var item in state.Schedules)
+        {
+            if (item.Id == action.ScheduleId)
+            {
+                var clone = item.DeepClone();
+                clone.LastPlayedAtUtc = action.LastPlayedAtUtc;
+                newSchedules.Add(clone);
+                updated = true;
+            }
+            else
+            {
+                newSchedules.Add(item);
+            }
+        }
+
+        if (!updated)
+        {
+            return state;
+        }
+
+        var updatedCurrentSchedule = state.CurrentSchedule;
+        if (state.CurrentSchedule?.Id == action.ScheduleId)
+        {
+            var clone = state.CurrentSchedule.DeepClone();
+            clone.LastPlayedAtUtc = action.LastPlayedAtUtc;
+            updatedCurrentSchedule = clone;
+        }
+
+        return new ApplicationState(
+            schedules: newSchedules,
+            currentSchedule: updatedCurrentSchedule,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            containerReadiness: state.ContainerReadiness,
+            pendingScheduleLoad: state.PendingScheduleLoad);
+    }
+
+    /// <summary>
     /// Failure reducer: Handle CreateScheduleFailureAction - rollback optimistic update.
     /// Following Fluxor best practices: Rollback optimistic changes on failure.
     /// </summary>

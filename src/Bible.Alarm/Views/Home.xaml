@@ -545,15 +545,15 @@
                                                    TextColor="{DynamicResource TextPrimaryColor}"
                                                    LineBreakMode="WordWrap"
                                                    IsVisible="{Binding Name, Converter={StaticResource isStringNotEmptyConverter}}" />
-                                            <!-- 1b. Category name -->
+                                            <!-- 1b. Category name (hidden when same as schedule name) -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
                                                    FontSize="{DynamicResource MediumFontSize}"
-                                                   Text="{Binding CategoryName}"
+                                                   Text="{Binding CategoryNameDisplay}"
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
-                                                   IsVisible="{Binding CategoryName, Converter={StaticResource isStringNotEmptyConverter}}" />
+                                                   IsVisible="{Binding CategoryNameDisplay, Converter={StaticResource isStringNotEmptyConverter}}" />
                                             <!-- 2. Schedule Publication Name -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"

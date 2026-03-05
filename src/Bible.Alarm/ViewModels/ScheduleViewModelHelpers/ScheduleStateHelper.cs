@@ -26,6 +26,7 @@ public static class ScheduleStateHelper
             AlwaysPlayFromStart = source.AlwaysPlayFromStart,
             CurrentPlayItem = source.CurrentPlayItem,
             LatestAlarmNotificationId = source.LatestAlarmNotificationId,
+            LastPlayedAtUtc = source.LastPlayedAtUtc,
             BiblePublicationScheduleId = source.BiblePublicationScheduleId,
             BiblePublicationLanguageCode = source.BiblePublicationLanguageCode,
             BiblePublicationCode = source.BiblePublicationCode,

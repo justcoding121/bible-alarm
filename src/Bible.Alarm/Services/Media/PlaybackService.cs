@@ -9,6 +9,7 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
+using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
@@ -145,6 +146,20 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             stateManager.CurrentScheduleId = scheduleId;
             stateManager.IsAlarm = isAlarm;
+
+            var lastPlayedAtUtc = DateTime.UtcNow;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await alarmScheduleService.UpdateScheduleByIdAsync(scheduleId, s => s.LastPlayedAtUtc = lastPlayedAtUtc);
+                    dispatcher.Dispatch(new UpdateScheduleLastPlayedAction(scheduleId, lastPlayedAtUtc));
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Failed to update LastPlayedAtUtc for schedule {ScheduleId}", scheduleId);
+                }
+            });
 
             stateManager.PreparationCancellationTokenSource?.Dispose();
             stateManager.PreparationCancellationTokenSource = new CancellationTokenSource();

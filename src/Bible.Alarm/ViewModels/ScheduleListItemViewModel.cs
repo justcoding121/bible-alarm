@@ -125,6 +125,7 @@ public sealed class ScheduleListItemViewModel(
         {
             OnPropertyChanged(nameof(Name));
             OnPropertyChanged(nameof(CategoryName));
+            OnPropertyChanged(nameof(CategoryNameDisplay));
             OnPropertyChanged(nameof(TimeText));
             OnPropertyChanged(nameof(Hour));
             OnPropertyChanged(nameof(Minute));
@@ -230,6 +231,27 @@ public sealed class ScheduleListItemViewModel(
 
     public string CategoryName
         => bibleDisplayNameProvider.GetCategoryDisplayName(ScheduleId);
+
+    /// <summary>
+    /// Category name for display. Returns empty when category name equals schedule name to avoid duplicate text.
+    /// </summary>
+    public string CategoryNameDisplay
+    {
+        get
+        {
+            var category = CategoryName;
+            var name = Name;
+            if (string.IsNullOrWhiteSpace(category))
+            {
+                return string.Empty;
+            }
+            if (string.Equals(category.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+            return category;
+        }
+    }
 
     public string SubTitle
     {
@@ -392,7 +414,23 @@ public sealed class ScheduleListItemViewModel(
         // Refresh from state only (no DB fallback)
         RefreshSubTitleFromState();
 
-    public int CompareTo(object? obj) => obj is not ScheduleListItemViewModel other ? 1 : ScheduleId.CompareTo(other.ScheduleId);
+    public int CompareTo(object? obj)
+    {
+        if (obj is not ScheduleListItemViewModel other)
+        {
+            return 1;
+        }
+
+        var thisPlayed = Schedule?.LastPlayedAtUtc ?? DateTime.MinValue;
+        var otherPlayed = other.Schedule?.LastPlayedAtUtc ?? DateTime.MinValue;
+        var playedCompare = otherPlayed.CompareTo(thisPlayed);
+        if (playedCompare != 0)
+        {
+            return playedCompare;
+        }
+
+        return ScheduleId.CompareTo(other.ScheduleId);
+    }
 
     private void OnApplicationStateChanged(object? sender, EventArgs e)
     {
