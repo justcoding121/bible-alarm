@@ -44,9 +44,11 @@ public sealed class ScheduleListItemViewModel(
     private ScheduleListItemStateChangeApplier? stateChangeApplier;
     private ScheduleListItemStateChangeApplier StateChangeApplier => stateChangeApplier ??= new(logger, applicationState, stateHandler, propertyManager);
 
+    private const int SpinnerTimeoutSeconds = 15;
     private bool isBusy;
     private bool isNavigating;
     private bool isProcessingStateChange;
+    private CancellationTokenSource? spinnerTimeoutCts;
     private Action? onPlayStarted;
     private Action? onPlaybackStarted;
 
@@ -172,11 +174,9 @@ public sealed class ScheduleListItemViewModel(
         {
             if (Schedule?.Id > 0)
             {
-                // Set IsBusy immediately to show loading indicator
                 IsBusy = true;
-                // Notify HomeViewModel to show overlay immediately
+                StartSpinnerTimeout();
                 onPlayStarted?.Invoke();
-                // Wait 50ms to ensure overlay is visible before starting playback
                 await Task.Delay(50);
                 await playbackService.PlayScheduleAsync(Schedule.Id);
             }
@@ -517,8 +517,7 @@ public sealed class ScheduleListItemViewModel(
 
     /// <summary>
     /// Syncs IsBusy (play icon spinner) with playback state.
-    /// Spinner shows during preparation (Loading, or any transient Stopped/Paused while
-    /// auto-advancing or transitioning tracks). Hides once Playing, Failed, or fully stopped.
+    /// Clears when: (1) Play stops, (2) Modal closes, (3) Playback fails (error), (4) Different schedule playing, (5) 15s timeout.
     /// </summary>
     private void SyncIsBusyWithPlaybackState()
     {
@@ -531,35 +530,86 @@ public sealed class ScheduleListItemViewModel(
         var state = playbackState.Value;
         var isThisSchedule = state.CurrentScheduleId == scheduleId;
 
-        // Loading always means preparation in progress.
-        // IsAutoAdvancing covers transient Stopped/Paused during initial play or auto-advance
-        // (ExoPlayer briefly reports Stopped/Paused while the real track loads).
-        // IsTransitioningTrack covers user-initiated next/previous.
-        var spinnerShouldShow = isThisSchedule &&
-            state.IsPreparingOrPlaying &&
-            state.Status != PlayStatus.Playing &&
-            state.Status != PlayStatus.Failed &&
-            (state.Status == PlayStatus.Loading || state.IsAutoAdvancing || state.IsTransitioningTrack);
-
-        if (MainThread.IsMainThread)
+        if (state.Status == PlayStatus.Failed || (state.CurrentScheduleId.HasValue && state.CurrentScheduleId != scheduleId))
         {
-            ApplyBusyState(spinnerShouldShow);
+            SetIsBusy(false);
+            return;
         }
-        else
+
+        if (!isThisSchedule || !state.IsPreparingOrPlaying)
         {
-            MainThread.BeginInvokeOnMainThread(() => ApplyBusyState(spinnerShouldShow));
+            SetIsBusy(false);
+            return;
+        }
+
+        if (!IsBusy && (state.Status == PlayStatus.Loading || state.IsAutoAdvancing || state.IsTransitioningTrack))
+        {
+            SetIsBusy(true);
         }
     }
 
-    private void ApplyBusyState(bool spinnerShouldShow)
+    private void SetIsBusy(bool value)
     {
-        if (spinnerShouldShow && !IsBusy)
+        if (value == IsBusy)
         {
-            IsBusy = true;
+            return;
         }
-        else if (!spinnerShouldShow && IsBusy)
+
+        if (!value)
         {
-            IsBusy = false;
+            CancelSpinnerTimeout();
+        }
+
+        if (MainThread.IsMainThread)
+        {
+            IsBusy = value;
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = value);
+        }
+    }
+
+    private void StartSpinnerTimeout()
+    {
+        CancelSpinnerTimeout();
+        spinnerTimeoutCts = new CancellationTokenSource();
+        var cts = spinnerTimeoutCts;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(SpinnerTimeoutSeconds), cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (!cts.IsCancellationRequested && isBusy)
+                {
+                    SetIsBusy(false);
+                }
+            });
+        });
+    }
+
+    private void CancelSpinnerTimeout()
+    {
+        try
+        {
+            spinnerTimeoutCts?.Cancel();
+            spinnerTimeoutCts?.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore if already disposed
+        }
+        finally
+        {
+            spinnerTimeoutCts = null;
         }
     }
 
@@ -567,6 +617,7 @@ public sealed class ScheduleListItemViewModel(
 
     public void Dispose()
     {
+        CancelSpinnerTimeout();
         applicationState.StateChanged -= OnApplicationStateChanged;
         playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);

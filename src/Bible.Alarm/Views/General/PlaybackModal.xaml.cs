@@ -21,10 +21,8 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         BindingContext = viewModel;
         this.viewModel = viewModel;
 
-        // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
         SizeChanged += OnSizeChanged;
-        
     }
 
     private void OnSizeChanged(object? sender, EventArgs e)
@@ -51,34 +49,24 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
     private async void OnPageLoaded(object? sender, EventArgs e)
     {
-        // Only handle once per page instance
         if (hasHandledFirstLoad)
         {
             return;
         }
 
         hasHandledFirstLoad = true;
-
-        // Unsubscribe to avoid multiple calls
         Loaded -= OnPageLoaded;
 
-        // Wait a bit to ensure the modal is fully rendered and visible
         await Task.Delay(100);
 
         WireLandscapeContentEvents();
 
 #if IOS
-        // On iOS, Slider doesn't support tap-to-seek natively, so add TapGestureRecognizer
         SetupIOSTapToSeek();
-        
-        // Force layout measurement on iOS to ensure metadata Grid is properly measured
-        // This fixes an issue where metadata labels don't appear initially in portrait mode
         ForceIOSLayoutMeasurement();
 #endif
 
-        // Reveal Home behind the modal only when desired.
-        // During cold/warm-start foregrounding into an already-playing session we keep Home hidden (opacity=0)
-        // so the PlaybackModal appears directly on top without flashing the Home UI.
+        // Reveal Home behind modal when desired (e.g. sheet-style presentation).
         if (ViewModel?.RevealHomeBehindModalOnLoad == true)
         {
             viewModel?.HideHomePageOverlay();

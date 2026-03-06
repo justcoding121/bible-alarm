@@ -4,19 +4,15 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.UI;
 
 public sealed class PlaybackModalService(
     ILogger logger,
     INavigationService navigationService,
-    IState<PlaybackState> playbackState,
-    IScheduleItemStateService scheduleItemStateService,
-    IDispatcher dispatcher)
+    IState<PlaybackState> playbackState)
     : IPlaybackModalService
 {
-    private readonly IDispatcher dispatcher = dispatcher;
     private bool isModalOpen;
     private bool isDisposed;
 
@@ -82,12 +78,7 @@ public sealed class PlaybackModalService(
                 // In this entrypoint we keep Home hidden behind the modal.
                 await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: false);
                 isModalOpen = true;
-
-                // Best-effort: clear busy state if schedule is known.
-                if (state != null)
-                {
-                    scheduleItemStateService.SetScheduleItemBusyToFalse(state.CurrentScheduleId);
-                }
+                // IsBusy cleared by PlaybackModal.OnPageLoaded once rendered.
             }
             catch (Exception ex)
             {
@@ -165,16 +156,10 @@ public sealed class PlaybackModalService(
                     // before covering the home page with the modal.
                     await Task.Delay(100);
 
-                    // Hide Home page before opening modal to prevent visual flash
-                    navigationService.SetHomePageVisibility(isPlaybackActive: true);
-
-                    // Normal interactive/alarm playback: show Home behind modal once rendered.
+                    // Push modal so it overlays Home. Do NOT hide Home (SetHomePageVisibility true) here -
+                    // on iOS that makes the spinner disappear before the modal fully covers, causing a flash.
+                    // Spinner clears only via SyncIsBusyWithPlaybackState (stop/close/error/different schedule/timeout).
                     await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
-                    logger.Information("PlaybackModal opened");
-
-                    // Set IsBusy to false for the schedule item after modal is shown
-                    scheduleItemStateService.SetScheduleItemBusyToFalse(state.CurrentScheduleId);
-                    // Note: Home page overlay will be hidden when Alarm Modal Appearing event fires
                 }
                 catch (Exception ex)
                 {

@@ -299,8 +299,7 @@
                                                             IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}, FallbackValue=True}" />
                                                 </Border>
                                             </core:SfEffectsView>
-                                            <!-- Spinner only when IsBusy; wrap in Grid so it is fully removed when not busy,
-                                                 avoiding ActivityIndicator's empty circle when IsRunning becomes false. -->
+                                            <!-- Spinner only when IsBusy; wrap in Grid so it is fully removed when not busy. -->
                                             <Grid IsVisible="{Binding IsBusy, FallbackValue=False}"
                                                     WidthRequest="24"
                                                     HeightRequest="24"
