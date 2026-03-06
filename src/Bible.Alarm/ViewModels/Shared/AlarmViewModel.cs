@@ -91,7 +91,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             (p) => PauseVisible = p,
             (d) => currentDuration = d,
             (url, fallbackUrl, force) => UpdateArtwork(url, force, fallbackUrl),
-            () => { OnPropertyChanged(nameof(AreControlsEnabled)); OnPropertyChanged(nameof(IsBuffering)); },
+            () => { OnPropertyChanged(nameof(AreControlsEnabled)); OnPropertyChanged(nameof(IsBuffering)); OnPropertyChanged(nameof(IsShowProgressBarAnimation)); OnPropertyChanged(nameof(ShowArtworkSpinner)); },
             () => OnPropertyChanged(nameof(ProgressText)),
             () => OnPropertyChanged(nameof(PreparationProgress)),
             () => OnPropertyChanged(nameof(HasError)));
@@ -293,6 +293,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             if (SetProperty(ref isArtworkLoading, value))
             {
                 OnPropertyChanged(nameof(HasArtwork));
+                OnPropertyChanged(nameof(ShowArtworkSpinner));
             }
         }
     }
@@ -414,6 +415,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             {
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(IsBuffering));
+                OnPropertyChanged(nameof(IsShowProgressBarAnimation));
             }
         }
     }
@@ -434,6 +436,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             {
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(IsBuffering));
+                OnPropertyChanged(nameof(IsShowProgressBarAnimation));
+                OnPropertyChanged(nameof(ShowArtworkSpinner));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
                 OnPropertyChanged(nameof(ShowPreparingCard));
                 OnPropertyChanged(nameof(ShowMainPlayerContent));
@@ -463,6 +467,16 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         !IsStopping &&
         playbackState.Value.Status == PlayStatus.Loading;
 
+    /// <summary>True when progress bar animation should show: buffering or track transition (Next/Previous fetch).</summary>
+    public bool IsShowProgressBarAnimation =>
+        !IsPreparing &&
+        !HasError &&
+        !IsStopping &&
+        (playbackState.Value.Status == PlayStatus.Loading || playbackState.Value.IsTransitioningTrack);
+
+    /// <summary>True when artwork area should show spinner: transitioning track or loading artwork. Bell only when false and !HasArtwork.</summary>
+    public bool ShowArtworkSpinner => playbackState.Value.IsTransitioningTrack || IsArtworkLoading;
+
     /// <summary>Controls enabled when state received, not preparing, no error, not busy.</summary>
     public bool AreControlsEnabled =>
         stateUpdater.HasReceivedInitialState &&
@@ -491,6 +505,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                 OnPropertyChanged(nameof(HasError));
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(IsBuffering));
+                OnPropertyChanged(nameof(IsShowProgressBarAnimation));
+                OnPropertyChanged(nameof(ShowArtworkSpinner));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
                 OnPropertyChanged(nameof(ShowPreparingCard));
                 OnPropertyChanged(nameof(ShowMainPlayerContent));

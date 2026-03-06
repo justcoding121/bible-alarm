@@ -241,26 +241,19 @@
                             VerticalOptions="Center"
                             WidthRequest="{DynamicResource ContentWidthLarge}"
                             HeightRequest="{DynamicResource ContentWidthLarge}">
-                            <!-- Busy Indicator for loading artwork -->
-                            <Grid
-                                IsVisible="{Binding IsArtworkLoading}"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center"
+                            <!-- Busy Indicator for loading artwork or transitioning track -->
+                            <ActivityIndicator
+                                IsRunning="{Binding ShowArtworkSpinner}"
+                                IsVisible="{Binding ShowArtworkSpinner}"
+                                Color="{StaticResource PrimaryColor}"
+                                WidthRequest="{DynamicResource IconLargeContainerSize}"
                                 HeightRequest="{DynamicResource IconLargeContainerSize}"
-                                WidthRequest="{DynamicResource IconLargeContainerSize}">
-                                <core:SfBusyIndicator
-                                    IsRunning="{Binding IsArtworkLoading}"
-                                    AnimationType="DoubleCircle"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    HeightRequest="{DynamicResource IconLargeContainerSize}"
-                                    WidthRequest="{DynamicResource IconLargeContainerSize}"
-                                    IndicatorColor="{StaticResource PrimaryColor}" />
-                            </Grid>
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
                             
-                            <!-- Album Artwork or Bell Icon -->
+                            <!-- Album Artwork or Bell Icon (spinner hidden; bell only when artwork fetch failed) -->
                             <Border
-                                IsVisible="{Binding IsArtworkLoading, Converter={StaticResource negateBooleanConverter}}"
+                                IsVisible="{Binding ShowArtworkSpinner, Converter={StaticResource negateBooleanConverter}}"
                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                 StrokeThickness="0"
                                 HorizontalOptions="Fill"
@@ -451,7 +444,7 @@
                             Text="{Binding CurrentTime}"
                             Style="{StaticResource ControlLabelTextColorStyle}"
                             VerticalOptions="Center" />
-                        <!-- Slider (hidden when buffering) -->
+                        <!-- Slider (hidden when buffering or transitioning track) -->
                         <Slider
                             Grid.Column="1"
                             x:Name="ProgressSlider"
@@ -460,17 +453,17 @@
                             Minimum="0"
                             Maximum="1"
                             IsEnabled="{Binding AreControlsEnabled}"
-                            IsVisible="{Binding IsBuffering, Converter={StaticResource negateBooleanConverter}}"
+                            IsVisible="{Binding IsShowProgressBarAnimation, Converter={StaticResource negateBooleanConverter}}"
                             Value="{Binding Progress}"
                             ValueChanged="OnSliderValueChanged"
                             DragStarted="OnSliderDragStarted"
                             DragCompleted="OnSliderDragCompleted"
                             Style="{StaticResource ControlSliderStyle}"
                             MaximumTrackColor="{DynamicResource ProgressBarBackgroundColor}" />
-                        <!-- Animated progress bar shown during buffering -->
+                        <!-- Animated progress bar shown during buffering or track transition -->
                         <sharedViews:AnimatedProgressBar
                             Grid.Column="1"
-                            IsVisible="{Binding IsBuffering}"
+                            IsVisible="{Binding IsShowProgressBarAnimation}"
                             HorizontalOptions="Fill"
                             VerticalOptions="Center"
                             Margin="0" />

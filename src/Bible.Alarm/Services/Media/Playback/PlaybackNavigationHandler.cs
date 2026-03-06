@@ -51,6 +51,8 @@ public sealed class PlaybackNavigationHandler
             return;
         }
 
+        dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+
         var currentTrackIndex = getCurrentTrackIndex();
         if (currentTrackIndex < playlist.Count - 1)
         {
@@ -110,11 +112,13 @@ public sealed class PlaybackNavigationHandler
 
             // Append failed (catalog/download error) - show error in modal with retry
             logger.Warning("PlayNextAsync: Failed to extend playlist for indefinite playback. Showing error in modal.");
+            dispatcher.Dispatch(new PlaybackTrackTransitionEndedAction());
             await handlePlaybackFailureAsync();
             return;
         }
 
         // Finite playback: stop and dismiss when user tries to go past the end.
+        dispatcher.Dispatch(new PlaybackTrackTransitionEndedAction());
         await stopPlaybackAsync();
     }
 
@@ -134,6 +138,8 @@ public sealed class PlaybackNavigationHandler
         {
             return;
         }
+
+        dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
 
         var currentTrackIndex = getCurrentTrackIndex();
         if (currentTrackIndex > 0)
@@ -183,6 +189,7 @@ public sealed class PlaybackNavigationHandler
 
             // Prepend failed (catalog/download error) - show error in modal with retry
             logger.Warning("PlayPreviousAsync: Failed to extend playlist backward. Showing error in modal.");
+            dispatcher.Dispatch(new PlaybackTrackTransitionEndedAction());
             await handlePlaybackFailureAsync();
         }
     }

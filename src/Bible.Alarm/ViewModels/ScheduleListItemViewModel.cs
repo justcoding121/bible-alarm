@@ -163,6 +163,9 @@ public sealed class ScheduleListItemViewModel(
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
 
+        // Sync IsBusy with current playback state (handles car-initiated playback before app open)
+        SyncIsBusyWithPlaybackState();
+
         // Subscribe to theme changes to update day button colors
         WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this, (r, m) => OnThemeChanged());
 
@@ -532,21 +535,39 @@ public sealed class ScheduleListItemViewModel(
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
-        var state = playbackState.Value;
+        SyncIsBusyWithPlaybackState();
+    }
+
+    /// <summary>
+    /// Syncs IsBusy (play icon spinner) with playback state.
+    /// Spinner shows when: user clicked play, or this schedule is preparing/playing from car or elsewhere.
+    /// Spinner hides when: another schedule is current, or this schedule is no longer loading/transitioning.
+    /// </summary>
+    private void SyncIsBusyWithPlaybackState()
+    {
         var scheduleId = ScheduleId;
         if (scheduleId <= 0)
         {
             return;
         }
 
+        var state = playbackState.Value;
         var isThisSchedulePlaying = state.CurrentScheduleId == scheduleId;
-        // Spinner should end when: another schedule is current, or this schedule is no longer "loading"
-        var spinnerShouldEnd = !isThisSchedulePlaying || state.Status != PlayStatus.Loading;
+        var isPreparingOrTransitioning = state.Status == PlayStatus.Loading || state.IsTransitioningTrack;
+        var spinnerShouldShow = isThisSchedulePlaying && isPreparingOrTransitioning;
+        var spinnerShouldEnd = !spinnerShouldShow;
 
-        if (IsBusy && spinnerShouldEnd)
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
-        }
+            if (spinnerShouldShow && !IsBusy)
+            {
+                IsBusy = true;
+            }
+            else if (spinnerShouldEnd && IsBusy)
+            {
+                IsBusy = false;
+            }
+        });
     }
 
     private void OnThemeChanged() => MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(This)));

@@ -53,6 +53,9 @@ public sealed class PlaybackEventHandler
             var nextTrack = playlist[nextTrackIndex];
             var isNextTrackBible = nextTrack.PlayItem?.Metadata?.PlayType == PlayType.Bible;
 
+            // Signal track transition immediately so the UI shows progress animation
+            dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+
             // Set auto-advancing flag before transitioning to next track
             // This keeps the pause button visible during the transition
             logger.Information(
@@ -86,6 +89,7 @@ public sealed class PlaybackEventHandler
 
                 if (canAdvance)
                 {
+                    dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
                     dispatcher.Dispatch(new SetAutoAdvancingAction(true));
 
                     var nextTrackIndex = currentTrackIndex + 1;
@@ -137,6 +141,9 @@ public sealed class PlaybackEventHandler
 
         if (playlist is not null && currentTrackIndex < playlist.Count - 1)
         {
+            // Signal track transition immediately so the UI shows progress animation
+            dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+
             // Set auto-advancing flag before transitioning to next track
             logger.Information(
                 "[PlaybackService] OnMediaFailed: Dispatching SetAutoAdvancingAction(true) for automatic next track after failure - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
@@ -163,6 +170,7 @@ public sealed class PlaybackEventHandler
                 var appended = await tryAppendNextTrackAsync();
                 if (appended && playlist is not null && currentTrackIndex < playlist.Count - 1)
                 {
+                    dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
                     dispatcher.Dispatch(new SetAutoAdvancingAction(true));
                     var nextTrackIndex = currentTrackIndex + 1;
                     setCurrentTrackIndex(nextTrackIndex);

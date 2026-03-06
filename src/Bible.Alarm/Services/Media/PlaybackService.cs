@@ -369,26 +369,28 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     private async Task PlayCurrentTrackAsync(bool startFromBeginning = false)
     {
-        if (stateManager.Playlist == null || stateManager.CurrentTrackIndex < 0 || stateManager.CurrentTrackIndex >= stateManager.Playlist.Count)
+        try
         {
-            logger.Warning("Cannot play track: playlist is null or track index {TrackIndex} is out of range (playlist count: {PlaylistCount})",
-                stateManager.CurrentTrackIndex,
-                stateManager.Playlist?.Count ?? 0);
-            return;
-        }
+            if (stateManager.Playlist == null || stateManager.CurrentTrackIndex < 0 || stateManager.CurrentTrackIndex >= stateManager.Playlist.Count)
+            {
+                logger.Warning("Cannot play track: playlist is null or track index {TrackIndex} is out of range (playlist count: {PlaylistCount})",
+                    stateManager.CurrentTrackIndex,
+                    stateManager.Playlist?.Count ?? 0);
+                return;
+            }
 
-        var track = stateManager.Playlist[stateManager.CurrentTrackIndex];
+            var track = stateManager.Playlist[stateManager.CurrentTrackIndex];
 
-        // Ensure the track has a playable URI (cached file or CDN URL for streaming).
-        var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
-        var prepared = await trackOnDemandPreparer.EnsureTrackPreparedAsync(track, token);
-        if (!prepared)
-        {
-            await HandlePlaybackFailureAsync();
-            return;
-        }
+            // Ensure the track has a playable URI (cached file or CDN URL for streaming).
+            var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
+            var prepared = await trackOnDemandPreparer.EnsureTrackPreparedAsync(track, token);
+            if (!prepared)
+            {
+                await HandlePlaybackFailureAsync();
+                return;
+            }
 
-        var success = await trackPlaybackHandler.PlayTrackAsync(
+            var success = await trackPlaybackHandler.PlayTrackAsync(
             track,
             stateManager.CurrentTrackIndex,
             startFromBeginning,
@@ -398,28 +400,33 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             isPreparing => stateManager.IsPreparingTrack = isPreparing,
             stateManager.PlayedBibleTrackKeys);
 
-        if (!success)
-        {
-            // Track playback failed - handle failure
-            await HandlePlaybackFailureAsync();
-            return;
-        }
+            if (!success)
+            {
+                // Track playback failed - handle failure
+                await HandlePlaybackFailureAsync();
+                return;
+            }
 
-        // Fire-and-forget: pre-download the next track in background for caching + artwork.
-        _ = Task.Run(async () =>
+            // Fire-and-forget: pre-download the next track in background for caching + artwork.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await trackOnDemandPreparer.PreDownloadNextTrackAsync(
+                        stateManager.Playlist!,
+                        stateManager.CurrentTrackIndex,
+                        stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    logger.Debug(ex, "Background pre-download of next track failed (non-critical)");
+                }
+            });
+        }
+        finally
         {
-            try
-            {
-                await trackOnDemandPreparer.PreDownloadNextTrackAsync(
-                    stateManager.Playlist!,
-                    stateManager.CurrentTrackIndex,
-                    stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, "Background pre-download of next track failed (non-critical)");
-            }
-        });
+            dispatcher.Dispatch(new PlaybackTrackTransitionEndedAction());
+        }
     }
 
     private IFetchProgress CreateSectionFetchProgressReporter()

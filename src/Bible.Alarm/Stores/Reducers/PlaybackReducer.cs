@@ -29,7 +29,8 @@ public static class PlaybackReducer
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
             defaultScheduleArtworkUrl: scheduleChanged ? null : state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing);
+            isAutoAdvancing: state.IsAutoAdvancing,
+            isTransitioningTrack: state.IsTransitioningTrack);
     }
 
     [ReducerMethod]
@@ -52,7 +53,8 @@ public static class PlaybackReducer
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
             defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: false);
+            isAutoAdvancing: false,
+            isTransitioningTrack: false);
     }
 
     [ReducerMethod]
@@ -75,7 +77,8 @@ public static class PlaybackReducer
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
             defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing);
+            isAutoAdvancing: state.IsAutoAdvancing,
+            isTransitioningTrack: state.IsTransitioningTrack);
     }
 
     [ReducerMethod]
@@ -132,7 +135,8 @@ public static class PlaybackReducer
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
             defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: isAutoAdvancing);
+            isAutoAdvancing: isAutoAdvancing,
+            isTransitioningTrack: state.IsTransitioningTrack);
     }
 
     [ReducerMethod]
@@ -155,7 +159,8 @@ public static class PlaybackReducer
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
             defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing);
+            isAutoAdvancing: state.IsAutoAdvancing,
+            isTransitioningTrack: state.IsTransitioningTrack);
     }
 
     [ReducerMethod]
@@ -178,7 +183,8 @@ public static class PlaybackReducer
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
             defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing);
+            isAutoAdvancing: state.IsAutoAdvancing,
+            isTransitioningTrack: state.IsTransitioningTrack);
     }
 
     [ReducerMethod]
@@ -202,7 +208,8 @@ public static class PlaybackReducer
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
             defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing);
+            isAutoAdvancing: state.IsAutoAdvancing,
+            isTransitioningTrack: state.IsTransitioningTrack);
     }
 
     [ReducerMethod]
@@ -225,7 +232,8 @@ public static class PlaybackReducer
             defaultScheduleArtist: action.Artist,
             defaultScheduleAlbum: action.Album,
             defaultScheduleArtworkUrl: action.ArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing);
+            isAutoAdvancing: state.IsAutoAdvancing,
+            isTransitioningTrack: state.IsTransitioningTrack);
     }
 
     [ReducerMethod]
@@ -261,7 +269,56 @@ public static class PlaybackReducer
             defaultScheduleArtist: state.DefaultScheduleArtist,
             defaultScheduleAlbum: state.DefaultScheduleAlbum,
             defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: isAutoAdvancing);
+            isAutoAdvancing: isAutoAdvancing,
+            isTransitioningTrack: state.IsTransitioningTrack);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnPlaybackTrackTransitionStarted(PlaybackState state, PlaybackTrackTransitionStartedAction action)
+    {
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            duration: state.Duration,
+            errorMessage: state.ErrorMessage,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: state.IsAutoAdvancing,
+            isTransitioningTrack: true);
+    }
+
+    [ReducerMethod]
+    public static PlaybackState OnPlaybackTrackTransitionEnded(PlaybackState state, PlaybackTrackTransitionEndedAction action)
+    {
+        return new PlaybackState(
+            currentScheduleId: state.CurrentScheduleId,
+            isPreparingOrPlaying: state.IsPreparingOrPlaying,
+            canPlayNext: state.CanPlayNext,
+            canPlayPrevious: state.CanPlayPrevious,
+            status: state.Status,
+            title: state.Title,
+            artist: state.Artist,
+            album: state.Album,
+            artworkUrl: state.ArtworkUrl,
+            duration: state.Duration,
+            errorMessage: state.ErrorMessage,
+            defaultScheduleId: state.DefaultScheduleId,
+            defaultScheduleTitle: state.DefaultScheduleTitle,
+            defaultScheduleArtist: state.DefaultScheduleArtist,
+            defaultScheduleAlbum: state.DefaultScheduleAlbum,
+            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
+            isAutoAdvancing: state.IsAutoAdvancing,
+            isTransitioningTrack: false);
     }
 }
 

@@ -22,7 +22,8 @@ public sealed class PlaybackState(
     string? defaultScheduleArtist = null,
     string? defaultScheduleAlbum = null,
     string? defaultScheduleArtworkUrl = null,
-    bool isAutoAdvancing = false)
+    bool isAutoAdvancing = false,
+    bool isTransitioningTrack = false)
 {
     public int? CurrentScheduleId { get; init; } = currentScheduleId;
     public bool IsPreparingOrPlaying { get; init; } = isPreparingOrPlaying;
@@ -55,7 +56,10 @@ public sealed class PlaybackState(
     // Auto-advancing flag: true when transitioning between tracks automatically (not user-initiated pause)
     public bool IsAutoAdvancing { get; init; } = isAutoAdvancing;
 
-    public PlaybackState() : this(null, false, false, false, PlayStatus.Stopped, null, null, null, null, TimeSpan.Zero, null, null, null, null, null, null, false)
+    /// <summary>True when Next/Previous was pressed and we are fetching/preparing the new track. Enables immediate progress bar animation.</summary>
+    public bool IsTransitioningTrack { get; init; } = isTransitioningTrack;
+
+    public PlaybackState() : this(null, false, false, false, PlayStatus.Stopped, null, null, null, null, TimeSpan.Zero, null, null, null, null, null, null, false, false)
     {
     }
 }
