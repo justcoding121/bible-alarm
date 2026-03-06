@@ -21,6 +21,11 @@ public interface IAudioPlayer : IDisposable
     Task SeekToAsync(TimeSpan position);
 
     /// <summary>
+    /// Mutes or unmutes playback. Used during seek-to-resume to avoid audible audio before seek completes.
+    /// </summary>
+    Task SetMutedAsync(bool muted);
+
+    /// <summary>
     /// Syncs playback metadata for the given track to Fluxor/MediaSession (e.g. so Android Auto Now Playing shows correct title after track change).
     /// </summary>
     Task SyncMetadataForTrackAsync(AudioPlayerTrack track);

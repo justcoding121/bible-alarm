@@ -148,18 +148,28 @@ public sealed class PlaybackModalService(
         {
             true when !isModalOpen => MainThread.InvokeOnMainThreadAsync(async () =>
             {
+                if (isModalOpen)
+                {
+                    return;
+                }
+
+                isModalOpen = true;
+
                 try
                 {
                     logger.Information(
                         "PlaybackState changed - showing PlaybackModal (Status={Status})",
                         state.Status);
 
+                    // Yield to allow the schedule list item spinner (IsBusy) to render
+                    // before covering the home page with the modal.
+                    await Task.Delay(100);
+
                     // Hide Home page before opening modal to prevent visual flash
                     navigationService.SetHomePageVisibility(isPlaybackActive: true);
 
                     // Normal interactive/alarm playback: show Home behind modal once rendered.
                     await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
-                    isModalOpen = true;
                     logger.Information("PlaybackModal opened");
 
                     // Set IsBusy to false for the schedule item after modal is shown

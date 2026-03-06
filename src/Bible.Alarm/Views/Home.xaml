@@ -299,18 +299,22 @@
                                                             IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}, FallbackValue=True}" />
                                                 </Border>
                                             </core:SfEffectsView>
-                                            <!-- Spinner only when IsBusy; explicit size so it always gets layout space -->
-                                            <ActivityIndicator
-                                                    IsRunning="{Binding IsBusy}"
-                                                    IsVisible="{Binding IsBusy, FallbackValue=False}"
-                                                    Color="White"
+                                            <!-- Spinner only when IsBusy; wrap in Grid so it is fully removed when not busy,
+                                                 avoiding ActivityIndicator's empty circle when IsRunning becomes false. -->
+                                            <Grid IsVisible="{Binding IsBusy, FallbackValue=False}"
                                                     WidthRequest="24"
                                                     HeightRequest="24"
-                                                    MinimumWidthRequest="24"
-                                                    MinimumHeightRequest="24"
                                                     VerticalOptions="Center"
-                                                    HorizontalOptions="Center"
-                                                    Opacity="0.95" />
+                                                    HorizontalOptions="Center">
+                                                <ActivityIndicator
+                                                        IsRunning="True"
+                                                        Color="White"
+                                                        WidthRequest="24"
+                                                        HeightRequest="24"
+                                                        VerticalOptions="Center"
+                                                        HorizontalOptions="Center"
+                                                        Opacity="0.95" />
+                                            </Grid>
                                         </Grid>
                                         
                                         <!-- Row 1, Column 2: Time and days with progress indicator -->

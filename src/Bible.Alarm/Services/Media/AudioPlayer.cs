@@ -174,6 +174,8 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 
     public Task SeekToAsync(TimeSpan position) => playbackController.SeekToAsync(position);
 
+    public Task SetMutedAsync(bool muted) => playbackController.SetMutedAsync(muted);
+
     public Task SyncMetadataForTrackAsync(AudioPlayerTrack track) => metadataHandler.SyncMetadataForTrackAsync(track);
 
 

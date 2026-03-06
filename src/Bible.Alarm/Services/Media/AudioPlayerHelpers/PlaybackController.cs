@@ -99,6 +99,15 @@ public class PlaybackController
 
     public Task PauseAsync() => MainThread.InvokeOnMainThreadAsync(() => getMediaElement()?.Pause());
 
+    public Task SetMutedAsync(bool muted) => MainThread.InvokeOnMainThreadAsync(() =>
+    {
+        var mediaElement = getMediaElement();
+        if (mediaElement != null)
+        {
+            mediaElement.ShouldMute = muted;
+        }
+    });
+
     public Task ResumeAsync() => MainThread.InvokeOnMainThreadAsync(() => getMediaElement()?.Play());
 
     public Task StopAsync()

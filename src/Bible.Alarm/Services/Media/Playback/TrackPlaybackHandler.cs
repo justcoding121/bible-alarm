@@ -225,16 +225,21 @@ public sealed class TrackPlaybackHandler
         logger.Debug("[iOS Playback] Position BEFORE PlayAsync: {Position}", positionBeforePlay);
 #endif
 
+        // When we need to seek to saved progress, mute before play so the user doesn't hear
+        // audio from the beginning before the seek completes. Unmute after seek.
+        if (seekPosition.HasValue)
+        {
+            await audioPlayer.SetMutedAsync(true);
+        }
+
         await audioPlayer.PlayAsync();
 
-        // On iOS and Android, wait a bit for playback to actually start
-        // MediaElement may need time to transition to Playing state
-        // On Android, this is especially important when transitioning from music to Bible track
-        // because SetSourceWithDummyQueue may need time to fully configure ExoPlayer
+        // On iOS and Android, wait for playback to start so seekable ranges are available.
+        // When seeking to resume: we muted above so no audible audio during this wait or the seek.
 #if IOS || ANDROID
-        await Task.Delay(300);
+        await Task.Delay(100);
         var positionAfterPlay = audioPlayer.CurrentPosition;
-        logger.Debug("[Playback] Position AFTER PlayAsync (after 300ms): {Position}", positionAfterPlay);
+        logger.Debug("[Playback] Position AFTER PlayAsync (after 100ms): {Position}", positionAfterPlay);
 
         // On iOS and Android, seek AFTER play starts - seekable ranges are more reliable once playing
         // On Android, this is critical when transitioning from music to Bible track because
@@ -253,13 +258,24 @@ public sealed class TrackPlaybackHandler
 
         if (seekPosition.HasValue)
         {
-            logger.Debug("[Resume] Seeking AFTER play started to position: {Position}", seekPosition.Value);
-            await SeekWithRetryAsync(seekPosition.Value);
+            try
+            {
+                logger.Debug("[Resume] Seeking AFTER play started to position: {Position}", seekPosition.Value);
+                await SeekWithRetryAsync(seekPosition.Value);
 
-            // Verify final position
-            await Task.Delay(100);
-            var finalPosition = audioPlayer.CurrentPosition;
-            logger.Debug("[Resume] Final position after seek: {Position}", finalPosition);
+                // Verify final position
+                await Task.Delay(100);
+                var finalPosition = audioPlayer.CurrentPosition;
+                logger.Debug("[Resume] Final position after seek: {Position}", finalPosition);
+            }
+            finally
+            {
+                await audioPlayer.SetMutedAsync(false);
+            }
+        }
+        else
+        {
+            await audioPlayer.SetMutedAsync(false);
         }
 #endif
 

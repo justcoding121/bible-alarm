@@ -33,6 +33,9 @@ public class AlarmViewModalStateUpdater
     private string? previousTrackArtist;
     private string? previousTrackAlbum;
     private string? previousArtworkUrl;
+    private bool previousIsTransitioningTrack;
+    private PlayStatus previousStatus;
+    private bool hasReachedPlayingForCurrentTrack;
 
     public AlarmViewModalStateUpdater(
         ILogger logger,
@@ -93,6 +96,7 @@ public class AlarmViewModalStateUpdater
         if (trackChanged)
         {
             hasReceivedInitialState = false;
+            hasReachedPlayingForCurrentTrack = false;
             notifyControlsEnabledChanged();
         }
 
@@ -142,12 +146,32 @@ public class AlarmViewModalStateUpdater
         var fallbackUrl = inPlayback
             ? null
             : (state.ArtworkUrl != null ? state.DefaultScheduleArtworkUrl : null);
-        var shouldForceUpdate = trackChanged || (previousArtworkUrl != artworkUrl);
+
+        // Re-apply artwork when: track changed, URL changed, transition just ended, or status first became Playing.
+        // - Transition ended: async artwork may have arrived during IsTransitioningTrack when the UI missed it.
+        // - Status -> Playing (first time only): async artwork may have arrived during Loading; re-apply when playback starts.
+        //   Excludes Loading->Playing from seek buffering; hasReachedPlayingForCurrentTrack resets on track change.
+        var transitionJustEnded = previousIsTransitioningTrack && !state.IsTransitioningTrack;
+        var statusFirstBecamePlaying = !hasReachedPlayingForCurrentTrack &&
+            previousStatus != PlayStatus.Playing &&
+            state.Status == PlayStatus.Playing;
+        if (state.Status == PlayStatus.Playing)
+        {
+            hasReachedPlayingForCurrentTrack = true;
+        }
+
+        var shouldForceUpdate = trackChanged ||
+            (previousArtworkUrl != artworkUrl) ||
+            transitionJustEnded ||
+            (statusFirstBecamePlaying && !string.IsNullOrEmpty(artworkUrl));
         if (shouldForceUpdate)
         {
             previousArtworkUrl = artworkUrl;
-            updateArtwork(artworkUrl, fallbackUrl, trackChanged);
+            updateArtwork(artworkUrl, fallbackUrl, trackChanged || transitionJustEnded || statusFirstBecamePlaying);
         }
+
+        previousIsTransitioningTrack = state.IsTransitioningTrack;
+        previousStatus = state.Status;
     }
 
     public void UpdatePlaybackStateFromState(PlaybackState state)

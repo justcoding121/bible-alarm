@@ -21,8 +21,8 @@ alwaysApply: false
   - Only the **first** main-content `PlayItem` gets a non-zero `FinishedDuration` seeded into its metadata when building the playlist (from `BiblePublicationSchedule.FinishedDuration`), so “resume” applies to that first main-content track (not the injected music track).
 
 - **How seek is applied**:
-  - non-iOS: seek **before** `PlayAsync`
-  - iOS: seek **after** `PlayAsync` using retry logic (`SeekWithRetryAsync`) because seekable ranges may not be ready immediately
+  - non-iOS/Android (e.g. Windows): seek **before** `PlayAsync`
+  - iOS/Android: seek **after** `PlayAsync` using retry logic (`SeekWithRetryAsync`) because seekable ranges may not be ready immediately. To avoid audible audio from the beginning before the seek completes, playback is **muted** before `PlayAsync`, then **unmuted** after the seek finishes (or if seek is skipped, e.g. validation).
 
 - **Navigation overrides**:
   - manual **Previous**: always `startFromBeginning=true`

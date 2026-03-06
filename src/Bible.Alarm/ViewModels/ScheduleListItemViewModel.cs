@@ -540,8 +540,8 @@ public sealed class ScheduleListItemViewModel(
 
     /// <summary>
     /// Syncs IsBusy (play icon spinner) with playback state.
-    /// Spinner shows when: user clicked play, or this schedule is preparing/playing from car or elsewhere.
-    /// Spinner hides when: another schedule is current, or this schedule is no longer loading/transitioning.
+    /// Spinner shows during preparation (Loading, or any transient Stopped/Paused while
+    /// auto-advancing or transitioning tracks). Hides once Playing, Failed, or fully stopped.
     /// </summary>
     private void SyncIsBusyWithPlaybackState()
     {
@@ -552,22 +552,44 @@ public sealed class ScheduleListItemViewModel(
         }
 
         var state = playbackState.Value;
-        var isThisSchedulePlaying = state.CurrentScheduleId == scheduleId;
-        var isPreparingOrTransitioning = state.Status == PlayStatus.Loading || state.IsTransitioningTrack;
-        var spinnerShouldShow = isThisSchedulePlaying && isPreparingOrTransitioning;
-        var spinnerShouldEnd = !spinnerShouldShow;
+        var isThisSchedule = state.CurrentScheduleId == scheduleId;
 
-        MainThread.BeginInvokeOnMainThread(() =>
+        // Loading always means preparation in progress.
+        // IsAutoAdvancing covers transient Stopped/Paused during initial play or auto-advance
+        // (ExoPlayer briefly reports Stopped/Paused while the real track loads).
+        // IsTransitioningTrack covers user-initiated next/previous.
+        var spinnerShouldShow = isThisSchedule &&
+            state.IsPreparingOrPlaying &&
+            state.Status != PlayStatus.Playing &&
+            state.Status != PlayStatus.Failed &&
+            (state.Status == PlayStatus.Loading || state.IsAutoAdvancing || state.IsTransitioningTrack);
+
+        logger.Debug(
+            "SyncIsBusy: Schedule={ScheduleId}, Status={Status}, IsAuto={IsAuto}, " +
+            "IsTransition={IsTransition}, Show={Show}, CurrentBusy={Busy}",
+            scheduleId, state.Status, state.IsAutoAdvancing,
+            state.IsTransitioningTrack, spinnerShouldShow, IsBusy);
+
+        if (MainThread.IsMainThread)
         {
-            if (spinnerShouldShow && !IsBusy)
-            {
-                IsBusy = true;
-            }
-            else if (spinnerShouldEnd && IsBusy)
-            {
-                IsBusy = false;
-            }
-        });
+            ApplyBusyState(spinnerShouldShow);
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(() => ApplyBusyState(spinnerShouldShow));
+        }
+    }
+
+    private void ApplyBusyState(bool spinnerShouldShow)
+    {
+        if (spinnerShouldShow && !IsBusy)
+        {
+            IsBusy = true;
+        }
+        else if (!spinnerShouldShow && IsBusy)
+        {
+            IsBusy = false;
+        }
     }
 
     private void OnThemeChanged() => MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(This)));

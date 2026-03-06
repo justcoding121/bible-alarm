@@ -107,5 +107,24 @@ The media index is bundled with the app in `index.zip`. The app **never** runs E
 - **Version change**: Preferences version ≠ current app version → force copy (replace `mediaIndex.db` with fresh extraction from `index.zip`), save new version
 
 The bundled database always has the latest schema; upgrades are handled by replacing the file, not migrating.
-- On most runs, **no migrations are applied** at runtime for the media index; it’s replaced by app update.
+- On most runs, **no migrations are applied** at runtime for the media index; it's replaced by app update.
+
+---
+
+## Regenerating the language list (for store descriptions)
+
+To refresh the Bible language list from the current media index (e.g. after re-running the cataloger):
+
+```bash
+dotnet run --project .tools/Bible.Alarm.DbMigration -- list-bible-languages
+```
+
+Optional: pass a path to `index.zip` or the folder containing `mediaIndex.db`:
+
+```bash
+dotnet run --project .tools/Bible.Alarm.DbMigration -- list-bible-languages "c:\path\to\.tools\_index"
+```
+
+Use the output to update the language list in `.docs/android-store-description.md`, `.docs/ios-store-description.md`, and `.docs/windows-store-description.md`.
+
 
