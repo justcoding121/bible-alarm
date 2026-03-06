@@ -136,8 +136,6 @@ public sealed class ScheduleListItemViewModel(
             OnPropertyChanged(nameof(MusicEnabled));
             // Notify 'This' to trigger converters that bind to the entire ViewModel (e.g., dayColorConverter, dayBackgroundColorConverter)
             OnPropertyChanged(nameof(This));
-            logger.Debug("ScheduleListItemViewModel: InitializeCommon - Notified all properties including This. ScheduleId={ScheduleId}, DaysOfWeek={DaysOfWeek}",
-                Schedule?.Id ?? 0, Schedule?.DaysOfWeek ?? 0);
         });
         // Note: SubTitle and Language will be set by RefreshSubTitleFromState() below
 
@@ -451,20 +449,12 @@ public sealed class ScheduleListItemViewModel(
         // Prevent re-entrant calls to avoid cycles
         if (isProcessingStateChange)
         {
-            logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - Already processing state change for schedule {ScheduleId}, skipping", schedule.Id);
             return;
         }
-
-        logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, CurrentPublicationCode: {PublicationCode}, CurrentSectionCode: {SectionCode}, CurrentTrackCode: {TrackCode}",
-            schedule.Id,
-            schedule.BiblePublicationSchedule?.PublicationCode ?? "null",
-            schedule.BiblePublicationSchedule?.SectionCode ?? "null",
-            schedule.BiblePublicationSchedule?.TrackCode.ToString() ?? "null");
 
         var changeInfo = stateHandler.HandleApplicationStateChanged(schedule.Id, schedule);
         if (changeInfo == null)
         {
-            logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - No change info returned for schedule {ScheduleId}", schedule.Id);
             return;
         }
 
@@ -479,14 +469,8 @@ public sealed class ScheduleListItemViewModel(
 
         if (!hasAnyChanges)
         {
-            logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - No actual changes detected for schedule {ScheduleId}, skipping update", schedule.Id);
             return;
         }
-
-        logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, AnyBibleSchedulePropertyChanged: {AnyBibleSchedulePropertyChanged}, TrackTitleChanged: {TrackTitleChanged}, SectionNameChanged: {SectionNameChanged}, NewTrackTitle: '{NewTrackTitle}', NewSectionName: '{NewSectionName}'",
-            schedule.Id, changeInfo.AnyBibleSchedulePropertyChanged,
-            changeInfo.TrackTitleChanged, changeInfo.SectionNameChanged,
-            changeInfo.NewTrackTitle ?? "null", changeInfo.NewSectionName ?? "null");
 
         // Store old DaysOfWeek before updating to ensure we can detect changes
         var oldDaysOfWeek = schedule.DaysOfWeek;
@@ -517,19 +501,12 @@ public sealed class ScheduleListItemViewModel(
         var updatedSchedule = changeInfo.UpdatedSchedule;
         if (!changeInfo.DaysOfWeekChanged && updatedSchedule != null && updatedSchedule.DaysOfWeek != oldDaysOfWeek)
         {
-            logger.Debug("ScheduleListItemViewModel: DaysOfWeek changed but not detected by comparison. Old: {OldDaysOfWeek}, New: {NewDaysOfWeek}. Forcing property change.",
-                oldDaysOfWeek, updatedSchedule.DaysOfWeek);
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 OnPropertyChanged(nameof(DaysOfWeek));
                 // Also notify 'This' to trigger converters that bind to the entire ViewModel
                 OnPropertyChanged(nameof(This));
             });
-        }
-        else if (changeInfo.DaysOfWeekChanged)
-        {
-            logger.Debug("ScheduleListItemViewModel: DaysOfWeek change was detected. Old: {OldDaysOfWeek}, New: {NewDaysOfWeek}.",
-                oldDaysOfWeek, Schedule?.DaysOfWeek ?? 0);
         }
     }
 
@@ -563,12 +540,6 @@ public sealed class ScheduleListItemViewModel(
             state.Status != PlayStatus.Playing &&
             state.Status != PlayStatus.Failed &&
             (state.Status == PlayStatus.Loading || state.IsAutoAdvancing || state.IsTransitioningTrack);
-
-        logger.Debug(
-            "SyncIsBusy: Schedule={ScheduleId}, Status={Status}, IsAuto={IsAuto}, " +
-            "IsTransition={IsTransition}, Show={Show}, CurrentBusy={Busy}",
-            scheduleId, state.Status, state.IsAutoAdvancing,
-            state.IsTransitioningTrack, spinnerShouldShow, IsBusy);
 
         if (MainThread.IsMainThread)
         {

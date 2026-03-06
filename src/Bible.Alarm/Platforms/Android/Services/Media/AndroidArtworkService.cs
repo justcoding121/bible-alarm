@@ -30,25 +30,20 @@ public class AndroidArtworkService : IAndroidArtworkService
                 {
                     filePath = new Uri(artworkUrl).LocalPath;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    logger.Debug(ex, "Failed to convert file:// URI to local path: {ArtworkUrl}", artworkUrl);
                     return null;
                 }
             }
 
-            // Check if file exists
             if (!File.Exists(filePath))
             {
-                logger.Debug("Artwork file does not exist: {FilePath}", filePath);
                 return null;
             }
 
-            // Load bitmap from file
             var bitmap = BitmapFactory.DecodeFile(filePath);
             if (bitmap == null)
             {
-                logger.Debug("Failed to decode bitmap from file: {FilePath}", filePath);
                 return null;
             }
 
@@ -64,8 +59,6 @@ public class AndroidArtworkService : IAndroidArtworkService
                 var scaledBitmap = Bitmap.CreateScaledBitmap(bitmap, scaledWidth, scaledHeight, true);
                 bitmap.Recycle(); // Recycle original bitmap to free memory
                 bitmap = scaledBitmap;
-                logger.Debug("Scaled artwork bitmap from {OriginalWidth}x{OriginalHeight} to {ScaledWidth}x{ScaledHeight}",
-                    originalWidth, originalHeight, scaledWidth, scaledHeight);
             }
 
             return bitmap;

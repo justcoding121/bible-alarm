@@ -216,10 +216,8 @@ public sealed class DisplayMetadataService(
                 trackTitle = NormalizeTitle(melodyPair.Track.Title);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            logger.Debug(ex, "Failed to resolve melody disc track title for {PublicationCode}/{DiscCode}/{TrackCode}",
-                trackMetadata.PublicationCode, trackMetadata.DownloadCode, trackMetadata.TrackCode);
         }
 
         string? releaseName = null;
@@ -232,9 +230,8 @@ public sealed class DisplayMetadataService(
                 releaseName = release.Name;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            logger.Debug(ex, "Failed to resolve melody release name for {PublicationCode}", trackMetadata.PublicationCode);
         }
 
         string? sectionName = null;
@@ -247,10 +244,8 @@ public sealed class DisplayMetadataService(
                 sectionName = section.Name;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            logger.Debug(ex, "Failed to resolve melody disc name for {PublicationCode}/{DiscCode}",
-                trackMetadata.PublicationCode, trackMetadata.DownloadCode);
         }
 
         // CarPlay/lock screen: put short text in Title so it does not overlap the two-line subtitle.
@@ -294,10 +289,8 @@ public sealed class DisplayMetadataService(
                 meta.ArtworkBytes = fileMeta.ArtworkBytes;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // Ignore file metadata extraction errors
-            logger.Debug(ex, "Error extracting file metadata, ignoring");
         }
     }
 
@@ -311,10 +304,8 @@ public sealed class DisplayMetadataService(
                 meta.ArtworkBytes = fileMeta.ArtworkBytes;
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // Ignore file metadata extraction errors
-            logger.Debug(ex, $"Error extracting artwork from {context}, ignoring");
         }
     }
 
@@ -401,7 +392,6 @@ public sealed class DisplayMetadataService(
 
                 if (!System.IO.File.Exists(filePath))
                 {
-                    logger.Debug("File does not exist for metadata extraction: {FilePath} (from URI: {Uri})", filePath, uri);
                     return null;
                 }
 
@@ -412,8 +402,6 @@ public sealed class DisplayMetadataService(
                 }
                 catch (Exception ex)
                 {
-                    // Cache filenames may not match content (e.g. .mp3 path with MP4 content). Try explicit mimetypes.
-                    logger.Debug(ex, "TagLib auto-detect failed for {FilePath}, trying video/mp4 then audio/mpeg", filePath);
                     try
                     {
                         file = File.Create(filePath, "video/mp4", ReadStyle.None);
@@ -508,16 +496,7 @@ public sealed class DisplayMetadataService(
             if (largestPicture != null && largestPicture.Data != null && largestPicture.Data.Data != null)
             {
                 meta.ArtworkBytes = largestPicture.Data.Data;
-                logger.Information($"Extracted artwork from {uri}: Size={largestPicture.Data.Data.Length} bytes");
             }
-            else
-            {
-                logger.Debug($"No valid artwork found in {uri} (checked {tag.Pictures.Length} pictures)");
-            }
-        }
-        else
-        {
-            logger.Debug($"No pictures found in {uri}");
         }
     }
 
@@ -526,15 +505,11 @@ public sealed class DisplayMetadataService(
         IPicture? largestPicture = null;
         int largestSize = 0;
 
-        logger.Debug($"Found {pictures.Length} picture(s) in {uri}");
-
-        // Find the picture with the largest data size
         foreach (IPicture picture in pictures)
         {
             if (picture != null && picture.Data != null && picture.Data.Data != null)
             {
                 var size = picture.Data.Data.Length;
-                logger.Debug($"  Picture Size={size} bytes");
 
                 // Select the largest picture
                 if (largestPicture == null || size > largestSize)

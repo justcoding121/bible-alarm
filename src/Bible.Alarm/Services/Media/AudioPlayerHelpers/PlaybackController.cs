@@ -50,12 +50,6 @@ public class PlaybackController
         await Task.Delay(100);
 
         var stateAfterPlay = await IosMediaElementHelper.GetCurrentStateAsync(mediaElement, logger);
-        // Check state using string comparison since helper returns object
-        var stateString = stateAfterPlay.ToString();
-        if (stateString is "Playing" or "Buffering")
-        {
-            logger.Debug("MediaElement is in {State} state after Play()", stateAfterPlay);
-        }
         await IosMediaElementHelper.RetryPlayIfNeededAsync(mediaElement, stateAfterPlay, logger);
 #else
 #if ANDROID
@@ -79,22 +73,12 @@ public class PlaybackController
         // Wait briefly and check if playback started
         await Task.Delay(100);
 
-        var stateAfterPlay = await MainThread.InvokeOnMainThreadAsync(() => getMediaElement()?.CurrentState ?? MediaElementState.None);
-        logger.Debug("After Play() call, MediaElement state: {State}", stateAfterPlay);
 #endif
     }
 
     private async Task InvokePlayOnMainThreadAsync()
     {
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            var mediaElement = getMediaElement();
-            logger.Debug("About to call MediaElement.Play(). Current state: {State}, Source: {Source}",
-                mediaElement?.CurrentState ?? MediaElementState.None,
-                mediaElement?.Source?.ToString() ?? "null");
-
-            mediaElement?.Play();
-        });
+        await MainThread.InvokeOnMainThreadAsync(() => getMediaElement()?.Play());
     }
 
     public Task PauseAsync() => MainThread.InvokeOnMainThreadAsync(() => getMediaElement()?.Pause());
@@ -124,11 +108,9 @@ public class PlaybackController
             {
                 mediaElement.Stop();
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
                 // On iOS, Stop() internally tries to seek to zero, which can fail if the player isn't ready
-                // Log and continue - the player will be in a stopped state anyway
-                logger.Debug(ex, "Stop() failed because player isn't ready to seek, but player should be stopped");
             }
             catch (Exception ex)
             {
@@ -140,11 +122,7 @@ public class PlaybackController
 
     public async Task SeekToAsync(TimeSpan position)
     {
-        // Track that we're seeking to prevent state flickering during seek
         stateManager.StartSeeking();
-
-        logger.Debug("[AudioPlayer] SeekToAsync called - Position: {Position}, StatusBeforeSeek: {Status}, Setting _isSeeking = true",
-            position, stateManager.Status);
 
         try
         {
@@ -153,22 +131,16 @@ public class PlaybackController
                 var mediaElement = getMediaElement();
                 if (mediaElement == null)
                 {
-                    logger.Warning("[AudioPlayer] MediaElement is null, cannot seek");
                     stateManager.EndSeeking();
                     return;
                 }
-
-                logger.Debug("[AudioPlayer] About to call MediaElement.SeekTo({Position})", position);
 
                 try
                 {
                     // Start fallback timer to reset seeking flag if SeekCompleted doesn't fire
                     _ = ResetSeekingFlagWithTimeoutAsync();
 
-                    // Await the seek operation - it will complete when SeekCompleted event fires
                     await mediaElement.SeekTo(position);
-                    logger.Debug("[AudioPlayer] MediaElement.SeekTo() completed successfully");
-                    // Note: _isSeeking will be reset in OnSeekCompleted when seek actually finishes
                 }
                 catch (InvalidOperationException ex)
                 {

@@ -69,14 +69,12 @@ internal sealed class RemoteId3ArtworkExtractor
         var headerBytes = await FetchRangeAsync(client, url, 0, Id3v2HeaderSize - 1, cancellationToken);
         if (headerBytes == null || headerBytes.Length < Id3v2HeaderSize)
         {
-            logger.Debug("Range request returned insufficient data for ID3v2 header: {Url}", url);
             return null;
         }
 
         // Verify "ID3" magic.
         if (headerBytes[0] != (byte)'I' || headerBytes[1] != (byte)'D' || headerBytes[2] != (byte)'3')
         {
-            logger.Debug("No ID3v2 tag found at start of remote file: {Url}", url);
             return null;
         }
 
@@ -84,15 +82,8 @@ internal sealed class RemoteId3ArtworkExtractor
         int tagBodySize = (headerBytes[6] << 21) | (headerBytes[7] << 14) | (headerBytes[8] << 7) | headerBytes[9];
         int totalTagSize = tagBodySize + Id3v2HeaderSize;
 
-        if (tagBodySize <= 0)
+        if (tagBodySize <= 0 || totalTagSize > MaxTagBytes)
         {
-            logger.Debug("ID3v2 tag body size is zero for: {Url}", url);
-            return null;
-        }
-
-        if (totalTagSize > MaxTagBytes)
-        {
-            logger.Debug("ID3v2 tag too large ({TagSize} bytes), skipping artwork extraction: {Url}", totalTagSize, url);
             return null;
         }
 
@@ -100,8 +91,6 @@ internal sealed class RemoteId3ArtworkExtractor
         var tagBytes = await FetchRangeAsync(client, url, 0, totalTagSize - 1, cancellationToken);
         if (tagBytes == null || tagBytes.Length < totalTagSize)
         {
-            logger.Debug("Range request returned insufficient data for full ID3v2 tag ({Expected} expected, {Actual} received): {Url}",
-                totalTagSize, tagBytes?.Length ?? 0, url);
             return null;
         }
 
@@ -121,17 +110,14 @@ internal sealed class RemoteId3ArtworkExtractor
         // Accept both 206 Partial Content (proper Range support) and 200 OK (server ignored Range).
         if (!response.IsSuccessStatusCode)
         {
-            logger.Debug("Range request failed with status {StatusCode} for {Url}", response.StatusCode, url);
             return null;
         }
 
         var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
 
-        // If server returned 200 (full file) instead of 206, only use the portion we need.
+        // If server returned 200 (full file) instead of 206, abort to avoid downloading full file.
         if (response.StatusCode == System.Net.HttpStatusCode.OK && bytes.Length > (to - from + 1))
         {
-            // Server doesn't support Range -- abort to avoid downloading full file.
-            logger.Debug("Server returned full file (no Range support), aborting ID3 extraction: {Url}", url);
             return null;
         }
 
@@ -152,9 +138,8 @@ internal sealed class RemoteId3ArtworkExtractor
                 // Try default detection first.
                 tagFile = File.Create(tempFilePath, "audio/mpeg", ReadStyle.None);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                logger.Debug(ex, "TagLib failed to parse partial ID3 data from {Url}", url);
                 return null;
             }
 
@@ -191,7 +176,6 @@ internal sealed class RemoteId3ArtworkExtractor
                     if (largest?.Data?.Data != null)
                     {
                         meta.ArtworkBytes = largest.Data.Data;
-                        logger.Information("Extracted artwork via Range request from {Url}: Size={Size} bytes", url, largest.Data.Data.Length);
                     }
                 }
 

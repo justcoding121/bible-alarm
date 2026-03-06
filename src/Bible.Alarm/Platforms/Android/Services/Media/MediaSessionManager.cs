@@ -26,7 +26,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
     public MediaSessionManager(IServiceProvider serviceProvider)
     {
-        logger.Debug("MediaSessionManager constructor called with serviceProvider: {ServiceProvider}", serviceProvider != null ? "provided" : "null");
         this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
         // Initialize helper classes after serviceProvider is set
@@ -62,17 +61,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
     public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
     {
         var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
-        var stateName = StateHelper.GetStateName(state);
-        var actionsDescription = StateHelper.GetActionsDescription(actions);
-
-        logger.Information(
-            "[AndroidAuto] UpdatePlaybackState: State={StateName} ({StateValue}), Position={Position}ms, Actions={Actions}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
-            stateName,
-            state,
-            position,
-            actionsDescription,
-            canPlayNext,
-            canPlayPrevious);
 
         var playbackState = playbackStateManager.CreatePlaybackState(
             state,
@@ -83,10 +71,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
         if (playbackState != null)
         {
             mediaSession?.SetPlaybackState(playbackState);
-            logger.Information(
-                "[AndroidAuto] MediaSessionCompat.SetPlaybackState called successfully - State={StateName}, ButtonState={ButtonState}",
-                stateName,
-                StateHelper.GetButtonStateFromActions(actions));
         }
         else
         {
@@ -102,26 +86,12 @@ public sealed class MediaSessionManager : IMediaSessionManager
     {
         if (mediaSession == null)
         {
-            logger.Debug("[AndroidAuto] UpdatePlaybackPosition: MediaSession is null, skipping");
             return;
         }
 
         var playbackState = mediaSession.Controller?.PlaybackState;
-        if (playbackState == null)
+        if (playbackState == null || !playbackStateManager.IsPlaybackActive(playbackState))
         {
-            logger.Debug("[AndroidAuto] UpdatePlaybackPosition: PlaybackState is null, skipping");
-            return;
-        }
-
-        var currentStateName = StateHelper.GetStateName(playbackState.State);
-        if (!playbackStateManager.IsPlaybackActive(playbackState))
-        {
-            logger.Debug(
-                "[AndroidAuto] UpdatePlaybackPosition: Playback not active (State={StateName}), skipping position update - Position={Position}ms, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
-                currentStateName,
-                (long)position.TotalMilliseconds,
-                canPlayNext,
-                canPlayPrevious);
             return;
         }
 
@@ -156,9 +126,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
     /// </summary>
     public void UpdateMetadata(string title, string artist, string? album = null, int? scheduleId = null, string? artworkUrl = null)
     {
-        logger.Debug("UpdateMetadata called with title: {Title}, artist: {Artist}, album: {Album}, scheduleId: {ScheduleId}, artworkUrl: {ArtworkUrl}",
-            title, artist, album ?? "null", scheduleId?.ToString() ?? "null", artworkUrl ?? "null");
-
         if (mediaSession == null)
         {
             logger.Warning("MediaSessionCompat is null, cannot update metadata. Call GetOrCreate() first.");
@@ -199,9 +166,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
         try
         {
-            logger.Information("[AndroidAuto] SetBufferingStateOnly: Setting MediaSession to buffering state (preserving metadata, no button state change)");
             playbackStateManager.SetBufferingStateOnly(mediaSession);
-            logger.Information("[AndroidAuto] SetBufferingStateOnly: MediaSession set to buffering state successfully");
         }
         catch (Exception ex)
         {
@@ -237,15 +202,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
         var state = playbackStateManager.MapPlayStatusToState(status);
 
-        var stateName = StateHelper.GetStateName(state);
-        logger.Information(
-            "[AndroidAuto] SetPlaybackStatus: InputStatus={InputStatus}, MappedState={StateName} ({StateValue}), CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
-            status,
-            stateName,
-            state,
-            canPlayNext,
-            canPlayPrevious);
-
         if (status is PlayStatus.Stopped or PlayStatus.Ended)
         {
             // When stopped/ended, update playback state to stopped
@@ -255,25 +211,16 @@ public sealed class MediaSessionManager : IMediaSessionManager
             // which is handled by MediaSessionEffect.HandleSetDefaultScheduleMetadata()
             UpdatePlaybackStateForStop();
             // CRITICAL: Keep MediaSession active even when stopped so Android Auto can discover it
-            // The playback state (StateStopped) already indicates no playback is happening
-            // Setting Active=false causes Android Auto to not discover the app when car connects
             SetActive(true);
-            // Reset tracked duration when playback stops
             metadataManager.LastDurationMs = null;
-            // Note: Audio focus is released globally by AudioFocusEffect when playback stops
-            logger.Information("MediaSessionCompat kept active when stopped - Android Auto can discover app even when idle");
         }
         else
         {
-            // Update playback state normally for other states with navigation availability
             UpdatePlaybackState(state, canPlayNext: canPlayNext, canPlayPrevious: canPlayPrevious);
 
-            // Set MediaSessionCompat active when playing - this is critical for Android Auto audio routing
-            // Note: Audio focus is managed globally by AudioFocusEffect, not here
             if (status == PlayStatus.Playing)
             {
                 SetActive(true);
-                logger.Debug("MediaSessionCompat set to active (playing) - Android Auto can now route audio");
             }
             // Keep session active when paused (allows resume)
         }
@@ -287,12 +234,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
             logger.Warning("[AndroidAuto] MediaSessionCompat is null, cannot set active state. Call GetOrCreate() first.");
             return;
         }
-        var wasActive = mediaSession.Active;
         mediaSession.Active = active;
-        logger.Information(
-            "[AndroidAuto] SetActive: Changed from {PreviousActive} to {NewActive}",
-            wasActive,
-            active);
     }
 
 

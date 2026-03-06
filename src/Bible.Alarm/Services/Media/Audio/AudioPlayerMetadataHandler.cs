@@ -101,7 +101,6 @@ public class AudioPlayerMetadataHandler
             var completed = await Task.WhenAny(metadataTask, timeoutTask);
             if (completed != metadataTask)
             {
-                logger.Debug("Artwork fetch timed out after {Seconds}s (non-blocking)", ArtworkFetchTimeoutSeconds);
                 return;
             }
             var metadata = await metadataTask;
@@ -110,9 +109,8 @@ public class AudioPlayerMetadataHandler
                 await SendMetadataMessageAsync(metadata, track);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            logger.Debug(ex, "Background artwork fetch failed (non-blocking)");
         }
     }
 
@@ -236,8 +234,6 @@ public class AudioPlayerMetadataHandler
         }
         else if (lastDispatchedArtworkUrl != null)
         {
-            logger.Debug("Artwork extraction produced no URL; preserving previously dispatched artwork: {ArtworkUrl}",
-                lastDispatchedArtworkUrl);
             artworkUrl = lastDispatchedArtworkUrl;
         }
 

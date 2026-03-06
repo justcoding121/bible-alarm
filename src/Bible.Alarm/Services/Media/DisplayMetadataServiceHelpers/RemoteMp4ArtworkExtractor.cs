@@ -100,26 +100,19 @@ internal sealed class RemoteMp4ArtworkExtractor
 
         if (moovBytes == null)
         {
-            logger.Debug("Trying head then suffix Range for MP4 (no or failed Content-Length): {Url}", url);
             moovBytes = await TryGetMoovFromHeadAsync(client, url, cancellationToken);
             if (moovBytes == null)
             {
                 var tailSuffix = await FetchSuffixRangeAsync(client, url, TailChunkSize, cancellationToken);
                 if (tailSuffix != null)
                 {
-                    logger.Debug("MP4 suffix received {Length} bytes for: {Url}", tailSuffix.Length, url);
                     moovBytes = FindAndExtractMoovFromTail(tailSuffix, tailSuffix.Length);
-                }
-                else
-                {
-                    logger.Debug("MP4 suffix request returned no data for: {Url}", url);
                 }
             }
         }
 
         if (moovBytes == null || moovBytes.Length == 0)
         {
-            logger.Debug("Could not locate moov atom for: {Url}", url);
             return null;
         }
 
@@ -137,7 +130,6 @@ internal sealed class RemoteMp4ArtworkExtractor
             return headResponse.Content.Headers.ContentLength.Value;
         }
 
-        logger.Debug("HEAD did not return Content-Length for {Url}, trying GET Range 0-0", url);
         var fromRange = await GetContentLengthFromRangeRequestAsync(client, url, cancellationToken);
         return fromRange;
     }
@@ -186,7 +178,6 @@ internal sealed class RemoteMp4ArtworkExtractor
             return null;
         }
 
-        logger.Debug("Parsed Content-Length {Length} from Content-Range for {Url}", totalLength, url);
         return totalLength;
     }
 
@@ -195,18 +186,10 @@ internal sealed class RemoteMp4ArtworkExtractor
         var head = await FetchRangeAsync(client, url, 0, HeadChunkSize - 1, cancellationToken);
         if (head == null)
         {
-            logger.Debug("MP4 head request returned no data for: {Url}", url);
             return null;
         }
 
-        var moov = FindAndExtractMoov(head);
-        if (moov == null && head.Length >= 8)
-        {
-            var hex = BitConverter.ToString(head, 0, Math.Min(8, head.Length)).Replace("-", " ");
-            logger.Debug("MP4 head received {Length} bytes but no moov found; first 8 bytes (hex): {Hex} for: {Url}", head.Length, hex, url);
-        }
-
-        return moov;
+        return FindAndExtractMoov(head);
     }
 
     private async Task<byte[]?> TryGetMoovFromTailAsync(HttpClient client, string url, long contentLength, CancellationToken cancellationToken)
@@ -346,7 +329,6 @@ internal sealed class RemoteMp4ArtworkExtractor
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            logger.Debug("Range request failed with status {StatusCode} for {Url}", response.StatusCode, url);
             return null;
         }
 
@@ -355,7 +337,6 @@ internal sealed class RemoteMp4ArtworkExtractor
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK && from == 0)
         {
-            logger.Debug("Server returned 200 for head request; reading first {Take} bytes from stream: {Url}", requestedLength, url);
             return await ReadFirstBytesFromStreamAsync(response, (int)requestedLength, cancellationToken);
         }
 
@@ -364,11 +345,8 @@ internal sealed class RemoteMp4ArtworkExtractor
             const int maxFullBodyBytes = 10 * 1024 * 1024;
             if (from == 0 && contentLength.Value > maxFullBodyBytes)
             {
-                logger.Debug("Server returned full file ({Size} bytes) instead of Range; reading first {Take} bytes from stream: {Url}", contentLength.Value, requestedLength, url);
                 return await ReadFirstBytesFromStreamAsync(response, (int)requestedLength, cancellationToken);
             }
-
-            logger.Debug("Server returned full file instead of Range; reading body and using slice for: {Url}", url);
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             int take = (int)Math.Min(requestedLength, bytes.Length);
             var slice = new byte[take];
@@ -387,7 +365,6 @@ internal sealed class RemoteMp4ArtworkExtractor
         var body = await response.Content.ReadAsByteArrayAsync(cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.OK && body.Length > requestedLength)
         {
-            logger.Debug("Server returned full file (no Content-Length, {Actual} bytes) instead of Range; using slice for: {Url}", body.Length, url);
             int take = (int)Math.Min(requestedLength, body.Length);
             var slice = new byte[take];
             if (from > 0)
@@ -396,12 +373,6 @@ internal sealed class RemoteMp4ArtworkExtractor
             }
             else
             {
-                const int maxFullBodyBytes = 10 * 1024 * 1024;
-                if (body.Length > maxFullBodyBytes)
-                {
-                    logger.Debug("Full body too large ({Size} bytes), using first {Take} bytes: {Url}", body.Length, take, url);
-                }
-
                 Buffer.BlockCopy(body, 0, slice, 0, take);
             }
 
@@ -452,14 +423,12 @@ internal sealed class RemoteMp4ArtworkExtractor
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            logger.Debug("Suffix Range request failed with status {StatusCode} for {Url}", response.StatusCode, url);
             return null;
         }
 
         var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.OK && bytes.Length > suffixLength)
         {
-            logger.Debug("Server returned full file instead of suffix Range; using last {Take} bytes: {Url}", suffixLength, url);
             var slice = new byte[suffixLength];
             Buffer.BlockCopy(bytes, bytes.Length - suffixLength, slice, 0, suffixLength);
             return slice;
@@ -485,9 +454,8 @@ internal sealed class RemoteMp4ArtworkExtractor
             {
                 tagFile = File.Create(tempFilePath, "video/mp4", ReadStyle.None);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                logger.Debug(ex, "TagLib failed to parse MP4 moov from {Url}", url);
                 return null;
             }
 
@@ -523,7 +491,6 @@ internal sealed class RemoteMp4ArtworkExtractor
                     if (largest?.Data?.Data != null)
                     {
                         meta.ArtworkBytes = largest.Data.Data;
-                        logger.Information("Extracted artwork via Range request from MP4 {Url}: Size={Size} bytes", url, largest.Data.Data.Length);
                     }
                 }
 
