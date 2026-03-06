@@ -4,19 +4,15 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.UI;
 
 public sealed class PlaybackModalService(
     ILogger logger,
     INavigationService navigationService,
-    IState<PlaybackState> playbackState,
-    IScheduleItemStateService scheduleItemStateService,
-    IDispatcher dispatcher)
+    IState<PlaybackState> playbackState)
     : IPlaybackModalService
 {
-    private readonly IDispatcher dispatcher = dispatcher;
     private bool isModalOpen;
     private bool isDisposed;
 
@@ -82,12 +78,7 @@ public sealed class PlaybackModalService(
                 // In this entrypoint we keep Home hidden behind the modal.
                 await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: false);
                 isModalOpen = true;
-
-                // Best-effort: clear busy state if schedule is known.
-                if (state != null)
-                {
-                    scheduleItemStateService.SetScheduleItemBusyToFalse(state.CurrentScheduleId);
-                }
+                // IsBusy cleared by PlaybackModal.OnPageLoaded once rendered.
             }
             catch (Exception ex)
             {
@@ -170,11 +161,8 @@ public sealed class PlaybackModalService(
 
                     // Normal interactive/alarm playback: show Home behind modal once rendered.
                     await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
-                    logger.Information("PlaybackModal opened");
-
-                    // Set IsBusy to false for the schedule item after modal is shown
-                    scheduleItemStateService.SetScheduleItemBusyToFalse(state.CurrentScheduleId);
-                    // Note: Home page overlay will be hidden when Alarm Modal Appearing event fires
+                    // IsBusy cleared by PlaybackModal.OnPageLoaded once rendered.
+                    // Home page overlay hidden by PlaybackModal.OnPageLoaded when RevealHomeBehindModalOnLoad is true.
                 }
                 catch (Exception ex)
                 {

@@ -517,8 +517,9 @@ public sealed class ScheduleListItemViewModel(
 
     /// <summary>
     /// Syncs IsBusy (play icon spinner) with playback state.
-    /// Spinner shows during preparation (Loading, or any transient Stopped/Paused while
-    /// auto-advancing or transitioning tracks). Hides once Playing, Failed, or fully stopped.
+    /// Only SETS IsBusy=true during active preparation (Loading, IsAutoAdvancing, IsTransitioningTrack).
+    /// Only CLEARS IsBusy on failure or when playback fully stops / switches schedule.
+    /// Normal clearing after modal renders is handled by PlaybackModal.OnPageLoaded → SetScheduleItemBusyToFalse.
     /// </summary>
     private void SyncIsBusyWithPlaybackState()
     {
@@ -531,35 +532,41 @@ public sealed class ScheduleListItemViewModel(
         var state = playbackState.Value;
         var isThisSchedule = state.CurrentScheduleId == scheduleId;
 
-        // Loading always means preparation in progress.
-        // IsAutoAdvancing covers transient Stopped/Paused during initial play or auto-advance
-        // (ExoPlayer briefly reports Stopped/Paused while the real track loads).
-        // IsTransitioningTrack covers user-initiated next/previous.
-        var spinnerShouldShow = isThisSchedule &&
-            state.IsPreparingOrPlaying &&
-            state.Status != PlayStatus.Playing &&
-            state.Status != PlayStatus.Failed &&
-            (state.Status == PlayStatus.Loading || state.IsAutoAdvancing || state.IsTransitioningTrack);
-
-        if (MainThread.IsMainThread)
+        if (!isThisSchedule || !state.IsPreparingOrPlaying)
         {
-            ApplyBusyState(spinnerShouldShow);
+            SetIsBusy(false);
+            return;
         }
-        else
+
+        if (state.Status == PlayStatus.Failed)
         {
-            MainThread.BeginInvokeOnMainThread(() => ApplyBusyState(spinnerShouldShow));
+            SetIsBusy(false);
+            return;
+        }
+
+        // Only set spinner during active preparation phases.
+        // Don't clear it here — the modal's Loaded event clears it once rendered.
+        if (!IsBusy &&
+            (state.Status == PlayStatus.Loading || state.IsAutoAdvancing || state.IsTransitioningTrack))
+        {
+            SetIsBusy(true);
         }
     }
 
-    private void ApplyBusyState(bool spinnerShouldShow)
+    private void SetIsBusy(bool value)
     {
-        if (spinnerShouldShow && !IsBusy)
+        if (value == IsBusy)
         {
-            IsBusy = true;
+            return;
         }
-        else if (!spinnerShouldShow && IsBusy)
+
+        if (MainThread.IsMainThread)
         {
-            IsBusy = false;
+            IsBusy = value;
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = value);
         }
     }
 

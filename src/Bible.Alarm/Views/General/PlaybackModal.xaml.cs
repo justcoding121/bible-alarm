@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using Serilog;
 
@@ -12,19 +13,19 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     private bool isDisposed;
     private bool hasHandledFirstLoad;
     private readonly PlaybackViewModel viewModel;
+    private readonly IScheduleItemStateService scheduleItemStateService;
 
     public PlaybackViewModel? ViewModel => BindingContext as PlaybackViewModel;
 
-    public PlaybackModal(PlaybackViewModel viewModel)
+    public PlaybackModal(PlaybackViewModel viewModel, IScheduleItemStateService scheduleItemStateService)
     {
         InitializeComponent();
         BindingContext = viewModel;
         this.viewModel = viewModel;
+        this.scheduleItemStateService = scheduleItemStateService;
 
-        // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
         SizeChanged += OnSizeChanged;
-        
     }
 
     private void OnSizeChanged(object? sender, EventArgs e)
@@ -75,6 +76,9 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         // This fixes an issue where metadata labels don't appear initially in portrait mode
         ForceIOSLayoutMeasurement();
 #endif
+
+        // Modal is now rendered — clear the home page schedule item spinner.
+        scheduleItemStateService.SetScheduleItemBusyToFalse(ViewModel?.CurrentScheduleId);
 
         // Reveal Home behind the modal only when desired.
         // During cold/warm-start foregrounding into an already-playing session we keep Home hidden (opacity=0)

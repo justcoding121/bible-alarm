@@ -633,6 +633,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     /// <summary>Shows Home page (opacity=1). Called when Playback Modal is fully rendered.</summary>
     public void HideHomePageOverlay() => navigationService.SetHomePageVisibility(isPlaybackActive: false);
 
+    public int? CurrentScheduleId => playbackState.Value.CurrentScheduleId;
+
     /// <summary>When true, reveal Home behind modal after render; when false, Home stays hidden.</summary>
     public bool RevealHomeBehindModalOnLoad { get; set; } = true;
 
