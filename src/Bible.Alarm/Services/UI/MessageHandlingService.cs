@@ -40,32 +40,31 @@ public sealed class MessageHandlingService(
 
     public void Receive(InitializedMessage message)
     {
-        logger.Information("Received InitializedMessage, navigating to Home page.");
-
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
-                // Navigate to the initialized home page (this creates a new Home instance)
-                await navigationService.NavigateToHomeAsync();
+                // Show PlaybackModal BEFORE pushing Home so the user transitions directly
+                // from BootstrapOverlay to the modal without a flash of Home page content.
+                // The modal sits on the modal stack and covers whatever is in the navigation stack.
+                var modalWasShown = await playbackModalService.ShowPlaybackModalIfNeededOnWindowCreationAsync();
 
-                // Window-creation entrypoint: show PlaybackModal only if playback is already active
-                // (Playing/Paused/Loading). Do NOT show for Failed/Stopped/Ended.
-                await playbackModalService.ShowPlaybackModalIfNeededOnWindowCreationAsync();
+                if (modalWasShown)
+                {
+                    // Let the rendering pipeline draw the modal on screen before pushing Home
+                    // underneath. Without this, Android may render one frame of Home before the
+                    // modal fragment is composited, causing a visible flash.
+                    await Task.Delay(300);
+                }
+
+                // Push Home into the navigation stack (underneath the modal if it was shown).
+                await navigationService.NavigateToHomeAsync();
 
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        logger.Information("Starting service initialization...");
-
-                        // Modal visibility is now handled reactively via PlaybackState subscription
-                        // No need to manually send ShowPlaybackModalMessage here
-
                         await Task.Delay(100);
-
-                        logger.Information("Service initialization completed!");
-
                     }
                     catch (Exception ex)
                     {

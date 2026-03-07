@@ -218,6 +218,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public async Task PauseAsync()
     {
+        if (stateManager.IsPreparingOrPlaying(audioPlayer))
+        {
+            await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
+        }
+
         await operationHandler.PauseAsync(
             stateManager.CurrentScheduleId,
             stateManager.CurrentTrackIndex,

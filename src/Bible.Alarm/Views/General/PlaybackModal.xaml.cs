@@ -9,7 +9,7 @@ namespace Bible.Alarm.Views.General;
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class PlaybackModal : BaseContentPage, IDisposable
 {
-    private bool isDisposed;
+    private volatile bool isDisposed;
     private bool hasHandledFirstLoad;
     private readonly PlaybackViewModel viewModel;
 
@@ -39,6 +39,78 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         }
 
         ViewModel?.SetIsLandscape(Width > Height);
+        var isPortrait = Width <= Height;
+
+        if (isPortrait)
+        {
+            InvalidatePortraitArtworkLayout();
+        }
+    }
+
+    /// <summary>
+    /// Forces portrait artwork to re-measure. MAUI can retain stale layout for the portrait Image,
+    /// causing artwork to show as bell even when HasArtwork/ArtworkSource are correct (open in portrait,
+    /// or after switching back from landscape). Invalidating parent and child fixes the render.
+    /// </summary>
+    private void InvalidatePortraitArtworkLayout()
+    {
+        if (PortraitArtworkGrid == null)
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                if (isDisposed || PortraitArtworkGrid == null)
+                {
+                    return;
+                }
+
+                MainContentArea?.InvalidateMeasure();
+                PortraitArtworkGrid.InvalidateMeasure();
+
+                // Delayed second pass: initial layout may give wrong dimensions. Re-invalidate after layout settles.
+                Task.Delay(150).ContinueWith(_ =>
+                {
+                    if (isDisposed)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            try
+                            {
+                                if (!isDisposed && PortraitArtworkGrid != null && (ViewModel?.ShowPortraitLayout ?? false))
+                                {
+                                    MainContentArea?.InvalidateMeasure();
+                                    PortraitArtworkGrid.InvalidateMeasure();
+                                }
+                            }
+                            catch (ObjectDisposedException)
+                            {
+                            }
+                            catch (InvalidOperationException)
+                            {
+                            }
+                        });
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                });
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        });
     }
 
     private void OnPlaybackModalTapped(object? sender, TappedEventArgs e)
@@ -58,6 +130,16 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         Loaded -= OnPageLoaded;
 
         await Task.Delay(100);
+
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (Width <= Height)
+        {
+            InvalidatePortraitArtworkLayout();
+        }
 
         WireLandscapeContentEvents();
 
@@ -143,58 +225,86 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (isDisposed)
-            {
-                return;
-            }
-
-            // Force layout measurement by invalidating the metadata grid and parent containers
-            // This ensures iOS properly measures the Auto-height row containing metadata labels
-            if (MetadataGrid != null)
-            {
-                MetadataGrid.InvalidateMeasure();
-            }
-
-            if (MainContentArea != null)
-            {
-                MainContentArea.InvalidateMeasure();
-            }
-            
-            // Force a second layout update after a short delay to ensure it happens after render
-            Task.Delay(100).ContinueWith(_ =>
+            try
             {
                 if (isDisposed)
                 {
                     return;
                 }
 
-                try
+                // Force layout measurement by invalidating the metadata grid and parent containers
+                // This ensures iOS properly measures the Auto-height row containing metadata labels
+                if (MetadataGrid != null)
                 {
-                    Dispatcher.Dispatch(() =>
-                    {
-                        if (!isDisposed)
-                        {
-                            if (MetadataGrid != null)
-                            {
-                                MetadataGrid.InvalidateMeasure();
-                            }
+                    MetadataGrid.InvalidateMeasure();
+                }
 
-                            if (MainContentArea != null)
+                if (MainContentArea != null)
+                {
+                    MainContentArea.InvalidateMeasure();
+                }
+
+                // Force a second layout update after a short delay to ensure it happens after render
+                Task.Delay(100).ContinueWith(_ =>
+                {
+                    if (isDisposed)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            try
                             {
-                                MainContentArea.InvalidateMeasure();
+                                if (isDisposed)
+                                {
+                                    return;
+                                }
+
+                                if (MetadataGrid != null)
+                                {
+                                    MetadataGrid.InvalidateMeasure();
+                                }
+
+                                if (MainContentArea != null)
+                                {
+                                    MainContentArea.InvalidateMeasure();
+                                }
                             }
-                        }
-                    });
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Modal was disposed, ignore
-                }
-                catch (InvalidOperationException)
-                {
-                    // Dispatcher is no longer available, ignore
-                }
-            });
+                            catch (ObjectDisposedException)
+                            {
+                                // Modal was disposed, ignore
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                // Dispatcher/view no longer available, ignore
+                            }
+                            catch (Exception)
+                            {
+                                // Defensive: swallow any native bridge or transitional-state exceptions
+                            }
+                        });
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Modal was disposed, ignore
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Dispatcher is no longer available, ignore
+                    }
+                });
+            }
+            catch (ObjectDisposedException)
+            {
+                // Modal was disposed before callback ran, ignore
+            }
+            catch (InvalidOperationException)
+            {
+                // View hierarchy in transitional state, ignore
+            }
         });
     }
 #endif
@@ -350,7 +460,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             }
 
             // User has stopped interacting - perform seek
-            // Check if disposed before accessing Dispatcher or ViewModel
+            // Check if disposed before dispatching to main thread
             if (isDisposed)
             {
                 return;
@@ -358,18 +468,33 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
             try
             {
-                this.Dispatcher.Dispatch(() =>
+                var pendingValue = pendingSeekValue;
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    // Double-check disposed state and ViewModel availability
-                    if (isDisposed || ViewModel == null || !pendingSeekValue.HasValue)
+                    try
                     {
-                        return;
-                    }
+                        if (isDisposed || ViewModel == null || !pendingValue.HasValue)
+                        {
+                            return;
+                        }
 
-                    var value = pendingSeekValue.Value;
-                    pendingSeekValue = null;
-                    isDragging = false;
-                    ViewModel.OnSliderDragCompleted(value);
+                        var value = pendingValue.Value;
+                        pendingSeekValue = null;
+                        isDragging = false;
+                        ViewModel.OnSliderDragCompleted(value);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Modal was disposed, ignore
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // View no longer available, ignore
+                    }
+                    catch (Exception)
+                    {
+                        // Defensive: swallow any exceptions during transitional state (e.g. CarPlay modal close)
+                    }
                 });
             }
             catch (ObjectDisposedException)
@@ -378,7 +503,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             }
             catch (InvalidOperationException)
             {
-                // Dispatcher is no longer available, ignore
+                // Dispatcher/main thread no longer available, ignore
             }
         };
         seekDebounceTimer.AutoReset = false;
@@ -465,7 +590,6 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             // Reset flag after a short delay to allow ValueChanged to process normally for drags
             Task.Delay(100).ContinueWith(_ =>
             {
-                // Check if disposed before accessing Dispatcher
                 if (isDisposed)
                 {
                     return;
@@ -473,11 +597,26 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
                 try
                 {
-                    this.Dispatcher.Dispatch(() =>
+                    MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        if (!isDisposed)
+                        try
                         {
-                            isHandlingTap = false;
+                            if (!isDisposed)
+                            {
+                                isHandlingTap = false;
+                            }
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // Modal was disposed, ignore
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // View no longer available, ignore
+                        }
+                        catch (Exception)
+                        {
+                            // Defensive: swallow during transitional state
                         }
                     });
                 }
@@ -487,7 +626,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                 }
                 catch (InvalidOperationException)
                 {
-                    // Dispatcher is no longer available, ignore
+                    // Main thread invocation no longer available, ignore
                 }
             });
         }
@@ -496,54 +635,53 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!isDisposed)
+        if (isDisposed)
         {
-            isDisposed = true;
-
-            try
-            {
-                Loaded -= OnPageLoaded;
-                SizeChanged -= OnSizeChanged;
-                UnwireLandscapeContentEvents();
-            }
-            catch
-            {
-                // ignore
-            }
-
-            // Clean up timer first to prevent callbacks from accessing disposed objects
-            try
-            {
-                seekDebounceTimer?.Stop();
-                seekDebounceTimer?.Dispose();
-            }
-            catch
-            {
-                // Ignore errors during timer cleanup
-            }
-            finally
-            {
-                seekDebounceTimer = null;
-            }
-
-            // Clear pending seek value
-            pendingSeekValue = null;
-
-            // ViewModel was injected via constructor, so dispose it
-            try
-            {
-                if (viewModel is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-            }
-            catch
-            {
-                // Ignore errors during ViewModel disposal
-            }
-
-            // Clear BindingContext to break reference and allow garbage collection
-            BindingContext = null;
+            return;
         }
+
+        isDisposed = true;
+
+        // Stop timer first so any in-flight callback sees isDisposed and returns early
+        try
+        {
+            seekDebounceTimer?.Stop();
+            seekDebounceTimer?.Dispose();
+        }
+        catch
+        {
+            // Ignore errors during timer cleanup
+        }
+        finally
+        {
+            seekDebounceTimer = null;
+        }
+
+        try
+        {
+            Loaded -= OnPageLoaded;
+            SizeChanged -= OnSizeChanged;
+            UnwireLandscapeContentEvents();
+        }
+        catch
+        {
+            // Ignore - page may be in transitional state (e.g. CarPlay disconnect)
+        }
+
+        pendingSeekValue = null;
+
+        try
+        {
+            if (viewModel is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+        catch
+        {
+            // Ignore errors during ViewModel disposal
+        }
+
+        BindingContext = null;
     }
 }

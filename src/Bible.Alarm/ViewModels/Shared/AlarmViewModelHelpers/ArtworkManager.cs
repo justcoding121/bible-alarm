@@ -18,7 +18,7 @@ public sealed class ArtworkManager(ILogger logger)
     /// </summary>
     public void UpdateArtwork(string? artworkUrl, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading, bool forceReload = false, string? fallbackUrl = null)
     {
-        if (!forceReload && lastArtworkUrl == artworkUrl)
+        if (lastArtworkUrl == artworkUrl && (!forceReload || artworkSource != null))
         {
             setIsArtworkLoading(false);
             return;
@@ -140,7 +140,7 @@ public sealed class ArtworkManager(ILogger logger)
 
         artworkSource = ImageSource.FromUri(uri);
         setArtworkSource(artworkSource);
-        setIsArtworkLoading(false);
+        DeferClearLoadingState(setIsArtworkLoading);
         return true;
     }
 
@@ -218,7 +218,7 @@ public sealed class ArtworkManager(ILogger logger)
             var bytes = artworkBytes;
             artworkSource = ImageSource.FromStream(() => new MemoryStream(bytes));
             setArtworkSource(artworkSource);
-            setIsArtworkLoading(false);
+            DeferClearLoadingState(setIsArtworkLoading);
         }
         catch (Exception ex)
         {
@@ -237,7 +237,7 @@ public sealed class ArtworkManager(ILogger logger)
         {
             artworkSource = ImageSource.FromFile(filePath);
             setArtworkSource(artworkSource);
-            setIsArtworkLoading(false);
+            DeferClearLoadingState(setIsArtworkLoading);
         }
         catch (Exception ex)
         {
@@ -252,12 +252,25 @@ public sealed class ArtworkManager(ILogger logger)
         {
             artworkSource = ImageSource.FromFile(filePath);
             setArtworkSource(artworkSource);
-            setIsArtworkLoading(false);
+            DeferClearLoadingState(setIsArtworkLoading);
         }
         catch (Exception ex)
         {
             logger.Debug(ex, "Failed to create ImageSource from file for artwork (fallback): {FilePath}", filePath);
             artworkSource = null;
         }
+    }
+
+    /// <summary>
+    /// Delays clearing the loading state so the Image has time to decode and render.
+    /// Prevents brief bell flash between spinner and artwork (Image can be transparent while decoding).
+    /// </summary>
+    private static void DeferClearLoadingState(Action<bool> setIsArtworkLoading)
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(220);
+            MainThread.BeginInvokeOnMainThread(() => setIsArtworkLoading(false));
+        });
     }
 }

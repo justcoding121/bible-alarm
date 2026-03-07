@@ -100,12 +100,19 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        var currentInfo = MPNowPlayingInfoCenter.DefaultCenter.NowPlaying;
-                        if (currentInfo != null)
+                        try
                         {
-                            currentInfo.Artwork = asyncArtwork;
-                            currentArtwork = asyncArtwork;
-                            MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = currentInfo;
+                            var currentInfo = MPNowPlayingInfoCenter.DefaultCenter.NowPlaying;
+                            if (currentInfo != null)
+                            {
+                                currentInfo.Artwork = asyncArtwork;
+                                currentArtwork = asyncArtwork;
+                                MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = currentInfo;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Debug(ex, "[iOS NowPlaying] Failed to apply async artwork (app may be in transitional state)");
                         }
                     });
                 }

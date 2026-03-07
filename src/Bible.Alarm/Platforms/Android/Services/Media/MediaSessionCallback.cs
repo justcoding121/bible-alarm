@@ -1,5 +1,6 @@
 #nullable enable
 using Android.OS;
+using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
@@ -66,16 +67,43 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
     public override void OnPlay()
     {
-        logger.Information("MediaSessionCallback.OnPlay() called - sending PlayButtonPressedMessage");
+        logger.Information("MediaSessionCallback.OnPlay() called");
 
-        // Send weak message instead of direct call
         ExecuteAsyncOperation(async () =>
         {
-            WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+            var scheduleIdFromMetadata = TryGetScheduleIdFromMediaSession();
+            if (scheduleIdFromMetadata.HasValue && scheduleIdFromMetadata.Value > 0)
+            {
+                logger.Information("MediaSessionCallback.OnPlay() - using schedule {ScheduleId} from notification metadata to preserve resume position",
+                    scheduleIdFromMetadata.Value);
+                await playbackService.PrepareAndPlayAsync(scheduleIdFromMetadata.Value, isAlarm: false);
+            }
+            else
+            {
+                WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+            }
             await Task.CompletedTask;
         });
 
         base.OnPlay();
+    }
+
+    private int? TryGetScheduleIdFromMediaSession()
+    {
+        try
+        {
+            var mediaSession = MediaSessionHelper.Create();
+            var mediaId = mediaSession.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
+            if (!string.IsNullOrEmpty(mediaId) && int.TryParse(mediaId, out var scheduleId) && scheduleId > 0)
+            {
+                return scheduleId;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Could not get schedule ID from MediaSession metadata");
+        }
+        return null;
     }
 
     public override void OnPause()

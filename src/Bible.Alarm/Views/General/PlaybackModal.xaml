@@ -235,8 +235,9 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         
-                        <!-- Album Artwork - fixed size, centered -->
-                        <Grid Grid.Row="0"
+                        <!-- Album Artwork - fixed size, centered. x:Name for layout invalidation on orientation change (portrait render fix). -->
+                        <Grid x:Name="PortraitArtworkGrid"
+                            Grid.Row="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
                             WidthRequest="{DynamicResource ContentWidthLarge}"
@@ -268,9 +269,9 @@
                                             Radius="20" />
                                 </Border.Shadow>
                                 <Grid>
-                                    <!-- Bell icon sits behind the artwork image as a permanent fallback.
-                                         When artwork loads it covers the bell; when it fails the bell shows through. -->
+                                    <!-- Bell icon only when artwork fetch failed (never during loading or while artwork loads) -->
                                     <Label
+                                        IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
                                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                         FontSize="{DynamicResource AlarmBellIconFontSize}"
                                         HorizontalOptions="Center"

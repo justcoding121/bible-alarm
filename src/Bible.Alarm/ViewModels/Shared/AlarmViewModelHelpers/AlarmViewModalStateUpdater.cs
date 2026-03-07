@@ -23,6 +23,7 @@ public class AlarmViewModalStateUpdater
     private readonly Action<bool> setPauseVisible;
     private readonly Action<TimeSpan> setCurrentDuration;
     private readonly Action<string?, string?, bool> updateArtwork;
+    private readonly Action<bool> setWaitingForArtwork;
     private readonly Action notifyControlsEnabledChanged;
     private readonly Action notifyProgressTextChanged;
     private readonly Action notifyPreparationProgressChanged;
@@ -50,6 +51,7 @@ public class AlarmViewModalStateUpdater
         Action<bool> setPauseVisible,
         Action<TimeSpan> setCurrentDuration,
         Action<string?, string?, bool> updateArtwork,
+        Action<bool> setWaitingForArtwork,
         Action notifyControlsEnabledChanged,
         Action notifyProgressTextChanged,
         Action notifyPreparationProgressChanged,
@@ -67,6 +69,7 @@ public class AlarmViewModalStateUpdater
         this.setPauseVisible = setPauseVisible;
         this.setCurrentDuration = setCurrentDuration;
         this.updateArtwork = updateArtwork;
+        this.setWaitingForArtwork = setWaitingForArtwork;
         this.notifyControlsEnabledChanged = notifyControlsEnabledChanged;
         this.notifyProgressTextChanged = notifyProgressTextChanged;
         this.notifyPreparationProgressChanged = notifyPreparationProgressChanged;
@@ -169,6 +172,10 @@ public class AlarmViewModalStateUpdater
             previousArtworkUrl = artworkUrl;
             updateArtwork(artworkUrl, fallbackUrl, trackChanged || transitionJustEnded || statusFirstBecamePlaying);
         }
+
+        var hasTrackMetadata = inPlayback && (!string.IsNullOrEmpty(state.Title) || !string.IsNullOrEmpty(state.Artist));
+        var waitingForArtwork = hasTrackMetadata && string.IsNullOrEmpty(artworkUrl) && !state.IsTransitioningTrack;
+        setWaitingForArtwork(waitingForArtwork);
 
         previousIsTransitioningTrack = state.IsTransitioningTrack;
         previousStatus = state.Status;

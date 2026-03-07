@@ -221,7 +221,8 @@
                             <RoundRectangle CornerRadius="8" />
                         </Border.StrokeShape>
                         <Grid>
-                            <Label FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            <Label IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
+                                   FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                    FontSize="{DynamicResource AlarmBellIconFontSize}"
                                    HorizontalOptions="Center"
                                    HorizontalTextAlignment="Center"

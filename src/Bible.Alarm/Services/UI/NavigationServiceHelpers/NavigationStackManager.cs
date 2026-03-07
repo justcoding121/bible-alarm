@@ -54,12 +54,26 @@ public sealed class NavigationStackManager
 
         if (modal is IDisposable disposable)
         {
-            disposable.Dispose();
+            try
+            {
+                disposable.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "NavigationStackManager.PopModalAsync: Error disposing modal (non-fatal)");
+            }
         }
 
         // Re-apply status bar (and nav bar) so the now-visible page has correct appearance.
         // On iOS, dismissing a modal can leave the status bar in the modal's style (e.g. light content).
-        WindowSetupService.UpdateNavigationBarColors();
+        try
+        {
+            WindowSetupService.UpdateNavigationBarColors();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "NavigationStackManager.PopModalAsync: Error updating navigation bar colors (non-fatal)");
+        }
 
         if (DeviceInfo.Platform == DevicePlatform.WinUI)
         {
@@ -155,11 +169,25 @@ public sealed class NavigationStackManager
         // Dispose the page if it implements IDisposable
         if (page is IDisposable disposable)
         {
-            disposable.Dispose();
+            try
+            {
+                disposable.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "NavigationStackManager.PopAsync: Error disposing page (non-fatal)");
+            }
         }
 
         // Re-apply status bar so the now-visible page has correct appearance (same as after modal pop).
-        WindowSetupService.UpdateNavigationBarColors();
+        try
+        {
+            WindowSetupService.UpdateNavigationBarColors();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "NavigationStackManager.PopAsync: Error updating navigation bar colors (non-fatal)");
+        }
     }
 
     /// <summary>

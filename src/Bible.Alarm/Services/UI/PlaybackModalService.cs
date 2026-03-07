@@ -31,8 +31,10 @@ public sealed class PlaybackModalService(
         playbackState.StateChanged -= OnPlaybackStateChanged;
     }
 
-    public async Task ShowPlaybackModalIfNeededOnWindowCreationAsync()
+    public async Task<bool> ShowPlaybackModalIfNeededOnWindowCreationAsync()
     {
+        var modalWasShown = false;
+
         // Must run on UI thread to avoid navigation issues.
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
@@ -72,13 +74,11 @@ public sealed class PlaybackModalService(
                     state != null,
                     state?.Status);
 
-                // Hide Home page before opening modal to prevent visual flash.
-                navigationService.SetHomePageVisibility(isPlaybackActive: true);
-
-                // In this entrypoint we keep Home hidden behind the modal.
+                // Home stays visible (opacity 1) behind the modal during cold start.
+                // Setting opacity to 0 on Android prevents CollectionView from laying out correctly.
                 await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: false);
                 isModalOpen = true;
-                // IsBusy cleared by PlaybackModal.OnPageLoaded once rendered.
+                modalWasShown = true;
             }
             catch (Exception ex)
             {
@@ -88,6 +88,8 @@ public sealed class PlaybackModalService(
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
             }
         });
+
+        return modalWasShown;
     }
 
     private bool CheckPlatformPlaybackIsActive()

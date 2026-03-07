@@ -91,6 +91,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             (p) => PauseVisible = p,
             (d) => currentDuration = d,
             (url, fallbackUrl, force) => UpdateArtwork(url, force, fallbackUrl),
+            (waiting) => IsWaitingForArtwork = waiting,
             () => { OnPropertyChanged(nameof(AreControlsEnabled)); OnPropertyChanged(nameof(IsBuffering)); OnPropertyChanged(nameof(IsShowProgressBarAnimation)); OnPropertyChanged(nameof(ShowArtworkSpinner)); },
             () => OnPropertyChanged(nameof(ProgressText)),
             () => OnPropertyChanged(nameof(PreparationProgress)),
@@ -270,7 +271,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     }
 
     private ImageSource? artworkSource;
-    private bool isArtworkLoading;
+    private bool isArtworkLoading = true;
+    private bool isWaitingForArtwork;
 
     public ImageSource? ArtworkSource
     {
@@ -279,7 +281,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         {
             if (SetProperty(ref artworkSource, value))
             {
-                IsArtworkLoading = false;
                 OnPropertyChanged(nameof(HasArtwork));
             }
         }
@@ -293,6 +294,19 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             if (SetProperty(ref isArtworkLoading, value))
             {
                 OnPropertyChanged(nameof(HasArtwork));
+                OnPropertyChanged(nameof(ShowArtworkSpinner));
+            }
+        }
+    }
+
+    /// <summary>True when we have track metadata but ArtworkUrl has not been dispatched yet (show spinner until fetch/parse completes).</summary>
+    public bool IsWaitingForArtwork
+    {
+        get => isWaitingForArtwork;
+        private set
+        {
+            if (SetProperty(ref isWaitingForArtwork, value))
+            {
                 OnPropertyChanged(nameof(ShowArtworkSpinner));
             }
         }
@@ -474,8 +488,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         !IsStopping &&
         (playbackState.Value.Status == PlayStatus.Loading || playbackState.Value.IsTransitioningTrack);
 
-    /// <summary>True when artwork area should show spinner: transitioning track or loading artwork. Bell only when false and !HasArtwork.</summary>
-    public bool ShowArtworkSpinner => playbackState.Value.IsTransitioningTrack || IsArtworkLoading;
+    /// <summary>True when artwork area should show spinner: transitioning track, loading artwork, or waiting for ArtworkUrl. Bell only when false and !HasArtwork.</summary>
+    public bool ShowArtworkSpinner => playbackState.Value.IsTransitioningTrack || IsArtworkLoading || IsWaitingForArtwork;
 
     /// <summary>Controls enabled when state received, not preparing, no error, not busy.</summary>
     public bool AreControlsEnabled =>

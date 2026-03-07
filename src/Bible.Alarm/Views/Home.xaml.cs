@@ -180,7 +180,6 @@ public partial class Home : BaseContentPage, IDisposable
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        Log.Information("Home.OnAppearing called");
 
         // Restore CollectionView ItemsSource only when returning from a child page (after OnDisappearing cleared it).
         // On first appear we do not set ItemsSource so the XAML binding stays in effect; when bootstrap loads
@@ -205,10 +204,7 @@ public partial class Home : BaseContentPage, IDisposable
 
         disappearedForModal = false;
 
-        // Update floating button visibility based on permissions
-        Log.Information("Home.OnAppearing: Calling UpdateFloatingButtonVisibility");
         viewModel?.UpdateFloatingButtonVisibility();
-        Log.Information("Home.OnAppearing: UpdateFloatingButtonVisibility completed");
     }
 
     protected override void OnDisappearing()

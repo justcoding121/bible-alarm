@@ -306,7 +306,7 @@
                                                     VerticalOptions="Center"
                                                     HorizontalOptions="Center">
                                                 <ActivityIndicator
-                                                        IsRunning="True"
+                                                        IsRunning="{Binding IsBusy, FallbackValue=False}"
                                                         Color="White"
                                                         WidthRequest="24"
                                                         HeightRequest="24"

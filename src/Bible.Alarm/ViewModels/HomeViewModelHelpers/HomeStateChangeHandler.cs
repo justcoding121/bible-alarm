@@ -26,6 +26,7 @@ public class HomeStateChangeHandler
     private readonly Action? notifySchedulesChanged;
     private readonly Action updateProgressBarVisibility;
     private readonly Func<Task> fadeOutProgressBarAsync;
+    private readonly Func<bool> isPlaybackModalVisible;
 
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
@@ -43,7 +44,8 @@ public class HomeStateChangeHandler
         Action<ObservableHashSet<ScheduleListItemViewModel>> setSchedules,
         Action? notifySchedulesChanged,
         Action updateProgressBarVisibility,
-        Func<Task> fadeOutProgressBarAsync)
+        Func<Task> fadeOutProgressBarAsync,
+        Func<bool> isPlaybackModalVisible)
     {
         this.logger = logger;
         this.dataPreparer = dataPreparer;
@@ -57,10 +59,12 @@ public class HomeStateChangeHandler
         this.notifySchedulesChanged = notifySchedulesChanged;
         this.updateProgressBarVisibility = updateProgressBarVisibility;
         this.fadeOutProgressBarAsync = fadeOutProgressBarAsync;
+        this.isPlaybackModalVisible = isPlaybackModalVisible;
     }
 
     public async Task HandleStateChangedAsync(ApplicationState stateValue)
     {
+        var deferReorder = false;
         if (stateValue.Schedules != null)
         {
             // Check if Schedules collection has actually changed
@@ -145,20 +149,18 @@ public class HomeStateChangeHandler
                 schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
 
             var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
+            var fadeDeferredForInitialLoad = false;
 
             if (isInitialLoad && hasSchedulesNow && newSchedules != null)
             {
                 logger.Debug("OnStateChanged: Initial load - setting {Count} schedules", newSchedules.Count);
 
-                if (getIsBusy())
-                {
-                    await fadeOutProgressBarAsync();
-                    setIsBusy(false);
-                }
-
                 SyncCollectionToNewSchedules(newSchedules);
                 notifySchedulesChanged?.Invoke();
-                logger.Debug("OnStateChanged: Initial load complete. Collection now has {Count} items", getSchedules()?.Count ?? 0);
+                logger.Debug("OnStateChanged: Initial load complete ({Count} items). Deferring progress bar hide until list items render", newSchedules.Count);
+
+                fadeDeferredForInitialLoad = true;
+                _ = DeferProgressBarHideUntilListRenderedAsync();
             }
             else if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
             {
@@ -181,11 +183,16 @@ public class HomeStateChangeHandler
             else
             {
                 // No add/remove, but schedule properties (e.g. LastPlayedAtUtc) may have changed — sync to reorder
-                if (schedulePropertiesChanged && newSchedules != null && newSchedules.Count > 0)
+                deferReorder = schedulePropertiesChanged && newSchedules != null && newSchedules.Count > 0 && isPlaybackModalVisible();
+                if (schedulePropertiesChanged && newSchedules != null && newSchedules.Count > 0 && !deferReorder)
                 {
                     logger.Debug("OnStateChanged: Properties changed (e.g. LastPlayedAtUtc) — syncing collection to reorder");
                     SyncCollectionToNewSchedules(newSchedules);
                     notifySchedulesChanged?.Invoke();
+                }
+                else if (deferReorder)
+                {
+                    logger.Debug("OnStateChanged: Properties changed but playback modal visible — deferring list reorder until modal closes");
                 }
                 else if (stateValue.Schedules != null)
                 {
@@ -202,8 +209,8 @@ public class HomeStateChangeHandler
             }
 
             // Hide progress bar for non-initial-load cases (e.g., schedule updates)
-            // Initial load is handled above with the fade before setSchedules
-            if (hasSchedulesNow && getIsBusy())
+            // Initial load defers the hide until list items are rendered
+            if (hasSchedulesNow && getIsBusy() && !fadeDeferredForInitialLoad)
             {
                 await fadeOutProgressBarAsync();
                 setIsBusy(false);
@@ -214,7 +221,10 @@ public class HomeStateChangeHandler
             {
                 lastProcessedSchedulesCount = stateValue.Schedules.Count;
                 lastProcessedScheduleIds = currentScheduleIds;
-                lastProcessedScheduleProperties = currentScheduleProperties;
+                if (!deferReorder)
+                {
+                    lastProcessedScheduleProperties = currentScheduleProperties;
+                }
             }
         }
         else
@@ -224,6 +234,29 @@ public class HomeStateChangeHandler
             lastProcessedSchedulesCount = null;
             lastProcessedScheduleIds = null;
             lastProcessedScheduleProperties = null;
+        }
+    }
+
+    private const int ListRenderDelayMs = 300;
+
+    private async Task DeferProgressBarHideUntilListRenderedAsync()
+    {
+        try
+        {
+            await Task.Delay(ListRenderDelayMs);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                if (getIsBusy())
+                {
+                    await fadeOutProgressBarAsync();
+                    setIsBusy(false);
+                    logger.Debug("OnStateChanged: Progress bar hidden after list render delay");
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected if disposed/cancelled
         }
     }
 

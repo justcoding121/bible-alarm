@@ -366,15 +366,16 @@ public static class ServiceRegistrationHelper
         services.AddTransient<AndroidAlarmPermissionModal>();
         services.AddTransient<NotificationPermissionModal>();
         services.AddTransient<NumberOfTracksModal>();
+        services.AddTransient<Views.Shared.BootstrapOverlay>();
 
-        // NavigationPage with Home as the root page
+        // NavigationPage with BootstrapOverlay as root; Home is pushed on top by NavigateToHomeAsync.
+        // When Home opacity is 0 (cold start), the overlay with ActivityIndicator is visible underneath.
         services.AddTransient(sp =>
         {
-            var homePage = sp.GetRequiredService<Home>();
-            var navigationPage = new NavigationPage(homePage);
-            // NavigationPage background will adapt to theme via Home
-            NavigationPage.SetHasNavigationBar(homePage, false);
-            NavigationPage.SetHasBackButton(homePage, false);
+            var overlayPage = sp.GetRequiredService<Views.Shared.BootstrapOverlay>();
+            var navigationPage = new NavigationPage(overlayPage);
+            NavigationPage.SetHasNavigationBar(overlayPage, false);
+            NavigationPage.SetHasBackButton(overlayPage, false);
             return navigationPage;
         });
     }
