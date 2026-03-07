@@ -593,11 +593,12 @@
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
                                                    IsVisible="{Binding ShouldShowBiblePublicationTrackNameLine}" />
-                                            <!-- 6. Language Name -->
+                                            <!-- 6. Language Name (hidden when both Language and Music are empty) -->
                                             <Grid Margin="{DynamicResource MarginThickness0}"
                                                   HorizontalOptions="Fill"
                                                   VerticalOptions="Start"
-                                                  ColumnSpacing="{StaticResource SpacingMedium}">
+                                                  ColumnSpacing="{StaticResource SpacingMedium}"
+                                                  IsVisible="{Binding ShouldShowLanguageOrMusicLine}">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />

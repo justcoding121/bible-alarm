@@ -295,6 +295,13 @@ public sealed class ScheduleListItemViewModel(
 
     public bool MusicEnabled => Schedule?.MusicEnabled ?? false;
 
+    /// <summary>
+    /// True when the Language/Music row should be visible (Language not empty or MusicEnabled).
+    /// Prevents the Grid from reserving space when both are empty.
+    /// </summary>
+    public bool ShouldShowLanguageOrMusicLine
+        => !string.IsNullOrWhiteSpace(Language) || MusicEnabled;
+
     public bool IsEnabled
     {
         get => propertyManager.IsEnabled;
@@ -408,7 +415,14 @@ public sealed class ScheduleListItemViewModel(
             providedScheduleStateItem,
             value => SubTitle = value,
             value => Language = value,
-            OnPropertyChanged);
+            name =>
+            {
+                OnPropertyChanged(name);
+                if (name == nameof(Language))
+                {
+                    OnPropertyChanged(nameof(ShouldShowLanguageOrMusicLine));
+                }
+            });
     }
 
     public void RefreshTrackName(bool force = false) =>
