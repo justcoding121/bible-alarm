@@ -10,6 +10,7 @@ public interface IPlaylistService : IDisposable
     Task MarkTrackAsPlayed(TrackMetadata trackMetadata);
     Task MarkTrackAsFinished(TrackMetadata trackMetadata);
     Task<PlayItem> NextTrack(int scheduleId);
+    Task<PlayItem?> NextBiblePublicationTrack(int scheduleId);
     Task<List<PlayItem>> NextTracks(int scheduleId);
     Task SaveLastPlayed(int currentScheduleId);
 

@@ -340,14 +340,32 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         var biblePublicationSchedule = schedule.BiblePublicationSchedule
             ?? throw new InvalidOperationException($"No playable content configured for schedule {scheduleId} (MusicEnabled={schedule.MusicEnabled}, BiblePublicationSchedule is null)");
-        
-        // Use the biblePublicationTrackBuilder which correctly handles both sectioned and non-sectioned publications
+
+        return await BuildBiblePublicationPlayItemAsync(scheduleId, biblePublicationSchedule);
+    }
+
+    public async Task<PlayItem?> NextBiblePublicationTrack(int scheduleId)
+    {
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, true, true, cancellationTokenSource.Token) ?? throw new ArgumentException($"Invalid schedule Id {scheduleId}");
+
+        if (schedule.BiblePublicationSchedule == null)
+        {
+            return null;
+        }
+
+        return await BuildBiblePublicationPlayItemAsync(scheduleId, schedule.BiblePublicationSchedule);
+    }
+
+    private async Task<PlayItem> BuildBiblePublicationPlayItemAsync(
+        int scheduleId,
+        BiblePublicationSchedule biblePublicationSchedule)
+    {
         var trackInfo = await biblePublicationTrackBuilder.GetInitialTrackInfo(biblePublicationSchedule);
-        
-        // Check if this is a no-language publication (e.g., instrumental music)
+
         var isNoLanguagePublication = await BiblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
         var effectiveLanguageCode = isNoLanguagePublication ? "E" : (biblePublicationSchedule.LanguageCode ?? "E");
-        
+
         var trackCode = TrackCodeHelper.GetFromTrack(trackInfo.Track);
         var trackMetadata = new TrackMetadata
         {
@@ -372,7 +390,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
         trackMetadata.LookUpPath = lookUpPath;
 
-        // So alarm modal shows full track title for disc-style melody (e.g. iam): DisplayMetadataService needs DownloadCode/OriginalTrackCode.
         PlaylistMetadataHelper.TryApplyDiscStyleDownloadCode(trackMetadata);
 
         return new PlayItem(trackMetadata, trackInfo.Url);

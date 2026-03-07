@@ -169,8 +169,11 @@ public sealed class DefaultScheduleService(
 
     private async Task<ScheduleTrackMetadata> GetTrackMetadataForScheduleAsync(int scheduleId)
     {
-        // Get the first track from the schedule
-        var firstPlayItem = await playlistService.NextTrack(scheduleId);
+        // Prefer the Bible publication track for default metadata so the car display / lock
+        // screen always shows the Bible reading artwork, even when music is enabled.
+        // Fall back to NextTrack (which returns the music track) when no Bible publication exists.
+        var firstPlayItem = await playlistService.NextBiblePublicationTrack(scheduleId)
+            ?? await playlistService.NextTrack(scheduleId);
 
         if (internetConnectivityChecker != null && !await internetConnectivityChecker.IsInternetAvailableAsync())
         {
