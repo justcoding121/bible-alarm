@@ -109,12 +109,13 @@ public sealed class TrackPlaybackHandler
 
         // Seek ONLY on first encounter of a Bible track with saved progress
         // Conditions:
-        // 1. This is the FIRST encounter of this Bible track in this session (manual or automatic)
-        // 2. It's a Bible track with saved progress
-        // 3. Schedule allows resume (AlwaysPlayFromStart == false) - checked via ShouldResumeFromLastPositionAsync
-        // Note: Works for both manual navigation and automatic transitions on first encounter
-        // Subsequent encounters (manual or automatic) will start from beginning (track already marked as played)
-        var shouldCheckSeek = isFirstEncounter
+        // 1. Caller did not request start from beginning (manual Prev always, manual Next to already-visited)
+        // 2. This is the FIRST encounter of this Bible track in this session (manual or automatic)
+        // 3. It's a Bible track with saved progress
+        // 4. Schedule allows resume (AlwaysPlayFromStart == false) - checked via ShouldResumeFromLastPositionAsync
+        // Note: Auto-advance uses startFromBeginning=false; manual Prev uses true; manual Next uses true when track was already visited
+        var shouldCheckSeek = !startFromBeginning
+            && isFirstEncounter
             && isBibleTrack
             && track.PlayItem?.Metadata != null
             && track.PlayItem.Metadata.FinishedDuration != TimeSpan.Zero;
@@ -174,50 +175,50 @@ public sealed class TrackPlaybackHandler
 
         // When we need to seek to saved progress, mute before play so the user doesn't hear
         // audio from the beginning before the seek completes. Unmute after seek.
-        if (seekPosition.HasValue)
+        var didMute = seekPosition.HasValue;
+        if (didMute)
         {
             await audioPlayer.SetMutedAsync(true);
         }
 
-        await audioPlayer.PlayAsync();
+        try
+        {
+            await audioPlayer.PlayAsync();
 
-        // On iOS and Android, wait for playback to start so seekable ranges are available.
-        // When seeking to resume: we muted above so no audible audio during this wait or the seek.
+            // On iOS and Android, wait for playback to start so seekable ranges are available.
+            // When seeking to resume: we muted above so no audible audio during this wait or the seek.
 #if IOS || ANDROID
-        await Task.Delay(100);
+            await Task.Delay(100);
 
-        // On iOS and Android, seek AFTER play starts - seekable ranges are more reliable once playing
-        // On Android, this is critical when transitioning from music to Bible track because
-        // SetSourceWithDummyQueue's player.SeekTo(currentItemIndex, 0) may interfere with seeking before play
-        if (seekPosition.HasValue)
-        {
-            // Re-validate after play started: duration is now more accurate from stream headers
-            var postPlayDuration = audioPlayer.Duration;
-            if (postPlayDuration > TimeSpan.Zero && seekPosition.Value >= postPlayDuration)
+            // On iOS and Android, seek AFTER play starts - seekable ranges are more reliable once playing
+            // On Android, this is critical when transitioning from music to Bible track because
+            // SetSourceWithDummyQueue's player.SeekTo(currentItemIndex, 0) may interfere with seeking before play
+            if (seekPosition.HasValue)
             {
-                logger.Warning("[Resume] Post-play validation: seek position {SeekPosition} exceeds track duration {Duration} - skipping seek",
-                    seekPosition.Value, postPlayDuration);
-                seekPosition = null;
+                // Re-validate after play started: duration is now more accurate from stream headers
+                var postPlayDuration = audioPlayer.Duration;
+                if (postPlayDuration > TimeSpan.Zero && seekPosition.Value >= postPlayDuration)
+                {
+                    logger.Warning("[Resume] Post-play validation: seek position {SeekPosition} exceeds track duration {Duration} - skipping seek",
+                        seekPosition.Value, postPlayDuration);
+                    seekPosition = null;
+                }
             }
-        }
 
-        if (seekPosition.HasValue)
-        {
-            try
+            if (seekPosition.HasValue)
             {
                 await SeekWithRetryAsync(seekPosition.Value);
                 await Task.Delay(100);
             }
-            finally
+#endif
+        }
+        finally
+        {
+            if (didMute)
             {
                 await audioPlayer.SetMutedAsync(false);
             }
         }
-        else
-        {
-            await audioPlayer.SetMutedAsync(false);
-        }
-#endif
 
         progressTracker.StartIfBiblePublicationTrack(playlistBeforePlay, currentTrackIndex);
 

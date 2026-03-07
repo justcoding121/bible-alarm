@@ -76,9 +76,10 @@ public sealed class PlaybackNavigationHandler
             // This prevents button flicker during track transitions
             navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
 
-            // Seek-to-saved-position is only for initial play of a track. Any transition via next/prev starts from beginning.
+            // Resume only on first visit; start from beginning when returning to an already-visited track
+            var alreadyVisited = manuallyVisitedTrackIndices.Contains(nextTrackIndex);
             manuallyVisitedTrackIndices.Add(nextTrackIndex);
-            await playCurrentTrackAsync(true);
+            await playCurrentTrackAsync(alreadyVisited);
             return;
         }
 

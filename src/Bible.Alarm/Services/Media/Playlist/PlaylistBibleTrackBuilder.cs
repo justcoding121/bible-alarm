@@ -414,10 +414,12 @@ public class PlaylistBiblePublicationTrackBuilder
         TrackMetadata trackMetadata,
         string? sectionCode)
     {
+        var scheduleLang = biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+        var metadataLang = trackMetadata.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
         return !markedSeekTrack &&
                !schedule.AlwaysPlayFromStart &&
                !biblePublicationSchedule.FinishedDuration.Equals(TimeSpan.Zero) &&
-               biblePublicationSchedule.LanguageCode == trackMetadata.LanguageCode &&
+               string.Equals(scheduleLang, metadataLang, StringComparison.OrdinalIgnoreCase) &&
                biblePublicationSchedule.PublicationCode == trackMetadata.PublicationCode &&
                string.Equals(sectionCode, trackMetadata.SectionCode, StringComparison.OrdinalIgnoreCase);
     }

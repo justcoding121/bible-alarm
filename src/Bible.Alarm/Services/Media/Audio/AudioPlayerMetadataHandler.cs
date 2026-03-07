@@ -197,29 +197,33 @@ public class AudioPlayerMetadataHandler
         // rather than trying to load from HTTP URLs which would require async loading
         if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
         {
+            var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
+            var key = GetStableArtworkKey(track);
+            var fileName = key != null
+                ? $"playing_track_artwork_{key}.jpg"
+                : $"playing_track_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg";
+            var artworkPath = Path.Combine(artworkDir, fileName);
+
             try
             {
-                var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
-                var key = GetStableArtworkKey(track);
-                var fileName = key != null
-                    ? $"playing_track_artwork_{key}.jpg"
-                    : $"playing_track_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg";
-                var artworkPath = Path.Combine(artworkDir, fileName);
-
-                // Use concurrency helper to prevent concurrent access to artwork directory operations
                 await ConcurrencyHelper.ExecuteAsync(ArtworkHelper.ArtworkLock, async () =>
                 {
-                    Directory.CreateDirectory(artworkDir); // Ensure directory exists
+                    Directory.CreateDirectory(artworkDir);
                     CleanupOldArtworkFiles(artworkDir);
                     await File.WriteAllBytesAsync(artworkPath, meta.ArtworkBytes);
                 });
-                
-                artworkUrl = artworkPath; // Always use local file path for iOS lock screen
+
+                artworkUrl = artworkPath;
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Failed to save playing track artwork to file");
-                // Fall back to URL if file save failed
+
+                // Stable key guarantees same content for same track; use the existing file
+                if (File.Exists(artworkPath))
+                {
+                    artworkUrl = artworkPath;
+                }
             }
         }
 

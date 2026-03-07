@@ -189,30 +189,13 @@ public sealed class ArtworkManager(ILogger logger)
             return false;
         }
 
-        if (DeviceInfo.Platform == DevicePlatform.Android)
-        {
-            LoadFromFileAndroid(filePath, setArtworkSource, setIsArtworkLoading);
-        }
-        else
-        {
-            LoadFromFileOtherPlatforms(filePath, setArtworkSource, setIsArtworkLoading);
-        }
-
-        return artworkSource != null;
-    }
-
-    /// <summary>
-    /// Loads artwork from file on Android platform.
-    /// </summary>
-    private void LoadFromFileAndroid(string filePath, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
-    {
         try
         {
             artworkBytes = File.ReadAllBytes(filePath);
             if (artworkBytes == null || artworkBytes.Length == 0)
             {
                 artworkSource = null;
-                return;
+                return false;
             }
 
             var bytes = artworkBytes;
@@ -222,43 +205,12 @@ public sealed class ArtworkManager(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to create ImageSource from stream for Android, trying FromFile fallback: {FilePath}", filePath);
+            logger.Debug(ex, "Failed to load artwork from file: {FilePath}", filePath);
             artworkBytes = null;
-            LoadFromFileFallback(filePath, setArtworkSource, setIsArtworkLoading);
-        }
-    }
-
-    /// <summary>
-    /// Loads artwork from file on non-Android platforms.
-    /// </summary>
-    private void LoadFromFileOtherPlatforms(string filePath, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
-    {
-        try
-        {
-            artworkSource = ImageSource.FromFile(filePath);
-            setArtworkSource(artworkSource);
-            DeferClearLoadingState(setIsArtworkLoading);
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Failed to create ImageSource from file for artwork: {FilePath}", filePath);
             artworkSource = null;
         }
-    }
 
-    private void LoadFromFileFallback(string filePath, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
-    {
-        try
-        {
-            artworkSource = ImageSource.FromFile(filePath);
-            setArtworkSource(artworkSource);
-            DeferClearLoadingState(setIsArtworkLoading);
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Failed to create ImageSource from file for artwork (fallback): {FilePath}", filePath);
-            artworkSource = null;
-        }
+        return artworkSource != null;
     }
 
     /// <summary>
