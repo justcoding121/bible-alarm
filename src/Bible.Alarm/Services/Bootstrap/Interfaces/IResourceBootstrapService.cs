@@ -8,7 +8,7 @@ namespace Bible.Alarm.Services.Bootstrap.Interfaces;
 public interface IResourceBootstrapService
 {
     /// <summary>
-    /// Copies required resource files to storage (e.g., silent_preparing.mp3 for Android Auto dummy tracks).
+    /// Copies required resource files to storage (e.g., silent MP3 for Android dummy queue tracks).
     /// </summary>
     Task CopyResourcesAsync();
 

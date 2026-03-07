@@ -35,6 +35,11 @@ public sealed class PlaybackStateManager
     public HashSet<string> PlayedBibleTrackKeys { get; } = [];
     public CancellationTokenSource? PreparationCancellationTokenSource { get; set; }
     public bool IsPreparingTrack { get; set; }
+    /// <summary>
+    /// True when Next/Previous was pressed from system controls (notification) and PlayNextAsync/PlayPreviousAsync
+    /// is pending. Prevents MediaEnded (from dummy track) from advancing; the manual handler performs the single advance.
+    /// </summary>
+    public bool ManualNavigationPending { get; set; }
 
     public PlaybackStateManager(ILogger logger)
     {
@@ -54,6 +59,7 @@ public sealed class PlaybackStateManager
         SessionMusicPlayItem = null;
         ManuallyVisitedTrackIndices.Clear();
         PlayedBibleTrackKeys.Clear();
+        ManualNavigationPending = false;
         logger.Debug("[PlaybackStateManager] Reset called - cleared {PlayedTracksCount} played Bible track keys", playedTracksCount);
 
         // Dispose cancellation token source

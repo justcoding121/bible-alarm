@@ -40,8 +40,15 @@ public sealed class PlaybackEventHandler
         Func<Task<bool>> tryAppendNextTrackAsync,
         Func<bool, Task> playCurrentTrackAsync,
         Func<bool, Task> stopAsyncInternal,
-        Func<Task> handlePlaybackFailureAsync)
+        Func<Task> handlePlaybackFailureAsync,
+        Func<bool> getIsManualNavigationPending)
     {
+        if (getIsManualNavigationPending())
+        {
+            logger.Debug("HandleMediaEndedAsync: manual Next/Prev pending - skipping to avoid double advance");
+            return;
+        }
+
         var currentTrackIndex = getCurrentTrackIndex();
 
         // Mark track as finished - this advances Bible track to next track with position 0.00
@@ -131,8 +138,15 @@ public sealed class PlaybackEventHandler
         string trackUri,
         string trackUrl,
         Func<bool, Task> playCurrentTrackAsync,
-        Func<Task> handlePlaybackFailureAsync)
+        Func<Task> handlePlaybackFailureAsync,
+        Func<bool> getIsManualNavigationPending)
     {
+        if (getIsManualNavigationPending())
+        {
+            logger.Debug("HandleMediaFailedAsync: manual Next/Prev pending - skipping to avoid double advance");
+            return;
+        }
+
         var currentTrackIndex = getCurrentTrackIndex();
         logger.Warning("Media failed for track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}",
             currentTrackIndex,

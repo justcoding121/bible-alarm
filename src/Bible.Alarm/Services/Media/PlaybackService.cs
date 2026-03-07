@@ -106,7 +106,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             () => TryAppendNextTrackAsync(),
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
             skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false),
-            () => HandlePlaybackFailureAsync());
+            () => HandlePlaybackFailureAsync(),
+            () => stateManager.ManualNavigationPending);
 
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
@@ -266,12 +267,49 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public void Receive(NextButtonPressedMessage message)
     {
-        systemControlsHandler.HandleNextButton(() => PlayNextAsync());
+        stateManager.ManualNavigationPending = true;
+        systemControlsHandler.HandleNextButton(async () =>
+        {
+            try
+            {
+                await PlayNextAsync();
+            }
+            finally
+            {
+                ScheduleClearManualNavigationFlag();
+            }
+        });
     }
 
     public void Receive(PreviousButtonPressedMessage message)
     {
-        systemControlsHandler.HandlePreviousButton(() => PlayPreviousAsync());
+        stateManager.ManualNavigationPending = true;
+        systemControlsHandler.HandlePreviousButton(async () =>
+        {
+            try
+            {
+                await PlayPreviousAsync();
+            }
+            finally
+            {
+                ScheduleClearManualNavigationFlag();
+            }
+        });
+    }
+
+    /// <summary>
+    /// Clears the ManualNavigationPending flag after a delay. Both PlayNextAsync and MediaEnded run on the
+    /// main thread, so MediaEnded is always dequeued AFTER PlayNextAsync completes. An immediate clear in
+    /// finally would let the queued MediaEnded (from the old dummy track) see the flag as false and advance
+    /// a second time. The delay keeps the flag true long enough for any queued MediaEnded to be suppressed.
+    /// </summary>
+    private void ScheduleClearManualNavigationFlag()
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(1000);
+            stateManager.ManualNavigationPending = false;
+        });
     }
 
     public void Receive(PlayButtonPressedMessage message)

@@ -23,6 +23,7 @@ public sealed class PlaybackMediaEventAdapter
     private readonly Func<bool, Task> playCurrentTrackAsync;
     private readonly Func<bool, Task> stopAsyncInternal;
     private readonly Func<Task> handlePlaybackFailureAsync;
+    private readonly Func<bool> getIsManualNavigationPending;
 
     public PlaybackMediaEventAdapter(
         PlaybackEventHandler eventHandler,
@@ -36,7 +37,8 @@ public sealed class PlaybackMediaEventAdapter
         Func<Task<bool>> tryAppendNextTrackAsync,
         Func<bool, Task> playCurrentTrackAsync,
         Func<bool, Task> stopAsyncInternal,
-        Func<Task> handlePlaybackFailureAsync)
+        Func<Task> handlePlaybackFailureAsync,
+        Func<bool> getIsManualNavigationPending)
     {
         this.eventHandler = eventHandler;
         this.progressTracker = progressTracker;
@@ -50,6 +52,7 @@ public sealed class PlaybackMediaEventAdapter
         this.playCurrentTrackAsync = playCurrentTrackAsync;
         this.stopAsyncInternal = stopAsyncInternal;
         this.handlePlaybackFailureAsync = handlePlaybackFailureAsync;
+        this.getIsManualNavigationPending = getIsManualNavigationPending;
     }
 
     public async void OnMediaEnded(object? sender, EventArgs e)
@@ -66,7 +69,8 @@ public sealed class PlaybackMediaEventAdapter
                 tryAppendNextTrackAsync,
                 playCurrentTrackAsync,
                 stopAsyncInternal,
-                handlePlaybackFailureAsync);
+                handlePlaybackFailureAsync,
+                getIsManualNavigationPending);
         }
         catch (Exception ex)
         {
@@ -97,7 +101,8 @@ public sealed class PlaybackMediaEventAdapter
                 trackUri,
                 trackUrl,
                 playCurrentTrackAsync,
-                handlePlaybackFailureAsync);
+                handlePlaybackFailureAsync,
+                getIsManualNavigationPending);
         }
         catch (Exception ex)
         {

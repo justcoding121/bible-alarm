@@ -51,12 +51,15 @@ public class ResourceBootstrapService : IResourceBootstrapService
         {
             var storageDir = storageService.StorageRoot;
 
-            const string LegacySilentMp3FileName = "silent.mp3";
-            var legacyPath = System.IO.Path.Combine(storageDir, LegacySilentMp3FileName);
-            if (await storageService.FileExists(legacyPath))
+            string[] legacyNames = ["silent.mp3", "silent_preparing.mp3"];
+            foreach (var legacyName in legacyNames)
             {
-                await storageService.DeleteFile(legacyPath);
-                Log.Logger.Debug("Deleted legacy silent MP3 from storage: {FilePath}", legacyPath);
+                var legacyPath = System.IO.Path.Combine(storageDir, legacyName);
+                if (await storageService.FileExists(legacyPath))
+                {
+                    await storageService.DeleteFile(legacyPath);
+                    Log.Logger.Debug("Deleted legacy silent MP3 from storage: {FilePath}", legacyPath);
+                }
             }
 
             var resourceFileName = AppConstants.FilePaths.SilentMp3FileName;

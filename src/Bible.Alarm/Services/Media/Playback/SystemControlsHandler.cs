@@ -23,12 +23,12 @@ public sealed class SystemControlsHandler
     public void HandleNextButton(Func<Task> playNextAsync)
     {
         logger.Debug("Next button pressed from system controls - calling PlayNextAsync");
-        // Add delay to let MediaSession finish processing the button press
-        // This prevents IllegalStateException when ExoPlayer is transitioning
+        // Short delay (50ms) to let MediaSession finish processing without letting the dummy
+        // track end. A longer delay would let MediaEnded fire first, then our PlayNextAsync
+        // would run and advance again, skipping the target track and breaking resume.
         Task.Run(async () =>
         {
-            // Delay to let MediaSession finish
-            await Task.Delay(150);
+            await Task.Delay(50);
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 await playNextAsync();
@@ -43,12 +43,10 @@ public sealed class SystemControlsHandler
     public void HandlePreviousButton(Func<Task> playPreviousAsync)
     {
         logger.Debug("Previous button pressed from system controls - calling PlayPreviousAsync");
-        // Add delay to let MediaSession finish processing the button press
-        // This prevents IllegalStateException when ExoPlayer is transitioning
+        // Short delay (50ms) to let MediaSession finish processing.
         Task.Run(async () =>
         {
-            // Delay to let MediaSession finish
-            await Task.Delay(150);
+            await Task.Delay(50);
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 await playPreviousAsync();

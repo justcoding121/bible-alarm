@@ -84,7 +84,7 @@ public class MediaElementManager
         // Attach event handlers to the MediaElement
         eventHandlerManager.SubscribeToMediaElement(newMediaElement);
 
-        await SafeStopMediaElementAsync(newMediaElement, clearSource: false);
+        await SafeStopMediaElementAsync(newMediaElement, clearSource: true);
 
         stateManager.Status = PlayStatus.Loading;
         // Reset duration tracking so new track's duration will be detected as changed

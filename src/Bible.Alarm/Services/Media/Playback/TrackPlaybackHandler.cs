@@ -143,13 +143,14 @@ public sealed class TrackPlaybackHandler
         // Only reject the seek when duration is positively known and the seek exceeds it.
         // When duration is still zero (not yet determined from stream), allow the seek through;
         // the post-play validation on iOS/Android will catch it once duration is accurate.
+        var prePlayDuration = TimeSpan.Zero;
         if (seekPosition.HasValue)
         {
-            var trackDuration = audioPlayer.Duration;
-            if (trackDuration > TimeSpan.Zero && seekPosition.Value >= trackDuration)
+            prePlayDuration = audioPlayer.Duration;
+            if (prePlayDuration > TimeSpan.Zero && seekPosition.Value >= prePlayDuration)
             {
                 logger.Warning("[Resume] Seek position {SeekPosition} exceeds track duration {Duration} - starting from beginning. FinishedDuration may not have been reset after a publication/track change.",
-                    seekPosition.Value, trackDuration);
+                    seekPosition.Value, prePlayDuration);
                 seekPosition = null;
             }
         }
@@ -187,15 +188,22 @@ public sealed class TrackPlaybackHandler
 
             // On iOS and Android, wait for playback to start so seekable ranges are available.
             // When seeking to resume: we muted above so no audible audio during this wait or the seek.
+            // Use a longer delay (300ms) when resuming: after a track transition (e.g. music to Bible),
+            // ExoPlayer/AVPlayer need extra time before seeking works reliably. 100ms is often insufficient.
 #if IOS || ANDROID
-            await Task.Delay(100);
+            await Task.Delay(seekPosition.HasValue ? 300 : 100);
 
             // On iOS and Android, seek AFTER play starts - seekable ranges are more reliable once playing
             // On Android, this is critical when transitioning from music to Bible track because
             // SetSourceWithDummyQueue's player.SeekTo(currentItemIndex, 0) may interfere with seeking before play
-            if (seekPosition.HasValue)
+            if (seekPosition.HasValue && prePlayDuration == TimeSpan.Zero)
             {
-                // Re-validate after play started: duration is now more accurate from stream headers
+                // Re-validate only when pre-play duration was unknown (zero). Now that playback
+                // started, duration may be available from stream headers. When pre-play duration
+                // was already known (> 0), the pre-play validation was sufficient; re-validating
+                // here risks using a stale duration from a previous track (e.g. a short music
+                // track whose duration is still cached in mediaElement.Duration), which would
+                // incorrectly reject a valid seek position for the current Bible track.
                 var postPlayDuration = audioPlayer.Duration;
                 if (postPlayDuration > TimeSpan.Zero && seekPosition.Value >= postPlayDuration)
                 {

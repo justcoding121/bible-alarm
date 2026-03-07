@@ -39,6 +39,8 @@ internal static class IosMediaManagerSourceUpdater
         {
             mediaElement.MediaWidth = 0;
             mediaElement.MediaHeight = 0;
+            mediaElement.Duration = TimeSpan.Zero;
+            mediaElement.Position = TimeSpan.Zero;
             mediaElement.CurrentStateChanged(MediaElementState.None);
             return new(metaData, null, DisposeAndClear(currentItemErrorObserver));
         }

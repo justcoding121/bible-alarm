@@ -193,8 +193,8 @@
 		<EmbeddedResource Include="..\..\.tools\_index\index.zip">
 			<Link>Resources\index.zip</Link>
 		</EmbeddedResource>
-		<EmbeddedResource Include="Resources\silent_preparing.mp3">
-			<Link>Resources\silent_preparing.mp3</Link>
+		<EmbeddedResource Include="Resources\silent_preparing_v2.mp3">
+			<Link>Resources\silent_preparing_v2.mp3</Link>
 		</EmbeddedResource>
 		<EmbeddedResource Include="Resources\schedule.db">
 			<Link>Resources\schedule.db</Link>
