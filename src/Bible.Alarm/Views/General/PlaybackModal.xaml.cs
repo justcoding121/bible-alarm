@@ -21,6 +21,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         BindingContext = viewModel;
         this.viewModel = viewModel;
 
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
         Loaded += OnPageLoaded;
         SizeChanged += OnSizeChanged;
     }
@@ -70,6 +71,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
                 MainContentArea?.InvalidateMeasure();
                 PortraitArtworkGrid.InvalidateMeasure();
+                PortraitArtworkImage?.InvalidateMeasure();
 
                 // Delayed second pass: initial layout may give wrong dimensions. Re-invalidate after layout settles.
                 Task.Delay(150).ContinueWith(_ =>
@@ -89,6 +91,89 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                                 {
                                     MainContentArea?.InvalidateMeasure();
                                     PortraitArtworkGrid.InvalidateMeasure();
+                                    PortraitArtworkImage?.InvalidateMeasure();
+                                    PortraitArtworkImage?.Handler?.UpdateValue(nameof(Image.Source));
+                                }
+                            }
+                            catch (ObjectDisposedException)
+                            {
+                            }
+                            catch (InvalidOperationException)
+                            {
+                            }
+                        });
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                });
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        });
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (e.PropertyName is nameof(PlaybackViewModel.HasArtwork)
+                           or nameof(PlaybackViewModel.ShowArtworkSpinner)
+                           or nameof(PlaybackViewModel.ShowPortraitLayout))
+        {
+            SchedulePortraitArtworkRender();
+        }
+    }
+
+    /// <summary>
+    /// Works around a MAUI rendering bug where the Image control can fail to display its source
+    /// after becoming visible (e.g. when the spinner hides, or after switching from landscape to portrait).
+    /// Forces the platform handler to re-process the image source after layout settles.
+    /// </summary>
+    private void SchedulePortraitArtworkRender()
+    {
+        if (isDisposed || PortraitArtworkImage == null ||
+            ViewModel?.ShowPortraitLayout != true ||
+            ViewModel?.HasArtwork != true ||
+            ViewModel?.ShowArtworkSpinner != false)
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                if (isDisposed || PortraitArtworkImage == null)
+                {
+                    return;
+                }
+
+                PortraitArtworkImage.InvalidateMeasure();
+
+                Task.Delay(100).ContinueWith(_ =>
+                {
+                    if (isDisposed)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            try
+                            {
+                                if (!isDisposed && PortraitArtworkImage?.Handler != null)
+                                {
+                                    PortraitArtworkImage.Handler.UpdateValue(nameof(Image.Source));
                                 }
                             }
                             catch (ObjectDisposedException)
@@ -659,6 +744,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
         try
         {
+            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             Loaded -= OnPageLoaded;
             SizeChanged -= OnSizeChanged;
             UnwireLandscapeContentEvents();

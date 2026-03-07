@@ -281,6 +281,7 @@
                                         VerticalOptions="Center" />
                                     <!-- Album Artwork Image (renders on top of bell when loaded) -->
                                     <Image
+                                        x:Name="PortraitArtworkImage"
                                         Aspect="AspectFill"
                                         HorizontalOptions="Fill"
                                         IsVisible="{Binding HasArtwork}"
