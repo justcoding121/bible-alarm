@@ -1,6 +1,7 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
+using Serilog;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Helpers;
 #elif IOS
@@ -52,9 +53,9 @@ public sealed class AlarmService(
                 {
                     isPermissionGranted = permissionService.IsGranted;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // If permission check fails, assume not granted
+                    Log.Logger.Debug(ex, "AlarmService: Android permission check failed, assuming not granted");
                     isPermissionGranted = false;
                 }
 
@@ -64,9 +65,9 @@ public sealed class AlarmService(
                     return false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If permission service access fails, treat NotificationEnabled as false
+                Log.Logger.Debug(ex, "AlarmService: Permission service access failed, treating NotificationEnabled as false");
                 return false;
             }
         }
@@ -85,18 +86,18 @@ public sealed class AlarmService(
                 {
                     isPermissionGranted = permissionService.IsGranted;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // If permission check fails, assume not granted
+                    Log.Logger.Debug(ex, "AlarmService: iOS permission check failed, assuming not granted");
                     isPermissionGranted = false;
                 }
 
                 // Only schedule if permission is granted
                 return isPermissionGranted;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If permission service access fails, don't schedule
+                Log.Logger.Debug(ex, "AlarmService: iOS permission service access failed, not scheduling");
                 return false;
             }
         }
@@ -164,9 +165,9 @@ public sealed class AlarmService(
                 {
                     isPermissionGranted = permissionService.IsGranted;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // If permission check fails, assume not granted
+                    Log.Logger.Debug(ex, "AlarmService: Permission check failed in ScheduleNotification, assuming not granted");
                     isPermissionGranted = false;
                 }
 
@@ -193,13 +194,13 @@ public sealed class AlarmService(
                     };
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If permission service access fails, use schedule as-is
+                Log.Logger.Debug(ex, "AlarmService: Permission service access failed in ScheduleNotification, using schedule as-is");
                 scheduleToUse = schedule;
             }
         }
-        
+
         await notificationService.ScheduleNotificationAsync(scheduleToUse,
             title,
             "Press to start listening now.");

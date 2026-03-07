@@ -3,6 +3,7 @@
 #if WINDOWS
 using Microsoft.UI.Xaml.Controls;
 #endif
+using Serilog;
 using Syncfusion.Maui.Buttons;
 
 namespace Bible.Alarm.Views.Shared;
@@ -105,9 +106,9 @@ public partial class PlatformSwitch : ContentView
                 if (Handler?.PlatformView is Microsoft.UI.Xaml.Controls.ToggleSwitch toggleSwitch)
                     toggleSwitch.MinWidth = 0;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // MinWidth is cosmetic; skip if WinRT cast fails (e.g. wrong thread in Release)
+                Log.Debug(ex, "PlatformSwitch: MinWidth set failed (e.g. WinRT cast on wrong thread in Release)");
             }
 #endif
         }

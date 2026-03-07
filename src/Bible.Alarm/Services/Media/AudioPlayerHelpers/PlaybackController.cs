@@ -108,9 +108,9 @@ public class PlaybackController
             {
                 mediaElement.Stop();
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                // On iOS, Stop() internally tries to seek to zero, which can fail if the player isn't ready
+                logger.Debug(ex, "PlaybackController: Stop() failed (player may not be ready to seek on iOS)");
             }
             catch (Exception ex)
             {

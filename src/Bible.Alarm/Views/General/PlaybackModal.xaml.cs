@@ -95,24 +95,29 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                                     PortraitArtworkImage?.Handler?.UpdateValue(nameof(Image.Source));
                                 }
                             }
-                            catch (ObjectDisposedException)
+                            catch (ObjectDisposedException ex)
                             {
+                                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during portrait artwork layout invalidation");
                             }
-                            catch (InvalidOperationException)
+                            catch (InvalidOperationException ex)
                             {
+                                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during portrait artwork layout invalidation");
                             }
                         });
                     }
-                    catch (ObjectDisposedException)
+                    catch (ObjectDisposedException ex)
                     {
+                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during delayed portrait artwork layout invalidation");
                     }
                 });
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ex)
             {
+                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during InvalidatePortraitArtworkLayout");
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
+                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during InvalidatePortraitArtworkLayout");
             }
         });
     }
@@ -176,24 +181,29 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                                     PortraitArtworkImage.Handler.UpdateValue(nameof(Image.Source));
                                 }
                             }
-                            catch (ObjectDisposedException)
+                            catch (ObjectDisposedException ex)
                             {
+                                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during SchedulePortraitArtworkRender");
                             }
-                            catch (InvalidOperationException)
+                            catch (InvalidOperationException ex)
                             {
+                                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during SchedulePortraitArtworkRender");
                             }
                         });
                     }
-                    catch (ObjectDisposedException)
+                    catch (ObjectDisposedException ex)
                     {
+                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during delayed SchedulePortraitArtworkRender");
                     }
                 });
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ex)
             {
+                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during SchedulePortraitArtworkRender");
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
+                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during SchedulePortraitArtworkRender");
             }
         });
     }
@@ -358,37 +368,37 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                                     MainContentArea.InvalidateMeasure();
                                 }
                             }
-                            catch (ObjectDisposedException)
+                            catch (ObjectDisposedException ex)
                             {
-                                // Modal was disposed, ignore
+                                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during ForceIOSLayoutMeasurement");
                             }
-                            catch (InvalidOperationException)
+                            catch (InvalidOperationException ex)
                             {
-                                // Dispatcher/view no longer available, ignore
+                                Log.Logger.Debug(ex, "PlaybackModal: Dispatcher/view no longer available during ForceIOSLayoutMeasurement");
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
-                                // Defensive: swallow any native bridge or transitional-state exceptions
+                                Log.Logger.Debug(ex, "PlaybackModal: Native bridge or transitional-state exception during ForceIOSLayoutMeasurement");
                             }
                         });
                     }
-                    catch (ObjectDisposedException)
+                    catch (ObjectDisposedException ex)
                     {
-                        // Modal was disposed, ignore
+                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during delayed ForceIOSLayoutMeasurement");
                     }
-                    catch (InvalidOperationException)
+                    catch (InvalidOperationException ex)
                     {
-                        // Dispatcher is no longer available, ignore
+                        Log.Logger.Debug(ex, "PlaybackModal: Dispatcher no longer available during delayed ForceIOSLayoutMeasurement");
                     }
                 });
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ex)
             {
-                // Modal was disposed before callback ran, ignore
+                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed before ForceIOSLayoutMeasurement callback ran");
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                // View hierarchy in transitional state, ignore
+                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during ForceIOSLayoutMeasurement");
             }
         });
     }
@@ -568,27 +578,27 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                         isDragging = false;
                         ViewModel.OnSliderDragCompleted(value);
                     }
-                    catch (ObjectDisposedException)
+                    catch (ObjectDisposedException ex)
                     {
-                        // Modal was disposed, ignore
+                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during seek debounce callback");
                     }
-                    catch (InvalidOperationException)
+                    catch (InvalidOperationException ex)
                     {
-                        // View no longer available, ignore
+                        Log.Logger.Debug(ex, "PlaybackModal: View no longer available during seek debounce callback");
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        // Defensive: swallow any exceptions during transitional state (e.g. CarPlay modal close)
+                        Log.Logger.Debug(ex, "PlaybackModal: Exception during seek debounce callback (e.g. CarPlay modal close)");
                     }
                 });
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ex)
             {
-                // Modal was disposed, ignore
+                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed before seek debounce callback");
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                // Dispatcher/main thread no longer available, ignore
+                Log.Logger.Debug(ex, "PlaybackModal: Dispatcher/main thread no longer available for seek debounce callback");
             }
         };
         seekDebounceTimer.AutoReset = false;
@@ -691,27 +701,27 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                                 isHandlingTap = false;
                             }
                         }
-                        catch (ObjectDisposedException)
+                        catch (ObjectDisposedException ex)
                         {
-                            // Modal was disposed, ignore
+                            Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during OnSliderTapped isHandlingTap reset");
                         }
-                        catch (InvalidOperationException)
+                        catch (InvalidOperationException ex)
                         {
-                            // View no longer available, ignore
+                            Log.Logger.Debug(ex, "PlaybackModal: View no longer available during OnSliderTapped isHandlingTap reset");
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
-                            // Defensive: swallow during transitional state
+                            Log.Logger.Debug(ex, "PlaybackModal: Exception during OnSliderTapped isHandlingTap reset (transitional state)");
                         }
                     });
                 }
-                catch (ObjectDisposedException)
+                catch (ObjectDisposedException ex)
                 {
-                    // Modal was disposed, ignore
+                    Log.Logger.Debug(ex, "PlaybackModal: Modal disposed before OnSliderTapped isHandlingTap reset");
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException ex)
                 {
-                    // Main thread invocation no longer available, ignore
+                    Log.Logger.Debug(ex, "PlaybackModal: Main thread invocation no longer available for OnSliderTapped isHandlingTap reset");
                 }
             });
         }

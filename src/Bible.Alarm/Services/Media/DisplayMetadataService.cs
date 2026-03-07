@@ -216,8 +216,9 @@ public sealed class DisplayMetadataService(
                 trackTitle = NormalizeTitle(melodyPair.Track.Title);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Debug(ex, "Failed to get melody track title from media service");
         }
 
         string? releaseName = null;
@@ -230,8 +231,9 @@ public sealed class DisplayMetadataService(
                 releaseName = release.Name;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Debug(ex, "Failed to get melody release name from media service");
         }
 
         string? sectionName = null;
@@ -244,8 +246,9 @@ public sealed class DisplayMetadataService(
                 sectionName = section.Name;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Debug(ex, "Failed to get melody section name from media service");
         }
 
         // CarPlay/lock screen: put short text in Title so it does not overlap the two-line subtitle.
@@ -289,8 +292,9 @@ public sealed class DisplayMetadataService(
                 meta.ArtworkBytes = fileMeta.ArtworkBytes;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Debug(ex, "Failed to extract file metadata for artwork/artist/album {Uri}", uri);
         }
     }
 
@@ -304,8 +308,9 @@ public sealed class DisplayMetadataService(
                 meta.ArtworkBytes = fileMeta.ArtworkBytes;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Debug(ex, "Failed to extract artwork from file {Uri} ({Context})", uri, context);
         }
     }
 
@@ -406,15 +411,17 @@ public sealed class DisplayMetadataService(
                     {
                         file = File.Create(filePath, "video/mp4", ReadStyle.None);
                     }
-                    catch
+                    catch (Exception ex2)
                     {
                         try
                         {
                             file = File.Create(filePath, "audio/mpeg", ReadStyle.None);
                         }
-                        catch
+                        catch (Exception ex3)
                         {
-                            logger.Warning(ex, "Failed to extract metadata from {Uri}", uri);
+                            logger.Warning(ex, "Failed to extract metadata from {Uri} (default create failed)", uri);
+                            logger.Debug(ex2, "Video/mp4 create also failed for {Uri}", uri);
+                            logger.Debug(ex3, "Audio/mpeg create also failed for {Uri}", uri);
                             return null;
                         }
                     }

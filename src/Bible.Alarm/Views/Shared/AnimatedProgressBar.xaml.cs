@@ -1,5 +1,7 @@
 #nullable enable
 
+using Serilog;
+
 namespace Bible.Alarm.Views.Shared;
 
 /// <summary>
@@ -113,9 +115,9 @@ public partial class AnimatedProgressBar : ContentView
         {
             // Expected when animation is stopped
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Animation errors are non-critical
+            Log.Logger.Debug(ex, "AnimatedProgressBar: Animation error (non-critical)");
         }
     }
 

@@ -308,9 +308,9 @@ public sealed class TrackPlaybackHandler
         {
             await audioPlayer.SeekToAsync(position);
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
-            // Seek may fail if player isn't ready yet (seekable ranges not available)
+            logger.Debug(ex, "Seek failed because player isn't ready yet (seekable ranges not available)");
         }
         catch (Exception ex)
         {

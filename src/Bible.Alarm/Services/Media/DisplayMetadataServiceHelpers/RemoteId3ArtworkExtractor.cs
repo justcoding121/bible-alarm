@@ -138,8 +138,9 @@ internal sealed class RemoteId3ArtworkExtractor
                 // Try default detection first.
                 tagFile = File.Create(tempFilePath, "audio/mpeg", ReadStyle.None);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.Debug(ex, "RemoteId3ArtworkExtractor: Failed to create TagLib file from temp path {TempPath}", tempFilePath);
                 return null;
             }
 

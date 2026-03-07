@@ -5,6 +5,7 @@ using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -49,9 +50,9 @@ public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposab
                         await Task.Delay(500);
                         await navigationService.PopModalAsync();
                     }
-                    catch (InvalidOperationException)
+                    catch (InvalidOperationException ex)
                     {
-                        // Modal may already be closed or platform stack out of sync.
+                        Log.Logger.Debug(ex, "MusicPublicationSelectionModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
                     }
                 });
                 await toastService.ShowMessage(errorMessage);

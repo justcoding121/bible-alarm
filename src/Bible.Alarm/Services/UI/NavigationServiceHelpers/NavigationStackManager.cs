@@ -112,9 +112,9 @@ public sealed class NavigationStackManager
                 });
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Refresh is best-effort; ignore failure.
+            Log.Warning(ex, "NavigationStackManager: Refresh after modal pop failed (best-effort)");
         }
     }
 
@@ -137,9 +137,9 @@ public sealed class NavigationStackManager
                     fe.UpdateLayout();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Best-effort; ignore.
+            Log.Debug(ex, "NavigationStackManager: ForceNativeRecomposition failed (best-effort)");
         }
 #endif
     }

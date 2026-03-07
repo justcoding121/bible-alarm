@@ -4,6 +4,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -49,9 +50,9 @@ public partial class BiblePublicationSectionSelectionModal : BaseContentPage, ID
                         await Task.Delay(500);
                         await navigationService.PopModalAsync();
                     }
-                    catch (InvalidOperationException)
+                    catch (InvalidOperationException ex)
                     {
-                        // Modal may already be closed or platform stack out of sync.
+                        Log.Logger.Debug(ex, "BiblePublicationSectionSelectionModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
                     }
                 });
                 await toastService.ShowMessage(errorMessage);

@@ -109,8 +109,9 @@ public class AudioPlayerMetadataHandler
                 await SendMetadataMessageAsync(metadata, track);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Debug(ex, "AudioPlayerMetadataHandler: DispatchArtworkWhenReadyAsync failed for track");
         }
     }
 

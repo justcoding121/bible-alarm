@@ -10,6 +10,7 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
+using Serilog;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -151,9 +152,9 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
                         await Task.Delay(500);
                         await navigationService.PopModalAsync();
                     }
-                    catch (InvalidOperationException)
+                    catch (InvalidOperationException ex)
                     {
-                        // Modal may already be closed or platform stack out of sync.
+                        Log.Logger.Debug(ex, "MusicLanguageModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
                     }
                 });
                 await toastService.ShowMessage(errorMessage);

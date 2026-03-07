@@ -113,9 +113,9 @@ public partial class Schedule : BaseContentPage, IDisposable
                 rootElement.UpdateLayout();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Best-effort; ignore.
+            Log.Warning(ex, "Schedule: WinUI UpdateLayout failed (best-effort)");
         }
 #else
         InvalidateMeasure();

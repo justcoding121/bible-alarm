@@ -454,8 +454,9 @@ internal sealed class RemoteMp4ArtworkExtractor
             {
                 tagFile = File.Create(tempFilePath, "video/mp4", ReadStyle.None);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.Debug(ex, "RemoteMp4ArtworkExtractor: Failed to create TagLib file from temp path {TempPath}", tempFilePath);
                 return null;
             }
 

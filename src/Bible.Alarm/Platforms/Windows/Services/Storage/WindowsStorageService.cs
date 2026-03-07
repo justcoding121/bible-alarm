@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using Bible.Alarm.Services.Storage;
+using Serilog;
 using Windows.Storage;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Storage;
@@ -16,8 +17,9 @@ public class WindowsStorageService : StorageService, IDisposable
         {
             return ApplicationData.Current.LocalFolder.Path;
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
+            Log.Logger.Debug(ex, "WindowsStorageService: ApplicationData.Current.LocalFolder not available, using fallback root");
             return GetFallbackRoot();
         }
     }
@@ -28,8 +30,9 @@ public class WindowsStorageService : StorageService, IDisposable
         {
             return ApplicationData.Current.LocalCacheFolder.Path;
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
+            Log.Logger.Debug(ex, "WindowsStorageService: ApplicationData.Current.LocalCacheFolder not available, using fallback cache");
             return Path.Combine(GetFallbackRoot(), "Cache");
         }
     }

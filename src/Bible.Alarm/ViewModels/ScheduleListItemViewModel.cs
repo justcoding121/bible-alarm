@@ -603,9 +603,9 @@ public sealed class ScheduleListItemViewModel(
             spinnerTimeoutCts?.Cancel();
             spinnerTimeoutCts?.Dispose();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
-            // Ignore if already disposed
+            Log.Logger.Debug(ex, "ScheduleListItemViewModel: Spinner cancellation token source already disposed");
         }
         finally
         {

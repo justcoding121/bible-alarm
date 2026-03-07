@@ -9,6 +9,7 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
+using Serilog;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -99,9 +100,9 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
                         await Task.Delay(500);
                         await navigationService.PopModalAsync();
                     }
-                    catch (InvalidOperationException)
+                    catch (InvalidOperationException ex)
                     {
-                        // Modal may already be closed or platform stack out of sync.
+                        Log.Logger.Debug(ex, "BiblePublicationLanguageModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
                     }
                 });
                 await toastService.ShowMessage(errorMessage);
