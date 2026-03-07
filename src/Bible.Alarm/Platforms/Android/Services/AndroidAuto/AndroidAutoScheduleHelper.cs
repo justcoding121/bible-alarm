@@ -11,9 +11,12 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// <summary>
 /// Helper service for shared Android Auto schedule display logic.
 /// Provides methods for loading schedules from Fluxor state and formatting display information.
+/// Uses Beamed Eighth Notes (U+266B) for music indicator instead of emoji for better car display compatibility.
 /// </summary>
 public static class AndroidAutoScheduleHelper
 {
+    private const string MusicSymbol = "\u266B";
+
     private static readonly ILogger logger = Log.ForContext(typeof(AndroidAutoScheduleHelper));
 
     /// <summary>
@@ -50,32 +53,18 @@ public static class AndroidAutoScheduleHelper
     /// <summary>
     /// Builds the display title for a schedule state item.
     /// Bible category: section name (e.g. "Hebrews 13"). Other categories: track name.
-    /// When this schedule is currently playing, uses PlaybackState.Title so Auto and phone list show the actual track.
-    /// Appends 🎵 to schedule name if music is enabled (or shows just 🎵 if schedule name is empty).
+    /// Always uses schedule metadata (Bible pub details) so the listing matches the home page, even when music is enabled and playing.
     /// </summary>
-    public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
-    {
-        var playbackState = ServiceProviderManager.GetService<IState<PlaybackState>>()?.Value;
-        var usePlayingTitle = playbackState != null
-            && playbackState.CurrentScheduleId == scheduleItem.Id
-            && playbackState.IsPreparingOrPlaying
-            && !string.IsNullOrWhiteSpace(playbackState.Title);
-
-        if (usePlayingTitle)
-        {
-            return playbackState!.Title!;
-        }
-
-        return ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem);
-    }
+    public static string BuildScheduleTitle(ScheduleStateItem scheduleItem) =>
+        ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem, MusicSymbol);
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: Schedule Name 🎵 (if music enabled) • Language Name • Publication Name • Section Name (if applicable, excluding Bible category)
-    /// If schedule name is empty and music is enabled, shows just 🎵
+    /// Format: Schedule Name ♫ (if music enabled) • Language Name • Publication Name • Section Name (if applicable, excluding Bible category)
+    /// If schedule name is empty and music is enabled, shows just ♫
     /// Bible category: Section names and track names are excluded since they're already shown in the title (e.g., "Leviticus 19").
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem) =>
-        ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem);
+        ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem, MusicSymbol);
 }
 

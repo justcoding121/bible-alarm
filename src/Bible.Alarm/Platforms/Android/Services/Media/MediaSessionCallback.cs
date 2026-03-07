@@ -74,15 +74,25 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             var scheduleIdFromMetadata = TryGetScheduleIdFromMediaSession();
             if (scheduleIdFromMetadata.HasValue && scheduleIdFromMetadata.Value > 0)
             {
-                logger.Information("MediaSessionCallback.OnPlay() - using schedule {ScheduleId} from notification metadata to preserve resume position",
+                logger.Information("MediaSessionCallback.OnPlay() - using schedule {ScheduleId} from metadata",
                     scheduleIdFromMetadata.Value);
                 await playbackService.PrepareAndPlayAsync(scheduleIdFromMetadata.Value, isAlarm: false);
             }
             else
             {
-                WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+                var firstId = DefaultScheduleService.GetFirstScheduleId();
+                if (firstId.HasValue && firstId.Value > 0)
+                {
+                    logger.Information("MediaSessionCallback.OnPlay() - no metadata schedule ID, using first schedule {ScheduleId}",
+                        firstId.Value);
+                    await playbackService.PrepareAndPlayAsync(firstId.Value, isAlarm: false);
+                }
+                else
+                {
+                    logger.Warning("MediaSessionCallback.OnPlay() - no schedule ID available, sending PlayButtonPressedMessage");
+                    WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+                }
             }
-            await Task.CompletedTask;
         });
 
         base.OnPlay();

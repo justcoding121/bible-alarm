@@ -20,8 +20,12 @@ public static class ScheduleDisplayMetadataHelper
     /// Builds the display title for a schedule state item.
     /// Bible category: section name + track (e.g. "Genesis 1"). Other categories: track name.
     /// </summary>
-    public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
+    /// <param name="scheduleItem">The schedule state item.</param>
+    /// <param name="musicSymbol">Symbol to append when music is enabled (default "🎵"). Use "♫" (U+266B) for Android Auto and CarPlay.</param>
+    public static string BuildScheduleTitle(ScheduleStateItem scheduleItem, string? musicSymbol = null)
     {
+        var sym = musicSymbol ?? "🎵";
+
         if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
             var scheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
@@ -30,10 +34,10 @@ public static class ScheduleDisplayMetadataHelper
 
             if (string.IsNullOrWhiteSpace(scheduleName))
             {
-                return scheduleItem.MusicEnabled ? "🎵" : "Unnamed schedule";
+                return scheduleItem.MusicEnabled ? sym : "Unnamed schedule";
             }
 
-            return scheduleItem.MusicEnabled ? scheduleName + " 🎵" : scheduleName;
+            return scheduleItem.MusicEnabled ? scheduleName + " " + sym : scheduleName;
         }
 
         var categoryName = scheduleItem.BiblePublicationCategoryName
@@ -77,18 +81,22 @@ public static class ScheduleDisplayMetadataHelper
 
         if (string.IsNullOrWhiteSpace(fallbackScheduleName))
         {
-            return scheduleItem.MusicEnabled ? "🎵" : "Unnamed schedule";
+            return scheduleItem.MusicEnabled ? sym : "Unnamed schedule";
         }
 
-        return scheduleItem.MusicEnabled ? fallbackScheduleName + " 🎵" : fallbackScheduleName;
+        return scheduleItem.MusicEnabled ? fallbackScheduleName + " " + sym : fallbackScheduleName;
     }
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: Schedule Name 🎵 (if music enabled) • Category • Language • Publication • Section (for non-Bible).
+    /// Format: Schedule Name [music symbol] (if music enabled) • Category • Language • Publication • Section (for non-Bible).
     /// </summary>
-    public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
+    /// <param name="scheduleItem">The schedule state item.</param>
+    /// <param name="musicSymbol">Symbol to append when music is enabled (default "🎵"). Use "♫" (U+266B) for Android Auto and CarPlay.</param>
+    public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem, string? musicSymbol = null)
     {
+        var sym = musicSymbol ?? "🎵";
+
         if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
             var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
@@ -101,13 +109,13 @@ public static class ScheduleDisplayMetadataHelper
         if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
         {
             var scheduleNameWithMusic = scheduleItem.MusicEnabled
-                ? scheduleItem.Name + " 🎵"
+                ? scheduleItem.Name + " " + sym
                 : scheduleItem.Name;
             subtitleParts.Add(scheduleNameWithMusic);
         }
         else if (scheduleItem.MusicEnabled)
         {
-            subtitleParts.Add("🎵");
+            subtitleParts.Add(sym);
         }
 
         var categoryCode = scheduleItem.BiblePublicationCategoryName

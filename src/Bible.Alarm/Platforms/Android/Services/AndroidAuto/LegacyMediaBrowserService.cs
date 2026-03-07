@@ -9,10 +9,14 @@ using Android.Support.V4.Media.Session;
 using AndroidX.Media;
 using AndroidX.Media.Session;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Playback;
+using Fluxor;
 using Java.Util;
 using Serilog;
 
@@ -88,6 +92,8 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             {
                 logger.Debug("LegacyMediaBrowserService.OnCreate: rotation service not available (DI may not be ready)");
             }
+
+            RefreshDefaultMetadataAfterBootstrap();
         }
         catch (Exception ex)
         {
@@ -178,6 +184,34 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
 
 
+
+    private void RefreshDefaultMetadataAfterBootstrap()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await MauiProgram.WaitForBootstrapAsync();
+
+                var pState = ServiceProviderManager.GetService<IState<PlaybackState>>();
+                if (pState?.Value?.IsPreparingOrPlaying == true)
+                {
+                    logger.Debug("Playback is active on car connect - skipping default metadata refresh");
+                    return;
+                }
+
+                var dispatcher = ServiceProviderManager.GetService<Fluxor.IDispatcher>();
+                dispatcher?.Dispatch(new SetCarPlayScreenAction());
+
+                NotifyChildrenChanged("__ID_ROOT__");
+                logger.Debug("Default metadata refresh and browse tree update dispatched on car connect");
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Failed to refresh default metadata on car connect");
+            }
+        });
+    }
 
     private static int GetSectionIconSize()
     {

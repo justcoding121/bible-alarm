@@ -134,6 +134,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             await StopAsyncInternal(skipMarkAsPlayed: true, skipSaveLastPlayed: true);
         }
 
+        if (stateManager.IsPreparingOrPlaying(audioPlayer) && stateManager.CurrentScheduleId == scheduleId)
+        {
+            logger.Information("Resuming playback for schedule {ScheduleId} (already paused/playing same schedule)", scheduleId);
+            await PlayAsync();
+            return;
+        }
+
         if (stateManager.IsPreparingOrPlaying(audioPlayer))
         {
             logger.Warning("Cannot prepare and play schedule {ScheduleId} - already preparing or playing schedule {CurrentScheduleId}. Status: {Status}",

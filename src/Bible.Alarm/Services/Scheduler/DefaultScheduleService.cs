@@ -235,8 +235,13 @@ public sealed class DefaultScheduleService(
         var scheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
         if (scheduleItem != null)
         {
-            title = ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem);
-            artist = ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem);
+#if ANDROID || IOS
+            const string musicSymbol = "\u266B";
+#else
+            string? musicSymbol = null;
+#endif
+            title = ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem, musicSymbol);
+            artist = ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem, musicSymbol);
             logger.Debug("Using listing-format metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}",
                 scheduleId, title, artist);
         }
@@ -259,11 +264,16 @@ public sealed class DefaultScheduleService(
         var scheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
         if (scheduleItem != null)
         {
+#if ANDROID || IOS
+            const string musicSymbol = "\u266B";
+#else
+            string? musicSymbol = null;
+#endif
             return new ScheduleTrackMetadata
             {
                 ScheduleId = scheduleId,
-                Title = ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem),
-                Artist = ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem),
+                Title = ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem, musicSymbol),
+                Artist = ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem, musicSymbol),
                 Album = null,
                 ArtworkUrl = null
             };
