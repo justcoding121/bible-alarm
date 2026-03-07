@@ -8,7 +8,11 @@ using Serilog.Sinks.SystemConsole.Themes;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Logging;
 #endif
+#if IOS
+using Bible.Alarm.Platforms.iOS.Logging;
+#endif
 #if WINDOWS
+using Bible.Alarm.Platforms.Windows.Logging;
 using Windows.Storage;
 #endif
 namespace Bible.Alarm.Common;
@@ -162,30 +166,18 @@ public class SerilogSetup
             new AndroidLogcatSink(),
             Serilog.Events.LogEventLevel.Error));
 #elif IOS
-        // iOS release: Async file sink only, Error level and above
-        var logDirectory = GetLogDirectory();
-        if (!string.IsNullOrEmpty(logDirectory))
-        {
-            try
-            {
-                Directory.CreateDirectory(logDirectory);
-                var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
-                loggerConfig.WriteTo.Async(a => a.File(
-                    path: logFilePath,
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 7,
-                    outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error,
-                    shared: true,
-                    flushToDiskInterval: TimeSpan.FromSeconds(2)));
-            }
-            catch (Exception ex)
-            {
-                _ = ex;
-            }
-        }
+        // iOS release: os_log only (like Android logcat). Use: log stream --device --predicate 'subsystem == "com.jthomas.info.Bible.Alarm"'
+        loggerConfig.WriteTo.Async(a => a.Sink(
+            new IOSSystemLogSink(),
+            Serilog.Events.LogEventLevel.Error));
+#elif WINDOWS
+        // Windows release: OutputDebugString only. Use DebugView (Sysinternals) to capture.
+        // Event Log skipped for Store/MSIX apps (event source creation often fails without admin).
+        loggerConfig.WriteTo.Async(a => a.Sink(
+            new WindowsOutputDebugSink(),
+            Serilog.Events.LogEventLevel.Error));
 #else
-        // Windows/Other platforms release: file logging only
+        // Other platforms release: file logging only
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))
         {

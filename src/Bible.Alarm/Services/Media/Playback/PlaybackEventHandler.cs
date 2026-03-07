@@ -141,61 +141,76 @@ public sealed class PlaybackEventHandler
         Func<Task> handlePlaybackFailureAsync,
         Func<bool> getIsManualNavigationPending)
     {
-        if (getIsManualNavigationPending())
+        try
         {
-            logger.Debug("HandleMediaFailedAsync: manual Next/Prev pending - skipping to avoid double advance");
-            return;
-        }
-
-        var currentTrackIndex = getCurrentTrackIndex();
-        logger.Warning("Media failed for track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}",
-            currentTrackIndex,
-            trackUri,
-            trackUrl);
-
-        if (playlist is not null && currentTrackIndex < playlist.Count - 1)
-        {
-            // Signal track transition immediately so the UI shows progress animation
-            dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
-
-            // Set auto-advancing flag before transitioning to next track
-            logger.Information(
-                "[PlaybackService] OnMediaFailed: Dispatching SetAutoAdvancingAction(true) for automatic next track after failure - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
-                currentScheduleId,
-                currentTrackIndex,
-                currentTrackIndex + 1);
-            dispatcher.Dispatch(new SetAutoAdvancingAction(true));
-
-            var nextTrackIndex = currentTrackIndex + 1;
-            setCurrentTrackIndex(nextTrackIndex);
-
-            // Dispatch navigation state immediately after setting currentTrackIndex
-            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
-            // This prevents button flicker during track transitions
-            navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
-
-            logger.Information("Attempting to play next track at index {NextTrackIndex}", nextTrackIndex);
-            await playCurrentTrackAsync(false);
-        }
-        else
-        {
-            if (isIndefinitePlayback)
+            if (getIsManualNavigationPending())
             {
-                var appended = await tryAppendNextTrackAsync();
-                if (appended && playlist is not null && currentTrackIndex < playlist.Count - 1)
-                {
-                    dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
-                    dispatcher.Dispatch(new SetAutoAdvancingAction(true));
-                    var nextTrackIndex = currentTrackIndex + 1;
-                    setCurrentTrackIndex(nextTrackIndex);
-                    navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
-                    await playCurrentTrackAsync(false);
-                    return;
-                }
+                logger.Debug("HandleMediaFailedAsync: manual Next/Prev pending - skipping to avoid double advance");
+                return;
             }
 
-            logger.Warning("No more tracks available or all tracks failed. Handling playback failure.");
-            await handlePlaybackFailureAsync();
+            var currentTrackIndex = getCurrentTrackIndex();
+            logger.Warning("Media failed for track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}",
+                currentTrackIndex,
+                trackUri,
+                trackUrl);
+
+            if (playlist is not null && currentTrackIndex < playlist.Count - 1)
+            {
+                // Signal track transition immediately so the UI shows progress animation
+                dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+
+                // Set auto-advancing flag before transitioning to next track
+                logger.Information(
+                    "[PlaybackService] OnMediaFailed: Dispatching SetAutoAdvancingAction(true) for automatic next track after failure - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
+                    currentScheduleId,
+                    currentTrackIndex,
+                    currentTrackIndex + 1);
+                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+
+                var nextTrackIndex = currentTrackIndex + 1;
+                setCurrentTrackIndex(nextTrackIndex);
+
+                // Dispatch navigation state immediately after setting currentTrackIndex
+                // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
+                // This prevents button flicker during track transitions
+                navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
+
+                logger.Information("Attempting to play next track at index {NextTrackIndex}", nextTrackIndex);
+                await playCurrentTrackAsync(false);
+            }
+            else
+            {
+                if (isIndefinitePlayback)
+                {
+                    var appended = await tryAppendNextTrackAsync();
+                    if (appended && playlist is not null && currentTrackIndex < playlist.Count - 1)
+                    {
+                        dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+                        dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+                        var nextTrackIndex = currentTrackIndex + 1;
+                        setCurrentTrackIndex(nextTrackIndex);
+                        navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
+                        await playCurrentTrackAsync(false);
+                        return;
+                    }
+                }
+
+                logger.Warning("No more tracks available or all tracks failed. Handling playback failure.");
+                await handlePlaybackFailureAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error in HandleMediaFailedAsync - invoking failure handler for graceful recovery");
+            try
+            {
+                await handlePlaybackFailureAsync();
+            }
+            catch (Exception innerEx)
+            {
+                logger.Error(innerEx, "Failure handler threw in HandleMediaFailedAsync catch");
+            }
         }
     }
 

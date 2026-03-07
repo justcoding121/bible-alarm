@@ -520,13 +520,33 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     private async Task HandlePlaybackFailureAsync()
     {
-        await failureHandler.HandlePlaybackFailureAsync(
-            stateManager.IsAlarm,
-            stateManager.CurrentScheduleId,
-            () => ResetAsync(),
-            playlist => stateManager.Playlist = playlist,
-            idx => stateManager.CurrentTrackIndex = idx,
-            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
+        try
+        {
+            await failureHandler.HandlePlaybackFailureAsync(
+                stateManager.IsAlarm,
+                stateManager.CurrentScheduleId,
+                () => ResetAsync(),
+                playlist => stateManager.Playlist = playlist,
+                idx => stateManager.CurrentTrackIndex = idx,
+                startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error in HandlePlaybackFailureAsync - ensuring error UI is shown");
+            try
+            {
+                dispatcher.Dispatch(new PlaybackErrorAction
+                {
+                    ErrorMessage = "Media playback failed. Please try again."
+                });
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media playback failed. Please try again."));
+                await resetExecutor.ResetAsync();
+            }
+            catch (Exception innerEx)
+            {
+                logger.Error(innerEx, "Fallback error handling also failed");
+            }
+        }
     }
 
     private Task TryPlayFallbackAlarmSoundAsync(int scheduleId, bool keepErrorMessage = false) =>

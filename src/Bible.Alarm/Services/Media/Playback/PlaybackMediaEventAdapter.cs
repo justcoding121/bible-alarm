@@ -106,7 +106,15 @@ public sealed class PlaybackMediaEventAdapter
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error handling media failed event");
+            logger.Error(ex, "Error handling media failed event - invoking failure handler for graceful recovery");
+            try
+            {
+                await handlePlaybackFailureAsync();
+            }
+            catch (Exception innerEx)
+            {
+                logger.Error(innerEx, "Failure handler threw - user may need to close and retry");
+            }
         }
     }
 }

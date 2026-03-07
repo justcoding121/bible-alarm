@@ -110,16 +110,31 @@ public class EventHandlerManager
 
     private void OnMediaFailed(object? sender, EventArgs e)
     {
-        setStatus(PlayStatus.Failed);
-        getMediaOpenedCompletionSource()?.TrySetResult(false);
+        try
+        {
+            setStatus(PlayStatus.Failed);
+            getMediaOpenedCompletionSource()?.TrySetResult(false);
 
-        var currentTrack = getCurrentTrack();
-        var trackUri = currentTrack?.Uri ?? "Unknown";
-        logger.Error("MediaElement failed to play track. URI: {TrackUri}, Source: {Source}",
-            trackUri,
-            (sender as MediaElement)?.Source?.ToString() ?? "null");
+            var currentTrack = getCurrentTrack();
+            var trackUri = currentTrack?.Uri ?? "Unknown";
+            logger.Error("MediaElement failed to play track. URI: {TrackUri}, Source: {Source}",
+                trackUri,
+                (sender as MediaElement)?.Source?.ToString() ?? "null");
 
-        onMediaFailed?.Invoke(EventArgs.Empty);
+            onMediaFailed?.Invoke(EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error in OnMediaFailed handler - invoking failure callback to ensure graceful recovery");
+            try
+            {
+                onMediaFailed?.Invoke(EventArgs.Empty);
+            }
+            catch (Exception innerEx)
+            {
+                logger.Error(innerEx, "Failure callback also threw - app may show inconsistent state");
+            }
+        }
     }
 
     private void OnStateChanged(object? sender, MediaStateChangedEventArgs e)
