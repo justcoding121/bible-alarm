@@ -12,6 +12,8 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     private volatile bool isDisposed;
     private bool hasHandledFirstLoad;
     private readonly PlaybackViewModel viewModel;
+    private System.Timers.Timer? artworkRefreshDebounceTimer;
+    private const int ArtworkRefreshDebounceMs = 3000;
 
     public PlaybackViewModel? ViewModel => BindingContext as PlaybackViewModel;
 
@@ -133,8 +135,59 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                            or nameof(PlaybackViewModel.ShowArtworkSpinner)
                            or nameof(PlaybackViewModel.ShowPortraitLayout))
         {
-            SchedulePortraitArtworkRender();
+            SchedulePortraitArtworkRenderDebounced();
         }
+    }
+
+    /// <summary>
+    /// Debounces property-change-driven artwork refresh to avoid multiple Handler.UpdateValue calls
+    /// in quick succession (e.g. during track transitions), which causes visible blinking on Android.
+    /// </summary>
+    private void SchedulePortraitArtworkRenderDebounced()
+    {
+        if (isDisposed || PortraitArtworkImage == null ||
+            ViewModel?.ShowPortraitLayout != true ||
+            ViewModel?.HasArtwork != true ||
+            ViewModel?.ShowArtworkSpinner != false)
+        {
+            artworkRefreshDebounceTimer?.Stop();
+            artworkRefreshDebounceTimer?.Dispose();
+            artworkRefreshDebounceTimer = null;
+            return;
+        }
+
+        artworkRefreshDebounceTimer?.Stop();
+        artworkRefreshDebounceTimer?.Dispose();
+
+        artworkRefreshDebounceTimer = new System.Timers.Timer(ArtworkRefreshDebounceMs);
+        artworkRefreshDebounceTimer.Elapsed += (s, _) =>
+        {
+            var timer = s as System.Timers.Timer;
+            timer?.Stop();
+            timer?.Dispose();
+            if (ReferenceEquals(artworkRefreshDebounceTimer, timer))
+            {
+                artworkRefreshDebounceTimer = null;
+            }
+
+            if (isDisposed)
+            {
+                return;
+            }
+
+            try
+            {
+                MainThread.BeginInvokeOnMainThread(() => ExecutePortraitArtworkRender());
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        };
+        artworkRefreshDebounceTimer.AutoReset = false;
+        artworkRefreshDebounceTimer.Start();
     }
 
     /// <summary>
@@ -142,7 +195,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     /// after becoming visible (e.g. when the spinner hides, or after switching from landscape to portrait).
     /// Forces the platform handler to re-process the image source after layout settles.
     /// </summary>
-    private void SchedulePortraitArtworkRender()
+    private void ExecutePortraitArtworkRender()
     {
         if (isDisposed || PortraitArtworkImage == null ||
             ViewModel?.ShowPortraitLayout != true ||
@@ -152,60 +205,51 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             return;
         }
 
-        MainThread.BeginInvokeOnMainThread(() =>
+        try
         {
-            try
+            PortraitArtworkImage.InvalidateMeasure();
+
+            Task.Delay(100).ContinueWith(_ =>
             {
-                if (isDisposed || PortraitArtworkImage == null)
+                if (isDisposed)
                 {
                     return;
                 }
 
-                PortraitArtworkImage.InvalidateMeasure();
-
-                Task.Delay(100).ContinueWith(_ =>
+                try
                 {
-                    if (isDisposed)
+                    MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        return;
-                    }
-
-                    try
-                    {
-                        MainThread.BeginInvokeOnMainThread(() =>
+                        try
                         {
-                            try
+                            if (!isDisposed && PortraitArtworkImage?.Handler != null)
                             {
-                                if (!isDisposed && PortraitArtworkImage?.Handler != null)
-                                {
-                                    PortraitArtworkImage.Handler.UpdateValue(nameof(Image.Source));
-                                }
+                                PortraitArtworkImage.Handler.UpdateValue(nameof(Image.Source));
                             }
-                            catch (ObjectDisposedException ex)
-                            {
-                                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during SchedulePortraitArtworkRender");
-                            }
-                            catch (InvalidOperationException ex)
-                            {
-                                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during SchedulePortraitArtworkRender");
-                            }
-                        });
-                    }
-                    catch (ObjectDisposedException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during delayed SchedulePortraitArtworkRender");
-                    }
-                });
-            }
-            catch (ObjectDisposedException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during SchedulePortraitArtworkRender");
-            }
-            catch (InvalidOperationException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during SchedulePortraitArtworkRender");
-            }
-        });
+                        }
+                        catch (ObjectDisposedException ex)
+                        {
+                            Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during ExecutePortraitArtworkRender");
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during ExecutePortraitArtworkRender");
+                        }
+                    });
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            });
+        }
+        catch (ObjectDisposedException ex)
+        {
+            Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during ExecutePortraitArtworkRender");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during ExecutePortraitArtworkRender");
+        }
     }
 
     private void OnPlaybackModalTapped(object? sender, TappedEventArgs e)
@@ -737,7 +781,6 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
         isDisposed = true;
 
-        // Stop timer first so any in-flight callback sees isDisposed and returns early
         try
         {
             seekDebounceTimer?.Stop();
@@ -745,11 +788,23 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         }
         catch
         {
-            // Ignore errors during timer cleanup
         }
         finally
         {
             seekDebounceTimer = null;
+        }
+
+        try
+        {
+            artworkRefreshDebounceTimer?.Stop();
+            artworkRefreshDebounceTimer?.Dispose();
+        }
+        catch
+        {
+        }
+        finally
+        {
+            artworkRefreshDebounceTimer = null;
         }
 
         try
