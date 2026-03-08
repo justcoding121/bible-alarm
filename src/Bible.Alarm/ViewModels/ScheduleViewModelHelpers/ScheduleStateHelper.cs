@@ -44,6 +44,7 @@ public static class ScheduleStateHelper
             BiblePublicationLanguageName = source.BiblePublicationLanguageName,
             BiblePublicationLanguageDirection = source.BiblePublicationLanguageDirection,
             BiblePublicationName = source.BiblePublicationName,
+            BiblePublicationIsMusic = source.BiblePublicationIsMusic,
             BiblePublicationSectionName = source.BiblePublicationSectionName,
             BiblePublicationTrackTitle = source.BiblePublicationTrackTitle,
             MusicLanguageName = source.MusicLanguageName,

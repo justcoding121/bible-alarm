@@ -8,6 +8,7 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -275,60 +276,9 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         }
 
         // Clone the current schedule and apply the update
-        var updatedSchedule = CloneScheduleStateItem(currentSchedule);
+        var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
         updateAction(updatedSchedule);
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
-    }
-
-    private static ScheduleStateItem CloneScheduleStateItem(ScheduleStateItem source)
-    {
-        return new ScheduleStateItem
-        {
-            Id = source.Id,
-            Name = source.Name,
-            IsEnabled = source.IsEnabled,
-            Hour = source.Hour,
-            Minute = source.Minute,
-            Second = source.Second,
-            DaysOfWeek = source.DaysOfWeek,
-            NotificationEnabled = source.NotificationEnabled,
-            MusicEnabled = source.MusicEnabled,
-            SnoozeMinutes = source.SnoozeMinutes,
-            NumberOfTracksToPlay = source.NumberOfTracksToPlay,
-            AlwaysPlayFromStart = source.AlwaysPlayFromStart,
-            CurrentPlayItem = source.CurrentPlayItem,
-            LatestAlarmNotificationId = source.LatestAlarmNotificationId,
-            LastPlayedAtUtc = source.LastPlayedAtUtc,
-            BiblePublicationScheduleId = source.BiblePublicationScheduleId,
-            BiblePublicationLanguageCode = source.BiblePublicationLanguageCode,
-            BiblePublicationCode = source.BiblePublicationCode,
-            BiblePublicationSectionCode = source.BiblePublicationSectionCode,
-            BiblePublicationTrackCode = source.BiblePublicationTrackCode,
-            BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration,
-            MusicId = source.MusicId,
-            MusicSectionCode = source.MusicSectionCode,
-            MusicPublicationCode = source.MusicPublicationCode,
-            MusicLanguageCode = source.MusicLanguageCode,
-            MusicTrackCode = source.MusicTrackCode,
-            MusicRepeat = source.MusicRepeat,
-            BiblePublicationCategoryId = source.BiblePublicationCategoryId,
-            BiblePublicationCategoryName = source.BiblePublicationCategoryName,
-            BiblePublicationLanguageName = source.BiblePublicationLanguageName,
-            BiblePublicationLanguageDirection = source.BiblePublicationLanguageDirection,
-            BiblePublicationName = source.BiblePublicationName,
-            BiblePublicationSectionName = source.BiblePublicationSectionName,
-            BiblePublicationTrackTitle = source.BiblePublicationTrackTitle,
-            MusicLanguageName = source.MusicLanguageName,
-            MusicLanguageDirection = source.MusicLanguageDirection,
-            MusicPublicationName = source.MusicPublicationName,
-            MusicSectionName = source.MusicSectionName,
-            MusicTrackName = source.MusicTrackName,
-            BiblePublicationModalItemCount = source.BiblePublicationModalItemCount,
-            BiblePublicationSectionModalItemCount = source.BiblePublicationSectionModalItemCount,
-            BiblePublicationTrackModalItemCount = source.BiblePublicationTrackModalItemCount,
-            MusicPublicationModalItemCount = source.MusicPublicationModalItemCount,
-            MusicSectionModalItemCount = source.MusicSectionModalItemCount
-        };
     }
 
     private async Task ToggleDayAsync(object? parameter)
