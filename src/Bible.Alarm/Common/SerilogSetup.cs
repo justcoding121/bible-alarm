@@ -8,9 +8,6 @@ using Serilog.Sinks.SystemConsole.Themes;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Logging;
 #endif
-#if IOS
-using Bible.Alarm.Platforms.iOS.Logging;
-#endif
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Logging;
 using Windows.Storage;
@@ -166,10 +163,28 @@ public class SerilogSetup
             new AndroidLogcatSink(),
             Serilog.Events.LogEventLevel.Error));
 #elif IOS
-        // iOS release: os_log only (like Android logcat). Use: log stream --device --predicate 'subsystem == "com.jthomas.info.Bible.Alarm"'
-        loggerConfig.WriteTo.Async(a => a.Sink(
-            new IOSSystemLogSink(),
-            Serilog.Events.LogEventLevel.Error));
+        // iOS release: Async file sink. Copy via: xcrun devicectl device copy from --device "iPhone" --domain-type appDataContainer --domain-identifier com.jthomas.info.Bible.Alarm --source "Documents/logs/bible-alarm-YYYYMMDD.txt" --destination /tmp/
+        var logDirectory = GetLogDirectory();
+        if (!string.IsNullOrEmpty(logDirectory))
+        {
+            try
+            {
+                Directory.CreateDirectory(logDirectory);
+                var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
+                loggerConfig.WriteTo.Async(a => a.File(
+                    path: logFilePath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7,
+                    outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error,
+                    shared: true,
+                    flushToDiskInterval: TimeSpan.FromSeconds(2)));
+            }
+            catch (Exception ex)
+            {
+                _ = ex;
+            }
+        }
 #elif WINDOWS
         // Windows release: OutputDebugString only. Use DebugView (Sysinternals) to capture.
         // Event Log skipped for Store/MSIX apps (event source creation often fails without admin).
