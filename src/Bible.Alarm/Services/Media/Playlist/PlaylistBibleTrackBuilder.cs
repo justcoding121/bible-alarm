@@ -389,7 +389,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // So alarm modal shows full track title for disc-style melody (e.g. iam): DisplayMetadataService needs DownloadCode/OriginalTrackCode.
         ApplyDiscStyleDisplayMetadata(trackMetadata, sectionCode, trackCode);
 
-        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata, sectionCode);
+        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata, sectionCode, isNoLanguagePublication);
         logger.Debug("[PlaylistBuild] ShouldSetFinishedDuration: {ShouldSet}, markedSeekTrack: {MarkedSeekTrack}, AlwaysPlayFromStart: {AlwaysPlayFromStart}, ScheduleFinishedDuration: {ScheduleFinishedDuration}, SectionMatch: {SectionMatch}",
             shouldSet,
             markedSeekTrack,
@@ -412,14 +412,17 @@ public class PlaylistBiblePublicationTrackBuilder
         AlarmSchedule schedule,
         BiblePublicationSchedule biblePublicationSchedule,
         TrackMetadata trackMetadata,
-        string? sectionCode)
+        string? sectionCode,
+        bool isNoLanguagePublication)
     {
         var scheduleLang = biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
         var metadataLang = trackMetadata.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+        var languageMatches = isNoLanguagePublication ||
+            string.Equals(scheduleLang, metadataLang, StringComparison.OrdinalIgnoreCase);
         return !markedSeekTrack &&
                !schedule.AlwaysPlayFromStart &&
                !biblePublicationSchedule.FinishedDuration.Equals(TimeSpan.Zero) &&
-               string.Equals(scheduleLang, metadataLang, StringComparison.OrdinalIgnoreCase) &&
+               languageMatches &&
                biblePublicationSchedule.PublicationCode == trackMetadata.PublicationCode &&
                string.Equals(sectionCode, trackMetadata.SectionCode, StringComparison.OrdinalIgnoreCase);
     }
