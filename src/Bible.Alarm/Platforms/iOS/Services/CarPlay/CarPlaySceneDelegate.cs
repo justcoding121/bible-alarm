@@ -150,7 +150,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
         if (schedules.Count == 0)
         {
-            logger.Warning("[CarPlay] No schedules available - showing empty state");
+            logger.Warning("[CarPlay] No schedules in state - showing loading/empty state");
             return CreateEmptyStateTemplate();
         }
 
@@ -186,11 +186,12 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     }
 
     /// <summary>
-    /// Creates an empty state template when no schedules are available.
+    /// Creates a loading/empty state template shown when schedules are not yet loaded or unavailable.
+    /// Replaced by the actual schedule list once bootstrap completes and state is populated.
     /// </summary>
     private CPListTemplate CreateEmptyStateTemplate()
     {
-        var emptyItem = new CPListItem("No Schedules", "Create schedules in the app to see them here");
+        var emptyItem = new CPListItem("Loading Schedules ..", "Schedules will appear once the app is ready");
         emptyItem.Handler = (item, completion) =>
         {
             // Do nothing on tap - just complete the handler

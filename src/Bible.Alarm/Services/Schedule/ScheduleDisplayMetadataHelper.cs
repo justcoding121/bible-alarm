@@ -72,7 +72,7 @@ public static class ScheduleDisplayMetadataHelper
 
         if (!string.IsNullOrWhiteSpace(title))
         {
-            return title;
+            return scheduleItem.MusicEnabled ? title + " " + sym : title;
         }
 
         var fallbackScheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
@@ -89,13 +89,14 @@ public static class ScheduleDisplayMetadataHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: Schedule Name [music symbol] (if music enabled) • Category • Language • Publication • Section (for non-Bible).
+    /// Format: Schedule Name • Category • Language • Publication • Section (for non-Bible).
+    /// Music icon is shown in the title, not the subtitle (Android Auto / CarPlay / default metadata).
     /// </summary>
     /// <param name="scheduleItem">The schedule state item.</param>
-    /// <param name="musicSymbol">Symbol to append when music is enabled (default "🎵"). Use "♫" (U+266B) for Android Auto and CarPlay.</param>
+    /// <param name="musicSymbol">Obsolete; kept for API compatibility. Music is displayed in the title.</param>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem, string? musicSymbol = null)
     {
-        var sym = musicSymbol ?? "🎵";
+        _ = musicSymbol;
 
         if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
@@ -108,14 +109,7 @@ public static class ScheduleDisplayMetadataHelper
 
         if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
         {
-            var scheduleNameWithMusic = scheduleItem.MusicEnabled
-                ? scheduleItem.Name + " " + sym
-                : scheduleItem.Name;
-            subtitleParts.Add(scheduleNameWithMusic);
-        }
-        else if (scheduleItem.MusicEnabled)
-        {
-            subtitleParts.Add(sym);
+            subtitleParts.Add(scheduleItem.Name);
         }
 
         var categoryCode = scheduleItem.BiblePublicationCategoryName

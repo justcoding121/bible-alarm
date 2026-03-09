@@ -57,9 +57,8 @@ public static class CarPlayScheduleHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: Schedule Name ♫ (if music enabled) • Language Name • Publication Name • Section Name (if applicable, excluding Bible category)
-    /// If schedule name is empty and music is enabled, shows just ♫
-    /// Bible category: Section names and track names are excluded since they're already shown in the title (e.g., "Leviticus 19").
+    /// Format: Schedule Name • Category • Language Name • Publication Name • Section Name (if applicable, excluding Bible category)
+    /// Music icon is shown in the title, not the subtitle.
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem) =>
         ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem, MusicSymbol);
