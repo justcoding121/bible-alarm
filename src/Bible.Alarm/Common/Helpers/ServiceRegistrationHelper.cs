@@ -153,7 +153,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IDefaultScheduleService, DefaultScheduleService>();
         services.AddSingleton<IAlarmScheduleService, AlarmScheduleService>();
         services.AddSingleton<IGeneralSettingsService, GeneralSettingsService>();
-        services.AddSingleton<IAlarmMusicService, AlarmMusicService>();
         services.AddSingleton<IBiblePublicationScheduleService, BiblePublicationScheduleService>();
         services.AddSingleton<IBiblePublicationService, BiblePublicationService>();
         services.AddSingleton<IBiblePublicationSectionService, BiblePublicationSectionService>();

@@ -187,8 +187,9 @@ Periodic maintenance:
   - **Rule**: reducers are pure; async/IO belongs in effects
   - **Where**: `src/Bible.Alarm/Stores/**` (notably `Stores/Effects/ScheduleEffects.cs`)
 - **AutoMapper**:
-  - **Why**: reduces boilerplate mapping between EF entities and UI/state DTOs
+  - **Why**: reduces boilerplate mapping between EF entities and UI/state DTOs; use for copy/clone operations too
   - **Where**: profiles in `src/Bible.Alarm/Stores/Mapping/**` (e.g. schedule mappings)
+  - **Rule**: use AutoMapper for copy/clone (see `automapper-copy-clone.mdc`)
 - **Polly**:
   - **Why**: resilient handling of flaky networks + transient file locks (SQLite/WAL, Android file handles)
   - **Where**: downloads (`DownloadService`), file ops (`MediaIndexService`), UI wait helpers
