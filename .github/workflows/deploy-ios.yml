@@ -90,6 +90,28 @@ jobs:
           -p:CodesignProvision="$IOS_PROVISIONING_PROFILE_NAME" \
           --output ./artifacts/ios
 
+    # Pre-check: fail if this version/build already exists (avoid upload that succeeds but fails during Apple processing).
+    - name: Check build not already on App Store Connect
+      env:
+        APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+        APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      run: |
+        set -e
+        VERSION=$(sed -n 's/.*<ApplicationDisplayVersion>\([^<]*\)<\/ApplicationDisplayVersion>.*/\1/p' src/Bible.Alarm/Bible.Alarm.csproj | tr -d ' \r')
+        BUILD=$(sed -n 's/.*<ApplicationVersion>\([^<]*\)<\/ApplicationVersion>.*/\1/p' src/Bible.Alarm/Bible.Alarm.csproj | tr -d ' \r')
+        mkdir -p ~/private_keys
+        B64="$(echo "$APP_STORE_CONNECT_API_KEY_BASE64" | tr -d '\r\n\t' | sed 's/ /+/g')"
+        echo "$B64" | base64 --decode -o ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
+        pip install --quiet pyjwt cryptography
+        python .github/scripts/check-asc-build-exists.py \
+          "$APP_STORE_CONNECT_API_KEY_ID" \
+          "$APP_STORE_CONNECT_API_ISSUER_ID" \
+          "$HOME/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8" \
+          "com.jthomas.info.Bible.Alarm" \
+          "$VERSION" \
+          "$BUILD"
+
     # Upload to App Store Connect (TestFlight/App Store). If this fails, no artifacts.
     # Upload only (both stable and beta); you submit for review / manage release from App Store Connect.
     - name: Upload to App Store Connect
