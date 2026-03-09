@@ -1,12 +1,12 @@
 #nullable enable
 
 using System.Windows.Input;
+using AutoMapper;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule.AlarmSettingsContainer;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -27,6 +27,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
     private readonly IServiceProvider serviceProvider;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
+    private readonly IMapper mapper;
 
     private int scheduleId;
     private bool isEnabled;
@@ -59,13 +60,15 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
         INavigationService navigationService,
         IServiceProvider serviceProvider,
         IState<ApplicationState> state,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        IMapper mapper)
     {
         this.logger = logger;
         this.navigationService = navigationService;
         this.serviceProvider = serviceProvider;
         this.state = state;
         this.dispatcher = dispatcher;
+        this.mapper = mapper;
         containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "AlarmSettings", s => s.ContainerReadiness.AlarmSettings);
 
         state.StateChanged += OnStateChanged;
@@ -417,7 +420,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
             return;
         }
 
-        var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+        var updatedSchedule = mapper.Map<ScheduleStateItem>(currentSchedule);
         updateAction(updatedSchedule);
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
     }

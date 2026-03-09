@@ -1,12 +1,13 @@
 #nullable enable
 using System.Diagnostics.CodeAnalysis;
+using AutoMapper;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.General;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Fluxor;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
@@ -31,6 +32,7 @@ public class HomeNavigationHelper
     private readonly INavigationService navigationService;
     private readonly IState<PlaybackState> playbackState;
     private readonly IServiceProvider serviceProvider;
+    private readonly IMapper mapper;
     private readonly Dictionary<int, DateTime> recentPlayClicks = new();
     private const int PlayClickCooldownMs = 500;
 
@@ -41,13 +43,15 @@ public class HomeNavigationHelper
         IDispatcher dispatcher,
         INavigationService navigationService,
         IState<PlaybackState> playbackState,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IMapper mapper)
     {
         this.logger = logger;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
         this.playbackState = playbackState;
         this.serviceProvider = serviceProvider;
+        this.mapper = mapper;
     }
 
     public bool ShouldSkipNavigation(int scheduleId)
@@ -236,7 +240,7 @@ public class HomeNavigationHelper
                                             
                                             if (scheduleToUpdate != null)
                                             {
-                                                var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(scheduleToUpdate);
+                                                var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
                                                 updatedSchedule.NotificationEnabled = permissionGranted;
                                                 dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
                                                 logger.Information("ShowOverlayAndNavigateAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} for schedule {ScheduleId}", 
@@ -267,7 +271,7 @@ public class HomeNavigationHelper
                                 
                                                 if (scheduleToUpdate != null)
                                                 {
-                                                    var stateUpdatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(scheduleToUpdate);
+                                                    var stateUpdatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
                                                     stateUpdatedSchedule.IsEnabled = permissionGranted;
                                                     dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(stateUpdatedSchedule, false, false, shouldSave: false));
                                                 }
@@ -294,7 +298,7 @@ public class HomeNavigationHelper
                                                 
                                                 if (scheduleToUpdate != null)
                                                 {
-                                                    var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(scheduleToUpdate);
+                                                    var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
                                                     updatedSchedule.IsEnabled = permissionGranted;
                                                     dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
                                                 }

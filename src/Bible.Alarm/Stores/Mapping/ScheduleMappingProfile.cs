@@ -85,6 +85,9 @@ public class ScheduleMappingProfile : Profile
         CreateMap<BiblePublicationStateItem, BiblePublicationSchedule>()
             // Not stored in state
             .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore());
+
+        // Same-type clone for ScheduleStateItem (used when creating modified copies for updates)
+        CreateMap<ScheduleStateItem, ScheduleStateItem>();
     }
 
 }

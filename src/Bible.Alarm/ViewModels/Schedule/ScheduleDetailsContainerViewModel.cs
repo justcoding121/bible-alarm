@@ -8,7 +8,6 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -275,8 +274,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             return;
         }
 
-        // Clone the current schedule and apply the update
-        var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+        var updatedSchedule = mapper.Map<ScheduleStateItem>(currentSchedule);
         updateAction(updatedSchedule);
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
     }

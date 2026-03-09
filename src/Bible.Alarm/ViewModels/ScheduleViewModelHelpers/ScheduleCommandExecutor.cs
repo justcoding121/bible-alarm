@@ -144,8 +144,7 @@ public sealed class ScheduleCommandExecutor
                     logger.Information("SaveCommand: Syncing NotificationEnabled from AlarmSettingsContainerViewModel. State={StateValue}, ViewModel={ViewModelValue}",
                         currentSchedule.NotificationEnabled, alarmSettingsViewModel.NotificationEnabled);
                     
-                    // Update the cloned schedule for save
-                    currentSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+                    currentSchedule = mapper.Map<ScheduleStateItem>(currentSchedule);
                     currentSchedule.NotificationEnabled = alarmSettingsViewModel.NotificationEnabled;
                     
                     // Dispatch state update to prevent OnStateChanged from overwriting ViewModel
@@ -164,8 +163,7 @@ public sealed class ScheduleCommandExecutor
                     logger.Information("SaveCommand: Syncing NotificationEnabled from NumberOfTrackContainerViewModel. State={StateValue}, ViewModel={ViewModelValue}",
                         currentSchedule.NotificationEnabled, numberOfTrackViewModel.NotificationEnabled);
                     
-                    // Update the cloned schedule for save
-                    currentSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+                    currentSchedule = mapper.Map<ScheduleStateItem>(currentSchedule);
                     currentSchedule.NotificationEnabled = numberOfTrackViewModel.NotificationEnabled;
                     
                     // Dispatch state update to prevent OnStateChanged from overwriting ViewModel

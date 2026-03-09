@@ -2,15 +2,17 @@
 #nullable enable
 
 using System.Linq;
+using AutoMapper;
 using Bible.Alarm.Common.Interfaces.UI;
+using Microsoft.Extensions.DependencyInjection;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.General;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Fluxor;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
@@ -87,7 +89,8 @@ internal static class ScheduleStateServiceAndroidEnableWithPermission
                                 var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
                                 if (scheduleToUpdate != null)
                                 {
-                                    var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(scheduleToUpdate);
+                                    var mapper = serviceProvider.GetRequiredService<IMapper>();
+                                    var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
                                     updatedSchedule.NotificationEnabled = permissionGranted;
                                     dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
                                     logger.Information("EnableScheduleAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} in state for schedule {ScheduleId}. DB will be updated on save.",

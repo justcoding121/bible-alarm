@@ -1,0 +1,43 @@
+---
+description: "Use AutoMapper for copy/clone operations between compatible types"
+globs: "**"
+alwaysApply: true
+---
+
+## AutoMapper for copy and clone
+
+Use **AutoMapper** for copying or cloning objects between same or compatible types. Avoid manual property-by-property copying.
+
+### When to use AutoMapper
+
+- **Clone same type** (e.g. `ScheduleStateItem` → `ScheduleStateItem`): use `mapper.Map<ScheduleStateItem>(source)`
+- **Map between entity and DTO** (e.g. `AlarmSchedule` ⇄ `ScheduleStateItem`): use `mapper.Map<TDest>(source)`
+- **In-place update** (when you have an existing target): use `mapper.Map(source, existingDest)`
+
+### When NOT to use AutoMapper
+
+- **Fluxor Reducers**: Reducers are pure functions with no DI. Use `DeepClone()` (JSON serialize/deserialize) when copying in reducers.
+- **Types with no mapping profile**: If no `CreateMap` exists and the copy is trivial/one-off, prefer adding a profile over manual copying.
+
+### Mapping profiles
+
+- Location: `src/Bible.Alarm/Stores/Mapping/**`
+- Add same-type clone maps when needed, e.g. `CreateMap<ScheduleStateItem, ScheduleStateItem>();`
+
+### Anti-patterns to avoid
+
+- Manual property-by-property copy (e.g. `new ScheduleStateItem { Id = src.Id, Name = src.Name, ... }`)
+- Static helper classes that duplicate properties instead of using `IMapper`
+- `SchedulePropertyCopier`-style manual copiers for types that have AutoMapper profiles
+
+### Example
+
+```csharp
+// Good: use AutoMapper
+var cloned = mapper.Map<ScheduleStateItem>(currentSchedule);
+updateAction(cloned);
+dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(cloned, false, false, shouldSave: false));
+
+// Bad: manual clone helper
+var cloned = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+```

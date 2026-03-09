@@ -2,13 +2,13 @@
 
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using AutoMapper;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.ListPopulation;
@@ -34,6 +34,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
     private readonly IServiceProvider serviceProvider;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
+    private readonly IMapper mapper;
 
     private int scheduleId;
     private bool notificationEnabled;
@@ -82,13 +83,15 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
         INavigationService navigationService,
         IServiceProvider serviceProvider,
         IState<ApplicationState> state,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        IMapper mapper)
     {
         this.logger = logger;
         this.navigationService = navigationService;
         this.serviceProvider = serviceProvider;
         this.state = state;
         this.dispatcher = dispatcher;
+        this.mapper = mapper;
         containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "NumberOfTrack", s => s.ContainerReadiness.NumberOfTrack);
         listPopulator = new NumberOfTracksListPopulator(logger, serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>());
         stateChangeHandler = new NumberOfTrackStateChangeHandler(logger);
@@ -499,8 +502,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
             return;
         }
 
-        // Clone the current schedule and apply the update
-        var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+        var updatedSchedule = mapper.Map<ScheduleStateItem>(currentSchedule);
         updateAction(updatedSchedule);
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
     }

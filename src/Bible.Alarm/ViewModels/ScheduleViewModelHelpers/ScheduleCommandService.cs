@@ -166,7 +166,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         // For new schedules, ensure IsEnabled is true in state
         if (isNewSchedule && !currentSchedule.IsEnabled)
         {
-            var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+            var updatedSchedule = mapper.Map<ScheduleStateItem>(currentSchedule);
             updatedSchedule.IsEnabled = true;
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
             await Task.Delay(50);
@@ -305,8 +305,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             (DeviceInfo.Platform == DevicePlatform.iOS || DeviceInfo.Platform == DevicePlatform.WinUI) &&
             !await notificationService.CanScheduleAsync())
         {
-            // Update state to disable notifications
-            var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+            var updatedSchedule = mapper.Map<ScheduleStateItem>(currentSchedule);
             updatedSchedule.IsEnabled = false;
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
         }

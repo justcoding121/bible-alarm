@@ -81,7 +81,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
         // Initialize helper classes
         scheduleDataPreparer = new ScheduleDataPreparer(mapper);
-        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, playbackState, serviceProvider);
+        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, playbackState, serviceProvider, mapper);
         scheduleViewModelManager = new ScheduleViewModelManager(logger, serviceProvider, navigationHelper.TrackPlayClick);
         progressAnimator = new ProgressBarAnimator();
         progressBarManager = new ProgressBarManager(progressAnimator);
