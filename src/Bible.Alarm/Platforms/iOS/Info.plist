@@ -42,15 +42,7 @@
 
 
 
-	<false/>
-
-
-
-	<key>UIStatusBarStyle</key>
-
-
-
-	<string>UIStatusBarStyleDarkContent</string>
+	<true/>
 
 
 

@@ -18,10 +18,12 @@ public sealed class SchedulePlaybackService(
     : ISchedulePlaybackService
 {
     /// <summary>
-    /// Ensures only one play request runs at a time. A second tap waits for the first to finish
-    /// (success or fail) then runs, avoiding concurrent preparation and stuck IsBusy state.
+    /// Ensures only one play request runs at a time. Uses a timeout so that rapid
+    /// play/dismiss cycles don't leave queued requests holding AsyncRelayCommand in a
+    /// "running" state (which disables the button via CanExecute=false).
     /// </summary>
     private static readonly SemaphoreSlim PlayLock = new(1, 1);
+    private static readonly TimeSpan PlayLockTimeout = TimeSpan.FromSeconds(8);
 
     public async Task PlayScheduleAsync(int scheduleId)
     {
@@ -30,7 +32,12 @@ public sealed class SchedulePlaybackService(
             return;
         }
 
-        await PlayLock.WaitAsync();
+        if (!await PlayLock.WaitAsync(PlayLockTimeout))
+        {
+            logger.Warning("PlayScheduleAsync timed out waiting for PlayLock (schedule {ScheduleId}). Previous play/stop may still be unwinding.", scheduleId);
+            return;
+        }
+
         try
         {
             await PlayScheduleCoreAsync(scheduleId);

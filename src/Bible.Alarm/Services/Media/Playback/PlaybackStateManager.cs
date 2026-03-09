@@ -60,6 +60,7 @@ public sealed class PlaybackStateManager
         ManuallyVisitedTrackIndices.Clear();
         PlayedBibleTrackKeys.Clear();
         ManualNavigationPending = false;
+        IsPreparingTrack = false;
         logger.Debug("[PlaybackStateManager] Reset called - cleared {PlayedTracksCount} played Bible track keys", playedTracksCount);
 
         // Dispose cancellation token source

@@ -20,6 +20,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         var modal = serviceProvider.GetRequiredService<MusicPublicationSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public async Task OpenMusicTrackSelectionModalAsync(INavigation navigation, object bindingContext)
@@ -27,6 +28,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         var modal = serviceProvider.GetRequiredService<Views.Music.MusicTrackSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public async Task OpenBibleSelectionModalAsync(INavigation navigation, object bindingContext)
@@ -34,6 +36,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         var modal = serviceProvider.GetRequiredService<BiblePublicationSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public async Task OpenSectionSelectionModalAsync(INavigation navigation, object bindingContext)
@@ -41,6 +44,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         var modal = serviceProvider.GetRequiredService<BiblePublicationSectionSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public async Task OpenMusicSectionSelectionModalAsync(INavigation navigation, object bindingContext)
@@ -48,6 +52,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         var modal = serviceProvider.GetRequiredService<Views.Music.MusicSectionSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public async Task OpenBiblePublicationTrackSelectionModalAsync(INavigation navigation, object bindingContext)
@@ -55,21 +60,21 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         var modal = serviceProvider.GetRequiredService<BiblePublicationTrackSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public async Task OpenNumberOfTracksModalAsync(INavigation navigation, object bindingContext)
     {
         var modal = serviceProvider.GetRequiredService<NumberOfTracksModal>();
         modal.BindingContext = bindingContext;
-        // Disable animation for instant appearance
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public async Task OpenLanguageModalAsync(INavigation navigation, object bindingContext)
     {
         ContentPage modal = bindingContext switch
         {
-            // Use the appropriate modal based on the ViewModel type for compiled bindings
             BiblePublicationSelectionViewModel => serviceProvider.GetRequiredService<BiblePublicationLanguageModal>(),
             MusicPublicationSelectionViewModel => serviceProvider.GetRequiredService<MusicLanguageModal>(),
             _ => throw new ArgumentException($"Unsupported ViewModel type: {bindingContext?.GetType().Name}",
@@ -78,6 +83,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public async Task OpenCategoryModalAsync(INavigation navigation, object bindingContext)
@@ -85,6 +91,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         var modal = serviceProvider.GetRequiredService<CategorySelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public Task OpenPlaybackModalAsync(INavigation navigation) =>
@@ -108,6 +115,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
                 }
                 ConfigurePlaybackModal(modal);
                 await navigation.PushModalAsync(modal, animated: false);
+                WindowSetupService.UpdateNavigationBarColors();
             }
             catch (Exception ex)
             {
@@ -138,6 +146,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
                 modal.BindingContext = bindingContext;
                 // Disable animation for instant appearance
                 await navigation.PushModalAsync(modal, animated: false);
+                WindowSetupService.UpdateNavigationBarColors();
                 logger.Information("AndroidAlarmPermissionModal opened successfully");
             }
             catch (Exception ex)
@@ -157,6 +166,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
                 modal.BindingContext = bindingContext;
                 // Disable animation for instant appearance
                 await navigation.PushModalAsync(modal, animated: false);
+                WindowSetupService.UpdateNavigationBarColors();
                 logger.Information("NotificationPermissionModal opened successfully");
             }
             catch (Exception ex)

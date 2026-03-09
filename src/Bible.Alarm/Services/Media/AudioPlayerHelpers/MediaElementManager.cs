@@ -116,6 +116,16 @@ public class MediaElementManager
 
         try
         {
+            // Unsubscribe from events BEFORE stopping/disposing to prevent callbacks from
+            // CoreMedia (e.g. SeekCompleted, PositionChanged) firing into a disposed handler.
+            // On iOS, Stop() internally seeks to zero which queues async CoreMedia callbacks;
+            // if we dispose the handler while those callbacks are pending, they cause an
+            // unhandled ObjectDisposedException that crashes the app.
+            if (mediaElement != null)
+            {
+                eventHandlerManager.UnsubscribeFromMediaElement(mediaElement);
+            }
+
             // Stop and clear source
             await SafeStopMediaElementAsync(mediaElement, clearSource: true);
 

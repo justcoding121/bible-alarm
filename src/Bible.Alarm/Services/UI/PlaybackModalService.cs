@@ -15,6 +15,7 @@ public sealed class PlaybackModalService(
 {
     private bool isModalOpen;
     private bool isDisposed;
+    private int popGeneration;
 
     private static bool IsActiveUiPlaybackStatus(PlayStatus status) =>
         status is PlayStatus.Loading or PlayStatus.Playing or PlayStatus.Paused;
@@ -137,6 +138,15 @@ public sealed class PlaybackModalService(
         //   so we survive brief transitions (e.g., auto-advance, transient stop) and can show errors.
         var shouldShowModal = isModalOpen ? state.IsPreparingOrPlaying : IsActiveUiPlaybackStatus(state.Status);
 
+        // When switching schedules, PlaybackStoppedAction and PlaybackStartedAction fire in rapid
+        // succession on the same thread. The pop from PlaybackStoppedAction is queued on the main
+        // thread but hasn't executed yet when PlaybackStartedAction fires. Increment a generation
+        // counter so the queued pop can detect it's stale and skip the close.
+        if (shouldShowModal && isModalOpen)
+        {
+            popGeneration++;
+        }
+
         _ = shouldShowModal switch
         {
             true when !isModalOpen => MainThread.InvokeOnMainThreadAsync(async () =>
@@ -172,25 +182,7 @@ public sealed class PlaybackModalService(
                     navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 }
             }),
-            false when isModalOpen => MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                try
-                {
-                    logger.Information("PlaybackState changed - hiding PlaybackModal (Playback inactive)");
-
-                    // Show Home page before closing modal
-                    navigationService.SetHomePageVisibility(isPlaybackActive: false);
-
-                    await navigationService.PopModalAsync();
-                    isModalOpen = false;
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error hiding PlaybackModal");
-                    // Force reset the flag even on error - the modal may have been closed externally
-                    isModalOpen = false;
-                }
-            }),
+            false when isModalOpen => CloseModalOnMainThreadAsync(),
             // Defensive: If playback stopped but isModalOpen is false, ensure Home is visible
             false when !isModalOpen => MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -200,6 +192,41 @@ public sealed class PlaybackModalService(
             }),
             _ => Task.CompletedTask
         };
+    }
+
+    /// <summary>
+    /// Captures the current pop generation and closes the modal on the main thread.
+    /// If another schedule started between when the close was queued and when it executes,
+    /// the generation will have advanced and the stale pop is skipped.
+    /// </summary>
+    private Task CloseModalOnMainThreadAsync()
+    {
+        var capturedGeneration = popGeneration;
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            if (capturedGeneration != popGeneration)
+            {
+                logger.Information("Skipping stale modal pop (schedule switched before pop executed)");
+                return;
+            }
+
+            try
+            {
+                logger.Information("PlaybackState changed - hiding PlaybackModal (Playback inactive)");
+
+                // Show Home page before closing modal
+                navigationService.SetHomePageVisibility(isPlaybackActive: false);
+
+                await navigationService.PopModalAsync();
+                isModalOpen = false;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error hiding PlaybackModal");
+                // Force reset the flag even on error - the modal may have been closed externally
+                isModalOpen = false;
+            }
+        });
     }
 
     public void Dispose()

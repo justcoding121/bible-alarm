@@ -5,6 +5,10 @@ using Bible.Alarm.Services.UI;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices;
 using Serilog;
+#if IOS
+using UIKit;
+using CoreAnimation;
+#endif
 
 namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
 
@@ -63,6 +67,13 @@ public sealed class NavigationStackManager
                 Log.Warning(ex, "NavigationStackManager.PopModalAsync: Error disposing modal (non-fatal)");
             }
         }
+
+#if IOS
+        if (modal != null)
+        {
+            CleanupIOSNativeViews(modal);
+        }
+#endif
 
         // Re-apply status bar (and nav bar) so the now-visible page has correct appearance.
         // On iOS, dismissing a modal can leave the status bar in the modal's style (e.g. light content).
@@ -179,6 +190,13 @@ public sealed class NavigationStackManager
             }
         }
 
+#if IOS
+        if (page != null)
+        {
+            CleanupIOSNativeViews(page);
+        }
+#endif
+
         // Re-apply status bar so the now-visible page has correct appearance (same as after modal pop).
         try
         {
@@ -203,4 +221,120 @@ public sealed class NavigationStackManager
         return false;
 #endif
     }
+
+#if IOS
+    /// <summary>
+    /// Two-phase cleanup for popped iOS pages:
+    /// 1. Collect native UIView references from the MAUI visual tree (must happen BEFORE
+    ///    DisconnectHandler nulls out Handler.PlatformView).
+    /// 2. Disconnect MAUI handlers (releases managed-to-native bindings, calls
+    ///    GC.SuppressFinalize on handler-owned objects).
+    /// 3. Walk the collected native views' CALayer hierarchy and suppress finalization
+    ///    on every layer. This catches objects like StaticCAShapeLayer that
+    ///    DisconnectHandler does NOT clean up — preventing the GC finalizer from
+    ///    sending objc_msgSend to already-deallocated native objects (SIGSEGV).
+    /// </summary>
+    private static void CleanupIOSNativeViews(IVisualTreeElement element)
+    {
+        var nativeViews = new List<UIView>();
+        CollectNativeViews(element, nativeViews);
+
+        DisconnectHandlersRecursively(element);
+
+        foreach (var view in nativeViews)
+        {
+            try
+            {
+                SuppressFinalizersForViewHierarchy(view);
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "CleanupIOSNativeViews: Error suppressing finalizers for {Type} (non-fatal)", view.GetType().Name);
+            }
+        }
+    }
+
+    private static void CollectNativeViews(IVisualTreeElement element, List<UIView> views)
+    {
+        foreach (var child in element.GetVisualChildren())
+        {
+            CollectNativeViews(child, views);
+        }
+
+        if (element is not IElement mauiElement)
+        {
+            return;
+        }
+
+        var handler = mauiElement.Handler;
+        if (handler == null)
+        {
+            return;
+        }
+
+        if (handler.PlatformView is UIView view)
+        {
+            views.Add(view);
+        }
+
+        if (handler is IPlatformViewHandler pvh && pvh.ViewController?.View is UIView vcView
+            && vcView != handler.PlatformView)
+        {
+            views.Add(vcView);
+        }
+    }
+
+    private static void DisconnectHandlersRecursively(IVisualTreeElement element)
+    {
+        foreach (var child in element.GetVisualChildren())
+        {
+            DisconnectHandlersRecursively(child);
+        }
+
+        try
+        {
+            if (element is IElement mauiElement)
+            {
+                mauiElement.Handler?.DisconnectHandler();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "DisconnectHandlersRecursively: Error disconnecting handler for {Type} (non-fatal)", element.GetType().Name);
+        }
+    }
+
+    private static void SuppressFinalizersForViewHierarchy(UIView view)
+    {
+        var subviews = view.Subviews;
+        if (subviews != null)
+        {
+            foreach (var subview in subviews)
+            {
+                SuppressFinalizersForViewHierarchy(subview);
+            }
+        }
+
+        if (view.Layer != null)
+        {
+            SuppressFinalizersForLayerHierarchy(view.Layer);
+        }
+
+        GC.SuppressFinalize(view);
+    }
+
+    private static void SuppressFinalizersForLayerHierarchy(CALayer layer)
+    {
+        var sublayers = layer.Sublayers;
+        if (sublayers != null)
+        {
+            foreach (var sublayer in sublayers)
+            {
+                SuppressFinalizersForLayerHierarchy(sublayer);
+            }
+        }
+
+        GC.SuppressFinalize(layer);
+    }
+#endif
 }

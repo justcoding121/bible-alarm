@@ -300,7 +300,6 @@
                             BackgroundColor="Transparent"
                             BorderWidth="0"
                             BorderColor="Transparent"
-                            Command="{Binding DismissCommand}"
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                             FontSize="{DynamicResource IconStandardFontSize}"
                             HorizontalOptions="Fill"

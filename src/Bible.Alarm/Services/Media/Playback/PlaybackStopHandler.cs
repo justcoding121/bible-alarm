@@ -56,12 +56,13 @@ public sealed class PlaybackStopHandler
             logger.Warning(ex, "Error cancelling preparation token");
         }
 
-        // Reset state early to ensure PlayCurrentTrackAsync checks detect stop immediately
-        // This is especially important for the gap between downloads completing and playback starting
-        resetState();
-
-        // Stop progress timer first to prevent it from trying to save progress after ServiceProvider is disposed
+        // Stop progress timer FIRST to prevent in-flight timer callbacks from racing with state reset.
+        // System.Timers.Timer.Stop() doesn't cancel in-flight callbacks, but it prevents new ones.
         stopProgressTimer();
+
+        // Reset state to ensure PlayCurrentTrackAsync checks detect stop immediately.
+        // This is especially important for the gap between downloads completing and playback starting.
+        resetState();
 
         // Stop player immediately for responsive user experience
         try

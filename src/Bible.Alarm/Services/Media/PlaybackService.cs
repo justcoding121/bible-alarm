@@ -29,6 +29,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly INotificationService notificationService;
     private readonly IMediaCacheService mediaCacheService;
 
+    private readonly SemaphoreSlim stopLock = new(1, 1);
     private readonly PlaybackStateManager stateManager;
     private readonly PlaybackNavigationManager navigationManager;
     private readonly ProgressTracker progressTracker;
@@ -390,22 +391,35 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false)
     {
-        var scheduleIdToSave = stateManager.CurrentScheduleId;
-
-        TrackMetadata? trackMetadataToMark = null;
-        if (!skipMarkAsPlayed && stateManager.Playlist != null && stateManager.CurrentTrackIndex >= 0 && stateManager.CurrentTrackIndex < stateManager.Playlist.Count)
+        if (!await stopLock.WaitAsync(0))
         {
-            trackMetadataToMark = stateManager.Playlist[stateManager.CurrentTrackIndex].PlayItem.Metadata;
+            logger.Debug("StopAsyncInternal skipped - another stop is already in progress");
+            return;
         }
 
-        await stopHandler.StopAsync(
-            scheduleIdToSave,
-            trackMetadataToMark,
-            skipMarkAsPlayed,
-            skipSaveLastPlayed,
-            stateManager.PreparationCancellationTokenSource,
-            () => stateManager.Reset(),
-            () => progressTracker.Stop());
+        try
+        {
+            var scheduleIdToSave = stateManager.CurrentScheduleId;
+
+            TrackMetadata? trackMetadataToMark = null;
+            if (!skipMarkAsPlayed && stateManager.Playlist != null && stateManager.CurrentTrackIndex >= 0 && stateManager.CurrentTrackIndex < stateManager.Playlist.Count)
+            {
+                trackMetadataToMark = stateManager.Playlist[stateManager.CurrentTrackIndex].PlayItem.Metadata;
+            }
+
+            await stopHandler.StopAsync(
+                scheduleIdToSave,
+                trackMetadataToMark,
+                skipMarkAsPlayed,
+                skipSaveLastPlayed,
+                stateManager.PreparationCancellationTokenSource,
+                () => stateManager.Reset(),
+                () => progressTracker.Stop());
+        }
+        finally
+        {
+            stopLock.Release();
+        }
     }
 
     private async Task ResetAsync() => await resetExecutor.ResetAsync();
@@ -568,6 +582,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public void Dispose()
     {
+        stopLock.Dispose();
         progressTracker.Dispose();
 
         audioPlayer.MediaEnded -= mediaEventAdapter.OnMediaEnded;

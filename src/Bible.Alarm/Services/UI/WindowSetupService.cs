@@ -172,22 +172,33 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
                 }
             }
 #elif IOS
-            // UIViewControllerBasedStatusBarAppearance is false; UIStatusBarStyle in Info.plist sets default (DarkContent).
-            // Run on main thread so UIKit applies the style; plist default fixes light mode if this is ignored (e.g. scene delegate).
-            var style = isLightTheme ? UIKit.UIStatusBarStyle.DarkContent : UIKit.UIStatusBarStyle.LightContent;
-            logger.Debug("[STATUS-BAR] iOS: isLightTheme={IsLight}, style={Style}", isLightTheme, style);
+            // Scene-based apps ignore the deprecated UIApplication.SetStatusBarStyle.
+            // With UIViewControllerBasedStatusBarAppearance = true, UIKit queries the topmost
+            // view controller's PreferredStatusBarStyle. UINavigationController derives that
+            // from NavigationBar.BarStyle, so we set it explicitly and trigger a re-query.
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 try
                 {
+                    var rootVc = GetRootViewController();
+
+                    if (rootVc is UIKit.UINavigationController navController)
+                    {
 #pragma warning disable CA1422
-                    UIKit.UIApplication.SharedApplication.SetStatusBarStyle(style, animated: true);
+                        navController.NavigationBar.BarStyle = isLightTheme
+                            ? UIKit.UIBarStyle.Default
+                            : UIKit.UIBarStyle.Black;
 #pragma warning restore CA1422
-                    logger.Debug("[STATUS-BAR] iOS: SetStatusBarStyle({Style}) completed on main thread", style);
+                    }
+
+                    var topVc = GetTopmostViewController(rootVc);
+                    topVc?.SetNeedsStatusBarAppearanceUpdate();
+
+                    logger.Debug("[STATUS-BAR] iOS: Updated BarStyle & SetNeedsStatusBarAppearanceUpdate (isLightTheme={IsLight})", isLightTheme);
                 }
                 catch (Exception ex)
                 {
-                    logger.Debug(ex, "[STATUS-BAR] iOS: SetStatusBarStyle failed");
+                    logger.Debug(ex, "[STATUS-BAR] iOS: status bar update failed");
                 }
             });
 #endif
@@ -197,6 +208,26 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
             logger.Debug(ex, "Error updating status bar appearance");
         }
     }
+
+#if IOS
+    private static UIKit.UIViewController? GetRootViewController()
+    {
+        var scene = UIKit.UIApplication.SharedApplication.ConnectedScenes
+            .OfType<UIKit.UIWindowScene>()
+            .FirstOrDefault();
+        return scene?.KeyWindow?.RootViewController;
+    }
+
+    private static UIKit.UIViewController? GetTopmostViewController(UIKit.UIViewController? vc)
+    {
+        while (vc?.PresentedViewController != null)
+        {
+            vc = vc.PresentedViewController;
+        }
+
+        return vc;
+    }
+#endif
 
     public void Dispose()
     {

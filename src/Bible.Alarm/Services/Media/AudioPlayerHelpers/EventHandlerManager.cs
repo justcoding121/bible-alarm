@@ -83,29 +83,43 @@ public class EventHandlerManager
 
     private async void OnMediaOpened(object? sender, EventArgs e)
     {
-        var currentTrack = getCurrentTrack();
-        if (currentTrack == null)
+        try
         {
-            return;
+            var currentTrack = getCurrentTrack();
+            if (currentTrack == null)
+            {
+                return;
+            }
+
+            // Signal that media is ready
+            getMediaOpenedCompletionSource()?.TrySetResult(true);
+
+            // Update duration when track opens (track change)
+            positionTracker.UpdateDuration(getDuration());
+
+            // Handle metadata
+            if (sender is MediaElement mediaElement)
+            {
+                await metadataHandler.HandleMediaOpenedAsync(currentTrack, mediaElement);
+            }
         }
-
-        // Signal that media is ready
-        getMediaOpenedCompletionSource()?.TrySetResult(true);
-
-        // Update duration when track opens (track change)
-        positionTracker.UpdateDuration(getDuration());
-
-        // Handle metadata
-        if (sender is MediaElement mediaElement)
+        catch (Exception ex)
         {
-            await metadataHandler.HandleMediaOpenedAsync(currentTrack, mediaElement);
+            logger.Warning(ex, "Error in OnMediaOpened handler (MediaElement may have been disposed)");
         }
     }
 
     private void OnMediaEnded(object? sender, EventArgs e)
     {
-        setStatus(PlayStatus.Ended);
-        onMediaEnded?.Invoke(EventArgs.Empty);
+        try
+        {
+            setStatus(PlayStatus.Ended);
+            onMediaEnded?.Invoke(EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error in OnMediaEnded handler (MediaElement may have been disposed)");
+        }
     }
 
     private void OnMediaFailed(object? sender, EventArgs e)
@@ -139,39 +153,57 @@ public class EventHandlerManager
 
     private void OnStateChanged(object? sender, MediaStateChangedEventArgs e)
     {
-        if (sender is not MediaElement mediaElement)
+        try
         {
-            return;
-        }
+            if (sender is not MediaElement mediaElement)
+            {
+                return;
+            }
 
-        if (stateManager.ShouldIgnoreStateChange(e.NewState, mediaElement))
+            if (stateManager.ShouldIgnoreStateChange(e.NewState, mediaElement))
+            {
+                return;
+            }
+
+            stateManager.UpdateStatus(e.NewState);
+        }
+        catch (Exception ex)
         {
-            return;
+            logger.Warning(ex, "Error in OnStateChanged handler (MediaElement may have been disposed)");
         }
-
-        stateManager.UpdateStatus(e.NewState);
     }
 
     private void OnPositionChanged(object? sender, EventArgs e)
     {
-        // MediaElement's PositionChanged event fires when position updates
-        // Removed verbose logging to reduce CPU usage - only log if seeking
-        if (stateManager.IsSeeking)
+        try
         {
-            logger.Debug("[AudioPlayer] OnPositionChanged during seek - CurrentPosition: {Position}",
-                getCurrentPosition()?.ToString() ?? "null");
+            if (stateManager.IsSeeking)
+            {
+                logger.Debug("[AudioPlayer] OnPositionChanged during seek - CurrentPosition: {Position}",
+                    getCurrentPosition()?.ToString() ?? "null");
+            }
+            positionTracker.SendPositionUpdate(getCurrentPosition(), getDuration());
         }
-        positionTracker.SendPositionUpdate(getCurrentPosition(), getDuration());
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error in OnPositionChanged handler (MediaElement may have been disposed)");
+        }
     }
 
     private void OnSeekCompleted(object? sender, EventArgs e)
     {
-        // Seek has completed - reset the seeking flag
-        var currentPosition = getCurrentPosition();
-        logger.Debug("[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false",
-            currentPosition?.ToString() ?? "null");
-        stateManager.EndSeeking();
-        logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates");
+        try
+        {
+            var currentPosition = getCurrentPosition();
+            logger.Debug("[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false",
+                currentPosition?.ToString() ?? "null");
+            stateManager.EndSeeking();
+            logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates");
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error in OnSeekCompleted handler (MediaElement may have been disposed)");
+        }
     }
 }
 

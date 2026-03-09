@@ -129,6 +129,7 @@ public sealed class NavigationService(
                     var navigation = GetNavigation();
                     NavigationPage.SetHasNavigationBar(page, false);
                     await navigation.PushAsync(page, animated: false);
+                    WindowSetupService.UpdateNavigationBarColors();
                 });
             });
         }
@@ -187,6 +188,7 @@ public sealed class NavigationService(
 #endif
 
                     await navigation.PushAsync(page, animated: false);
+                    WindowSetupService.UpdateNavigationBarColors();
 
 #if DEBUG
                     var afterPushTime = DateTime.UtcNow;
@@ -322,6 +324,7 @@ public sealed class NavigationService(
 
         // Push the fresh page first - keep animation enabled
         await navigation.PushAsync(page, animated: true);
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public void Dispose()
