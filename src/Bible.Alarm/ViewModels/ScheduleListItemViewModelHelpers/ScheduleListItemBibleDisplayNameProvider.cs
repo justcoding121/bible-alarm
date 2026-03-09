@@ -28,8 +28,8 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
             return string.Empty;
         }
 
-        return categoryNameService.GetName(categoryCode, AppConstants.Media.DefaultLanguageCode)
-            ?? categoryCode;
+        var raw = categoryNameService.GetName(categoryCode, AppConstants.Media.DefaultLanguageCode);
+        return DisplayTextHelper.NormalizeSingleLine(raw);
     }
 
     public string GetCategoryCode(int scheduleId)
