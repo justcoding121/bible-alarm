@@ -137,7 +137,9 @@ internal static class WindowsToastXmlFactory
         var toastXml = CreateToastXml(title, body, scheduleId);
         return new ScheduledToastNotification(toastXml, time)
         {
-            Id = uniqueId
+            Id = uniqueId,
+            Tag = scheduleId.ToString(),
+            Group = WindowsNotificationService.AlarmToastGroup
         };
     }
 

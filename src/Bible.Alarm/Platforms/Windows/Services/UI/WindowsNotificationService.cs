@@ -12,6 +12,11 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI;
 
 public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : IWindowsNotificationService
 {
+    /// <summary>
+    /// Group used for alarm/schedule toasts so we can remove delivered notifications from Action Center by schedule.
+    /// </summary>
+    internal const string AlarmToastGroup = "BibleAlarmSchedule";
+
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task ShowNotificationAsync(int scheduleId)
@@ -154,6 +159,18 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
     public Task ClearDeliveredNotificationAsync(int scheduleId)
     {
+        try
+        {
+            var tag = scheduleId.ToString();
+            ToastNotificationManager.History.Remove(tag, AlarmToastGroup);
+            logger.Debug("Cleared delivered alarm notification for schedule {ScheduleId} from Action Center", scheduleId);
+        }
+        catch (Exception ex)
+        {
+            // Toast may not be in history (e.g. already dismissed or never shown)
+            logger.Debug(ex, "No delivered alarm toast in history for schedule {ScheduleId} (may already be dismissed)", scheduleId);
+        }
+
         return Task.CompletedTask;
     }
 
