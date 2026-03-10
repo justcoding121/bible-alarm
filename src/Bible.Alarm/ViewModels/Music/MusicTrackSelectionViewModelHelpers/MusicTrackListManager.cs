@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -20,6 +21,8 @@ public sealed class MusicTrackListManager(
     IMediaService mediaService)
 {
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> propertyChangedHandlers = [];
+    private ObservableCollection<MusicTrackListViewItemModel>? collectionWithHandler;
+    private NotifyCollectionChangedEventHandler? collectionChangedHandler;
 
     public async Task PopulateTracks(
         bool isMelodyMusic,
@@ -128,7 +131,8 @@ public sealed class MusicTrackListManager(
 
     public void SetupCollectionChangedHandler(ObservableCollection<MusicTrackListViewItemModel> tracks)
     {
-        tracks.CollectionChanged += (_, e) =>
+        TeardownCollectionChangedHandler();
+        collectionChangedHandler = (_, e) =>
         {
             if (e.NewItems != null)
             {
@@ -146,6 +150,22 @@ public sealed class MusicTrackListManager(
                 }
             }
         };
+        tracks.CollectionChanged += collectionChangedHandler;
+        collectionWithHandler = tracks;
+    }
+
+    public void TeardownCollectionChangedHandler()
+    {
+        if (collectionWithHandler != null && collectionChangedHandler != null)
+        {
+            collectionWithHandler.CollectionChanged -= collectionChangedHandler;
+            foreach (var track in collectionWithHandler)
+            {
+                UnsubscribeFromTrackEvents(track);
+            }
+            collectionWithHandler = null;
+            collectionChangedHandler = null;
+        }
     }
 
     public void SetSelectedTrack(AlarmMusic? current, ObservableCollection<MusicTrackListViewItemModel> tracks, Action<MusicTrackListViewItemModel?> setSelectedTrack)

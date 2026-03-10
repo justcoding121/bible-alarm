@@ -23,6 +23,7 @@ public partial class PlatformSwitch : ContentView
     private SfSwitch? sfSwitch;
 #pragma warning restore CS0649
 
+
     public PlatformSwitch()
     {
         InitializeComponent();
@@ -92,15 +93,19 @@ public partial class PlatformSwitch : ContentView
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
+        UnsubscribeFromChildEvents();
+        if (Handler != null)
+        {
+            SubscribeToChildEvents();
+        }
+    }
 
-        // Set up event handlers after the view is loaded
+    private void SubscribeToChildEvents()
+    {
         if (winUISwitch != null)
         {
-            winUISwitch.Toggled += (_, e) => IsToggled = e.Value;
-
+            winUISwitch.Toggled += OnWinUISwitchToggled;
 #if WINDOWS
-            // For WinUI, ensure the native ToggleSwitch MinWidth is set to 0.
-            // Guard the cast: in Release, PlatformView can throw InvalidCastException/InvalidOperationException if accessed off UI thread or wrong context.
             try
             {
                 if (Handler?.PlatformView is Microsoft.UI.Xaml.Controls.ToggleSwitch toggleSwitch)
@@ -115,7 +120,36 @@ public partial class PlatformSwitch : ContentView
 
         if (sfSwitch != null)
         {
-            sfSwitch.StateChanged += (_, _) => IsToggled = sfSwitch.IsOn ?? false;
+            sfSwitch.StateChanged += OnSfSwitchStateChanged;
+        }
+    }
+
+    private void UnsubscribeFromChildEvents()
+    {
+        if (winUISwitch != null)
+        {
+            winUISwitch.Toggled -= OnWinUISwitchToggled;
+        }
+
+        if (sfSwitch != null)
+        {
+            sfSwitch.StateChanged -= OnSfSwitchStateChanged;
+        }
+    }
+
+    private void OnWinUISwitchToggled(object? sender, object e)
+    {
+        if (winUISwitch != null)
+        {
+            IsToggled = winUISwitch.IsToggled;
+        }
+    }
+
+    private void OnSfSwitchStateChanged(object? sender, SwitchStateChangedEventArgs e)
+    {
+        if (sfSwitch != null)
+        {
+            IsToggled = sfSwitch.IsOn ?? false;
         }
     }
 

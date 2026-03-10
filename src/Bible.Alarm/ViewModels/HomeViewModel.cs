@@ -90,47 +90,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         notificationPermissionHandler = new HomeViewModelNotificationPermissionHandler(logger, state);
         floatingButtonHandler = new HomeViewModelFloatingButtonHandler(logger, serviceProvider);
 
-        // Setup progress bar manager events
-        progressBarManager.ProgressBarOpacityChanged += (opacity) =>
-        {
-            OnPropertyChanged(nameof(ProgressBarOpacity));
-        };
-        progressBarManager.ProgressBarHiddenChanged += () =>
-        {
-            OnPropertyChanged(nameof(IsProgressBarHidden));
-        };
-        // Note: Animation is now handled natively in AnimatedProgressBar control
-        // No need for ProgressAnimator property change notifications
-
-        // Setup property manager events
-        propertyManager.SchedulesChanged += () =>
-        {
-            OnPropertyChanged(nameof(Schedules));
-            progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
-            // Check if schedules are loaded (indicates bootstrap is complete)
-            bootstrapReadyManager.CheckSchedulesLoaded(propertyManager.Schedules);
-        };
-        propertyManager.IsBusyChanged += (isBusy) =>
-        {
-            OnPropertyChanged(nameof(IsBusy));
-            progressBarManager.UpdateVisibility(isBusy, propertyManager.Schedules?.Count);
-        };
-        propertyManager.LoadedChanged += (loaded) =>
-        {
-            OnPropertyChanged(nameof(Loaded));
-            // Check bootstrap when loaded changes
-            bootstrapReadyManager.UpdateBootstrapReadyState();
-        };
-        propertyManager.IsAddBusyChanged += (isAddBusy) =>
-        {
-            OnPropertyChanged(nameof(IsAddBusy));
-        };
-
-        // Setup bootstrap ready manager events
-        bootstrapReadyManager.BootstrapReadyChanged += (isReady) =>
-        {
-            OnPropertyChanged(nameof(IsBootstrapReady));
-        };
+        progressBarManager.ProgressBarOpacityChanged += OnProgressBarOpacityChanged;
+        progressBarManager.ProgressBarHiddenChanged += OnProgressBarHiddenChanged;
+        propertyManager.SchedulesChanged += OnSchedulesChanged;
+        propertyManager.IsBusyChanged += OnIsBusyChanged;
+        propertyManager.LoadedChanged += OnLoadedChanged;
+        propertyManager.IsAddBusyChanged += OnIsAddBusyChanged;
+        bootstrapReadyManager.BootstrapReadyChanged += OnBootstrapReadyChanged;
 
         commandHandler = new CommandHandler(
             logger,
@@ -179,19 +145,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         // Ensure progress bar visibility is updated on initial load
         progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
 
-        // Start tracking bootstrap ready state
         bootstrapReadyManager.StartTracking();
-        bootstrapReadyManager.BootstrapReadyChanged += (isReady) =>
-        {
-            logger.Information("[BOOTSTRAP-READY] BootstrapReadyChanged event fired - isReady={IsReady}", isReady);
-            if (isReady)
-            {
-                logger.Information("[BOOTSTRAP-READY] Bootstrap ready, calling UpdateNotificationPermissionButtonVisibility");
-                // Update notification permission button visibility when bootstrap completes and schedules are loaded
-                UpdateNotificationPermissionButtonVisibility();
-                logger.Information("[BOOTSTRAP-READY] UpdateNotificationPermissionButtonVisibility completed");
-            }
-        };
+        bootstrapReadyManager.BootstrapReadyChanged += OnBootstrapReadyChangedWithNotificationUpdate;
 
         // Register for progress bar messages
         WeakReferenceMessenger.Default.Register<ShowProgressBarMessage>(this);
@@ -398,6 +353,37 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
 
 
+    private void OnProgressBarOpacityChanged(double _) => OnPropertyChanged(nameof(ProgressBarOpacity));
+    private void OnProgressBarHiddenChanged() => OnPropertyChanged(nameof(IsProgressBarHidden));
+    private void OnSchedulesChanged()
+    {
+        OnPropertyChanged(nameof(Schedules));
+        progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
+        bootstrapReadyManager.CheckSchedulesLoaded(propertyManager.Schedules);
+    }
+    private void OnIsBusyChanged(bool _)
+    {
+        OnPropertyChanged(nameof(IsBusy));
+        progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
+    }
+    private void OnLoadedChanged(bool _)
+    {
+        OnPropertyChanged(nameof(Loaded));
+        bootstrapReadyManager.UpdateBootstrapReadyState();
+    }
+    private void OnIsAddBusyChanged(bool _) => OnPropertyChanged(nameof(IsAddBusy));
+    private void OnBootstrapReadyChanged(bool _) => OnPropertyChanged(nameof(IsBootstrapReady));
+    private void OnBootstrapReadyChangedWithNotificationUpdate(bool isReady)
+    {
+        logger.Information("[BOOTSTRAP-READY] BootstrapReadyChanged event fired - isReady={IsReady}", isReady);
+        if (isReady)
+        {
+            logger.Information("[BOOTSTRAP-READY] Bootstrap ready, calling UpdateNotificationPermissionButtonVisibility");
+            UpdateNotificationPermissionButtonVisibility();
+            logger.Information("[BOOTSTRAP-READY] UpdateNotificationPermissionButtonVisibility completed");
+        }
+    }
+
     private void OnStateChanged(object? sender, EventArgs e)
     {
         try
@@ -478,6 +464,16 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<ShowProgressBarMessage>(this);
         WeakReferenceMessenger.Default.Unregister<HideProgressBarMessage>(this);
+
+        progressBarManager.ProgressBarOpacityChanged -= OnProgressBarOpacityChanged;
+        progressBarManager.ProgressBarHiddenChanged -= OnProgressBarHiddenChanged;
+        propertyManager.SchedulesChanged -= OnSchedulesChanged;
+        propertyManager.IsBusyChanged -= OnIsBusyChanged;
+        propertyManager.LoadedChanged -= OnLoadedChanged;
+        propertyManager.IsAddBusyChanged -= OnIsAddBusyChanged;
+        bootstrapReadyManager.BootstrapReadyChanged -= OnBootstrapReadyChanged;
+        bootstrapReadyManager.BootstrapReadyChanged -= OnBootstrapReadyChangedWithNotificationUpdate;
+
         bootstrapReadyManager.Dispose();
         progressBarManager.Dispose();
         scheduleViewModelManager.DisposeAll();

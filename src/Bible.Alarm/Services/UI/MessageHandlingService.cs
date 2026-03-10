@@ -44,34 +44,29 @@ public sealed class MessageHandlingService(
         {
             try
             {
-                // Show PlaybackModal BEFORE pushing Home so the user transitions directly
-                // from BootstrapOverlay to the modal without a flash of Home page content.
-                // The modal sits on the modal stack and covers whatever is in the navigation stack.
                 var modalWasShown = await playbackModalService.ShowPlaybackModalIfNeededOnWindowCreationAsync();
 
                 if (modalWasShown)
                 {
-                    // Let the rendering pipeline draw the modal on screen before pushing Home
-                    // underneath. Without this, Android may render one frame of Home before the
-                    // modal fragment is composited, causing a visible flash.
+                    // Yield to the platform run loop so the modal presentation is
+                    // processed and the modal becomes visible on screen.
                     await Task.Delay(300);
+
+#if ANDROID
+                    // On Android, PushAsync works while a modal is presented (fragments handle
+                    // this correctly). Push Home underneath the modal so it's ready when the
+                    // modal is dismissed.
+                    await navigationService.NavigateToHomeAsync();
+#endif
+                    // On iOS, PushAsync on a NavigationPage hangs indefinitely when a modal is
+                    // presented (viewDidAppear never fires on hidden views), which holds the
+                    // navigationLock and deadlocks modal dismiss. Home is pushed after the
+                    // modal is dismissed instead (see PlaybackModalService.CloseModalOnMainThreadAsync).
                 }
-
-                // Push Home into the navigation stack (underneath the modal if it was shown).
-                await navigationService.NavigateToHomeAsync();
-
-                _ = Task.Run(async () =>
+                else
                 {
-                    try
-                    {
-                        await Task.Delay(100);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Background initialization task failures are non-critical
-                        logger.Warning(ex, "Error in background initialization task");
-                    }
-                });
+                    await navigationService.NavigateToHomeAsync();
+                }
             }
             catch (Exception e)
             {

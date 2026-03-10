@@ -251,5 +251,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
             propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
             propertyManagerPropertyChangedHandler = null;
         }
+
+        listManager.TeardownCollectionChangedHandler();
     }
 }

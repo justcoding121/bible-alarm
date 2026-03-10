@@ -14,6 +14,10 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     private readonly PlaybackViewModel viewModel;
     private System.Timers.Timer? artworkRefreshDebounceTimer;
     private const int ArtworkRefreshDebounceMs = 3000;
+#if IOS
+    private TapGestureRecognizer? portraitTapRecognizer;
+    private TapGestureRecognizer? landscapeTapRecognizer;
+#endif
 
     public PlaybackViewModel? ViewModel => BindingContext as PlaybackViewModel;
 
@@ -347,19 +351,37 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 #if IOS
     private void SetupIOSTapToSeek()
     {
+        RemoveIOSTapRecognizers();
         if (ProgressSlider != null)
         {
-            var tapGesture = new TapGestureRecognizer();
-            tapGesture.Tapped += OnSliderTapped;
-            ProgressSlider.GestureRecognizers.Add(tapGesture);
+            portraitTapRecognizer = new TapGestureRecognizer();
+            portraitTapRecognizer.Tapped += OnSliderTapped;
+            ProgressSlider.GestureRecognizers.Add(portraitTapRecognizer);
         }
 
         var landscapeSlider = LandscapeContent?.ProgressSlider;
         if (landscapeSlider != null)
         {
-            var tapGesture = new TapGestureRecognizer();
-            tapGesture.Tapped += OnSliderTapped;
-            landscapeSlider.GestureRecognizers.Add(tapGesture);
+            landscapeTapRecognizer = new TapGestureRecognizer();
+            landscapeTapRecognizer.Tapped += OnSliderTapped;
+            landscapeSlider.GestureRecognizers.Add(landscapeTapRecognizer);
+        }
+    }
+
+    private void RemoveIOSTapRecognizers()
+    {
+        if (portraitTapRecognizer != null)
+        {
+            portraitTapRecognizer.Tapped -= OnSliderTapped;
+            ProgressSlider?.GestureRecognizers.Remove(portraitTapRecognizer);
+            portraitTapRecognizer = null;
+        }
+
+        if (landscapeTapRecognizer != null)
+        {
+            landscapeTapRecognizer.Tapped -= OnSliderTapped;
+            LandscapeContent?.ProgressSlider?.GestureRecognizers.Remove(landscapeTapRecognizer);
+            landscapeTapRecognizer = null;
         }
     }
 
@@ -820,6 +842,9 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             Loaded -= OnPageLoaded;
             SizeChanged -= OnSizeChanged;
             UnwireLandscapeContentEvents();
+#if IOS
+            RemoveIOSTapRecognizers();
+#endif
         }
         catch
         {

@@ -191,7 +191,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// </summary>
     private CPListTemplate CreateEmptyStateTemplate()
     {
-        var emptyItem = new CPListItem("Loading Schedules ..", "Schedules will appear once the app is ready");
+        var emptyItem = new CPListItem("Loading schedules…", "Schedules will appear once the app is ready");
         emptyItem.Handler = (item, completion) =>
         {
             // Do nothing on tap - just complete the handler

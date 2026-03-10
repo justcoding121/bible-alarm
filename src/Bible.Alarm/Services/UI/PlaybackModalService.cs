@@ -214,16 +214,19 @@ public sealed class PlaybackModalService(
             {
                 logger.Information("PlaybackState changed - hiding PlaybackModal (Playback inactive)");
 
-                // Show Home page before closing modal
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
 
                 await navigationService.PopModalAsync();
                 isModalOpen = false;
+
+                // On iOS cold start, Home was NOT pushed during initialization (PushAsync
+                // hangs when a modal is presented). Push it now that the modal is gone.
+                // NavigateToHomeAsync is a no-op if Home is already in the stack.
+                await navigationService.NavigateToHomeAsync(animated: false);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error hiding PlaybackModal");
-                // Force reset the flag even on error - the modal may have been closed externally
                 isModalOpen = false;
             }
         });
