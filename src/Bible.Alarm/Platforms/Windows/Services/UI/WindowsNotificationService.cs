@@ -152,6 +152,11 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         }
     }
 
+    public Task ClearDeliveredNotificationAsync(int scheduleId)
+    {
+        return Task.CompletedTask;
+    }
+
     public Task<bool> CanScheduleAsync() => Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
 
     /// <summary>

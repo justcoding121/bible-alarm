@@ -145,14 +145,14 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     /// </summary>
     private void SchedulePortraitArtworkRenderDebounced()
     {
+        var vm = ViewModel;
+
         if (isDisposed || PortraitArtworkImage == null ||
-            ViewModel?.ShowPortraitLayout != true ||
-            ViewModel?.HasArtwork != true ||
-            ViewModel?.ShowArtworkSpinner != false)
+            vm?.ShowPortraitLayout != true ||
+            vm?.HasArtwork != true ||
+            vm.IsArtworkLoading || vm.IsWaitingForArtwork)
         {
-            artworkRefreshDebounceTimer?.Stop();
-            artworkRefreshDebounceTimer?.Dispose();
-            artworkRefreshDebounceTimer = null;
+            ClearArtworkDebounce();
             return;
         }
 
@@ -190,6 +190,13 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         artworkRefreshDebounceTimer.Start();
     }
 
+    private void ClearArtworkDebounce()
+    {
+        artworkRefreshDebounceTimer?.Stop();
+        artworkRefreshDebounceTimer?.Dispose();
+        artworkRefreshDebounceTimer = null;
+    }
+
     /// <summary>
     /// Works around a MAUI rendering bug where the Image control can fail to display its source
     /// after becoming visible (e.g. when the spinner hides, or after switching from landscape to portrait).
@@ -197,10 +204,11 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     /// </summary>
     private void ExecutePortraitArtworkRender()
     {
+        var vm = ViewModel;
         if (isDisposed || PortraitArtworkImage == null ||
-            ViewModel?.ShowPortraitLayout != true ||
-            ViewModel?.HasArtwork != true ||
-            ViewModel?.ShowArtworkSpinner != false)
+            vm?.ShowPortraitLayout != true ||
+            vm?.HasArtwork != true ||
+            vm.IsArtworkLoading || vm.IsWaitingForArtwork)
         {
             return;
         }
@@ -451,7 +459,6 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        // Reset flag when modal appears again
         hasHandledFirstLoad = false;
         Loaded += OnPageLoaded;
     }

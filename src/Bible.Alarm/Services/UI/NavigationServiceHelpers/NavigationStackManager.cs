@@ -8,6 +8,7 @@ using Serilog;
 #if IOS
 using UIKit;
 using CoreAnimation;
+using Bible.Alarm.Platforms.iOS.Helpers;
 #endif
 
 namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
@@ -245,7 +246,7 @@ public sealed class NavigationStackManager
         {
             try
             {
-                SuppressFinalizersForViewHierarchy(view);
+                IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(view);
             }
             catch (Exception ex)
             {
@@ -304,37 +305,5 @@ public sealed class NavigationStackManager
         }
     }
 
-    private static void SuppressFinalizersForViewHierarchy(UIView view)
-    {
-        var subviews = view.Subviews;
-        if (subviews != null)
-        {
-            foreach (var subview in subviews)
-            {
-                SuppressFinalizersForViewHierarchy(subview);
-            }
-        }
-
-        if (view.Layer != null)
-        {
-            SuppressFinalizersForLayerHierarchy(view.Layer);
-        }
-
-        GC.SuppressFinalize(view);
-    }
-
-    private static void SuppressFinalizersForLayerHierarchy(CALayer layer)
-    {
-        var sublayers = layer.Sublayers;
-        if (sublayers != null)
-        {
-            foreach (var sublayer in sublayers)
-            {
-                SuppressFinalizersForLayerHierarchy(sublayer);
-            }
-        }
-
-        GC.SuppressFinalize(layer);
-    }
 #endif
 }

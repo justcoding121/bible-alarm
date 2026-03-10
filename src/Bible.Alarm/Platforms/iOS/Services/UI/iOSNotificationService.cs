@@ -56,6 +56,29 @@ public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory 
         });
     }
 
+    public async Task ClearDeliveredNotificationAsync(int scheduleId)
+    {
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            var delivered = await UNUserNotificationCenter.Current.GetDeliveredNotificationsAsync();
+            if (delivered == null)
+            {
+                return;
+            }
+
+            var toRemove = delivered
+                .Where(n => n.Request.Identifier.StartsWith($"{scheduleId}_", StringComparison.Ordinal)
+                    || n.Request.Identifier == scheduleId.ToString())
+                .Select(n => n.Request.Identifier)
+                .ToList();
+
+            if (toRemove.Count > 0)
+            {
+                UNUserNotificationCenter.Current.RemoveDeliveredNotifications(toRemove.ToArray());
+            }
+        });
+    }
+
     public async Task RemoveAsync(int scheduleId)
     {
         await MainThread.InvokeOnMainThreadAsync(() =>

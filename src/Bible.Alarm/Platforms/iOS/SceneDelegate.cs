@@ -23,11 +23,9 @@ public class SceneDelegate : MauiUISceneDelegate
     {
         try
         {
-            // Let MAUI create the window. MauiUISceneDelegate.WillConnect checks that
-            // session.Configuration.Name == "__MAUI_DEFAULT_SCENE_CONFIGURATION__" and
-            // then calls CreatePlatformWindow, which invokes Application.CreateWindow.
             base.WillConnect(scene, session, connectionOptions);
             logger.Information("[SceneDelegate] Scene connected, config: {ConfigName}", session.Configuration.Name);
+            ResetBadgeCount();
         }
         catch (Exception ex)
         {
@@ -54,11 +52,23 @@ public class SceneDelegate : MauiUISceneDelegate
         {
             logger.Debug("[SceneDelegate] Scene will enter foreground");
             base.WillEnterForeground(scene);
+            ResetBadgeCount();
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "[SceneDelegate] Error in WillEnterForeground");
         }
+    }
+
+    private static void ResetBadgeCount()
+    {
+        UserNotifications.UNUserNotificationCenter.Current.SetBadgeCount(0, error =>
+        {
+            if (error != null)
+            {
+                logger.Warning("Failed to reset badge count: {Error}", error.LocalizedDescription);
+            }
+        });
     }
 
     public override void DidEnterBackground(UIScene scene)

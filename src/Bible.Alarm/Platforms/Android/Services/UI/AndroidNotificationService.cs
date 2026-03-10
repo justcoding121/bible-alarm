@@ -300,6 +300,12 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         return Task.FromResult(false);
     }
 
+    public Task ClearDeliveredNotificationAsync(int scheduleId)
+    {
+        RemoveLocalNotification(scheduleId);
+        return Task.CompletedTask;
+    }
+
     public Task RemoveAsync(int scheduleId)
     {
         var pIntent = FindIntent(scheduleId);

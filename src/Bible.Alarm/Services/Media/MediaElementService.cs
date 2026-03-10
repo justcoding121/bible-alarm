@@ -10,6 +10,10 @@ using Microsoft.Maui.Handlers;
 using Serilog;
 #if ANDROID
 #endif
+#if IOS
+using UIKit;
+using Bible.Alarm.Platforms.iOS.Helpers;
+#endif
 
 namespace Bible.Alarm.Services.Media;
 
@@ -190,8 +194,25 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
             // Clear source
             mediaElement.Source = null;
 
+#if IOS
+            // Collect native views BEFORE disposing the handler, because disposal
+            // nulls out PlatformView. We need these references to suppress finalization
+            // and prevent SIGSEGV crashes from the GC finalizer sending objc_msgSend
+            // to deallocated native objects (e.g. during rapid CarPlay schedule switching).
+            UIView? nativePlatformView = null;
+            try
+            {
+                nativePlatformView = mediaElement.Handler?.PlatformView as UIView;
+            }
+            catch (Exception)
+            {
+            }
+#endif
+
+            var handler = mediaElement.Handler;
+
             // Dispose the handler (which disposes ExoPlayer and MediaSession on Android)
-            if (mediaElement.Handler is IDisposable disposableHandler)
+            if (handler is IDisposable disposableHandler)
             {
                 disposableHandler.Dispose();
             }
@@ -200,6 +221,23 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
             var handlerField = typeof(Element).GetField("_handler",
                 BindingFlags.NonPublic | BindingFlags.Instance);
             handlerField?.SetValue(mediaElement, null);
+
+#if IOS
+            // Suppress finalization on the native view hierarchy to prevent the GC
+            // finalizer from crashing when it tries to call objc_msgSend on deallocated objects.
+            if (nativePlatformView != null)
+            {
+                try
+                {
+                    IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(nativePlatformView);
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            GC.SuppressFinalize(mediaElement);
+#endif
         }
         catch (Exception ex)
         {

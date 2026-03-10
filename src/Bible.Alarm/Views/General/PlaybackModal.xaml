@@ -252,7 +252,7 @@
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center" />
                             
-                            <!-- Album Artwork or Bell Icon (spinner hidden; bell only when artwork fetch failed) -->
+                            <!-- Album Artwork or Bell Icon (hidden while spinner is active) -->
                             <Border
                                 IsVisible="{Binding ShowArtworkSpinner, Converter={StaticResource negateBooleanConverter}}"
                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"

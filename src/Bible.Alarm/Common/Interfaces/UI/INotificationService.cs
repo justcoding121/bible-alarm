@@ -9,5 +9,10 @@ public interface INotificationService
     Task RemoveAsync(int scheduleId);
     Task<bool> IsScheduledAsync(int scheduleId);
 
+    /// <summary>
+    /// Dismisses any displayed/delivered notification for this schedule (e.g. after user opens app and starts playback).
+    /// </summary>
+    Task ClearDeliveredNotificationAsync(int scheduleId);
+
     Task<bool> CanScheduleAsync();
 }

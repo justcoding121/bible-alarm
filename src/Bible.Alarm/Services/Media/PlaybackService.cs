@@ -208,6 +208,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
             // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
             await PlayCurrentTrackAsync();
+
+            await notificationService.ClearDeliveredNotificationAsync(scheduleId);
         }
         catch (Exception ex)
         {

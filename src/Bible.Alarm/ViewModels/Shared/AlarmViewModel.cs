@@ -488,7 +488,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         !IsStopping &&
         (playbackState.Value.Status == PlayStatus.Loading || playbackState.Value.IsTransitioningTrack);
 
-    /// <summary>True when artwork area should show spinner: transitioning track, loading artwork, or waiting for ArtworkUrl. Bell only when false and !HasArtwork.</summary>
     public bool ShowArtworkSpinner => playbackState.Value.IsTransitioningTrack || IsArtworkLoading || IsWaitingForArtwork;
 
     /// <summary>Controls enabled when state received, not preparing, no error, not busy.</summary>
