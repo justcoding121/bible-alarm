@@ -24,6 +24,7 @@ public sealed class PlaybackModalService(
     {
         isModalOpen = false;
         playbackState.StateChanged += OnPlaybackStateChanged;
+        logger.Information("SubscribeToPlaybackStateChanges: Subscribed, isModalOpen reset to false");
     }
 
     public void UnsubscribeToPlaybackStateChanges()
@@ -43,6 +44,12 @@ public sealed class PlaybackModalService(
             {
                 if (isModalOpen)
                 {
+                    // Modal was already opened by OnPlaybackStateChanged (race between
+                    // SubscribeToPlaybackStateChanges and InitializedMessage). Treat as
+                    // "modal shown" so the caller doesn't push Home on iOS (which would
+                    // deadlock PushAsync while a modal is presented).
+                    logger.Information("ShowPlaybackModalIfNeededOnWindowCreationAsync - modal already open (opened by state change listener)");
+                    modalWasShown = true;
                     return;
                 }
 
@@ -63,6 +70,12 @@ public sealed class PlaybackModalService(
                     ? IsActiveUiPlaybackStatus(state.Status)
                     : CheckPlatformPlaybackIsActive();
 
+                logger.Information(
+                    "ShowPlaybackModalIfNeededOnWindowCreationAsync - PlaybackStateAvailable={PlaybackStateAvailable}, Status={Status}, ShouldShow={ShouldShow}",
+                    state != null,
+                    state?.Status,
+                    shouldShow);
+
                 if (!shouldShow)
                 {
                     // Ensure Home is visible if we aren't showing the modal (defensive).
@@ -74,6 +87,14 @@ public sealed class PlaybackModalService(
                     "Window creation - showing PlaybackModal (PlaybackStateAvailable={PlaybackStateAvailable}, Status={Status})",
                     state != null,
                     state?.Status);
+
+#if IOS
+                // On iOS, the root view controller hasn't completed its appearance cycle
+                // (viewDidAppear) yet when this runs during window creation. iOS silently
+                // ignores PresentViewController calls on a VC that hasn't appeared.
+                // Yield to the run loop so UIKit finishes the presentation before we push.
+                await Task.Delay(500);
+#endif
 
                 // Home stays visible (opacity 1) behind the modal during cold start.
                 // Setting opacity to 0 on Android prevents CollectionView from laying out correctly.
@@ -112,6 +133,25 @@ public sealed class PlaybackModalService(
             logger.Warning(ex, "Failed to check MediaSession playback state during window creation");
             return false;
         }
+#elif IOS
+        try
+        {
+            var audioPlayer = Common.ServiceProviderManager.GetService<Services.Media.Interfaces.IAudioPlayer>();
+            if (audioPlayer != null)
+            {
+                var isActive = audioPlayer.IsActuallyPlayingOrPaused;
+                logger.Information("iOS platform playback check: IsActuallyPlayingOrPaused={IsActive}", isActive);
+                return isActive;
+            }
+
+            logger.Debug("iOS platform playback check: IAudioPlayer not available");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to check AudioPlayer state during window creation on iOS");
+            return false;
+        }
 #else
         return false;
 #endif
@@ -137,6 +177,9 @@ public sealed class PlaybackModalService(
         // - If modal IS already open, keep it open while the playback session is active (IsPreparingOrPlaying),
         //   so we survive brief transitions (e.g., auto-advance, transient stop) and can show errors.
         var shouldShowModal = isModalOpen ? state.IsPreparingOrPlaying : IsActiveUiPlaybackStatus(state.Status);
+
+        logger.Debug("OnPlaybackStateChanged: Status={Status}, IsModalOpen={IsModalOpen}, ShouldShow={ShouldShow}",
+            state.Status, isModalOpen, shouldShowModal);
 
         // When switching schedules, PlaybackStoppedAction and PlaybackStartedAction fire in rapid
         // succession on the same thread. The pop from PlaybackStoppedAction is queued on the main

@@ -40,11 +40,15 @@ public sealed class MessageHandlingService(
 
     public void Receive(InitializedMessage message)
     {
+        logger.Information("Received InitializedMessage - beginning post-initialization navigation");
+
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
                 var modalWasShown = await playbackModalService.ShowPlaybackModalIfNeededOnWindowCreationAsync();
+
+                logger.Information("Post-initialization: modalWasShown={ModalWasShown}", modalWasShown);
 
                 if (modalWasShown)
                 {

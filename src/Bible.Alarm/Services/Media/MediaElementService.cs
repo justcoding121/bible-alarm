@@ -211,11 +211,32 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
 
             var handler = mediaElement.Handler;
 
+#if IOS
+            UIKit.UIViewController? viewController = null;
+            try
+            {
+                if (handler is IPlatformViewHandler pvh)
+                {
+                    viewController = pvh.ViewController;
+                }
+            }
+            catch (Exception)
+            {
+            }
+#endif
+
             // Dispose the handler (which disposes ExoPlayer and MediaSession on Android)
             if (handler is IDisposable disposableHandler)
             {
                 disposableHandler.Dispose();
             }
+
+#if IOS
+            if (handler != null)
+            {
+                GC.SuppressFinalize(handler);
+            }
+#endif
 
             // Clear handler reference
             var handlerField = typeof(Element).GetField("_handler",
@@ -223,13 +244,29 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
             handlerField?.SetValue(mediaElement, null);
 
 #if IOS
-            // Suppress finalization on the native view hierarchy to prevent the GC
-            // finalizer from crashing when it tries to call objc_msgSend on deallocated objects.
             if (nativePlatformView != null)
             {
                 try
                 {
                     IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(nativePlatformView);
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            if (viewController != null)
+            {
+                try
+                {
+                    GC.SuppressFinalize(viewController);
+                    if (viewController.View != null)
+                    {
+                        IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(viewController.View);
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
                 }
                 catch (Exception)
                 {

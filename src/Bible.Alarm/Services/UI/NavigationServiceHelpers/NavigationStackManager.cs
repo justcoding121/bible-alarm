@@ -235,7 +235,7 @@ public sealed class NavigationStackManager
     ///    DisconnectHandler does NOT clean up — preventing the GC finalizer from
     ///    sending objc_msgSend to already-deallocated native objects (SIGSEGV).
     /// </summary>
-    private static void CleanupIOSNativeViews(IVisualTreeElement element)
+    internal static void CleanupIOSNativeViews(IVisualTreeElement element)
     {
         var nativeViews = new List<UIView>();
         CollectNativeViews(element, nativeViews);
@@ -278,10 +278,21 @@ public sealed class NavigationStackManager
             views.Add(view);
         }
 
-        if (handler is IPlatformViewHandler pvh && pvh.ViewController?.View is UIView vcView
-            && vcView != handler.PlatformView)
+        if (handler is not IPlatformViewHandler pvh)
         {
-            views.Add(vcView);
+            return;
+        }
+
+        try
+        {
+            var vc = pvh.ViewController;
+            if (vc?.View is UIView vcView && vcView != handler.PlatformView)
+            {
+                views.Add(vcView);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
         }
     }
 
@@ -296,12 +307,53 @@ public sealed class NavigationStackManager
         {
             if (element is IElement mauiElement)
             {
-                mauiElement.Handler?.DisconnectHandler();
+                var handler = mauiElement.Handler;
+                if (handler == null)
+                {
+                    return;
+                }
+
+                handler.DisconnectHandler();
+
+                // After disconnection the handler's native references are released by iOS.
+                // Suppress the managed finalizer so it won't send objc_msgSend to freed objects.
+                GC.SuppressFinalize(handler);
+
+                if (handler is IPlatformViewHandler pvh)
+                {
+                    SuppressViewControllerFinalizer(pvh);
+                }
             }
         }
         catch (Exception ex)
         {
             Log.Debug(ex, "DisconnectHandlersRecursively: Error disconnecting handler for {Type} (non-fatal)", element.GetType().Name);
+        }
+    }
+
+    private static void SuppressViewControllerFinalizer(IPlatformViewHandler pvh)
+    {
+        try
+        {
+            var vc = pvh.ViewController;
+            if (vc == null)
+            {
+                return;
+            }
+
+            GC.SuppressFinalize(vc);
+
+            if (vc.View != null)
+            {
+                IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(vc.View);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "SuppressViewControllerFinalizer: Error (non-fatal)");
         }
     }
 

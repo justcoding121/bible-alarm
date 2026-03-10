@@ -201,11 +201,11 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
         }
         else if (initializeUi && servicesVerified)
         {
-            // Services were already verified (bootstrap completed by Android Auto or previous call)
+            // Services were already verified (bootstrap completed by Android Auto/CarPlay or previous call)
             // Since bootstrap is complete, handlers should already be registered, so send immediately
+            Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage immediately (services already verified by prior bootstrap, e.g. CarPlay/Android Auto cold start)");
 #if DEBUG
             var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-            Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage immediately (services verified: {ServicesVerified}, bootstrap complete)", servicesVerified);
 #endif
             try
             {

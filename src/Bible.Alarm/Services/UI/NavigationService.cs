@@ -450,6 +450,17 @@ public sealed class NavigationService(
             {
                 logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing {PageType}: {PageTypeName}", pageType, page.GetType().Name);
             }
+
+#if IOS
+            try
+            {
+                NavigationStackManager.CleanupIOSNativeViews(page);
+            }
+            catch (Exception ex)
+            {
+                logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Error cleaning up iOS native views for {PageType}: {PageTypeName} (non-fatal)", pageType, page.GetType().Name);
+            }
+#endif
         }
     }
 }
