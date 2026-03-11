@@ -74,7 +74,10 @@ internal static class ForegroundNotificationHelper
 
         try
         {
-            CreateNotificationChannel(service);
+            if (service != null)
+            {
+                CreateNotificationChannel(service);
+            }
         }
         catch (Exception ex)
         {

@@ -1,8 +1,12 @@
 # Triggered when *any* deploy workflow completes (so it starts up to 3 times per push). Uses concurrency
 # so only one run per commit proceeds; the run that executes after all three deploys have completed
-# will pass the check and merge (beta→develop or stable→beta then beta→develop). Pushes only when
-# the merge produced a new commit. Uses origin (credentials from checkout token) for push. If push
-# fails with permission errors, use a PAT: set secret REPO_TOKEN and pass it as the checkout token.
+# will pass the check and merge.
+#
+# Intended flow (must match Prepare release version + deploy):
+#   After STABLE deploy: merge stable → beta, then merge beta → develop (so production release flows down)
+#   After BETA deploy:  merge beta → develop only (no merge to stable)
+#
+# Pushes only when the merge produced a new commit. If push fails, use PAT: set secret REPO_TOKEN.
 name: Sync versions after deploy
 
 on:
