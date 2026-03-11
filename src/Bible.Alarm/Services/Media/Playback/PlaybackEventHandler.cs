@@ -176,8 +176,11 @@ public sealed class PlaybackEventHandler
                 // This prevents button flicker during track transitions
                 navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
 
-                logger.Information("Attempting to play next track at index {NextTrackIndex}", nextTrackIndex);
-                await playCurrentTrackAsync(false);
+                // Start from beginning to avoid seek-out-of-range or network errors on the recovery track
+                // (e.g. after prev + ad-hoc fetch, the prepended track fails; we advance to next which
+                // may have stale FinishedDuration and fail again on iOS, causing a cascade).
+                logger.Information("Attempting to play next track at index {NextTrackIndex} from beginning after failure", nextTrackIndex);
+                await playCurrentTrackAsync(true);
             }
             else
             {
@@ -191,7 +194,7 @@ public sealed class PlaybackEventHandler
                         var nextTrackIndex = currentTrackIndex + 1;
                         setCurrentTrackIndex(nextTrackIndex);
                         navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
-                        await playCurrentTrackAsync(false);
+                        await playCurrentTrackAsync(true);
                         return;
                     }
                 }

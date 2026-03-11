@@ -1,4 +1,5 @@
 #nullable enable
+using System.ComponentModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.ViewModels;
 using Serilog;
@@ -27,10 +28,35 @@ public partial class Home : BaseContentPage, IDisposable
         if (DeviceInfo.Platform == DevicePlatform.WinUI)
         {
             AlarmSettingsFloatingButtonNoEffects.IsVisible = false;
+            ((INotifyPropertyChanged)viewModel).PropertyChanged += OnViewModelPropertyChanged;
         }
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
+    }
+
+    /// <summary>
+    /// On Windows we set ItemsSource in OnAppearing when returning from Schedule page.
+    /// HandleStateChangedAsync is async and may replace Schedules with a new collection after
+    /// OnAppearing runs, so the CollectionView can be left showing the old reference. When
+    /// Schedules property changes, re-apply ItemsSource so the list shows the updated collection.
+    /// </summary>
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(HomeViewModel.Schedules) || isDisposed || Handler == null)
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (isDisposed || SchedulesCollectionView == null || viewModel?.Schedules == null)
+            {
+                return;
+            }
+
+            SchedulesCollectionView.ItemsSource = viewModel.Schedules;
+        });
     }
 
     private async void OnPageLoaded(object? sender, EventArgs e)
@@ -232,6 +258,11 @@ public partial class Home : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
+            if (DeviceInfo.Platform == DevicePlatform.WinUI && viewModel is INotifyPropertyChanged inpc)
+            {
+                inpc.PropertyChanged -= OnViewModelPropertyChanged;
+            }
+
             // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
             {

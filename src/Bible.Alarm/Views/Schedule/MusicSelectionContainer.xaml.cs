@@ -314,10 +314,28 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         // Handle IsMusicSelectionVisible property change - explicitly update IsVisible binding
         if (e.PropertyName == nameof(MusicSelectionContainerViewModel.IsMusicSelectionVisible))
         {
-            if (viewModel != null)
+            if (viewModel == null)
             {
-                IsVisible = viewModel.IsMusicSelectionVisible;
+                return;
             }
+
+            var newVisible = viewModel.IsMusicSelectionVisible;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (isDisposed || Handler == null)
+                {
+                    return;
+                }
+
+                try
+                {
+                    IsVisible = newVisible;
+                }
+                catch (System.Runtime.InteropServices.COMException ex) when (ex.HResult == unchecked((int)0x8001010E))
+                {
+                    Log.Debug(ex, "[MusicSelectionContainer] Skipping IsVisible update - view disconnected (e.g. during navigation after save)");
+                }
+            });
             return; // Don't pass to propertyChangeHandler as this is handled here
         }
         

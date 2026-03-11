@@ -89,6 +89,8 @@ public class MediaElementManager
         stateManager.Status = PlayStatus.Loading;
         // Reset duration tracking so new track's duration will be detected as changed
         positionTracker.ResetDuration();
+        // Reset UI progress immediately so the bar does not stay at end of previous track (e.g. Windows MediaElement delay)
+        positionTracker.SendPositionResetForNewTrack();
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {

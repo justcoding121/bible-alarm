@@ -286,7 +286,7 @@ public static class PlaybackReducer
             artist: state.Artist,
             album: state.Album,
             artworkUrl: state.ArtworkUrl,
-            duration: state.Duration,
+            duration: TimeSpan.Zero,
             errorMessage: state.ErrorMessage,
             defaultScheduleId: state.DefaultScheduleId,
             defaultScheduleTitle: state.DefaultScheduleTitle,
