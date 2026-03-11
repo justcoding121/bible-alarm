@@ -26,7 +26,8 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '10.0.200'
+        # Pin to 10.0.103 (max released SDK). Newer (e.g. 10.0.200) requires Mono.linux-x64 10.0.4, which is not on NuGet (NU1102).
+        dotnet-version: '10.0.103'
         
     # Install MAUI Android workload (required by NETSDK1147 for net10.0-android).
     - name: Install workloads
