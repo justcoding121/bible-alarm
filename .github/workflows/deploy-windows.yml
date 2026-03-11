@@ -113,22 +113,30 @@ jobs:
           --output ./artifacts/windows
 
     # Create .msixbundle for Store (Store requires bundle if previously released as bundle)
+    # MSIX may be under bin/Release/.../AppPackages or src/Bible.Alarm/AppPackages depending on SDK.
     - name: Create MSIX bundle
       env:
         WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
       shell: powershell
       run: |
         $version = "${{ steps.get_version.outputs.version }}"
-        $baseOut = "src/Bible.Alarm/bin/Release/net10.0-windows10.0.19041.0"
-        $appPackagesPath = "$baseOut/win-x64/AppPackages"
-        $all = Get-ChildItem -Path $appPackagesPath -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch "\\Dependencies\\" }
+        $searchRoots = @(
+          "src/Bible.Alarm/bin/Release/net10.0-windows10.0.19041.0/win-x64/AppPackages",
+          "src/Bible.Alarm/AppPackages"
+        )
+        $all = @()
+        foreach ($root in $searchRoots) {
+          if (Test-Path $root) {
+            $all += Get-ChildItem -Path $root -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch "\\Dependencies\\" }
+          }
+        }
         $msix = $all | ForEach-Object {
           if ($_.Name -match "_(\d+)\.(\d+)\.(\d+)\.(\d+)_") {
             [PSCustomObject]@{ File = $_; Major = [int]$Matches[1]; Minor = [int]$Matches[2]; Build = [int]$Matches[3]; Rev = [int]$Matches[4] }
           }
         } | Sort-Object -Property Major, Minor, Build, Rev -Descending | Select-Object -First 1 -ExpandProperty File
         if (-not $msix) {
-          Write-Error "No .msix found under $appPackagesPath"
+          Write-Error "No .msix found under: $($searchRoots -join ', ')"
           exit 1
         }
         if (-not $version -and $msix.Name -match "_(\d+\.\d+\.\d+\.\d+)_") {
