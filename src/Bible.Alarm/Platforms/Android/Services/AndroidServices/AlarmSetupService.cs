@@ -55,7 +55,7 @@ public class AlarmSetupService : Service, IDisposable
         {
         }
 
-        Thread.Sleep(CrashFlushDelayMs);
+        System.Threading.Thread.Sleep(CrashFlushDelayMs);
     }
 
     public override IBinder OnBind(Intent intent) => null;
