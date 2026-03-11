@@ -1,5 +1,7 @@
+#nullable enable
 #if IOS
 using CoreAnimation;
+using Foundation;
 using UIKit;
 
 namespace Bible.Alarm.Platforms.iOS.Helpers;
@@ -27,7 +29,21 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException)
         {
-            // Native view already deallocated (e.g. after handler disposal) — safe to skip children.
+        }
+
+        try
+        {
+            var gestureRecognizers = view.GestureRecognizers;
+            if (gestureRecognizers != null)
+            {
+                foreach (var recognizer in gestureRecognizers)
+                {
+                    GC.SuppressFinalize(recognizer);
+                }
+            }
+        }
+        catch (ObjectDisposedException)
+        {
         }
 
         try
@@ -41,7 +57,33 @@ public static class IOSNativeViewCleanupHelper
         {
         }
 
+        SuppressViewPropertyFinalizers(view);
+
         GC.SuppressFinalize(view);
+    }
+
+    /// <summary>
+    /// Suppresses finalizers for common NSObject-derived properties on UIView subclasses
+    /// (e.g. UIImage on UIImageView, UIColor on views) that can outlive their native peers.
+    /// </summary>
+    private static void SuppressViewPropertyFinalizers(UIView view)
+    {
+        try
+        {
+            if (view is UIImageView imageView)
+            {
+                SuppressFinalizer(imageView.Image);
+                SuppressFinalizer(imageView.HighlightedImage);
+            }
+            else if (view is UIButton button)
+            {
+                SuppressFinalizer(button.CurrentImage);
+                SuppressFinalizer(button.CurrentBackgroundImage);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 
     public static void SuppressFinalizersForLayerHierarchy(CALayer layer)
@@ -62,6 +104,19 @@ public static class IOSNativeViewCleanupHelper
         }
 
         GC.SuppressFinalize(layer);
+    }
+
+    /// <summary>
+    /// Suppresses finalizers on an NSObject that has already been disposed,
+    /// preventing the GC finalizer from sending objc_msgSend to freed native objects.
+    /// Safe to call with null or already-disposed objects.
+    /// </summary>
+    public static void SuppressFinalizer(NSObject? obj)
+    {
+        if (obj != null)
+        {
+            GC.SuppressFinalize(obj);
+        }
     }
 }
 #endif

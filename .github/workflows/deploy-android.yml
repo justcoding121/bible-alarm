@@ -26,8 +26,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        # Pin to 10.0.101 so restore finds Microsoft.NETCore.App.Runtime.Mono.linux-x64 on NuGet (10.0.x can install 10.0.4xx whose 10.0.4 runtime pack is not yet on NuGet).
-        dotnet-version: '10.0.101'
+        dotnet-version: '10.0.200'
         
     # Install MAUI Android workload (required by NETSDK1147 for net10.0-android).
     - name: Install workloads

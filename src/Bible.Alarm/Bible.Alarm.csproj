@@ -108,25 +108,25 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.3" />
 		<!-- Note: Microsoft.EntityFrameworkCore.Design is NOT needed here - it's in .tools/Bible.Alarm.DbMigration -->
 		<!-- Design tools are only needed for creating migrations, which is done via the DbMigration project -->
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.30" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.30" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.41" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
-		<PackageReference Include="AutoMapper" Version="16.0.0" />
+		<PackageReference Include="AutoMapper" Version="16.1.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Fluxor" Version="6.9.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3" />
 		<PackageReference Include="Polly" Version="8.6.5" />
-		<PackageReference Include="Quartz" Version="3.15.1" />
+		<PackageReference Include="Quartz" Version="3.16.1" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-		<PackageReference Include="Syncfusion.Maui.Core" Version="32.1.21" />
-		<PackageReference Include="Syncfusion.Maui.Buttons" Version="32.1.21" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+		<PackageReference Include="Syncfusion.Maui.Core" Version="32.2.9" />
+		<PackageReference Include="Syncfusion.Maui.Buttons" Version="32.2.9" />
 		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
 

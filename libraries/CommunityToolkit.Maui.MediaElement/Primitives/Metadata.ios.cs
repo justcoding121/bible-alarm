@@ -23,6 +23,15 @@ sealed class Metadata
     };
 
     readonly PlatformMediaElement player;
+    private MPMediaItemArtwork? lastArtwork;
+    private UIImage? cachedArtworkImage;
+    private string? cachedArtworkUri;
+    private NSObject? toggleToken;
+    private NSObject? playToken;
+    private NSObject? pauseToken;
+    private NSObject? seekToken;
+    private NSObject? seekBackwardToken;
+    private NSObject? seekForwardToken;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Metadata"/> class.
@@ -35,22 +44,22 @@ sealed class Metadata
         var commandCenter = MPRemoteCommandCenter.Shared;
 
         commandCenter.TogglePlayPauseCommand.Enabled = true;
-        commandCenter.TogglePlayPauseCommand.AddTarget(ToggleCommand);
+        toggleToken = commandCenter.TogglePlayPauseCommand.AddTarget(ToggleCommand);
 
         commandCenter.PlayCommand.Enabled = true;
-        commandCenter.PlayCommand.AddTarget(PlayCommand);
+        playToken = commandCenter.PlayCommand.AddTarget(PlayCommand);
 
         commandCenter.PauseCommand.Enabled = true;
-        commandCenter.PauseCommand.AddTarget(PauseCommand);
+        pauseToken = commandCenter.PauseCommand.AddTarget(PauseCommand);
 
         commandCenter.ChangePlaybackPositionCommand.Enabled = true;
-        commandCenter.ChangePlaybackPositionCommand.AddTarget(SeekCommand);
+        seekToken = commandCenter.ChangePlaybackPositionCommand.AddTarget(SeekCommand);
 
         commandCenter.SeekBackwardCommand.Enabled = true;
-        commandCenter.SeekBackwardCommand.AddTarget(SeekBackwardCommand);
+        seekBackwardToken = commandCenter.SeekBackwardCommand.AddTarget(SeekBackwardCommand);
 
         commandCenter.SeekForwardCommand.Enabled = false;
-        commandCenter.SeekForwardCommand.AddTarget(SeekForwardCommand);
+        seekForwardToken = commandCenter.SeekForwardCommand.AddTarget(SeekForwardCommand);
     }
 
     /// <summary>
@@ -85,29 +94,122 @@ sealed class Metadata
         NowPlayingInfo.IsLiveStream = false;
         NowPlayingInfo.PlaybackRate = mediaElement.Speed;
         NowPlayingInfo.ElapsedPlaybackTime = playerItem?.CurrentTime.Seconds ?? 0;
-        NowPlayingInfo.Artwork = new(boundsSize: new(320, 240), requestHandler: _ => GetImage(mediaElement.MetadataArtworkUrl));
+
+        var artworkUrl = mediaElement.MetadataArtworkUrl;
+
+        var oldArtwork = lastArtwork;
+        var newArtwork = new MPMediaItemArtwork(boundsSize: new(320, 240), requestHandler: _ => GetOrLoadCachedImage(artworkUrl));
+        lastArtwork = newArtwork;
+        NowPlayingInfo.Artwork = newArtwork;
         MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = NowPlayingInfo;
+
+        if (oldArtwork is not null)
+        {
+            GC.SuppressFinalize(oldArtwork);
+        }
     }
 
-    static UIImage GetImage(string? imageUri)
+    private UIImage GetOrLoadCachedImage(string? imageUri)
     {
+        if (string.IsNullOrEmpty(imageUri))
+        {
+            return defaultUiImage;
+        }
+
+        if (cachedArtworkUri == imageUri && cachedArtworkImage is not null)
+        {
+            return cachedArtworkImage;
+        }
+
+        var oldCachedImage = cachedArtworkImage;
+
         try
         {
-            if (string.IsNullOrEmpty(imageUri))
-            {
-                return defaultUiImage;
-            }
-
             if (imageUri.StartsWith(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
             {
-                return UIImage.LoadFromData(NSData.FromUrl(new NSUrl(imageUri))) ?? defaultUiImage;
+                var url = new NSUrl(imageUri);
+                var data = NSData.FromUrl(url);
+                cachedArtworkImage = data is not null ? UIImage.LoadFromData(data) ?? defaultUiImage : defaultUiImage;
+                GC.SuppressFinalize(url);
+                if (data is not null)
+                {
+                    GC.SuppressFinalize(data);
+                }
             }
-            return defaultUiImage;
+            else
+            {
+                cachedArtworkImage = defaultUiImage;
+            }
         }
         catch
         {
-            return defaultUiImage;
+            cachedArtworkImage = defaultUiImage;
         }
+
+        cachedArtworkUri = imageUri;
+
+        if (oldCachedImage is not null && oldCachedImage != defaultUiImage)
+        {
+            GC.SuppressFinalize(oldCachedImage);
+        }
+
+        return cachedArtworkImage;
+    }
+
+    /// <summary>
+    /// Removes remote command targets and suppresses finalizers on native objects
+    /// to prevent SIGSEGV from GC finalizer sending objc_msgSend to freed objects.
+    /// </summary>
+    public void Cleanup()
+    {
+        try
+        {
+            var commandCenter = MPRemoteCommandCenter.Shared;
+            RemoveAndSuppressToken(commandCenter.TogglePlayPauseCommand, ref toggleToken);
+            RemoveAndSuppressToken(commandCenter.PlayCommand, ref playToken);
+            RemoveAndSuppressToken(commandCenter.PauseCommand, ref pauseToken);
+            RemoveAndSuppressToken(commandCenter.ChangePlaybackPositionCommand, ref seekToken);
+            RemoveAndSuppressToken(commandCenter.SeekBackwardCommand, ref seekBackwardToken);
+            RemoveAndSuppressToken(commandCenter.SeekForwardCommand, ref seekForwardToken);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        if (lastArtwork is not null)
+        {
+            GC.SuppressFinalize(lastArtwork);
+            lastArtwork = null;
+        }
+
+        if (cachedArtworkImage is not null && cachedArtworkImage != defaultUiImage)
+        {
+            GC.SuppressFinalize(cachedArtworkImage);
+            cachedArtworkImage = null;
+        }
+
+        cachedArtworkUri = null;
+
+        MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = null!;
+    }
+
+    private static void RemoveAndSuppressToken(MPRemoteCommand command, ref NSObject? token)
+    {
+        if (token is null)
+        {
+            return;
+        }
+
+        try
+        {
+            command.RemoveTarget(token);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        GC.SuppressFinalize(token);
+        token = null;
     }
 
     MPRemoteCommandHandlerStatus SeekCommand(MPRemoteCommandEvent? commandEvent)

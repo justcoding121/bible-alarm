@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;
 using UIKit;
@@ -120,12 +121,12 @@ public class IOsToastService(TaskScheduler taskScheduler) : ToastService, IDispo
 
     private static async Task AnimateToastOutAndRemove(UIView toastView)
     {
-        // Animate out and remove - ensure UIView operations run on main thread
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             UIView.Animate(0.3, () => toastView.Alpha = 0, () =>
             {
                 toastView.RemoveFromSuperview();
+                IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(toastView);
                 toastView.Dispose();
             });
         });

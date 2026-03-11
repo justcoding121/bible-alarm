@@ -111,32 +111,56 @@ internal sealed class IosMediaManagerObserverCoordinator
 
     internal static void ReleaseTokens(Tokens tokens)
     {
-        tokens.RateObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.RateObserver);
         tokens.RateObserver = null;
 
-        tokens.StatusObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.StatusObserver);
         tokens.StatusObserver = null;
 
-        tokens.TimeControlStatusObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.TimeControlStatusObserver);
         tokens.TimeControlStatusObserver = null;
 
-        tokens.VolumeObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.VolumeObserver);
         tokens.VolumeObserver = null;
 
-        tokens.MutedObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.MutedObserver);
         tokens.MutedObserver = null;
 
-        tokens.ItemFailedToPlayToEndTimeObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.ItemFailedToPlayToEndTimeObserver);
         tokens.ItemFailedToPlayToEndTimeObserver = null;
 
-        tokens.PlaybackStalledObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.PlaybackStalledObserver);
         tokens.PlaybackStalledObserver = null;
 
-        tokens.ErrorObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.ErrorObserver);
         tokens.ErrorObserver = null;
 
-        tokens.PlayedToEndObserver?.Dispose();
+        DisposeAndSuppressFinalize(tokens.PlayedToEndObserver);
         tokens.PlayedToEndObserver = null;
+    }
+
+    /// <summary>
+    /// Disposes an observer and suppresses its GC finalizer to prevent
+    /// SIGSEGV crashes from objc_msgSend to freed native objects.
+    /// KVO observers (IDisposable) and notification observers (NSObject)
+    /// both wrap native ObjC objects that can be deallocated before finalization.
+    /// </summary>
+    private static void DisposeAndSuppressFinalize(IDisposable? obj)
+    {
+        if (obj == null)
+        {
+            return;
+        }
+
+        try
+        {
+            obj.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        GC.SuppressFinalize(obj);
     }
 
     private static void ErrorOccurred(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? sender, NSNotificationEventArgs args)

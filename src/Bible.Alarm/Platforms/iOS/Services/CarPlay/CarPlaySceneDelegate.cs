@@ -80,8 +80,13 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             logger.Information("[CarPlay] Disconnected from CarPlay interface controller");
             IsCarPlayConnected = false;
             Current = null;
+
+            var oldController = interfaceController;
+            var oldTemplate = scheduleListTemplate;
             interfaceController = null;
             scheduleListTemplate = null;
+
+            SuppressCarPlayFinalizers(oldController, oldTemplate);
 
             try
             {
@@ -96,6 +101,40 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         catch (Exception ex)
         {
             logger.Warning(ex, "[CarPlay] Error during CarPlay disconnection");
+        }
+    }
+
+    private static void SuppressCarPlayFinalizers(CPInterfaceController? controller, CPListTemplate? template)
+    {
+        try
+        {
+            if (controller != null)
+            {
+                GC.SuppressFinalize(controller);
+            }
+
+            if (template == null)
+            {
+                return;
+            }
+
+            GC.SuppressFinalize(template);
+
+            foreach (var section in template.Sections)
+            {
+                GC.SuppressFinalize(section);
+
+                foreach (var item in section.Items2)
+                {
+                    GC.SuppressFinalize(item);
+                }
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (Exception)
+        {
         }
     }
 
@@ -219,9 +258,10 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         {
             var newTemplate = CreateScheduleListTemplate();
 
-            // Update the sections on the existing template if possible
             if (scheduleListTemplate != null)
             {
+                var oldSections = scheduleListTemplate.Sections;
+
                 var schedules = CarPlayScheduleHelper.LoadScheduleStateItemsFromState();
                 var listItems = new List<ICPListTemplateItem>();
 
@@ -243,11 +283,35 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
                 var section = new CPListSection(listItems.ToArray(), "Schedules", null);
                 var sections = new CPListSection[] { section };
                 scheduleListTemplate.UpdateSections(sections);
+
+                SuppressOldSectionFinalizers(oldSections);
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "[CarPlay] Error refreshing schedule list");
+        }
+    }
+
+    private static void SuppressOldSectionFinalizers(CPListSection[] oldSections)
+    {
+        try
+        {
+            foreach (var section in oldSections)
+            {
+                foreach (var item in section.Items2)
+                {
+                    GC.SuppressFinalize(item);
+                }
+
+                GC.SuppressFinalize(section);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (Exception)
+        {
         }
     }
 }

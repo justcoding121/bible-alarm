@@ -124,7 +124,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         });
     }
 
-    private static bool IsPlaybackModalAlreadyShown(INavigation navigation)
+    public static bool IsPlaybackModalAlreadyShown(INavigation navigation)
     {
         var existingModal = navigation.ModalStack.LastOrDefault();
         return existingModal?.GetType() == typeof(PlaybackModal) ||

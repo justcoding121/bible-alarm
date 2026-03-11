@@ -20,11 +20,13 @@ public static class MainActivityExceptionHandler
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
     }
 
+    private const int CrashFlushDelayMs = 500;
+
     private static void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         AndroidBootstrapLogger.WriteException(e.Exception);
         logger.Error(e.Exception, "Unobserved task exception.");
-        Log.CloseAndFlush();
+        FlushAndDelay();
     }
 
     private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
@@ -42,7 +44,20 @@ public static class MainActivityExceptionHandler
                 e.ExceptionObject, e.IsTerminating);
         }
 
-        Log.CloseAndFlush();
+        FlushAndDelay();
+    }
+
+    private static void FlushAndDelay()
+    {
+        try
+        {
+            Log.CloseAndFlush();
+        }
+        catch
+        {
+        }
+
+        Thread.Sleep(CrashFlushDelayMs);
     }
 
     /// <summary>

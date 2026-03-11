@@ -42,6 +42,7 @@ internal static class IosMediaManagerSourceUpdater
             mediaElement.Duration = TimeSpan.Zero;
             mediaElement.Position = TimeSpan.Zero;
             mediaElement.CurrentStateChanged(MediaElementState.None);
+            SuppressOldPlayerItem(existingPlayerItem);
             return new(metaData, null, DisposeAndClear(currentItemErrorObserver));
         }
 
@@ -69,13 +70,29 @@ internal static class IosMediaManagerSourceUpdater
     private static AVAsset? CreateAssetFromUriSource(UriMediaSource uriMediaSource)
     {
         var uri = uriMediaSource.Uri;
-        return !string.IsNullOrWhiteSpace(uri?.AbsoluteUri) ? AVAsset.FromUrl(new NSUrl(uri.AbsoluteUri)) : null;
+        if (string.IsNullOrWhiteSpace(uri?.AbsoluteUri))
+        {
+            return null;
+        }
+
+        var nsUrl = new NSUrl(uri.AbsoluteUri);
+        var asset = AVAsset.FromUrl(nsUrl);
+        GC.SuppressFinalize(nsUrl);
+        return asset;
     }
 
     private static AVAsset? CreateAssetFromFileSource(FileMediaSource fileMediaSource)
     {
         var uri = fileMediaSource.Path;
-        return !string.IsNullOrWhiteSpace(uri) ? AVAsset.FromUrl(NSUrl.CreateFileUrl(uri)) : null;
+        if (string.IsNullOrWhiteSpace(uri))
+        {
+            return null;
+        }
+
+        var nsUrl = NSUrl.CreateFileUrl(uri);
+        var asset = AVAsset.FromUrl(nsUrl);
+        GC.SuppressFinalize(nsUrl);
+        return asset;
     }
 
     private static AVAsset? CreateAssetFromResourceSource(ResourceMediaSource resourceMediaSource, ILogger logger)
@@ -87,7 +104,9 @@ internal static class IosMediaManagerSourceUpdater
             string filename = Path.GetFileNameWithoutExtension(path);
             string extension = Path.GetExtension(path)[1..];
             var url = NSBundle.MainBundle.GetUrlForResource(filename, extension, directory);
-            return AVAsset.FromUrl(url);
+            var asset = AVAsset.FromUrl(url);
+            GC.SuppressFinalize(url);
+            return asset;
         }
 
         logger.LogWarning("Invalid file path for ResourceMediaSource.");
@@ -103,9 +122,11 @@ internal static class IosMediaManagerSourceUpdater
         NSKeyValueObservingOptions valueObserverOptions,
         ILogger logger)
     {
-        currentItemErrorObserver?.Dispose();
+        DisposeAndSuppressFinalize(currentItemErrorObserver);
 
+        var oldPlayerItem = player.CurrentItem;
         player.ReplaceCurrentItemWithPlayerItem(playerItem);
+        SuppressOldPlayerItem(oldPlayerItem);
 
         currentItemErrorObserver = playerItem.AddObserver("error", valueObserverOptions, _ =>
         {
@@ -241,8 +262,48 @@ internal static class IosMediaManagerSourceUpdater
 
     private static IDisposable? DisposeAndClear(IDisposable? disposable)
     {
-        disposable?.Dispose();
+        DisposeAndSuppressFinalize(disposable);
         return null;
+    }
+
+    private static void DisposeAndSuppressFinalize(IDisposable? obj)
+    {
+        if (obj is null)
+        {
+            return;
+        }
+
+        try
+        {
+            obj.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        GC.SuppressFinalize(obj);
+    }
+
+    private static void SuppressOldPlayerItem(AVPlayerItem? oldItem)
+    {
+        if (oldItem is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var asset = oldItem.Asset;
+            if (asset is not null)
+            {
+                GC.SuppressFinalize(asset);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        GC.SuppressFinalize(oldItem);
     }
 }
 

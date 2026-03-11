@@ -134,14 +134,10 @@ public partial class MediaManager : IDisposable
 
         var seekTaskCompletionSource = new TaskCompletionSource();
 
-        if (Player?.CurrentItem is null)
+        if (Player?.CurrentItem is null || Player.Status is not AVPlayerStatus.ReadyToPlay)
         {
-            throw new InvalidOperationException($"{nameof(AVPlayer)}.{nameof(AVPlayer.CurrentItem)} is not yet initialized");
-        }
-
-        if (Player.Status is not AVPlayerStatus.ReadyToPlay)
-        {
-            throw new InvalidOperationException($"{nameof(AVPlayer)}.{nameof(AVPlayer.Status)} must first be set to {AVPlayerStatus.ReadyToPlay}");
+            MediaElement.SeekCompleted();
+            return;
         }
 
         var ranges = Player.CurrentItem.SeekableTimeRanges;
@@ -154,12 +150,9 @@ public partial class MediaManager : IDisposable
             {
                 Player.Seek(seekToTime, complete =>
                 {
-                    if (!complete)
-                    {
-                        seekTaskCompletionSource.SetException(new InvalidOperationException("Seek Failed"));
-                        return;
-                    }
-
+                    // Seek can return !complete for non-fatal reasons (interrupted by
+                    // another seek, media still loading, etc.). Treat as success to
+                    // avoid crashing the app with an unhandled exception.
                     seekTaskCompletionSource.SetResult();
                 });
                 seekPerformed = true;
@@ -224,12 +217,6 @@ public partial class MediaManager : IDisposable
 
             Player.Seek(clampedTime, complete =>
             {
-                if (!complete)
-                {
-                    seekTaskCompletionSource.SetException(new InvalidOperationException("Seek Failed"));
-                    return;
-                }
-
                 seekTaskCompletionSource.SetResult();
             });
             seekPerformed = true;
@@ -409,6 +396,12 @@ public partial class MediaManager : IDisposable
         if (disposing)
         {
             var player = Player;
+            var playerItem = PlayerItem;
+            var playerViewController = PlayerViewController;
+
+            metaData?.Cleanup();
+            metaData = null;
+
             if (player is not null)
             {
                 player.Pause();
@@ -416,8 +409,20 @@ public partial class MediaManager : IDisposable
                 UIApplication.SharedApplication.IdleTimerDisabled = false;
                 AVAudioSession.SharedInstance().SetActive(false);
 
-                currentItemErrorObserver?.Dispose();
+                var errorObserver = currentItemErrorObserver;
                 currentItemErrorObserver = null;
+                if (errorObserver is not null)
+                {
+                    try
+                    {
+                        errorObserver.Dispose();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+
+                    GC.SuppressFinalize(errorObserver);
+                }
 
                 if (observerTokens is not null)
                 {
@@ -425,13 +430,55 @@ public partial class MediaManager : IDisposable
                     observerTokens = null;
                 }
 
+                // Suppress the AVAsset before replacing the current item
+                SuppressPlayerItemAsset(player.CurrentItem);
+
                 player.ReplaceCurrentItemWithPlayerItem(null);
                 player.Dispose();
                 Player = null;
             }
 
-            PlayerViewController?.Dispose();
+            PlayerItem = null;
+            playerViewController?.Dispose();
             PlayerViewController = null;
+
+            // Suppress finalizers on all native AVFoundation objects to prevent
+            // SIGSEGV from the GC finalizer sending objc_msgSend to freed objects.
+            if (player is not null)
+            {
+                GC.SuppressFinalize(player);
+            }
+
+            if (playerItem is not null)
+            {
+                SuppressPlayerItemAsset(playerItem);
+                GC.SuppressFinalize(playerItem);
+            }
+
+            if (playerViewController is not null)
+            {
+                GC.SuppressFinalize(playerViewController);
+            }
+        }
+    }
+
+    private static void SuppressPlayerItemAsset(AVPlayerItem? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var asset = item.Asset;
+            if (asset is not null)
+            {
+                GC.SuppressFinalize(asset);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
         }
     }
 

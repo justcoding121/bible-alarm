@@ -28,9 +28,32 @@ public class SchedulerJob : JobService
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }
 
-    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception in SchedulerJob");
+    private const int CrashFlushDelayMs = 500;
 
-    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e) => logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in SchedulerJob");
+    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    {
+        logger.Error(e.Exception, "Unobserved task exception in SchedulerJob");
+        FlushAndDelay();
+    }
+
+    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    {
+        logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in SchedulerJob");
+        FlushAndDelay();
+    }
+
+    private static void FlushAndDelay()
+    {
+        try
+        {
+            Log.CloseAndFlush();
+        }
+        catch
+        {
+        }
+
+        Thread.Sleep(CrashFlushDelayMs);
+    }
 
     public override bool OnStartJob(JobParameters @params)
     {

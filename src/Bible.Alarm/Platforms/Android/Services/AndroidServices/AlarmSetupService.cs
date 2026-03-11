@@ -30,12 +30,32 @@ public class AlarmSetupService : Service, IDisposable
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }
 
-    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
+    private const int CrashFlushDelayMs = 500;
+
+    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    {
+        logger.Error(e.Exception, "Unobserved task exception.");
+        FlushAndDelay();
+    }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
         logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
             e.IsTerminating);
+        FlushAndDelay();
+    }
+
+    private static void FlushAndDelay()
+    {
+        try
+        {
+            Log.CloseAndFlush();
+        }
+        catch
+        {
+        }
+
+        Thread.Sleep(CrashFlushDelayMs);
     }
 
     public override IBinder OnBind(Intent intent) => null;

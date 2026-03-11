@@ -54,5 +54,10 @@ public interface INavigationService : IDisposable
     /// If playback is active, hides Home to prevent visual flash before playback modal appears.
     /// </summary>
     void SetHomePageVisibility(bool isPlaybackActive);
+
+    /// <summary>
+    /// Returns true if a PlaybackModal is currently in the navigation modal stack.
+    /// </summary>
+    bool IsPlaybackModalOnScreen();
 }
 

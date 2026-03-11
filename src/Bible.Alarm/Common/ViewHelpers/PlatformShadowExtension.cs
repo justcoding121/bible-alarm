@@ -56,7 +56,7 @@ public sealed class PlatformShadowExtension : IMarkupExtension<Shadow?>
         return shadow;
     }
 
-    object IMarkupExtension.ProvideValue(IServiceProvider serviceProvider) => ProvideValue(serviceProvider);
+    object IMarkupExtension.ProvideValue(IServiceProvider serviceProvider) => ProvideValue(serviceProvider)!;
 
     private static Point? ParseOffset(string offset)
     {

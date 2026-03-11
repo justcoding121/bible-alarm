@@ -6,7 +6,7 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build-windows",
-      "program": "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net9.0-windows10.0.19041.0/Bible.Alarm.exe",
+      "program": "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net10.0-windows10.0.19041.0/Bible.Alarm.exe",
       "args": [],
       "cwd": "${workspaceFolder}/src/Bible.Alarm",
       "stopAtEntry": false,
@@ -24,7 +24,7 @@
       "program": "dotnet",
       "args": [
         "exec",
-        "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net9.0-android/Bible.Alarm.dll"
+        "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net10.0-android/Bible.Alarm.dll"
       ],
       "cwd": "${workspaceFolder}/src/Bible.Alarm",
       "stopAtEntry": false,
@@ -61,7 +61,7 @@
       "program": "dotnet",
       "args": [
         "exec",
-        "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net9.0-android/Bible.Alarm.dll"
+        "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net10.0-android/Bible.Alarm.dll"
       ],
       "cwd": "${workspaceFolder}/src/Bible.Alarm",
       "stopAtEntry": false,
@@ -97,7 +97,7 @@
       "program": "dotnet",
       "args": [
         "exec",
-        "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net9.0-ios/Bible.Alarm.dll"
+        "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net10.0-ios/Bible.Alarm.dll"
       ],
       "cwd": "${workspaceFolder}/src/Bible.Alarm",
       "stopAtEntry": false,
@@ -127,7 +127,7 @@
       "program": "dotnet",
       "args": [
         "exec",
-        "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net9.0-ios/Bible.Alarm.dll"
+        "${workspaceFolder}/src/Bible.Alarm/bin/Debug/net10.0-ios/Bible.Alarm.dll"
       ],
       "cwd": "${workspaceFolder}/src/Bible.Alarm",
       "stopAtEntry": false,

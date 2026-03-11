@@ -104,7 +104,7 @@ public sealed class PlaybackEventHandler
                     navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
                     logger.Information(
                         "[PlaybackEventHandler] Indefinite: advancing to next track - ScheduleId={ScheduleId}, NextIndex={NextIndex}, PlaylistCount={Count}",
-                        currentScheduleId, nextTrackIndex, playlist.Count);
+                        currentScheduleId, nextTrackIndex, playlist!.Count);
                     await playCurrentTrackAsync(false);
                     return;
                 }

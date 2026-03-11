@@ -92,8 +92,9 @@ public sealed class PlaybackModalService(
                 // On iOS, the root view controller hasn't completed its appearance cycle
                 // (viewDidAppear) yet when this runs during window creation. iOS silently
                 // ignores PresentViewController calls on a VC that hasn't appeared.
-                // Yield to the run loop so UIKit finishes the presentation before we push.
-                await Task.Delay(500);
+                // Poll until the window is ready rather than using a fixed delay, since
+                // in cold-start-from-notification scenarios the window may not exist yet.
+                await WaitForWindowReadyAsync();
 #endif
 
                 // Home stays visible (opacity 1) behind the modal during cold start.
@@ -113,6 +114,41 @@ public sealed class PlaybackModalService(
 
         return modalWasShown;
     }
+
+#if IOS
+    private async Task WaitForWindowReadyAsync()
+    {
+        const int maxWaitMs = 10000;
+        const int pollIntervalMs = 100;
+        var elapsed = 0;
+
+        while (elapsed < maxWaitMs)
+        {
+            var window = Application.Current?.Windows.FirstOrDefault();
+            var page = window?.Page;
+            if (page?.Handler?.PlatformView != null)
+            {
+                var vc = (page.Handler as IPlatformViewHandler)?.ViewController;
+                if (vc?.IsViewLoaded == true && vc.View?.Window != null)
+                {
+                    // Root VC view is loaded and attached to a UIWindow.
+                    // However, iOS silently ignores PresentViewController until
+                    // viewDidAppear fires. Yield long enough for the appearance
+                    // cycle to complete (cold start from CarPlay + notification
+                    // can delay appearance significantly).
+                    logger.Debug("WaitForWindowReadyAsync: Window ready after {ElapsedMs}ms, waiting for appearance cycle", elapsed);
+                    await Task.Delay(1000);
+                    return;
+                }
+            }
+
+            await Task.Delay(pollIntervalMs);
+            elapsed += pollIntervalMs;
+        }
+
+        logger.Warning("WaitForWindowReadyAsync timed out after {MaxWaitMs}ms - attempting modal push anyway", maxWaitMs);
+    }
+#endif
 
     private bool CheckPlatformPlaybackIsActive()
     {
@@ -215,6 +251,44 @@ public sealed class PlaybackModalService(
                     // on iOS that makes the spinner disappear before the modal fully covers, causing a flash.
                     // Spinner clears only via SyncIsBusyWithPlaybackState (stop/close/error/different schedule/timeout).
                     await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
+
+#if IOS
+                    // iOS silently ignores PresentViewController when the root VC hasn't
+                    // completed its appearance cycle (viewDidAppear). If the modal push was
+                    // silently dropped, wait for the window to be ready and retry.
+                    if (!navigationService.IsPlaybackModalOnScreen())
+                    {
+                        logger.Warning("PlaybackModal push was silently ignored by iOS (window not ready) - waiting for window and retrying");
+                        await WaitForWindowReadyAsync();
+
+                        // Re-check that playback is still active before retrying
+                        try
+                        {
+                            var currentState = playbackState.Value;
+                            if (IsActiveUiPlaybackStatus(currentState.Status))
+                            {
+                                await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
+
+                                if (!navigationService.IsPlaybackModalOnScreen())
+                                {
+                                    logger.Error("PlaybackModal push failed again after waiting for window ready");
+                                    isModalOpen = false;
+                                    navigationService.SetHomePageVisibility(isPlaybackActive: false);
+                                }
+                            }
+                            else
+                            {
+                                logger.Information("Playback no longer active after waiting for window - skipping modal retry");
+                                isModalOpen = false;
+                            }
+                        }
+                        catch (Exception retryEx)
+                        {
+                            logger.Warning(retryEx, "Failed to check playback state during modal retry");
+                            isModalOpen = false;
+                        }
+                    }
+#endif
                 }
                 catch (Exception ex)
                 {

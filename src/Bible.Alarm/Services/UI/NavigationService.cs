@@ -274,6 +274,19 @@ public sealed class NavigationService(
         await modalHandler.OpenPlaybackModalAsync(navigation, revealHomeBehindModalOnLoad);
     }
 
+    public bool IsPlaybackModalOnScreen()
+    {
+        try
+        {
+            var navigation = GetNavigation(shouldRetry: false);
+            return ModalNavigationHandler.IsPlaybackModalAlreadyShown(navigation);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task OpenBatteryOptimizationModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();

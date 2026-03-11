@@ -30,13 +30,18 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         LogSetup.Initialize(new AssemblyAppVersionFinder(), [], "iOS");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
+
+        ObjCRuntime.Runtime.MarshalManagedException += OnMarshalManagedException;
+        ObjCRuntime.Runtime.MarshalObjectiveCException += OnMarshalObjectiveCException;
     }
+
+    private const int CrashFlushDelayMs = 500;
 
     private void UnobserverdTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         IOsBootstrapLogger.WriteException(e.Exception);
         logger.Error(e.Exception, "Unobserved task exception.");
-        Log.CloseAndFlush();
+        FlushAndDelay();
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
@@ -54,7 +59,32 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                 e.ExceptionObject, e.IsTerminating);
         }
 
-        Log.CloseAndFlush();
+        FlushAndDelay();
+    }
+
+    private static void OnMarshalManagedException(object? sender, ObjCRuntime.MarshalManagedExceptionEventArgs args)
+    {
+        logger.Error(args.Exception, "Managed exception marshaling to ObjC (Mode={Mode})", args.ExceptionMode);
+        FlushAndDelay();
+    }
+
+    private static void OnMarshalObjectiveCException(object? sender, ObjCRuntime.MarshalObjectiveCExceptionEventArgs args)
+    {
+        logger.Error("ObjC exception caught (Mode={Mode}, Exception={Exception})", args.ExceptionMode, args.Exception?.ToString() ?? "null");
+        FlushAndDelay();
+    }
+
+    private static void FlushAndDelay()
+    {
+        try
+        {
+            Log.CloseAndFlush();
+        }
+        catch
+        {
+        }
+
+        Thread.Sleep(CrashFlushDelayMs);
     }
 
     protected override MauiApp CreateMauiApp()
@@ -342,6 +372,8 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
+        ObjCRuntime.Runtime.MarshalManagedException -= OnMarshalManagedException;
+        ObjCRuntime.Runtime.MarshalObjectiveCException -= OnMarshalObjectiveCException;
 
         disposed = true;
 

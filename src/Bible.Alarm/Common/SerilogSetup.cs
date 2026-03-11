@@ -163,7 +163,8 @@ public class SerilogSetup
             new AndroidLogcatSink(),
             Serilog.Events.LogEventLevel.Error));
 #elif IOS
-        // iOS release: Async file sink. Copy via: xcrun devicectl device copy from --device "iPhone" --domain-type appDataContainer --domain-identifier com.jthomas.info.Bible.Alarm --source "Documents/logs/bible-alarm-YYYYMMDD.txt" --destination /tmp/
+        // iOS release: Async file sink for errors.
+        // Copy via: xcrun devicectl device copy from --device "iPhone" --domain-type appDataContainer --domain-identifier com.jthomas.info.Bible.Alarm --source "Documents/logs" --destination /tmp/
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))
         {
