@@ -140,7 +140,7 @@ try {
             $page = 1
             $pageSize = 500
             do {
-                $issuesResp = Invoke-RestMethod -Uri "$baseUrl/issues/search?component=$ProjectKey&pageSize=$pageSize&p=$page" -Headers $headers -Method Get
+                $issuesResp = Invoke-RestMethod -Uri "$baseUrl/issues/search?componentKeys=$ProjectKey&pageSize=$pageSize&p=$page" -Headers $headers -Method Get
                 $allIssues += $issuesResp.issues
                 $page++
             } while ($page -le $issuesResp.paging.pages)
