@@ -34,6 +34,12 @@ public interface INavigationService : IDisposable
     Task PopAsync();
 
     /// <summary>
+    /// Pops all modals and navigates back to the home page.
+    /// Used when the playback modal is dismissed to clean up any schedule modals underneath.
+    /// </summary>
+    Task PopAllModalsAndNavigateToHomeAsync();
+
+    /// <summary>
     /// Pops all modals and pages from the navigation stack, disposing them if they implement IDisposable.
     /// </summary>
     void PopAllModalsAndPages();

@@ -333,13 +333,12 @@ public sealed class PlaybackModalService(
 
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
 
-                await navigationService.PopModalAsync();
+                // Pop all modals (playback modal + any schedule modals underneath) and
+                // navigate back to home. Schedule modals that were open when the playback
+                // notification arrived can become unresponsive after the playback modal is
+                // popped on top of them, so clearing the entire modal stack avoids that.
+                await navigationService.PopAllModalsAndNavigateToHomeAsync();
                 isModalOpen = false;
-
-                // On iOS cold start, Home was NOT pushed during initialization (PushAsync
-                // hangs when a modal is presented). Push it now that the modal is gone.
-                // NavigateToHomeAsync is a no-op if Home is already in the stack.
-                await navigationService.NavigateToHomeAsync(animated: false);
             }
             catch (Exception ex)
             {

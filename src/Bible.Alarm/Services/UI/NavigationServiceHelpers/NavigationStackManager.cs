@@ -157,6 +157,17 @@ public sealed class NavigationStackManager
     }
 
     /// <summary>
+    /// Pops all modals from the navigation stack (top to bottom), disposing each.
+    /// </summary>
+    public async Task PopAllModalsAsync(INavigation navigation)
+    {
+        while (navigation.ModalStack.Count > 0)
+        {
+            await PopModalAsync(navigation);
+        }
+    }
+
+    /// <summary>
     /// Pops the current page from the navigation stack.
     /// </summary>
     public async Task PopAsync(INavigation navigation)

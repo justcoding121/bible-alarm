@@ -323,6 +323,20 @@ public sealed class NavigationService(
         });
     }
 
+    public async Task PopAllModalsAndNavigateToHomeAsync()
+    {
+        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
+        {
+            var navigation = GetNavigation();
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await stackManager.PopAllModalsAsync(navigation);
+            });
+
+            await homeHandler.NavigateToHomeAsync(navigation, animated: false);
+        });
+    }
+
     /// <summary>
     /// Pushes a fresh page instance, then clears all other pages from the stack, leaving only the newly pushed page.
     /// </summary>
