@@ -91,45 +91,67 @@ public class CommandHandler
 
             // Set IsNavigating immediately to show progress indicator on the item
             x.IsNavigating = true;
-            
-            // Show progress bar immediately
             showProgressBar?.Invoke();
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
 
-            // Run the rest on the UI thread so overlay, navigation, and Schedule page creation (Syncfusion/WinUI) run on the correct thread.
-            // After Task.Delay the continuation can run on a thread-pool thread; WinUI/Release can throw InvalidCastException otherwise.
-            await MainThread.InvokeOnMainThreadAsync(async () =>
+            try
             {
+                // Wait 50ms to ensure UI thread renders the update before doing backend work
+                await Task.Delay(50);
+
+                // Run the rest on the UI thread so overlay, navigation, and Schedule page creation (Syncfusion/WinUI) run on the correct thread.
+                // After Task.Delay the continuation can run on a thread-pool thread; WinUI/Release can throw InvalidCastException otherwise.
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    try
+                    {
 #if DEBUG
-                Log.Information("[PERF] ViewScheduleCommand: After 50ms delay, checking if should skip");
+                        Log.Information("[PERF] ViewScheduleCommand: After 50ms delay, checking if should skip");
 #endif
 
-                if (shouldSkipNavigation(x))
+                        if (shouldSkipNavigation(x))
+                        {
+                            return;
+                        }
+
+#if DEBUG
+                        Log.Information("[PERF] ViewScheduleCommand: About to call showOverlayAndNavigateAsync");
+#endif
+
+                        await showOverlayAndNavigateAsync(x);
+
+#if DEBUG
+                        var commandEndTime = DateTime.UtcNow;
+                        Log.Information("[PERF] ViewScheduleCommand: Navigation completed, total time: {ElapsedMs}ms",
+                            (commandEndTime - commandStartTime).TotalMilliseconds);
+#endif
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Cancellation is expected (e.g. user navigated away); still reset state in finally
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "View schedule failed for ScheduleId={ScheduleId}", x.Schedule?.Id);
+                        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                    }
+                    finally
+                    {
+                        x.IsNavigating = false;
+                        if (hideProgressBar != null)
+                            await hideProgressBar();
+                    }
+                });
+            }
+            finally
+            {
+                // If Task.Delay or InvokeOnMainThreadAsync throws (e.g. app teardown), ensure UI state is cleared on main thread
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
                     x.IsNavigating = false;
                     if (hideProgressBar != null)
-                        await hideProgressBar();
-                    return;
-                }
-
-#if DEBUG
-                Log.Information("[PERF] ViewScheduleCommand: About to call showOverlayAndNavigateAsync");
-#endif
-
-                await showOverlayAndNavigateAsync(x);
-
-#if DEBUG
-                var commandEndTime = DateTime.UtcNow;
-                Log.Information("[PERF] ViewScheduleCommand: Navigation completed, total time: {ElapsedMs}ms",
-                    (commandEndTime - commandStartTime).TotalMilliseconds);
-#endif
-
-                x.IsNavigating = false;
-                if (hideProgressBar != null)
-                    await hideProgressBar();
-            });
+                        _ = hideProgressBar();
+                });
+            }
         });
     }
 
