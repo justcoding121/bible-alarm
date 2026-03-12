@@ -60,6 +60,12 @@
 
 *(iOS assets: phone, tablet, and carplay are under [`.docs/screenshots/iOS/`](.docs/screenshots/iOS).)*
 
+## Terms of Use
+
+This app is non-commercial and free, with no advertisements; the publisher gains nothing monetarily. The app adheres to the terms of use for third-party apps as stated on [jw.org](https://www.jw.org/en/terms-of-use).
+
+> "This does not prohibit the distribution of free, non-commercial applications designed to download electronic files such as EPUB, PDF, MP3, and MP4 files from public areas of this site."
+
 ## License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
