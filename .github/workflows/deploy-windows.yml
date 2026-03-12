@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   deploy-windows:
-    if: github.event.head_commit.author.name == 'github-actions[bot]' && startsWith(github.event.head_commit.message, '[Release]')
+    if: github.event.head_commit.author.name == 'github-actions[bot]' && github.event.head_commit.message == format('[Release] Bump version for {0}', github.ref_name)
     runs-on: windows-latest
 
     env:
