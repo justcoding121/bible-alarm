@@ -11,48 +11,66 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '10.0.103'
-        
-    - name: Restore workloads
-      run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
-        
-    - name: Restore dependencies
-      # Solution restore without RID: passing RuntimeIdentifier=win-x64 at solution level causes
-      # the SDK to request Microsoft.NETCore.App.Runtime.Mono.win-x64 (not published for .NET 10).
-      # The Windows TFM runtime pack (CoreCLR) is resolved during the build step's implicit restore.
-      run: dotnet restore src/Bible.Alarm.sln
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Create Windows package signing certificate
-      run: |
-        $cert = New-SelfSignedCertificate -Subject "CN=Bible.Alarm" -KeyAlgorithm RSA -KeyLength 2048 -KeyUsage DigitalSignature -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(10)
-        $pwd = New-Object System.Security.SecureString
-        Export-PfxCertificate -Cert $cert -FilePath "src/Bible.Alarm/Bible.Alarm_TemporaryKey.pfx" -Password $pwd
-      shell: pwsh
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.103"
 
-    - name: Build solution
-      # No --no-restore: the build's implicit restore handles per-TFM RID resolution correctly
-      # (UseMonoRuntime=false + RuntimeIdentifier=win-x64 only for the Windows TFM).
-      # -m 1: serialize project builds to avoid file lock when CommunityToolkit.Maui.MediaElement is built for multiple TFMs concurrently.
-      run: dotnet build src/Bible.Alarm.sln --configuration Release -m:1
-      
-    - name: Run tests
-      run: dotnet test src/Bible.Alarm.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
-      
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: |
-          **/test-results.trx
-          **/coverage.cobertura.xml
-        retention-days: 30
-        if-no-files-found: ignore
+      - name: Install SonarScanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Restore workloads
+        run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
+
+      - name: Restore dependencies
+        run: dotnet restore src/Bible.Alarm.sln
+
+      - name: Create Windows package signing certificate
+        run: |
+          $cert = New-SelfSignedCertificate -Subject "CN=Bible.Alarm" -KeyAlgorithm RSA -KeyLength 2048 -KeyUsage DigitalSignature -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(10)
+          $pwd = New-Object System.Security.SecureString
+          Export-PfxCertificate -Cert $cert -FilePath "src/Bible.Alarm/Bible.Alarm_TemporaryKey.pfx" -Password $pwd
+        shell: pwsh
+
+      - name: SonarScanner begin
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin `
+            /k:"justcoding121_bible-alarm" `
+            /o:"justcoding121" `
+            /d:sonar.host.url="https://sonarcloud.io" `
+            /d:sonar.token="$env:SONAR_TOKEN" `
+            /d:sonar.language="cs" `
+            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/Database/Migrations/**,**/*.pem" `
+            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
+        shell: pwsh
+
+      - name: Build solution
+        run: dotnet build src/Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
+
+      - name: Run tests
+        run: dotnet test src/Bible.Alarm.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage;Format=opencover,cobertura"
+
+      - name: SonarScanner end
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
+        shell: pwsh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/test-results.trx
+            **/coverage.cobertura.xml
+          retention-days: 30
+          if-no-files-found: ignore

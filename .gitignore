@@ -236,6 +236,7 @@ BundleArtifacts*/
 # SonarCloud / sonar-scan.ps1 artifacts
 .sonar/
 .sonarqube/
+sonar-reports/
 
 # macOS system files
 .DS_Store
