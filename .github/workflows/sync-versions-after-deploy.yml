@@ -6,6 +6,11 @@
 #   After STABLE deploy: merge stable → beta, then merge beta → develop (so production release flows down)
 #   After BETA deploy:  merge beta → develop only (no merge to stable)
 #
+# All merges use --no-ff so that a merge commit with the "[Version sync]" message is always created.
+# Without --no-ff, git may fast-forward and the head commit on the target branch would be a commit
+# from the source branch (e.g. "[Release] Bump version for stable" on beta), which would incorrectly
+# trigger prepare-release and deploy workflows on the target branch.
+#
 # Pushes only when the merge produced a new commit. If push fails, use PAT: set secret REPO_TOKEN.
 name: Sync versions after deploy
 
@@ -74,7 +79,7 @@ jobs:
           if [ "$BRANCH" = "beta" ]; then
             git checkout develop
             before=$(git rev-parse HEAD)
-            git merge origin/beta -m "[Version sync] Merge beta into develop"
+            git merge --no-ff origin/beta -m "[Version sync] Merge beta into develop"
             if [ "$(git rev-parse HEAD)" != "$before" ]; then
               git push origin develop
             else
@@ -83,7 +88,7 @@ jobs:
           elif [ "$BRANCH" = "stable" ]; then
             git checkout beta
             before_beta=$(git rev-parse HEAD)
-            git merge origin/stable -m "[Version sync] Merge stable into beta"
+            git merge --no-ff origin/stable -m "[Version sync] Merge stable into beta"
             if [ "$(git rev-parse HEAD)" != "$before_beta" ]; then
               git push origin beta
               git fetch origin
@@ -92,7 +97,7 @@ jobs:
             fi
             git checkout develop
             before_dev=$(git rev-parse HEAD)
-            git merge origin/beta -m "[Version sync] Merge beta into develop"
+            git merge --no-ff origin/beta -m "[Version sync] Merge beta into develop"
             if [ "$(git rev-parse HEAD)" != "$before_dev" ]; then
               git push origin develop
             else
