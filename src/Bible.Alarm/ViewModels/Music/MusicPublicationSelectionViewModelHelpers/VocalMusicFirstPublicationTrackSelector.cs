@@ -77,14 +77,17 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
                 if (vocalPublicationCodes.Count > 0)
                 {
-                    var publicationLanguages = await db.PublicationLanguages
+                    var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory("Music");
+                    var publicationLanguages = (await db.PublicationLanguages
                         .AsNoTracking()
                         .Where(pl => pl.Language != null &&
                                    pl.Language.LanguageCode == language.Code.ToUpperInvariant() &&
                                    pl.Category != null &&
                                    pl.Category.CategoryCode == "Music")
-                        .OrderBy(pl => pl.Id)
-                        .ToListAsync();
+                        .ToListAsync())
+                        .OrderBy(pl => pl.PublicationCode, musicComparer)
+                        .ThenBy(pl => pl.Id)
+                        .ToList();
 
                     var normalizedLanguageCode = language.Code.ToUpperInvariant();
                     var candidateCodes = publicationLanguages

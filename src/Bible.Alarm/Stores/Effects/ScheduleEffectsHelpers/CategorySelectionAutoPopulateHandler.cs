@@ -160,9 +160,9 @@ public sealed class CategorySelectionAutoPopulateHandler
                 var publicationLanguages = await query
                     .ToListAsync();
                 
-                // Sort by priority: nwt first, then bi12, then others, then by ID as tiebreaker
+                // Sort by priority for the selected category (Bible: nwt first; Music: osg first), then by ID as tiebreaker
                 publicationLanguages = publicationLanguages
-                    .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.PublicationCodeComparer)
+                    .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.GetPublicationCodeComparerForCategory(action.CategoryName))
                     .ThenBy(pl => pl.Id)
                     .ToList();
 
@@ -238,12 +238,15 @@ public sealed class CategorySelectionAutoPopulateHandler
             {
                 if (!string.IsNullOrWhiteSpace(action.CategoryName))
                 {
-                    var pubWithoutLanguage = await db.BiblePublications
+                    var categoryComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(action.CategoryName);
+                    var pubWithoutLanguage = (await db.BiblePublications
                         .AsNoTracking()
                         .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == action.CategoryName) &&
                                     bp.LanguageId == null)
-                        .OrderBy(bp => bp.Id)
-                        .FirstOrDefaultAsync();
+                        .ToListAsync())
+                        .OrderBy(bp => bp.PublicationCode, categoryComparer)
+                        .ThenBy(bp => bp.Id)
+                        .FirstOrDefault();
                     
                     if (pubWithoutLanguage != null)
                     {

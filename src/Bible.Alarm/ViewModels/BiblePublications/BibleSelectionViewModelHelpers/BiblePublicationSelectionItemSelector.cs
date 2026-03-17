@@ -169,7 +169,7 @@ public sealed class BiblePublicationSelectionItemSelector
 
             var publicationLanguages = await query.ToListAsync();
             publicationLanguages = publicationLanguages
-                .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.PublicationCodeComparer)
+                .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName))
                 .ThenBy(pl => pl.Id)
                 .ToList();
 
@@ -239,14 +239,17 @@ public sealed class BiblePublicationSelectionItemSelector
             // Fallback: if nothing exists with a language FK, pick a publication without language FK for this category.
             if (publication == null && !string.IsNullOrWhiteSpace(categoryName))
             {
-                var pubWithoutLanguage = await db.BiblePublications
+                var categoryComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName);
+                var pubWithoutLanguage = (await db.BiblePublications
                     .AsNoTracking()
                     .Include(bp => bp.BiblePublicationCategories)
                     .ThenInclude(bpc => bpc.Category)
                     .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
                                  bp.LanguageId == null)
-                    .OrderBy(bp => bp.Id)
-                    .FirstOrDefaultAsync();
+                    .ToListAsync())
+                    .OrderBy(bp => bp.PublicationCode, categoryComparer)
+                    .ThenBy(bp => bp.Id)
+                    .FirstOrDefault();
 
                 if (pubWithoutLanguage != null)
                 {

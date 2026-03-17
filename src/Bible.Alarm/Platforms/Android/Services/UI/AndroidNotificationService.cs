@@ -160,6 +160,9 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
             var bitmap = DrawableToBitmap(drawable);
 
             // Build the notification:
+            // Do NOT use SetFullScreenIntent here — this is a "tap to play" notification.
+            // FullScreenIntent would auto-launch MainActivity (with schedule_id) when the screen
+            // is locked, bypassing the "wait until I tap" behavior entirely.
             var builder = new NotificationCompat.Builder(AndroidApplication.Context, ChannelId)
                 .SetAutoCancel(true)
                 .SetContentIntent(resultPendingIntent)
@@ -171,8 +174,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
                 .SetVisibility(NotificationCompat.VisibilityPublic) // Show on lock screen
                 .SetCategory(NotificationCompat.CategoryAlarm) // Mark as alarm category
                 .SetShowWhen(true) // Show timestamp
-                .SetWhen(Java.Lang.JavaSystem.CurrentTimeMillis()) // Set current time
-                .SetFullScreenIntent(resultPendingIntent, false); // Don't show full screen, but allow heads-up
+                .SetWhen(Java.Lang.JavaSystem.CurrentTimeMillis()); // Set current time
 
             // Use default notification sound (short message tone/alert) for tap-enabled alarms
             // This ensures a short alert sound instead of a long ringtone

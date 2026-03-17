@@ -24,15 +24,15 @@ Make your New World Translation (NWT) Bible listening schedule easy: set it as a
 Features:
 • Recurring reminders with your choice of Bible publication and language
 • Optional "begin with music" (Kingdom Melodies or vocal music)
-• Stream or download; playback continues in the background
+• Download for offline playback; playback continues in the background
 • CarPlay support: play and control Bible and music from your car
 • System media controls and lock-screen controls
 • Resume by chapter and verse
 • No ads; non-commercial and free
 
-Audio is available in 240+ languages, streamed or downloaded from jw.org. Only the New World Translation (NWT) is available for Bible reading.
+Audio is available in 240+ languages, downloaded from jw.org. Only the New World Translation (NWT) is available for Bible reading.
 
-This app is non-commercial and free, with no advertisements; the publisher gains nothing monetarily. The app adheres to the terms of use for third-party apps as stated on jw.org (Jehovah's Witnesses) (https://www.jw.org/en/terms-of-use), which allows free non-commercial apps designed to download mp3 and mp4 files from public areas of the site.
+This app is non-commercial and free, with no advertisements; the publisher gains nothing monetarily. The app adheres to the terms of use for third-party apps as stated on jw.org (Jehovah's Witnesses) (https://www.jw.org/en/terms-of-use), which allows the distribution of free non-commercial apps designed to download mp3 and mp4 files from public areas of the site.
 
 Bible audio is available (partially or fully) in the following languages:
 
@@ -48,12 +48,12 @@ Shown only to App Review. Use to explain how to test the app and any relevant co
 ```
 Test account: Not required. The app works fully without login.
 
-Content source: All audio (Bible and music) is streamed or downloaded from the public jw.org (Jehovah's Witnesses) website. No in-app purchases or subscriptions.
+Content source: All audio (Bible and music) is downloaded from the public jw.org (Jehovah's Witnesses) website. No in-app purchases or subscriptions.
 
 How to test:
 - Alarms: Create a schedule (e.g. Bible → language → publication → section), set time and days, enable. Alarm fires at the set time (use a near-future time for quick testing). Notifications must be allowed.
 - CarPlay: Connect a CarPlay simulator or device; the app appears under Media. Schedules and now playing are available. No login required.
-- Playback: From Home, tap a schedule to play on demand. Stream or download; lock screen and Control Center show now playing. Background audio continues when app is in background.
+- Playback: From Home, tap a schedule to play on demand. Lock screen and Control Center show now playing. Background audio continues when app is in background.
 
 The app is non-commercial, free, and ad-free; it adheres to jw.org terms of use for third-party apps.
 ```

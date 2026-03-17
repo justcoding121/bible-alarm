@@ -18,16 +18,16 @@ Desktop reminder app (WinUI 3/MAUI). runFullTrust is required for: (1) Local SQL
 
 ## Short description (270 chars max)
 
-Publication audio from jw.org. Set Bible listening as a reminder or play on demand. Optional music, 240+ languages, stream or download. Free, no ads.
+Publication audio from jw.org. Set Bible listening as a reminder or play on demand. Optional music, 240+ languages, download for offline playback. Free, no ads.
 
 ## Description 
 Make your New World Translation (NWT) Bible listening schedule easy: set it as a reminder or play on demand when you have time. Optionally start with music before the scheduled Bible reading. Chapters and verses resume where you left off.
 
-Create one or more recurring reminders with your choice of Bible publication and language. You can stream audio or download it for offline playback. Use system media controls to play, pause, or skip. The app is non-commercial and free, with no advertisements.
+Create one or more recurring reminders with your choice of Bible publication and language. Audio is downloaded for offline playback. Use system media controls to play, pause, or skip. The app is non-commercial and free, with no advertisements.
 
-Audio is available in over 240 languages, streamed or downloaded from jw.org. At present, only the New World Translation (NWT) is available for Bible reading.
+Audio is available in over 240 languages, downloaded from jw.org. At present, only the New World Translation (NWT) is available for Bible reading.
 
-This app is non-commercial and free, with no advertisements; the publisher gains nothing monetarily. The app adheres to the terms of use for third-party apps as stated on jw.org (Jehovah's Witnesses) (https://www.jw.org/en/terms-of-use), which allows free non-commercial apps designed to download mp3 and mp4 files from the public areas of the site.
+This app is non-commercial and free, with no advertisements; the publisher gains nothing monetarily. The app adheres to the terms of use for third-party apps as stated on jw.org (Jehovah's Witnesses) (https://www.jw.org/en/terms-of-use), which allows the distribution of free non-commercial apps designed to download mp3 and mp4 files from the public areas of the site.
 
 Bible audio is available (partially or fully) in the following languages:
 
