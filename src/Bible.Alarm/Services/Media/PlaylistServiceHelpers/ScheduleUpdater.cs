@@ -29,10 +29,7 @@ public sealed class ScheduleUpdater(
                 brs.SectionCode = next.Key?.SectionCode;
                 brs.TrackCode = TrackCodeHelper.GetFromTrack(next.Value);
                 brs.FinishedDuration = TimeSpan.Zero;
-                if (next.Value.Publication != null)
-                {
-                    brs.PublicationCode = next.Value.Publication.PublicationCode;
-                }
+                brs.PublicationCode = next.Value.Publication!.PublicationCode;
             },
             cancellationToken);
     }
@@ -53,10 +50,7 @@ public sealed class ScheduleUpdater(
                 brs.SectionCode = previous.Key?.SectionCode;
                 brs.TrackCode = TrackCodeHelper.GetFromTrack(previous.Value);
                 brs.FinishedDuration = TimeSpan.Zero;
-                if (previous.Value.Publication != null)
-                {
-                    brs.PublicationCode = previous.Value.Publication.PublicationCode;
-                }
+                brs.PublicationCode = previous.Value.Publication!.PublicationCode;
             },
             cancellationToken);
     }

@@ -36,6 +36,7 @@ public static class MediaServiceTracksForNoLanguageHelper
         {
             var flatTracks = await db.BiblePublicationTracks
                 .AsNoTracking()
+                .Include(t => t.Publication)
                 .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == null)
                 .ToListAsync(cancellationToken);
 
@@ -61,6 +62,7 @@ public static class MediaServiceTracksForNoLanguageHelper
 
         var tracksList = await db.BiblePublicationTracks
             .AsNoTracking()
+            .Include(t => t.Publication)
             .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == sectionId)
             .ToListAsync(cancellationToken);
 

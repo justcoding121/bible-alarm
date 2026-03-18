@@ -570,7 +570,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         var nextTrackCode = TrackCodeHelper.GetFromTrack(next.Value);
         var nextSectionCode = next.Key?.SectionCode;
-        var nextPublicationCode = next.Value.Publication?.PublicationCode ?? currentTrackMetadata.PublicationCode;
+        var nextPublicationCode = next.Value.Publication!.PublicationCode;
 
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, nextSectionCode, StringComparison.OrdinalIgnoreCase);
         if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)
@@ -632,7 +632,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         var prevTrackCode = TrackCodeHelper.GetFromTrack(previous.Value);
         var prevSectionCode = previous.Key?.SectionCode;
-        var prevPublicationCode = previous.Value.Publication?.PublicationCode ?? currentTrackMetadata.PublicationCode;
+        var prevPublicationCode = previous.Value.Publication!.PublicationCode;
 
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, prevSectionCode, StringComparison.OrdinalIgnoreCase);
         if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)

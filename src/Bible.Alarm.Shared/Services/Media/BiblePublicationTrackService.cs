@@ -53,6 +53,7 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
 
             var tracks = await dbContext.BiblePublicationTracks
                 .AsNoTracking()
+                .Include(t => t.Publication)
                 .Where(t => t.BiblePublicationId == publicationId)
                 .Where(t =>
                     string.IsNullOrWhiteSpace(sectionCode)

@@ -70,7 +70,7 @@ public static class PlaylistTrackUpdater
         biblePublicationSchedule.SectionCode = nextTrack.Value.Key?.SectionCode;
         biblePublicationSchedule.TrackCode = TrackCodeHelper.GetFromTrack(nextTrack.Value.Value);
         // Language code is only updated when the user clicks Save on the schedule page; do not overwrite during playback.
-        biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;
+        biblePublicationSchedule.PublicationCode = nextTrack.Value.Value.Publication!.PublicationCode;
         biblePublicationSchedule.FinishedDuration = TimeSpan.Zero;
     }
 

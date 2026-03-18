@@ -2,6 +2,8 @@ using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using Bible.Alarm.Stores;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Handlers;
@@ -9,13 +11,21 @@ namespace Bible.Alarm.Platforms.Android.Services.Handlers;
 public sealed class AndroidAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
-    IAlarmScheduleService alarmScheduleService)
+    IAlarmScheduleService alarmScheduleService,
+    IState<PlaybackState> playbackState)
     : IAndroidAlarmHandler, IDisposable
 {
     public event EventHandler<bool> Disposed;
 
     public async Task HandleAsync(int scheduleId, bool isAlarm)
     {
+        if (isAlarm && playbackState.Value.IsPreparingOrPlaying)
+        {
+            logger.Information("Alarm triggered for schedule {ScheduleId} while playback is already active - skipping to avoid interrupting current playback", scheduleId);
+            Dispose();
+            return;
+        }
+
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
             scheduleId, false, false);
 
