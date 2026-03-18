@@ -51,19 +51,24 @@ public interface ILanguageContentService
         IFetchProgress? progress = null);
 
     /// <summary>
-    /// Fetches all tracks for a specific section of a publication.
-    /// Deletes any existing tracks for the section before inserting new.
+    /// Fetches tracks for a section. With <paramref name="replaceExistingTracksFromApi"/> false (default), skips the API when tracks already exist.
+    /// With true, removes existing section tracks and re-fetches (e.g. after stale CDN URLs).
     /// </summary>
     /// <param name="publicationCode">The publication code (e.g., "nwt", "Dramas")</param>
     /// <param name="sectionCode">The section code (e.g., "1", "gen", section code for dramas)</param>
     /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
     /// <param name="cancellationToken">Cancellation token</param>
+    /// <param name="replaceExistingTracksFromApi">
+    /// When true, removes existing section tracks and re-fetches from the API (e.g. stale CDN URLs).
+    /// When false, skips fetch if the section already has tracks.
+    /// </param>
     /// <returns>True if successful, false otherwise</returns>
     Task<bool> FetchSectionTracksAsync(
         string publicationCode,
         string sectionCode,
         string languageCode,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool replaceExistingTracksFromApi = false);
 
     /// <summary>
     /// Fetches and creates English publication from scratch (for initial seeding).

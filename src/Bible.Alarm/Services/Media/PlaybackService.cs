@@ -12,6 +12,7 @@ using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
+using Microsoft.Maui.Devices;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media;
@@ -28,6 +29,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly IFallbackAlarmSoundService fallbackAlarmSoundService;
     private readonly INotificationService notificationService;
     private readonly IMediaCacheService mediaCacheService;
+    private readonly IDefaultDeviceRingtoneService defaultDeviceRingtoneService;
 
     private readonly SemaphoreSlim stopLock = new(1, 1);
     private readonly PlaybackStateManager stateManager;
@@ -63,8 +65,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         INotificationService notificationService,
         IDisplayMetadataService displayMetadataService,
         IMediaCacheService mediaCacheService,
-        IState<PlaybackState> playbackState
-        )
+        IDefaultDeviceRingtoneService defaultDeviceRingtoneService,
+        IState<PlaybackState> playbackState,
+        ICdnPlaybackUrlProbe cdnPlaybackUrlProbe,
+        ITrackCdnUrlRefresher trackCdnUrlRefresher)
     {
         this.logger = logger;
         this.audioPlayer = audioPlayer;
@@ -76,6 +80,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         this.fallbackAlarmSoundService = fallbackAlarmSoundService;
         this.notificationService = notificationService;
         this.mediaCacheService = mediaCacheService;
+        this.defaultDeviceRingtoneService = defaultDeviceRingtoneService;
         this.playbackState = playbackState;
 
         stateManager = new PlaybackStateManager(logger);
@@ -83,7 +88,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         progressTracker = new ProgressTracker(playlistService, audioPlayer, logger);
         operationHandler = new PlaybackOperationHandler(audioPlayer, dispatcher, logger, progressTracker);
         trackPreparationHandler = new TrackPreparationHandler(audioPlayer, playlistService, logger);
-        eventHandler = new PlaybackEventHandler(playlistService, dispatcher, logger, navigationManager);
+        eventHandler = new PlaybackEventHandler(
+            playlistService,
+            dispatcher,
+            logger,
+            navigationManager,
+            cdnPlaybackUrlProbe,
+            trackCdnUrlRefresher);
         failureHandler = new PlaybackFailureHandler(fallbackAlarmSoundService, notificationService, dispatcher, logger);
         initializer = new PlaybackInitializer(preparePlaybackService, dispatcher, logger);
         navigationHandler = new PlaybackNavigationHandler(audioPlayer, dispatcher, logger, progressTracker, navigationManager);
@@ -108,7 +119,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
             skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false),
             () => HandlePlaybackFailureAsync(),
-            () => stateManager.ManualNavigationPending);
+            () => stateManager.ManualNavigationPending,
+            () => stateManager.IsAlarm,
+            async (msg, playRingtone) => await ShowPlaybackErrorInModalKeepSessionAsync(msg, playRingtone),
+            idx => stateManager.IsPlaybackEstablishedForTrack(idx));
 
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
@@ -125,8 +139,12 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         this.audioPlayer.MediaFailed += mediaEventAdapter.OnMediaFailed;
     }
 
+    public bool IsAlarmPlaybackSession => stateManager.IsAlarm;
+
     public async Task PrepareAndPlayAsync(int scheduleId, bool isAlarm)
     {
+        defaultDeviceRingtoneService.Stop();
+
         if (stateManager.IsPreparingOrPlaying(audioPlayer) && stateManager.CurrentScheduleId.HasValue && stateManager.CurrentScheduleId.Value != scheduleId)
         {
             logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}",
@@ -401,6 +419,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         try
         {
+            defaultDeviceRingtoneService.Stop();
+
             var scheduleIdToSave = stateManager.CurrentScheduleId;
 
             TrackMetadata? trackMetadataToMark = null;
@@ -468,10 +488,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
             if (!success)
             {
-                // Track playback failed - handle failure
                 await HandlePlaybackFailureAsync();
                 return;
             }
+
+            stateManager.NotifyPlaybackEstablishedForTrack(stateManager.CurrentTrackIndex);
 
             // Fire-and-forget: pre-download the next track in background for caching + artwork.
             _ = Task.Run(async () =>
@@ -541,10 +562,57 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             sectionProgress);
     }
 
+    /// <summary>
+    /// Stops audio and shows an error in the playback modal without clearing Fluxor schedule id (Retry stays available).
+    /// </summary>
+    private async Task ShowPlaybackErrorInModalKeepSessionAsync(string errorMessage, bool playDeviceRingtone)
+    {
+        try
+        {
+            progressTracker.Stop();
+            await audioPlayer.ResetAsync();
+            dispatcher.Dispatch(new SetAutoAdvancingAction(false));
+            dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
+            dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = errorMessage });
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage(errorMessage));
+            if (playDeviceRingtone && DeviceInfo.Current.Platform == DevicePlatform.Android)
+            {
+                try
+                {
+                    defaultDeviceRingtoneService.StartLoopingAlarmRingtone();
+                }
+                catch (Exception ringEx)
+                {
+                    logger.Warning(ringEx, "ShowPlaybackErrorInModalKeepSessionAsync: could not start device ringtone");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "ShowPlaybackErrorInModalKeepSessionAsync failed");
+            try
+            {
+                dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = errorMessage });
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage(errorMessage));
+                await resetExecutor.ResetAsync();
+            }
+            catch (Exception innerEx)
+            {
+                logger.Error(innerEx, "Recovery after ShowPlaybackErrorInModalKeepSessionAsync failure");
+            }
+        }
+    }
+
     private async Task HandlePlaybackFailureAsync()
     {
         try
         {
+            if (!stateManager.IsAlarm && stateManager.CurrentScheduleId.HasValue)
+            {
+                await ShowPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", playDeviceRingtone: false);
+                return;
+            }
+
             await failureHandler.HandlePlaybackFailureAsync(
                 stateManager.IsAlarm,
                 stateManager.CurrentScheduleId,
@@ -558,12 +626,19 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             logger.Error(ex, "Error in HandlePlaybackFailureAsync - ensuring error UI is shown");
             try
             {
-                dispatcher.Dispatch(new PlaybackErrorAction
+                if (!stateManager.IsAlarm && stateManager.CurrentScheduleId.HasValue)
                 {
-                    ErrorMessage = "Media playback failed. Please try again."
-                });
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media playback failed. Please try again."));
-                await resetExecutor.ResetAsync();
+                    await ShowPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", playDeviceRingtone: false);
+                }
+                else
+                {
+                    dispatcher.Dispatch(new PlaybackErrorAction
+                    {
+                        ErrorMessage = "Media playback failed. Please try again."
+                    });
+                    WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media playback failed. Please try again."));
+                    await resetExecutor.ResetAsync();
+                }
             }
             catch (Exception innerEx)
             {

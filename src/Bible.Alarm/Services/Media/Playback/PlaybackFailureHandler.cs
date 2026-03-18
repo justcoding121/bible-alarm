@@ -71,14 +71,12 @@ public sealed class PlaybackFailureHandler
         }
         else
         {
-            // For non-alarms, show error message in UI
             dispatcher.Dispatch(new PlaybackErrorAction
             {
-                ErrorMessage = "Media download failed. Check your internet connection."
+                ErrorMessage = "Playback failed. Check your connection, then tap Retry."
             });
 
-            // Also show toast for immediate feedback
-            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media download failed. Check your internet connection."));
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Playback failed. Check your connection, then tap Retry."));
         }
     }
 

@@ -14,6 +14,7 @@ public class AlarmViewModelCommandInitializer
 {
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;
+    private readonly ISchedulePlaybackService schedulePlaybackService;
     private readonly Func<Task> handleReviewRequestAsync;
     private readonly Action beginStoppingUi;
     private readonly Action resetProgressUi;
@@ -21,12 +22,14 @@ public class AlarmViewModelCommandInitializer
     public AlarmViewModelCommandInitializer(
         ILogger logger,
         IPlaybackService playbackService,
+        ISchedulePlaybackService schedulePlaybackService,
         Func<Task> handleReviewRequestAsync,
         Action beginStoppingUi,
         Action resetProgressUi)
     {
         this.logger = logger;
         this.playbackService = playbackService;
+        this.schedulePlaybackService = schedulePlaybackService;
         this.handleReviewRequestAsync = handleReviewRequestAsync;
         this.beginStoppingUi = beginStoppingUi;
         this.resetProgressUi = resetProgressUi;
@@ -139,12 +142,14 @@ public class AlarmViewModelCommandInitializer
                 {
                     // Save schedule ID before reset
                     var scheduleIdToRetry = scheduleId.Value;
-                    // Note: ResetAndRetryAsync will preserve the original isAlarm value from state
-                    // The modal will stay open and update automatically as state changes
-
-                    // Reset internally without closing modal - just reset player and state
-                    // Then immediately prepare and play again - modal will update automatically
-                    await playbackService.ResetAndRetryAsync(scheduleIdToRetry);
+                    if (playbackService.IsAlarmPlaybackSession)
+                    {
+                        await schedulePlaybackService.PlayScheduleAsync(scheduleIdToRetry);
+                    }
+                    else
+                    {
+                        await playbackService.ResetAndRetryAsync(scheduleIdToRetry);
+                    }
                     logger.Information("RetryCommand completed successfully");
                 }
                 catch (Exception ex)

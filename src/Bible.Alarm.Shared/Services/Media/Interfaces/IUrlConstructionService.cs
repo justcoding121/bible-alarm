@@ -35,4 +35,9 @@ public interface IUrlConstructionService
         string? languageCode,
         string? sectionCode,
         string trackCode);
+
+    /// <summary>
+    /// Clears cached lookup-path/URL resolution so refreshed DB track URLs are picked up immediately.
+    /// </summary>
+    void ClearLookUpPathCache();
 }

@@ -231,4 +231,10 @@ public class UrlConstructionService : IUrlConstructionService
 
         return track.TrackUrl?.Url;
     }
+
+    /// <inheritdoc />
+    public void ClearLookUpPathCache()
+    {
+        lookUpPathCache.Clear();
+    }
 }

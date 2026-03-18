@@ -1,5 +1,10 @@
 #nullable enable
+using System.Collections.Generic;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -10,7 +15,9 @@ namespace Bible.Alarm.Services.Media.Playback;
 
 /// <summary>
 /// Handles playback events (media ended, media failed).
-/// Separated from PlaybackService for better modularity.
+/// <see cref="HandleMediaFailedAsync"/>: never auto-skips to the next track; shows the playback modal error with Retry.
+/// Actual-alarm sessions also start the device default ringtone until Retry/Dismiss/stop.
+/// Stale CDN (404/410): one catalog refresh + one auto-replay; second failure stops with error (no loop).
 /// </summary>
 public sealed class PlaybackEventHandler
 {
@@ -18,17 +25,23 @@ public sealed class PlaybackEventHandler
     private readonly IDispatcher dispatcher;
     private readonly ILogger logger;
     private readonly PlaybackNavigationManager navigationManager;
+    private readonly ICdnPlaybackUrlProbe cdnPlaybackUrlProbe;
+    private readonly ITrackCdnUrlRefresher trackCdnUrlRefresher;
 
     public PlaybackEventHandler(
         IPlaylistService playlistService,
         IDispatcher dispatcher,
         ILogger logger,
-        PlaybackNavigationManager navigationManager)
+        PlaybackNavigationManager navigationManager,
+        ICdnPlaybackUrlProbe cdnPlaybackUrlProbe,
+        ITrackCdnUrlRefresher trackCdnUrlRefresher)
     {
         this.playlistService = playlistService;
         this.dispatcher = dispatcher;
         this.logger = logger;
         this.navigationManager = navigationManager;
+        this.cdnPlaybackUrlProbe = cdnPlaybackUrlProbe;
+        this.trackCdnUrlRefresher = trackCdnUrlRefresher;
     }
 
     public async Task HandleMediaEndedAsync(
@@ -41,7 +54,9 @@ public sealed class PlaybackEventHandler
         Func<bool, Task> playCurrentTrackAsync,
         Func<bool, Task> stopAsyncInternal,
         Func<Task> handlePlaybackFailureAsync,
-        Func<bool> getIsManualNavigationPending)
+        Func<bool> getIsManualNavigationPending,
+        Func<bool> getIsAlarm,
+        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync)
     {
         if (getIsManualNavigationPending())
         {
@@ -50,8 +65,62 @@ public sealed class PlaybackEventHandler
         }
 
         var currentTrackIndex = getCurrentTrackIndex();
+        if (isIndefinitePlayback &&
+            playlist is { Count: > 0 } pl &&
+            currentTrackIndex >= 0 &&
+            currentTrackIndex == pl.Count - 1)
+        {
+            var appended = await tryAppendNextTrackAsync();
+            var canAdvance = appended && pl.Count > currentTrackIndex + 1;
 
-        // Mark track as finished - this advances Bible track to next track with position 0.00
+            if (canAdvance)
+            {
+                await MarkCurrentTrackAsFinishedAsync(pl, currentTrackIndex);
+
+                dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+
+                var nextTrackIndex = currentTrackIndex + 1;
+                setCurrentTrackIndex(nextTrackIndex);
+                navigationManager.NotifyNavigationChanged(pl, nextTrackIndex);
+                logger.Information(
+                    "[PlaybackEventHandler] Indefinite: advancing to next track - ScheduleId={ScheduleId}, NextIndex={NextIndex}, PlaylistCount={Count}",
+                    currentScheduleId, nextTrackIndex, pl.Count);
+                await playCurrentTrackAsync(false);
+                return;
+            }
+
+            if (appended && !canAdvance)
+            {
+                logger.Warning(
+                    "HandleMediaEndedAsync: Append succeeded but cannot advance - ScheduleId={ScheduleId}, CurrentIndex={CurrentIndex}, PlaylistCount={Count}",
+                    currentScheduleId, currentTrackIndex, pl.Count);
+            }
+
+            var finishedMeta = pl[currentTrackIndex].PlayItem?.Metadata;
+            if (finishedMeta != null && finishedMeta.ScheduleId > 0)
+            {
+                try
+                {
+                    await playlistService.PersistSchedulePointerToFinishedTrackAsync(finishedMeta);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex,
+                        "HandleMediaEndedAsync: failed to persist schedule pointer after indefinite append failure - ScheduleId={ScheduleId}",
+                        finishedMeta.ScheduleId);
+                }
+            }
+
+            logger.Warning(
+                "HandleMediaEndedAsync: indefinite append failed; schedule left on finished track; showing error modal - ScheduleId={ScheduleId}",
+                currentScheduleId);
+            await showPlaybackErrorInModalKeepSessionAsync(
+                "Could not load the next part. Check your connection, then tap Retry.",
+                getIsAlarm());
+            return;
+        }
+
         await MarkCurrentTrackAsFinishedAsync(playlist, currentTrackIndex);
 
         if (playlist is not null && currentTrackIndex < playlist.Count - 1)
@@ -60,11 +129,8 @@ public sealed class PlaybackEventHandler
             var nextTrack = playlist[nextTrackIndex];
             var isNextTrackBible = nextTrack.PlayItem?.Metadata?.PlayType == PlayType.Bible;
 
-            // Signal track transition immediately so the UI shows progress animation
             dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
 
-            // Set auto-advancing flag before transitioning to next track
-            // This keeps the pause button visible during the transition
             logger.Information(
                 "[PlaybackService] OnMediaEnded: Dispatching SetAutoAdvancingAction(true) for automatic next track - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}, NextTrackIsBible={NextTrackIsBible}, WillCallPlayCurrentTrackAsync(false)",
                 currentScheduleId,
@@ -75,55 +141,13 @@ public sealed class PlaybackEventHandler
 
             setCurrentTrackIndex(nextTrackIndex);
 
-            // Dispatch navigation state immediately after setting currentTrackIndex
-            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
-            // This prevents button flicker during track transitions
             navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
 
-            // Pass false to allow seeking on first encounter of Bible track
             logger.Debug("[PlaybackService] OnMediaEnded: Calling playCurrentTrackAsync(false) for automatic transition to track {TrackIndex}", nextTrackIndex);
             await playCurrentTrackAsync(false);
         }
         else
         {
-            if (isIndefinitePlayback)
-            {
-                // Indefinite playback: extend playlist and continue.
-                var appended = await tryAppendNextTrackAsync();
-
-                // Playlist is mutated in place by TryAppendNextTrackAsync; use updated count
-                var canAdvance = appended && playlist is not null && currentTrackIndex < playlist.Count - 1;
-
-                if (canAdvance)
-                {
-                    dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
-                    dispatcher.Dispatch(new SetAutoAdvancingAction(true));
-
-                    var nextTrackIndex = currentTrackIndex + 1;
-                    setCurrentTrackIndex(nextTrackIndex);
-                    navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
-                    logger.Information(
-                        "[PlaybackEventHandler] Indefinite: advancing to next track - ScheduleId={ScheduleId}, NextIndex={NextIndex}, PlaylistCount={Count}",
-                        currentScheduleId, nextTrackIndex, playlist!.Count);
-                    await playCurrentTrackAsync(false);
-                    return;
-                }
-
-                if (appended && !canAdvance)
-                {
-                    logger.Warning(
-                        "HandleMediaEndedAsync: Append succeeded but cannot advance - ScheduleId={ScheduleId}, CurrentIndex={CurrentIndex}, PlaylistCount={Count}",
-                        currentScheduleId, currentTrackIndex, playlist?.Count ?? 0);
-                }
-
-                // Append failed (catalog/download error) - show error in modal with retry
-                logger.Warning("HandleMediaEndedAsync: Failed to extend playlist for indefinite playback. Showing error in modal.");
-                await handlePlaybackFailureAsync();
-                return;
-            }
-
-            // Finite playback: stop/dismiss.
-            // Skip MarkCurrentTrackAsPlayedAsync in StopAsync because MarkTrackAsFinished already updated the database correctly.
             await stopAsyncInternal(true);
         }
     }
@@ -132,14 +156,14 @@ public sealed class PlaybackEventHandler
         List<AudioPlayerTrack>? playlist,
         Func<int> getCurrentTrackIndex,
         Action<int> setCurrentTrackIndex,
-        int? currentScheduleId,
-        bool isIndefinitePlayback,
-        Func<Task<bool>> tryAppendNextTrackAsync,
         string trackUri,
         string trackUrl,
         Func<bool, Task> playCurrentTrackAsync,
         Func<Task> handlePlaybackFailureAsync,
-        Func<bool> getIsManualNavigationPending)
+        Func<bool> getIsManualNavigationPending,
+        Func<bool> getIsAlarm,
+        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync,
+        Func<int, bool> isPlaybackEstablishedForTrack)
     {
         try
         {
@@ -155,66 +179,121 @@ public sealed class PlaybackEventHandler
                 trackUri,
                 trackUrl);
 
-            if (playlist is not null && currentTrackIndex < playlist.Count - 1)
+            var isAlarm = getIsAlarm();
+
+            var currentPlayerTrack = playlist is { Count: > 0 } &&
+                currentTrackIndex >= 0 &&
+                currentTrackIndex < playlist.Count
+                    ? playlist[currentTrackIndex]
+                    : null;
+            var failedPlayItem = currentPlayerTrack?.PlayItem;
+            var playbackUriUsedByPlayer = !string.IsNullOrEmpty(trackUri) && !string.Equals(trackUri, "Unknown", StringComparison.Ordinal)
+                ? trackUri
+                : currentPlayerTrack?.Uri ?? string.Empty;
+            var playedFromCdnStream = playbackUriUsedByPlayer.StartsWith("http", StringComparison.OrdinalIgnoreCase);
+
+            CdnUrlProbeOutcome? probeOutcome = null;
+
+            if (failedPlayItem != null && playedFromCdnStream)
             {
-                // Signal track transition immediately so the UI shows progress animation
-                dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+                probeOutcome = await cdnPlaybackUrlProbe.ProbeStreamingUrlAsync(playbackUriUsedByPlayer, CancellationToken.None);
 
-                // Set auto-advancing flag before transitioning to next track
-                logger.Information(
-                    "[PlaybackService] OnMediaFailed: Dispatching SetAutoAdvancingAction(true) for automatic next track after failure - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
-                    currentScheduleId,
-                    currentTrackIndex,
-                    currentTrackIndex + 1);
-                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
-
-                var nextTrackIndex = currentTrackIndex + 1;
-                setCurrentTrackIndex(nextTrackIndex);
-
-                // Dispatch navigation state immediately after setting currentTrackIndex
-                // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
-                // This prevents button flicker during track transitions
-                navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
-
-                // Start from beginning to avoid seek-out-of-range or network errors on the recovery track
-                // (e.g. after prev + ad-hoc fetch, the prepended track fails; we advance to next which
-                // may have stale FinishedDuration and fail again on iOS, causing a cascade).
-                logger.Information("Attempting to play next track at index {NextTrackIndex} from beginning after failure", nextTrackIndex);
-                await playCurrentTrackAsync(true);
-            }
-            else
-            {
-                if (isIndefinitePlayback)
+                if (probeOutcome == CdnUrlProbeOutcome.NotFoundOrGone && !failedPlayItem.CdnStaleUrlRecoveryConsumed)
                 {
-                    var appended = await tryAppendNextTrackAsync();
-                    if (appended && playlist is not null && currentTrackIndex < playlist.Count - 1)
+                    failedPlayItem.CdnStaleUrlRecoveryConsumed = true;
+                    var refreshedUrl = await trackCdnUrlRefresher.TryRefreshTrackCdnUrlFromApiAsync(
+                        failedPlayItem.Metadata,
+                        CancellationToken.None);
+
+                    if (!string.IsNullOrEmpty(refreshedUrl))
                     {
-                        dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
-                        dispatcher.Dispatch(new SetAutoAdvancingAction(true));
-                        var nextTrackIndex = currentTrackIndex + 1;
-                        setCurrentTrackIndex(nextTrackIndex);
-                        navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
+                        failedPlayItem.CdnStaleUrlRefetchReplayIssued = true;
+                        failedPlayItem.Url = refreshedUrl;
+                        if (currentPlayerTrack != null)
+                        {
+                            currentPlayerTrack.Uri = refreshedUrl;
+                        }
+
+                        logger.Information(
+                            "Playback: CDN 404/410 — refreshed catalog URLs, auto-replaying same track once");
                         await playCurrentTrackAsync(true);
                         return;
                     }
                 }
 
-                logger.Warning("No more tracks available or all tracks failed. Handling playback failure.");
-                await handlePlaybackFailureAsync();
+                if (probeOutcome == CdnUrlProbeOutcome.ResourceReachable)
+                {
+                    logger.Warning(
+                        "Playback: media failed while CDN URL still responds (network, buffering, or player)");
+                }
             }
+
+            if (playedFromCdnStream && failedPlayItem != null && !failedPlayItem.CdnStaleUrlRefetchReplayIssued)
+            {
+                var established = isPlaybackEstablishedForTrack(currentTrackIndex);
+                if (!established && !failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone)
+                {
+                    failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone = true;
+                    logger.Information(
+                        "MediaFailed during stream open/buffer (before playback started) — one silent retry, no error modal");
+                    await playCurrentTrackAsync(true);
+                    return;
+                }
+            }
+
+            var hadStarted = isPlaybackEstablishedForTrack(currentTrackIndex);
+            var message = BuildNonAlarmMediaFailedMessage(playedFromCdnStream, probeOutcome, failedPlayItem, hadStarted);
+            await showPlaybackErrorInModalKeepSessionAsync(message, isAlarm);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in HandleMediaFailedAsync - invoking failure handler for graceful recovery");
+            logger.Error(ex, "Error in HandleMediaFailedAsync");
             try
             {
-                await handlePlaybackFailureAsync();
+                await showPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", getIsAlarm());
             }
             catch (Exception innerEx)
             {
-                logger.Error(innerEx, "Failure handler threw in HandleMediaFailedAsync catch");
+                logger.Error(innerEx, "Failure recovery in HandleMediaFailedAsync catch");
             }
         }
+    }
+
+    private static string BuildNonAlarmMediaFailedMessage(
+        bool playedFromCdnStream,
+        CdnUrlProbeOutcome? probeOutcome,
+        PlayItem? failedPlayItem,
+        bool playbackHadStartedForThisTrack)
+    {
+        if (!playedFromCdnStream)
+        {
+            return "Playback failed. Tap Retry.";
+        }
+
+        if (playbackHadStartedForThisTrack)
+        {
+            return "Playback stopped (connection lost or interrupted). Tap Retry.";
+        }
+
+        if (probeOutcome == CdnUrlProbeOutcome.ResourceReachable)
+        {
+            return "Could not start playback (network or server busy). Tap Retry.";
+        }
+
+        if (failedPlayItem != null &&
+            probeOutcome == CdnUrlProbeOutcome.NotFoundOrGone &&
+            failedPlayItem.CdnStaleUrlRecoveryConsumed &&
+            !failedPlayItem.CdnStaleUrlRefetchReplayIssued)
+        {
+            return "Could not update playback links. Tap Retry.";
+        }
+
+        if (failedPlayItem != null && failedPlayItem.CdnStaleUrlRefetchReplayIssued)
+        {
+            return "Still could not play after updating links. Tap Retry.";
+        }
+
+        return "Could not start playback. Check your connection, then tap Retry.";
     }
 
     private async Task MarkCurrentTrackAsFinishedAsync(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
@@ -228,8 +307,6 @@ public sealed class PlaybackEventHandler
         {
             var track = playlist[currentTrackIndex];
 
-            // Only mark Bible tracks as finished here (advances track)
-            // Music tracks are handled by ProgressTracker on first progress update
             if (track.PlayItem.Metadata.PlayType == PlayType.Music)
             {
                 return;
@@ -243,4 +320,3 @@ public sealed class PlaybackEventHandler
         }
     }
 }
-

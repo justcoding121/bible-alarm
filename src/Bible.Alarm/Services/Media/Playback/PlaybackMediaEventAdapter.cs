@@ -1,5 +1,8 @@
 #nullable enable
 
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;
@@ -24,6 +27,9 @@ public sealed class PlaybackMediaEventAdapter
     private readonly Func<bool, Task> stopAsyncInternal;
     private readonly Func<Task> handlePlaybackFailureAsync;
     private readonly Func<bool> getIsManualNavigationPending;
+    private readonly Func<bool> getIsAlarm;
+    private readonly Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync;
+    private readonly Func<int, bool> isPlaybackEstablishedForTrack;
 
     public PlaybackMediaEventAdapter(
         PlaybackEventHandler eventHandler,
@@ -38,7 +44,10 @@ public sealed class PlaybackMediaEventAdapter
         Func<bool, Task> playCurrentTrackAsync,
         Func<bool, Task> stopAsyncInternal,
         Func<Task> handlePlaybackFailureAsync,
-        Func<bool> getIsManualNavigationPending)
+        Func<bool> getIsManualNavigationPending,
+        Func<bool> getIsAlarm,
+        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync,
+        Func<int, bool> isPlaybackEstablishedForTrack)
     {
         this.eventHandler = eventHandler;
         this.progressTracker = progressTracker;
@@ -53,6 +62,9 @@ public sealed class PlaybackMediaEventAdapter
         this.stopAsyncInternal = stopAsyncInternal;
         this.handlePlaybackFailureAsync = handlePlaybackFailureAsync;
         this.getIsManualNavigationPending = getIsManualNavigationPending;
+        this.getIsAlarm = getIsAlarm;
+        this.showPlaybackErrorInModalKeepSessionAsync = showPlaybackErrorInModalKeepSessionAsync;
+        this.isPlaybackEstablishedForTrack = isPlaybackEstablishedForTrack;
     }
 
     public async void OnMediaEnded(object? sender, EventArgs e)
@@ -70,7 +82,9 @@ public sealed class PlaybackMediaEventAdapter
                 playCurrentTrackAsync,
                 stopAsyncInternal,
                 handlePlaybackFailureAsync,
-                getIsManualNavigationPending);
+                getIsManualNavigationPending,
+                getIsAlarm,
+                showPlaybackErrorInModalKeepSessionAsync);
         }
         catch (Exception ex)
         {
@@ -95,25 +109,25 @@ public sealed class PlaybackMediaEventAdapter
                 playlist,
                 getCurrentTrackIndex,
                 setCurrentTrackIndex,
-                getCurrentScheduleId(),
-                getIsIndefinitePlayback(),
-                tryAppendNextTrackAsync,
                 trackUri,
                 trackUrl,
                 playCurrentTrackAsync,
                 handlePlaybackFailureAsync,
-                getIsManualNavigationPending);
+                getIsManualNavigationPending,
+                getIsAlarm,
+                showPlaybackErrorInModalKeepSessionAsync,
+                isPlaybackEstablishedForTrack);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error handling media failed event - invoking failure handler for graceful recovery");
+            logger.Error(ex, "Error handling media failed event");
             try
             {
-                await handlePlaybackFailureAsync();
+                await showPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", getIsAlarm());
             }
             catch (Exception innerEx)
             {
-                logger.Error(innerEx, "Failure handler threw - user may need to close and retry");
+                logger.Error(innerEx, "Failure recovery after media failed handler error");
             }
         }
     }

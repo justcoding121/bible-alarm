@@ -41,6 +41,18 @@ public sealed class PlaybackStateManager
     /// </summary>
     public bool ManualNavigationPending { get; set; }
 
+    private int playbackEstablishedTrackIndex = -2;
+
+    public void NotifyPlaybackEstablishedForTrack(int trackIndex)
+    {
+        playbackEstablishedTrackIndex = trackIndex;
+    }
+
+    public bool IsPlaybackEstablishedForTrack(int trackIndex)
+    {
+        return playbackEstablishedTrackIndex == trackIndex;
+    }
+
     public PlaybackStateManager(ILogger logger)
     {
         this.logger = logger;
@@ -61,6 +73,7 @@ public sealed class PlaybackStateManager
         PlayedBibleTrackKeys.Clear();
         ManualNavigationPending = false;
         IsPreparingTrack = false;
+        playbackEstablishedTrackIndex = -2;
         logger.Debug("[PlaybackStateManager] Reset called - cleared {PlayedTracksCount} played Bible track keys", playedTracksCount);
 
         // Dispose cancellation token source

@@ -159,9 +159,35 @@ internal sealed class SectionFetcherSectionTracksLoader
                 }
             }
 
+            string trackCodeStr;
+            if (isBible)
+            {
+                trackCodeStr = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                trackCode++;
+            }
+            else if (publication.IsMusic && !publication.IsVideo)
+            {
+                if (trackFile.TryGetProperty("track", out var trackNumEl) &&
+                    trackNumEl.ValueKind == JsonValueKind.Number &&
+                    trackNumEl.TryGetInt32(out var apiTrackNum))
+                {
+                    trackCodeStr = apiTrackNum.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    trackCodeStr = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    trackCode++;
+                }
+            }
+            else
+            {
+                trackCodeStr = normalizedSectionCode;
+                trackCode++;
+            }
+
             var track = new BiblePublicationTrack
             {
-                TrackCode = isBible ? trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture) : normalizedSectionCode,
+                TrackCode = trackCodeStr,
                 Title = title,
                 Publication = publication,
                 BiblePublicationId = publication.Id,
@@ -171,7 +197,6 @@ internal sealed class SectionFetcherSectionTracksLoader
             };
 
             tracks.Add(track);
-            trackCode++;
         }
 
         if (tracks.Count == 0)

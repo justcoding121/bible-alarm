@@ -9,6 +9,7 @@ public interface IPlaylistService : IDisposable
 {
     Task MarkTrackAsPlayed(TrackMetadata trackMetadata);
     Task MarkTrackAsFinished(TrackMetadata trackMetadata);
+
     Task<PlayItem> NextTrack(int scheduleId);
     Task<PlayItem?> NextBiblePublicationTrack(int scheduleId);
     Task<List<PlayItem>> NextTracks(int scheduleId);
@@ -43,5 +44,11 @@ public interface IPlaylistService : IDisposable
     /// </summary>
     /// <param name="sectionFetchProgress">Optional progress reporter for ad-hoc API section fetch (0-100%).</param>
     Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata, IFetchProgress? sectionFetchProgress = null);
+
+    /// <summary>
+    /// Writes schedule Bible/Music pointers to match the given track (the track that just finished).
+    /// Used when indefinite next-track fetch fails so the next play still starts from this known position.
+    /// </summary>
+    Task PersistSchedulePointerToFinishedTrackAsync(TrackMetadata trackMetadata);
 }
 

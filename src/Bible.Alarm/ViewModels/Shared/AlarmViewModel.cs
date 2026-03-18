@@ -54,7 +54,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     public ICommand SeekCommand { get; set; }
     public ICommand RetryCommand { get; set; }
 
-    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IGeneralSettingsService generalSettingsService)
+    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IGeneralSettingsService generalSettingsService)
     {
         this.logger = logger;
         this.playbackService = playbackService;
@@ -75,6 +75,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         commandInitializer = new AlarmViewModelCommandInitializer(
             logger,
             playbackService,
+            schedulePlaybackService,
             reviewHandler.HandleReviewRequestAsync,
             () => PlaybackViewModelStoppingHandler.BeginStoppingUi(ApplyBeginStopping),
             () => PlaybackViewModelStoppingHandler.ResetProgressUi(() => IsUserInteracting, ApplyResetProgress));

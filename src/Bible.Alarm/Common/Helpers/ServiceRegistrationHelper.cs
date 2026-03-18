@@ -171,6 +171,14 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<ILogger>(),
             sp.GetRequiredService<System.Net.Http.HttpClient>(),
             sp.GetService<IInternetConnectivityChecker>()));
+        services.AddSingleton<Bible.Alarm.Shared.Services.Media.Interfaces.IMelodyDiscTracksApiRefresher>(sp =>
+            new Bible.Alarm.Shared.Services.Media.MelodyDiscTracksApiRefresher(
+                sp.GetRequiredService<IServiceScopeFactory>(),
+                sp.GetRequiredService<System.Net.Http.HttpClient>(),
+                sp.GetRequiredService<ILogger>()));
+        services.AddSingleton<ITrackCdnUrlRefresher, TrackCdnUrlRefresher>();
+        services.AddSingleton<ICdnPlaybackUrlProbe>(sp =>
+            new CdnPlaybackUrlProbe(sp.GetRequiredService<System.Net.Http.HttpClient>(), sp.GetRequiredService<ILogger>()));
         services.AddSingleton<IBiblePublicationNavigationService, BiblePublicationNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
@@ -186,6 +194,16 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IMediaElementService, MediaElementService>();
         services.AddSingleton<IAudioPlayer, AudioPlayer>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
+
+#if ANDROID
+        services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.Android.Services.Media.AndroidDefaultDeviceRingtoneService>();
+#elif IOS
+        services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.iOS.Services.Media.iOSDefaultDeviceRingtoneService>();
+#elif WINDOWS
+        services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.Windows.Services.Media.WindowsDefaultDeviceRingtoneService>();
+#else
+        services.AddSingleton<IDefaultDeviceRingtoneService, DefaultDeviceRingtoneServiceNoOp>();
+#endif
 
         // Register platform-specific accessibility font scale service (required by FontService)
 #if ANDROID

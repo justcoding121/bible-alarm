@@ -8,7 +8,6 @@ using Bible.Alarm.Shared.Constants;
 using System.Net.Http;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
@@ -24,8 +23,7 @@ public sealed class MediaCacheService(
     INetworkStatusService networkStatusService,
     IMediaUrlRefreshService urlRefreshService,
     IAlarmScheduleService alarmScheduleService,
-    ILanguageContentService languageContentService,
-    IUrlConstructionService urlConstructionService)
+    ITrackCdnUrlRefresher trackCdnUrlRefresher)
     : IMediaCacheService, IDisposable
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory;
@@ -239,37 +237,9 @@ public sealed class MediaCacheService(
         return msg.Contains("404", StringComparison.Ordinal) || msg.Contains("410", StringComparison.Ordinal);
     }
 
-    private async Task<string?> RefetchSectionOrPubAndGetNewUrlAsync(TrackMetadata metadata, CancellationToken cancellationToken)
+    private Task<string?> RefetchSectionOrPubAndGetNewUrlAsync(TrackMetadata metadata, CancellationToken cancellationToken)
     {
-        var pub = metadata.PublicationCode ?? string.Empty;
-        var lang = metadata.LanguageCode ?? string.Empty;
-        var section = metadata.SectionCode;
-        var track = metadata.TrackCode ?? string.Empty;
-
-        if (string.IsNullOrEmpty(pub) || string.IsNullOrEmpty(lang) || string.IsNullOrEmpty(track))
-        {
-            logger.Warning("Refetch skipped: missing metadata PublicationCode, LanguageCode, or TrackCode");
-            return null;
-        }
-
-        bool ok;
-        if (!string.IsNullOrWhiteSpace(section))
-        {
-            ok = await languageContentService.FetchSectionTracksAsync(pub, section.Trim(), lang, cancellationToken);
-        }
-        else
-        {
-            ok = await languageContentService.FetchPublicationTracksAsync(pub, lang, cancellationToken);
-        }
-
-        if (!ok)
-        {
-            logger.Warning("Refetch failed for pub={PublicationCode}, lang={LanguageCode}, section={SectionCode}", pub, lang, section ?? "(flat)");
-            return null;
-        }
-
-        var urls = await urlConstructionService.ConstructTrackUrlsAsync(pub, lang, section, track);
-        return urls.Count > 0 ? urls[0] : null;
+        return trackCdnUrlRefresher.TryRefreshTrackCdnUrlFromApiAsync(metadata, cancellationToken);
     }
 
     private async Task<string?> DownloadAndCacheTrackWithRefetchOn404Async(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default)

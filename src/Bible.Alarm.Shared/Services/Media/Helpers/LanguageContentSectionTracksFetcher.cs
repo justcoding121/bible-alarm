@@ -35,7 +35,8 @@ internal sealed class LanguageContentSectionTracksFetcher
         string publicationCode,
         string sectionCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool replaceExistingTracksFromApi = false)
     {
         try
         {
@@ -111,14 +112,19 @@ internal sealed class LanguageContentSectionTracksFetcher
                 return false;
             }
 
-            // Delete existing tracks for this section
-            if (section.Tracks.Count > 0)
+            if (replaceExistingTracksFromApi)
             {
-                logger.Information("Deleting {Count} existing tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
-                    section.Tracks.Count, sectionCode, publicationCode, languageCode);
-                db.BiblePublicationTracks.RemoveRange(section.Tracks);
-                await db.SaveChangesAsync(cancellationToken);
-                section.Tracks.Clear();
+                var existingTracks = await db.BiblePublicationTracks
+                    .Where(t => t.BiblePublicationSectionId == section.Id)
+                    .ToListAsync(cancellationToken);
+                if (existingTracks.Count > 0)
+                {
+                    logger.Information(
+                        "Replacing {Count} existing tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode} (API refresh)",
+                        existingTracks.Count, sectionCode, publicationCode, languageCode);
+                    db.BiblePublicationTracks.RemoveRange(existingTracks);
+                    await db.SaveChangesAsync(cancellationToken);
+                }
             }
 
             await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);

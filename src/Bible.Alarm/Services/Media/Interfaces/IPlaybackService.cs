@@ -2,6 +2,11 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IPlaybackService : IDisposable
 {
+    /// <summary>
+    /// True when the current session was started as an actual alarm (not notification Play / home Play).
+    /// </summary>
+    bool IsAlarmPlaybackSession { get; }
+
     Task PlayAsync();
     Task PauseAsync();
     Task PlayPreviousAsync();

@@ -259,6 +259,65 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
+    public async Task PersistSchedulePointerToFinishedTrackAsync(TrackMetadata trackMetadata)
+    {
+        if (trackMetadata.ScheduleId <= 0)
+        {
+            return;
+        }
+
+        var scheduleToUse = await alarmScheduleService.GetScheduleByIdAsync(
+            (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
+        var effectiveMetadata = trackMetadata;
+        if (scheduleToUse?.BiblePublicationSchedule != null
+            && trackMetadata.PlayType == PlayType.Bible
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode))
+        {
+            var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
+            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
+        }
+        else if (scheduleToUse?.Music != null
+            && trackMetadata.PlayType == PlayType.Music
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode))
+        {
+            var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
+            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
+        }
+
+        var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
+            (int)trackMetadata.ScheduleId,
+            schedule =>
+            {
+                if (trackMetadata.PlayType == PlayType.Music && schedule.Music != null)
+                {
+                    schedule.Music.TrackCode = effectiveMetadata.TrackCode;
+                    if (!string.IsNullOrWhiteSpace(effectiveMetadata.DownloadCode))
+                    {
+                        schedule.Music.SectionCode = effectiveMetadata.DownloadCode;
+                    }
+                }
+                else if (trackMetadata.PlayType == PlayType.Bible && schedule.BiblePublicationSchedule != null)
+                {
+                    PlaylistTrackUpdater.UpdateBiblePublicationTrack(schedule, effectiveMetadata);
+                }
+            },
+            cancellationTokenSource.Token);
+
+        if (trackMetadata.PlayType == PlayType.Bible)
+        {
+            trackChangeDetector.SetLastKnownBibleTrack(
+                (int)trackMetadata.ScheduleId,
+                effectiveMetadata.SectionCode,
+                effectiveMetadata.TrackCode);
+        }
+
+        dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
+        logger.Information(
+            "Persisted schedule pointer to finished track after failed indefinite transition: ScheduleId={ScheduleId}, PlayType={PlayType}",
+            trackMetadata.ScheduleId,
+            trackMetadata.PlayType);
+    }
+
     private async Task<NextTrackInfo> GetNextTrackInfoAsync(TrackMetadata trackMetadata)
     {
         if (trackMetadata.PlayType == PlayType.Music)

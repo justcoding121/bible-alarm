@@ -94,9 +94,11 @@ public sealed class LanguageContentService : ILanguageContentService
         string publicationCode,
         string sectionCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool replaceExistingTracksFromApi = false)
     {
-        return await sectionTracksFetcher.FetchSectionTracksAsync(publicationCode, sectionCode, languageCode, cancellationToken);
+        return await sectionTracksFetcher.FetchSectionTracksAsync(
+            publicationCode, sectionCode, languageCode, cancellationToken, replaceExistingTracksFromApi);
     }
 
     /// <summary>
