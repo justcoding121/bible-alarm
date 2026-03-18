@@ -123,7 +123,7 @@ public class AlarmViewModelCommandInitializer
         return new AsyncRelayCommand<TimeSpan>(async position =>
         {
             await playbackService.SeekToAsync(position);
-        });
+        }, AsyncRelayCommandOptions.AllowConcurrentExecutions);
     }
 
     public ICommand CreateRetryCommand(Func<int?> getCurrentScheduleId, Func<bool> hasError, Action<bool> setIsRetryBusy)

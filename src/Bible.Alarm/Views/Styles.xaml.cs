@@ -86,6 +86,10 @@ public partial class Styles : ResourceDictionary
         this["IconStandardContainerSize"] = service.IconStandardContainerSize;
         this["IconLargeContainerSize"] = service.IconLargeContainerSize;
 
+        var playButtonHeight = service.IconLargeContainerSize;
+        this["ScheduleListPlayButtonWidth"] = Math.Round(playButtonHeight * 1.14, 1);
+        this["ScheduleListPlayButtonCornerRadius"] = Math.Round(Math.Min(playButtonHeight * 0.4, 28.0), 1);
+
         // Spinner sizes (larger on iOS)
         this["SpinnerContainerSize"] = service.SpinnerContainerSize;
         this["SpinnerFontSize"] = service.SpinnerFontSize;

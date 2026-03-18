@@ -217,6 +217,8 @@
                                 <core:SfEffectsView
                                         x:Name="ScheduleItemEffectsView"
                                         Margin="{DynamicResource MarginThickness16_0}"
+                                        MaximumWidthRequest="600"
+                                        HorizontalOptions="Center"
                                         TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                         TouchUpEffects="None"
                                         RippleBackground="{StaticResource PrimaryColor}"
@@ -244,7 +246,7 @@
                                             x:Name="ScheduleItemGrid"
                                             HorizontalOptions="Fill"
                                             VerticalOptions="Start"
-                                            ColumnSpacing="{StaticResource SpacingMedium}"
+                                            ColumnSpacing="{DynamicResource SpacingStandard}"
                                             RowSpacing="{StaticResource SpacingMedium}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -255,56 +257,34 @@
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
                                         
-                                        <!-- Row 1, Column 1: Play button -->
+                                        <!-- Row 1, Column 1: Play (Syncfusion SfButton — rounded rectangle, scales with accessibility) -->
                                         <Grid Grid.Column="0"
                                               Grid.Row="0"
-                                              Margin="{DynamicResource MarginThicknessPaddingLarge}"
+                                              Margin="{DynamicResource MarginThickness0}"
                                               VerticalOptions="Center"
                                               HorizontalOptions="Start"
                                               HeightRequest="{DynamicResource IconLargeContainerSize}"
-                                              WidthRequest="{DynamicResource IconLargeContainerSize}">
-                                            <core:SfEffectsView
-                                                    TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
-                                                    TouchUpEffects="None"
-                                                    RippleBackground="{StaticResource PrimaryColor}"
-                                                    HighlightBackground="{StaticResource PrimaryLightColor}"
-                                                    RippleAnimationDuration="200"
-                                                    ShouldIgnoreTouches="False">
-                                                <core:SfEffectsView.GestureRecognizers>
-                                                    <TapGestureRecognizer Command="{Binding PlayCommand}" />
-                                                </core:SfEffectsView.GestureRecognizers>
-                                                <Border
-                                                        BackgroundColor="{StaticResource PrimaryColor}"
-                                                        StrokeThickness="0"
-                                                        HorizontalOptions="Fill"
-                                                        VerticalOptions="Fill">
-                                                    <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="100" />
-                                                    </Border.StrokeShape>
-                                                    <Border.Shadow>
-                                                        <helpers:PlatformShadow Brush="#60000000" 
-                                                                    Offset="0,3" 
-                                                                    Radius="10" 
-                                                                    Opacity="0.35" />
-                                                    </Border.Shadow>
-                                                    <Label
-                                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                            FontSize="{DynamicResource IconLargeFontSize}"
-                                                            HorizontalOptions="Center"
-                                                            VerticalOptions="Center"
-                                                            Text="{x:Static fn:GlyphNames.Play}"
-                                                            TextColor="White"
-                                                            HorizontalTextAlignment="Center"
-                                                            VerticalTextAlignment="Center"
-                                                            IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}, FallbackValue=True}" />
-                                                </Border>
-                                            </core:SfEffectsView>
-                                            <!-- Spinner only when IsBusy; wrap in Grid so it is fully removed when not busy. -->
-                                            <Grid IsVisible="{Binding IsBusy, FallbackValue=False}"
-                                                    WidthRequest="24"
-                                                    HeightRequest="24"
-                                                    VerticalOptions="Center"
-                                                    HorizontalOptions="Center">
+                                              WidthRequest="{DynamicResource ScheduleListPlayButtonWidth}">
+                                            <buttons:SfButton
+                                                    AutomationId="ScheduleListPlayButton"
+                                                    Background="{StaticResource PrimaryColor}"
+                                                    Command="{Binding PlayCommand}"
+                                                    CornerRadius="{DynamicResource ScheduleListPlayButtonCornerRadius}"
+                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                    FontSize="{DynamicResource IconLargeFontSize}"
+                                                    HorizontalOptions="Fill"
+                                                    VerticalOptions="Fill"
+                                                    Text="{x:Static fn:GlyphNames.Play}"
+                                                    TextColor="White" />
+                                            <Border IsVisible="{Binding IsBusy, FallbackValue=False}"
+                                                    BackgroundColor="{StaticResource PrimaryColor}"
+                                                    StrokeThickness="0"
+                                                    HorizontalOptions="Fill"
+                                                    VerticalOptions="Fill"
+                                                    InputTransparent="True">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="{DynamicResource ScheduleListPlayButtonCornerRadius}" />
+                                                </Border.StrokeShape>
                                                 <ActivityIndicator
                                                         IsRunning="{Binding IsBusy, FallbackValue=False}"
                                                         Color="White"
@@ -313,10 +293,10 @@
                                                         VerticalOptions="Center"
                                                         HorizontalOptions="Center"
                                                         Opacity="0.95" />
-                                            </Grid>
+                                            </Border>
                                         </Grid>
                                         
-                                        <!-- Row 1, Column 2: Time and days with progress indicator -->
+                                        <!-- Row 1, Column 2: Time, days, and enable toggle -->
                                         <Grid Grid.Column="1"
                                               Grid.Row="0"
                                               HorizontalOptions="Fill"
@@ -331,19 +311,11 @@
                                                   VerticalOptions="Center"
                                                   Spacing="{StaticResource SpacingSmall}">
                                             <!-- Time display - most prominent for alarm app -->
-                                            <Grid Margin="{DynamicResource MarginThickness0}"
+                                            <HorizontalStackLayout Margin="{DynamicResource MarginThickness0}"
                                                   HorizontalOptions="Start"
                                                   VerticalOptions="Center"
-                                                  ColumnSpacing="{StaticResource SpacingExtraSmall}">
-                                                <Grid.GestureRecognizers>
-                                                    <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
-                                                </Grid.GestureRecognizers>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Label Grid.Column="0"
-                                                       Margin="{DynamicResource MarginThickness0}"
+                                                  Spacing="{StaticResource SpacingExtraSmall}">
+                                                <Label Margin="{DynamicResource MarginThickness0}"
                                                        Padding="{DynamicResource PaddingThickness0}"
                                                        FontSize="{StaticResource AlarmTimeFontSize}"
                                                        FontAttributes="Bold"
@@ -351,8 +323,7 @@
                                                        VerticalOptions="Center"
                                                        TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
                                                        LineBreakMode="NoWrap" />
-                                                <Label Grid.Column="1"
-                                                       Margin="{DynamicResource MarginThickness0}"
+                                                <Label Margin="{DynamicResource MarginThickness0}"
                                                        Padding="{DynamicResource PaddingThickness0}"
                                                        MinimumWidthRequest="{OnPlatform iOS=40, Default=0}"
                                                        FontSize="{DynamicResource AlarmMeridianFontSize}"
@@ -360,16 +331,13 @@
                                                        VerticalOptions="Center"
                                                        TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
                                                        VerticalTextAlignment="Center" />
-                                            </Grid>
+                                            </HorizontalStackLayout>
                                             <!-- Days of week badges -->
                                             <FlexLayout HorizontalOptions="Start"
                                                   Wrap="Wrap"
                                                   JustifyContent="Start"
                                                   AlignItems="Center"
                                                   Margin="{DynamicResource MarginThickness0}">
-                                                <FlexLayout.GestureRecognizers>
-                                                    <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
-                                                </FlexLayout.GestureRecognizers>
                                                 <Border Margin="{DynamicResource MarginThickness0_5}"
                                                         Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
@@ -512,13 +480,16 @@
                                                 </Border>
                                             </FlexLayout>
                                             </VerticalStackLayout>
-                                            <!-- Progress indicator - shows when IsNavigating is true -->
+                                            <!-- Enable/disable toggle + navigation spinner -->
                                             <Grid Grid.Column="1"
-                                                  Margin="{DynamicResource MarginThicknessPaddingLarge}"
+                                                  Margin="{DynamicResource MarginThickness0}"
                                                   VerticalOptions="Center"
-                                                  HorizontalOptions="End"
-                                                  HeightRequest="{DynamicResource SpinnerFontSize}"
-                                                  WidthRequest="{DynamicResource SpinnerFontSize}">
+                                                  HorizontalOptions="End">
+                                                <shared:PlatformSwitch
+                                                        IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                                                        VerticalOptions="Center"
+                                                        HorizontalOptions="End"
+                                                        IsVisible="{Binding IsNavigating, Converter={StaticResource negateBooleanConverter}}" />
                                                 <ActivityIndicator
                                                         IsRunning="{Binding IsNavigating}"
                                                         IsVisible="{Binding IsNavigating}"

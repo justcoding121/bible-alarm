@@ -182,20 +182,10 @@ public sealed class ScheduleListItemViewModel(
             }
         });
 
-        // Toggle enabled/disabled state when time text is tapped
         ToggleEnabledCommand = new RelayCommand(() =>
         {
             if (Schedule != null)
             {
-                // Validate DaysOfWeek before toggling - if empty, cannot enable
-                if (Schedule.DaysOfWeek == 0)
-                {
-                    // Show error message to user
-                    WeakReferenceMessenger.Default.Send(new ShowToastMessage("Select at least one day"));
-                    return;
-                }
-
-                // Read current value from Schedule to ensure we're toggling the actual state
                 var currentValue = Schedule.IsEnabled;
                 IsEnabled = !currentValue;
             }
@@ -309,11 +299,17 @@ public sealed class ScheduleListItemViewModel(
         {
             if (propertyManager.IsEnabled != value)
             {
+                if (value && Schedule?.DaysOfWeek == 0)
+                {
+                    WeakReferenceMessenger.Default.Send(new ShowToastMessage("Select at least one day"));
+                    OnPropertyChanged();
+                    return;
+                }
+
                 propertyManager.IsEnabled = value;
                 OnPropertyChanged();
                 if (!propertyManager.IsInitializing && Schedule != null)
                 {
-                    // Show progress bar to indicate background activity
                     WeakReferenceMessenger.Default.Send(new ShowProgressBarMessage());
                     _ = HandleIsEnabledChanged(value);
                 }

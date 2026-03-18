@@ -122,9 +122,16 @@ public class AlarmViewModalSliderHandler
             logger?.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}",
                 seekPosition, targetSeekProgress.Value);
 
-            if (seekCommand != null && seekCommand.CanExecute(seekPosition))
+            if (seekCommand != null)
             {
-                seekCommand.Execute(seekPosition);
+                if (seekCommand.CanExecute(seekPosition))
+                {
+                    seekCommand.Execute(seekPosition);
+                }
+                else
+                {
+                    logger?.Warning("[Slider] SeekCommand.CanExecute returned false - command may still be running from a previous invocation");
+                }
             }
 
             Task.Delay(500).ContinueWith(_ =>

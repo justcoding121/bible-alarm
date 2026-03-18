@@ -32,6 +32,10 @@
     <x:Double x:Key="IconStandardContainerSize">48.0</x:Double>
     <x:Double x:Key="IconLargeContainerSize">56.0</x:Double>
 
+    <!-- Home schedule row: Syncfusion SfButton play control (wider than tall, high corner radius) -->
+    <x:Double x:Key="ScheduleListPlayButtonWidth">64.0</x:Double>
+    <x:Double x:Key="ScheduleListPlayButtonCornerRadius">22.0</x:Double>
+
     <!-- Spinner (ActivityIndicator) sizes - larger on iOS for visibility -->
     <x:Double x:Key="SpinnerContainerSize">48.0</x:Double>
     <x:Double x:Key="SpinnerFontSize">20.0</x:Double>

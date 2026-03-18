@@ -37,7 +37,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <!-- Row 0: Alarm Enabled Toggle -->
+            <!-- Row 0: Enable Alarm Toggle -->
             <core:SfEffectsView Grid.Row="0"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                  TouchUpEffects="None"
@@ -65,7 +65,7 @@
                            FontAttributes="None"
                            HorizontalOptions="Fill"
                            HorizontalTextAlignment="Start"
-                           Text="{OnPlatform Android='Alarm Enabled', Default='Reminder Enabled'}"
+                           Text="{OnPlatform Android='Enable Alarm', Default='Enable Reminder'}"
                            TextColor="{DynamicResource TextPrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
@@ -134,7 +134,7 @@
                                TextColor="{DynamicResource TextPrimaryColor}"
                                VerticalOptions="Center"
                                VerticalTextAlignment="Center">
-                            Wait until I tap notification to play
+                            Require tap to start playback
                         </Label>
                         <Grid Grid.Column="1"
                               HorizontalOptions="End"

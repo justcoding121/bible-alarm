@@ -151,7 +151,7 @@ public partial class Home : BaseContentPage, IDisposable
 
     private static bool IsViewInteractiveControl(View view, Point tapPosition)
     {
-        if (view is Button or SfButton or Switch)
+        if (view is Button or SfButton or Switch or SfSwitch)
         {
             // Only check bounds if they're valid (layout has been calculated)
             var bounds = view.Bounds;
@@ -165,16 +165,32 @@ public partial class Home : BaseContentPage, IDisposable
 
     private bool IsTapOnChildControl(View view, Point tapPosition)
     {
-        if (view is not Layout layout)
+        if (view is Layout layout)
         {
+            foreach (var child in layout.Children)
+            {
+                if (child is View childView && IsTapOnChild(childView, tapPosition))
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
 
-        foreach (var child in layout.Children)
+        if (view is IContentView contentView && contentView.Content is View contentChild)
         {
-            if (child is View childView && IsTapOnChild(childView, tapPosition))
+            return IsTapOnChild(contentChild, tapPosition);
+        }
+
+        if (view is IVisualTreeElement visualElement)
+        {
+            foreach (var child in visualElement.GetVisualChildren())
             {
-                return true;
+                if (child is View childView && IsTapOnChild(childView, tapPosition))
+                {
+                    return true;
+                }
             }
         }
 
