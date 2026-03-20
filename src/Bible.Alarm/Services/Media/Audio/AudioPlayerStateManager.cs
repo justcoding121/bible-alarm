@@ -142,6 +142,23 @@ public class AudioPlayerStateManager
         isSeeking = false;
     }
 
+    /// <summary>
+    /// Ends seeking and re-evaluates the current MediaElement state. During seek,
+    /// Buffering states are suppressed to avoid UI flicker. If the player is still
+    /// buffering after the seek (e.g. no network), the suppressed state must be
+    /// re-dispatched so the UI shows a buffering indicator.
+    /// </summary>
+    public void EndSeekingAndReevaluateState(MediaElementState currentMediaState)
+    {
+        isSeeking = false;
+
+        if (currentMediaState == MediaElementState.Buffering)
+        {
+            logger.Debug("[AudioPlayer] Post-seek: MediaElement still buffering, dispatching Loading status");
+            UpdateStatus(currentMediaState);
+        }
+    }
+
     public void Reset()
     {
         Status = PlayStatus.Stopped;

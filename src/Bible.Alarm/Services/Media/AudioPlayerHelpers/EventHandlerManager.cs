@@ -197,7 +197,16 @@ public class EventHandlerManager
             var currentPosition = getCurrentPosition();
             logger.Debug("[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false",
                 currentPosition?.ToString() ?? "null");
-            stateManager.EndSeeking();
+
+            if (sender is MediaElement mediaElement)
+            {
+                stateManager.EndSeekingAndReevaluateState(mediaElement.CurrentState);
+            }
+            else
+            {
+                stateManager.EndSeeking();
+            }
+
             logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates");
         }
         catch (Exception ex)

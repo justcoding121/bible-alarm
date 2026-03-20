@@ -217,8 +217,8 @@
                                 <core:SfEffectsView
                                         x:Name="ScheduleItemEffectsView"
                                         Margin="{DynamicResource MarginThickness16_0}"
-                                        MaximumWidthRequest="600"
-                                        HorizontalOptions="Center"
+                                        MaximumWidthRequest="{OnIdiom Phone=4000, Tablet=600, Desktop=600, Default=4000}"
+                                        HorizontalOptions="{OnIdiom Phone=Fill, Tablet=Center, Desktop=Center, Default=Fill}"
                                         TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                         TouchUpEffects="None"
                                         RippleBackground="{StaticResource PrimaryColor}"

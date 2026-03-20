@@ -159,12 +159,51 @@ public class PlaybackController
 
     private async Task ResetSeekingFlagWithTimeoutAsync()
     {
-        // Fallback: If SeekCompleted doesn't fire within 3 seconds, reset the flag anyway
-        await Task.Delay(3000);
+        // Check at 500ms intervals so we detect stuck-buffering quickly (e.g. no network)
+        // rather than waiting the full timeout. On a healthy connection SeekCompleted fires
+        // well within the first interval; this loop only matters for degraded scenarios.
+        const int checkIntervalMs = 500;
+        const int maxWaitMs = 3000;
+        var elapsed = 0;
+
+        while (elapsed < maxWaitMs)
+        {
+            await Task.Delay(checkIntervalMs);
+            elapsed += checkIntervalMs;
+
+            if (!stateManager.IsSeeking)
+            {
+                return;
+            }
+
+            var mediaElement = getMediaElement();
+            if (mediaElement == null)
+            {
+                stateManager.EndSeeking();
+                return;
+            }
+
+            if (mediaElement.CurrentState == CommunityToolkit.Maui.Primitives.MediaElementState.Buffering)
+            {
+                logger.Warning("[AudioPlayer] SeekCompleted not fired after {Elapsed}ms and player is buffering - ending seek to show buffering UI", elapsed);
+                stateManager.EndSeekingAndReevaluateState(mediaElement.CurrentState);
+                return;
+            }
+        }
+
         if (stateManager.IsSeeking)
         {
-            logger.Warning("[AudioPlayer] SeekCompleted event did not fire within 3 seconds - resetting _isSeeking flag as fallback");
-            stateManager.EndSeeking();
+            logger.Warning("[AudioPlayer] SeekCompleted event did not fire within {MaxWait}ms - resetting _isSeeking flag as fallback", maxWaitMs);
+
+            var mediaElement = getMediaElement();
+            if (mediaElement != null)
+            {
+                stateManager.EndSeekingAndReevaluateState(mediaElement.CurrentState);
+            }
+            else
+            {
+                stateManager.EndSeeking();
+            }
         }
     }
 }
