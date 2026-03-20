@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using Serilog;
@@ -52,6 +53,8 @@ public sealed class PlaybackNavigationHandler
         }
 
         dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+        dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Loading));
+        await Task.Delay(150);
 
         var currentTrackIndex = getCurrentTrackIndex();
         if (currentTrackIndex < playlist.Count - 1)
@@ -141,6 +144,8 @@ public sealed class PlaybackNavigationHandler
         }
 
         dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+        dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Loading));
+        await Task.Delay(150);
 
         var currentTrackIndex = getCurrentTrackIndex();
         if (currentTrackIndex > 0)

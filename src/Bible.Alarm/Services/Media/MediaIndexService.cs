@@ -8,6 +8,7 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Retry;
 using Serilog;
@@ -162,7 +163,8 @@ public sealed class MediaIndexService(
         // Then run comparison/cleanup so we evaluate against a fuller index.
         try
         {
-            var fetcher = new ScheduleMediaBootstrapFetcher(logger, languageContentService);
+            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+            var fetcher = new ScheduleMediaBootstrapFetcher(logger, languageContentService, scopeFactory);
             await fetcher.FetchMissingAsync(scheduleDbPath, newMediaIndexDbPath);
         }
         catch (Exception ex)

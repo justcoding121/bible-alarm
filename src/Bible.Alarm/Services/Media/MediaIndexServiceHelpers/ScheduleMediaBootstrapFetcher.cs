@@ -1,8 +1,13 @@
 #nullable enable
 
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
@@ -12,7 +17,10 @@ namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 /// bootstrap. Only fetches pub/section that are valid (present in discovery tables; discovery has
 /// all languages including E/S). Invalid pub/section are skipped; salvage cleanup handles deletion.
 /// </summary>
-internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageContentService languageContentService)
+internal sealed class ScheduleMediaBootstrapFetcher(
+    ILogger logger,
+    ILanguageContentService languageContentService,
+    IServiceScopeFactory scopeFactory)
 {
     private const string SpanishLanguageCode = "S";
 
@@ -88,6 +96,8 @@ internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageCon
                 {
                     try
                     {
+                        await EnsureSectionEntityExistsAsync(pubCode, sectionCode, langCode);
+
                         var sectionOk = await languageContentService.FetchSectionTracksAsync(
                             pubCode,
                             sectionCode,
@@ -215,5 +225,57 @@ internal sealed class ScheduleMediaBootstrapFetcher(ILogger logger, ILanguageCon
         cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
         cmd.Parameters.AddWithValue("@langCode", langCode);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+    }
+
+    /// <summary>
+    /// For sectioned publications, EnsurePublicationExistsAsync only creates the first section.
+    /// This creates the section entity (without tracks) for other referenced sections so that
+    /// FetchSectionTracksAsync can find it and fetch its tracks.
+    /// </summary>
+    private async Task EnsureSectionEntityExistsAsync(string pubCode, string sectionCode, string langCode)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var normalizedPubCode = pubCode.ToLowerInvariant();
+        var normalizedSectionCode = sectionCode.ToLowerInvariant();
+        var normalizedLangCode = langCode.ToUpperInvariant();
+        var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPubCode) ?? pubCode;
+
+        var publication = await db.BiblePublications
+            .Include(bp => bp.Sections)
+            .Include(bp => bp.Language)
+            .FirstOrDefaultAsync(
+                bp => bp.PublicationCode == publicationCodeForDb &&
+                      bp.Language != null &&
+                      bp.Language.LanguageCode == normalizedLangCode);
+
+        if (publication == null)
+        {
+            return;
+        }
+
+        var sectionExists = publication.Sections.Any(s =>
+            s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+
+        if (sectionExists)
+        {
+            return;
+        }
+
+        var section = new BiblePublicationSection
+        {
+            Name = sectionCode,
+            SectionCode = normalizedSectionCode,
+            BiblePublication = publication,
+            BiblePublicationId = publication.Id,
+            Tracks = new List<BiblePublicationTrack>()
+        };
+        publication.Sections.Add(section);
+        await db.SaveChangesAsync();
+
+        logger.Debug(
+            "Created missing section entity {SectionCode} for {PubCode}/{LangCode} during bootstrap",
+            sectionCode, pubCode, langCode);
     }
 }
