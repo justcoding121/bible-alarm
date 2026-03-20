@@ -94,26 +94,6 @@ internal sealed class LanguageContentPublicationTracksFetcher
                 return false;
             }
 
-            // Delete existing publication for this language (use case-sensitive code for dramas)
-            var existingPublication = await db.BiblePublications
-                .Include(bp => bp.Language)
-                .Include(bp => bp.Tracks)
-                    .ThenInclude(t => t.TrackUrl)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == publicationCodeForDb &&
-                          bp.Language != null &&
-                          bp.Language.LanguageCode == normalizedLanguageCode,
-                    cancellationToken);
-
-            if (existingPublication != null)
-            {
-                logger.Information("Deleting existing publication {PublicationCode} for language {LanguageCode}",
-                    publicationCode, languageCode);
-                db.BiblePublications.Remove(existingPublication);
-                await db.SaveChangesAsync(cancellationToken);
-            }
-
             // Use CatalogType from PublicationLanguage to determine fetching method
             var category = publicationLanguage.Category;
             var categoryCode = category.CategoryCode;

@@ -569,6 +569,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         try
         {
+            if (stateManager.Playlist != null && stateManager.CurrentTrackIndex >= 0 && stateManager.CurrentTrackIndex < stateManager.Playlist.Count)
+            {
+                await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
+            }
+
             progressTracker.Stop();
             await audioPlayer.ResetAsync();
             dispatcher.Dispatch(new SetAutoAdvancingAction(false));

@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
@@ -60,16 +59,6 @@ public sealed class MelodyDiscTracksApiRefresher(
                 return false;
             }
 
-            var existingTracks = await db.BiblePublicationTracks
-                .Where(t => t.BiblePublicationSectionId == section.Id)
-                .ToListAsync(cancellationToken);
-
-            if (existingTracks.Count > 0)
-            {
-                db.BiblePublicationTracks.RemoveRange(existingTracks);
-                await db.SaveChangesAsync(cancellationToken);
-            }
-
             var sectionFetcher = new SectionFetcher(httpClient, logger);
             return await sectionFetcher.FetchSectionTracksAsync(
                 db,
@@ -79,7 +68,8 @@ public sealed class MelodyDiscTracksApiRefresher(
                 normPub,
                 publication,
                 section,
-                cancellationToken);
+                cancellationToken,
+                replaceExisting: true);
         }
         catch (Exception ex)
         {

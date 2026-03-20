@@ -16,15 +16,6 @@ internal class DownloadUtility
 {
     private readonly ILogger logger;
     private readonly AsyncRetryPolicy<string> retryPolicy;
-    private static readonly Random random = new();
-    private static readonly object randomLock = new();
-
-    // Base URLs for load balancing
-    private static readonly string[] BaseUrls = 
-    [
-        "https://b.jw-cdn.org",
-        "https://app.jw-cdn.org"
-    ];
 
     public DownloadUtility(ILogger logger)
     {
@@ -45,44 +36,9 @@ internal class DownloadUtility
     }
 
     /// <summary>
-    /// Randomly swaps the base URL between b.jw-cdn.org and app.jw-cdn.org for load balancing.
+    /// Fetches from Mediator API using redundant base URLs.
+    /// 3 attempts: (1) random base, (2) alternate base, (3) random base.
     /// </summary>
-    /// <param name="url">The original URL</param>
-    /// <returns>URL with randomly selected base URL</returns>
-    private static string SwapBaseUrlRandomly(string url)
-    {
-        // Check if URL contains either base URL
-        if (!url.Contains("b.jw-cdn.org") && !url.Contains("app.jw-cdn.org"))
-        {
-            return url; // Not a JW.org CDN URL, return as-is
-        }
-
-        // Randomly select a base URL
-        string selectedBaseUrl;
-        lock (randomLock)
-        {
-            selectedBaseUrl = BaseUrls[random.Next(BaseUrls.Length)];
-        }
-
-        // Replace the base URL
-        if (url.Contains("b.jw-cdn.org"))
-        {
-            return url.Replace("https://b.jw-cdn.org", selectedBaseUrl);
-        }
-        
-        if (url.Contains("app.jw-cdn.org"))
-        {
-            return url.Replace("https://app.jw-cdn.org", selectedBaseUrl);
-        }
-
-        return url;
-    }
-
-    /// <summary>
-    /// Fetches from Mediator API using redundant base URLs (random pick, retry on failure).
-    /// </summary>
-    /// <param name="pathAndQuery">Path and query including leading slash (e.g. "/categories/E/DramasGoodNews")</param>
-    /// <returns>Response body or null if all base URLs failed</returns>
     internal async Task<string?> GetMediatorAsync(string pathAndQuery)
     {
         using var client = CreateHttpClient();
@@ -92,21 +48,80 @@ internal class DownloadUtility
 
     internal async Task<string> GetAsync(string catalogLink)
     {
+        if (TryGetAlternateJwCdnUrl(catalogLink, out var alternateUrl))
+        {
+            return await GetWithJwCdnHostRetryAsync(catalogLink, alternateUrl);
+        }
+
         try
         {
-            // Randomly swap base URL for load balancing
-            var loadBalancedUrl = SwapBaseUrlRandomly(catalogLink);
-            
             return await retryPolicy.ExecuteAsync(async () =>
             {
                 using var client = CreateHttpClient();
-                return await SendRequestWithFallback(client, loadBalancedUrl);
+                return await SendRequestWithFallback(client, catalogLink);
             });
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
             throw;
         }
+    }
+
+    /// <summary>
+    /// 3 attempts with host alternation: (1) random pick, (2) alternate host, (3) random pick.
+    /// Each attempt uses HTTP/2 → HTTP/1.1 fallback.
+    /// </summary>
+    private async Task<string> GetWithJwCdnHostRetryAsync(string primaryUrl, string alternateUrl)
+    {
+        var first = Random.Shared.Next(2) == 0 ? primaryUrl : alternateUrl;
+        var second = first == primaryUrl ? alternateUrl : primaryUrl;
+        var third = Random.Shared.Next(2) == 0 ? primaryUrl : alternateUrl;
+        var attempts = new[] { first, second, third };
+
+        Exception? lastException = null;
+        for (var i = 0; i < attempts.Length; i++)
+        {
+            try
+            {
+                using var client = CreateHttpClient();
+                return await SendRequestWithFallback(client, attempts[i]);
+            }
+            catch (HttpRequestException ex) when (
+                ex.Message.Contains("Response status code") &&
+                !ex.Message.Contains("Server busy"))
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+            {
+                lastException = ex;
+                if (i < attempts.Length - 1)
+                {
+                    logger.Warning("Request failed for {Url}, retrying with alternate host: {Error}",
+                        attempts[i], ex.Message);
+                }
+            }
+        }
+
+        throw lastException!;
+    }
+
+    private static bool TryGetAlternateJwCdnUrl(string url, out string alternateUrl)
+    {
+        if (url.Contains("b.jw-cdn.org"))
+        {
+            alternateUrl = url.Replace("https://b.jw-cdn.org", "https://app.jw-cdn.org");
+            return true;
+        }
+
+        if (url.Contains("app.jw-cdn.org"))
+        {
+            alternateUrl = url.Replace("https://app.jw-cdn.org", "https://b.jw-cdn.org");
+            return true;
+        }
+
+        alternateUrl = url;
+        return false;
     }
 
     private static HttpClient CreateHttpClient()

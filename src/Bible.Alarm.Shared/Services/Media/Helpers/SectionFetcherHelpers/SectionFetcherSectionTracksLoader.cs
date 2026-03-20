@@ -37,7 +37,8 @@ internal sealed class SectionFetcherSectionTracksLoader
         string publicationCodeForDb,
         BiblePublication publication,
         BiblePublicationSection section,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool replaceExisting = false)
     {
         var entry = db.Entry(section);
         if (entry.State == EntityState.Detached)
@@ -47,11 +48,20 @@ internal sealed class SectionFetcherSectionTracksLoader
         }
 
         await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);
-        if (section.Tracks != null && section.Tracks.Count > 0)
+        if (!replaceExisting && section.Tracks != null && section.Tracks.Count > 0)
         {
             logger.Debug("Tracks already exist for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}, skipping fetch",
                 normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
             return true;
+        }
+
+        var existingTracksToReplace = new List<BiblePublicationTrack>();
+        if (replaceExisting)
+        {
+            existingTracksToReplace = await db.BiblePublicationTracks
+                .Include(t => t.TrackUrl)
+                .Where(t => t.BiblePublicationSectionId == section.Id)
+                .ToListAsync(cancellationToken);
         }
 
         var categoryCode = publication.PrimaryCategory?.CategoryCode ?? "";
@@ -204,6 +214,24 @@ internal sealed class SectionFetcherSectionTracksLoader
             logger.Warning("No tracks found for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
                 normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
             return false;
+        }
+
+        if (existingTracksToReplace.Count > 0)
+        {
+            logger.Information(
+                "Replacing {Count} existing tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode} (API refresh)",
+                existingTracksToReplace.Count, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
+            foreach (var oldTrack in existingTracksToReplace)
+            {
+                if (oldTrack.TrackUrl is not null)
+                {
+                    db.TrackUrls.Remove(oldTrack.TrackUrl);
+                }
+            }
+
+            db.BiblePublicationTracks.RemoveRange(existingTracksToReplace);
+            section.Tracks?.Clear();
+            await db.SaveChangesAsync(cancellationToken);
         }
 
         if (section.Tracks == null)

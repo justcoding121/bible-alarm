@@ -84,9 +84,13 @@ public sealed class TrackPlaybackHandler
             setIsPreparingTrack(false);
         }
 
-        // Check again after WaitForMediaReadyAsync in case stop was called during the wait
+        // Check again after WaitForMediaReadyAsync in case stop was called during the wait.
+        // Only check playlist validity (null / index out of range) — a genuine StopAsync sets playlist to null.
+        // Do NOT check isPreparingOrPlaying() here: IsPreparingTrack was just cleared in finally,
+        // and AudioPlayer.Status may be Stopped from a MediaElement reset (e.g. CDN refresh replay)
+        // even though no stop was requested.
         var playlistAfterWait = getPlaylist();
-        if (!isPreparingOrPlaying() || playlistAfterWait == null || currentTrackIndex < 0 || currentTrackIndex >= playlistAfterWait.Count)
+        if (playlistAfterWait == null || currentTrackIndex < 0 || currentTrackIndex >= playlistAfterWait.Count)
         {
             logger.Information("Playback was stopped during WaitForMediaReadyAsync - aborting PlayCurrentTrackAsync");
             return false;
@@ -163,9 +167,10 @@ public sealed class TrackPlaybackHandler
         }
 #endif
 
-        // Final check before starting playback - ensure stop wasn't called during seek/resume operations
+        // Final check before starting playback - ensure stop wasn't called during seek/resume operations.
+        // Same rationale as the post-WaitForMediaReadyAsync check: only check playlist validity.
         var playlistBeforePlay = getPlaylist();
-        if (!isPreparingOrPlaying() || playlistBeforePlay == null || currentTrackIndex < 0 || currentTrackIndex >= playlistBeforePlay.Count)
+        if (playlistBeforePlay == null || currentTrackIndex < 0 || currentTrackIndex >= playlistBeforePlay.Count)
         {
             logger.Information("Playback was stopped before PlayAsync - aborting PlayCurrentTrackAsync");
             return false;

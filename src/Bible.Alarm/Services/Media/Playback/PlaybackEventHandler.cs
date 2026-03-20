@@ -198,7 +198,9 @@ public sealed class PlaybackEventHandler
             {
                 probeOutcome = await cdnPlaybackUrlProbe.ProbeStreamingUrlAsync(playbackUriUsedByPlayer, CancellationToken.None);
 
-                if (probeOutcome == CdnUrlProbeOutcome.NotFoundOrGone && !failedPlayItem.CdnStaleUrlRecoveryConsumed)
+                var isStaleOrUnreachableUrl = probeOutcome == CdnUrlProbeOutcome.NotFoundOrGone ||
+                    probeOutcome == CdnUrlProbeOutcome.Indeterminate;
+                if (isStaleOrUnreachableUrl && !failedPlayItem.CdnStaleUrlRecoveryConsumed)
                 {
                     failedPlayItem.CdnStaleUrlRecoveryConsumed = true;
                     var refreshedUrl = await trackCdnUrlRefresher.TryRefreshTrackCdnUrlFromApiAsync(
@@ -215,7 +217,7 @@ public sealed class PlaybackEventHandler
                         }
 
                         logger.Information(
-                            "Playback: CDN 404/410 — refreshed catalog URLs, auto-replaying same track once");
+                            "Playback: CDN URL unreachable or gone — refreshed section/pub URLs, auto-replaying same track once");
                         await playCurrentTrackAsync(true);
                         return;
                     }
@@ -231,7 +233,11 @@ public sealed class PlaybackEventHandler
             if (playedFromCdnStream && failedPlayItem != null && !failedPlayItem.CdnStaleUrlRefetchReplayIssued)
             {
                 var established = isPlaybackEstablishedForTrack(currentTrackIndex);
-                if (!established && !failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone)
+                var refreshAttemptedButNoNewUrl = failedPlayItem.CdnStaleUrlRecoveryConsumed &&
+                    !failedPlayItem.CdnStaleUrlRefetchReplayIssued;
+                if (!established &&
+                    !failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone &&
+                    !refreshAttemptedButNoNewUrl)
                 {
                     failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone = true;
                     logger.Information(

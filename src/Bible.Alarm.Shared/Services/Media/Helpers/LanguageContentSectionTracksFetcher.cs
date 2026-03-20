@@ -112,26 +112,12 @@ internal sealed class LanguageContentSectionTracksFetcher
                 return false;
             }
 
-            if (replaceExistingTracksFromApi)
-            {
-                var existingTracks = await db.BiblePublicationTracks
-                    .Where(t => t.BiblePublicationSectionId == section.Id)
-                    .ToListAsync(cancellationToken);
-                if (existingTracks.Count > 0)
-                {
-                    logger.Information(
-                        "Replacing {Count} existing tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode} (API refresh)",
-                        existingTracks.Count, sectionCode, publicationCode, languageCode);
-                    db.BiblePublicationTracks.RemoveRange(existingTracks);
-                    await db.SaveChangesAsync(cancellationToken);
-                }
-            }
-
             await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
 
             return await sectionFetcher.FetchSectionTracksAsync(
                 db, normalizedPublicationCode, normalizedSectionCode, normalizedLanguageCode,
-                publicationCodeForDb, publication, section, cancellationToken);
+                publicationCodeForDb, publication, section, cancellationToken,
+                replaceExisting: replaceExistingTracksFromApi);
         }
         catch (Exception ex)
         {

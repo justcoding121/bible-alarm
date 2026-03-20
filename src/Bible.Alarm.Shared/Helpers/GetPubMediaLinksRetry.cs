@@ -10,8 +10,8 @@ using Bible.Alarm.Shared.Constants;
 namespace Bible.Alarm.Shared.Helpers;
 
 /// <summary>
-/// Fetches GETPUBMEDIALINKS responses with retry across redundant base URLs (b.jw-cdn.org, app.jw-cdn.org).
-/// Tries each URL in random order so load is spread.
+/// Fetches API responses with retry across redundant base URLs (b.jw-cdn.org, app.jw-cdn.org).
+/// 3 attempts: (1) random base, (2) alternate base, (3) random base.
 /// </summary>
 public static class GetPubMediaLinksRetry
 {
@@ -24,13 +24,9 @@ public static class GetPubMediaLinksRetry
     }
 
     /// <summary>
-    /// Tries each base URL in random order; returns the first successful response body, or null if all fail.
+    /// 3 attempts with host alternation: (1) random pick, (2) alternate host, (3) random pick.
+    /// Returns the first successful response body, or null if all attempts fail.
     /// </summary>
-    /// <param name="httpClient">HttpClient to use</param>
-    /// <param name="baseUrls">Full base URLs (e.g. https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS)</param>
-    /// <param name="queryString">Query string including leading '?' (e.g. "?output=json&pub=thv&fileformat=MP4&alllangs=0&langwritten=E")</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Response body as string, or null if every base URL failed</returns>
     public static async Task<string?> GetStringAsync(
         HttpClient httpClient,
         IEnumerable<string> baseUrls,
@@ -43,12 +39,16 @@ public static class GetPubMediaLinksRetry
             return null;
         }
 
-        var order = urls.Count == 1 ? urls : urls.OrderBy(_ => Guid.NewGuid()).ToList();
-        foreach (var baseUrl in order)
+        var firstIndex = Random.Shared.Next(urls.Count);
+        int[] attemptOrder = urls.Count >= 2
+            ? [firstIndex, (firstIndex + 1) % urls.Count, Random.Shared.Next(urls.Count)]
+            : [0, 0, 0];
+
+        foreach (var idx in attemptOrder)
         {
             try
             {
-                var url = baseUrl.TrimEnd('/') + queryString;
+                var url = urls[idx].TrimEnd('/') + queryString;
                 var response = await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
@@ -59,9 +59,9 @@ public static class GetPubMediaLinksRetry
             {
                 continue;
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                throw;
+                continue;
             }
         }
 

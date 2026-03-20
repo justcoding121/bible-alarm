@@ -309,9 +309,10 @@ internal sealed class SectionFetcher
         string publicationCodeForDb,
         BiblePublication publication,
         BiblePublicationSection section,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool replaceExisting = false)
     {
-        return sectionTracksLoader.FetchSectionTracksAsync(db, normalizedPublicationCode, normalizedSectionCode, normalizedLanguageCode, publicationCodeForDb, publication, section, cancellationToken);
+        return sectionTracksLoader.FetchSectionTracksAsync(db, normalizedPublicationCode, normalizedSectionCode, normalizedLanguageCode, publicationCodeForDb, publication, section, cancellationToken, replaceExisting);
     }
 
     /// <summary>
