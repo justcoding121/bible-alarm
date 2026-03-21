@@ -22,8 +22,8 @@
 		
 		<!-- Display Version (Version/PackageVersion must be single value across all target frameworks for NU1105) -->
 		<Version>3.22</Version>
-		<ApplicationDisplayVersion>3.46</ApplicationDisplayVersion>
-		<ApplicationVersion>413</ApplicationVersion>
+		<ApplicationDisplayVersion>3.47</ApplicationDisplayVersion>
+		<ApplicationVersion>414</ApplicationVersion>
 		<!-- Single source for version-change checks: media index and schedule DB use Bible.Alarm assembly version -->
 		<AssemblyInformationalVersion>$(ApplicationDisplayVersion)</AssemblyInformationalVersion>
 
