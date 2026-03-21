@@ -135,8 +135,12 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
-            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger: logger);
+            if (!await displayTextProvider.GetIsMusicSectionSelectableAsync())
+            {
+                return;
+            }
+
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
                 scheduleId,
@@ -166,8 +170,12 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
-            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger: logger);
+            if (!await displayTextProvider.GetIsMusicTrackSelectableAsync())
+            {
+                return;
+            }
+
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
                 scheduleId,
@@ -197,8 +205,12 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
-            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger: logger);
+            if (!await displayTextProvider.GetIsMusicLanguageSelectableAsync())
+            {
+                return;
+            }
+
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
                 scheduleId,

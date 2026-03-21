@@ -117,7 +117,8 @@ internal sealed class PublicationEnsurer
             }
 
             // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
-            if (catalogTypeToFetch == Models.Enums.CatalogType.Sectioned)
+            if (catalogTypeToFetch == Models.Enums.CatalogType.Sectioned ||
+                catalogTypeToFetch == Models.Enums.CatalogType.IssueSectioned)
             {
                 progress?.UpdateProgress(0.0);
                 var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken, progress);
@@ -248,7 +249,8 @@ internal sealed class PublicationEnsurer
             foreach (var (publicationCode, catalogType) in candidates)
             {
                 bool success = false;
-                if (catalogType == Models.Enums.CatalogType.Sectioned)
+                if (catalogType == Models.Enums.CatalogType.Sectioned ||
+                    catalogType == Models.Enums.CatalogType.IssueSectioned)
                 {
                     success = await FetchFirstSectionWithTracksAsync(
                         publicationCode, languageCode, cancellationToken);

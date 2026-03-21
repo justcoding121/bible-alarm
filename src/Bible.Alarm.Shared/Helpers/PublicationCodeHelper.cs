@@ -30,7 +30,9 @@ public static class PublicationCodeHelper
     public static IComparer<string?> PublicationCodeComparer { get; } = new PriorityPublicationCodeComparer();
 
     /// <summary>
-    /// Returns a comparer for the given category. Bible (or null) = nwt first; Music = osg first; others = no priority.
+    /// Returns a display comparer for the given category. Bible (or null) = nwt first; Music = osg first;
+    /// magazine categories = latest year first; others = no priority.
+    /// Use for UI publication lists only; navigation should use <see cref="GetNavigationComparerForCategory"/>.
     /// </summary>
     public static IComparer<string?> GetPublicationCodeComparerForCategory(string? categoryName)
     {
@@ -39,7 +41,25 @@ public static class PublicationCodeHelper
             return new CategoryPriorityPublicationCodeComparer(MusicPriorityPublicationCodes);
         if (string.Equals(c, "Bible", StringComparison.OrdinalIgnoreCase))
             return PublicationCodeComparer;
+        if (string.Equals(c, "WatchtowerMagazine", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(c, "AwakeMagazine", StringComparison.OrdinalIgnoreCase))
+            return MagazineDescendingYearComparer;
         return new CategoryPriorityPublicationCodeComparer(Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Returns a comparer for chronological/navigation order.
+    /// Magazines sort by year ascending (oldest first) so that next/previous track
+    /// navigation moves forward/backward through time.
+    /// All other categories use the same comparer as <see cref="GetPublicationCodeComparerForCategory"/>.
+    /// </summary>
+    public static IComparer<string?> GetNavigationComparerForCategory(string? categoryName)
+    {
+        var c = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
+        if (string.Equals(c, "WatchtowerMagazine", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(c, "AwakeMagazine", StringComparison.OrdinalIgnoreCase))
+            return new CategoryPriorityPublicationCodeComparer(Array.Empty<string>());
+        return GetPublicationCodeComparerForCategory(categoryName);
     }
 
     /// <summary>
@@ -157,6 +177,38 @@ public static class PublicationCodeHelper
                     return i;
             }
             return _priorityCodes.Length;
+        }
+    }
+
+    private static IComparer<string?> MagazineDescendingYearComparer { get; } = new MagazineYearDescendingComparer();
+
+    /// <summary>
+    /// Sorts magazine publication codes by year descending (latest first).
+    /// Falls back to ordinal string compare for non-magazine codes.
+    /// </summary>
+    private sealed class MagazineYearDescendingComparer : IComparer<string?>
+    {
+        public int Compare(string? x, string? y)
+        {
+            var a = Normalize(x);
+            var b = Normalize(y);
+
+            if (a == null && b == null) return 0;
+            if (a == null) return 1;
+            if (b == null) return -1;
+
+            var aIsMag = MagazineHelper.IsMagazinePublicationCode(a);
+            var bIsMag = MagazineHelper.IsMagazinePublicationCode(b);
+
+            if (aIsMag && bIsMag)
+            {
+                return MagazineHelper.GetYear(b).CompareTo(MagazineHelper.GetYear(a));
+            }
+
+            if (aIsMag) return -1;
+            if (bIsMag) return 1;
+
+            return CodeComparisonHelper.Compare(a, b);
         }
     }
 }

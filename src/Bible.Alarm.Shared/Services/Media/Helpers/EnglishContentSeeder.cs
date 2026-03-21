@@ -64,6 +64,23 @@ internal sealed class EnglishContentSeeder
 
             var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
+            // IssueSectioned (magazine) publications with no discovered sections have nothing to seed.
+            // Skip early to avoid creating orphan PublicationLanguage entries that would cause
+            // the UI to show placeholders and retry loops for years with no content.
+            if (MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode))
+            {
+                var hasSectionLanguages = await db.SectionLanguages
+                    .AsNoTracking()
+                    .AnyAsync(sl => sl.PublicationCode == publicationCodeForDb &&
+                                    sl.Language != null &&
+                                    sl.Language.LanguageCode == normalizedLanguageCode, cancellationToken);
+                if (!hasSectionLanguages)
+                {
+                    logger.Information("No SectionLanguage entries for magazine {PublicationCode} in English (no issues discovered). Skipping.", publicationCode);
+                    return true;
+                }
+            }
+
             // Data-driven check: Determine if publication has LanguageId == null
             // Check both BiblePublications and PublicationLanguages to determine if this publication needs a language
             var publicationWithoutLanguage = await db.BiblePublications
@@ -231,6 +248,31 @@ internal sealed class EnglishContentSeeder
                     return await FetchEnglishPublicationSectionsAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, language, category, 
                         categoryName, isVideo, sectionCodes, cancellationToken);
+                }
+
+                case Models.Enums.CatalogType.IssueSectioned:
+                {
+                    var issueSectionCodes = await db.SectionLanguages
+                        .AsNoTracking()
+                        .Where(sl => sl.PublicationCode == publicationCodeForDb &&
+                                     sl.Language != null &&
+                                     sl.Language.LanguageCode == normalizedLanguageCode)
+                        .Select(sl => sl.SectionCode)
+                        .OrderBy(sc => sc)
+                        .ToListAsync(cancellationToken);
+
+                    if (issueSectionCodes.Count == 0)
+                    {
+                        logger.Information("No SectionLanguage entries found for IssueSectioned publication {PublicationCode} in English (no issues discovered for this year). Skipping.", publicationCode);
+                        return true;
+                    }
+
+                    logger.Information("Found {Count} issue section codes for {PublicationCode} from SectionLanguages",
+                        issueSectionCodes.Count, publicationCode);
+
+                    return await FetchEnglishPublicationSectionsAsync(
+                        db, publicationCodeForDb, normalizedLanguageCode, language, category,
+                        categoryName, isVideo, issueSectionCodes, cancellationToken);
                 }
 
                 case Models.Enums.CatalogType.MediatorSectioned:

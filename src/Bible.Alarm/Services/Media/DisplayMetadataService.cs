@@ -156,10 +156,15 @@ public sealed class DisplayMetadataService(
 
     private async Task SetBiblePublicationSectionMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BiblePublicationSection section)
     {
-        // Title: Section name + Track number
+        if (MagazineHelper.IsMagazinePublicationCode(trackMetadata.PublicationCode))
+        {
+            await SetMagazineSectionMetadataAsync(trackMetadata, meta, section);
+            return;
+        }
+
+        // Bible: "Genesis 1" style (section name + chapter number)
         meta.Title = $"{section.Name} {trackMetadata.TrackCode}";
 
-        // SubTitle: Publication name + (jw.org)
         if (biblePublicationService != null)
         {
             var publication = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
@@ -173,8 +178,28 @@ public sealed class DisplayMetadataService(
             }
         }
 
-        // Fallback: keep behavior without pulling full publication list
         meta.Artist = "jw.org";
+    }
+
+    private async Task SetMagazineSectionMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BiblePublicationSection section)
+    {
+        string? trackTitle = null;
+        var sectionCode = SectionCodeHelper.Normalize(trackMetadata.SectionCode);
+        if (!string.IsNullOrWhiteSpace(sectionCode))
+        {
+            var tracks = await mediaService.GetBiblePublicationTracks(
+                trackMetadata.LanguageCode,
+                trackMetadata.PublicationCode,
+                sectionCode);
+
+            if (tracks.TryGetValue(trackMetadata.TrackCode, out var track) && !string.IsNullOrWhiteSpace(track.Title))
+            {
+                trackTitle = track.Title;
+            }
+        }
+
+        meta.Title = !string.IsNullOrWhiteSpace(trackTitle) ? trackTitle : section.Name;
+        meta.Artist = $"{section.Name} (jw.org)";
     }
 
     private Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri, bool skipRemoteArtwork = false)

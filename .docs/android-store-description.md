@@ -27,13 +27,13 @@ Make your New World Translation (NWT) Bible listening schedule easy: set it as a
 <b>Features:</b>
 • Recurring alarms with your choice of Bible publication and language
 • Optional "begin with music"
-• Download for offline playback; playback continues in the background
+• Playback continues in the background
 • <b>Android Auto</b> support: play and control Bible and music from your car
 • System media controls and lock-screen controls
 • Resume by chapter and verse
 • No ads; non-commercial and free
 
-Audio is available in <b>over 240 languages</b>, downloaded from jw.org. Only the New World Translation (NWT) is available for Bible reading.
+Audio is available in many languages, downloaded from jw.org. Only the New World Translation (NWT) is available for Bible reading.
 
 This app is non-commercial and free, with no advertisements; the publisher gains nothing monetarily. The app adheres to the terms of use for third-party apps as stated on jw.org (Jehovah's Witnesses) (https://www.jw.org/en/terms-of-use), which allows the distribution of free non-commercial apps designed to download mp3 and mp4 files from the public areas of the site.
 

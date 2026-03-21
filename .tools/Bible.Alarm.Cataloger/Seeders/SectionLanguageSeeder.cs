@@ -28,6 +28,37 @@ internal sealed class SectionLanguageSeeder
         this.languageSeeder = languageSeeder ?? throw new ArgumentNullException(nameof(languageSeeder));
     }
 
+    /// <summary>
+    /// Pre-seeds SectionLanguage entries for IssueSectioned publications (magazines) before English seeding.
+    /// EnglishContentSeeder needs these entries to know which section codes to fetch for magazine publications.
+    /// Other publication types (Bible, Mediator) derive their section codes from different sources.
+    /// </summary>
+    public async Task SeedMagazineSectionLanguages(MediaDbContext db)
+    {
+        var magazineEntries = dataStore.SectionLanguages
+            .Where(kvp => MagazineHelper.IsMagazinePublicationCode(kvp.Key.PublicationCode))
+            .ToList();
+
+        if (magazineEntries.Count == 0)
+        {
+            return;
+        }
+
+        logger.Information("Pre-seeding discovered languages for {Count} magazine section(s)", magazineEntries.Count);
+
+        foreach (var ((publicationCode, sectionCode), languages) in magazineEntries)
+        {
+            var normalizedSectionCode = sectionCode.ToLowerInvariant();
+            foreach (var (languageCode, _) in languages)
+            {
+                await SeedLanguageForSection(db, publicationCode, normalizedSectionCode, languageCode);
+            }
+        }
+
+        await db.SaveChangesAsync();
+        logger.Information("Pre-seeded magazine section languages");
+    }
+
     public async Task SeedSectionLanguages(MediaDbContext db)
     {
         if (dataStore.SectionLanguages.Count == 0)

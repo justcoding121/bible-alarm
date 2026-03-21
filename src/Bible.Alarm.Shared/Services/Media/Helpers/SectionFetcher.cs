@@ -104,6 +104,8 @@ internal sealed class SectionFetcher
         }
 
         var isBible = category.CategoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var isIssueSectioned = MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
+        var determinedCatalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
         string? localizedPubName = null;
 
         var isMusicPub = categoriesForPub.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
@@ -115,7 +117,7 @@ internal sealed class SectionFetcher
             publication.IsMusic = isMusicPub;
             if (publication.CatalogType == null)
             {
-                publication.CatalogType = CatalogType.Sectioned;
+                publication.CatalogType = determinedCatalogType;
             }
             SyncPublicationCategories(publication, categoriesForPub);
         }
@@ -133,7 +135,7 @@ internal sealed class SectionFetcher
                 LanguageId = language.Id,
                 IsVideo = isVideoDrama,
                 IsMusic = isMusicPub,
-                CatalogType = CatalogType.Sectioned,
+                CatalogType = determinedCatalogType,
                 Tracks = new List<BiblePublicationTrack>(),
                 Sections = new List<BiblePublicationSection>()
             };
@@ -152,10 +154,21 @@ internal sealed class SectionFetcher
 
             try
             {
-                var dramaFileFormat = !isBible && PublicationTypeHelper.IsVideo(normalizedPublicationCode) ? "MP4" : "MP3";
-                var queryString = isBible
-                    ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-                    : $"?output=json&pub={sectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+                var dramaFileFormat = !isBible && !isIssueSectioned && PublicationTypeHelper.IsVideo(normalizedPublicationCode) ? "MP4" : "MP3";
+                string queryString;
+                if (isIssueSectioned)
+                {
+                    var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
+                    queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+                }
+                else if (isBible)
+                {
+                    queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+                }
+                else
+                {
+                    queryString = $"?output=json&pub={sectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+                }
 
                 var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
                 var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, effectiveToken);
@@ -176,19 +189,34 @@ internal sealed class SectionFetcher
                 }
 
                 string? sectionName = null;
-                if (root.TryGetProperty("pubName", out var pubNameElement))
+                if (isIssueSectioned)
+                {
+                    string? pubName = null;
+                    string? formattedDate = null;
+                    if (root.TryGetProperty("pubName", out var pnEl))
+                        pubName = pnEl.GetString();
+                    if (root.TryGetProperty("formattedDate", out var fdEl))
+                        formattedDate = fdEl.GetString();
+                    sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
+                }
+                else if (root.TryGetProperty("pubName", out var pubNameElement))
                 {
                     var rawName = pubNameElement.GetString();
                     sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
                 }
                 if (sectionName == null)
                 {
-                    logger.Debug("Section name (pubName) not found in API response for section {SectionCode} in language {LanguageCode}",
+                    logger.Debug("Section name not found in API response for section {SectionCode} in language {LanguageCode}",
                         sectionCode, normalizedLanguageCode);
                 }
 
                 // Extract localized publication name from first section response
-                if (localizedPubName == null && root.TryGetProperty("parentPubName", out var parentPubNameElement))
+                if (isIssueSectioned && localizedPubName == null)
+                {
+                    localizedPubName = MagazineHelper.GetYear(normalizedPublicationCode).ToString();
+                    publication.Name = localizedPubName;
+                }
+                else if (localizedPubName == null && root.TryGetProperty("parentPubName", out var parentPubNameElement))
                 {
                     var rawName = parentPubNameElement.GetString();
                     var extractedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
@@ -215,7 +243,12 @@ internal sealed class SectionFetcher
                 }
 
                 var tracks = new List<BiblePublicationTrack>();
-                if (isBible)
+                if (isIssueSectioned)
+                {
+                    tracks = trackParser.ParseGenericTracks(
+                        filesElement, normalizedLanguageCode, "MP3", sectionCode);
+                }
+                else if (isBible)
                 {
                     tracks = trackParser.ParseBibleTracks(
                         filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode);

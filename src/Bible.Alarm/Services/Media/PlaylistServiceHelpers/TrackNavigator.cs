@@ -44,10 +44,16 @@ public sealed class TrackNavigator
             scopeFactory,
             logger,
             GetSectionsCachedAsync);
+        CrossPublicationHelper = new TrackNavigatorCrossPublicationHelper(
+            biblePublicationService,
+            GetFirstTrackOfPublicationAsync,
+            GetLastTrackOfPublicationAsync,
+            logger);
     }
 
     private TrackNavigatorNonSectionedHelper NonSectionedHelper { get; }
     private TrackNavigatorSectionCataloger SectionCataloger { get; }
+    private TrackNavigatorCrossPublicationHelper CrossPublicationHelper { get; }
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
@@ -112,8 +118,9 @@ public sealed class TrackNavigator
     /// <summary>
     /// Gets the next Bible track.
     /// For non-sectioned publications, navigates through tracks with wrap at end.
-    /// For sectioned publications, circular queue at publication level: next from last track of last section
-    /// wraps to first track of first section (not within a section).
+    /// For sectioned publications: exhausts all tracks in a section, then moves to the next section.
+    /// At the last section boundary, non-Bible/non-Music categories advance to the next publication;
+    /// Bible and Music categories wrap to the first section of the same publication.
     /// </summary>
     public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(
         string languageCode,
@@ -150,9 +157,20 @@ public sealed class TrackNavigator
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, nextTrack.Value);
         }
 
-        // No next track in this section: go to next section (wrap within same publication).
-        // Cross-publication wrap is not done here because the caller builds the play item with the
-        // current publication code and would fail.
+        // No next track in this section. If this is the last section and the category
+        // supports cross-publication navigation (non-Bible, non-Music), advance to the next publication.
+        var discoveredForNext = await SectionCataloger.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        var orderedForNext = discoveredForNext.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
+        var nextIdx = orderedForNext.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+        if (nextIdx >= 0 && nextIdx == orderedForNext.Count - 1)
+        {
+            var crossPub = await CrossPublicationHelper.TryGetNextAsync(languageCode, publicationCode, sectionFetchProgress);
+            if (crossPub != null)
+            {
+                return crossPub.Value;
+            }
+        }
+
         var nextSection = await GetNextBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode, sectionFetchProgress);
         if (nextSection.Value == null)
         {
@@ -187,8 +205,9 @@ public sealed class TrackNavigator
     /// <summary>
     /// Gets the previous Bible track.
     /// For non-sectioned publications, navigates through tracks with wrap at start.
-    /// For sectioned publications, circular queue at publication level: previous from first track of first section
-    /// wraps to last track of last section (not within a section).
+    /// For sectioned publications: moves to the previous track, then the previous section.
+    /// At the first section boundary, non-Bible/non-Music categories go to the previous publication's last track;
+    /// Bible and Music categories wrap to the last section of the same publication.
     /// </summary>
     public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(
         string languageCode,
@@ -226,9 +245,20 @@ public sealed class TrackNavigator
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, previousTrack.Value);
         }
 
-        // No previous track in this section: go to previous section (wrap within same publication).
-        // Cross-publication wrap is not done here because the caller builds the play item with the
-        // current publication code and would fail (e.g. "Track not found: pub=CurrentPub, track=OtherPubTrackCode").
+        // No previous track in this section. If this is the first section and the category
+        // supports cross-publication navigation (non-Bible, non-Music), go to the previous publication.
+        var discoveredForPrev = await SectionCataloger.GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        var orderedForPrev = discoveredForPrev.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
+        var prevIdx = orderedForPrev.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+        if (prevIdx == 0)
+        {
+            var crossPub = await CrossPublicationHelper.TryGetPreviousAsync(languageCode, publicationCode, sectionFetchProgress);
+            if (crossPub != null)
+            {
+                return crossPub.Value;
+            }
+        }
+
         var previousSection = await GetPreviousBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode, sectionFetchProgress);
         if (previousSection.Value == null)
         {

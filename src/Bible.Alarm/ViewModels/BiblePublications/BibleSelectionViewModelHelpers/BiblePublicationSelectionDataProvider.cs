@@ -377,13 +377,12 @@ public sealed class BiblePublicationSelectionDataProvider
                 // This ensures only one publication is selected at a time
             }
 
-            // Sort publications by publication-code priority for display (nwt first), then by name.
-            vms = PublicationSortHelper.SortByPriority(vms, p => p.Code, p => p.Name).ToList();
+            // Sort publications using category-specific comparer (Bible: nwt first; Magazine: latest year first; etc.)
+            vms = PublicationSortHelper.SortByPriorityForCategory(vms, p => p.Code, p => p.Name, currentCategoryName).ToList();
             
-            // Log sorted order for debugging
-            Log.Debug("PopulatePublicationsAsync: Sorted {Count} publications. First 3: {FirstThree}",
-                vms.Count,
-                string.Join(", ", vms.Take(3).Select(p => $"{p.Code}(priority={PublicationSortHelper.GetPublicationSortPriority(p.Code)})")));
+            Log.Debug("PopulatePublicationsAsync: Sorted {Count} publications for category={Category}. First 3: {FirstThree}",
+                vms.Count, currentCategoryName,
+                string.Join(", ", vms.Take(3).Select(p => p.Code)));
 
             // Determine default publication: after sorting, the first item is the preferred default (nwt first).
             var preferredDefault = vms.FirstOrDefault();

@@ -11,8 +11,10 @@ using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -66,13 +68,25 @@ internal sealed class SectionFetcherSectionTracksLoader
 
         var categoryCode = publication.PrimaryCategory?.CategoryCode ?? "";
         var isBible = categoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
-        var isVideoDrama = !isBible && publication.IsVideo;
+        var isIssueSectioned = publication.CatalogType == CatalogType.IssueSectioned ||
+            MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
+        var isVideoDrama = !isBible && !isIssueSectioned && publication.IsVideo;
         var dramaFileFormat = isVideoDrama ? "MP4" : "MP3";
 
-        // Section-level fetch only (no track=). Response contains all tracks for this section; we parse and create BiblePublicationTrack per file.
-        var queryString = isBible
-            ? $"?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-            : $"?output=json&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        string queryString;
+        if (isIssueSectioned)
+        {
+            var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(normalizedSectionCode);
+            queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+        else if (isBible)
+        {
+            queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+        else
+        {
+            queryString = $"?output=json&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
@@ -93,7 +107,26 @@ internal sealed class SectionFetcherSectionTracksLoader
         }
 
         string? updatedSectionName = null;
-        if (root.TryGetProperty("pubName", out var pubNameElement))
+        if (isIssueSectioned)
+        {
+            string? pubName = null;
+            string? formattedDate = null;
+            if (root.TryGetProperty("pubName", out var pnEl))
+                pubName = pnEl.GetString();
+            if (root.TryGetProperty("formattedDate", out var fdEl))
+                formattedDate = fdEl.GetString();
+            var sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
+            if (!string.IsNullOrEmpty(sectionName))
+            {
+                var oldName = section.Name;
+                updatedSectionName = sectionName;
+                section.Name = sectionName;
+                db.Entry(section).Property(s => s.Name).IsModified = true;
+                logger.Information("Updated magazine section name from API: {OldName} -> {NewName} for section {SectionCode}",
+                    oldName, sectionName, normalizedSectionCode);
+            }
+        }
+        else if (root.TryGetProperty("pubName", out var pubNameElement))
         {
             var rawName = pubNameElement.GetString();
             logger.Debug("Found pubName in API response for section {SectionCode}: rawName={RawName}", normalizedSectionCode, rawName);
@@ -175,6 +208,20 @@ internal sealed class SectionFetcherSectionTracksLoader
                 trackCodeStr = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 trackCode++;
             }
+            else if (isIssueSectioned)
+            {
+                if (trackFile.TryGetProperty("track", out var issueTrackEl) &&
+                    issueTrackEl.ValueKind == JsonValueKind.Number &&
+                    issueTrackEl.TryGetInt32(out var issueTrackNum) &&
+                    issueTrackNum > 0)
+                {
+                    trackCodeStr = issueTrackNum.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    continue;
+                }
+            }
             else if (publication.IsMusic && !publication.IsVideo)
             {
                 if (trackFile.TryGetProperty("track", out var trackNumEl) &&
@@ -252,7 +299,8 @@ internal sealed class SectionFetcherSectionTracksLoader
                 normalizedSectionCode, section.Name, db.Entry(section).Property(s => s.Name).IsModified);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        await SaveTracksWithRetryAsync(db, section, normalizedSectionCode, normalizedPublicationCode,
+            normalizedLanguageCode, tracks.Count, cancellationToken);
         await db.Entry(section).ReloadAsync(cancellationToken);
         var persistedSectionName = section.Name;
 
@@ -264,5 +312,67 @@ internal sealed class SectionFetcherSectionTracksLoader
             tracks.Count, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode, persistedSectionName);
 
         return true;
+    }
+
+    private async Task SaveTracksWithRetryAsync(
+        MediaDbContext db,
+        BiblePublicationSection section,
+        string sectionCode,
+        string publicationCode,
+        string languageCode,
+        int trackCount,
+        CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 4;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+            catch (DbUpdateException ex) when (attempt < maxAttempts && IsSqliteBusyOrLocked(ex))
+            {
+                logger.Debug("SaveChanges locked (attempt {Attempt}/{Max}) for section {SectionCode}, retrying",
+                    attempt, maxAttempts, sectionCode);
+                await Task.Delay(100 * attempt, cancellationToken);
+            }
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            {
+                logger.Warning("Unique constraint on tracks for section {SectionCode} in {PublicationCode}/{LanguageCode} " +
+                    "- another operation likely inserted them concurrently",
+                    sectionCode, publicationCode, languageCode);
+                await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);
+                if (section.Tracks != null && section.Tracks.Count > 0)
+                {
+                    return;
+                }
+                throw;
+            }
+        }
+    }
+
+    private static bool IsSqliteBusyOrLocked(Exception ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+        {
+            if (e is SqliteException sqliteEx)
+            {
+                var code = (int)sqliteEx.SqliteErrorCode;
+                if (code is 5 or 6)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool IsUniqueConstraintViolation(Exception ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+        {
+            if (e is SqliteException sqliteEx && (int)sqliteEx.SqliteErrorCode == 19)
+                return true;
+        }
+        return false;
     }
 }

@@ -3,10 +3,11 @@
 namespace Bible.Alarm.Shared.Models.Enums;
 
 /// <summary>
-/// Defines the three types of cataloging logic for publications:
+/// Defines the cataloging logic types for publications:
 /// - Flat: Music and Video publications using GETPUBMEDIALINKS directly
 /// - Sectioned: Bible and iam (Kingdom Melodies) with Section → Track structure
 /// - MediatorSectioned: Dramas using Mediator API for discovery, then GETPUBMEDIALINKS with section codes
+/// - IssueSectioned: Magazine publications (Watchtower, Awake!) using pub={apiPubCode} and issue={issueCode}
 /// </summary>
 public enum CatalogType
 {
@@ -25,5 +26,12 @@ public enum CatalogType
     /// <summary>
     /// Drama publications using Mediator API for discovery, then GETPUBMEDIALINKS with section codes
     /// </summary>
-    MediatorSectioned = 2
+    MediatorSectioned = 2,
+
+    /// <summary>
+    /// Magazine publications (Watchtower, Awake!) with Section → Track structure.
+    /// Section codes encode both the API pub code and issue code: `{issueCode}-{apiPubCode}`.
+    /// Fetched via `pub={apiPubCode}&amp;issue={issueCode}`.
+    /// </summary>
+    IssueSectioned = 3
 }

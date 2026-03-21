@@ -68,11 +68,18 @@ public sealed class BiblePublicationCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
+            var mediaService = serviceProvider.GetRequiredService<IMediaService>();
+            var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
+            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+            var displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService, categoryNameService, scopeFactory);
+            if (!await displayTextProvider.GetIsLanguageSelectableAsync())
+            {
+                return;
+            }
+
             logger.Information("BibleSelectionContainerViewModel: SelectLanguageCommand - Opening language modal");
             var bibleSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationSelectionViewModel>();
-            logger.Debug("BibleSelectionContainerViewModel: SelectLanguageCommand - Created BibleSelectionViewModel, opening modal");
             await navigationService.OpenLanguageModalAsync(bibleSelectionViewModel);
-            logger.Debug("BibleSelectionContainerViewModel: SelectLanguageCommand - Modal opened");
         });
     }
 
@@ -126,8 +133,15 @@ public sealed class BiblePublicationCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Get Bible reading from CurrentSchedule (already loaded from AlarmDB on page load)
-            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var mediaService = serviceProvider.GetRequiredService<IMediaService>();
+            var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
+            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+            var displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService, categoryNameService, scopeFactory);
+            if (!await displayTextProvider.GetIsSectionSelectableAsync())
+            {
+                return;
+            }
+
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedBiblePublication = scheduleSelectionService.LoadBiblePublicationForSelection(
                 scheduleId,
@@ -159,8 +173,15 @@ public sealed class BiblePublicationCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Get Bible reading from CurrentSchedule (already loaded from AlarmDB on page load)
-            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var mediaService = serviceProvider.GetRequiredService<IMediaService>();
+            var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
+            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+            var displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService, categoryNameService, scopeFactory);
+            if (!await displayTextProvider.GetIsTrackSelectableAsync())
+            {
+                return;
+            }
+
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedBiblePublication = scheduleSelectionService.LoadBiblePublicationForSelection(
                 scheduleId,

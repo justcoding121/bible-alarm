@@ -8,6 +8,7 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -230,7 +231,7 @@ public sealed class TrackNavigatorSectionCataloger
                         Tracks = new List<BiblePublicationTrack>()
                     };
                     publication.Sections.Add(section);
-                    await db.SaveChangesAsync();
+                    await SaveWithRetryAsync(db, sectionCode);
                 }
             }
 
@@ -257,6 +258,40 @@ public sealed class TrackNavigatorSectionCataloger
         {
             logger?.Error(ex, "Error cataloging section");
             return false;
+        }
+    }
+
+    private async Task SaveWithRetryAsync(MediaDbContext db, string context)
+    {
+        const int maxAttempts = 4;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                await db.SaveChangesAsync();
+                return;
+            }
+            catch (DbUpdateException ex) when (attempt < maxAttempts)
+            {
+                var isBusyOrLocked = false;
+                for (var e = (Exception)ex; e != null; e = e.InnerException)
+                {
+                    if (e is SqliteException sqliteEx && (int)sqliteEx.SqliteErrorCode is 5 or 6)
+                    {
+                        isBusyOrLocked = true;
+                        break;
+                    }
+                }
+
+                if (isBusyOrLocked)
+                {
+                    logger?.Debug("SaveChanges locked (attempt {Attempt}/{Max}) for {Context}, retrying",
+                        attempt, maxAttempts, context);
+                    await Task.Delay(100 * attempt);
+                    continue;
+                }
+                throw;
+            }
         }
     }
 

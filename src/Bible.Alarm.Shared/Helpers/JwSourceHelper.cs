@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -493,6 +494,22 @@ public static class JwSourceHelper
     };
 
     /// <summary>
+    /// Publication codes for The Watchtower (Magazine) category (IssueSectioned, MP3 via GETPUBMEDIALINKS with issue=).
+    /// Dynamically generated: w2008..w{MagazineEndYear}.
+    /// </summary>
+    public static HashSet<string> WatchtowerMagazinePublicationCodes =>
+        new(Enumerable.Range(MagazineHelper.MagazineStartYear, MagazineHelper.MagazineEndYear - MagazineHelper.MagazineStartYear + 1)
+            .Select(y => $"w{y}"), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Awake! (Magazine) category (IssueSectioned, MP3 via GETPUBMEDIALINKS with issue=).
+    /// Dynamically generated: g2008..g{MagazineEndYear}.
+    /// </summary>
+    public static HashSet<string> AwakeMagazinePublicationCodes =>
+        new(Enumerable.Range(MagazineHelper.MagazineStartYear, MagazineHelper.MagazineEndYear - MagazineHelper.MagazineStartYear + 1)
+            .Select(y => $"g{y}"), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// All publication codes that use Mediator API for discovery (MediatorSectioned). Used by GetCatalogType and IsVideo.
     /// Excludes flat-audio (Article Series, Books, Yearbooks, Brochures) which use GETPUBMEDIALINKS only.
     /// </summary>
@@ -617,6 +634,8 @@ public static class JwSourceHelper
             foreach (var code in BooksPublicationCodes) set.Add(code);
             foreach (var code in YearbooksPublicationCodes) set.Add(code);
             foreach (var code in BrochuresAndBookletsPublicationCodes) set.Add(code);
+            foreach (var code in WatchtowerMagazinePublicationCodes) set.Add(code);
+            foreach (var code in AwakeMagazinePublicationCodes) set.Add(code);
             return set;
         }
     }
@@ -671,7 +690,9 @@ public static class JwSourceHelper
                 ["Teenagers"] = TeenagersPublicationCodes,
                 ["Activities"] = ActivitiesPublicationCodes,
                 ["Organization"] = OrganizationPublicationCodes,
-                ["ArticleSeries"] = ArticleSeriesPublicationCodes
+                ["ArticleSeries"] = ArticleSeriesPublicationCodes,
+                ["WatchtowerMagazine"] = WatchtowerMagazinePublicationCodes,
+                ["AwakeMagazine"] = AwakeMagazinePublicationCodes
             };
         }
     }

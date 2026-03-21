@@ -60,7 +60,7 @@ public static class PublicationTypeHelper
 
     /// <summary>
     /// Returns true if the publication has a Section → Track structure.
-    /// Only Bible (books 1-66) and Music "iam" (Kingdom Melodies discs) have sections.
+    /// Bible (books 1-66), Music "iam" (Kingdom Melodies discs), and Magazines (issue-based) have sections.
     /// Returns false for dramas, videos, and other music which have a flat Track structure.
     /// </summary>
     public static bool HasSectionStructure(string? publicationCode)
@@ -68,6 +68,12 @@ public static class PublicationTypeHelper
         if (string.IsNullOrEmpty(publicationCode))
         {
             return true; // Default to Bible structure
+        }
+
+        // Magazine publications (Watchtower, Awake!) have issue-based sections
+        if (MagazineHelper.IsMagazinePublicationCode(publicationCode))
+        {
+            return true;
         }
 
         // Only Bible and "iam" (Kingdom Melodies) have sections
@@ -148,6 +154,11 @@ public static class PublicationTypeHelper
             return false;
         }
 
+        if (MagazineHelper.IsMagazinePublicationCode(publicationCode))
+        {
+            return false;
+        }
+
         if (VideoPublicationCodes.Contains(publicationCode) || SeriesVideoPublicationCodes.Contains(publicationCode))
         {
             return true;
@@ -177,6 +188,12 @@ public static class PublicationTypeHelper
         if (string.IsNullOrEmpty(publicationCode))
         {
             return CatalogType.Sectioned; // Default to Bible structure
+        }
+
+        // Magazine publications use issue-based sectioned fetching
+        if (MagazineHelper.IsMagazinePublicationCode(publicationCode))
+        {
+            return CatalogType.IssueSectioned;
         }
 
         // Publications excluded from Mediator use GETPUBMEDIALINKS only (MediatorValidationExclusionCodes is currently empty)

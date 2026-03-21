@@ -164,6 +164,7 @@ public class Program
                 var musicCataloger = new MusicCataloger(catalogerLogger, catalogerDownloadUtility, dataPersister);
                 var mediatorCataloger = new MediatorCataloger(catalogerLogger, catalogerDownloadUtility, dataPersister);
                 var videoCataloger = new VideoCataloger(catalogerLogger, catalogerDownloadUtility, dataPersister);
+                var magazineCataloger = new MagazineCataloger(catalogerLogger, catalogerDownloadUtility, dataPersister);
 
                 // Create a dictionary with publication codes (names will be extracted from API)
                 var biblePublicationCodeToNameMappings = JwSourceHelper.BiblePublicationCodes.ToDictionary(
@@ -174,7 +175,14 @@ public class Program
                 // Discover all languages for all publications and sections using alllangs=1 and langwritten=E
                 logger.Information("=== PHASE 1: DISCOVERY ===");
                 await bibleCataloger.DiscoverLanguages(biblePublicationCodeToNameMappings, isTestRun);
-                // TODO: Add discovery methods for Music, Drama, Video catalogers
+
+                if (publicationFilter == null ||
+                    publicationFilter.Overlaps(JwSourceHelper.WatchtowerMagazinePublicationCodes) ||
+                    publicationFilter.Overlaps(JwSourceHelper.AwakeMagazinePublicationCodes))
+                {
+                    await magazineCataloger.DiscoverLanguagesForMagazines(isTestRun);
+                }
+
                 logger.Information("=== DISCOVERY PHASE COMPLETED ===\n");
 
                 var mediatorLinksValid = await CatalogValidator.ValidateMediatorLinksAsync(catalogerLogger, catalogerDownloadUtility);

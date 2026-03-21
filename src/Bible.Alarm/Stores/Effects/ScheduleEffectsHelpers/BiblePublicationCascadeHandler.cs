@@ -102,83 +102,53 @@ public sealed class BiblePublicationCascadeHandler
         {
             logger.Debug("BiblePublicationCascadeHandler: Using existing publication={PublicationCode} from schedule",
                 existingPublicationCode);
-            
-            // Verify the publication exists and can be queried with the selected language
-            using (var verifyScope = scopeFactory.CreateScope())
+
+            // EnsurePublicationExistsAsync is idempotent: returns true if already cataloged,
+            // catalogs if available in PublicationLanguages but not yet fetched,
+            // returns false if not available for this language at all.
+            var wasCataloged = await languageContentService.EnsurePublicationExistsAsync(existingPublicationCode, languageCode);
+            if (wasCataloged)
             {
-                var verifyDb = verifyScope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
-                var verifyNormalizedLanguageCode = languageCode.ToUpperInvariant();
-                
-                var canQueryWithLanguage = await verifyDb.BiblePublications
-                    .AsNoTracking()
-                    .AnyAsync(bp => bp.PublicationCode == existingPublicationCode && 
-                                   bp.LanguageId != null &&
-                                   bp.Language != null &&
-                                   bp.Language.LanguageCode == verifyNormalizedLanguageCode);
-                
-                if (canQueryWithLanguage)
+                mediaService.InvalidateBiblePublicationsCache(languageCode, categoryName);
+
+                var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
+                var languageModel = new LanguageListViewItemModel(new Language
                 {
-                    var wasCataloged = await languageContentService.EnsurePublicationExistsAsync(existingPublicationCode, languageCode);
-                    if (!wasCataloged)
-                    {
-                        logger.Warning("BiblePublicationCascadeHandler: Failed to catalog existing publication={PublicationCode} for language={LanguageCode}", 
-                            existingPublicationCode, languageCode);
-                        // Fall through to select a new publication
-                    }
-                    else
-                    {
-                        // Invalidate cache after downloading to ensure selectability checks use fresh data
-                        mediaService.InvalidateBiblePublicationsCache(languageCode, categoryName);
-                        // Catalog succeeded - proceed to get section and track
-                        var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
-                        var languageModel = new LanguageListViewItemModel(new Language
-                        {
-                            LanguageCode = languageCode,
-                            Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
-                        }, languageDisplayName);
+                    LanguageCode = languageCode,
+                    Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
+                }, languageDisplayName);
 
-                        var publicationModel = new PublicationListViewItemModel(new Publication
-                        {
-                            PublicationCode = existingPublicationCode,
-                            Name = currentSchedule.BiblePublicationName ?? existingPublicationCode
-                        });
-
-                        var (resultSectionCode, resultTrackCode, resultSectionName, resultTrackTitle) =
-                            await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
-
-                        if (string.IsNullOrWhiteSpace(resultTrackCode))
-                        {
-                            logger.Warning("BiblePublicationCascadeHandler: No valid track found for existing publication={PublicationCode} after cataloging", existingPublicationCode);
-                            // Fall through to select a new publication
-                        }
-                        else
-                        {
-                            var existingPublicationName = currentSchedule.BiblePublicationName ?? existingPublicationCode;
-                            var sectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(verifyDb, existingPublicationCode, languageCode);
-                            var existingTracks = await mediaService.GetBiblePublicationTracks(languageCode, existingPublicationCode, SectionCodeHelper.Normalize(resultSectionCode));
-                            var existingTrackCount = existingTracks?.Count;
-        BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
-            logger,
-            currentSchedule,
-            existingPublicationCode,
-            existingPublicationName,
-            resultSectionCode,
-            resultSectionName,
-            resultTrackCode,
-            resultTrackTitle,
-            publicationModalItemCount,
-            sectionModalItemCount,
-            existingTrackCount,
-            dispatcher);
-            return;
-                        }
-                    }
-                }
-                else
+                var publicationModel = new PublicationListViewItemModel(new Publication
                 {
-                    logger.Debug("BiblePublicationCascadeHandler: Existing publication={PublicationCode} cannot be queried with language={LanguageCode}, will select new publication",
-                        existingPublicationCode, languageCode);
+                    PublicationCode = existingPublicationCode,
+                    Name = currentSchedule.BiblePublicationName ?? existingPublicationCode
+                });
+
+                var (resultSectionCode, resultTrackCode, resultSectionName, resultTrackTitle) =
+                    await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
+
+                if (!string.IsNullOrWhiteSpace(resultTrackCode))
+                {
+                    var existingPublicationName = currentSchedule.BiblePublicationName ?? existingPublicationCode;
+                    using var verifyScope = scopeFactory.CreateScope();
+                    var verifyDb = verifyScope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
+                    var sectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(verifyDb, existingPublicationCode, languageCode);
+                    var existingTracks = await mediaService.GetBiblePublicationTracks(languageCode, existingPublicationCode, SectionCodeHelper.Normalize(resultSectionCode));
+                    var existingTrackCount = existingTracks?.Count;
+                    BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
+                        logger, currentSchedule, existingPublicationCode, existingPublicationName,
+                        resultSectionCode, resultSectionName, resultTrackCode, resultTrackTitle,
+                        publicationModalItemCount, sectionModalItemCount, existingTrackCount, dispatcher);
+                    return;
                 }
+
+                logger.Warning("BiblePublicationCascadeHandler: No valid track found for existing publication={PublicationCode} after cataloging",
+                    existingPublicationCode);
+            }
+            else
+            {
+                logger.Debug("BiblePublicationCascadeHandler: Existing publication={PublicationCode} not available for language={LanguageCode}, selecting new publication",
+                    existingPublicationCode, languageCode);
             }
         }
 
@@ -207,9 +177,9 @@ public sealed class BiblePublicationCascadeHandler
         var publicationLanguages = await query
             .ToListAsync();
         
-        // Sort by priority: nwt first, then bi12, then others, then by ID as tiebreaker
+        // Sort by category-specific priority (Bible: nwt first; Magazine: latest year first; etc.)
         publicationLanguages = publicationLanguages
-            .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.PublicationCodeComparer)
+            .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName))
             .ThenBy(pl => pl.Id)
             .ToList();
 

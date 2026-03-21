@@ -137,7 +137,15 @@ internal class DbSeeder : IDataPersister
         // Seed MelodyMusic publications (instrumental music without language)
         // This must happen before SeedEnglish() because SeedEnglish() skips publications with LanguageId == null
         await melodyMusicSeeder.SeedMelodyMusic();
-        
+
+        // Pre-seed SectionLanguages for IssueSectioned (magazine) publications before English seeding.
+        // EnglishContentSeeder queries SectionLanguages to determine which section codes to fetch for magazines.
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            await sectionLanguageSeeder.SeedMagazineSectionLanguages(db);
+        }
+
         // Seed English using shared FetchAndSave* methods (same as used for other languages in test mode)
         // This happens after discovery tables are seeded, using the same methods that are used for on-demand fetching
         await englishSeeder.SeedEnglish(publicationFilter, failedListPath);

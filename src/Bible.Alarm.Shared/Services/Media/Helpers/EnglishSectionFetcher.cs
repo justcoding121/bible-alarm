@@ -121,11 +121,26 @@ internal sealed class EnglishSectionFetcher
         string fileFormat,
         CancellationToken cancellationToken)
     {
-        var queryString = isBible
-            ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}"
-            : publicationWithoutLanguage
-                ? $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten=E"
-                : $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        var isIssueSectioned = MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
+
+        string queryString;
+        if (isIssueSectioned)
+        {
+            var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
+            queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+        else if (isBible)
+        {
+            queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
+        else if (publicationWithoutLanguage)
+        {
+            queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten=E";
+        }
+        else
+        {
+            queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        }
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
@@ -141,15 +156,23 @@ internal sealed class EnglishSectionFetcher
             return null;
         }
 
-        // Extract section name
         string? sectionName = null;
-        if (root.TryGetProperty("pubName", out var pubNameElement))
+        if (isIssueSectioned)
+        {
+            string? pubName = null;
+            string? formattedDate = null;
+            if (root.TryGetProperty("pubName", out var pnElement))
+                pubName = pnElement.GetString();
+            if (root.TryGetProperty("formattedDate", out var fdElement))
+                formattedDate = fdElement.GetString();
+            sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
+        }
+        else if (root.TryGetProperty("pubName", out var pubNameElement))
         {
             var rawName = pubNameElement.GetString();
             sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
         }
 
-        // Create section
         var section = new BiblePublicationSection
         {
             Name = sectionName ?? sectionCode,
@@ -157,9 +180,13 @@ internal sealed class EnglishSectionFetcher
             Tracks = new List<BiblePublicationTrack>()
         };
 
-        // Parse tracks based on publication type
-        // Publications without language use the same parsing as "iam" (melody music pattern)
-        if (publicationWithoutLanguage)
+        if (isIssueSectioned)
+        {
+            var tracks = trackParser.ParseGenericTracks(
+                filesElement, normalizedLanguageCode, "MP3", sectionCode);
+            section.Tracks.AddRange(tracks);
+        }
+        else if (publicationWithoutLanguage)
         {
             var tracks = trackParser.ParseIamTracks(filesElement, sectionCode);
             section.Tracks.AddRange(tracks);
@@ -189,6 +216,12 @@ internal sealed class EnglishSectionFetcher
         string fileFormat,
         CancellationToken cancellationToken)
     {
+        if (MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode))
+        {
+            var year = MagazineHelper.GetYear(normalizedPublicationCode);
+            return year.ToString();
+        }
+
         // For publications without language (like instrumental music), try to get name from database
         // If not found, use a generic name based on category
         if (publicationWithoutLanguage)

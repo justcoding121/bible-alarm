@@ -9,7 +9,7 @@ Use these in **App Store Connect** for the iOS app. All fields are **plain text*
 Appears at the top of the description. You can change it without submitting a new version. **You can leave this blank**; Apple does not require it.
 
 ```
-Wake up to the Bible—set your reminder, pick your language, and start the day with JW.org audio. CarPlay, 240+ languages, optional music. Free, no ads, no subscriptions.
+Wake up to the Bible—set your reminder, pick your language, and start the day with JW.org audio. CarPlay, many languages, Free, no ads, no subscriptions.
 ```
 
 ---
@@ -24,13 +24,13 @@ Make your New World Translation (NWT) Bible listening schedule easy: set it as a
 Features:
 • Recurring reminders with your choice of Bible publication and language
 • Optional "begin with music" (Kingdom Melodies or vocal music)
-• Download for offline playback; playback continues in the background
+• Playback continues in the background
 • CarPlay support: play and control Bible and music from your car
 • System media controls and lock-screen controls
 • Resume by chapter and verse
 • No ads; non-commercial and free
 
-Audio is available in 240+ languages, downloaded from jw.org. Only the New World Translation (NWT) is available for Bible reading.
+Audio is available in many languages, downloaded from jw.org. Only the New World Translation (NWT) is available for Bible reading.
 
 This app is non-commercial and free, with no advertisements; the publisher gains nothing monetarily. The app adheres to the terms of use for third-party apps as stated on jw.org (Jehovah's Witnesses) (https://www.jw.org/en/terms-of-use), which allows the distribution of free non-commercial apps designed to download mp3 and mp4 files from public areas of the site.
 

@@ -208,6 +208,20 @@ internal static class CatalogValidator
         foreach (var publicationCode in codesToValidate)
         {
             var codeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(publicationCode.ToLowerInvariant()) ?? publicationCode;
+
+            // Magazine publications with no discovered issues (future years, empty years) are expected to have no content
+            if (MagazineHelper.IsMagazinePublicationCode(publicationCode))
+            {
+                var hasDiscoveredSections = await db.SectionLanguages
+                    .AsNoTracking()
+                    .AnyAsync(sl => sl.PublicationCode == codeForDb);
+                if (!hasDiscoveredSections)
+                {
+                    logger.Debug("CatalogValidator E-seed: Skipping magazine {PublicationCode} (no issues discovered)", publicationCode);
+                    continue;
+                }
+            }
+
             var pub = await db.BiblePublications
                 .AsNoTracking()
                 .Include(bp => bp.Language)

@@ -41,7 +41,9 @@ internal sealed class CategorySeeder
             "Teenagers",
             "Activities",
             "Organization",
-            "ArticleSeries"
+            "ArticleSeries",
+            "WatchtowerMagazine",
+            "AwakeMagazine"
         };
 
         foreach (var code in categoryCodes)

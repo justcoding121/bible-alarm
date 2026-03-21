@@ -528,7 +528,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 codes.Add(code);
             }
 
-            var comparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryCode);
+            var comparer = PublicationCodeHelper.GetNavigationComparerForCategory(categoryCode);
             return codes.OrderBy(c => c, comparer).ToList();
         }
         catch (Exception ex)
