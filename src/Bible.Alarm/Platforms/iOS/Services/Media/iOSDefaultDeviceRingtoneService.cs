@@ -1,12 +1,20 @@
 #nullable enable
 
-using AudioToolbox;
+using System.Runtime.InteropServices;
 using Bible.Alarm.Services.Media.Interfaces;
 using Foundation;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Media;
+
+internal static partial class AudioToolboxNative
+{
+    private const string AudioToolboxFramework = "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox";
+
+    [DllImport(AudioToolboxFramework, EntryPoint = "AudioServicesPlaySystemSound")]
+    internal static extern void AudioServicesPlaySystemSound(uint inSystemSoundId);
+}
 
 /// <summary>
 /// iOS does not expose the user default ringtone URI to apps. Repeats a system alert sound until stopped.
@@ -60,6 +68,6 @@ public sealed class iOSDefaultDeviceRingtoneService(ILogger logger) : IDefaultDe
 
     private static void PlayAlertOnce()
     {
-        AudioServicesPlaySystemSound(1005);
+        AudioToolboxNative.AudioServicesPlaySystemSound(1005);
     }
 }
