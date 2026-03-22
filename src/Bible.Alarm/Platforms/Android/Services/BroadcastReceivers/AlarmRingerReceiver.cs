@@ -139,6 +139,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         catch (Exception e)
         {
             logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
             Dispose();
         }
         finally

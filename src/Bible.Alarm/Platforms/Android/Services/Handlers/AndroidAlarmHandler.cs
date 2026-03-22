@@ -22,6 +22,7 @@ public sealed class AndroidAlarmHandler(
         if (isAlarm && playbackState.Value.IsPreparingOrPlaying)
         {
             logger.Information("Alarm triggered for schedule {ScheduleId} while playback is already active - skipping to avoid interrupting current playback", scheduleId);
+            Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
             Dispose();
             return;
         }
@@ -31,6 +32,8 @@ public sealed class AndroidAlarmHandler(
 
         if (schedule == null)
         {
+            logger.Warning("Schedule {ScheduleId} not found - stopping foreground service", scheduleId);
+            Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
             Dispose();
             return;
         }
@@ -76,13 +79,9 @@ public sealed class AndroidAlarmHandler(
         // - Do NOT show any notifications or sounds for user-initiated playback
         if (!isAlarm)
         {
-            // User-initiated playback (notification tap or manual request) - start playback silently
-            // Remove any existing notifications since user is starting playback
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
             logger.Information("User-initiated playback for schedule {ScheduleId} - starting playback directly without notifications", scheduleId);
 
-            // For user-initiated playback, directly call PrepareAndPlayAsync without going through alarm handler logic
-            // This ensures no foreground service calls or notification sounds
             await Task.Run(async () =>
             {
                 try
@@ -92,6 +91,7 @@ public sealed class AndroidAlarmHandler(
                 catch (Exception e)
                 {
                     logger.Error(e, "An error happened when starting user-initiated playback.");
+                    Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
                     Dispose();
                 }
             });
@@ -99,19 +99,16 @@ public sealed class AndroidAlarmHandler(
             return;
         }
 
-        // MediaManager removed - using MediaElement instead
-
         await Task.Run(async () =>
         {
             try
             {
                 await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm);
-
-                // Notification manager removed - using MediaElement instead
             }
             catch (Exception e)
             {
                 logger.Error(e, "An error happened when ringing the alarm.");
+                Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
                 Dispose();
             }
         });
