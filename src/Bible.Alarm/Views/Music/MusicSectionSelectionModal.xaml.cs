@@ -75,7 +75,11 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
 
     private async void OnSectionItemTapped(object? sender, TappedEventArgs e)
     {
-        // Cancel any ongoing scroll operation to prevent race conditions
+        if (sender is not View view || view.BindingContext is not BiblePublicationSectionListViewItemModel sectionItem)
+        {
+            return;
+        }
+
         try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingSection)
@@ -83,38 +87,31 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
             return;
         }
 
-        if (sender is View view && view.BindingContext is BiblePublicationSectionListViewItemModel sectionItem)
+        isSelectingSection = true;
+
+        sectionItem.IsNavigating = true;
+        await Task.Delay(50);
+
+        try
         {
-            isSelectingSection = true;
-
-            // Show row indicator immediately (progress will be set by command handler only if fetch happens)
-            sectionItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
-
-            try
+            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand)
             {
-                if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand)
+                if (asyncCommand.CanExecute(sectionItem))
                 {
-                    if (asyncCommand.CanExecute(sectionItem))
-                    {
-                        await asyncCommand.ExecuteAsync(sectionItem);
-                    }
+                    await asyncCommand.ExecuteAsync(sectionItem);
                 }
             }
-            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
-            {
-                await Task.Delay(500);
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
-            }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                sectionItem.IsNavigating = false;
-                isSelectingSection = false;
-            }
+        }
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+        {
+            await Task.Delay(500);
+            await navigationService.PopModalAsync();
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+        }
+        finally
+        {
+            sectionItem.IsNavigating = false;
+            isSelectingSection = false;
         }
     }
 }

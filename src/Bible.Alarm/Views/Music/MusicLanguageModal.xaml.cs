@@ -81,7 +81,11 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {
-        // Hide keyboard when list item is tapped
+        if (sender is not View view || view.BindingContext is not LanguageListViewItemModel languageItem)
+        {
+            return;
+        }
+
         UnfocusSearchEntry();
 
         try { await cancellationTokenSource.CancelAsync(); } catch { }
@@ -91,35 +95,32 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             return;
         }
 
-        if (sender is View view && view.BindingContext is LanguageListViewItemModel languageItem)
+        isSelectingLanguage = true;
+
+        languageItem.IsNavigating = true;
+        await Task.Delay(50);
+
+        try
         {
-            isSelectingLanguage = true;
-
-            languageItem.IsNavigating = true;
-            await Task.Delay(50);
-
-            try
+            if (ViewModel is MusicPublicationSelectionViewModel musicPublicationViewModel)
             {
-                if (ViewModel is MusicPublicationSelectionViewModel musicPublicationViewModel)
+                if (musicPublicationViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
                 {
-                    if (musicPublicationViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
-                    {
-                        if (asyncCommand.CanExecute(languageItem))
-                            await asyncCommand.ExecuteAsync(languageItem);
-                    }
+                    if (asyncCommand.CanExecute(languageItem))
+                        await asyncCommand.ExecuteAsync(languageItem);
                 }
             }
-            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
-            {
-                await Task.Delay(500);
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
-            }
-            finally
-            {
-                languageItem.IsNavigating = false;
-                isSelectingLanguage = false;
-            }
+        }
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+        {
+            await Task.Delay(500);
+            await navigationService.PopModalAsync();
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+        }
+        finally
+        {
+            languageItem.IsNavigating = false;
+            isSelectingLanguage = false;
         }
     }
 

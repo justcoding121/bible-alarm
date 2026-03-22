@@ -61,6 +61,11 @@ public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
+        if (sender is not View view || view.BindingContext is not MusicTrackListViewItemModel trackItem)
+        {
+            return;
+        }
+
         try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingTrack)
@@ -68,31 +73,28 @@ public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
             return;
         }
 
-        if (sender is View view && view.BindingContext is MusicTrackListViewItemModel trackItem)
+        isSelectingTrack = true;
+
+        trackItem.IsNavigating = true;
+        await Task.Delay(50);
+
+        try
         {
-            isSelectingTrack = true;
-
-            trackItem.IsNavigating = true;
-            await Task.Delay(50);
-
-            try
+            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand)
             {
-                if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand)
-                {
-                    if (asyncCommand.CanExecute(trackItem))
-                        await asyncCommand.ExecuteAsync(trackItem);
-                }
+                if (asyncCommand.CanExecute(trackItem))
+                    await asyncCommand.ExecuteAsync(trackItem);
             }
-            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
-            {
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
-            }
-            finally
-            {
-                trackItem.IsNavigating = false;
-                isSelectingTrack = false;
-            }
+        }
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+        {
+            await navigationService.PopModalAsync();
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+        }
+        finally
+        {
+            trackItem.IsNavigating = false;
+            isSelectingTrack = false;
         }
     }
 }

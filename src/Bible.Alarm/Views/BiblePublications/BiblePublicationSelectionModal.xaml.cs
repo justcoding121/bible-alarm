@@ -76,7 +76,11 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
 
     private async void OnPublicationItemTapped(object? sender, TappedEventArgs e)
     {
-        // Cancel any ongoing scroll operation to prevent race conditions
+        if (sender is not View view || view.BindingContext is not PublicationListViewItemModel publicationItem)
+        {
+            return;
+        }
+
         try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingPublication)
@@ -84,45 +88,36 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
             return;
         }
 
-        if (sender is View view && view.BindingContext is PublicationListViewItemModel publicationItem)
+        isSelectingPublication = true;
+
+        if (ViewModel != null && ViewModel.IsBusy)
         {
-            isSelectingPublication = true;
+            ViewModel.IsBusy = false;
+        }
 
-            // Ensure overlay is hidden when user selects a publication
-            // This prevents overlay from staying visible if cancellation happens before HandleModalAppearingAsync completes
-            if (ViewModel != null && ViewModel.IsBusy)
+        publicationItem.IsNavigating = true;
+        await Task.Delay(50);
+
+        try
+        {
+            if (ViewModel != null && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
             {
-                ViewModel.IsBusy = false;
-            }
-
-            // Show row indicator immediately (progress will be set by command handler only if fetch happens)
-            publicationItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
-
-            try
-            {
-                if (ViewModel != null && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
+                if (asyncCommand.CanExecute(publicationItem))
                 {
-                    if (asyncCommand.CanExecute(publicationItem))
-                    {
-                        await asyncCommand.ExecuteAsync(publicationItem);
-                    }
+                    await asyncCommand.ExecuteAsync(publicationItem);
                 }
             }
-            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
-            {
-                await Task.Delay(500);
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
-            }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                publicationItem.IsNavigating = false;
-                isSelectingPublication = false;
-            }
+        }
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+        {
+            await Task.Delay(500);
+            await navigationService.PopModalAsync();
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+        }
+        finally
+        {
+            publicationItem.IsNavigating = false;
+            isSelectingPublication = false;
         }
     }
 }

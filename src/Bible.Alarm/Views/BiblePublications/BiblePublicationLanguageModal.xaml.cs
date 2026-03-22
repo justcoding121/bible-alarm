@@ -139,10 +139,13 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
 
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {
-        // Hide keyboard when list item is tapped
+        if (sender is not View view || view.BindingContext is not LanguageListViewItemModel languageItem)
+        {
+            return;
+        }
+
         UnfocusSearchEntry();
 
-        // Cancel any ongoing scroll operation to prevent race conditions
         try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingLanguage)
@@ -150,41 +153,34 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
             return;
         }
 
-        if (sender is View view && view.BindingContext is LanguageListViewItemModel languageItem)
+        isSelectingLanguage = true;
+
+        languageItem.IsNavigating = true;
+        await Task.Delay(50);
+
+        try
         {
-            isSelectingLanguage = true;
-
-            // Set IsNavigating immediately to show progress indicator (progress will be set by command handler only if fetch happens)
-            languageItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
-
-            try
+            if (ViewModel is BiblePublicationSelectionViewModel bibleSelectionViewModel)
             {
-                if (ViewModel is BiblePublicationSelectionViewModel bibleSelectionViewModel)
+                if (bibleSelectionViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
                 {
-                    if (bibleSelectionViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
+                    if (asyncCommand.CanExecute(languageItem))
                     {
-                        if (asyncCommand.CanExecute(languageItem))
-                        {
-                            await asyncCommand.ExecuteAsync(languageItem);
-                        }
+                        await asyncCommand.ExecuteAsync(languageItem);
                     }
                 }
             }
-            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
-            {
-                await Task.Delay(500);
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
-            }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                languageItem.IsNavigating = false;
-                isSelectingLanguage = false;
-            }
+        }
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+        {
+            await Task.Delay(500);
+            await navigationService.PopModalAsync();
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+        }
+        finally
+        {
+            languageItem.IsNavigating = false;
+            isSelectingLanguage = false;
         }
     }
 

@@ -53,32 +53,29 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
-        // Cancel any ongoing scroll operation to prevent race conditions
+        if (sender is not View view || view.BindingContext is not NumberOfTracksListViewItemModel trackItem)
+        {
+            return;
+        }
+
         try { await cancellationTokenSource.CancelAsync(); } catch { }
 
-        if (sender is View view && view.BindingContext is NumberOfTracksListViewItemModel trackItem)
-        {
-            // Set IsNavigating immediately to show progress indicator
-            trackItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
+        trackItem.IsNavigating = true;
+        await Task.Delay(50);
 
-            try
+        try
+        {
+            if (ViewModel != null && ViewModel.SelectNumberOfTracksCommand is IAsyncRelayCommand<NumberOfTracksListViewItemModel> asyncCommand)
             {
-                if (ViewModel != null && ViewModel.SelectNumberOfTracksCommand is IAsyncRelayCommand<NumberOfTracksListViewItemModel> asyncCommand)
+                if (asyncCommand.CanExecute(trackItem))
                 {
-                    if (asyncCommand.CanExecute(trackItem))
-                    {
-                        await asyncCommand.ExecuteAsync(trackItem);
-                    }
+                    await asyncCommand.ExecuteAsync(trackItem);
                 }
             }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                trackItem.IsNavigating = false;
-            }
+        }
+        finally
+        {
+            trackItem.IsNavigating = false;
         }
     }
 

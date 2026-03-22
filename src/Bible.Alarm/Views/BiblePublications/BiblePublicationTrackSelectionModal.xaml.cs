@@ -63,7 +63,11 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
-        // Cancel any ongoing scroll operation to prevent race conditions
+        if (sender is not View view || view.BindingContext is not BiblePublicationTrackListViewItemModel trackItem)
+        {
+            return;
+        }
+
         try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingTrack)
@@ -71,37 +75,30 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
             return;
         }
 
-        if (sender is View view && view.BindingContext is BiblePublicationTrackListViewItemModel trackItem)
+        isSelectingTrack = true;
+
+        trackItem.IsNavigating = true;
+        await Task.Delay(50);
+
+        try
         {
-            isSelectingTrack = true;
-
-            // Set IsNavigating immediately to show progress indicator
-            trackItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
-
-            try
+            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand)
             {
-                if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand)
+                if (asyncCommand.CanExecute(trackItem))
                 {
-                    if (asyncCommand.CanExecute(trackItem))
-                    {
-                        await asyncCommand.ExecuteAsync(trackItem);
-                    }
+                    await asyncCommand.ExecuteAsync(trackItem);
                 }
             }
-            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
-            {
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
-            }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                trackItem.IsNavigating = false;
-                isSelectingTrack = false;
-            }
+        }
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+        {
+            await navigationService.PopModalAsync();
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+        }
+        finally
+        {
+            trackItem.IsNavigating = false;
+            isSelectingTrack = false;
         }
     }
 }

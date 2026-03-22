@@ -56,6 +56,11 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
 
     private async void OnCategoryItemTapped(object? sender, TappedEventArgs e)
     {
+        if (sender is not View view || view.BindingContext is not CategoryListViewItemModel categoryItem)
+        {
+            return;
+        }
+
         try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingCategory)
@@ -63,43 +68,33 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
             return;
         }
 
-        if (sender is View view && view.BindingContext is CategoryListViewItemModel categoryItem)
+        isSelectingCategory = true;
+
+        categoryItem.IsNavigating = true;
+        await Task.Delay(50);
+
+        try
         {
-            isSelectingCategory = true;
-
-            // Set IsNavigating immediately to show progress indicator
-            categoryItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
-
-            try
+            if (ViewModel is CategorySelectionViewModel categoryViewModel)
             {
-                if (ViewModel is CategorySelectionViewModel categoryViewModel)
+                if (categoryViewModel.SelectCategoryCommand is IAsyncRelayCommand<CategoryListViewItemModel> asyncCommand)
                 {
-                    // Do NOT mark as selected here - selection only changes on fetch success.
-                    // If fetch fails, the tapped item must not appear selected.
-                    // Execute select command which dispatches action and closes modal
-                    if (categoryViewModel.SelectCategoryCommand is IAsyncRelayCommand<CategoryListViewItemModel> asyncCommand)
+                    if (asyncCommand.CanExecute(categoryItem))
                     {
-                        if (asyncCommand.CanExecute(categoryItem))
-                        {
-                            await asyncCommand.ExecuteAsync(categoryItem);
-                        }
+                        await asyncCommand.ExecuteAsync(categoryItem);
                     }
                 }
             }
-            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
-            {
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
-            }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                categoryItem.IsNavigating = false;
-                isSelectingCategory = false;
-            }
+        }
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+        {
+            await navigationService.PopModalAsync();
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+        }
+        finally
+        {
+            categoryItem.IsNavigating = false;
+            isSelectingCategory = false;
         }
     }
 
