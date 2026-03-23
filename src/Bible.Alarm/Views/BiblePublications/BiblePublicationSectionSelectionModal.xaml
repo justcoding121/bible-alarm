@@ -23,7 +23,6 @@
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
-            Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
             BackgroundColor="{DynamicResource BackgroundColor}"
             ColumnSpacing="0"
             RowSpacing="0"
@@ -160,7 +159,7 @@
             <!-- Close Button - SfEffectsView for WinUI only -->
             <core:SfEffectsView Grid.Row="2"
                 x:Name="CloseButtonEffectsView"
-                Margin="16,8,16,16"
+                Margin="{DynamicResource MarginThicknessModalClose}"
                 TouchDownEffects="Ripple"
                 TouchUpEffects="None"
                 RippleBackground="{DynamicResource PrimaryColor}"
@@ -202,7 +201,7 @@
             <!-- Regular button for Android/iOS -->
             <Border Grid.Row="2"
                 x:Name="CloseButtonNoEffects"
-                Margin="16,8,16,16"
+                Margin="{DynamicResource MarginThicknessModalClose}"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 HorizontalOptions="Fill"
                 Padding="{OnPlatform Android='20,6,20,10', iOS='20,12', Default='20,12'}"

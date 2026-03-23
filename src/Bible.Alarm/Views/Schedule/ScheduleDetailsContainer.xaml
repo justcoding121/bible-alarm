@@ -82,6 +82,7 @@
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Sunday}">
                         <Binding Path="DaysOfWeek" />
                         <Binding Path="IsEnabled" />
+                        <Binding Path="ThemeVersion" />
                     </MultiBinding>
                 </Border.BackgroundColor>
                 <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
@@ -98,6 +99,7 @@
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
                             <Binding Path="DaysOfWeek" />
                             <Binding Path="IsEnabled" />
+                            <Binding Path="ThemeVersion" />
                         </MultiBinding>
                     </Button.TextColor>
                 </Button>
@@ -116,6 +118,7 @@
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Monday}">
                         <Binding Path="DaysOfWeek" />
                         <Binding Path="IsEnabled" />
+                        <Binding Path="ThemeVersion" />
                     </MultiBinding>
                 </Border.BackgroundColor>
                 <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
@@ -132,6 +135,7 @@
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
                             <Binding Path="DaysOfWeek" />
                             <Binding Path="IsEnabled" />
+                            <Binding Path="ThemeVersion" />
                         </MultiBinding>
                     </Button.TextColor>
                 </Button>
@@ -150,6 +154,7 @@
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Tuesday}">
                         <Binding Path="DaysOfWeek" />
                         <Binding Path="IsEnabled" />
+                        <Binding Path="ThemeVersion" />
                     </MultiBinding>
                 </Border.BackgroundColor>
                 <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
@@ -166,6 +171,7 @@
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
                             <Binding Path="DaysOfWeek" />
                             <Binding Path="IsEnabled" />
+                            <Binding Path="ThemeVersion" />
                         </MultiBinding>
                     </Button.TextColor>
                 </Button>
@@ -184,6 +190,7 @@
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Wednesday}">
                         <Binding Path="DaysOfWeek" />
                         <Binding Path="IsEnabled" />
+                        <Binding Path="ThemeVersion" />
                     </MultiBinding>
                 </Border.BackgroundColor>
                 <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
@@ -200,6 +207,7 @@
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
                             <Binding Path="DaysOfWeek" />
                             <Binding Path="IsEnabled" />
+                            <Binding Path="ThemeVersion" />
                         </MultiBinding>
                     </Button.TextColor>
                 </Button>
@@ -218,6 +226,7 @@
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Thursday}">
                         <Binding Path="DaysOfWeek" />
                         <Binding Path="IsEnabled" />
+                        <Binding Path="ThemeVersion" />
                     </MultiBinding>
                 </Border.BackgroundColor>
                 <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
@@ -234,6 +243,7 @@
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
                             <Binding Path="DaysOfWeek" />
                             <Binding Path="IsEnabled" />
+                            <Binding Path="ThemeVersion" />
                         </MultiBinding>
                     </Button.TextColor>
                 </Button>
@@ -252,6 +262,7 @@
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Friday}">
                         <Binding Path="DaysOfWeek" />
                         <Binding Path="IsEnabled" />
+                        <Binding Path="ThemeVersion" />
                     </MultiBinding>
                 </Border.BackgroundColor>
                 <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
@@ -268,6 +279,7 @@
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
                             <Binding Path="DaysOfWeek" />
                             <Binding Path="IsEnabled" />
+                            <Binding Path="ThemeVersion" />
                         </MultiBinding>
                     </Button.TextColor>
                 </Button>
@@ -286,6 +298,7 @@
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Saturday}">
                         <Binding Path="DaysOfWeek" />
                         <Binding Path="IsEnabled" />
+                        <Binding Path="ThemeVersion" />
                     </MultiBinding>
                 </Border.BackgroundColor>
                 <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
@@ -302,6 +315,7 @@
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
                             <Binding Path="DaysOfWeek" />
                             <Binding Path="IsEnabled" />
+                            <Binding Path="ThemeVersion" />
                         </MultiBinding>
                     </Button.TextColor>
                 </Button>

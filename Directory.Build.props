@@ -32,7 +32,6 @@
     <MaxCpuCount>0</MaxCpuCount>
     
     <!-- Android-specific debug optimizations for fastest deployment -->
-    <AndroidUseSharedRuntime Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidUseSharedRuntime>
     <AndroidLinkMode Condition="'$(TargetFramework)' == 'net10.0-android'">None</AndroidLinkMode>
     <AndroidUseAapt2 Condition="'$(TargetFramework)' == 'net10.0-android'">true</AndroidUseAapt2>
     <AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidCreatePackagePerAbi>

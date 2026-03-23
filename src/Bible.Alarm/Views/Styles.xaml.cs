@@ -196,19 +196,23 @@ public partial class Styles : ResourceDictionary
         this["MarginThickness0_24_0_0"] = new Thickness(0, marginXLarge, 0, 0);
         this["MarginThickness16_0"] = new Thickness(marginLarge, 0, marginLarge, 0);
         this["MarginThickness16_0_16_0"] = new Thickness(marginLarge, 0, marginLarge, 0);
-        // Platform-specific top margins for safe area (scale with font size)
-        // iOS: 20pt base, Android: 24pt base
-        if (currentPlatform == DevicePlatform.iOS)
+
+        this["MarginThicknessModalClose"] = new Thickness(paddingLarge, paddingMedium, paddingLarge, paddingLarge);
+
+        if (currentPlatform == DevicePlatform.Android)
         {
-            this["MarginThicknessTopSafeArea"] = new Thickness(0, 20.0 * fontScaleFactor, 0, 0);
+            this["MarginThicknessNotificationFloatingButton"] = new Thickness(marginXLarge, 0, 0, marginXLarge);
+            this["MarginThicknessAlarmSettingsFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
         }
-        else if (currentPlatform == DevicePlatform.Android)
+        else if (currentPlatform == DevicePlatform.iOS)
         {
-            this["MarginThicknessTopSafeArea"] = new Thickness(0, 24.0 * fontScaleFactor, 0, 0);
+            this["MarginThicknessNotificationFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
+            this["MarginThicknessAlarmSettingsFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
         }
         else
         {
-            this["MarginThicknessTopSafeArea"] = new Thickness(0);
+            this["MarginThicknessNotificationFloatingButton"] = new Thickness(marginXLarge, 0, 0, marginXLarge);
+            this["MarginThicknessAlarmSettingsFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
         }
 
         // Corner radius resources - scale slightly with font size for better proportions

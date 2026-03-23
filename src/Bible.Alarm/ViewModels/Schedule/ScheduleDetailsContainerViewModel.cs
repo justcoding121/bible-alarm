@@ -33,6 +33,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     private bool isReadyActionQueued;
     private bool isProcessingStateChange;
     private int scheduleId;
+    private int themeVersion;
 
     public ScheduleDetailsContainerViewModel(
         ILogger logger,
@@ -266,6 +267,8 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         }
     }
 
+    public int ThemeVersion => themeVersion;
+
     private void DispatchScheduleUpdate(Action<ScheduleStateItem> updateAction)
     {
         var currentSchedule = state.Value.CurrentSchedule;
@@ -357,7 +360,8 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            OnPropertyChanged(string.Empty);
+            themeVersion++;
+            OnPropertyChanged(nameof(ThemeVersion));
         });
     }
 

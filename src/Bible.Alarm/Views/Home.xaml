@@ -39,7 +39,6 @@
     <Grid AutomationId="HomePage" BackgroundColor="{DynamicResource PageBackgroundColor}" HorizontalOptions="Fill" VerticalOptions="Fill">
         <Grid
             Grid.Row="0"
-            Margin="{DynamicResource MarginThicknessTopSafeArea}"
             RowSpacing="0"
             Grid.ZIndex="1">
             <Grid.RowDefinitions>
@@ -665,6 +664,7 @@
             Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
             VerticalOptions="End"
             IsVisible="{Binding IsNotificationPermissionButtonVisible}"
+            Margin="{DynamicResource MarginThicknessNotificationFloatingButton}"
             ZIndex="101">
             <Button.HorizontalOptions>
                 <OnPlatform x:TypeArguments="LayoutOptions">
@@ -673,13 +673,6 @@
                     <On Platform="WinUI" Value="Start" />
                 </OnPlatform>
             </Button.HorizontalOptions>
-            <Button.Margin>
-                <OnPlatform x:TypeArguments="Thickness">
-                    <On Platform="Android" Value="24,0,0,24" />
-                    <On Platform="iOS" Value="0,0,24,24" />
-                    <On Platform="WinUI" Value="24,0,0,24" />
-                </OnPlatform>
-            </Button.Margin>
             <Button.Shadow>
                 <helpers:PlatformShadow Brush="#40000000" 
                         Offset="0,4" 
@@ -703,14 +696,8 @@
             Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
             VerticalOptions="End"
             IsVisible="{Binding IsFloatingButtonVisible}"
+            Margin="{DynamicResource MarginThicknessAlarmSettingsFloatingButton}"
             ZIndex="100">
-            <Button.Margin>
-                <OnPlatform x:TypeArguments="Thickness">
-                    <On Platform="Android" Value="0,0,24,24" />
-                    <On Platform="iOS" Value="0,0,24,24" />
-                    <On Platform="WinUI" Value="0,0,24,24" />
-                </OnPlatform>
-            </Button.Margin>
             <Button.Shadow>
                 <helpers:PlatformShadow Brush="#40000000" 
                         Offset="0,4" 
