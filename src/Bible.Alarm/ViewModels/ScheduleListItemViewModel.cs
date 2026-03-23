@@ -623,7 +623,11 @@ public sealed class ScheduleListItemViewModel(
         }
     }
 
-    private void OnThemeChanged() => MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(This)));
+    private void OnThemeChanged() => MainThread.BeginInvokeOnMainThread(() =>
+    {
+        OnPropertyChanged(nameof(This));
+        OnPropertyChanged(nameof(IsEnabled));
+    });
 
     public void Dispose()
     {
