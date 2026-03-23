@@ -56,7 +56,7 @@
 
 **Apple CarPlay** — Listing · Playback
 
-<img src=".docs/screenshots/iOS/carplay/carplay-listing.jpg" width="320" alt="CarPlay listing"/> <img src=".docs/screenshots/iOS/carplay/carplay-playback.jpg" width="320" alt="CarPlay playback"/>
+<img src=".docs/screenshots/iOS/carplay/carplay-listing.png" width="320" alt="CarPlay listing"/> <img src=".docs/screenshots/iOS/carplay/carplay-playback.png" width="320" alt="CarPlay playback"/>
 
 *(iOS assets: phone, tablet, and carplay are under [`.docs/screenshots/iOS/`](.docs/screenshots/iOS).)*
 
