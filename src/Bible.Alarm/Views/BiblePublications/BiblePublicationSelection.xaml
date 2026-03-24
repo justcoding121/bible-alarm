@@ -46,7 +46,7 @@
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="shared:PublicationListViewItemModel">
-                            <Grid Margin="16,0">
+                            <Grid Margin="{DynamicResource MarginThickness16_0}">
                                 <core:SfEffectsView
                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                     TouchUpEffects="None"

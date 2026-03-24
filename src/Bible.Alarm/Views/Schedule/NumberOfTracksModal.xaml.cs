@@ -33,22 +33,6 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
     {
         var platform = DeviceInfo.Platform;
 
-        // Platform-specific margins for main grid
-        if (MainGrid != null)
-        {
-            if (platform == DevicePlatform.iOS)
-            {
-                MainGrid.Margin = new Thickness(0, 20, 0, 0);
-            }
-            else if (platform == DevicePlatform.Android)
-            {
-                MainGrid.Margin = new Thickness(0, 24, 0, 0);
-            }
-            else
-            {
-                MainGrid.Margin = new Thickness(0);
-            }
-        }
     }
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
