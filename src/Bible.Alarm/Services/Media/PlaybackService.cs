@@ -155,9 +155,28 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         if (stateManager.IsPreparingOrPlaying(audioPlayer) && stateManager.CurrentScheduleId == scheduleId)
         {
-            logger.Information("Resuming playback for schedule {ScheduleId} (already paused/playing same schedule)", scheduleId);
-            await PlayAsync();
-            return;
+            if (audioPlayer.IsActuallyPlayingOrPaused)
+            {
+                logger.Information("Resuming playback for schedule {ScheduleId} (already paused/playing same schedule)", scheduleId);
+                await PlayAsync();
+                return;
+            }
+
+            // Player state is stale: cached status says Paused/Playing but ExoPlayer
+            // may have released resources while paused (e.g. Bluetooth disconnect + idle).
+            // Save progress, reset, and fall through to full re-preparation with seek.
+            logger.Warning(
+                "Stale player state for schedule {ScheduleId}: cached status {Status} but MediaElement is not active. Will re-prepare with seek.",
+                scheduleId, audioPlayer.Status);
+
+            await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
+            stateManager.PlayedBibleTrackKeys.Clear();
+            stateManager.ManuallyVisitedTrackIndices.Clear();
+            stateManager.IsPreparingTrack = false;
+            progressTracker.Stop();
+            await audioPlayer.ResetAsync();
+            stateManager.Playlist = null;
+            stateManager.CurrentTrackIndex = -1;
         }
 
         if (stateManager.IsPreparingOrPlaying(audioPlayer))
@@ -239,6 +258,15 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public async Task PlayAsync()
     {
+        // If cached status says Paused but ExoPlayer actually lost its state (resource
+        // reclamation while paused), clear PlayedBibleTrackKeys so the fallback
+        // re-preparation in PlaybackOperationHandler can seek to saved progress.
+        if (audioPlayer.Status == PlayStatus.Paused && !audioPlayer.IsActuallyPlayingOrPaused)
+        {
+            logger.Warning("PlayAsync: stale Paused state detected. Clearing PlayedBibleTrackKeys for seek.");
+            stateManager.PlayedBibleTrackKeys.Clear();
+        }
+
         await operationHandler.PlayAsync(
             stateManager.Playlist,
             stateManager.CurrentTrackIndex,

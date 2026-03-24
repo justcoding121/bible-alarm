@@ -122,7 +122,7 @@ public sealed class TrackNavigator
     /// At the last section boundary, non-Bible/non-Music categories advance to the next publication;
     /// Bible and Music categories wrap to the first section of the same publication.
     /// </summary>
-    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(
+    public async Task<TrackNavigationResult> GetNextBiblePublicationTrack(
         string languageCode,
         string publicationCode,
         string? sectionCode,
@@ -154,7 +154,7 @@ public sealed class TrackNavigator
 
         if (!nextTrack.Equals(default(KeyValuePair<string, BiblePublicationTrack>)))
         {
-            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, nextTrack.Value);
+            return new TrackNavigationResult(publicationCode, currentSection, nextTrack.Value);
         }
 
         // No next track in this section. If this is the last section and the category
@@ -167,7 +167,7 @@ public sealed class TrackNavigator
             var crossPub = await CrossPublicationHelper.TryGetNextAsync(languageCode, publicationCode, sectionFetchProgress);
             if (crossPub != null)
             {
-                return crossPub.Value;
+                return crossPub;
             }
         }
 
@@ -183,7 +183,7 @@ public sealed class TrackNavigator
             throw new InvalidOperationException($"No tracks in next section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={nextSection.Key}");
         }
 
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
+        return new TrackNavigationResult(publicationCode, nextSection.Value, tracks.ElementAt(0).Value);
     }
 
     private static string ResolveTrackCodeToKey(SortedDictionary<string, BiblePublicationTrack> tracks, string trackCode)
@@ -209,7 +209,7 @@ public sealed class TrackNavigator
     /// At the first section boundary, non-Bible/non-Music categories go to the previous publication's last track;
     /// Bible and Music categories wrap to the last section of the same publication.
     /// </summary>
-    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(
+    public async Task<TrackNavigationResult> GetPreviousBiblePublicationTrack(
         string languageCode,
         string publicationCode,
         string? sectionCode,
@@ -242,7 +242,7 @@ public sealed class TrackNavigator
 
         if (!previousTrack.Equals(default(KeyValuePair<string, BiblePublicationTrack>)))
         {
-            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, previousTrack.Value);
+            return new TrackNavigationResult(publicationCode, currentSection, previousTrack.Value);
         }
 
         // No previous track in this section. If this is the first section and the category
@@ -255,7 +255,7 @@ public sealed class TrackNavigator
             var crossPub = await CrossPublicationHelper.TryGetPreviousAsync(languageCode, publicationCode, sectionFetchProgress);
             if (crossPub != null)
             {
-                return crossPub.Value;
+                return crossPub;
             }
         }
 
@@ -271,7 +271,7 @@ public sealed class TrackNavigator
             throw new InvalidOperationException($"No tracks in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={previousSection.Key}");
         }
 
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(previousSection.Value, tracks.Last().Value);
+        return new TrackNavigationResult(publicationCode, previousSection.Value, tracks.Last().Value);
     }
 
     /// <summary>

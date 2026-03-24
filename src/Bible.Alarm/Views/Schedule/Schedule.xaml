@@ -9,24 +9,18 @@
              x:DataType="vm:ScheduleViewModel"
              NavigationPage.HasBackButton="False"
              NavigationPage.HasNavigationBar="False">
-    <ContentPage.Content>
-        <AbsoluteLayout AutomationId="SchedulePage"
-                       BackgroundColor="{DynamicResource PageBackgroundColor}"
-                       HorizontalOptions="Fill"
-                       VerticalOptions="Fill">
-            
-            <!-- Content container - will be populated asynchronously after page loads -->
-            <ContentView x:Name="contentContainer"
-                         AbsoluteLayout.LayoutBounds="0,0,1,1"
-                         AbsoluteLayout.LayoutFlags="All"
-                         Opacity="0" />
-            
-            <!-- Overlay with busy indicator - shown immediately, overlays content -->
-            <!-- Uses absolute positioning to ensure stable centering regardless of content -->
-            <shared:BusyOverlay x:Name="scheduleBusyOverlay"
-                                AbsoluteLayout.LayoutBounds="0,0,1,1"
-                                AbsoluteLayout.LayoutFlags="All"
-                                IsVisible="{Binding IsSchedulePageOverlayVisible, Mode=OneWay}" />
-        </AbsoluteLayout>
-    </ContentPage.Content>
+    <Grid AutomationId="SchedulePage"
+          BackgroundColor="{DynamicResource PageBackgroundColor}"
+          HorizontalOptions="Fill"
+          VerticalOptions="Fill">
+        
+        <!-- Content container - will be populated asynchronously after page loads -->
+        <ContentView x:Name="contentContainer"
+                     Opacity="0" />
+        
+        <!-- Overlay with busy indicator - shown immediately, overlays content -->
+        <shared:BusyOverlay x:Name="scheduleBusyOverlay"
+                            Grid.ZIndex="1"
+                            IsVisible="{Binding IsSchedulePageOverlayVisible, Mode=OneWay}" />
+    </Grid>
 </views:BaseContentPage>

@@ -100,18 +100,10 @@ public sealed class BiblePublicationNavigationService(
                 schedule.SectionCode,
                 schedule.TrackCode);
 
-            if (prevTrack.Key == null || prevTrack.Value == null)
-            {
-                return false;
-            }
-
-            schedule.SectionCode = prevTrack.Key?.SectionCode;
-            schedule.TrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(prevTrack.Value);
+            schedule.SectionCode = prevTrack.Section?.SectionCode;
+            schedule.TrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(prevTrack.Track);
             schedule.FinishedDuration = TimeSpan.Zero;
-            if (prevTrack.Value.Publication != null)
-            {
-                schedule.PublicationCode = prevTrack.Value.Publication.PublicationCode;
-            }
+            schedule.PublicationCode = prevTrack.PublicationCode;
             return true;
         }
         catch (Exception ex)
@@ -140,17 +132,9 @@ public sealed class BiblePublicationNavigationService(
                 schedule.SectionCode,
                 schedule.TrackCode);
 
-            if (nextTrack.Key == null || nextTrack.Value == null)
-            {
-                return false;
-            }
-
-            schedule.SectionCode = nextTrack.Key?.SectionCode;
-            schedule.TrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(nextTrack.Value);
-            if (nextTrack.Value.Publication != null)
-            {
-                schedule.PublicationCode = nextTrack.Value.Publication.PublicationCode;
-            }
+            schedule.SectionCode = nextTrack.Section?.SectionCode;
+            schedule.TrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(nextTrack.Track);
+            schedule.PublicationCode = nextTrack.PublicationCode;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }

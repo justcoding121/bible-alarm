@@ -1,7 +1,6 @@
 #nullable enable
 
-using Bible;
-using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 namespace Bible.Alarm.Services.Media.PlaylistInternal;
 
@@ -10,5 +9,5 @@ namespace Bible.Alarm.Services.Media.PlaylistInternal;
 /// </summary>
 internal sealed record NextTrackInfo(
     string? NextTrackCode,
-    KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? NextTrack,
+    TrackNavigationResult? NextTrack,
     string? NextSectionCode = null);

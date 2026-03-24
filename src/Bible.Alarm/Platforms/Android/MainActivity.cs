@@ -7,6 +7,7 @@ using Android.OS;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 using Exception = System.Exception;
 
@@ -149,7 +150,37 @@ public class MainActivity : MauiAppCompatActivity
         {
             Logger.Debug("MainActivity: Received notification permission result");
             NotificationPermissionService.Instance.HandlePermissionResult(requestCode, permissions, grantResults);
+
+            if (grantResults.Length > 0 && grantResults[0] == Permission.Granted)
+            {
+                RescheduleAllAlarmsInBackground();
+            }
         }
+    }
+
+    private static void RescheduleAllAlarmsInBackground()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                if (!BootstrapHelper.IsBootstrapCompleted())
+                {
+                    await BootstrapHelper.WaitForBootstrapAsync();
+                }
+
+                var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
+                if (schedulerService != null)
+                {
+                    Logger.Information("MainActivity: Notification permission granted - rescheduling all alarms");
+                    await schedulerService.ProcessScheduledTasksAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "MainActivity: Failed to reschedule alarms after permission grant");
+            }
+        });
     }
 
 }

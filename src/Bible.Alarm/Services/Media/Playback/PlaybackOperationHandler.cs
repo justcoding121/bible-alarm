@@ -43,8 +43,19 @@ public sealed class PlaybackOperationHandler
 
         if (audioPlayer.Status == PlayStatus.Paused)
         {
-            await audioPlayer.ResumeAsync();
-            progressTracker.StartIfBiblePublicationTrack(playlist, currentTrackIndex);
+            if (audioPlayer.IsActuallyPlayingOrPaused)
+            {
+                await audioPlayer.ResumeAsync();
+                progressTracker.StartIfBiblePublicationTrack(playlist, currentTrackIndex);
+            }
+            else
+            {
+                // Cached status is Paused but ExoPlayer lost its position (e.g. resource
+                // reclamation after Bluetooth disconnect). Fall back to full track preparation
+                // which includes seek-to-saved-progress logic.
+                logger.Warning("Cached status is Paused but player is not actually active - falling back to full track preparation");
+                await playCurrentTrackAsync();
+            }
         }
         else if (audioPlayer.Status is PlayStatus.Stopped or PlayStatus.Ended)
         {

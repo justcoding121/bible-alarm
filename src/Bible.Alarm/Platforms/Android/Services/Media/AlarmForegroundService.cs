@@ -18,6 +18,9 @@ public class AlarmForegroundService : Service
     private static readonly ILogger logger = Log.ForContext<AlarmForegroundService>();
     private static readonly object instanceLock = new();
     private static AlarmForegroundService? instance;
+    private CancellationTokenSource? safetyTimeoutCts;
+
+    private const int SafetyTimeoutSeconds = 90;
 
     /// <summary>
     /// Gets the current service instance in a thread-safe manner.
@@ -48,21 +51,64 @@ public class AlarmForegroundService : Service
             instance = this;
         }
         logger.Information("AlarmForegroundService.OnCreate() called - instance registered");
+
+        StartSafetyTimeout();
     }
 
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
     {
         logger.Information("AlarmForegroundService.OnStartCommand() called");
-        return StartCommandResult.Sticky; // Keep service running
+        return StartCommandResult.NotSticky;
     }
 
     public override void OnDestroy()
     {
         logger.Information("AlarmForegroundService.OnDestroy() called");
+        CancelSafetyTimeout();
         lock (instanceLock)
         {
             instance = null;
         }
         base.OnDestroy();
+    }
+
+    private void StartSafetyTimeout()
+    {
+        safetyTimeoutCts = new CancellationTokenSource();
+        var token = safetyTimeoutCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(SafetyTimeoutSeconds), token);
+                if (!token.IsCancellationRequested)
+                {
+                    logger.Warning("AlarmForegroundService safety timeout ({TimeoutSeconds}s) - auto-stopping to prevent stuck notification", SafetyTimeoutSeconds);
+                    ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
+                }
+            }
+            catch (System.OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error in AlarmForegroundService safety timeout");
+            }
+        }, token);
+    }
+
+    private void CancelSafetyTimeout()
+    {
+        try
+        {
+            safetyTimeoutCts?.Cancel();
+            safetyTimeoutCts?.Dispose();
+            safetyTimeoutCts = null;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error cancelling safety timeout");
+        }
     }
 }

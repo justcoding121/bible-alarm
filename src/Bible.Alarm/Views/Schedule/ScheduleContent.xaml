@@ -34,11 +34,11 @@
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
         <Grid Grid.Row="0"
-              x:Name="ButtonContainer"
-              Margin="0,0,0,4"
-              ColumnSpacing="4"
-              HorizontalOptions="FillAndExpand"
-              VerticalOptions="Start">
+              Padding="{DynamicResource PaddingThickness16_8_16_0}">
+            <Grid x:Name="ButtonContainer"
+                  ColumnSpacing="4"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Start">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -230,10 +230,12 @@
                         Opacity="0.95" />
             </Grid>
         </Grid>
+        </Grid>
         <ScrollView x:Name="ScheduleScrollView"
                     Grid.Row="1"
                     Margin="0,0,0,0">
             <Grid x:Name="ScrollContentGrid"
+                  Margin="{DynamicResource MarginThickness16_0}"
                   HorizontalOptions="Fill"
                   RowSpacing="{StaticResource SpacingStandard}">
                 <Grid.GestureRecognizers>
@@ -257,7 +259,7 @@
 
                 <!-- Delete button - SfEffectsView for WinUI only -->
                 <Grid Grid.Row="5"
-                      Margin="0"
+                      Margin="{DynamicResource MarginThickness0_0_0_16}"
                       VerticalOptions="End"
                       HorizontalOptions="Fill"
                       HeightRequest="{StaticResource IconStandardContainerSize}">
@@ -308,7 +310,7 @@
                 </Grid>
                 <Grid Grid.Row="5"
                       x:Name="DeleteButtonNoEffects"
-                      Margin="0"
+                      Margin="{DynamicResource MarginThickness0_0_0_16}"
                       IsVisible="{Binding IsExistingSchedule}"
                       VerticalOptions="End"
                       HorizontalOptions="Fill"

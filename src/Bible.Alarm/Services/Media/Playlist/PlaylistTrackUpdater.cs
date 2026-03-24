@@ -1,8 +1,8 @@
 #nullable enable
+using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Services.Media.Playlist;
@@ -55,22 +55,19 @@ public static class PlaylistTrackUpdater
     public static void UpdateBiblePublicationTrackForFinished(
         AlarmSchedule schedule,
         TrackMetadata trackMetadata,
-        KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? nextTrack)
+        TrackNavigationResult? nextTrack)
     {
         var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
             throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {schedule.Id}");
 
-        if (nextTrack == null || nextTrack.Value.Value == null)
+        if (nextTrack == null)
         {
-            throw new InvalidOperationException("Next track Value is null");
+            throw new InvalidOperationException("Next track is null");
         }
 
-        // For non-sectioned publications, Key (section) will be null
-        // Use SectionCode from the section, or null if section is null
-        biblePublicationSchedule.SectionCode = nextTrack.Value.Key?.SectionCode;
-        biblePublicationSchedule.TrackCode = TrackCodeHelper.GetFromTrack(nextTrack.Value.Value);
-        // Language code is only updated when the user clicks Save on the schedule page; do not overwrite during playback.
-        biblePublicationSchedule.PublicationCode = nextTrack.Value.Value.Publication!.PublicationCode;
+        biblePublicationSchedule.SectionCode = nextTrack.Section?.SectionCode;
+        biblePublicationSchedule.TrackCode = TrackCodeHelper.GetFromTrack(nextTrack.Track);
+        biblePublicationSchedule.PublicationCode = nextTrack.PublicationCode;
         biblePublicationSchedule.FinishedDuration = TimeSpan.Zero;
     }
 

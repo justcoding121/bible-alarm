@@ -2,6 +2,7 @@
 
 using System.Windows.Input;
 using Bible.Alarm.Services.Battery.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -101,6 +102,12 @@ public sealed class BatteryOptimizationViewModel : ObservableObject, IDisposable
 
                 logger.Debug("Permission check completed - Battery Excluded: {IsExcluded} (was {WasExcluded}), DND Granted: {IsGranted} (was {WasGranted})",
                     IsBatteryOptimizationExcluded, wasBatteryExcluded, IsDndAccessGranted, wasDndGranted);
+
+                if ((!wasBatteryExcluded && IsBatteryOptimizationExcluded) ||
+                    (!wasDndGranted && IsDndAccessGranted))
+                {
+                    RescheduleAllAlarmsInBackground();
+                }
             }
             else
             {
@@ -111,6 +118,26 @@ public sealed class BatteryOptimizationViewModel : ObservableObject, IDisposable
         {
             logger.Error(ex, "Error checking permission status");
         }
+    }
+
+    private void RescheduleAllAlarmsInBackground()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var schedulerService = serviceProvider.GetService<ISchedulerService>();
+                if (schedulerService != null)
+                {
+                    logger.Information("Battery/DND settings improved - rescheduling all alarms");
+                    await schedulerService.ProcessScheduledTasksAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Failed to reschedule alarms after battery optimization change");
+            }
+        });
     }
 
     public void StartPermissionCheckTimer()

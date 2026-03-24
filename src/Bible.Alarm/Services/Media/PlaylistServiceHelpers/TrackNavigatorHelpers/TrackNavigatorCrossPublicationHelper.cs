@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
@@ -38,7 +39,7 @@ public sealed class TrackNavigatorCrossPublicationHelper
     /// Tries to advance to the first track of the next publication in the same category.
     /// Returns null if the category is Bible or Music, or if no valid next publication is found.
     /// </summary>
-    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>?> TryGetNextAsync(
+    public async Task<TrackNavigationResult?> TryGetNextAsync(
         string languageCode, string publicationCode, IFetchProgress? sectionFetchProgress)
     {
         var target = await FindTargetPublicationAsync(languageCode, publicationCode, direction: 1);
@@ -55,7 +56,7 @@ public sealed class TrackNavigatorCrossPublicationHelper
                 if (firstTrack is { } ft)
                 {
                     logger?.Information("Cross-publication next: {FromPub} -> {ToPub}", publicationCode, nextPubCode);
-                    return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(ft.Section, ft.Track);
+                    return new TrackNavigationResult(nextPubCode, ft.Section, ft.Track);
                 }
             }
             catch (Exception ex)
@@ -71,7 +72,7 @@ public sealed class TrackNavigatorCrossPublicationHelper
     /// Tries to go back to the last track of the previous publication in the same category.
     /// Returns null if the category is Bible or Music, or if no valid previous publication is found.
     /// </summary>
-    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>?> TryGetPreviousAsync(
+    public async Task<TrackNavigationResult?> TryGetPreviousAsync(
         string languageCode, string publicationCode, IFetchProgress? sectionFetchProgress)
     {
         var target = await FindTargetPublicationAsync(languageCode, publicationCode, direction: -1);
@@ -88,7 +89,7 @@ public sealed class TrackNavigatorCrossPublicationHelper
                 if (lastTrack is { } lt)
                 {
                     logger?.Information("Cross-publication previous: {FromPub} -> {ToPub}", publicationCode, prevPubCode);
-                    return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(lt.Section, lt.Track);
+                    return new TrackNavigationResult(prevPubCode, lt.Section, lt.Track);
                 }
             }
             catch (Exception ex)

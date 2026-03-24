@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -20,10 +21,10 @@ public interface IPlaylistService : IDisposable
     Task MoveToNextBiblePublicationTrack(int scheduleId);
     Task MoveToPreviousBiblePublicationTrack(int scheduleId);
 
-    Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode, string publicationCode,
+    Task<TrackNavigationResult> GetNextBiblePublicationTrack(string languageCode, string publicationCode,
         string? sectionCode, string trackCode);
 
-    Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode, string publicationCode,
+    Task<TrackNavigationResult> GetPreviousBiblePublicationTrack(string languageCode, string publicationCode,
         string? sectionCode, string trackCode);
 
     Task<KeyValuePair<string, BiblePublicationSection>>

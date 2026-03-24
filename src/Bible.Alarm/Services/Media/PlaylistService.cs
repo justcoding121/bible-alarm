@@ -252,8 +252,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         {
             trackChangeDetector.SetLastKnownBibleTrack(
                 (int)trackMetadata.ScheduleId,
-                nextTrackInfo.NextTrack.Value.Key?.SectionCode,
-                Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(nextTrackInfo.NextTrack.Value.Value));
+                nextTrackInfo.NextTrack.Section?.SectionCode,
+                Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(nextTrackInfo.NextTrack.Track));
         }
 
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
@@ -477,7 +477,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
                 scheduleId,
                 schedule,
                 schedule.BiblePublicationSchedule,
-                (lang, pub, sectionCode, track) => trackNavigator.GetNextBiblePublicationTrack(lang, pub, sectionCode, track));
+                async (lang, pub, sectionCode, track) => await trackNavigator.GetNextBiblePublicationTrack(lang, pub, sectionCode, track));
             result.AddRange(biblePublicationTracks);
         }
 
@@ -510,8 +510,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToNextTrackAsync(scheduleId, next);
         trackChangeDetector.SetLastKnownBibleTrack(
             scheduleId,
-            next.Key?.SectionCode,
-            TrackCodeHelper.GetFromTrack(next.Value));
+            next.Section?.SectionCode,
+            TrackCodeHelper.GetFromTrack(next.Track));
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
@@ -530,27 +530,21 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             schedule.BiblePublicationSchedule.SectionCode,
             schedule.BiblePublicationSchedule.TrackCode);
 
-        // For non-sectioned publications, Key (section) will be null
-        if (previous.Value == null)
-        {
-            throw new InvalidOperationException("Previous track Value is null");
-        }
-
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToPreviousTrackAsync(scheduleId, previous);
         trackChangeDetector.SetLastKnownBibleTrack(
             scheduleId,
-            previous.Key?.SectionCode,
-            TrackCodeHelper.GetFromTrack(previous.Value));
+            previous.Section?.SectionCode,
+            TrackCodeHelper.GetFromTrack(previous.Track));
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
-    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode,
+    public async Task<TrackNavigationResult> GetNextBiblePublicationTrack(string languageCode,
         string publicationCode, string? sectionCode, string trackCode)
     {
         return await trackNavigator.GetNextBiblePublicationTrack(languageCode, publicationCode, sectionCode, trackCode);
     }
 
-    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode,
+    public async Task<TrackNavigationResult> GetPreviousBiblePublicationTrack(string languageCode,
         string publicationCode, string? sectionCode, string trackCode)
     {
         return await trackNavigator.GetPreviousBiblePublicationTrack(languageCode, publicationCode, sectionCode, trackCode);
@@ -622,14 +616,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             currentTrackMetadata.TrackCode,
             sectionFetchProgress);
 
-        if (next.Value == null)
-        {
-            throw new InvalidOperationException("Next track Value is null");
-        }
-
-        var nextTrackCode = TrackCodeHelper.GetFromTrack(next.Value);
-        var nextSectionCode = next.Key?.SectionCode;
-        var nextPublicationCode = next.Value.Publication!.PublicationCode;
+        var nextTrackCode = TrackCodeHelper.GetFromTrack(next.Track);
+        var nextSectionCode = next.Section?.SectionCode;
+        var nextPublicationCode = next.PublicationCode;
 
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, nextSectionCode, StringComparison.OrdinalIgnoreCase);
         if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)
@@ -684,14 +673,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             currentTrackMetadata.TrackCode,
             sectionFetchProgress);
 
-        if (previous.Value == null)
-        {
-            throw new InvalidOperationException("Previous track Value is null");
-        }
-
-        var prevTrackCode = TrackCodeHelper.GetFromTrack(previous.Value);
-        var prevSectionCode = previous.Key?.SectionCode;
-        var prevPublicationCode = previous.Value.Publication!.PublicationCode;
+        var prevTrackCode = TrackCodeHelper.GetFromTrack(previous.Track);
+        var prevSectionCode = previous.Section?.SectionCode;
+        var prevPublicationCode = previous.PublicationCode;
 
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, prevSectionCode, StringComparison.OrdinalIgnoreCase);
         if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)

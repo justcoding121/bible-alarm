@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 
@@ -17,19 +16,17 @@ public sealed class ScheduleUpdater(
     /// Updates schedule to the next track.
     /// For non-sectioned publications, section will be null.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToNextTrackAsync(int scheduleId, KeyValuePair<BiblePublicationSection?, BiblePublicationTrack> next)
+    public async Task<AlarmSchedule> UpdateScheduleToNextTrackAsync(int scheduleId, TrackNavigationResult next)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
             s =>
             {
                 var brs = s.BiblePublicationSchedule ?? throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-                // For non-sectioned publications, keep section as null
-                // Use SectionCode from the section, or null if section is null
-                brs.SectionCode = next.Key?.SectionCode;
-                brs.TrackCode = TrackCodeHelper.GetFromTrack(next.Value);
+                brs.SectionCode = next.Section?.SectionCode;
+                brs.TrackCode = TrackCodeHelper.GetFromTrack(next.Track);
                 brs.FinishedDuration = TimeSpan.Zero;
-                brs.PublicationCode = next.Value.Publication!.PublicationCode;
+                brs.PublicationCode = next.PublicationCode;
             },
             cancellationToken);
     }
@@ -38,19 +35,17 @@ public sealed class ScheduleUpdater(
     /// Updates schedule to the previous track.
     /// For non-sectioned publications, section will be null.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToPreviousTrackAsync(int scheduleId, KeyValuePair<BiblePublicationSection?, BiblePublicationTrack> previous)
+    public async Task<AlarmSchedule> UpdateScheduleToPreviousTrackAsync(int scheduleId, TrackNavigationResult previous)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
             s =>
             {
                 var brs = s.BiblePublicationSchedule ?? throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-                // For non-sectioned publications, keep section as null
-                // Use SectionCode from the section, or null if section is null
-                brs.SectionCode = previous.Key?.SectionCode;
-                brs.TrackCode = TrackCodeHelper.GetFromTrack(previous.Value);
+                brs.SectionCode = previous.Section?.SectionCode;
+                brs.TrackCode = TrackCodeHelper.GetFromTrack(previous.Track);
                 brs.FinishedDuration = TimeSpan.Zero;
-                brs.PublicationCode = previous.Value.Publication!.PublicationCode;
+                brs.PublicationCode = previous.PublicationCode;
             },
             cancellationToken);
     }

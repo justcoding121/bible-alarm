@@ -36,7 +36,7 @@ public sealed class TrackNavigatorNonSectionedHelper
         this.logger = logger;
     }
 
-    public async System.Threading.Tasks.Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextAsync(
+    public async System.Threading.Tasks.Task<TrackNavigationResult> GetNextAsync(
         string languageCode,
         string publicationCode,
         string trackCode,
@@ -58,7 +58,7 @@ public sealed class TrackNavigatorNonSectionedHelper
 
         if (nextTrack != null)
         {
-            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, nextTrack);
+            return new TrackNavigationResult(publicationCode, null, nextTrack);
         }
 
         if (getFirstTrackOfPublicationAsync != null)
@@ -86,7 +86,7 @@ public sealed class TrackNavigatorNonSectionedHelper
                             var firstTrack = await getFirstTrackOfPublicationAsync(languageCode, nextPubCode, sectionFetchProgress);
                             if (firstTrack is { } ft)
                             {
-                                return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(ft.Item1, ft.Item2);
+                                return new TrackNavigationResult(nextPubCode, ft.Item1, ft.Item2);
                             }
                         }
                         catch (Exception ex)
@@ -98,10 +98,10 @@ public sealed class TrackNavigatorNonSectionedHelper
             }
         }
 
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.First());
+        return new TrackNavigationResult(publicationCode, null, orderedTracks.First());
     }
 
-    public async System.Threading.Tasks.Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousAsync(
+    public async System.Threading.Tasks.Task<TrackNavigationResult> GetPreviousAsync(
         string languageCode,
         string publicationCode,
         string trackCode,
@@ -123,7 +123,7 @@ public sealed class TrackNavigatorNonSectionedHelper
 
         if (previousTrack != null)
         {
-            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, previousTrack);
+            return new TrackNavigationResult(publicationCode, null, previousTrack);
         }
 
         if (getLastTrackOfPublicationAsync != null)
@@ -151,7 +151,7 @@ public sealed class TrackNavigatorNonSectionedHelper
                             var lastTrack = await getLastTrackOfPublicationAsync(languageCode, prevPubCode, sectionFetchProgress);
                             if (lastTrack is { } lt)
                             {
-                                return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(lt.Item1, lt.Item2);
+                                return new TrackNavigationResult(prevPubCode, lt.Item1, lt.Item2);
                             }
                         }
                         catch (Exception ex)
@@ -163,7 +163,7 @@ public sealed class TrackNavigatorNonSectionedHelper
             }
         }
 
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.Last());
+        return new TrackNavigationResult(publicationCode, null, orderedTracks.Last());
     }
 
     private static string ResolveTrackCodeToKey(SortedDictionary<string, BiblePublicationTrack> tracks, string trackCode)
