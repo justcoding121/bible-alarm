@@ -1,6 +1,8 @@
 #nullable enable
+using _Microsoft.Android.Resource.Designer;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using AndroidX.Core.Content;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -28,6 +30,22 @@ public class MediaSessionEffect(
 {
     private static readonly ILogger logger = Log.ForContext<MediaSessionEffect>();
 
+    private static volatile bool isRestartingPlayback;
+
+    // Dedup tracking: skip redundant metadata updates that cause visual flickering
+    // on the car screen (same track metadata dispatched multiple times per track).
+    private string? lastMetadataTitle;
+    private string? lastMetadataArtist;
+    private string? lastMetadataAlbum;
+    private string? lastMetadataArtworkUrl;
+
+    /// <summary>
+    /// Suppresses intermediate Stopped/Ended MediaSession state updates during
+    /// a stop-and-restart transition (e.g. Android Auto OnPlay tap) to prevent
+    /// rapid play/pause button flashing on the car screen.
+    /// </summary>
+    internal static void SetRestartingPlayback(bool value) => isRestartingPlayback = value;
+
     public void RegisterMessageHandlers() => WeakReferenceMessenger.Default.Register(this);
 
     [EffectMethod]
@@ -44,6 +62,22 @@ public class MediaSessionEffect(
             var currentState = playbackState.Value;
             var isAutoAdvancing = currentState.IsAutoAdvancing;
             var previousStatus = currentState.Status;
+
+            if (isRestartingPlayback)
+            {
+                if (action.Status is PlayStatus.Stopped or PlayStatus.Ended)
+                {
+                    logger.Information(
+                        "[AndroidAuto] Suppressing {Status} MediaSession update during playback restart to prevent flashing",
+                        action.Status);
+                    ForegroundServiceCoordinator.OnPlaybackStopped();
+                    return;
+                }
+
+                isRestartingPlayback = false;
+                logger.Information(
+                    "[AndroidAuto] Cleared restart suppression flag on {Status} status", action.Status);
+            }
 
             logger.Information(
                 "[AndroidAuto] PlaybackStatusChanged: Status={NewStatus}, PreviousStatus={PreviousStatus}, IsAutoAdvancing={IsAutoAdvancing}, ScheduleId={ScheduleId}, CanPlayNext={CanPlayNext}",
@@ -103,6 +137,12 @@ public class MediaSessionEffect(
                     action.Status,
                     canPlayNext,
                     canPlayPrevious);
+
+                if (action.Status is PlayStatus.Stopped or PlayStatus.Ended)
+                {
+                    ClearDurationFromMetadata(session);
+                }
+
                 mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
             }
 
@@ -117,6 +157,7 @@ public class MediaSessionEffect(
             {
                 // MediaElement stopped playing - release foreground service ownership
                 ForegroundServiceCoordinator.OnPlaybackStopped();
+                ResetMetadataDedup();
             }
 
             // On Android 13+, every active MediaSession gets a system-generated notification.
@@ -159,19 +200,24 @@ public class MediaSessionEffect(
 
             if (HasValidMetadata(action))
             {
-                var metadata = BuildMetadata(action);
+                if (IsMetadataUnchanged(action))
+                {
+                    logger.Debug("[AndroidAuto] Skipping redundant metadata update (title/artist/album/artwork unchanged)");
+                    return Task.CompletedTask;
+                }
+
+                var metadata = BuildMetadata(action, session);
                 if (metadata != null)
                 {
                     session.SetMetadata(metadata);
-
-                    // Reset tracked duration so position updates can re-apply duration if needed.
-                    // BuildMetadata includes duration from Fluxor state, but if that was stale/zero
-                    // (e.g. first track before duration is known), the next position update will correct it.
                     mediaSessionManager.ResetTrackedDuration();
+
+                    lastMetadataTitle = action.Title;
+                    lastMetadataArtist = action.Artist;
+                    lastMetadataAlbum = action.Album;
+                    lastMetadataArtworkUrl = action.ArtworkUrl;
                 }
 
-                // Save metadata to Preferences when playback is active (Playing or Paused)
-                // This ensures we save the last played item for Android Auto screen restoration
                 var currentState = playbackState.Value;
                 if (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused)
                 {
@@ -199,9 +245,9 @@ public class MediaSessionEffect(
         {
             // Only update MediaSession if playback is not active
             // When playback is active, MediaSessionEffect.HandlePlaybackMetadataChanged handles updates
-            if (playbackState.Value.IsPreparingOrPlaying)
+            if (playbackState.Value.IsPreparingOrPlaying || isRestartingPlayback)
             {
-                logger.Debug("HandleSetDefaultScheduleMetadata: Playback is active, skipping default schedule metadata update");
+                logger.Debug("HandleSetDefaultScheduleMetadata: Playback is active or restarting, skipping default schedule metadata update");
                 return;
             }
 
@@ -288,7 +334,7 @@ public class MediaSessionEffect(
         return !string.IsNullOrEmpty(action.Title) || !string.IsNullOrEmpty(action.Artist);
     }
 
-    private MediaMetadataCompat? BuildMetadata(PlaybackMetadataChangedAction action)
+    private MediaMetadataCompat? BuildMetadata(PlaybackMetadataChangedAction action, MediaSessionCompat session)
     {
         var scheduleId = playbackState.Value?.CurrentScheduleId;
         var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderWithMediaId(
@@ -297,7 +343,7 @@ public class MediaSessionEffect(
             action.Album,
             scheduleId);
 
-        SetArtwork(metadataBuilder, action);
+        SetArtwork(metadataBuilder, action, session);
 
         // Include duration from Fluxor state so metadata replacement doesn't wipe duration.
         // Without this, a race between PlaybackMetadataChangedAction and PlaybackDurationChangedAction
@@ -307,11 +353,72 @@ public class MediaSessionEffect(
         {
             metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, (long)duration.TotalMilliseconds);
         }
+        else
+        {
+            // During track transitions, the reducer resets duration to 0 before the new
+            // track's duration is known. Preserve the existing duration from the MediaSession
+            // to prevent the time text from disappearing and causing layout shifts on the car screen.
+            var existingDuration = session.Controller?.Metadata?.GetLong(MediaMetadataCompat.MetadataKeyDuration) ?? 0;
+            if (existingDuration > 0)
+            {
+                metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, existingDuration);
+            }
+        }
 
         return metadataBuilder.Build();
     }
 
-    private void SetArtwork(MediaMetadataCompat.Builder metadataBuilder, PlaybackMetadataChangedAction action)
+    private bool IsMetadataUnchanged(PlaybackMetadataChangedAction action)
+    {
+        return action.Title == lastMetadataTitle
+            && action.Artist == lastMetadataArtist
+            && action.Album == lastMetadataAlbum
+            && action.ArtworkUrl == lastMetadataArtworkUrl;
+    }
+
+    private void ResetMetadataDedup()
+    {
+        lastMetadataTitle = null;
+        lastMetadataArtist = null;
+        lastMetadataAlbum = null;
+        lastMetadataArtworkUrl = null;
+    }
+
+    /// <summary>
+    /// Clears duration from metadata so the car screen doesn't show a misleading
+    /// 0:00/previous_track_length progress bar after playback stops.
+    /// </summary>
+    private void ClearDurationFromMetadata(MediaSessionCompat session)
+    {
+        try
+        {
+            var existingMetadata = session.Controller?.Metadata;
+            if (existingMetadata == null)
+            {
+                return;
+            }
+
+            var currentDuration = existingMetadata.GetLong(MediaMetadataCompat.MetadataKeyDuration);
+            if (currentDuration <= 0)
+            {
+                return;
+            }
+
+            var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderFromExisting(existingMetadata);
+            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, 0);
+            session.SetMetadata(metadataBuilder.Build());
+            mediaSessionManager.ResetTrackedDuration();
+            logger.Debug("[AndroidAuto] Cleared duration from metadata on playback stop");
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "[AndroidAuto] Error clearing duration from metadata");
+        }
+    }
+
+    private static global::Android.Graphics.Bitmap? cachedAppIconBitmap;
+
+    private void SetArtwork(MediaMetadataCompat.Builder metadataBuilder, PlaybackMetadataChangedAction action, MediaSessionCompat session)
     {
         if (!string.IsNullOrEmpty(action.ArtworkUrl))
         {
@@ -321,12 +428,68 @@ public class MediaSessionEffect(
                 if (artworkBitmap != null)
                 {
                     metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
+                    return;
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
             }
+        }
+
+        // No new artwork - preserve existing artwork from the MediaSession to prevent
+        // blank artwork during transitions (while async artwork extraction is pending).
+        var existingArtwork = session.Controller?.Metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+        if (existingArtwork != null)
+        {
+            metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+            return;
+        }
+
+        // No existing artwork (fresh start) - use app icon as fallback
+        var fallback = GetOrLoadAppIconBitmap();
+        if (fallback != null)
+        {
+            metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, fallback);
+        }
+    }
+
+    private static global::Android.Graphics.Bitmap? GetOrLoadAppIconBitmap()
+    {
+        if (cachedAppIconBitmap != null)
+        {
+            return cachedAppIconBitmap;
+        }
+
+        try
+        {
+            var context = global::Android.App.Application.Context;
+            var drawable = ContextCompat.GetDrawable(
+                context, ResourceConstant.Drawable.ic_launcher_round);
+            if (drawable == null)
+            {
+                return null;
+            }
+
+            var width = drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 512;
+            var height = drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 512;
+            var bitmap = global::Android.Graphics.Bitmap.CreateBitmap(
+                width, height, global::Android.Graphics.Bitmap.Config.Argb8888!);
+            if (bitmap == null)
+            {
+                return null;
+            }
+
+            var canvas = new global::Android.Graphics.Canvas(bitmap);
+            drawable.SetBounds(0, 0, width, height);
+            drawable.Draw(canvas);
+            cachedAppIconBitmap = bitmap;
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "[AndroidAuto] Error loading app icon fallback artwork");
+            return null;
         }
     }
 

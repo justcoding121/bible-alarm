@@ -169,7 +169,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 "Stale player state for schedule {ScheduleId}: cached status {Status} but MediaElement is not active. Will re-prepare with seek.",
                 scheduleId, audioPlayer.Status);
 
-            await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
+            await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex, forceSave: true);
             stateManager.PlayedBibleTrackKeys.Clear();
             stateManager.ManuallyVisitedTrackIndices.Clear();
             stateManager.IsPreparingTrack = false;
@@ -277,7 +277,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         if (stateManager.IsPreparingOrPlaying(audioPlayer))
         {
-            await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
+            await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex, forceSave: true);
         }
 
         await operationHandler.PauseAsync(
@@ -599,7 +599,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             if (stateManager.Playlist != null && stateManager.CurrentTrackIndex >= 0 && stateManager.CurrentTrackIndex < stateManager.Playlist.Count)
             {
-                await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
+                await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex, forceSave: true);
             }
 
             progressTracker.Stop();

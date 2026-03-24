@@ -1,6 +1,7 @@
 #nullable enable
 using Android.Content;
 using Android.Media;
+using Android.OS;
 using Bible.Alarm.Platforms.Android.Services.Audio.Interfaces;
 using Serilog;
 using Application = Android.App.Application;
@@ -9,7 +10,8 @@ namespace Bible.Alarm.Platforms.Android.Services.Audio;
 
 /// <summary>
 /// Service that manages audio focus requests and releases.
-/// Centralizes audio focus management for use by AudioFocusEffect and MediaSessionManager.
+/// Also registers/unregisters an ACTION_AUDIO_BECOMING_NOISY receiver so
+/// playback pauses when the audio output route changes (e.g. Bluetooth disconnects).
 /// </summary>
 public sealed class AudioFocusService : IAudioFocusService
 {
@@ -17,17 +19,15 @@ public sealed class AudioFocusService : IAudioFocusService
     private readonly IAudioFocusListener audioFocusListener;
     private readonly AudioManager audioManager;
     private AudioFocusRequestClass? audioFocusRequest;
+    private AudioNoisyReceiver? noisyReceiver;
+    private bool noisyReceiverRegistered;
 
     private readonly Lock @lock = new();
 
-/// <summary>
-/// Initializes the audio focus service with the global audio focus listener.
-/// </summary>
-public AudioFocusService(IAudioFocusListener audioFocusListener)
+    public AudioFocusService(IAudioFocusListener audioFocusListener)
     {
         this.audioFocusListener = audioFocusListener ?? throw new ArgumentNullException(nameof(audioFocusListener));
 
-        // Initialize AudioManager in constructor - Application.Context is available at this point
         var context = Application.Context ?? throw new InvalidOperationException("Android Application.Context is null - cannot initialize AudioFocusService");
         var audioManagerService = context.GetSystemService(Context.AudioService) as AudioManager;
         audioManager = audioManagerService ?? throw new InvalidOperationException("Failed to get AudioManager from Application.Context");
@@ -36,7 +36,8 @@ public AudioFocusService(IAudioFocusListener audioFocusListener)
     }
 
     /// <summary>
-    /// Requests audio focus for media playback.
+    /// Requests audio focus for media playback and starts listening for
+    /// ACTION_AUDIO_BECOMING_NOISY so we pause when the output route changes.
     /// </summary>
     public void RequestAudioFocus()
     {
@@ -44,8 +45,6 @@ public AudioFocusService(IAudioFocusListener audioFocusListener)
         {
             try
             {
-                // Request audio focus for media playback
-                // Minimum Android version is 26 (API 26 = BuildVersionCodes.O), so we always use the modern API
                 var audioAttributesBuilder = new AudioAttributes.Builder();
                 if (audioAttributesBuilder == null)
                 {
@@ -97,6 +96,8 @@ public AudioFocusService(IAudioFocusListener audioFocusListener)
                 {
                     logger.Warning("Audio focus request returned: {Result}", result);
                 }
+
+                RegisterNoisyReceiverInternal();
             }
             catch (Exception ex)
             {
@@ -123,19 +124,73 @@ public AudioFocusService(IAudioFocusListener audioFocusListener)
     {
         try
         {
-            // Minimum Android version is 26 (API 26 = BuildVersionCodes.O), so we always use the modern API
             if (audioFocusRequest != null)
             {
                 audioManager.AbandonAudioFocusRequest(audioFocusRequest);
                 audioFocusRequest = null;
                 logger.Debug("Audio focus released");
             }
+
+            UnregisterNoisyReceiverInternal();
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error releasing audio focus");
-            // Reset flag on error to prevent getting stuck
             audioFocusRequest = null;
+        }
+    }
+
+    private void RegisterNoisyReceiverInternal()
+    {
+        if (noisyReceiverRegistered)
+        {
+            return;
+        }
+
+        try
+        {
+            noisyReceiver = new AudioNoisyReceiver();
+            var filter = new IntentFilter(AudioManager.ActionAudioBecomingNoisy);
+
+            if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
+            {
+                Application.Context.RegisterReceiver(noisyReceiver, filter, ReceiverFlags.NotExported);
+            }
+            else
+            {
+#pragma warning disable CA1422 // Validate platform compatibility
+                Application.Context.RegisterReceiver(noisyReceiver, filter);
+#pragma warning restore CA1422
+            }
+
+            noisyReceiverRegistered = true;
+            logger.Debug("AudioNoisyReceiver registered");
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error registering AudioNoisyReceiver");
+        }
+    }
+
+    private void UnregisterNoisyReceiverInternal()
+    {
+        if (!noisyReceiverRegistered || noisyReceiver == null)
+        {
+            return;
+        }
+
+        try
+        {
+            Application.Context.UnregisterReceiver(noisyReceiver);
+            noisyReceiverRegistered = false;
+            noisyReceiver = null;
+            logger.Debug("AudioNoisyReceiver unregistered");
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error unregistering AudioNoisyReceiver");
+            noisyReceiverRegistered = false;
+            noisyReceiver = null;
         }
     }
 }

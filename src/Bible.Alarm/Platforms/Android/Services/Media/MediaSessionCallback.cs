@@ -3,6 +3,7 @@ using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Effects;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -69,29 +70,61 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     {
         logger.Information("MediaSessionCallback.OnPlay() called");
 
+        var pState = PlaybackState;
+
+        // If there's an active playback session (paused/playing/loading), resume
+        // normally like any media player. This preserves playlist position, avoids
+        // restarting music intro, and lets PlaybackOperationHandler handle stale
+        // ExoPlayer state (re-prepares current track with seek when resources lost).
+        if (pState?.Value?.IsPreparingOrPlaying == true)
+        {
+            logger.Information("MediaSessionCallback.OnPlay() - active session exists (Status={Status}), resuming via PlayButtonPressedMessage",
+                pState.Value.Status);
+            ExecuteAsyncOperation(async () =>
+            {
+                WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+                await Task.CompletedTask;
+            });
+            base.OnPlay();
+            return;
+        }
+
+        // No active playback (default metadata / stopped state) - do a clean restart
+        // from the database with full playlist preparation.
+        MediaSessionEffect.SetRestartingPlayback(true);
+        SetBufferingStateImmediately();
+
         ExecuteAsyncOperation(async () =>
         {
-            var scheduleIdFromMetadata = TryGetScheduleIdFromMediaSession();
-            if (scheduleIdFromMetadata.HasValue && scheduleIdFromMetadata.Value > 0)
+            try
             {
-                logger.Information("MediaSessionCallback.OnPlay() - using schedule {ScheduleId} from metadata",
-                    scheduleIdFromMetadata.Value);
-                await playbackService.PrepareAndPlayAsync(scheduleIdFromMetadata.Value, isAlarm: false);
-            }
-            else
-            {
-                var firstId = DefaultScheduleService.GetFirstScheduleId();
-                if (firstId.HasValue && firstId.Value > 0)
+                var scheduleIdFromMetadata = TryGetScheduleIdFromMediaSession();
+                if (scheduleIdFromMetadata.HasValue && scheduleIdFromMetadata.Value > 0)
                 {
-                    logger.Information("MediaSessionCallback.OnPlay() - no metadata schedule ID, using first schedule {ScheduleId}",
-                        firstId.Value);
-                    await playbackService.PrepareAndPlayAsync(firstId.Value, isAlarm: false);
+                    logger.Information("MediaSessionCallback.OnPlay() - fresh start using schedule {ScheduleId} from metadata",
+                        scheduleIdFromMetadata.Value);
+                    await playbackService.PrepareAndPlayAsync(scheduleIdFromMetadata.Value, isAlarm: false);
                 }
                 else
                 {
-                    logger.Warning("MediaSessionCallback.OnPlay() - no schedule ID available, sending PlayButtonPressedMessage");
-                    WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+                    var firstId = DefaultScheduleService.GetFirstScheduleId();
+                    if (firstId.HasValue && firstId.Value > 0)
+                    {
+                        logger.Information("MediaSessionCallback.OnPlay() - fresh start using first schedule {ScheduleId}",
+                            firstId.Value);
+                        await playbackService.PrepareAndPlayAsync(firstId.Value, isAlarm: false);
+                    }
+                    else
+                    {
+                        logger.Warning("MediaSessionCallback.OnPlay() - no schedule ID available, sending PlayButtonPressedMessage");
+                        WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+                    }
                 }
+            }
+            catch
+            {
+                MediaSessionEffect.SetRestartingPlayback(false);
+                throw;
             }
         });
 

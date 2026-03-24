@@ -124,10 +124,15 @@ public sealed class ForegroundServiceCoordinator
                 ForegroundServiceOperations.StopForeground(state.AndroidAutoService);
                 state.SetOwner(ForegroundServiceOwner.None);
             }
-            else
+            else if (state.AndroidAutoService != null)
             {
-                logger.Debug("Android Auto disconnected but was not the foreground service owner (current owner: {CurrentOwner}) - not stopping foreground service",
+                // OnCreate always calls StartForegroundMinimal (notification ID 2), but
+                // the coordinator may not have taken ownership (e.g. MediaElement was active
+                // when Android Auto connected). Stop the foreground to remove the stuck
+                // "Starting..." notification that would otherwise persist indefinitely.
+                logger.Information("Stopping orphaned minimal foreground notification on Android Auto disconnect (current owner: {CurrentOwner})",
                     state.CurrentOwner);
+                ForegroundServiceOperations.StopForeground(state.AndroidAutoService);
             }
 
             state.ClearAndroidAutoService();

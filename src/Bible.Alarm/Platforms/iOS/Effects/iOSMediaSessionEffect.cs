@@ -32,6 +32,12 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     // Track the last status to send correct toggle command
     private PlayStatus lastKnownStatus = PlayStatus.Stopped;
 
+    // Metadata dedup fields to prevent redundant Now Playing updates that cause visual jitter
+    private string? lastMetadataTitle;
+    private string? lastMetadataArtist;
+    private string? lastMetadataAlbum;
+    private string? lastMetadataArtworkUrl;
+
     public iOSMediaSessionEffect(
         IiOSRemoteCommandCenterManager remoteCommandManager,
         IiOSNowPlayingInfoManager nowPlayingManager,
@@ -112,24 +118,36 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     {
         try
         {
+            if (!HasValidMetadata(action))
+            {
+                return Task.CompletedTask;
+            }
+
+            if (IsMetadataUnchanged(action))
+            {
+                logger.Debug("[iOS MediaSession] Skipping redundant metadata update for {Title}", action.Title);
+                return Task.CompletedTask;
+            }
+
             var currentState = playbackState.Value;
 
-            if (HasValidMetadata(action))
-            {
-                logger.Information(
-                    "[iOS MediaSession] Metadata changed: Title={Title}, Artist={Artist}, Album={Album}",
-                    action.Title, action.Artist, action.Album);
+            logger.Information(
+                "[iOS MediaSession] Metadata changed: Title={Title}, Artist={Artist}, Album={Album}",
+                action.Title, action.Artist, action.Album);
 
-                // Ensure commands are registered when metadata is set (playback is starting)
-                remoteCommandManager.RegisterCommands();
+            remoteCommandManager.RegisterCommands();
 
-                nowPlayingManager.UpdateMetadata(
-                    action.Title,
-                    action.Artist,
-                    action.Album,
-                    currentState.Duration,
-                    action.ArtworkUrl);
-            }
+            nowPlayingManager.UpdateMetadata(
+                action.Title,
+                action.Artist,
+                action.Album,
+                currentState.Duration,
+                action.ArtworkUrl);
+
+            lastMetadataTitle = action.Title;
+            lastMetadataArtist = action.Artist;
+            lastMetadataAlbum = action.Album;
+            lastMetadataArtworkUrl = action.ArtworkUrl;
         }
         catch (Exception ex)
         {
@@ -137,6 +155,22 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
         }
 
         return Task.CompletedTask;
+    }
+
+    private bool IsMetadataUnchanged(PlaybackMetadataChangedAction action)
+    {
+        return action.Title == lastMetadataTitle
+            && action.Artist == lastMetadataArtist
+            && action.Album == lastMetadataAlbum
+            && action.ArtworkUrl == lastMetadataArtworkUrl;
+    }
+
+    private void ResetMetadataDedup()
+    {
+        lastMetadataTitle = null;
+        lastMetadataArtist = null;
+        lastMetadataAlbum = null;
+        lastMetadataArtworkUrl = null;
     }
 
     /// <summary>
@@ -241,8 +275,8 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
         {
             logger.Information("[iOS MediaSession] Playback stopped - updating playback status and command availability");
 
-            // Update playback status to stopped (rate = 0) but keep metadata
-            // This shows the paused/stopped state on lock screen while keeping content visible
+            ResetMetadataDedup();
+
             nowPlayingManager.UpdatePlaybackStatus(PlayStatus.Stopped);
 
             // Update command availability so CarPlay/lock screen show Play (not Pause) when stopped

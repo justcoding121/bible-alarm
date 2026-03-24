@@ -216,7 +216,12 @@ public sealed class MediaSessionManager : IMediaSessionManager
         }
         else
         {
-            UpdatePlaybackState(state, canPlayNext: canPlayNext, canPlayPrevious: canPlayPrevious);
+            // Preserve current position from the MediaSession to avoid resetting
+            // the progress bar to 0:00 on state transitions (especially pause).
+            // For Playing state, Android Auto uses position + playbackSpeed + timestamp
+            // to advance the position automatically.
+            var position = mediaSession?.Controller?.PlaybackState?.Position ?? 0;
+            UpdatePlaybackState(state, position: position, canPlayNext: canPlayNext, canPlayPrevious: canPlayPrevious);
 
             if (status == PlayStatus.Playing)
             {

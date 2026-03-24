@@ -32,6 +32,10 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     // MPMediaItemArtwork handler still references it across the managed/native boundary.
     private UIImage? retainedArtworkImage;
 
+    // Cached app icon artwork used as ultimate fallback when no other artwork is available
+    private MPMediaItemArtwork? cachedAppIconArtwork;
+    private UIImage? retainedAppIconImage;
+
     /// <summary>
     /// Updates the Now Playing metadata (title, artist, album, artwork).
     /// Call this when the track changes.
@@ -79,6 +83,8 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                     }
                 }
             }
+
+            artworkToUse ??= GetOrLoadAppIconArtwork();
 
             var nowPlayingInfo = CreateNowPlayingInfoWithArtwork(title, artist, album, duration, artworkToUse);
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
@@ -390,6 +396,8 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                 artworkToUse = currentArtwork;
             }
 
+            artworkToUse ??= GetOrLoadAppIconArtwork();
+
             var nowPlayingInfo = CreateNowPlayingInfoWithArtwork(title, artist, album, TimeSpan.Zero, artworkToUse);
             nowPlayingInfo.PlaybackRate = 0.0;
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
@@ -397,6 +405,41 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         catch (Exception ex)
         {
             logger.Error(ex, "[iOS NowPlaying] Failed to set default metadata");
+        }
+    }
+
+    private MPMediaItemArtwork? GetOrLoadAppIconArtwork()
+    {
+        if (cachedAppIconArtwork != null)
+        {
+            return cachedAppIconArtwork;
+        }
+
+        try
+        {
+            var appIcon = UIImage.FromBundle("AppIcon");
+            if (appIcon == null)
+            {
+                appIcon = UIImage.FromBundle("AppIcon60x60");
+            }
+
+            if (appIcon == null)
+            {
+                return null;
+            }
+
+            retainedAppIconImage = appIcon;
+            var boundsSize = new CGSize(
+                Math.Max(appIcon.Size.Width, 600),
+                Math.Max(appIcon.Size.Height, 600));
+            cachedAppIconArtwork = new MPMediaItemArtwork(
+                boundsSize, requestedSize => ScaleImageToRequestedSize(appIcon, requestedSize));
+            return cachedAppIconArtwork;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "[iOS NowPlaying] Failed to load app icon fallback artwork");
+            return null;
         }
     }
 

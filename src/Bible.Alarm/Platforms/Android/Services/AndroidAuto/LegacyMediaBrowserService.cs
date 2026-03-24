@@ -197,6 +197,15 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 if (pState?.Value?.IsPreparingOrPlaying == true)
                 {
                     logger.Debug("Playback is active on car connect - skipping default metadata refresh");
+
+                    // MediaElement is handling playback (paused or playing). The minimal
+                    // "Starting..." notification (ID 2) from OnCreate is redundant — remove it
+                    // so it doesn't persist indefinitely alongside MediaElement's notification.
+                    if (ForegroundServiceCoordinator.CurrentOwner != ForegroundServiceCoordinator.ForegroundServiceOwner.AndroidAuto)
+                    {
+                        ForegroundServiceOperations.StopForeground(this);
+                        logger.Information("Stopped stuck minimal foreground notification — MediaElement is handling playback");
+                    }
                     return;
                 }
 

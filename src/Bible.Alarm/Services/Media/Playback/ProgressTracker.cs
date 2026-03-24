@@ -79,7 +79,7 @@ public sealed class ProgressTracker : IDisposable
 
     private void OnProgressSaveTimerElapsed(object? sender, ElapsedEventArgs e) => _ = saveProgressCallback?.Invoke() ?? Task.CompletedTask;
 
-    public async Task SaveProgressAsync(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
+    public async Task SaveProgressAsync(List<AudioPlayerTrack>? playlist, int currentTrackIndex, bool forceSave = false)
     {
         if (playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
         {
@@ -123,8 +123,11 @@ public sealed class ProgressTracker : IDisposable
             return;
         }
 
-        // Only save if currently playing
-        if (audioPlayer.Status != PlayStatus.Playing)
+        // Timer-driven saves only run while actively playing.
+        // Explicit saves (forceSave) also save when paused — the player status may
+        // have already changed to Paused (e.g. Media3 auto-paused on BT disconnect)
+        // before our PauseAsync handler runs.
+        if (!forceSave && audioPlayer.Status != PlayStatus.Playing)
         {
             return;
         }
@@ -132,11 +135,23 @@ public sealed class ProgressTracker : IDisposable
         try
         {
             var currentPosition = audioPlayer.CurrentPosition;
-            if (currentPosition.HasValue)
+            if (currentPosition.HasValue && currentPosition.Value > TimeSpan.Zero)
             {
-                // Update the track metadata with current position
                 track.PlayItem.Metadata.FinishedDuration = currentPosition.Value;
                 await playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
+                if (forceSave)
+                {
+                    logger.Debug("Force-saved progress: ScheduleId={ScheduleId}, Position={Position}",
+                        track.PlayItem.Metadata.ScheduleId, currentPosition.Value);
+                }
+            }
+            else if (forceSave && track.PlayItem.Metadata.FinishedDuration > TimeSpan.Zero)
+            {
+                // Player position unavailable (e.g. resources released) but in-memory
+                // metadata still holds the position from the last timer tick. Persist it.
+                await playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
+                logger.Debug("Force-saved in-memory progress (player position unavailable): ScheduleId={ScheduleId}, Position={Position}",
+                    track.PlayItem.Metadata.ScheduleId, track.PlayItem.Metadata.FinishedDuration);
             }
         }
         catch (Exception ex)
