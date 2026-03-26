@@ -42,7 +42,7 @@
 		<!-- iOS-specific -->
 		<!-- Allow Xcode 26.3 with .NET for iOS 26.2 workload (Xcode 26.3 has no new APIs; see https://github.com/dotnet/macios/issues/24464) -->
 		<ValidateXcodeVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">false</ValidateXcodeVersion>
-		<!-- Use interpreter for iOS (EF Core/reflection AOT crashes) and all Android builds (EF queries; Mono JIT !ji->async on MediaTek/ARM64, see dotnet/runtime#122881). Android Release must not use AOT with the interpreter (XA0119); see AndroidAotEnable below. -->
+		<!-- Use interpreter for iOS (EF Core/reflection AOT crashes) and all Android builds (EF queries; Mono JIT !ji->async on MediaTek/ARM64, see dotnet/runtime#122881). Managed AOT must stay off on Android (RunAOTCompilation + AndroidAotEnable) or XA0119. -->
 		<UseInterpreter Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' OR $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">true</UseInterpreter>
 		<!-- Minimum OS version set to iOS 16.0 to support modern UNUserNotificationCenter.SetBadgeCount API -->
 		<!-- CommunityToolkit.Maui.MediaElement supports iOS 15.0+, but we require 16.0 for modern notification APIs -->
@@ -107,9 +107,10 @@
 		<NoWarn>$(NoWarn);XC0022</NoWarn>
 	</PropertyGroup>
 
-	<!-- Interpreter + Android AOT together is unsupported (XA0119). Debug already sets AndroidAotEnable=false in Directory.Build.props. -->
-	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-android' AND '$(Configuration)' == 'Release'">
+	<!-- Interpreter + AOT together is unsupported (XA0119). Release publish defaults RunAOTCompilation=true; AndroidAotEnable alone does not disable it. -->
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
 		<AndroidAotEnable>false</AndroidAotEnable>
+		<RunAOTCompilation>false</RunAOTCompilation>
 	</PropertyGroup>
 
 	<ItemGroup>
