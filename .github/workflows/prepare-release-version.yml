@@ -35,6 +35,9 @@ jobs:
         with:
           token: ${{ secrets.REPO_TOKEN }}
 
+      - name: Apply CI SDK pin (global.ci.json → global.json)
+        run: cp -f global.ci.json global.json
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
