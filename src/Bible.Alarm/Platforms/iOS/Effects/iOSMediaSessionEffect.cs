@@ -70,25 +70,53 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     {
         try
         {
-            lastKnownStatus = action.Status;
             var currentState = playbackState.Value;
 
             logger.Information(
-                "[iOS MediaSession] PlaybackStatusChanged: Status={NewStatus}, ScheduleId={ScheduleId}, CanPlayNext={CanPlayNext}",
+                "[iOS MediaSession] PlaybackStatusChanged: Status={NewStatus}, ScheduleId={ScheduleId}, CanPlayNext={CanPlayNext}, IsAutoAdvancing={IsAutoAdvancing}",
                 action.Status,
                 currentState.CurrentScheduleId,
-                currentState.CanPlayNext);
+                currentState.CanPlayNext,
+                currentState.IsAutoAdvancing);
 
-            // Update Now Playing playback status (rate = 0 for stopped/paused, 1 for playing)
+            if (action.Status == PlayStatus.Loading)
+            {
+                // Fluxor effects for the same action type can run concurrently.
+                // If Loading and Playing are dispatched close together, the Playing
+                // effect may update the status before this Loading effect runs.
+                // Re-check Fluxor to avoid overwriting Playing with a stale Loading rate.
+                if (playbackState.Value.Status != PlayStatus.Loading)
+                {
+                    logger.Debug(
+                        "[iOS MediaSession] Skipping Loading status — Fluxor already advanced to {Status}",
+                        playbackState.Value.Status);
+                    return Task.CompletedTask;
+                }
+            }
+            else if (action.Status == PlayStatus.Stopped)
+            {
+                // Re-read isAutoAdvancing from current Fluxor state (not the snapshot).
+                // During auto-advance, Stopped fires before SetAutoAdvancingAction(true),
+                // but by the time this async effect executes, the flag may be updated.
+                var currentAutoAdvancing = playbackState.Value.IsAutoAdvancing;
+                if (currentAutoAdvancing)
+                {
+                    logger.Information(
+                        "[iOS MediaSession] Stopped with auto-advancing: keeping Playing rate to prevent CarPlay pause flash");
+                    nowPlayingManager.UpdatePlaybackStatus(PlayStatus.Playing);
+                    lastKnownStatus = PlayStatus.Playing;
+                    return Task.CompletedTask;
+                }
+            }
+
+            lastKnownStatus = action.Status;
             nowPlayingManager.UpdatePlaybackStatus(action.Status);
 
-            // Update remote command availability based on current state
             var hasActiveSchedule = currentState.CurrentScheduleId.HasValue;
             var isPlaying = action.Status == PlayStatus.Playing;
 
             if (hasActiveSchedule)
             {
-                // Active schedule - update command availability based on navigation state
                 remoteCommandManager.UpdateCommandAvailability(
                     currentState.CanPlayNext,
                     currentState.CanPlayPrevious,
@@ -96,10 +124,7 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
             }
             else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
             {
-                // No active schedule and stopped - show Play (hide Pause) so CarPlay/lock screen display correctly
                 remoteCommandManager.UpdateCommandAvailability(canPlayNext: true, canPlayPrevious: true, isPlaying: false);
-                // SetDefaultScheduleMetadataAction will be dispatched and will set up the metadata
-                // Commands should remain registered so play button works from lock screen
             }
         }
         catch (Exception ex)
@@ -137,11 +162,20 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
 
             remoteCommandManager.RegisterCommands();
 
+            // During track transitions the reducer resets duration to 0 before the
+            // new track's duration is known. Preserve the previous duration so the
+            // time display on CarPlay/lock screen doesn't disappear momentarily.
+            var duration = currentState.Duration;
+            if (duration <= TimeSpan.Zero)
+            {
+                duration = nowPlayingManager.GetCurrentDuration();
+            }
+
             nowPlayingManager.UpdateMetadata(
                 action.Title,
                 action.Artist,
                 action.Album,
-                currentState.Duration,
+                duration,
                 action.ArtworkUrl);
 
             lastMetadataTitle = action.Title;
@@ -200,6 +234,15 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
         try
         {
             var currentState = playbackState.Value;
+
+            // Skip navigation updates during transitional states.
+            // HandlePlaybackStatusChanged already sets command availability for these;
+            // re-applying here causes unnecessary toggling of play/pause commands.
+            if (currentState.Status is PlayStatus.Loading or PlayStatus.Stopped or PlayStatus.Ended)
+            {
+                return Task.CompletedTask;
+            }
+
             var isPlaying = currentState.Status == PlayStatus.Playing;
 
             remoteCommandManager.UpdateCommandAvailability(
@@ -301,6 +344,13 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
         try
         {
             if (message.CurrentPosition == null)
+            {
+                return;
+            }
+
+            // Skip stale position updates after playback has stopped/ended.
+            var status = playbackState.Value.Status;
+            if (status is PlayStatus.Stopped or PlayStatus.Ended)
             {
                 return;
             }

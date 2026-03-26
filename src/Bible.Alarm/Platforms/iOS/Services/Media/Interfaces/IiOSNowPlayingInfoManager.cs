@@ -14,4 +14,5 @@ public interface IiOSNowPlayingInfoManager
     void UpdateDuration(TimeSpan duration);
     void ClearNowPlayingInfo();
     void SetDefaultMetadata(string? title, string? artist, string? album, string? artworkUrl);
+    TimeSpan GetCurrentDuration();
 }

@@ -221,8 +221,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     {
         try
         {
-            // Skip if stopped to prevent recreating Now Playing after it's been cleared
-            if (status == PlayStatus.Stopped)
+            if (status is PlayStatus.Stopped or PlayStatus.Ended)
             {
                 return;
             }
@@ -319,6 +318,11 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         {
             logger.Error(ex, "[iOS NowPlaying] Failed to update duration");
         }
+    }
+
+    public TimeSpan GetCurrentDuration()
+    {
+        return TimeSpan.FromSeconds(currentDuration);
     }
 
     /// <summary>

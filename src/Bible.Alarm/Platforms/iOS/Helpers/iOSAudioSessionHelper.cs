@@ -1,5 +1,7 @@
 #nullable enable
 using AVFoundation;
+using Bible.Alarm.Common.Messenger;
+using CommunityToolkit.Mvvm.Messaging;
 using Foundation;
 using Serilog;
 
@@ -10,6 +12,8 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 /// </summary>
 public static class IOsAudioSessionHelper
 {
+    private static NSObject? routeChangeObserver;
+
     /// <summary>
     /// Configures the iOS audio session for playback.
     /// Sets the category to Playback and activates the session.
@@ -22,7 +26,6 @@ public static class IOsAudioSessionHelper
             logger.Debug("Attempting to configure iOS audio session for {Context}.", context);
             var audioSession = AVAudioSession.SharedInstance();
 
-            // Set category for playback - this allows audio to play even in silent mode
             var categoryName = new NSString("AVAudioSessionCategoryPlayback");
             var categoryResult = audioSession.SetCategory(categoryName, out var error);
 
@@ -37,7 +40,6 @@ public static class IOsAudioSessionHelper
                 logger.Debug("Successfully set AVAudioSession category to Playback for {Context}", context);
             }
 
-            // Activate the audio session
             var activateResult = audioSession.SetActive(true, out error);
             if (!activateResult || error != null)
             {
@@ -49,11 +51,45 @@ public static class IOsAudioSessionHelper
             {
                 logger.Debug("Successfully activated AVAudioSession for {Context}", context);
             }
+
+            RegisterRouteChangeObserver(logger);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error configuring iOS audio session for {Context}", context);
         }
+    }
+
+    /// <summary>
+    /// Observes audio route changes (e.g. Bluetooth disconnects, headphones unplugged)
+    /// and pauses playback when the old output device becomes unavailable.
+    /// iOS equivalent of Android's ACTION_AUDIO_BECOMING_NOISY / AudioNoisyReceiver.
+    /// </summary>
+    private static void RegisterRouteChangeObserver(ILogger logger)
+    {
+        if (routeChangeObserver != null)
+        {
+            return;
+        }
+
+        routeChangeObserver = AVAudioSession.Notifications.ObserveRouteChange((sender, args) =>
+        {
+            try
+            {
+                if (args.Reason == AVAudioSessionRouteChangeReason.OldDeviceUnavailable)
+                {
+                    logger.Information(
+                        "Audio route changed (old device unavailable, e.g. Bluetooth disconnected) — pausing playback");
+                    WeakReferenceMessenger.Default.Send(new PauseButtonPressedMessage());
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error handling audio route change notification");
+            }
+        });
+
+        logger.Debug("Registered iOS audio route change observer");
     }
 }
 
