@@ -34,10 +34,22 @@ public sealed class AndroidDefaultDeviceRingtoneService(ILogger logger) : IDefau
                     }
 
                     var player = new MediaPlayer();
-                    var attrs = new AudioAttributes.Builder()!
-                        .SetUsage(AudioUsageKind.Alarm)
-                        .SetContentType(AudioContentType.Music)
-                        .Build();
+                    var attrsBuilder = new AudioAttributes.Builder();
+                    if (attrsBuilder == null)
+                    {
+                        logger.Warning("AndroidDefaultDeviceRingtoneService: could not create AudioAttributes.Builder");
+                        return;
+                    }
+
+                    attrsBuilder.SetUsage(AudioUsageKind.Alarm);
+                    attrsBuilder.SetContentType(AudioContentType.Music);
+                    var attrs = attrsBuilder.Build();
+                    if (attrs == null)
+                    {
+                        logger.Warning("AndroidDefaultDeviceRingtoneService: could not build AudioAttributes");
+                        return;
+                    }
+
                     player.SetAudioAttributes(attrs);
                     player.SetDataSource(context, uri);
                     player.Looping = true;

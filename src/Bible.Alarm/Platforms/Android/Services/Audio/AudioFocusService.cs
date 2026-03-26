@@ -1,7 +1,7 @@
 #nullable enable
+using System;
 using Android.Content;
 using Android.Media;
-using Android.OS;
 using Bible.Alarm.Platforms.Android.Services.Audio.Interfaces;
 using Serilog;
 using Application = Android.App.Application;
@@ -152,7 +152,7 @@ public sealed class AudioFocusService : IAudioFocusService
             noisyReceiver = new AudioNoisyReceiver();
             var filter = new IntentFilter(AudioManager.ActionAudioBecomingNoisy);
 
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
+            if (OperatingSystem.IsAndroidVersionAtLeast(33))
             {
                 Application.Context.RegisterReceiver(noisyReceiver, filter, ReceiverFlags.NotExported);
             }
