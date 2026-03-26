@@ -178,6 +178,11 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 
     public Task SyncMetadataForTrackAsync(AudioPlayerTrack track) => metadataHandler.SyncMetadataForTrackAsync(track);
 
+    public void NotifyTrackTransitionStarting()
+    {
+        stateManager.Status = PlayStatus.Loading;
+    }
+
 
     private bool isDisposed;
 

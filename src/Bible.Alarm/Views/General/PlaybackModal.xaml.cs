@@ -12,8 +12,6 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     private volatile bool isDisposed;
     private bool hasHandledFirstLoad;
     private readonly PlaybackViewModel viewModel;
-    private System.Timers.Timer? artworkRefreshDebounceTimer;
-    private const int ArtworkRefreshDebounceMs = 3000;
 #if IOS
     private TapGestureRecognizer? portraitTapRecognizer;
     private TapGestureRecognizer? landscapeTapRecognizer;
@@ -27,10 +25,11 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         BindingContext = viewModel;
         this.viewModel = viewModel;
 
-        viewModel.PropertyChanged += OnViewModelPropertyChanged;
         Loaded += OnPageLoaded;
         SizeChanged += OnSizeChanged;
     }
+
+    private bool wasLandscape;
 
     private void OnSizeChanged(object? sender, EventArgs e)
     {
@@ -39,141 +38,31 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             return;
         }
 
-        // Ignore early size events
         if (Width <= 0 || Height <= 0)
         {
             return;
         }
 
-        ViewModel?.SetIsLandscape(Width > Height);
-        var isPortrait = Width <= Height;
+        var isLandscape = Width > Height;
+        ViewModel?.SetIsLandscape(isLandscape);
 
-        if (isPortrait)
+        if (wasLandscape && !isLandscape)
         {
-            InvalidatePortraitArtworkLayout();
+            RefreshPortraitArtworkSource();
         }
+
+        wasLandscape = isLandscape;
     }
 
     /// <summary>
-    /// Forces portrait artwork to re-measure. MAUI can retain stale layout for the portrait Image,
-    /// causing artwork to show as bell even when HasArtwork/ArtworkSource are correct (open in portrait,
-    /// or after switching back from landscape). Invalidating parent and child fixes the render.
+    /// The portrait container toggles IsVisible on orientation change, which causes MAUI
+    /// to detach/reattach the Image handler (losing rendered content). A single UpdateValue
+    /// call after the switch re-processes the source.
     /// </summary>
-    private void InvalidatePortraitArtworkLayout()
+    private void RefreshPortraitArtworkSource()
     {
-        if (PortraitArtworkGrid == null)
+        Task.Delay(150).ContinueWith(_ =>
         {
-            return;
-        }
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            try
-            {
-                if (isDisposed || PortraitArtworkGrid == null)
-                {
-                    return;
-                }
-
-                MainContentArea?.InvalidateMeasure();
-                PortraitArtworkGrid.InvalidateMeasure();
-                PortraitArtworkImage?.InvalidateMeasure();
-
-                // Delayed second pass: initial layout may give wrong dimensions. Re-invalidate after layout settles.
-                Task.Delay(150).ContinueWith(_ =>
-                {
-                    if (isDisposed)
-                    {
-                        return;
-                    }
-
-                    try
-                    {
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            try
-                            {
-                                if (!isDisposed && PortraitArtworkGrid != null && (ViewModel?.ShowPortraitLayout ?? false))
-                                {
-                                    MainContentArea?.InvalidateMeasure();
-                                    PortraitArtworkGrid.InvalidateMeasure();
-                                    PortraitArtworkImage?.InvalidateMeasure();
-                                    PortraitArtworkImage?.Handler?.UpdateValue(nameof(Image.Source));
-                                }
-                            }
-                            catch (ObjectDisposedException ex)
-                            {
-                                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during portrait artwork layout invalidation");
-                            }
-                            catch (InvalidOperationException ex)
-                            {
-                                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during portrait artwork layout invalidation");
-                            }
-                        });
-                    }
-                    catch (ObjectDisposedException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during delayed portrait artwork layout invalidation");
-                    }
-                });
-            }
-            catch (ObjectDisposedException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during InvalidatePortraitArtworkLayout");
-            }
-            catch (InvalidOperationException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during InvalidatePortraitArtworkLayout");
-            }
-        });
-    }
-
-    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        if (e.PropertyName is nameof(PlaybackViewModel.HasArtwork)
-                           or nameof(PlaybackViewModel.ShowArtworkSpinner)
-                           or nameof(PlaybackViewModel.ShowPortraitLayout))
-        {
-            SchedulePortraitArtworkRenderDebounced();
-        }
-    }
-
-    /// <summary>
-    /// Debounces property-change-driven artwork refresh to avoid multiple Handler.UpdateValue calls
-    /// in quick succession (e.g. during track transitions), which causes visible blinking on Android.
-    /// </summary>
-    private void SchedulePortraitArtworkRenderDebounced()
-    {
-        var vm = ViewModel;
-
-        if (isDisposed || PortraitArtworkImage == null ||
-            vm?.ShowPortraitLayout != true ||
-            vm?.HasArtwork != true ||
-            vm.IsArtworkLoading || vm.IsWaitingForArtwork)
-        {
-            ClearArtworkDebounce();
-            return;
-        }
-
-        artworkRefreshDebounceTimer?.Stop();
-        artworkRefreshDebounceTimer?.Dispose();
-
-        artworkRefreshDebounceTimer = new System.Timers.Timer(ArtworkRefreshDebounceMs);
-        artworkRefreshDebounceTimer.Elapsed += (s, _) =>
-        {
-            var timer = s as System.Timers.Timer;
-            timer?.Stop();
-            timer?.Dispose();
-            if (ReferenceEquals(artworkRefreshDebounceTimer, timer))
-            {
-                artworkRefreshDebounceTimer = null;
-            }
-
             if (isDisposed)
             {
                 return;
@@ -181,87 +70,27 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
             try
             {
-                MainThread.BeginInvokeOnMainThread(() => ExecutePortraitArtworkRender());
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try
+                    {
+                        if (!isDisposed)
+                        {
+                            PortraitArtworkImage?.Handler?.UpdateValue(nameof(Image.Source));
+                        }
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
+                });
             }
             catch (ObjectDisposedException)
             {
             }
-            catch (InvalidOperationException)
-            {
-            }
-        };
-        artworkRefreshDebounceTimer.AutoReset = false;
-        artworkRefreshDebounceTimer.Start();
-    }
-
-    private void ClearArtworkDebounce()
-    {
-        artworkRefreshDebounceTimer?.Stop();
-        artworkRefreshDebounceTimer?.Dispose();
-        artworkRefreshDebounceTimer = null;
-    }
-
-    /// <summary>
-    /// Works around a MAUI rendering bug where the Image control can fail to display its source
-    /// after becoming visible (e.g. when the spinner hides, or after switching from landscape to portrait).
-    /// Forces the platform handler to re-process the image source after layout settles.
-    /// </summary>
-    private void ExecutePortraitArtworkRender()
-    {
-        var vm = ViewModel;
-        if (isDisposed || PortraitArtworkImage == null ||
-            vm?.ShowPortraitLayout != true ||
-            vm?.HasArtwork != true ||
-            vm.IsArtworkLoading || vm.IsWaitingForArtwork)
-        {
-            return;
-        }
-
-        try
-        {
-            PortraitArtworkImage.InvalidateMeasure();
-
-            Task.Delay(100).ContinueWith(_ =>
-            {
-                if (isDisposed)
-                {
-                    return;
-                }
-
-                try
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        try
-                        {
-                            if (!isDisposed && PortraitArtworkImage?.Handler != null)
-                            {
-                                PortraitArtworkImage.Handler.UpdateValue(nameof(Image.Source));
-                            }
-                        }
-                        catch (ObjectDisposedException ex)
-                        {
-                            Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during ExecutePortraitArtworkRender");
-                        }
-                        catch (InvalidOperationException ex)
-                        {
-                            Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during ExecutePortraitArtworkRender");
-                        }
-                    });
-                }
-                catch (ObjectDisposedException)
-                {
-                }
-            });
-        }
-        catch (ObjectDisposedException ex)
-        {
-            Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during ExecutePortraitArtworkRender");
-        }
-        catch (InvalidOperationException ex)
-        {
-            Log.Logger.Debug(ex, "PlaybackModal: View hierarchy in transitional state during ExecutePortraitArtworkRender");
-        }
+        });
     }
 
     private void OnPlaybackModalTapped(object? sender, TappedEventArgs e)
@@ -270,7 +99,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         ViewModel?.NotifyLandscapeInteraction();
     }
 
-    private async void OnPageLoaded(object? sender, EventArgs e)
+    private void OnPageLoaded(object? sender, EventArgs e)
     {
         if (hasHandledFirstLoad)
         {
@@ -280,8 +109,6 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         hasHandledFirstLoad = true;
         Loaded -= OnPageLoaded;
 
-        await Task.Delay(100);
-
         if (isDisposed)
         {
             return;
@@ -289,7 +116,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
         if (Width <= Height)
         {
-            InvalidatePortraitArtworkLayout();
+            RefreshPortraitArtworkSource();
         }
 
         WireLandscapeContentEvents();
@@ -299,7 +126,6 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         ForceIOSLayoutMeasurement();
 #endif
 
-        // Reveal Home behind modal when desired (e.g. sheet-style presentation).
         if (ViewModel?.RevealHomeBehindModalOnLoad == true)
         {
             viewModel?.HideHomePageOverlay();
@@ -825,20 +651,6 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
         try
         {
-            artworkRefreshDebounceTimer?.Stop();
-            artworkRefreshDebounceTimer?.Dispose();
-        }
-        catch
-        {
-        }
-        finally
-        {
-            artworkRefreshDebounceTimer = null;
-        }
-
-        try
-        {
-            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             Loaded -= OnPageLoaded;
             SizeChanged -= OnSizeChanged;
             UnwireLandscapeContentEvents();

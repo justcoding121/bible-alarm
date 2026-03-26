@@ -41,7 +41,8 @@ public sealed class PlaybackStopHandler
         bool skipSaveLastPlayed,
         CancellationTokenSource? preparationCancellationTokenSource,
         Action resetState,
-        Action stopProgressTimer)
+        Action stopProgressTimer,
+        bool skipDispatchStopped = false)
     {
         logger.Information("StopAsync called - stopping alarm completely");
 
@@ -111,20 +112,19 @@ public sealed class PlaybackStopHandler
         try
         {
             await audioPlayer.ResetAsync();
-            // Dispatch playback stopped action to close modal (state was already reset above)
-            dispatcher.Dispatch(new PlaybackStoppedAction());
+
+            if (!skipDispatchStopped)
+            {
+                dispatcher.Dispatch(new PlaybackStoppedAction());
 #if ANDROID || IOS
-            // Dispatch SetCarPlayScreenAction to refresh car display with default schedule metadata
-            // Android: Updates MediaSession for Android Auto
-            // iOS: Updates MPNowPlayingInfoCenter for CarPlay and Lock Screen
-            dispatcher.Dispatch(new SetCarPlayScreenAction());
-            logger.Debug("SetCarPlayScreenAction dispatched after playback reset");
+                dispatcher.Dispatch(new SetCarPlayScreenAction());
+                logger.Debug("SetCarPlayScreenAction dispatched after playback reset");
 #endif
+            }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error in audioPlayer.ResetAsync, attempting minimal cleanup");
-            // Ensure modal closes even if ResetAsync fails
             try
             {
                 await audioPlayer.ResetAsync();
@@ -133,8 +133,11 @@ public sealed class PlaybackStopHandler
             {
                 logger.Warning(resetEx, "Error resetting player in fallback");
             }
-            // State was already reset above, just dispatch action to close modal
-            dispatcher.Dispatch(new PlaybackStoppedAction());
+
+            if (!skipDispatchStopped)
+            {
+                dispatcher.Dispatch(new PlaybackStoppedAction());
+            }
         }
     }
 }

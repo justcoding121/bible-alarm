@@ -58,6 +58,11 @@ public sealed class TrackPlaybackHandler
             // ensures artwork is in state before the modal displays and avoids file contention.
             await audioPlayer.SyncMetadataForTrackAsync(track);
 
+            // Set internal status to Loading before changing the source so intermediate
+            // MediaElement states (Stopped, Paused) during the source change are filtered
+            // by ShouldIgnoreStateChange, preventing rapid play/pause button toggling.
+            audioPlayer.NotifyTrackTransitionStarting();
+
             await audioPlayer.PrepareAsync(track);
 
             // On Android with queue (SetSourceWithDummyQueue), MediaOpened may not fire when changing tracks.
@@ -118,11 +123,12 @@ public sealed class TrackPlaybackHandler
         // 3. It's a Bible track with saved progress
         // 4. Schedule allows resume (AlwaysPlayFromStart == false) - checked via ShouldResumeFromLastPositionAsync
         // Note: Auto-advance uses startFromBeginning=false; manual Prev uses true; manual Next uses true when track was already visited
+        var inMemoryFinishedDuration = track.PlayItem?.Metadata?.FinishedDuration ?? TimeSpan.Zero;
         var shouldCheckSeek = !startFromBeginning
             && isFirstEncounter
             && isBibleTrack
             && track.PlayItem?.Metadata != null
-            && track.PlayItem.Metadata.FinishedDuration != TimeSpan.Zero;
+            && inMemoryFinishedDuration != TimeSpan.Zero;
 
         if (shouldCheckSeek)
         {
@@ -130,7 +136,31 @@ public sealed class TrackPlaybackHandler
 
             if (shouldResume && track.PlayItem?.Metadata != null)
             {
-                seekPosition = track.PlayItem.Metadata.FinishedDuration;
+                seekPosition = inMemoryFinishedDuration;
+                logger.Information("[Resume] Seek from in-memory FinishedDuration={Duration}, ScheduleId={ScheduleId}",
+                    seekPosition.Value, currentScheduleId);
+            }
+        }
+        else if (!startFromBeginning && isFirstEncounter && isBibleTrack && track.PlayItem?.Metadata != null
+            && inMemoryFinishedDuration == TimeSpan.Zero && currentScheduleId.HasValue)
+        {
+            // Fallback: in-memory FinishedDuration is zero but the DB may have a saved position
+            // (e.g. after process restart if playlist builder didn't propagate the value).
+            var dbFinishedDuration = await trackPreparationHandler.GetScheduleFinishedDurationAsync(currentScheduleId);
+            if (dbFinishedDuration > TimeSpan.Zero)
+            {
+                var shouldResume = await trackPreparationHandler.ShouldResumeFromLastPositionAsync(currentScheduleId);
+                if (shouldResume)
+                {
+                    seekPosition = dbFinishedDuration;
+                    logger.Warning("[Resume] Fallback: in-memory FinishedDuration was zero but DB has {Duration} for ScheduleId={ScheduleId}. Using DB value.",
+                        dbFinishedDuration, currentScheduleId);
+                }
+            }
+            else
+            {
+                logger.Debug("[Resume] No seek: in-memory FinishedDuration=Zero, DB FinishedDuration=Zero, ScheduleId={ScheduleId}",
+                    currentScheduleId);
             }
         }
 

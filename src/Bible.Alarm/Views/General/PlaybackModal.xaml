@@ -235,26 +235,18 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         
-                        <!-- Album Artwork - fixed size, centered. x:Name for layout invalidation on orientation change (portrait render fix). -->
-                        <Grid x:Name="PortraitArtworkGrid"
+                        <!-- Album Artwork - fixed size, centered. Border and Image stay always visible within this
+                             Grid so the Image handler is never detached by spinner transitions. The parent
+                             portrait container still toggles IsVisible on orientation change; the code-behind
+                             calls Handler.UpdateValue once after that switch to re-process the source. -->
+                        <Grid
                             Grid.Row="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
                             WidthRequest="{DynamicResource ContentWidthLarge}"
                             HeightRequest="{DynamicResource ContentWidthLarge}">
-                            <!-- Busy Indicator for loading artwork or transitioning track -->
-                            <ActivityIndicator
-                                IsRunning="{Binding ShowArtworkSpinner}"
-                                IsVisible="{Binding ShowArtworkSpinner}"
-                                Color="{StaticResource PrimaryColor}"
-                                WidthRequest="{DynamicResource IconLargeContainerSize}"
-                                HeightRequest="{DynamicResource IconLargeContainerSize}"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center" />
-                            
-                            <!-- Album Artwork or Bell Icon (hidden while spinner is active) -->
+                            <!-- Artwork area: always visible so the Image handler stays attached -->
                             <Border
-                                IsVisible="{Binding ShowArtworkSpinner, Converter={StaticResource negateBooleanConverter}}"
                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
                                 StrokeThickness="0"
                                 HorizontalOptions="Fill"
@@ -269,7 +261,6 @@
                                             Radius="20" />
                                 </Border.Shadow>
                                 <Grid>
-                                    <!-- Bell icon only when artwork fetch failed (never during loading or while artwork loads) -->
                                     <Label
                                         IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
                                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -279,15 +270,31 @@
                                         Text="{x:Static fn:GlyphNames.Bell}"
                                         TextColor="{DynamicResource PrimaryTextColor}"
                                         VerticalOptions="Center" />
-                                    <!-- Album Artwork Image (renders on top of bell when loaded) -->
                                     <Image
                                         x:Name="PortraitArtworkImage"
                                         Aspect="AspectFill"
                                         HorizontalOptions="Fill"
-                                        IsVisible="{Binding HasArtwork}"
                                         Source="{Binding ArtworkSource}"
                                         VerticalOptions="Fill" />
                                 </Grid>
+                            </Border>
+                            <!-- Opaque spinner overlay: covers the artwork area during loading/transition -->
+                            <Border
+                                IsVisible="{Binding ShowArtworkSpinner}"
+                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                                StrokeThickness="0"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <ActivityIndicator
+                                    IsRunning="{Binding ShowArtworkSpinner}"
+                                    Color="{StaticResource PrimaryColor}"
+                                    WidthRequest="{DynamicResource IconLargeContainerSize}"
+                                    HeightRequest="{DynamicResource IconLargeContainerSize}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
                             </Border>
                         </Grid>
                         

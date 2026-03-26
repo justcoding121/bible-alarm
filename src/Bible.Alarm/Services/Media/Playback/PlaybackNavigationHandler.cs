@@ -59,11 +59,9 @@ public sealed class PlaybackNavigationHandler
         var currentTrackIndex = getCurrentTrackIndex();
         if (currentTrackIndex < playlist.Count - 1)
         {
-            progressTracker.Stop();
-            await audioPlayer.StopAsync();
-            await markCurrentTrackAsPlayedAsync(currentTrackIndex);
-
-            // Set auto-advancing flag for smooth transition during manual navigation
+            // Set auto-advancing BEFORE StopAsync so isAutoAdvancing is true when the
+            // Stopped state from StopAsync is processed by MediaSessionEffect, preventing
+            // a brief Play-button flash.
             logger.Information(
                 "[PlaybackService] PlayNextAsync: Dispatching SetAutoAdvancingAction(true) for manual next - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
                 currentScheduleId,
@@ -71,12 +69,14 @@ public sealed class PlaybackNavigationHandler
                 currentTrackIndex + 1);
             dispatcher.Dispatch(new SetAutoAdvancingAction(true));
 
+            progressTracker.Stop();
+            audioPlayer.NotifyTrackTransitionStarting();
+            await audioPlayer.StopAsync();
+            await markCurrentTrackAsPlayedAsync(currentTrackIndex);
+
             var nextTrackIndex = currentTrackIndex + 1;
             setCurrentTrackIndex(nextTrackIndex);
 
-            // Dispatch navigation state immediately after setting currentTrackIndex
-            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
-            // This prevents button flicker during track transitions
             navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
 
             // Resume only on first visit; start from beginning when returning to an already-visited track
@@ -87,7 +87,9 @@ public sealed class PlaybackNavigationHandler
         }
 
         // At the end of the current in-memory playlist.
+        dispatcher.Dispatch(new SetAutoAdvancingAction(true));
         progressTracker.Stop();
+        audioPlayer.NotifyTrackTransitionStarting();
         await audioPlayer.StopAsync();
         await markCurrentTrackAsPlayedAsync(currentTrackIndex);
 
@@ -101,8 +103,6 @@ public sealed class PlaybackNavigationHandler
                     currentScheduleId,
                     currentTrackIndex,
                     currentTrackIndex + 1);
-
-                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
 
                 var nextTrackIndex = currentTrackIndex + 1;
                 setCurrentTrackIndex(nextTrackIndex);
@@ -150,12 +150,8 @@ public sealed class PlaybackNavigationHandler
         var currentTrackIndex = getCurrentTrackIndex();
         if (currentTrackIndex > 0)
         {
-            // Go to previous track
-            progressTracker.Stop();
-            await audioPlayer.StopAsync();
-            await markCurrentTrackAsPlayedAsync(currentTrackIndex);
-
-            // Set auto-advancing flag for smooth transition during manual navigation
+            // Set auto-advancing BEFORE StopAsync so isAutoAdvancing is true when the
+            // Stopped state from StopAsync is processed by MediaSessionEffect.
             logger.Information(
                 "[PlaybackService] PlayPreviousAsync: Dispatching SetAutoAdvancingAction(true) for manual previous - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
                 currentScheduleId,
@@ -163,12 +159,14 @@ public sealed class PlaybackNavigationHandler
                 currentTrackIndex - 1);
             dispatcher.Dispatch(new SetAutoAdvancingAction(true));
 
+            progressTracker.Stop();
+            audioPlayer.NotifyTrackTransitionStarting();
+            await audioPlayer.StopAsync();
+            await markCurrentTrackAsPlayedAsync(currentTrackIndex);
+
             var previousTrackIndex = currentTrackIndex - 1;
             setCurrentTrackIndex(previousTrackIndex);
 
-            // Dispatch navigation state immediately after setting currentTrackIndex
-            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
-            // This prevents button flicker during track transitions
             navigationManager.NotifyNavigationChanged(playlist, previousTrackIndex);
 
             // Previous button always starts from beginning
@@ -177,7 +175,10 @@ public sealed class PlaybackNavigationHandler
         }
         else if (currentTrackIndex == 0)
         {
+            dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+
             progressTracker.Stop();
+            audioPlayer.NotifyTrackTransitionStarting();
             await audioPlayer.StopAsync();
             await markCurrentTrackAsPlayedAsync(currentTrackIndex);
 
@@ -185,7 +186,7 @@ public sealed class PlaybackNavigationHandler
             var prepended = await tryPrependPreviousTrackAsync();
             if (prepended)
             {
-                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+                // SetAutoAdvancingAction was already dispatched above before StopAsync.
                 setCurrentTrackIndex(0);
                 navigationManager.NotifyNavigationChanged(playlist, 0);
                 manuallyVisitedTrackIndices.Add(0);

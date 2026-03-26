@@ -71,5 +71,23 @@ public sealed class TrackPreparationHandler
             return false;
         }
     }
+
+    public async Task<TimeSpan> GetScheduleFinishedDurationAsync(int? currentScheduleId)
+    {
+        if (!currentScheduleId.HasValue)
+        {
+            return TimeSpan.Zero;
+        }
+
+        try
+        {
+            return await playlistService.GetScheduleFinishedDurationAsync(currentScheduleId.Value);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error getting FinishedDuration from DB for schedule {ScheduleId}", currentScheduleId.Value);
+            return TimeSpan.Zero;
+        }
+    }
 }
 

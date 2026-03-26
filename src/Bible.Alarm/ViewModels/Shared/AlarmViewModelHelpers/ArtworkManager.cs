@@ -8,7 +8,6 @@ namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 /// </summary>
 public sealed class ArtworkManager(ILogger logger)
 {
-    private byte[]? artworkBytes;
     private string? lastArtworkUrl;
     private ImageSource? artworkSource;
 
@@ -48,7 +47,6 @@ public sealed class ArtworkManager(ILogger logger)
             {
                 artworkSource = null;
                 setArtworkSource(null);
-                artworkBytes = null;
                 setIsArtworkLoading(false);
             }
             else
@@ -122,7 +120,6 @@ public sealed class ArtworkManager(ILogger logger)
     {
         artworkSource = null;
         setArtworkSource(null);
-        artworkBytes = null;
         setIsArtworkLoading(false);
         lastArtworkUrl = null;
     }
@@ -140,7 +137,7 @@ public sealed class ArtworkManager(ILogger logger)
 
         artworkSource = ImageSource.FromUri(uri);
         setArtworkSource(artworkSource);
-        DeferClearLoadingState(setIsArtworkLoading);
+        setIsArtworkLoading(false);
         return true;
     }
 
@@ -173,7 +170,9 @@ public sealed class ArtworkManager(ILogger logger)
     }
 
     /// <summary>
-    /// Loads artwork from a file path. Returns true if loaded, false if failed (caller can try fallback).
+    /// Loads artwork from a file path using FileImageSource so the native platform loads
+    /// directly from disk (BitmapFactory on Android, UIImage on iOS) instead of going
+    /// through a MemoryStream which MAUI's Image handler can fail to render reliably.
     /// </summary>
     private bool LoadFromFile(string filePath, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)
     {
@@ -191,38 +190,17 @@ public sealed class ArtworkManager(ILogger logger)
 
         try
         {
-            artworkBytes = File.ReadAllBytes(filePath);
-            if (artworkBytes == null || artworkBytes.Length == 0)
-            {
-                artworkSource = null;
-                return false;
-            }
-
-            var bytes = artworkBytes;
-            artworkSource = ImageSource.FromStream(() => new MemoryStream(bytes));
+            artworkSource = ImageSource.FromFile(filePath);
             setArtworkSource(artworkSource);
-            DeferClearLoadingState(setIsArtworkLoading);
+            setIsArtworkLoading(false);
         }
         catch (Exception ex)
         {
             logger.Debug(ex, "Failed to load artwork from file: {FilePath}", filePath);
-            artworkBytes = null;
             artworkSource = null;
         }
 
         return artworkSource != null;
     }
 
-    /// <summary>
-    /// Delays clearing the loading state so the Image has time to decode and render.
-    /// Prevents brief bell flash between spinner and artwork (Image can be transparent while decoding).
-    /// </summary>
-    private static void DeferClearLoadingState(Action<bool> setIsArtworkLoading)
-    {
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(220);
-            MainThread.BeginInvokeOnMainThread(() => setIsArtworkLoading(false));
-        });
-    }
 }

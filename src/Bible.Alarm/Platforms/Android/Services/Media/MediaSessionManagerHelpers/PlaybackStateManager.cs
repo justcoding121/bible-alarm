@@ -59,13 +59,17 @@ public sealed class PlaybackStateManager
     /// </summary>
     public int MapPlayStatusToState(PlayStatus status)
     {
+        // Stopped/Ended use StatePaused (not StateStopped) to stay consistent with
+        // SetStoppedState, which uses StatePaused to hint Android Auto that media is
+        // "ready" rather than "unavailable". This prevents conflicting state updates
+        // between handlers that would cause rapid play/pause button flashing.
         return status switch
         {
             PlayStatus.Playing => PlaybackStateCompat.StatePlaying,
             PlayStatus.Paused => PlaybackStateCompat.StatePaused,
             PlayStatus.Loading => PlaybackStateCompat.StateBuffering,
-            PlayStatus.Stopped => PlaybackStateCompat.StateStopped,
-            PlayStatus.Ended => PlaybackStateCompat.StateStopped,
+            PlayStatus.Stopped => PlaybackStateCompat.StatePaused,
+            PlayStatus.Ended => PlaybackStateCompat.StatePaused,
             PlayStatus.Failed => PlaybackStateCompat.StateError,
             _ => PlaybackStateCompat.StateNone
         };

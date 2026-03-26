@@ -54,27 +54,37 @@ public sealed class DefaultScheduleService(
             if (applicationState.Value.Schedules?.Any(s => s.Id == lastPlayedScheduleId) == true)
             {
                 scheduleId = lastPlayedScheduleId;
-                logger.Debug("GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences", scheduleId);
+                logger.Debug("GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in state)", scheduleId);
             }
             else
             {
-                logger.Debug("GetNextScheduleTrackMetaDataAsync: Last played schedule {ScheduleId} from preferences not found in state, querying DB for first schedule", lastPlayedScheduleId);
-                // Query database for first schedule when last played schedule doesn't exist in state
+                // State may not be loaded yet (early bootstrap after process restart).
+                // Verify the last played schedule directly against the DB before falling
+                // back to the first schedule, so we don't lose the user's context.
                 try
                 {
-                    var firstSchedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
-                        includeMusic: false,
-                        includeBiblePublication: false,
-                        cancellationTokenSource.Token);
-                    if (firstSchedule != null)
+                    if (await alarmScheduleService.ScheduleExistsAsync(lastPlayedScheduleId, cancellationTokenSource.Token))
                     {
-                        scheduleId = firstSchedule.Id;
-                        logger.Debug("GetNextScheduleTrackMetaDataAsync: Found first schedule {ScheduleId} from database", scheduleId);
+                        scheduleId = lastPlayedScheduleId;
+                        logger.Debug("GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in DB, state not yet loaded)", scheduleId);
+                    }
+                    else
+                    {
+                        logger.Debug("GetNextScheduleTrackMetaDataAsync: Last played schedule {ScheduleId} no longer exists in DB, querying for first schedule", lastPlayedScheduleId);
+                        var firstSchedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
+                            includeMusic: false,
+                            includeBiblePublication: false,
+                            cancellationTokenSource.Token);
+                        if (firstSchedule != null)
+                        {
+                            scheduleId = firstSchedule.Id;
+                            logger.Debug("GetNextScheduleTrackMetaDataAsync: Found first schedule {ScheduleId} from database", scheduleId);
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "GetNextScheduleTrackMetaDataAsync: Failed to query database for first schedule, falling back to state");
+                    logger.Warning(ex, "GetNextScheduleTrackMetaDataAsync: Failed to verify last played schedule in DB, falling back to state");
                 }
             }
         }

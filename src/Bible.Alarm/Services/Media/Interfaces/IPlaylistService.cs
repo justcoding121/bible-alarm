@@ -34,6 +34,12 @@ public interface IPlaylistService : IDisposable
     Task<bool> ShouldResumeFromLastPositionAsync(int scheduleId);
 
     /// <summary>
+    /// Returns the saved FinishedDuration from the schedule DB for the given schedule.
+    /// Used as a fallback when the in-memory TrackMetadata may not have received the value.
+    /// </summary>
+    Task<TimeSpan> GetScheduleFinishedDurationAsync(int scheduleId);
+
+    /// <summary>
     /// Resolves the next track to play based on the currently playing track metadata.
     /// Used for indefinite playback and dynamic playlist extension.
     /// </summary>

@@ -395,18 +395,25 @@ public class PlaylistBiblePublicationTrackBuilder
         ApplyDiscStyleDisplayMetadata(trackMetadata, sectionCode, trackCode);
 
         var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata, sectionCode, isNoLanguagePublication);
-        logger.Debug("[PlaylistBuild] ShouldSetFinishedDuration: {ShouldSet}, markedSeekTrack: {MarkedSeekTrack}, AlwaysPlayFromStart: {AlwaysPlayFromStart}, ScheduleFinishedDuration: {ScheduleFinishedDuration}, SectionMatch: {SectionMatch}",
+        logger.Information("[PlaylistBuild] ShouldSetFinishedDuration={ShouldSet}: markedSeekTrack={MarkedSeekTrack}, AlwaysPlayFromStart={AlwaysPlayFromStart}, DB_FinishedDuration={ScheduleFinishedDuration}, ScheduleId={ScheduleId}, TrackCode={TrackCode}, SectionCode={SectionCode}",
             shouldSet,
             markedSeekTrack,
             schedule.AlwaysPlayFromStart,
             biblePublicationSchedule.FinishedDuration,
-            string.Equals(sectionCode, trackMetadata.SectionCode, StringComparison.OrdinalIgnoreCase));
+            scheduleId,
+            trackCode,
+            sectionCode ?? "(null)");
 
         if (shouldSet)
         {
             trackMetadata.FinishedDuration = biblePublicationSchedule.FinishedDuration;
             markedSeekTrack = true;
-            logger.Debug("[PlaylistBuild] Set track FinishedDuration to {Duration}", trackMetadata.FinishedDuration);
+            logger.Information("[PlaylistBuild] Set track FinishedDuration={Duration} for ScheduleId={ScheduleId}", trackMetadata.FinishedDuration, scheduleId);
+        }
+        else if (!markedSeekTrack && biblePublicationSchedule.FinishedDuration > TimeSpan.Zero)
+        {
+            logger.Warning("[PlaylistBuild] FinishedDuration={Duration} in DB but ShouldSetFinishedDuration returned false for ScheduleId={ScheduleId}. AlwaysPlayFromStart={AlwaysPlayFromStart}",
+                biblePublicationSchedule.FinishedDuration, scheduleId, schedule.AlwaysPlayFromStart);
         }
 
         return (trackMetadata, markedSeekTrack);

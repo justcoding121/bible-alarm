@@ -157,3 +157,11 @@ public class HideProgressBarMessage
 public class ThemeChangedMessage
 {
 }
+
+/// <summary>
+/// Sent by PlaybackService when switching schedules (e.g. Android Auto / CarPlay list tap)
+/// so the playback modal enters the same stopping UI state as a user stop-button tap.
+/// </summary>
+public class BeginStoppingPlaybackMessage
+{
+}

@@ -161,6 +161,9 @@ public static class AndroidAutoPlayScreenHelper
         builder.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? "Bible Alarm" : title);
         builder.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? "Tap to play" : artist);
         builder.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? "..." : album);
+        // Always include duration key so the time area is always allocated on the Now Playing screen.
+        // Prevents layout bounce (title/subtitle shifting) when time appears/disappears during transitions.
+        builder.PutLong(MediaMetadataCompat.MetadataKeyDuration, 0);
         return builder;
     }
 

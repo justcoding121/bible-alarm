@@ -14,7 +14,7 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
+public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>, IRecipient<BeginStoppingPlaybackMessage>
 {
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;
@@ -120,6 +120,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
         // Subscribe to position and preparation progress messages (high-frequency updates)
         messageHandler.RegisterHandlers(this, this);
+        WeakReferenceMessenger.Default.Register<BeginStoppingPlaybackMessage>(this);
 
         // Initialize commands
         DismissCommand = commandInitializer.CreateDismissCommand();
@@ -572,6 +573,11 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     }
 
 
+    public void Receive(BeginStoppingPlaybackMessage message)
+    {
+        MainThread.BeginInvokeOnMainThread(() => BeginStoppingUi());
+    }
+
     public void Receive(PlaybackPreparationProgressMessage message)
     {
         var showPercentForThisMessage = message.ShowPercent;
@@ -659,6 +665,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             landscapeHandler.CancelAutoHide();
             playbackState.StateChanged -= OnPlaybackStateChanged;
             messageHandler.UnregisterHandlers(this, this);
+            WeakReferenceMessenger.Default.Unregister<BeginStoppingPlaybackMessage>(this);
 
             isDisposed = true;
         }

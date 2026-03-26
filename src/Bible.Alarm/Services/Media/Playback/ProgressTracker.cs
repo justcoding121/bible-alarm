@@ -24,6 +24,11 @@ public sealed class ProgressTracker : IDisposable
     private int? lastMusicTrackIndex = null;
     private bool hasMarkedCurrentMusicTrackAsFinished = false;
 
+    // Auto-pause detection: ensures one force-save when the player transitions
+    // from Playing to Paused (e.g. BT disconnect, audio focus loss) without
+    // PlaybackService.PauseAsync() being called.
+    private bool hasAutoSavedOnPause;
+
     public ProgressTracker(
         IPlaylistService playlistService,
         IAudioPlayer audioPlayer,
@@ -56,6 +61,8 @@ public sealed class ProgressTracker : IDisposable
             lastMusicTrackIndex = currentTrackIndex;
         }
 
+        hasAutoSavedOnPause = false;
+
         // Start timer for both Bible and Music tracks
         // For Bible tracks: saves progress periodically
         // For Music tracks: marks as finished on first progress update (only once due to hasMarkedCurrentMusicTrackAsFinished flag)
@@ -68,6 +75,7 @@ public sealed class ProgressTracker : IDisposable
         // Reset flags when stopping
         hasMarkedCurrentMusicTrackAsFinished = false;
         lastMusicTrackIndex = null;
+        hasAutoSavedOnPause = false;
     }
 
     private Func<Task>? saveProgressCallback;
@@ -123,13 +131,31 @@ public sealed class ProgressTracker : IDisposable
             return;
         }
 
-        // Timer-driven saves only run while actively playing.
-        // Explicit saves (forceSave) also save when paused — the player status may
-        // have already changed to Paused (e.g. Media3 auto-paused on BT disconnect)
-        // before our PauseAsync handler runs.
-        if (!forceSave && audioPlayer.Status != PlayStatus.Playing)
+        if (forceSave)
         {
-            return;
+            hasAutoSavedOnPause = true;
+        }
+        else
+        {
+            var status = audioPlayer.Status;
+            if (status == PlayStatus.Playing)
+            {
+                hasAutoSavedOnPause = false;
+            }
+            else if (status == PlayStatus.Paused && !hasAutoSavedOnPause)
+            {
+                // Auto-pause detected (BT disconnect, audio focus loss) without
+                // PlaybackService.PauseAsync() being called. Save once so the DB
+                // has the latest position and resume works after process kill.
+                hasAutoSavedOnPause = true;
+                logger.Information(
+                    "Auto-pause detected: saving progress for resume (ScheduleId={ScheduleId})",
+                    track.PlayItem.Metadata.ScheduleId);
+            }
+            else
+            {
+                return;
+            }
         }
 
         try
@@ -145,12 +171,12 @@ public sealed class ProgressTracker : IDisposable
                         track.PlayItem.Metadata.ScheduleId, currentPosition.Value);
                 }
             }
-            else if (forceSave && track.PlayItem.Metadata.FinishedDuration > TimeSpan.Zero)
+            else if ((forceSave || hasAutoSavedOnPause) && track.PlayItem.Metadata.FinishedDuration > TimeSpan.Zero)
             {
                 // Player position unavailable (e.g. resources released) but in-memory
                 // metadata still holds the position from the last timer tick. Persist it.
                 await playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
-                logger.Debug("Force-saved in-memory progress (player position unavailable): ScheduleId={ScheduleId}, Position={Position}",
+                logger.Debug("Saved in-memory progress (player position unavailable): ScheduleId={ScheduleId}, Position={Position}",
                     track.PlayItem.Metadata.ScheduleId, track.PlayItem.Metadata.FinishedDuration);
             }
         }

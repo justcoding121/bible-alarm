@@ -149,8 +149,20 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}",
                 stateManager.CurrentScheduleId.Value, scheduleId);
+
+            // Tell the playback modal to enter the same stopping UI state as a user stop-button tap.
+            // IsStopping=true suppresses all intermediate property changes (controls, buffering,
+            // play/pause) so the modal shows a spinner and stays visually stable during the stop.
+            WeakReferenceMessenger.Default.Send(new BeginStoppingPlaybackMessage());
+            await Task.Delay(50);
+
             await trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
             await StopAsyncInternal(skipMarkAsPlayed: true, skipSaveLastPlayed: true);
+
+            // PlaybackStoppedAction closes the modal via PlaybackModalService. Wait for the main
+            // thread to process the close before dispatching PlaybackStartedAction, otherwise the
+            // popGeneration guard cancels the close and the stale modal stays open with bouncing UI.
+            await Task.Delay(500);
         }
 
         if (stateManager.IsPreparingOrPlaying(audioPlayer) && stateManager.CurrentScheduleId == scheduleId)
@@ -437,7 +449,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public async Task StopAsync() => await StopAsyncInternal(skipMarkAsPlayed: false);
 
-    private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false)
+    private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false, bool skipDispatchStopped = false)
     {
         if (!await stopLock.WaitAsync(0))
         {
@@ -464,7 +476,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 skipSaveLastPlayed,
                 stateManager.PreparationCancellationTokenSource,
                 () => stateManager.Reset(),
-                () => progressTracker.Stop());
+                () => progressTracker.Stop(),
+                skipDispatchStopped);
         }
         finally
         {

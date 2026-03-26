@@ -24,6 +24,11 @@ public sealed class MediaSessionManager : IMediaSessionManager
     private readonly PlaybackStateManager playbackStateManager;
     private readonly MetadataManager metadataManager;
 
+    // Dedup tracking: skip redundant SetPlaybackState calls that cause
+    // visual flickering (title/subtitle bounce) on the Android Auto Now Playing screen.
+    private int? lastSetState;
+    private long? lastSetPosition;
+
     public MediaSessionManager(IServiceProvider serviceProvider)
     {
         this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
@@ -60,6 +65,11 @@ public sealed class MediaSessionManager : IMediaSessionManager
     /// </summary>
     public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
     {
+        if (state == lastSetState && position == lastSetPosition)
+        {
+            return;
+        }
+
         var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
 
         var playbackState = playbackStateManager.CreatePlaybackState(
@@ -71,6 +81,8 @@ public sealed class MediaSessionManager : IMediaSessionManager
         if (playbackState != null)
         {
             mediaSession?.SetPlaybackState(playbackState);
+            lastSetState = state;
+            lastSetPosition = position;
         }
         else
         {
@@ -105,14 +117,28 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
     private void UpdatePlaybackStateWithPosition(PlaybackStateCompat playbackState, long positionMs, long actions)
     {
-        var playbackStateCompat = playbackStateManager.CreatePlaybackStateFromExisting(
-            playbackState,
+        // Use the last intentionally-set state code rather than the Controller snapshot.
+        // The Controller snapshot can be stale (read before a concurrent state change
+        // from another thread), and writing back the stale state would revert the
+        // intentional change (e.g., revert Playing back to Buffering).
+        var stateCode = lastSetState ?? playbackState.State;
+
+        if (stateCode == lastSetState && positionMs == lastSetPosition)
+        {
+            return;
+        }
+
+        var playbackStateCompat = playbackStateManager.CreatePlaybackState(
+            stateCode,
             positionMs,
+            playbackSpeed: 1.0f,
             actions);
 
         if (playbackStateCompat != null)
         {
             mediaSession?.SetPlaybackState(playbackStateCompat);
+            lastSetState = stateCode;
+            lastSetPosition = positionMs;
         }
         else
         {
@@ -146,9 +172,32 @@ public sealed class MediaSessionManager : IMediaSessionManager
     private void ApplyMetadata(MediaMetadataCompat.Builder builder)
     {
         var metadata = builder?.Build();
+        if (metadata == null)
+        {
+            return;
+        }
+
+        // Compare against actual session metadata (not tracked values) because
+        // MediaSessionEffect.HandlePlaybackMetadataChanged sets metadata directly
+        // on the session, bypassing this method.
+        var currentMetadata = mediaSession?.Controller?.Metadata;
+        if (currentMetadata != null)
+        {
+            var newTitle = metadata.GetString(MediaMetadataCompat.MetadataKeyTitle);
+            var newArtist = metadata.GetString(MediaMetadataCompat.MetadataKeyArtist);
+            var currentTitle = currentMetadata.GetString(MediaMetadataCompat.MetadataKeyTitle);
+            var currentArtist = currentMetadata.GetString(MediaMetadataCompat.MetadataKeyArtist);
+            if (newTitle == currentTitle && newArtist == currentArtist)
+            {
+                return;
+            }
+        }
+
         mediaSession?.SetMetadata(metadata);
-        // Reset tracked duration when metadata changes (new track may have different duration)
-        metadataManager.LastDurationMs = null;
+        // Track the duration that was just set so subsequent position updates with the
+        // same duration get deduped (avoid redundant SetMetadata calls that cause time bounce).
+        var durationMs = metadata.GetLong(MediaMetadataCompat.MetadataKeyDuration);
+        metadataManager.LastDurationMs = durationMs > 0 ? durationMs : null;
     }
 
     /// <summary>
@@ -167,6 +216,8 @@ public sealed class MediaSessionManager : IMediaSessionManager
         try
         {
             playbackStateManager.SetBufferingStateOnly(mediaSession);
+            lastSetState = PlaybackStateCompat.StateBuffering;
+            lastSetPosition = mediaSession.Controller?.PlaybackState?.Position;
         }
         catch (Exception ex)
         {
@@ -187,6 +238,9 @@ public sealed class MediaSessionManager : IMediaSessionManager
         }
 
         playbackStateManager.SetStoppedState(mediaSession);
+        // SetStoppedState uses StatePaused with position 0
+        lastSetState = PlaybackStateCompat.StatePaused;
+        lastSetPosition = 0;
     }
 
     /// <summary>
@@ -244,13 +298,28 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
 
     /// <summary>
-    /// Resets the tracked duration so the next position update will re-apply duration to metadata.
-    /// Call after replacing metadata (e.g. HandlePlaybackMetadataChanged) to prevent the dedup
-    /// check from skipping a duration update when the new metadata lost its duration value.
+    /// Updates the duration in metadata via the deduped MetadataManager path.
+    /// Prevents duplicate SetMetadata calls when both HandlePlaybackDurationChanged
+    /// and position updates try to set the same duration.
     /// </summary>
-    public void ResetTrackedDuration()
+    public void UpdateDuration(TimeSpan duration)
     {
-        metadataManager.LastDurationMs = null;
+        if (mediaSession == null)
+        {
+            return;
+        }
+
+        metadataManager.UpdateMetadataDuration(mediaSession, (long)duration.TotalMilliseconds);
+    }
+
+    /// <summary>
+    /// Tracks the duration that was just set in metadata so subsequent position updates
+    /// with the same duration value get deduped (skip redundant SetMetadata calls).
+    /// Call after directly setting metadata that includes a duration value.
+    /// </summary>
+    public void SetTrackedDuration(long durationMs)
+    {
+        metadataManager.LastDurationMs = durationMs > 0 ? durationMs : null;
     }
 
     /// <summary>

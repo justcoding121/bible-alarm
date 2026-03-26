@@ -26,6 +26,13 @@ public interface IAudioPlayer : IDisposable
     Task SetMutedAsync(bool muted);
 
     /// <summary>
+    /// Signals that a track transition is about to start (stop + source change).
+    /// Sets internal status to Loading so intermediate MediaElement states (Stopped, Paused)
+    /// during the source change are filtered by ShouldIgnoreStateChange.
+    /// </summary>
+    void NotifyTrackTransitionStarting();
+
+    /// <summary>
     /// Syncs playback metadata for the given track to Fluxor/MediaSession (e.g. so Android Auto Now Playing shows correct title after track change).
     /// </summary>
     Task SyncMetadataForTrackAsync(AudioPlayerTrack track);

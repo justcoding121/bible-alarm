@@ -93,6 +93,19 @@ public class MediaSessionEffect(
             // But don't show prev/next buttons during Loading - only show them when playback actually starts
             if (action.Status == PlayStatus.Loading)
             {
+                // Fluxor effects for the same action type can run concurrently.
+                // If Loading and Playing are dispatched close together, the Playing
+                // effect may set StatePlaying before this Loading effect runs.
+                // Re-check the current Fluxor status to avoid overwriting Playing
+                // with Buffering, which would leave the progress animation stuck.
+                if (playbackState.Value.Status != PlayStatus.Loading)
+                {
+                    logger.Debug(
+                        "[AndroidAuto] Skipping Buffering state — Fluxor status already advanced past Loading to {Status}",
+                        playbackState.Value.Status);
+                    return;
+                }
+
                 // Progress: Always Buffering state (shows progress animation)
                 // Button: Show pause when auto-advancing (both initial play and track transitions)
                 if (isAutoAdvancing)
@@ -118,14 +131,32 @@ public class MediaSessionEffect(
                     mediaSessionManager.SetBufferingStateOnly();
                 }
             }
-            else if (action.Status == PlayStatus.Stopped && isAutoAdvancing)
+            else if (action.Status == PlayStatus.Stopped)
             {
-                // During auto-advance, if status is Stopped, preserve playing state to show pause button
-                var canPlayNext = true;
-                var canPlayPrevious = true;
-                logger.Information(
-                    "[AndroidAuto] Stopped status with auto-advancing: Setting to Playing state (pause button visible, no prev/next buttons during transition)");
-                mediaSessionManager.SetPlaybackStatus(PlayStatus.Playing, canPlayNext, canPlayPrevious);
+                // Re-read isAutoAdvancing from the current Fluxor state, not the snapshot captured
+                // at the top of this method. During auto-advance, StateChanged(Stopped) fires before
+                // MediaEnded dispatches SetAutoAdvancingAction(true). The reducer runs synchronously,
+                // so by the time this async effect executes, isAutoAdvancing may have been updated.
+                var currentAutoAdvancing = playbackState.Value.IsAutoAdvancing;
+                if (currentAutoAdvancing)
+                {
+                    var canPlayNext = true;
+                    var canPlayPrevious = true;
+                    logger.Information(
+                        "[AndroidAuto] Stopped status with auto-advancing: Setting to Playing state (pause button visible, no prev/next buttons during transition)");
+                    mediaSessionManager.SetPlaybackStatus(PlayStatus.Playing, canPlayNext, canPlayPrevious);
+                }
+                else
+                {
+                    var canPlayNext = true;
+                    var canPlayPrevious = true;
+                    logger.Information(
+                        "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+                        action.Status,
+                        canPlayNext,
+                        canPlayPrevious);
+                    mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
+                }
             }
             else
             {
@@ -137,11 +168,6 @@ public class MediaSessionEffect(
                     action.Status,
                     canPlayNext,
                     canPlayPrevious);
-
-                if (action.Status is PlayStatus.Stopped or PlayStatus.Ended)
-                {
-                    ClearDurationFromMetadata(session);
-                }
 
                 mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
             }
@@ -210,7 +236,8 @@ public class MediaSessionEffect(
                 if (metadata != null)
                 {
                     session.SetMetadata(metadata);
-                    mediaSessionManager.ResetTrackedDuration();
+                    var durationMs = metadata.GetLong(MediaMetadataCompat.MetadataKeyDuration);
+                    mediaSessionManager.SetTrackedDuration(durationMs);
 
                     lastMetadataTitle = action.Title;
                     lastMetadataArtist = action.Artist;
@@ -358,11 +385,9 @@ public class MediaSessionEffect(
             // During track transitions, the reducer resets duration to 0 before the new
             // track's duration is known. Preserve the existing duration from the MediaSession
             // to prevent the time text from disappearing and causing layout shifts on the car screen.
+            // Always set duration (even 0) so the time area stays allocated on the Now Playing screen.
             var existingDuration = session.Controller?.Metadata?.GetLong(MediaMetadataCompat.MetadataKeyDuration) ?? 0;
-            if (existingDuration > 0)
-            {
-                metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, existingDuration);
-            }
+            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, Math.Max(existingDuration, 0));
         }
 
         return metadataBuilder.Build();
@@ -382,38 +407,6 @@ public class MediaSessionEffect(
         lastMetadataArtist = null;
         lastMetadataAlbum = null;
         lastMetadataArtworkUrl = null;
-    }
-
-    /// <summary>
-    /// Clears duration from metadata so the car screen doesn't show a misleading
-    /// 0:00/previous_track_length progress bar after playback stops.
-    /// </summary>
-    private void ClearDurationFromMetadata(MediaSessionCompat session)
-    {
-        try
-        {
-            var existingMetadata = session.Controller?.Metadata;
-            if (existingMetadata == null)
-            {
-                return;
-            }
-
-            var currentDuration = existingMetadata.GetLong(MediaMetadataCompat.MetadataKeyDuration);
-            if (currentDuration <= 0)
-            {
-                return;
-            }
-
-            var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderFromExisting(existingMetadata);
-            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, 0);
-            session.SetMetadata(metadataBuilder.Build());
-            mediaSessionManager.ResetTrackedDuration();
-            logger.Debug("[AndroidAuto] Cleared duration from metadata on playback stop");
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "[AndroidAuto] Error clearing duration from metadata");
-        }
     }
 
     private static global::Android.Graphics.Bitmap? cachedAppIconBitmap;
@@ -498,13 +491,7 @@ public class MediaSessionEffect(
     {
         try
         {
-            var session = GetValidatedSession("cannot update duration");
-            if (session == null)
-            {
-                return Task.CompletedTask;
-            }
-
-            UpdateDurationInMetadata(session, action.Duration);
+            mediaSessionManager.UpdateDuration(action.Duration);
         }
         catch (Exception ex)
         {
@@ -514,44 +501,37 @@ public class MediaSessionEffect(
         return Task.CompletedTask;
     }
 
-    private void UpdateDurationInMetadata(MediaSessionCompat session, TimeSpan duration)
-    {
-        var durationMs = (long)duration.TotalMilliseconds;
-        if (durationMs > 0)
-        {
-            var currentMetadata = session.Controller?.Metadata;
-            if (currentMetadata != null)
-            {
-                var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderFromExisting(currentMetadata);
-                metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
-                session.SetMetadata(metadataBuilder.Build());
-            }
-        }
-    }
-
     [EffectMethod]
     public Task HandlePlaybackNavigationChanged(PlaybackNavigationChangedAction action, FluxorDispatcher dispatcher)
     {
         try
         {
+            var currentState = playbackState.Value;
+
+            // Skip navigation updates during transitional states.
+            // HandlePlaybackStatusChanged already sets the correct state for these;
+            // re-applying the state here from the Fluxor status causes conflicting
+            // SetPlaybackState calls and rapid play/pause button flashing.
+            if (currentState.Status is PlayStatus.Loading or PlayStatus.Stopped or PlayStatus.Ended)
+            {
+                return Task.CompletedTask;
+            }
+
             var session = GetValidatedSession("cannot update navigation state");
             if (session == null)
             {
                 return Task.CompletedTask;
             }
 
-            var currentState = playbackState.Value;
             var state = MapPlayStatusToPlaybackState(currentState.Status);
             var position = GetCurrentPlaybackPosition(session);
-            var isAutoAdvancing = currentState.IsAutoAdvancing;
 
             var canPlayNext = true;
             var canPlayPrevious = true;
 
             logger.Information(
-                "[AndroidAuto] PlaybackNavigationChanged: Status={Status}, IsAutoAdvancing={IsAutoAdvancing}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}, ScheduleId={ScheduleId}, Position={Position}ms",
+                "[AndroidAuto] PlaybackNavigationChanged: Status={Status}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}, ScheduleId={ScheduleId}, Position={Position}ms",
                 currentState.Status,
-                isAutoAdvancing,
                 canPlayNext,
                 canPlayPrevious,
                 currentState.CurrentScheduleId,
@@ -569,13 +549,17 @@ public class MediaSessionEffect(
 
     private int MapPlayStatusToPlaybackState(PlayStatus status)
     {
+        // Stopped/Ended use StatePaused (not StateStopped) to stay consistent with
+        // SetStoppedState, which uses StatePaused to hint Android Auto that media is
+        // "ready" rather than "unavailable". Inconsistent mapping causes conflicting
+        // SetPlaybackState calls between handlers → rapid play/pause button flash.
         return status switch
         {
             PlayStatus.Playing => PlaybackStateCompat.StatePlaying,
             PlayStatus.Paused => PlaybackStateCompat.StatePaused,
             PlayStatus.Loading => PlaybackStateCompat.StateBuffering,
-            PlayStatus.Stopped => PlaybackStateCompat.StateStopped,
-            PlayStatus.Ended => PlaybackStateCompat.StateStopped,
+            PlayStatus.Stopped => PlaybackStateCompat.StatePaused,
+            PlayStatus.Ended => PlaybackStateCompat.StatePaused,
             PlayStatus.Failed => PlaybackStateCompat.StateError,
             _ => PlaybackStateCompat.StateNone
         };
@@ -599,6 +583,15 @@ public class MediaSessionEffect(
             if (message.CurrentPosition == null)
             {
                 logger.Debug("[AndroidAuto] PlaybackPositionChangedMessage: CurrentPosition is null, skipping");
+                return;
+            }
+
+            // Skip stale position updates after playback has stopped/ended.
+            // Without this, the last position update from the old playback arrives after
+            // SetStoppedState and triggers an extra SetPlaybackState → button flash.
+            var status = playbackState.Value.Status;
+            if (status is PlayStatus.Stopped or PlayStatus.Ended)
+            {
                 return;
             }
 

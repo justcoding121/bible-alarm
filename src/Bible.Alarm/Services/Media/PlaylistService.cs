@@ -576,6 +576,14 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return !schedule.AlwaysPlayFromStart;
     }
 
+    public async Task<TimeSpan> GetScheduleFinishedDurationAsync(int scheduleId)
+    {
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+            scheduleId, false, true, cancellationTokenSource.Token);
+
+        return schedule?.BiblePublicationSchedule?.FinishedDuration ?? TimeSpan.Zero;
+    }
+
     public async Task<PlayItem> GetNextPlayItemAsync(TrackMetadata currentTrackMetadata, IFetchProgress? sectionFetchProgress = null)
     {
         ArgumentNullException.ThrowIfNull(currentTrackMetadata);

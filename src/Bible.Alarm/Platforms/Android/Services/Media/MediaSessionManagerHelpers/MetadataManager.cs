@@ -28,10 +28,14 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
     {
         // Handle empty strings with fallback values (consistent with AndroidAutoPlayScreenHelper)
         // This ensures we never show empty text in Android Auto UI
-        return new MediaMetadataCompat.Builder()
+        var builder = new MediaMetadataCompat.Builder()
             ?.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? "Bible Alarm" : title)
             ?.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? "Tap to play" : artist)
             ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? "..." : album);
+        // Always include duration key so the time area is always allocated on the Now Playing screen.
+        // Prevents layout bounce (title/subtitle shifting) when time appears/disappears during transitions.
+        builder?.PutLong(MediaMetadataCompat.MetadataKeyDuration, 0);
+        return builder;
     }
 
     /// <summary>
@@ -44,6 +48,7 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
             var existingMetadata = mediaSession.Controller.Metadata;
             PreserveMediaId(builder, existingMetadata, scheduleId);
             PreserveOrLoadArtwork(builder, existingMetadata, artworkUrl);
+            PreserveDuration(builder, existingMetadata);
         }
         else
         {
@@ -56,7 +61,7 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
             // Load artwork from URL if provided and no existing metadata
             if (builder != null)
             {
-                LoadArtworkFromUrl(builder, artworkUrl);
+                TryLoadArtworkFromUrl(builder, artworkUrl);
             }
         }
     }
@@ -76,31 +81,39 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         }
     }
 
-    private void PreserveOrLoadArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, string? artworkUrl)
+    private static void PreserveDuration(MediaMetadataCompat.Builder? builder, MediaMetadataCompat existingMetadata)
     {
-        // Always use new artworkUrl if provided (e.g., when switching from playback to default schedule)
-        // This ensures artwork is updated correctly when metadata changes
-        if (!string.IsNullOrEmpty(artworkUrl))
+        var existingDuration = existingMetadata.GetLong(MediaMetadataCompat.MetadataKeyDuration);
+        if (existingDuration > 0)
         {
-            // Load artwork from URL - this will replace any existing artwork
-            LoadArtworkFromUrl(builder, artworkUrl);
-        }
-        else
-        {
-            // Only preserve existing artwork if no new artworkUrl is provided
-            Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-            if (existingArtwork != null)
-            {
-                builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-            }
+            builder?.PutLong(MediaMetadataCompat.MetadataKeyDuration, existingDuration);
         }
     }
 
-    private void LoadArtworkFromUrl(MediaMetadataCompat.Builder builder, string? artworkUrl)
+    private void PreserveOrLoadArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, string? artworkUrl)
     {
-        if (string.IsNullOrEmpty(artworkUrl))
+        if (!string.IsNullOrEmpty(artworkUrl))
         {
-            return;
+            if (TryLoadArtworkFromUrl(builder, artworkUrl))
+            {
+                return;
+            }
+        }
+
+        // Preserve existing artwork when no artworkUrl is provided or when loading
+        // from artworkUrl failed (file not cached yet). Prevents blank artwork.
+        Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+        if (existingArtwork != null)
+        {
+            builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+        }
+    }
+
+    private bool TryLoadArtworkFromUrl(MediaMetadataCompat.Builder? builder, string? artworkUrl)
+    {
+        if (string.IsNullOrEmpty(artworkUrl) || builder == null)
+        {
+            return false;
         }
 
         try
@@ -111,13 +124,12 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
                 var artworkBitmap = artworkService.LoadArtworkBitmap(artworkUrl);
                 if (artworkBitmap != null)
                 {
-                    builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
+                    builder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
                     logger.Debug("Loaded artwork bitmap from: {ArtworkUrl}", artworkUrl);
+                    return true;
                 }
-                else
-                {
-                    logger.Debug("Failed to load artwork bitmap from: {ArtworkUrl}", artworkUrl);
-                }
+
+                logger.Debug("Failed to load artwork bitmap from: {ArtworkUrl}", artworkUrl);
             }
             else
             {
@@ -128,6 +140,8 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         {
             logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", artworkUrl);
         }
+
+        return false;
     }
 
     /// <summary>

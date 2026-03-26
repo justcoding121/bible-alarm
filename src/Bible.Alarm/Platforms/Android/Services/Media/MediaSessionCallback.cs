@@ -66,6 +66,20 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         }
     }
 
+    private Interfaces.IMediaSessionManager? mediaSessionManager;
+
+    private Interfaces.IMediaSessionManager MediaSessionManager
+    {
+        get
+        {
+            if (mediaSessionManager == null)
+            {
+                mediaSessionManager = ServiceProviderManager.GetService<Interfaces.IMediaSessionManager>();
+            }
+            return mediaSessionManager ?? throw new InvalidOperationException("MediaSessionManager not available");
+        }
+    }
+
     public override void OnPlay()
     {
         logger.Information("MediaSessionCallback.OnPlay() called");
@@ -91,8 +105,14 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
         // No active playback (default metadata / stopped state) - do a clean restart
         // from the database with full playlist preparation.
+        // Don't call SetBufferingStateImmediately() here: changing from Paused → Buffering
+        // immediately hides the progress bar/time area on Android Auto, causing visible
+        // text bounce (subtitle and time shift up then back down).
+        // Instead, rely on:
+        //   - ExecuteAsyncOperation's bootstrap-pending path (calls SetBufferingStateImmediately inside Task.Run)
+        //   - HandlePlaybackStatusChanged(Loading) to set Buffering via Fluxor when loading actually starts
+        // This keeps the existing metadata/time visible until the track actually starts loading.
         MediaSessionEffect.SetRestartingPlayback(true);
-        SetBufferingStateImmediately();
 
         ExecuteAsyncOperation(async () =>
         {
@@ -249,8 +269,24 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     {
         logger.Information("MediaSessionCallback.OnPlayFromMediaId() called with mediaId: {MediaId}", mediaId);
 
+        // Suppress intermediate Stopped/Ended state + default metadata during the
+        // stop-and-restart transition to prevent play/pause button flash and artwork blink.
+        MediaSessionEffect.SetRestartingPlayback(true);
+        SetBufferingStateImmediately();
+
         var parsedScheduleId = ParseMediaId(mediaId);
-        ExecuteAsyncOperation(async () => await HandlePlayFromMediaIdAsync(parsedScheduleId));
+        ExecuteAsyncOperation(async () =>
+        {
+            try
+            {
+                await HandlePlayFromMediaIdAsync(parsedScheduleId);
+            }
+            catch
+            {
+                MediaSessionEffect.SetRestartingPlayback(false);
+                throw;
+            }
+        });
 
         base.OnPlayFromMediaId(mediaId, extras);
     }
@@ -306,23 +342,29 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     }
 
     /// <summary>
-    /// Immediately sets MediaSession playback state to buffering when bootstrap is not complete.
-    /// Only updates the progress bar to show buffering animation, preserving metadata, controls, and all other state.
-    /// Called before waiting for bootstrap to provide immediate feedback while bootstrap is running.
-    /// The normal playback flow will handle state changes through MediaSessionEffect when
-    /// PlayStatus.Loading is dispatched after bootstrap completes.
-    /// Uses AndroidAutoPlayScreenHelper directly without service provider dependency.
+    /// Immediately sets MediaSession playback state to buffering.
+    /// Routes through IMediaSessionManager so lastSetState is updated, preventing
+    /// stale position updates from pushing an old state back onto the session.
+    /// Falls back to AndroidAutoPlayScreenHelper when DI is not available (pre-bootstrap).
     /// </summary>
     private void SetBufferingStateImmediately()
     {
         try
         {
-            // Get MediaSession directly from the static helper (no service provider needed)
-            var mediaSession = MediaSessionHelper.Create();
-            // Only update playback state to buffering, preserving everything else (metadata, controls, etc.)
-            AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
+            try
+            {
+                MediaSessionManager.SetBufferingStateOnly();
+                logger.Debug("Set MediaSession playback state to buffering via MediaSessionManager");
+                return;
+            }
+            catch (InvalidOperationException)
+            {
+                // DI not available yet (pre-bootstrap) — fall through to direct call
+            }
 
-            logger.Debug("Set MediaSession playback state to buffering (bootstrap not complete, preserving metadata and controls)");
+            var mediaSession = MediaSessionHelper.Create();
+            AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
+            logger.Debug("Set MediaSession playback state to buffering via AndroidAutoPlayScreenHelper (pre-bootstrap fallback)");
         }
         catch (Exception ex)
         {

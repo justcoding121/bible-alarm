@@ -17,6 +17,7 @@ public interface IMediaSessionManager
     void UpdatePlaybackStateForStop();
     void SetPlaybackStatus(PlayStatus status, bool canPlayNext = false, bool canPlayPrevious = false);
     void SetActive(bool active);
-    void ResetTrackedDuration();
+    void UpdateDuration(TimeSpan duration);
+    void SetTrackedDuration(long durationMs);
     MediaSessionCompat.Token? Token { get; }
 }
