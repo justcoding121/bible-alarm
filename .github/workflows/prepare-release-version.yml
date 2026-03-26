@@ -10,9 +10,11 @@
 #   1. The head commit IS already "[Release] Bump version for <this branch>" (avoids double-bump
 #      after our own bot push).
 #   2. The head commit starts with "[Version sync]" (sync pushes from stable→beta or beta→develop).
-#   3. The head commit is a bot "[Release]" for ANY branch (handles fast-forward syncs where the
-#      head is e.g. "[Release] Bump version for stable" landing on beta). The --no-ff flag in the
-#      sync workflow is the primary guard; this is a safety net.
+#
+# Fast-forward merges (e.g. beta→stable via GitHub Desktop) are handled correctly: if the head
+# commit is "[Release] Bump version for beta" landing on stable, it does NOT match the exact
+# "[Release] Bump version for stable" check, so the bump still runs. The sync workflow's --no-ff
+# flag ensures sync merges always produce a "[Version sync]" commit caught by condition 2.
 #
 # Requires secret REPO_TOKEN (PAT) for the version-bump push.
 name: Prepare release version
@@ -27,7 +29,7 @@ jobs:
   bump-version:
     if: >-
       !(github.event.head_commit.author.name == 'github-actions[bot]'
-        && startsWith(github.event.head_commit.message, '[Release] Bump version for '))
+        && github.event.head_commit.message == format('[Release] Bump version for {0}', github.ref_name))
       && !startsWith(github.event.head_commit.message, '[Version sync]')
     runs-on: ubuntu-latest
     steps:
