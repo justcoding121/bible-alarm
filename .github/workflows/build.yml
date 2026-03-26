@@ -17,6 +17,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Apply CI SDK pin (global.ci.json → global.json)
+        run: Copy-Item -Path global.ci.json -Destination global.json -Force
+        shell: pwsh
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:

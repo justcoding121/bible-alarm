@@ -22,12 +22,14 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Apply CI SDK pin (global.ci.json → global.json)
+      run: cp -f global.ci.json global.json
         
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        # global.json pins SDK + rollForward disable so ubuntu-latest's preinstalled newer 10.x is not used.
-        # Newer SDKs can require Microsoft.NETCore.App.Runtime.Mono.linux-x64 (= 10.0.x) not yet on NuGet.org (NU1102).
+        # global.ci.json (copied to global.json) pins 10.0.1xx so ubuntu-latest’s newer 10.x SDK is not used (NU1102 Mono.linux-x64).
         global-json-file: global.json
         
     # Install MAUI Android workload (required by NETSDK1147 for net10.0-android).
