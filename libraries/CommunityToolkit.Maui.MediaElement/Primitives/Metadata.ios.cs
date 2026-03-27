@@ -1,6 +1,5 @@
 using AVFoundation;
 using CommunityToolkit.Maui.Interfaces;
-using CoreMedia;
 using Foundation;
 using MediaPlayer;
 using UIKit;
@@ -22,44 +21,18 @@ sealed class Metadata
         Artwork = new(boundsSize: new(0, 0), requestHandler: _ => defaultUiImage)
     };
 
-    readonly PlatformMediaElement player;
     private MPMediaItemArtwork? lastArtwork;
     private UIImage? cachedArtworkImage;
     private string? cachedArtworkUri;
-    private NSObject? toggleToken;
-    private NSObject? playToken;
-    private NSObject? pauseToken;
-    private NSObject? seekToken;
-    private NSObject? seekBackwardToken;
-    private NSObject? seekForwardToken;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Metadata"/> class.
-    /// </summary>
-    /// <param name="player"></param>
+    // Remote command handlers (play/pause/toggle/seek) are NOT registered here.
+    // The app manages all MPRemoteCommandCenter handlers via iOSRemoteCommandCenterManager,
+    // which includes CarPlay auto-play suppression and Fluxor state awareness.
+    // Registering a second set of handlers here would bypass that logic and cause
+    // direct AVPlayer.Play() calls that circumvent the app's playback pipeline.
+
     public Metadata(PlatformMediaElement player)
     {
-        this.player = player;
-
-        var commandCenter = MPRemoteCommandCenter.Shared;
-
-        commandCenter.TogglePlayPauseCommand.Enabled = true;
-        toggleToken = commandCenter.TogglePlayPauseCommand.AddTarget(ToggleCommand);
-
-        commandCenter.PlayCommand.Enabled = true;
-        playToken = commandCenter.PlayCommand.AddTarget(PlayCommand);
-
-        commandCenter.PauseCommand.Enabled = true;
-        pauseToken = commandCenter.PauseCommand.AddTarget(PauseCommand);
-
-        commandCenter.ChangePlaybackPositionCommand.Enabled = true;
-        seekToken = commandCenter.ChangePlaybackPositionCommand.AddTarget(SeekCommand);
-
-        commandCenter.SeekBackwardCommand.Enabled = true;
-        seekBackwardToken = commandCenter.SeekBackwardCommand.AddTarget(SeekBackwardCommand);
-
-        commandCenter.SeekForwardCommand.Enabled = false;
-        seekForwardToken = commandCenter.SeekForwardCommand.AddTarget(SeekForwardCommand);
     }
 
     /// <summary>
@@ -156,26 +129,8 @@ sealed class Metadata
         return cachedArtworkImage;
     }
 
-    /// <summary>
-    /// Removes remote command targets and suppresses finalizers on native objects
-    /// to prevent SIGSEGV from GC finalizer sending objc_msgSend to freed objects.
-    /// </summary>
     public void Cleanup()
     {
-        try
-        {
-            var commandCenter = MPRemoteCommandCenter.Shared;
-            RemoveAndSuppressToken(commandCenter.TogglePlayPauseCommand, ref toggleToken);
-            RemoveAndSuppressToken(commandCenter.PlayCommand, ref playToken);
-            RemoveAndSuppressToken(commandCenter.PauseCommand, ref pauseToken);
-            RemoveAndSuppressToken(commandCenter.ChangePlaybackPositionCommand, ref seekToken);
-            RemoveAndSuppressToken(commandCenter.SeekBackwardCommand, ref seekBackwardToken);
-            RemoveAndSuppressToken(commandCenter.SeekForwardCommand, ref seekForwardToken);
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-
         if (lastArtwork is not null)
         {
             GC.SuppressFinalize(lastArtwork);
@@ -191,101 +146,5 @@ sealed class Metadata
         cachedArtworkUri = null;
 
         MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = null!;
-    }
-
-    private static void RemoveAndSuppressToken(MPRemoteCommand command, ref NSObject? token)
-    {
-        if (token is null)
-        {
-            return;
-        }
-
-        try
-        {
-            command.RemoveTarget(token);
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-
-        GC.SuppressFinalize(token);
-        token = null;
-    }
-
-    MPRemoteCommandHandlerStatus SeekCommand(MPRemoteCommandEvent? commandEvent)
-    {
-        if (commandEvent is not MPChangePlaybackPositionCommandEvent eventArgs)
-        {
-            return MPRemoteCommandHandlerStatus.CommandFailed;
-        }
-
-        var seekTime = CMTime.FromSeconds(eventArgs.PositionTime, 1);
-        player.Seek(seekTime);
-        return MPRemoteCommandHandlerStatus.Success;
-    }
-
-    MPRemoteCommandHandlerStatus SeekBackwardCommand(MPRemoteCommandEvent? commandEvent)
-    {
-        if (commandEvent is null)
-        {
-            return MPRemoteCommandHandlerStatus.CommandFailed;
-        }
-
-        var seekTime = player.CurrentTime - CMTime.FromSeconds(10, 1);
-        player.Seek(seekTime);
-        return MPRemoteCommandHandlerStatus.Success;
-    }
-
-    MPRemoteCommandHandlerStatus SeekForwardCommand(MPRemoteCommandEvent? commandEvent)
-    {
-        if (commandEvent is null)
-        {
-            return MPRemoteCommandHandlerStatus.CommandFailed;
-        }
-
-        var seekTime = player.CurrentTime + CMTime.FromSeconds(10, 1);
-        player.Seek(seekTime);
-        return MPRemoteCommandHandlerStatus.Success;
-    }
-
-    MPRemoteCommandHandlerStatus PlayCommand(MPRemoteCommandEvent? commandEvent)
-    {
-        if (commandEvent is null)
-        {
-            return MPRemoteCommandHandlerStatus.CommandFailed;
-        }
-
-        player.Play();
-        return MPRemoteCommandHandlerStatus.Success;
-    }
-
-    MPRemoteCommandHandlerStatus PauseCommand(MPRemoteCommandEvent? commandEvent)
-    {
-        if (commandEvent is null)
-        {
-            return MPRemoteCommandHandlerStatus.CommandFailed;
-        }
-
-        player.Pause();
-        return MPRemoteCommandHandlerStatus.Success;
-    }
-
-    MPRemoteCommandHandlerStatus ToggleCommand(MPRemoteCommandEvent? commandEvent)
-    {
-        if (commandEvent is not null)
-        {
-            return MPRemoteCommandHandlerStatus.CommandFailed;
-        }
-
-        if (player.Rate is 0)
-        {
-            player.Play();
-        }
-        else
-        {
-            player.Pause();
-        }
-
-        return MPRemoteCommandHandlerStatus.Success;
     }
 }

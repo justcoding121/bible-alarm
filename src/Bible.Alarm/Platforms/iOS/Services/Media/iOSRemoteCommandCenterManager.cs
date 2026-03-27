@@ -146,10 +146,10 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
 
     private MPRemoteCommandHandlerStatus HandlePlayCommand(MPRemoteCommandEvent evt)
     {
-        if (CarPlaySceneDelegate.IsRecentlyConnected && !playbackState.Value.IsPreparingOrPlaying)
+        if (ShouldSuppressCarPlayConnectResume())
         {
             logger.Information(
-                "[iOS Media] Play command suppressed — CarPlay just connected with no active session (auto-play prevention)");
+                "[iOS Media] Play command suppressed — CarPlay just connected while not playing (auto-play prevention)");
             return MPRemoteCommandHandlerStatus.Success;
         }
 
@@ -167,9 +167,23 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
 
     private MPRemoteCommandHandlerStatus HandleTogglePlayPauseCommand(MPRemoteCommandEvent evt)
     {
+        if (ShouldSuppressCarPlayConnectResume())
+        {
+            logger.Information(
+                "[iOS Media] Toggle play/pause suppressed — CarPlay just connected while not playing (auto-play prevention)");
+            return MPRemoteCommandHandlerStatus.Success;
+        }
+
         logger.Debug("[iOS Media] Toggle play/pause command received");
         WeakReferenceMessenger.Default.Send(new TogglePlayPauseMessage());
         return MPRemoteCommandHandlerStatus.Success;
+    }
+
+    // CarPlay can send Play/Toggle on attach. While paused, IsPreparingOrPlaying is still true, so we key off Status != Playing.
+    private bool ShouldSuppressCarPlayConnectResume()
+    {
+        return CarPlaySceneDelegate.IsRecentlyConnected
+            && playbackState.Value.Status != PlayStatus.Playing;
     }
 
     private MPRemoteCommandHandlerStatus HandleNextTrackCommand(MPRemoteCommandEvent evt)
