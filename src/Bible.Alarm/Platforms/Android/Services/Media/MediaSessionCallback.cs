@@ -269,12 +269,34 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     {
         logger.Information("MediaSessionCallback.OnPlayFromMediaId() called with mediaId: {MediaId}", mediaId);
 
+        var parsedScheduleId = ParseMediaId(mediaId);
+
+        // If this schedule is already playing/paused, just resume like OnPlay() does.
+        // Setting buffering state here would get stuck because PrepareAndPlayAsync
+        // exits early for the same schedule without dispatching a new Playing status,
+        // leaving lastSetState pinned to Buffering indefinitely.
+        var pState = PlaybackState;
+        if (pState?.Value?.IsPreparingOrPlaying == true
+            && pState.Value.CurrentScheduleId == parsedScheduleId)
+        {
+            logger.Information(
+                "OnPlayFromMediaId: Schedule {ScheduleId} is already active (Status={Status}) — resuming via PlayButtonPressedMessage",
+                parsedScheduleId, pState.Value.Status);
+            ExecuteAsyncOperation(async () =>
+            {
+                WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+                await Task.CompletedTask;
+            });
+            base.OnPlayFromMediaId(mediaId, extras);
+            return;
+        }
+
+        // Different schedule or no active playback — do a full stop-and-restart.
         // Suppress intermediate Stopped/Ended state + default metadata during the
-        // stop-and-restart transition to prevent play/pause button flash and artwork blink.
+        // transition to prevent play/pause button flash and artwork blink.
         MediaSessionEffect.SetRestartingPlayback(true);
         SetBufferingStateImmediately();
 
-        var parsedScheduleId = ParseMediaId(mediaId);
         ExecuteAsyncOperation(async () =>
         {
             try
