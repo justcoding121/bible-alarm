@@ -32,6 +32,12 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     public static bool IsCarPlayConnected { get; private set; }
 
     /// <summary>
+    /// True for a short window after CarPlay connects. Used to suppress iOS-initiated
+    /// auto-play commands that fire when the car head unit discovers a "now playing" app.
+    /// </summary>
+    public static bool IsRecentlyConnected { get; private set; }
+
+    /// <summary>
     /// Static reference to the current delegate instance.
     /// Used by effects to refresh the schedule list when schedules change.
     /// </summary>
@@ -48,7 +54,15 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             logger.Information("[CarPlay] Connected to CarPlay interface controller");
             interfaceController = controller;
             IsCarPlayConnected = true;
+            IsRecentlyConnected = true;
             Current = this;
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1500);
+                IsRecentlyConnected = false;
+                logger.Debug("[CarPlay] Cleared IsRecentlyConnected flag (auto-play suppression window ended)");
+            });
 
             // Create and set the schedule list template
             SetRootTemplate();

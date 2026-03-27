@@ -106,6 +106,13 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         if (existingArtwork != null)
         {
             builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
+            return;
+        }
+
+        var fallback = AndroidAutoPlayScreenHelper.GetOrLoadAppIconBitmap();
+        if (fallback != null)
+        {
+            builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, fallback);
         }
     }
 

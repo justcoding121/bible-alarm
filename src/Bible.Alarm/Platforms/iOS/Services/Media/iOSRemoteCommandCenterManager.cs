@@ -1,7 +1,11 @@
 #nullable enable
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Platforms.iOS.Services.CarPlay;
 using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
 using MediaPlayer;
 using Serilog;
 
@@ -16,12 +20,14 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
 {
     private static readonly ILogger logger = Log.ForContext<iOSRemoteCommandCenterManager>();
     private readonly MPRemoteCommandCenter commandCenter;
+    private readonly IState<PlaybackState> playbackState;
     private bool isRegistered;
     private bool disposed;
 
-    public iOSRemoteCommandCenterManager()
+    public iOSRemoteCommandCenterManager(IState<PlaybackState> playbackState)
     {
         commandCenter = MPRemoteCommandCenter.Shared;
+        this.playbackState = playbackState;
     }
 
     /// <summary>
@@ -140,6 +146,13 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
 
     private MPRemoteCommandHandlerStatus HandlePlayCommand(MPRemoteCommandEvent evt)
     {
+        if (CarPlaySceneDelegate.IsRecentlyConnected && !playbackState.Value.IsPreparingOrPlaying)
+        {
+            logger.Information(
+                "[iOS Media] Play command suppressed — CarPlay just connected with no active session (auto-play prevention)");
+            return MPRemoteCommandHandlerStatus.Success;
+        }
+
         logger.Debug("[iOS Media] Play command received");
         WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
         return MPRemoteCommandHandlerStatus.Success;

@@ -1,7 +1,11 @@
 #nullable enable
+using _Microsoft.Android.Resource.Designer;
+using Android.Graphics;
 using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using AndroidX.Core.Content;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -224,6 +228,52 @@ public static class AndroidAutoPlayScreenHelper
             builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
         }
         return builder;
+    }
+
+    private static readonly ILogger logger = Log.ForContext(typeof(AndroidAutoPlayScreenHelper));
+    private static Bitmap? cachedAppIconBitmap;
+
+    /// <summary>
+    /// Returns the app icon bitmap, loading and caching it on first call.
+    /// Used as fallback artwork when no track-specific artwork is available.
+    /// </summary>
+    public static Bitmap? GetOrLoadAppIconBitmap()
+    {
+        if (cachedAppIconBitmap != null)
+        {
+            return cachedAppIconBitmap;
+        }
+
+        try
+        {
+            var context = global::Android.App.Application.Context;
+            var drawable = ContextCompat.GetDrawable(
+                context, ResourceConstant.Drawable.ic_launcher_round);
+            if (drawable == null)
+            {
+                return null;
+            }
+
+            var width = drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 512;
+            var height = drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 512;
+            var bitmap = Bitmap.CreateBitmap(
+                width, height, Bitmap.Config.Argb8888!);
+            if (bitmap == null)
+            {
+                return null;
+            }
+
+            var canvas = new Canvas(bitmap);
+            drawable.SetBounds(0, 0, width, height);
+            drawable.Draw(canvas);
+            cachedAppIconBitmap = bitmap;
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "[AndroidAuto] Error loading app icon fallback artwork");
+            return null;
+        }
     }
 }
 

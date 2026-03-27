@@ -12,50 +12,86 @@ namespace Bible.Alarm.Platforms.Windows.Effects;
 
 /// <summary>
 /// Fluxor effect that shows rich toast notifications with metadata during playback on Windows.
-/// Shows artwork, title, subtitle (artist), and album information when track metadata changes.
+/// Only shows when the app is not the active foreground window (minimized or behind other windows).
 /// </summary>
 public class WindowsMediaToastEffect(
     IWindowsNotificationService notificationService,
     IState<PlaybackState> playbackState) : IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<WindowsMediaToastEffect>();
+    private bool isAppInForeground = true;
+    private bool isLifecycleSubscribed;
+
+    private void EnsureLifecycleSubscribed()
+    {
+        if (isLifecycleSubscribed) return;
+        isLifecycleSubscribed = true;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var window = Application.Current?.Windows?.FirstOrDefault();
+            if (window == null)
+            {
+                isLifecycleSubscribed = false;
+                return;
+            }
+
+            window.Activated += OnWindowActivated;
+            window.Deactivated += OnWindowDeactivated;
+            logger.Debug("Subscribed to window lifecycle events for media toast foreground suppression");
+        });
+    }
+
+    private void OnWindowActivated(object? sender, EventArgs e)
+    {
+        isAppInForeground = true;
+        notificationService.DismissMediaToast();
+    }
+
+    private void OnWindowDeactivated(object? sender, EventArgs e)
+    {
+        isAppInForeground = false;
+    }
 
     [EffectMethod]
     public Task HandlePlaybackMetadataChanged(PlaybackMetadataChangedAction action, IDispatcher dispatcher)
     {
         try
         {
+            EnsureLifecycleSubscribed();
+
             var currentState = playbackState.Value;
 
-            // Only show toast if playback is active (playing or paused)
             if (currentState.Status != PlayStatus.Playing && currentState.Status != PlayStatus.Paused)
             {
                 logger.Debug("Skipping media toast - playback not active (Status: {Status})", currentState.Status);
-                // Dismiss toast if playback is not active
                 notificationService.DismissMediaToast();
                 return Task.CompletedTask;
             }
 
-            // Only show if we have meaningful metadata
             if (string.IsNullOrWhiteSpace(action.Title) && string.IsNullOrWhiteSpace(action.Artist))
             {
                 logger.Debug("Skipping media toast - no metadata available");
                 return Task.CompletedTask;
             }
 
+            if (isAppInForeground)
+            {
+                logger.Debug("Skipping media toast - app is in foreground");
+                return Task.CompletedTask;
+            }
+
             logger.Debug("Showing media toast: Title={Title}, Artist={Artist}, ArtworkUrl={ArtworkUrl}",
                 action.Title, action.Artist, action.ArtworkUrl);
 
-            // Show toast notification with artwork, title, and subtitle (NO controls)
-            // Clicking the toast will activate the existing app instance
             notificationService.ShowMediaToast(
                 title: action.Title ?? "Now Playing",
                 subtitle: action.Artist,
                 body: action.Album,
                 artworkUrl: action.ArtworkUrl,
-                canPlayNext: false, // Not used - no buttons
-                canPlayPrevious: false, // Not used - no buttons
-                isPlaying: false); // Not used - no buttons
+                canPlayNext: false,
+                canPlayPrevious: false,
+                isPlaying: false);
         }
         catch (Exception ex)
         {
@@ -110,6 +146,15 @@ public class WindowsMediaToastEffect(
 
     public void Dispose()
     {
-        // No resources to dispose
+        if (!isLifecycleSubscribed) return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var window = Application.Current?.Windows?.FirstOrDefault();
+            if (window == null) return;
+
+            window.Activated -= OnWindowActivated;
+            window.Deactivated -= OnWindowDeactivated;
+        });
     }
 }

@@ -152,6 +152,7 @@ public static class MediaSessionHelper
 
     /// <summary>
     /// Loads artwork bitmap from URL and adds it to metadata builder.
+    /// Falls back to app icon if the artwork file cannot be loaded.
     /// Uses simple file-based loading without DI dependencies.
     /// </summary>
     private static void LoadArtworkForMetadata(MediaMetadataCompat.Builder metadataBuilder, string artworkUrl, Context context)
@@ -160,14 +161,12 @@ public static class MediaSessionHelper
         {
             Bitmap? artworkBitmap = null;
 
-            // Try to load from file path if it's a local file
             if (System.IO.File.Exists(artworkUrl))
             {
                 artworkBitmap = BitmapFactory.DecodeFile(artworkUrl);
             }
             else if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
             {
-                // Handle file:// URLs
                 var filePath = artworkUrl.Replace("file://", "");
                 if (System.IO.File.Exists(filePath))
                 {
@@ -179,15 +178,20 @@ public static class MediaSessionHelper
             {
                 metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
                 logger.Debug("Loaded artwork bitmap from: {ArtworkUrl}", artworkUrl);
+                return;
             }
-            else
-            {
-                logger.Debug("Could not load artwork from: {ArtworkUrl} (file not found or invalid format)", artworkUrl);
-            }
+
+            logger.Debug("Could not load artwork from: {ArtworkUrl} (file not found or invalid format) — using app icon fallback", artworkUrl);
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", artworkUrl);
+            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl} — using app icon fallback", artworkUrl);
+        }
+
+        var fallback = AndroidAutoPlayScreenHelper.GetOrLoadAppIconBitmap();
+        if (fallback != null)
+        {
+            metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, fallback);
         }
     }
 }

@@ -1,8 +1,6 @@
 #nullable enable
-using _Microsoft.Android.Resource.Designer;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
-using AndroidX.Core.Content;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -409,8 +407,6 @@ public class MediaSessionEffect(
         lastMetadataArtworkUrl = null;
     }
 
-    private static global::Android.Graphics.Bitmap? cachedAppIconBitmap;
-
     private void SetArtwork(MediaMetadataCompat.Builder metadataBuilder, PlaybackMetadataChangedAction action, MediaSessionCompat session)
     {
         if (!string.IsNullOrEmpty(action.ArtworkUrl))
@@ -440,49 +436,10 @@ public class MediaSessionEffect(
         }
 
         // No existing artwork (fresh start) - use app icon as fallback
-        var fallback = GetOrLoadAppIconBitmap();
+        var fallback = AndroidAutoPlayScreenHelper.GetOrLoadAppIconBitmap();
         if (fallback != null)
         {
             metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, fallback);
-        }
-    }
-
-    private static global::Android.Graphics.Bitmap? GetOrLoadAppIconBitmap()
-    {
-        if (cachedAppIconBitmap != null)
-        {
-            return cachedAppIconBitmap;
-        }
-
-        try
-        {
-            var context = global::Android.App.Application.Context;
-            var drawable = ContextCompat.GetDrawable(
-                context, ResourceConstant.Drawable.ic_launcher_round);
-            if (drawable == null)
-            {
-                return null;
-            }
-
-            var width = drawable.IntrinsicWidth > 0 ? drawable.IntrinsicWidth : 512;
-            var height = drawable.IntrinsicHeight > 0 ? drawable.IntrinsicHeight : 512;
-            var bitmap = global::Android.Graphics.Bitmap.CreateBitmap(
-                width, height, global::Android.Graphics.Bitmap.Config.Argb8888!);
-            if (bitmap == null)
-            {
-                return null;
-            }
-
-            var canvas = new global::Android.Graphics.Canvas(bitmap);
-            drawable.SetBounds(0, 0, width, height);
-            drawable.Draw(canvas);
-            cachedAppIconBitmap = bitmap;
-            return bitmap;
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "[AndroidAuto] Error loading app icon fallback artwork");
-            return null;
         }
     }
 
