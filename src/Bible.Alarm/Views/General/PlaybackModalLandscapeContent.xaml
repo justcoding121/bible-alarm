@@ -271,24 +271,39 @@
         </Grid>
 
         <!-- Minimize button (top-right, landscape) -->
-        <Button
+        <Grid
             Grid.Row="0"
-            Padding="0"
             Margin="0,8,8,0"
-            BackgroundColor="Transparent"
-            BorderWidth="0"
-            Command="{Binding MinimizeCommand}"
-            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-            FontSize="{DynamicResource IconStandardFontSize}"
-            Text="{x:Static fn:GlyphNames.ChevronDown}"
-            TextColor="{DynamicResource PrimaryTextColor}"
             HeightRequest="{DynamicResource IconStandardContainerSize}"
             WidthRequest="{DynamicResource IconStandardContainerSize}"
             HorizontalOptions="End"
             VerticalOptions="Start"
             IsVisible="{Binding ShowLandscapeOverlayControls}"
             InputTransparent="False"
-            ZIndex="10" />
+            ZIndex="10">
+            <Button
+                Padding="0"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                Command="{Binding MinimizeCommand}"
+                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                FontSize="{DynamicResource IconStandardFontSize}"
+                Text="{x:Static fn:GlyphNames.ChevronDown}"
+                TextColor="{DynamicResource PrimaryTextColor}"
+                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                WidthRequest="{DynamicResource IconStandardContainerSize}"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                IsVisible="{Binding ShowMinimizeButton}" />
+            <ActivityIndicator
+                IsRunning="{Binding IsMinimizing}"
+                IsVisible="{Binding IsMinimizing}"
+                HeightRequest="20"
+                WidthRequest="20"
+                Color="{DynamicResource PrimaryTextColor}"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+        </Grid>
 
         <!-- Floating control panel at bottom (overlays background; show/hide does not affect artwork layout) -->
         <Border

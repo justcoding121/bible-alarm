@@ -54,8 +54,16 @@
                     <TapGestureRecognizer Command="{Binding MaximizeCommand}" />
                 </Border.GestureRecognizers>
                 <Grid>
+                    <ActivityIndicator
+                        IsRunning="{Binding IsArtworkLoading}"
+                        IsVisible="{Binding IsArtworkLoading}"
+                        HeightRequest="20"
+                        WidthRequest="20"
+                        Color="{DynamicResource PrimaryTextColor}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
                     <Label
-                        IsVisible="{Binding ArtworkSource, Converter={StaticResource isNullConverter}}"
+                        IsVisible="{Binding ShowArtworkFallback}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="14"
                         HorizontalOptions="Center"
@@ -97,6 +105,7 @@
                     BackgroundColor="Transparent"
                     BorderWidth="0"
                     Command="{Binding StopCommand}"
+                    IsEnabled="{Binding IsStopEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="16"
                     Text="{x:Static fn:GlyphNames.Xmark}"
@@ -105,7 +114,16 @@
                     WidthRequest="36"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    IsVisible="{Binding ShowStopButton}" />
+                    IsVisible="{Binding ShowStopButton}">
+                    <Button.Triggers>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                        </Trigger>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                            <Setter Property="TextColor" Value="{StaticResource ErrorColor}" />
+                        </Trigger>
+                    </Button.Triggers>
+                </Button>
                 <ActivityIndicator
                     IsRunning="{Binding IsStopping}"
                     IsVisible="{Binding IsStopping}"
@@ -128,7 +146,7 @@
                     BackgroundColor="Transparent"
                     BorderWidth="0"
                     Command="{Binding PreviousCommand}"
-                    IsEnabled="{Binding CanPlayPrevious}"
+                    IsEnabled="{Binding IsPreviousEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="16"
                     Text="{x:Static fn:GlyphNames.Previous}"
@@ -137,7 +155,16 @@
                     WidthRequest="36"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    IsVisible="{Binding ShowPreviousButton}" />
+                    IsVisible="{Binding ShowPreviousButton}">
+                    <Button.Triggers>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                        </Trigger>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                            <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+                        </Trigger>
+                    </Button.Triggers>
+                </Button>
                 <ActivityIndicator
                     IsRunning="{Binding IsPreviousBusy}"
                     IsVisible="{Binding IsPreviousBusy}"
@@ -170,7 +197,18 @@
                     WidthRequest="36"
                     CornerRadius="18"
                     HorizontalOptions="Center"
-                    VerticalOptions="Center" />
+                    VerticalOptions="Center">
+                    <Button.Triggers>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                            <Setter Property="BackgroundColor" Value="{DynamicResource DisabledTextColor}" />
+                        </Trigger>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                            <Setter Property="TextColor" Value="White" />
+                            <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+                        </Trigger>
+                    </Button.Triggers>
+                </Button>
                 <Button
                     Padding="0"
                     BackgroundColor="{StaticResource PrimaryColor}"
@@ -186,7 +224,18 @@
                     WidthRequest="36"
                     CornerRadius="18"
                     HorizontalOptions="Center"
-                    VerticalOptions="Center" />
+                    VerticalOptions="Center">
+                    <Button.Triggers>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                            <Setter Property="BackgroundColor" Value="{DynamicResource DisabledTextColor}" />
+                        </Trigger>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                            <Setter Property="TextColor" Value="White" />
+                            <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+                        </Trigger>
+                    </Button.Triggers>
+                </Button>
             </Grid>
 
             <!-- Next / Next spinner -->
@@ -201,7 +250,7 @@
                     BackgroundColor="Transparent"
                     BorderWidth="0"
                     Command="{Binding NextCommand}"
-                    IsEnabled="{Binding CanPlayNext}"
+                    IsEnabled="{Binding IsNextEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="16"
                     Text="{x:Static fn:GlyphNames.Next}"
@@ -210,7 +259,16 @@
                     WidthRequest="36"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    IsVisible="{Binding ShowNextButton}" />
+                    IsVisible="{Binding ShowNextButton}">
+                    <Button.Triggers>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                        </Trigger>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                            <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+                        </Trigger>
+                    </Button.Triggers>
+                </Button>
                 <ActivityIndicator
                     IsRunning="{Binding IsNextBusy}"
                     IsVisible="{Binding IsNextBusy}"
@@ -221,21 +279,36 @@
                     VerticalOptions="Center" />
             </Grid>
 
-            <!-- Maximize -->
-            <Button
+            <!-- Maximize / Maximize spinner -->
+            <Grid
                 Grid.Column="6"
-                Padding="0"
-                BackgroundColor="Transparent"
-                BorderWidth="0"
-                Command="{Binding MaximizeCommand}"
-                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                FontSize="16"
-                Text="{x:Static fn:GlyphNames.ChevronUp}"
-                TextColor="{DynamicResource PrimaryTextColor}"
                 HeightRequest="36"
                 WidthRequest="36"
                 HorizontalOptions="Center"
-                VerticalOptions="Center" />
+                VerticalOptions="Center">
+                <Button
+                    Padding="0"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    Command="{Binding MaximizeCommand}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="16"
+                    Text="{x:Static fn:GlyphNames.ChevronUp}"
+                    TextColor="{DynamicResource PrimaryTextColor}"
+                    HeightRequest="36"
+                    WidthRequest="36"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    IsVisible="{Binding ShowMaximizeButton}" />
+                <ActivityIndicator
+                    IsRunning="{Binding IsMaximizeBusy}"
+                    IsVisible="{Binding IsMaximizeBusy}"
+                    HeightRequest="20"
+                    WidthRequest="20"
+                    Color="{DynamicResource PrimaryTextColor}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </Grid>
         </Grid>
     </Grid>
 </ContentView>

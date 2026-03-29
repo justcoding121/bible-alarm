@@ -45,30 +45,20 @@ public class CommandHandler
     {
         return new AsyncRelayCommand(async () =>
         {
-            // Set IsAddBusy immediately to show loading indicator
             setIsAddBusy?.Invoke(true);
 
-            // Do not await Task.Delay here: on Windows the continuation can run on a thread-pool thread,
-            // and WinUI requires page creation and PushAsync on the UI thread. Keeping this entire block
-            // synchronous (no await before navigation) ensures we stay on the UI thread and avoid 0xc000027b.
-            // Reset all schedule-related state first to ensure clean state
-            dispatcher.Dispatch(new ResetScheduleStateAction());
+            await Task.Delay(50);
 
-            // Reset container readiness to ensure containers signal ready on new page
-            dispatcher.Dispatch(new ResetContainerReadinessAction());
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                dispatcher.Dispatch(new ResetScheduleStateAction());
+                dispatcher.Dispatch(new ResetContainerReadinessAction());
+                dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
 
-            // Show overlay BEFORE navigation so it's visible immediately when page appears
-            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+                await navigationService.NavigateToScheduleAsync();
 
-            // Navigate immediately - the page will show with busy indicator
-            // A fresh Schedule page and ViewModel will be created (both registered as Transient)
-            // Containers will be assigned asynchronously once ready (handled by ScheduleViewModel)
-            await navigationService.NavigateToScheduleAsync();
-
-            // CurrentSchedule is initialized by ScheduleViewModel after navigation
-            
-            // Reset IsAddBusy after navigation completes
-            setIsAddBusy?.Invoke(false);
+                setIsAddBusy?.Invoke(false);
+            });
         }, canExecute ?? (() => true));
     }
 

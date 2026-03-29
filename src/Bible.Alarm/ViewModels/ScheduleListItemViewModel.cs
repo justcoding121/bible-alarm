@@ -178,18 +178,21 @@ public sealed class ScheduleListItemViewModel(
                 isPlayCommandRunning = true;
                 IsBusy = true;
                 StartSpinnerTimeout();
-                onPlayStarted?.Invoke();
-                WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule.Id });
-                await Task.Delay(100);
-                try
+                await Task.Delay(50);
+                await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    await playbackService.PlayScheduleAsync(Schedule.Id);
-                }
-                finally
-                {
-                    isPlayCommandRunning = false;
-                    SyncIsBusyWithPlaybackState();
-                }
+                    onPlayStarted?.Invoke();
+                    WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule.Id });
+                    try
+                    {
+                        await playbackService.PlayScheduleAsync(Schedule.Id);
+                    }
+                    finally
+                    {
+                        isPlayCommandRunning = false;
+                        SyncIsBusyWithPlaybackState();
+                    }
+                });
             }
         });
 

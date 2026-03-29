@@ -37,7 +37,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         PreviousCommand = new AsyncRelayCommand(OnPreviousAsync);
         PlayPauseCommand = new AsyncRelayCommand(OnPlayPauseAsync);
         NextCommand = new AsyncRelayCommand(OnNextAsync);
-        MaximizeCommand = new RelayCommand(OnMaximize);
+        MaximizeCommand = new AsyncRelayCommand(OnMaximizeAsync);
 
         WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -49,7 +49,16 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     public bool IsVisible
     {
         get => isVisible;
-        set => SetProperty(ref isVisible, value);
+        set
+        {
+            if (SetProperty(ref isVisible, value) && value)
+            {
+                isTrackChangeBusy = false;
+                hasSeenTrackTransition = false;
+                isPlayPauseBusy = false;
+                SyncFromState(playbackState.Value);
+            }
+        }
     }
 
     private double progress;
@@ -70,8 +79,29 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     public ImageSource? ArtworkSource
     {
         get => artworkSource;
-        set => SetProperty(ref artworkSource, value);
+        set
+        {
+            if (SetProperty(ref artworkSource, value))
+            {
+                OnPropertyChanged(nameof(ShowArtworkFallback));
+            }
+        }
     }
+
+    private bool isArtworkLoading;
+    public bool IsArtworkLoading
+    {
+        get => isArtworkLoading;
+        set
+        {
+            if (SetProperty(ref isArtworkLoading, value))
+            {
+                OnPropertyChanged(nameof(ShowArtworkFallback));
+            }
+        }
+    }
+
+    public bool ShowArtworkFallback => ArtworkSource == null && !IsArtworkLoading;
 
     private bool isPlaying;
     public bool IsPlaying
@@ -96,9 +126,14 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
             if (SetProperty(ref isStopping, value))
             {
                 OnPropertyChanged(nameof(ShowStopButton));
+                OnPropertyChanged(nameof(IsStopEnabled));
             }
         }
     }
+
+    private bool isTrackChangeBusy;
+    private bool hasSeenTrackTransition;
+    private bool isPlayPauseBusy;
 
     public bool PlayVisible => !IsPlaying;
     public bool PauseVisible => IsPlaying;
@@ -138,28 +173,67 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     public bool CanPlayNext
     {
         get => canPlayNext;
-        set => SetProperty(ref canPlayNext, value);
+        set
+        {
+            if (SetProperty(ref canPlayNext, value))
+            {
+                OnPropertyChanged(nameof(IsNextEnabled));
+            }
+        }
     }
 
     private bool canPlayPrevious;
     public bool CanPlayPrevious
     {
         get => canPlayPrevious;
-        set => SetProperty(ref canPlayPrevious, value);
+        set
+        {
+            if (SetProperty(ref canPlayPrevious, value))
+            {
+                OnPropertyChanged(nameof(IsPreviousEnabled));
+            }
+        }
     }
 
     private bool areControlsEnabled;
     public bool AreControlsEnabled
     {
         get => areControlsEnabled;
-        set => SetProperty(ref areControlsEnabled, value);
+        set
+        {
+            if (SetProperty(ref areControlsEnabled, value))
+            {
+                OnPropertyChanged(nameof(IsPreviousEnabled));
+                OnPropertyChanged(nameof(IsNextEnabled));
+                OnPropertyChanged(nameof(IsStopEnabled));
+            }
+        }
     }
+
+    private bool isMaximizeBusy;
+    public bool IsMaximizeBusy
+    {
+        get => isMaximizeBusy;
+        set
+        {
+            if (SetProperty(ref isMaximizeBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowMaximizeButton));
+            }
+        }
+    }
+
+    public bool ShowMaximizeButton => !IsMaximizeBusy;
+
+    public bool IsPreviousEnabled => AreControlsEnabled && CanPlayPrevious;
+    public bool IsNextEnabled => AreControlsEnabled && CanPlayNext;
+    public bool IsStopEnabled => AreControlsEnabled && !IsStopping;
 
     public IAsyncRelayCommand StopCommand { get; }
     public IAsyncRelayCommand PreviousCommand { get; }
     public IAsyncRelayCommand PlayPauseCommand { get; }
     public IAsyncRelayCommand NextCommand { get; }
-    public IRelayCommand MaximizeCommand { get; }
+    public IAsyncRelayCommand MaximizeCommand { get; }
 
     private TimeSpan currentDuration;
 
@@ -198,19 +272,56 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     {
         if (isDisposed) return;
 
+        if (isStopping)
+        {
+            if (state.Status == PlayStatus.Loading)
+            {
+                IsStopping = false;
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        if (isTrackChangeBusy)
+        {
+            if (!hasSeenTrackTransition)
+            {
+                if (state.Status != PlayStatus.Playing && state.Status != PlayStatus.Paused)
+                {
+                    hasSeenTrackTransition = true;
+                }
+                return;
+            }
+
+            if (state.Status == PlayStatus.Playing)
+            {
+                isTrackChangeBusy = false;
+                hasSeenTrackTransition = false;
+                IsPreviousBusy = false;
+                IsNextBusy = false;
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        if (isPlayPauseBusy)
+        {
+            return;
+        }
+
+        IsMaximizeBusy = false;
+
         Title = state.Title;
         CanPlayNext = state.CanPlayNext;
         CanPlayPrevious = state.CanPlayPrevious;
 
-        // Keep Pause button visible during auto-advance and track transitions to avoid flicker
         IsPlaying = state.Status == PlayStatus.Playing || state.IsAutoAdvancing || state.IsTransitioningTrack;
         AreControlsEnabled = state.Status is PlayStatus.Playing or PlayStatus.Paused
                              || state.IsAutoAdvancing || state.IsTransitioningTrack;
-
-        if (!state.IsPreparingOrPlaying)
-        {
-            IsStopping = false;
-        }
 
         if (state.Duration > TimeSpan.Zero)
         {
@@ -218,6 +329,16 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
 
         UpdateArtwork(state.ArtworkUrl);
+
+        if (ArtworkSource == null)
+        {
+            IsArtworkLoading = state.IsTransitioningTrack || state.IsAutoAdvancing
+                               || state.Status == PlayStatus.Loading;
+        }
+        else
+        {
+            IsArtworkLoading = false;
+        }
     }
 
     private void UpdateArtwork(string? artworkUrl)
@@ -289,7 +410,9 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     {
         try
         {
+            isTrackChangeBusy = true;
             IsPreviousBusy = true;
+            AreControlsEnabled = false;
             Progress = 0;
             await Task.Delay(50);
             await playbackService.PlayPreviousAsync();
@@ -297,9 +420,8 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         catch (Exception ex)
         {
             logger.Warning(ex, "MiniPlaybackBar: Error playing previous");
-        }
-        finally
-        {
+            isTrackChangeBusy = false;
+            hasSeenTrackTransition = false;
             IsPreviousBusy = false;
         }
     }
@@ -308,6 +430,10 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     {
         try
         {
+            isPlayPauseBusy = true;
+            AreControlsEnabled = false;
+            await Task.Delay(50);
+
             if (IsPlaying)
             {
                 await playbackService.PauseAsync();
@@ -321,13 +447,19 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         {
             logger.Warning(ex, "MiniPlaybackBar: Error toggling play/pause");
         }
+        finally
+        {
+            isPlayPauseBusy = false;
+        }
     }
 
     private async Task OnNextAsync()
     {
         try
         {
+            isTrackChangeBusy = true;
             IsNextBusy = true;
+            AreControlsEnabled = false;
             Progress = 0;
             await Task.Delay(50);
             await playbackService.PlayNextAsync();
@@ -335,16 +467,25 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         catch (Exception ex)
         {
             logger.Warning(ex, "MiniPlaybackBar: Error playing next");
-        }
-        finally
-        {
+            isTrackChangeBusy = false;
+            hasSeenTrackTransition = false;
             IsNextBusy = false;
         }
     }
 
-    private void OnMaximize()
+    private async Task OnMaximizeAsync()
     {
-        WeakReferenceMessenger.Default.Send(new MaximizePlaybackMessage());
+        try
+        {
+            IsMaximizeBusy = true;
+            await Task.Delay(50);
+            WeakReferenceMessenger.Default.Send(new MaximizePlaybackMessage());
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "MiniPlaybackBar: Error maximizing playback");
+            IsMaximizeBusy = false;
+        }
     }
 
     public void Dispose()

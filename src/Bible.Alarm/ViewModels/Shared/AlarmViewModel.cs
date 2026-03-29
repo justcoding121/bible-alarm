@@ -126,8 +126,12 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         // Initialize commands
         DismissCommand = commandInitializer.CreateDismissCommand();
         CancelCommand = commandInitializer.CreateCancelCommand();
-        MinimizeCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
-            WeakReferenceMessenger.Default.Send(new MinimizePlaybackMessage()));
+        MinimizeCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(async () =>
+        {
+            IsMinimizing = true;
+            await Task.Delay(50);
+            WeakReferenceMessenger.Default.Send(new MinimizePlaybackMessage());
+        });
         PlayCommand = commandInitializer.CreatePlayCommand();
         PauseCommand = commandInitializer.CreatePauseCommand();
         PreviousCommand = commandInitializer.CreatePreviousCommand();
@@ -246,6 +250,21 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     }
 
     public bool IsStopping => isStopping;
+
+    private bool isMinimizing;
+    public bool IsMinimizing
+    {
+        get => isMinimizing;
+        set
+        {
+            if (SetProperty(ref isMinimizing, value))
+            {
+                OnPropertyChanged(nameof(ShowMinimizeButton));
+            }
+        }
+    }
+
+    public bool ShowMinimizeButton => !IsMinimizing;
 
     private async Task ShowDismissProgress()
     {
@@ -554,7 +573,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         {
             var state = playbackState.Value;
 
-            if (isStopping && state.IsPreparingOrPlaying)
+            if (isStopping && state.Status == PlayStatus.Loading)
             {
                 SetProperty(ref isStopping, false, nameof(IsStopping));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
