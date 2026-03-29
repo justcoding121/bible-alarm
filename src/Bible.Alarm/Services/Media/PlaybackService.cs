@@ -270,12 +270,16 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public async Task PlayAsync()
     {
-        // If cached status says Paused but ExoPlayer actually lost its state (resource
-        // reclamation while paused), clear PlayedBibleTrackKeys so the fallback
-        // re-preparation in PlaybackOperationHandler can seek to saved progress.
-        if (audioPlayer.Status == PlayStatus.Paused && !audioPlayer.IsActuallyPlayingOrPaused)
+        // If ExoPlayer actually lost its state (resource reclamation while paused,
+        // or status silently changed to Stopped/Ended), clear PlayedBibleTrackKeys
+        // so the fallback re-preparation in PlaybackOperationHandler can seek to
+        // saved progress. Without this, the track key from the original playback
+        // stays in the set, isFirstEncounter returns false, and seek is skipped.
+        if (!audioPlayer.IsActuallyPlayingOrPaused
+            && audioPlayer.Status is PlayStatus.Paused or PlayStatus.Stopped or PlayStatus.Ended)
         {
-            logger.Warning("PlayAsync: stale Paused state detected. Clearing PlayedBibleTrackKeys for seek.");
+            logger.Warning("PlayAsync: stale state detected (Status={Status}). Clearing PlayedBibleTrackKeys for seek.",
+                audioPlayer.Status);
             stateManager.PlayedBibleTrackKeys.Clear();
         }
 
