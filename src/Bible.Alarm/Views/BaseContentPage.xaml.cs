@@ -1,18 +1,35 @@
+#nullable enable
+using Bible.Alarm.Views.Shared;
+
 namespace Bible.Alarm.Views;
 
-/// <summary>
-/// Base class for all content pages in the application.
-/// Theme-aware color resources are managed at the Application level (in App.xaml.cs),
-/// so pages can use DynamicResource to automatically update when the theme changes.
-/// </summary>
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class BaseContentPage : ContentPage
 {
     public BaseContentPage()
     {
         InitializeComponent();
-        // Theme-aware resources are managed at Application level in App.xaml.cs
-        // Pages should use DynamicResource to reference these resources
+
+        ControlTemplate = new ControlTemplate(() =>
+        {
+            var grid = new Grid
+            {
+                RowDefinitions =
+                [
+                    new RowDefinition(GridLength.Star),
+                    new RowDefinition(GridLength.Auto)
+                ]
+            };
+
+            var presenter = new ContentPresenter();
+            Grid.SetRow(presenter, 0);
+            grid.Add(presenter);
+
+            var miniBar = new MiniPlaybackBar();
+            Grid.SetRow(miniBar, 1);
+            grid.Add(miniBar);
+
+            return grid;
+        });
     }
 }
-

@@ -396,9 +396,5 @@ public static class ServiceRegistrationHelper
             NavigationPage.SetHasBackButton(overlayPage, false);
             return navigationPage;
         });
-
-        // RootPage wraps NavigationPage + mini playback bar slot.
-        // Window.Page is set to RootPage so the mini bar persists across all pages.
-        services.AddTransient<Views.Shared.RootPage>();
     }
 }

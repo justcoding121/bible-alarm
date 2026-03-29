@@ -1,6 +1,8 @@
 #nullable enable
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
@@ -21,6 +23,7 @@ public sealed class CarPlayPlaybackHandler
     public static void HandleScheduleItemClicked(int scheduleId, Action completion)
     {
         logger.Information("[CarPlay] Schedule {ScheduleId} clicked - starting playback", scheduleId);
+        WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleId });
 
         _ = Task.Run(async () =>
         {

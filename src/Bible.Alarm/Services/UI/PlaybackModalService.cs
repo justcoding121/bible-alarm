@@ -12,7 +12,8 @@ namespace Bible.Alarm.Services.UI;
 public sealed class PlaybackModalService :
     IPlaybackModalService,
     IRecipient<MinimizePlaybackMessage>,
-    IRecipient<MaximizePlaybackMessage>
+    IRecipient<MaximizePlaybackMessage>,
+    IRecipient<RequestShowPlaybackModalMessage>
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
@@ -22,6 +23,7 @@ public sealed class PlaybackModalService :
     private bool isMinimized;
     private bool isDisposed;
     private int popGeneration;
+    private volatile bool requestedShowModal;
 
     public bool IsMinimized => isMinimized;
 
@@ -36,6 +38,7 @@ public sealed class PlaybackModalService :
 
         WeakReferenceMessenger.Default.Register<MinimizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Register<MaximizePlaybackMessage>(this);
+        WeakReferenceMessenger.Default.Register<RequestShowPlaybackModalMessage>(this);
     }
 
     private static bool IsActiveUiPlaybackStatus(PlayStatus status) =>
@@ -66,6 +69,27 @@ public sealed class PlaybackModalService :
         _ = MaximizeAsync();
     }
 
+    public void Receive(RequestShowPlaybackModalMessage message)
+    {
+        requestedShowModal = true;
+
+        if (isMinimized)
+        {
+            var currentScheduleId = playbackState.Value.CurrentScheduleId;
+            var isSameSchedule = message.TargetScheduleId.HasValue
+                                 && message.TargetScheduleId == currentScheduleId;
+
+            if (isSameSchedule)
+            {
+                _ = MaximizeAsync();
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() => navigationService.SetMiniBarVisible(false));
+            }
+        }
+    }
+
     private Task MinimizeAsync()
     {
         return MainThread.InvokeOnMainThreadAsync(async () =>
@@ -74,6 +98,7 @@ public sealed class PlaybackModalService :
             {
                 logger.Information("Minimizing playback modal");
                 isMinimized = true;
+                requestedShowModal = false;
 
                 if (isModalOpen)
                 {
@@ -266,14 +291,43 @@ public sealed class PlaybackModalService :
             return;
         }
 
-        var shouldShowPlayback = isModalOpen
+        // Use IsPreparingOrPlaying (resilient to transient Stopped status during track
+        // transitions) when the modal or mini bar is already showing. Use the stricter
+        // IsActiveUiPlaybackStatus only when deciding whether to auto-open from scratch.
+        var shouldShowPlayback = (isModalOpen || isMinimized)
             ? state.IsPreparingOrPlaying
             : IsActiveUiPlaybackStatus(state.Status);
 
-        // When minimized, the mini bar is showing. If playback is still active, keep it minimized.
-        // Only open the full modal for NEW playback sessions (not when already minimized).
+        // When minimized, keep it minimized unless a schedule switch was requested.
+        // For schedule switches, maximize when the new schedule starts Loading.
         if (isMinimized && shouldShowPlayback)
         {
+            if (requestedShowModal && state.Status == PlayStatus.Loading)
+            {
+                logger.Information("OnPlaybackStateChanged: New schedule loading while minimized — maximizing. Status={Status}", state.Status);
+                requestedShowModal = false;
+                _ = MaximizeAsync();
+            }
+
+            return;
+        }
+
+        // During a schedule switch the old schedule stops briefly before the new one
+        // starts loading. Keep the modal/bar visible so it doesn't flash.
+        // Covers both: modal already open, and bar still showing while MaximizeAsync is queued.
+        if (!shouldShowPlayback && (isModalOpen || isMinimized) && requestedShowModal)
+        {
+            logger.Debug("OnPlaybackStateChanged: Keeping UI visible during schedule switch (requestedShowModal pending). Status={Status}, IsModalOpen={IsModalOpen}, IsMinimized={IsMinimized}",
+                state.Status, isModalOpen, isMinimized);
+            return;
+        }
+
+        // Only auto-open the modal when a user-initiated action (play button, alarm,
+        // Android Auto, CarPlay, notification) signalled via RequestShowPlaybackModalMessage.
+        var shouldAutoOpen = shouldShowPlayback && !isModalOpen && !isMinimized && requestedShowModal;
+        if (shouldShowPlayback && !isModalOpen && !isMinimized && !requestedShowModal)
+        {
+            logger.Debug("OnPlaybackStateChanged: Playback active but no explicit show request — not auto-opening modal. Status={Status}", state.Status);
             return;
         }
 
@@ -283,12 +337,23 @@ public sealed class PlaybackModalService :
         if (shouldShowPlayback && isModalOpen)
         {
             popGeneration++;
+
+            // Consume the show-request flag only when the NEW schedule reaches Playing.
+            // Don't consume on Paused — the AudioPlayer dispatches a transient Paused
+            // during teardown of the old schedule, which would kill the protection
+            // before the final Stopped event closes the modal.
+            if (state.Status == PlayStatus.Playing)
+            {
+                requestedShowModal = false;
+            }
         }
 
         _ = shouldShowPlayback switch
         {
-            true when !isModalOpen && !isMinimized => MainThread.InvokeOnMainThreadAsync(async () =>
+            true when shouldAutoOpen => MainThread.InvokeOnMainThreadAsync(async () =>
             {
+                requestedShowModal = false;
+
                 if (isModalOpen)
                 {
                     return;
@@ -373,6 +438,7 @@ public sealed class PlaybackModalService :
             {
                 logger.Information("PlaybackState changed - removing PlaybackModal page (Playback inactive)");
 
+                requestedShowModal = false;
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 await navigationService.PopPlaybackPageAsync();
                 isModalOpen = false;
@@ -390,9 +456,18 @@ public sealed class PlaybackModalService :
     {
         return MainThread.InvokeOnMainThreadAsync(() =>
         {
+            // If MaximizeAsync already opened the modal (race: queued before this),
+            // the bar is already hidden and the modal owns the UI. Skip.
+            if (isModalOpen)
+            {
+                logger.Debug("HideMiniBarOnMainThreadAsync: Modal is open (MaximizeAsync ran first), skipping");
+                return Task.CompletedTask;
+            }
+
             try
             {
                 logger.Information("PlaybackState changed - hiding mini bar (Playback inactive)");
+                requestedShowModal = false;
                 navigationService.SetMiniBarVisible(false);
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 isMinimized = false;
@@ -419,5 +494,6 @@ public sealed class PlaybackModalService :
         playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<MinimizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Unregister<MaximizePlaybackMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<RequestShowPlaybackModalMessage>(this);
     }
 }

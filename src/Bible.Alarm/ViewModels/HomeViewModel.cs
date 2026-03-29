@@ -134,7 +134,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             },
             () => progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count),
             async () => await progressBarManager.FadeOutAsync(),
-            () => playbackState.Value.IsPreparingOrPlaying);
+            () => navigationService.IsPlaybackModalOnScreen());
 
         state.StateChanged += OnStateChanged;
         playbackState.StateChanged += OnPlaybackStateChanged;

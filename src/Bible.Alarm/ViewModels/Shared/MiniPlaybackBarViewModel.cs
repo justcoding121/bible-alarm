@@ -15,16 +15,20 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     IRecipient<PlaybackPositionChangedMessage>,
     IDisposable
 {
+    public static MiniPlaybackBarViewModel? Instance { get; private set; }
+
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;
     private readonly IState<PlaybackState> playbackState;
     private bool isDisposed;
+    private string? lastArtworkUrl;
 
     public MiniPlaybackBarViewModel(
         ILogger logger,
         IPlaybackService playbackService,
         IState<PlaybackState> playbackState)
     {
+        Instance = this;
         this.logger = logger;
         this.playbackService = playbackService;
         this.playbackState = playbackState;
@@ -83,8 +87,52 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
     }
 
+    private bool isStopping;
+    public bool IsStopping
+    {
+        get => isStopping;
+        set
+        {
+            if (SetProperty(ref isStopping, value))
+            {
+                OnPropertyChanged(nameof(ShowStopButton));
+            }
+        }
+    }
+
     public bool PlayVisible => !IsPlaying;
     public bool PauseVisible => IsPlaying;
+    public bool ShowStopButton => !IsStopping;
+
+    private bool isPreviousBusy;
+    public bool IsPreviousBusy
+    {
+        get => isPreviousBusy;
+        set
+        {
+            if (SetProperty(ref isPreviousBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowPreviousButton));
+            }
+        }
+    }
+
+    public bool ShowPreviousButton => !IsPreviousBusy;
+
+    private bool isNextBusy;
+    public bool IsNextBusy
+    {
+        get => isNextBusy;
+        set
+        {
+            if (SetProperty(ref isNextBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowNextButton));
+            }
+        }
+    }
+
+    public bool ShowNextButton => !IsNextBusy;
 
     private bool canPlayNext;
     public bool CanPlayNext
@@ -153,27 +201,70 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         Title = state.Title;
         CanPlayNext = state.CanPlayNext;
         CanPlayPrevious = state.CanPlayPrevious;
-        IsPlaying = state.Status == PlayStatus.Playing;
-        AreControlsEnabled = state.Status is PlayStatus.Playing or PlayStatus.Paused;
+
+        // Keep Pause button visible during auto-advance and track transitions to avoid flicker
+        IsPlaying = state.Status == PlayStatus.Playing || state.IsAutoAdvancing || state.IsTransitioningTrack;
+        AreControlsEnabled = state.Status is PlayStatus.Playing or PlayStatus.Paused
+                             || state.IsAutoAdvancing || state.IsTransitioningTrack;
+
+        if (!state.IsPreparingOrPlaying)
+        {
+            IsStopping = false;
+        }
 
         if (state.Duration > TimeSpan.Zero)
         {
             currentDuration = state.Duration;
         }
 
-        if (!string.IsNullOrEmpty(state.ArtworkUrl))
+        UpdateArtwork(state.ArtworkUrl);
+    }
+
+    private void UpdateArtwork(string? artworkUrl)
+    {
+        if (lastArtworkUrl == artworkUrl && ArtworkSource != null)
         {
-            try
-            {
-                ArtworkSource = ImageSource.FromUri(new Uri(state.ArtworkUrl));
-            }
-            catch
-            {
-                ArtworkSource = null;
-            }
+            return;
         }
-        else
+
+        lastArtworkUrl = artworkUrl;
+
+        if (string.IsNullOrEmpty(artworkUrl))
         {
+            ArtworkSource = null;
+            return;
+        }
+
+        try
+        {
+            if (Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) &&
+                uri.Scheme is "http" or "https")
+            {
+                ArtworkSource = ImageSource.FromUri(uri);
+                return;
+            }
+
+            if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            {
+                var localPath = new Uri(artworkUrl).LocalPath;
+                if (File.Exists(localPath))
+                {
+                    ArtworkSource = ImageSource.FromFile(localPath);
+                    return;
+                }
+            }
+
+            if (Path.IsPathRooted(artworkUrl) && File.Exists(artworkUrl))
+            {
+                ArtworkSource = ImageSource.FromFile(artworkUrl);
+                return;
+            }
+
+            ArtworkSource = null;
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "MiniPlaybackBar: Error loading artwork from {ArtworkUrl}", artworkUrl);
             ArtworkSource = null;
         }
     }
@@ -182,11 +273,15 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     {
         try
         {
+            IsStopping = true;
+            AreControlsEnabled = false;
+            await Task.Delay(50);
             await playbackService.StopAsync();
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "MiniPlaybackBar: Error stopping playback");
+            IsStopping = false;
         }
     }
 
@@ -194,12 +289,18 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     {
         try
         {
+            IsPreviousBusy = true;
             Progress = 0;
+            await Task.Delay(50);
             await playbackService.PlayPreviousAsync();
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "MiniPlaybackBar: Error playing previous");
+        }
+        finally
+        {
+            IsPreviousBusy = false;
         }
     }
 
@@ -226,12 +327,18 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     {
         try
         {
+            IsNextBusy = true;
             Progress = 0;
+            await Task.Delay(50);
             await playbackService.PlayNextAsync();
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "MiniPlaybackBar: Error playing next");
+        }
+        finally
+        {
+            IsNextBusy = false;
         }
     }
 

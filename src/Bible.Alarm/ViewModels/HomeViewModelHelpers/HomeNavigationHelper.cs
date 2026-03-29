@@ -58,9 +58,10 @@ public class HomeNavigationHelper
     {
         var currentPlaybackState = playbackState.Value;
         if (currentPlaybackState.IsPreparingOrPlaying &&
-            currentPlaybackState.CurrentScheduleId == scheduleId)
+            currentPlaybackState.CurrentScheduleId == scheduleId &&
+            navigationService.IsPlaybackModalOnScreen())
         {
-            logger.Debug("ViewScheduleCommand: Skipping navigation - playback is active for schedule {ScheduleId}", scheduleId);
+            logger.Debug("ViewScheduleCommand: Skipping navigation - playback modal is on screen for schedule {ScheduleId}", scheduleId);
             return true;
         }
 

@@ -553,6 +553,19 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         MainThread.BeginInvokeOnMainThread(() =>
         {
             var state = playbackState.Value;
+
+            if (isStopping && state.IsPreparingOrPlaying)
+            {
+                SetProperty(ref isStopping, false, nameof(IsStopping));
+                OnPropertyChanged(nameof(ShowPreparingProgress));
+                OnPropertyChanged(nameof(ShowPreparingCard));
+                OnPropertyChanged(nameof(ShowPlaybackControls));
+                OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
+                OnPropertyChanged(nameof(AreControlsEnabled));
+                OnPropertyChanged(nameof(IsBuffering));
+                OnPropertyChanged(nameof(IsStopButtonEnabled));
+            }
+
             var trackChanged = stateUpdater.DetectTrackChange(state);
             stateUpdater.HandleTrackChange(trackChanged, state);
             stateUpdater.UpdateControlsFromState(state);

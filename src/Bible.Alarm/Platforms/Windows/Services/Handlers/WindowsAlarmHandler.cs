@@ -1,7 +1,9 @@
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 
@@ -26,6 +28,7 @@ public sealed class WindowsAlarmHandler(
                     return;
                 }
 
+                WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleId });
                 await Task.Run(async () =>
                 {
                     try

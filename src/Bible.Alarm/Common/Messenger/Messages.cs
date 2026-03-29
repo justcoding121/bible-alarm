@@ -181,3 +181,15 @@ public class MinimizePlaybackMessage
 public class MaximizePlaybackMessage
 {
 }
+
+/// <summary>
+/// Sent when a user-initiated action should show the playback modal (e.g. play button tap,
+/// alarm trigger, Android Auto / CarPlay list item tap, notification tap).
+/// When minimized and it's a different schedule, the modal opens only after the new schedule
+/// starts loading (not immediately, so the old schedule's content isn't shown).
+/// Track auto-advance and next/prev from the mini bar do NOT send this.
+/// </summary>
+public class RequestShowPlaybackModalMessage
+{
+    public int? TargetScheduleId { get; init; }
+}

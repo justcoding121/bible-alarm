@@ -4,7 +4,6 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Views.Shared;
 using Serilog;
 
 #if ANDROID
@@ -33,14 +32,14 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
 
     public Window CreateWindow(IActivationState? activationState)
     {
-        var rootPage = serviceProvider.GetRequiredService<RootPage>();
-        Initialize(rootPage.InnerNavigationPage);
+        var navigationPage = serviceProvider.GetRequiredService<NavigationPage>();
+        Initialize(navigationPage);
 
-        var miniBarVm = serviceProvider.GetRequiredService<ViewModels.Shared.MiniPlaybackBarViewModel>();
-        var miniBar = new MiniPlaybackBar { BindingContext = miniBarVm };
-        rootPage.SetMiniBarContent(miniBar);
+        // Resolve the singleton early so MiniPlaybackBarViewModel.Instance is set
+        // before any real pages materialize their ControlTemplate.
+        serviceProvider.GetRequiredService<ViewModels.Shared.MiniPlaybackBarViewModel>();
 
-        var window = new Window(rootPage);
+        var window = new Window(navigationPage);
         window.Activated += OnWindowFirstActivated;
 
 #if WINDOWS

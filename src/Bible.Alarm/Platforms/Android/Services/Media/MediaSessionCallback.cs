@@ -119,6 +119,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             try
             {
                 var scheduleIdFromMetadata = TryGetScheduleIdFromMediaSession();
+                WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleIdFromMetadata });
                 if (scheduleIdFromMetadata.HasValue && scheduleIdFromMetadata.Value > 0)
                 {
                     logger.Information("MediaSessionCallback.OnPlay() - fresh start using schedule {ScheduleId} from metadata",
@@ -282,6 +283,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             logger.Information(
                 "OnPlayFromMediaId: Schedule {ScheduleId} is already active (Status={Status}) — resuming via PlayButtonPressedMessage",
                 parsedScheduleId, pState.Value.Status);
+            WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = parsedScheduleId });
             ExecuteAsyncOperation(async () =>
             {
                 WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
@@ -334,7 +336,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             return;
         }
 
-        // Use isAlarm=false for media session playback
+        WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleIdToPlay });
         await playbackService.PrepareAndPlayAsync(scheduleIdToPlay, isAlarm: false);
     }
 

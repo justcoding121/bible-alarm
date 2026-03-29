@@ -1,8 +1,10 @@
 using Bible.Alarm.Common.Interfaces.Media;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 
@@ -82,6 +84,7 @@ public sealed class AndroidAlarmHandler(
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
             logger.Information("User-initiated playback for schedule {ScheduleId} - starting playback directly without notifications", scheduleId);
 
+            WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleId });
             await Task.Run(async () =>
             {
                 try
@@ -99,6 +102,7 @@ public sealed class AndroidAlarmHandler(
             return;
         }
 
+        WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleId });
         await Task.Run(async () =>
         {
             try

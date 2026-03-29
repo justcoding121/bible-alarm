@@ -42,8 +42,8 @@ public sealed class NavigationService(
 #if WINDOWS
         var app = Application.Current;
         Microsoft.Maui.Dispatching.IDispatcher? winDispatcher = null;
-        if (app?.Windows.Count > 0)
-            winDispatcher = app.Windows[0].Page?.Dispatcher;
+        if (app?.Windows.Count > 0 && app.Windows[0].Page is NavigationPage navPage)
+            winDispatcher = navPage.Dispatcher;
         else if (app?.Dispatcher != null)
             winDispatcher = app.Dispatcher;
         if (winDispatcher != null)
@@ -351,17 +351,16 @@ public sealed class NavigationService(
 
     public void SetMiniBarVisible(bool visible)
     {
-        var app = Application.Current;
-        if (app?.Windows.Count > 0 && app.Windows[0].Page is Views.Shared.RootPage rootPage)
+        var miniBarVm = serviceProvider.GetService<ViewModels.Shared.MiniPlaybackBarViewModel>();
+        if (miniBarVm == null) return;
+
+        if (MainThread.IsMainThread)
         {
-            if (MainThread.IsMainThread)
-            {
-                rootPage.SetMiniBarVisible(visible);
-            }
-            else
-            {
-                MainThread.BeginInvokeOnMainThread(() => rootPage.SetMiniBarVisible(visible));
-            }
+            miniBarVm.IsVisible = visible;
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(() => miniBarVm.IsVisible = visible);
         }
     }
 

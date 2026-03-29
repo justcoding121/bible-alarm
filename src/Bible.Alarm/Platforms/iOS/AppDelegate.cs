@@ -3,11 +3,13 @@
 using BackgroundTasks;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using CommunityToolkit.Mvvm.Messaging;
 using Foundation;
 using Serilog;
 using UIKit;
@@ -314,6 +316,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                 var playbackService = ServiceProviderManager.GetService<ISchedulePlaybackService>();
                 if (playbackService != null)
                 {
+                    WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleId });
                     await playbackService.PlayScheduleAsync(scheduleId);
                     logger.Information("Started playback for schedule {ScheduleId} from notification tap", scheduleId);
                 }

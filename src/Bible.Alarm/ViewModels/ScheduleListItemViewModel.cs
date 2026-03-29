@@ -48,6 +48,7 @@ public sealed class ScheduleListItemViewModel(
     private bool isBusy;
     private bool isNavigating;
     private bool isProcessingStateChange;
+    private volatile bool isPlayCommandRunning;
     private CancellationTokenSource? spinnerTimeoutCts;
     private Action? onPlayStarted;
     private Action? onPlaybackStarted;
@@ -174,11 +175,21 @@ public sealed class ScheduleListItemViewModel(
         {
             if (Schedule?.Id > 0)
             {
+                isPlayCommandRunning = true;
                 IsBusy = true;
                 StartSpinnerTimeout();
                 onPlayStarted?.Invoke();
-                await Task.Delay(50);
-                await playbackService.PlayScheduleAsync(Schedule.Id);
+                WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule.Id });
+                await Task.Delay(100);
+                try
+                {
+                    await playbackService.PlayScheduleAsync(Schedule.Id);
+                }
+                finally
+                {
+                    isPlayCommandRunning = false;
+                    SyncIsBusyWithPlaybackState();
+                }
             }
         });
 
@@ -532,30 +543,25 @@ public sealed class ScheduleListItemViewModel(
     private void SyncIsBusyWithPlaybackState()
     {
         var scheduleId = ScheduleId;
-        if (scheduleId <= 0)
+        if (scheduleId <= 0 || !isBusy)
         {
             return;
         }
 
         var state = playbackState.Value;
-        var isThisSchedule = state.CurrentScheduleId == scheduleId;
 
-        if (state.Status == PlayStatus.Failed || (state.CurrentScheduleId.HasValue && state.CurrentScheduleId != scheduleId))
+        if (isPlayCommandRunning)
         {
-            SetIsBusy(false);
+            if (state.CurrentScheduleId == scheduleId &&
+                state.Status is PlayStatus.Playing or PlayStatus.Paused)
+            {
+                SetIsBusy(false);
+            }
+
             return;
         }
 
-        if (!isThisSchedule || !state.IsPreparingOrPlaying)
-        {
-            SetIsBusy(false);
-            return;
-        }
-
-        if (!IsBusy && (state.Status == PlayStatus.Loading || state.IsAutoAdvancing || state.IsTransitioningTrack))
-        {
-            SetIsBusy(true);
-        }
+        SetIsBusy(false);
     }
 
     private void SetIsBusy(bool value)

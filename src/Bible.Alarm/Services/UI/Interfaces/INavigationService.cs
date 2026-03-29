@@ -67,7 +67,7 @@ public interface INavigationService : IDisposable
     bool IsPlaybackModalOnScreen();
 
     /// <summary>
-    /// Shows or hides the mini playback bar on the RootPage.
+    /// Shows or hides the mini playback bar via the shared ViewModel.
     /// </summary>
     void SetMiniBarVisible(bool visible);
 }

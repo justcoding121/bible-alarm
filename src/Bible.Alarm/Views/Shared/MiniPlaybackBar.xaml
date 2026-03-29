@@ -14,7 +14,8 @@
         <converters:IsNullConverter x:Key="isNullConverter" />
     </ContentView.Resources>
     <Grid RowDefinitions="Auto,Auto">
-        <!-- Row 0: Thin progress bar at top edge -->
+
+        <!-- Row 0: Thin progress bar at top edge (tappable to maximize) -->
         <ProgressBar
             Grid.Row="0"
             Progress="{Binding Progress}"
@@ -22,7 +23,11 @@
             BackgroundColor="{DynamicResource ProgressBarBackgroundColor}"
             HeightRequest="3"
             VerticalOptions="Start"
-            HorizontalOptions="Fill" />
+            HorizontalOptions="Fill">
+            <ProgressBar.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding MaximizeCommand}" />
+            </ProgressBar.GestureRecognizers>
+        </ProgressBar>
 
         <!-- Row 1: Controls row -->
         <Grid
@@ -33,7 +38,7 @@
             VerticalOptions="Center"
             HorizontalOptions="Fill">
 
-            <!-- Small artwork -->
+            <!-- Small artwork (tappable to maximize) -->
             <Border
                 Grid.Column="0"
                 StrokeThickness="0"
@@ -45,6 +50,9 @@
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="4" />
                 </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding MaximizeCommand}" />
+                </Border.GestureRecognizers>
                 <Grid>
                     <Label
                         IsVisible="{Binding ArtworkSource, Converter={StaticResource isNullConverter}}"
@@ -62,7 +70,7 @@
                 </Grid>
             </Border>
 
-            <!-- Title (fills remaining space) -->
+            <!-- Title (tappable to maximize) -->
             <Label
                 Grid.Column="1"
                 Text="{Binding Title}"
@@ -71,40 +79,74 @@
                 LineBreakMode="TailTruncation"
                 MaxLines="1"
                 VerticalOptions="Center"
-                Margin="4,0,0,0" />
+                Margin="4,0,0,0">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding MaximizeCommand}" />
+                </Label.GestureRecognizers>
+            </Label>
 
-            <!-- Stop -->
-            <Button
+            <!-- Stop / Stopping spinner -->
+            <Grid
                 Grid.Column="2"
-                Padding="0"
-                BackgroundColor="Transparent"
-                BorderWidth="0"
-                Command="{Binding StopCommand}"
-                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                FontSize="16"
-                Text="{x:Static fn:GlyphNames.Xmark}"
-                TextColor="{StaticResource ErrorColor}"
                 HeightRequest="36"
                 WidthRequest="36"
                 HorizontalOptions="Center"
-                VerticalOptions="Center" />
+                VerticalOptions="Center">
+                <Button
+                    Padding="0"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    Command="{Binding StopCommand}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="16"
+                    Text="{x:Static fn:GlyphNames.Xmark}"
+                    TextColor="{StaticResource ErrorColor}"
+                    HeightRequest="36"
+                    WidthRequest="36"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    IsVisible="{Binding ShowStopButton}" />
+                <ActivityIndicator
+                    IsRunning="{Binding IsStopping}"
+                    IsVisible="{Binding IsStopping}"
+                    HeightRequest="20"
+                    WidthRequest="20"
+                    Color="{StaticResource ErrorColor}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </Grid>
 
-            <!-- Previous -->
-            <Button
+            <!-- Previous / Previous spinner -->
+            <Grid
                 Grid.Column="3"
-                Padding="0"
-                BackgroundColor="Transparent"
-                BorderWidth="0"
-                Command="{Binding PreviousCommand}"
-                IsEnabled="{Binding CanPlayPrevious}"
-                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                FontSize="16"
-                Text="{x:Static fn:GlyphNames.Previous}"
-                TextColor="{DynamicResource PrimaryTextColor}"
                 HeightRequest="36"
                 WidthRequest="36"
                 HorizontalOptions="Center"
-                VerticalOptions="Center" />
+                VerticalOptions="Center">
+                <Button
+                    Padding="0"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    Command="{Binding PreviousCommand}"
+                    IsEnabled="{Binding CanPlayPrevious}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="16"
+                    Text="{x:Static fn:GlyphNames.Previous}"
+                    TextColor="{DynamicResource PrimaryTextColor}"
+                    HeightRequest="36"
+                    WidthRequest="36"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    IsVisible="{Binding ShowPreviousButton}" />
+                <ActivityIndicator
+                    IsRunning="{Binding IsPreviousBusy}"
+                    IsVisible="{Binding IsPreviousBusy}"
+                    HeightRequest="20"
+                    WidthRequest="20"
+                    Color="{DynamicResource PrimaryTextColor}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </Grid>
 
             <!-- Play/Pause -->
             <Grid
@@ -147,22 +189,37 @@
                     VerticalOptions="Center" />
             </Grid>
 
-            <!-- Next -->
-            <Button
+            <!-- Next / Next spinner -->
+            <Grid
                 Grid.Column="5"
-                Padding="0"
-                BackgroundColor="Transparent"
-                BorderWidth="0"
-                Command="{Binding NextCommand}"
-                IsEnabled="{Binding CanPlayNext}"
-                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                FontSize="16"
-                Text="{x:Static fn:GlyphNames.Next}"
-                TextColor="{DynamicResource PrimaryTextColor}"
                 HeightRequest="36"
                 WidthRequest="36"
                 HorizontalOptions="Center"
-                VerticalOptions="Center" />
+                VerticalOptions="Center">
+                <Button
+                    Padding="0"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    Command="{Binding NextCommand}"
+                    IsEnabled="{Binding CanPlayNext}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="16"
+                    Text="{x:Static fn:GlyphNames.Next}"
+                    TextColor="{DynamicResource PrimaryTextColor}"
+                    HeightRequest="36"
+                    WidthRequest="36"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    IsVisible="{Binding ShowNextButton}" />
+                <ActivityIndicator
+                    IsRunning="{Binding IsNextBusy}"
+                    IsVisible="{Binding IsNextBusy}"
+                    HeightRequest="20"
+                    WidthRequest="20"
+                    Color="{DynamicResource PrimaryTextColor}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </Grid>
 
             <!-- Maximize -->
             <Button
