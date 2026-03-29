@@ -19,7 +19,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
     {
         var modal = serviceProvider.GetRequiredService<MusicPublicationSelectionModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -27,7 +28,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
     {
         var modal = serviceProvider.GetRequiredService<Views.Music.MusicTrackSelectionModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -35,7 +37,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
     {
         var modal = serviceProvider.GetRequiredService<BiblePublicationSelectionModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -43,7 +46,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
     {
         var modal = serviceProvider.GetRequiredService<BiblePublicationSectionSelectionModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -51,7 +55,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
     {
         var modal = serviceProvider.GetRequiredService<Views.Music.MusicSectionSelectionModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -59,7 +64,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
     {
         var modal = serviceProvider.GetRequiredService<BiblePublicationTrackSelectionModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -67,7 +73,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
     {
         var modal = serviceProvider.GetRequiredService<NumberOfTracksModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -82,7 +89,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         };
 
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -90,7 +98,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
     {
         var modal = serviceProvider.GetRequiredService<CategorySelectionModal>();
         modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
+        NavigationPage.SetHasNavigationBar(modal, false);
+        await navigation.PushAsync(modal, animated: false);
         WindowSetupService.UpdateNavigationBarColors();
     }
 
@@ -113,8 +122,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
                 {
                     modal.ViewModel.RevealHomeBehindModalOnLoad = revealHomeBehindModalOnLoad;
                 }
-                ConfigurePlaybackModal(modal);
-                await navigation.PushModalAsync(modal, animated: false);
+                NavigationPage.SetHasNavigationBar(modal, false);
+                await navigation.PushAsync(modal, animated: false);
                 WindowSetupService.UpdateNavigationBarColors();
             }
             catch (Exception ex)
@@ -126,14 +135,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public static bool IsPlaybackModalAlreadyShown(INavigation navigation)
     {
-        var existingModal = navigation.ModalStack.LastOrDefault();
-        return existingModal?.GetType() == typeof(PlaybackModal) ||
-               (existingModal is NavigationPage navPage && navPage.CurrentPage is PlaybackModal);
-    }
-
-    private static void ConfigurePlaybackModal(PlaybackModal modal)
-    {
-        NavigationPage.SetHasNavigationBar(modal, false);
+        return navigation.NavigationStack.Any(p =>
+            p?.GetType() == typeof(PlaybackModal));
     }
 
     public async Task OpenBatteryOptimizationModalAsync(INavigation navigation, object bindingContext)
@@ -144,8 +147,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
             {
                 var modal = serviceProvider.GetRequiredService<AndroidAlarmPermissionModal>();
                 modal.BindingContext = bindingContext;
-                // Disable animation for instant appearance
-                await navigation.PushModalAsync(modal, animated: false);
+                NavigationPage.SetHasNavigationBar(modal, false);
+                await navigation.PushAsync(modal, animated: false);
                 WindowSetupService.UpdateNavigationBarColors();
                 logger.Information("AndroidAlarmPermissionModal opened successfully");
             }
@@ -164,8 +167,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
             {
                 var modal = serviceProvider.GetRequiredService<NotificationPermissionModal>();
                 modal.BindingContext = bindingContext;
-                // Disable animation for instant appearance
-                await navigation.PushModalAsync(modal, animated: false);
+                NavigationPage.SetHasNavigationBar(modal, false);
+                await navigation.PushAsync(modal, animated: false);
                 WindowSetupService.UpdateNavigationBarColors();
                 logger.Information("NotificationPermissionModal opened successfully");
             }

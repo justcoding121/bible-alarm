@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentView
+    x:Class="Bible.Alarm.Views.Shared.MiniPlaybackBar"
+    x:Name="MiniBarView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
+    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+    x:DataType="vm:MiniPlaybackBarViewModel"
+    BackgroundColor="{DynamicResource CardBackgroundColor}">
+    <ContentView.Resources>
+        <converters:IsNullConverter x:Key="isNullConverter" />
+    </ContentView.Resources>
+    <Grid RowDefinitions="Auto,Auto">
+        <!-- Row 0: Thin progress bar at top edge -->
+        <ProgressBar
+            Grid.Row="0"
+            Progress="{Binding Progress}"
+            ProgressColor="{StaticResource PrimaryColor}"
+            BackgroundColor="{DynamicResource ProgressBarBackgroundColor}"
+            HeightRequest="3"
+            VerticalOptions="Start"
+            HorizontalOptions="Fill" />
+
+        <!-- Row 1: Controls row -->
+        <Grid
+            Grid.Row="1"
+            ColumnDefinitions="44,*,36,36,44,36,36"
+            Padding="8,4,8,4"
+            ColumnSpacing="4"
+            VerticalOptions="Center"
+            HorizontalOptions="Fill">
+
+            <!-- Small artwork -->
+            <Border
+                Grid.Column="0"
+                StrokeThickness="0"
+                HeightRequest="36"
+                WidthRequest="36"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{DynamicResource ControlBackgroundColor}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="4" />
+                </Border.StrokeShape>
+                <Grid>
+                    <Label
+                        IsVisible="{Binding ArtworkSource, Converter={StaticResource isNullConverter}}"
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="14"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        Text="{x:Static fn:GlyphNames.Bell}"
+                        TextColor="{DynamicResource PrimaryTextColor}" />
+                    <Image
+                        Aspect="AspectFill"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill"
+                        Source="{Binding ArtworkSource}" />
+                </Grid>
+            </Border>
+
+            <!-- Title (fills remaining space) -->
+            <Label
+                Grid.Column="1"
+                Text="{Binding Title}"
+                TextColor="{DynamicResource TextPrimaryColor}"
+                FontSize="{DynamicResource SmallFontSize}"
+                LineBreakMode="TailTruncation"
+                MaxLines="1"
+                VerticalOptions="Center"
+                Margin="4,0,0,0" />
+
+            <!-- Stop -->
+            <Button
+                Grid.Column="2"
+                Padding="0"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                Command="{Binding StopCommand}"
+                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                FontSize="16"
+                Text="{x:Static fn:GlyphNames.Xmark}"
+                TextColor="{StaticResource ErrorColor}"
+                HeightRequest="36"
+                WidthRequest="36"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+
+            <!-- Previous -->
+            <Button
+                Grid.Column="3"
+                Padding="0"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                Command="{Binding PreviousCommand}"
+                IsEnabled="{Binding CanPlayPrevious}"
+                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                FontSize="16"
+                Text="{x:Static fn:GlyphNames.Previous}"
+                TextColor="{DynamicResource PrimaryTextColor}"
+                HeightRequest="36"
+                WidthRequest="36"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+
+            <!-- Play/Pause -->
+            <Grid
+                Grid.Column="4"
+                HeightRequest="36"
+                WidthRequest="36"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+                <Button
+                    Padding="0"
+                    BackgroundColor="{StaticResource PrimaryColor}"
+                    BorderWidth="0"
+                    Command="{Binding PlayPauseCommand}"
+                    IsEnabled="{Binding AreControlsEnabled}"
+                    IsVisible="{Binding PlayVisible}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="16"
+                    Text="{x:Static fn:GlyphNames.Play}"
+                    TextColor="White"
+                    HeightRequest="36"
+                    WidthRequest="36"
+                    CornerRadius="18"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+                <Button
+                    Padding="0"
+                    BackgroundColor="{StaticResource PrimaryColor}"
+                    BorderWidth="0"
+                    Command="{Binding PlayPauseCommand}"
+                    IsEnabled="{Binding AreControlsEnabled}"
+                    IsVisible="{Binding PauseVisible}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="16"
+                    Text="{x:Static fn:GlyphNames.Pause}"
+                    TextColor="White"
+                    HeightRequest="36"
+                    WidthRequest="36"
+                    CornerRadius="18"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </Grid>
+
+            <!-- Next -->
+            <Button
+                Grid.Column="5"
+                Padding="0"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                Command="{Binding NextCommand}"
+                IsEnabled="{Binding CanPlayNext}"
+                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                FontSize="16"
+                Text="{x:Static fn:GlyphNames.Next}"
+                TextColor="{DynamicResource PrimaryTextColor}"
+                HeightRequest="36"
+                WidthRequest="36"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+
+            <!-- Maximize -->
+            <Button
+                Grid.Column="6"
+                Padding="0"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                Command="{Binding MaximizeCommand}"
+                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                FontSize="16"
+                Text="{x:Static fn:GlyphNames.ChevronUp}"
+                TextColor="{DynamicResource PrimaryTextColor}"
+                HeightRequest="36"
+                WidthRequest="36"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+</ContentView>

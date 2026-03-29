@@ -123,5 +123,8 @@ public sealed class GlyphNames
     public static string Xmark = "\uf00d";
     // Font Awesome floppy-disk icon (for save buttons)
     public static string FloppyDisk = "\uf0c7";
-    // Note: Trash icon already exists above for delete buttons
+    // Font Awesome chevron-down icon (minimize playback)
+    public static string ChevronDown = "\uf078";
+    // Font Awesome chevron-up icon (maximize playback)
+    public static string ChevronUp = "\uf077";
 }

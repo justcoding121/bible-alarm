@@ -341,6 +341,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModel>();
         services.AddTransient<ViewModels.Music.MusicSectionSelectionViewModel>();
         services.AddTransient<PlaybackViewModel>();
+        services.AddSingleton<MiniPlaybackBarViewModel>();
         services.AddTransient<BiblePublicationSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>();
         services.AddTransient<NumberOfTrackContainerViewModel>();

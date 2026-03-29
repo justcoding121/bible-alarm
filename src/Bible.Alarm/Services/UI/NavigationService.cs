@@ -306,7 +306,7 @@ public sealed class NavigationService(
             var navigation = GetNavigation();
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await stackManager.PopModalAsync(navigation);
+                await stackManager.PopAsync(navigation);
             });
         });
     }

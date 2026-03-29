@@ -44,6 +44,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
     public ICommand DismissCommand { get; private set; }
     public ICommand CancelCommand { get; set; }
+    public ICommand MinimizeCommand { get; set; }
 
     public ICommand PlayCommand { get; set; }
     public ICommand PauseCommand { get; set; }
@@ -125,6 +126,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         // Initialize commands
         DismissCommand = commandInitializer.CreateDismissCommand();
         CancelCommand = commandInitializer.CreateCancelCommand();
+        MinimizeCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
+            WeakReferenceMessenger.Default.Send(new MinimizePlaybackMessage()));
         PlayCommand = commandInitializer.CreatePlayCommand();
         PauseCommand = commandInitializer.CreatePauseCommand();
         PreviousCommand = commandInitializer.CreatePreviousCommand();

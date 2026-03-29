@@ -345,6 +345,26 @@
                     </Grid>
             </Grid>
 
+            <!-- Minimize button (top-right, portrait) -->
+            <Button
+                Grid.Row="0"
+                Padding="0"
+                Margin="0,12,12,0"
+                BackgroundColor="Transparent"
+                BorderWidth="0"
+                Command="{Binding MinimizeCommand}"
+                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                FontSize="{DynamicResource IconStandardFontSize}"
+                Text="{x:Static fn:GlyphNames.ChevronDown}"
+                TextColor="{DynamicResource PrimaryTextColor}"
+                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                WidthRequest="{DynamicResource IconStandardContainerSize}"
+                HorizontalOptions="End"
+                VerticalOptions="Start"
+                IsVisible="{Binding ShowPortraitLayout}"
+                InputTransparent="False"
+                ZIndex="10" />
+
             <!-- Landscape layout (separate content file) -->
             <general:PlaybackModalLandscapeContent
                 x:Name="LandscapeContent"

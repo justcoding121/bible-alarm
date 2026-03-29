@@ -165,3 +165,19 @@ public class ThemeChangedMessage
 public class BeginStoppingPlaybackMessage
 {
 }
+
+/// <summary>
+/// Sent when the user taps the minimize button on the PlaybackModal.
+/// PlaybackModalService handles popping the modal and showing the mini bar.
+/// </summary>
+public class MinimizePlaybackMessage
+{
+}
+
+/// <summary>
+/// Sent when the user taps the maximize button on the MiniPlaybackBar.
+/// PlaybackModalService handles hiding the mini bar and pushing the PlaybackModal.
+/// </summary>
+public class MaximizePlaybackMessage
+{
+}
