@@ -1,21 +1,42 @@
 #nullable enable
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class PlaybackModalService(
-    ILogger logger,
-    INavigationService navigationService,
-    IState<PlaybackState> playbackState)
-    : IPlaybackModalService
+public sealed class PlaybackModalService :
+    IPlaybackModalService,
+    IRecipient<MinimizePlaybackMessage>,
+    IRecipient<MaximizePlaybackMessage>
 {
+    private readonly ILogger logger;
+    private readonly INavigationService navigationService;
+    private readonly IState<PlaybackState> playbackState;
+
     private bool isModalOpen;
+    private bool isMinimized;
     private bool isDisposed;
     private int popGeneration;
+
+    public bool IsMinimized => isMinimized;
+
+    public PlaybackModalService(
+        ILogger logger,
+        INavigationService navigationService,
+        IState<PlaybackState> playbackState)
+    {
+        this.logger = logger;
+        this.navigationService = navigationService;
+        this.playbackState = playbackState;
+
+        WeakReferenceMessenger.Default.Register<MinimizePlaybackMessage>(this);
+        WeakReferenceMessenger.Default.Register<MaximizePlaybackMessage>(this);
+    }
 
     private static bool IsActiveUiPlaybackStatus(PlayStatus status) =>
         status is PlayStatus.Loading or PlayStatus.Playing or PlayStatus.Paused;
@@ -23,6 +44,7 @@ public sealed class PlaybackModalService(
     public void SubscribeToPlaybackStateChanges()
     {
         isModalOpen = false;
+        isMinimized = false;
         playbackState.StateChanged += OnPlaybackStateChanged;
         logger.Information("SubscribeToPlaybackStateChanges: Subscribed, isModalOpen reset to false");
     }
@@ -30,24 +52,79 @@ public sealed class PlaybackModalService(
     public void UnsubscribeToPlaybackStateChanges()
     {
         isModalOpen = false;
+        isMinimized = false;
         playbackState.StateChanged -= OnPlaybackStateChanged;
+    }
+
+    public void Receive(MinimizePlaybackMessage message)
+    {
+        _ = MinimizeAsync();
+    }
+
+    public void Receive(MaximizePlaybackMessage message)
+    {
+        _ = MaximizeAsync();
+    }
+
+    private Task MinimizeAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            try
+            {
+                logger.Information("Minimizing playback modal");
+                isMinimized = true;
+
+                if (isModalOpen)
+                {
+                    await navigationService.PopPlaybackPageAsync();
+                    isModalOpen = false;
+                }
+
+                navigationService.SetMiniBarVisible(true);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error minimizing playback modal");
+            }
+        });
+    }
+
+    private Task MaximizeAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            try
+            {
+                logger.Information("Maximizing playback from mini bar");
+                isMinimized = false;
+                navigationService.SetMiniBarVisible(false);
+
+                if (!isModalOpen)
+                {
+                    await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
+                    isModalOpen = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error maximizing playback");
+                isMinimized = true;
+                navigationService.SetMiniBarVisible(true);
+            }
+        });
     }
 
     public async Task<bool> ShowPlaybackModalIfNeededOnWindowCreationAsync()
     {
         var modalWasShown = false;
 
-        // Must run on UI thread to avoid navigation issues.
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
                 if (isModalOpen)
                 {
-                    // Modal was already opened by OnPlaybackStateChanged (race between
-                    // SubscribeToPlaybackStateChanges and InitializedMessage). Treat as
-                    // "modal shown" so the caller doesn't push Home on iOS (which would
-                    // deadlock PushAsync while a modal is presented).
                     logger.Information("ShowPlaybackModalIfNeededOnWindowCreationAsync - modal already open (opened by state change listener)");
                     modalWasShown = true;
                     return;
@@ -60,12 +137,9 @@ public sealed class PlaybackModalService(
                 }
                 catch (Exception ex)
                 {
-                    // Fluxor may not be initialized yet during cold start; don't deadlock.
                     logger.Warning(ex, "PlaybackState not available yet during window creation; using platform playback check fallback");
                 }
 
-                // Entry-point strictness (window creation):
-                // Only show when playback is already active in UI-relevant states.
                 var shouldShow = state != null
                     ? IsActiveUiPlaybackStatus(state.Status)
                     : CheckPlatformPlaybackIsActive();
@@ -78,7 +152,6 @@ public sealed class PlaybackModalService(
 
                 if (!shouldShow)
                 {
-                    // Ensure Home is visible if we aren't showing the modal (defensive).
                     navigationService.SetHomePageVisibility(isPlaybackActive: false);
                     return;
                 }
@@ -89,25 +162,18 @@ public sealed class PlaybackModalService(
                     state?.Status);
 
 #if IOS
-                // On iOS, the root view controller hasn't completed its appearance cycle
-                // (viewDidAppear) yet when this runs during window creation. iOS silently
-                // ignores PresentViewController calls on a VC that hasn't appeared.
-                // Poll until the window is ready rather than using a fixed delay, since
-                // in cold-start-from-notification scenarios the window may not exist yet.
                 await WaitForWindowReadyAsync();
 #endif
 
-                // Home stays visible (opacity 1) behind the modal during cold start.
-                // Setting opacity to 0 on Android prevents CollectionView from laying out correctly.
                 await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: false);
                 isModalOpen = true;
+                isMinimized = false;
                 modalWasShown = true;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error showing PlaybackModal during window creation");
                 isModalOpen = false;
-                // Defensive: don't leave Home hidden if opening failed.
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
             }
         });
@@ -131,11 +197,6 @@ public sealed class PlaybackModalService(
                 var vc = (page.Handler as IPlatformViewHandler)?.ViewController;
                 if (vc?.IsViewLoaded == true && vc.View?.Window != null)
                 {
-                    // Root VC view is loaded and attached to a UIWindow.
-                    // However, iOS silently ignores PresentViewController until
-                    // viewDidAppear fires. Yield long enough for the appearance
-                    // cycle to complete (cold start from CarPlay + notification
-                    // can delay appearance significantly).
                     logger.Debug("WaitForWindowReadyAsync: Window ready after {ElapsedMs}ms, waiting for appearance cycle", elapsed);
                     await Task.Delay(1000);
                     return;
@@ -158,7 +219,6 @@ public sealed class PlaybackModalService(
             var mediaSession = Platforms.Android.Services.Media.MediaSessionHelper.Create();
             var sessionPlaybackState = mediaSession?.Controller?.PlaybackState;
 
-            // Active playback states: Playing, Buffering, Paused
             return sessionPlaybackState?.State is
                 Android.Support.V4.Media.Session.PlaybackStateCompat.StatePlaying or
                 Android.Support.V4.Media.Session.PlaybackStateCompat.StateBuffering or
@@ -193,7 +253,6 @@ public sealed class PlaybackModalService(
 #endif
     }
 
-
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
         PlaybackState state;
@@ -203,32 +262,32 @@ public sealed class PlaybackModalService(
         }
         catch (Exception ex)
         {
-            // Avoid deadlock / invalid access if Fluxor store isn't ready yet.
             logger.Warning(ex, "Failed to access PlaybackState; skipping PlaybackModal sync");
             return;
         }
 
-        // Strict open rule:
-        // - If modal is NOT open yet, only open for Loading/Playing/Paused.
-        // - If modal IS already open, keep it open while the playback session is active (IsPreparingOrPlaying),
-        //   so we survive brief transitions (e.g., auto-advance, transient stop) and can show errors.
-        var shouldShowModal = isModalOpen ? state.IsPreparingOrPlaying : IsActiveUiPlaybackStatus(state.Status);
+        var shouldShowPlayback = isModalOpen
+            ? state.IsPreparingOrPlaying
+            : IsActiveUiPlaybackStatus(state.Status);
 
-        logger.Debug("OnPlaybackStateChanged: Status={Status}, IsModalOpen={IsModalOpen}, ShouldShow={ShouldShow}",
-            state.Status, isModalOpen, shouldShowModal);
+        // When minimized, the mini bar is showing. If playback is still active, keep it minimized.
+        // Only open the full modal for NEW playback sessions (not when already minimized).
+        if (isMinimized && shouldShowPlayback)
+        {
+            return;
+        }
 
-        // When switching schedules, PlaybackStoppedAction and PlaybackStartedAction fire in rapid
-        // succession on the same thread. The pop from PlaybackStoppedAction is queued on the main
-        // thread but hasn't executed yet when PlaybackStartedAction fires. Increment a generation
-        // counter so the queued pop can detect it's stale and skip the close.
-        if (shouldShowModal && isModalOpen)
+        logger.Debug("OnPlaybackStateChanged: Status={Status}, IsModalOpen={IsModalOpen}, IsMinimized={IsMinimized}, ShouldShow={ShouldShow}",
+            state.Status, isModalOpen, isMinimized, shouldShowPlayback);
+
+        if (shouldShowPlayback && isModalOpen)
         {
             popGeneration++;
         }
 
-        _ = shouldShowModal switch
+        _ = shouldShowPlayback switch
         {
-            true when !isModalOpen => MainThread.InvokeOnMainThreadAsync(async () =>
+            true when !isModalOpen && !isMinimized => MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 if (isModalOpen)
                 {
@@ -236,6 +295,7 @@ public sealed class PlaybackModalService(
                 }
 
                 isModalOpen = true;
+                isMinimized = false;
 
                 try
                 {
@@ -243,25 +303,15 @@ public sealed class PlaybackModalService(
                         "PlaybackState changed - showing PlaybackModal (Status={Status})",
                         state.Status);
 
-                    // Yield to allow the schedule list item spinner (IsBusy) to render
-                    // before covering the home page with the modal.
                     await Task.Delay(100);
-
-                    // Push modal so it overlays Home. Do NOT hide Home (SetHomePageVisibility true) here -
-                    // on iOS that makes the spinner disappear before the modal fully covers, causing a flash.
-                    // Spinner clears only via SyncIsBusyWithPlaybackState (stop/close/error/different schedule/timeout).
                     await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
 
 #if IOS
-                    // iOS silently ignores PresentViewController when the root VC hasn't
-                    // completed its appearance cycle (viewDidAppear). If the modal push was
-                    // silently dropped, wait for the window to be ready and retry.
                     if (!navigationService.IsPlaybackModalOnScreen())
                     {
                         logger.Warning("PlaybackModal push was silently ignored by iOS (window not ready) - waiting for window and retrying");
                         await WaitForWindowReadyAsync();
 
-                        // Re-check that playback is still active before retrying
                         try
                         {
                             var currentState = playbackState.Value;
@@ -293,17 +343,14 @@ public sealed class PlaybackModalService(
                 catch (Exception ex)
                 {
                     logger.Error(ex, "Error showing PlaybackModal");
-                    // Reset flag on error to allow retry
                     isModalOpen = false;
-                    // Defensive: don't leave Home hidden if opening failed.
                     navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 }
             }),
-            false when isModalOpen => CloseModalOnMainThreadAsync(),
-            // Defensive: If playback stopped but isModalOpen is false, ensure Home is visible
-            false when !isModalOpen => MainThread.InvokeOnMainThreadAsync(() =>
+            false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
+            false when isMinimized => HideMiniBarOnMainThreadAsync(),
+            false when !isModalOpen && !isMinimized => MainThread.InvokeOnMainThreadAsync(() =>
             {
-                // Ensure Home page is visible when playback stops (defensive)
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 return Task.CompletedTask;
             }),
@@ -311,40 +358,52 @@ public sealed class PlaybackModalService(
         };
     }
 
-    /// <summary>
-    /// Captures the current pop generation and closes the modal on the main thread.
-    /// If another schedule started between when the close was queued and when it executes,
-    /// the generation will have advanced and the stale pop is skipped.
-    /// </summary>
-    private Task CloseModalOnMainThreadAsync()
+    private Task ClosePlaybackOnMainThreadAsync()
     {
         var capturedGeneration = popGeneration;
         return MainThread.InvokeOnMainThreadAsync(async () =>
         {
             if (capturedGeneration != popGeneration)
             {
-                logger.Information("Skipping stale modal pop (schedule switched before pop executed)");
+                logger.Information("Skipping stale playback page pop (schedule switched before pop executed)");
                 return;
             }
 
             try
             {
-                logger.Information("PlaybackState changed - hiding PlaybackModal (Playback inactive)");
+                logger.Information("PlaybackState changed - removing PlaybackModal page (Playback inactive)");
 
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
-
-                // Pop all modals (playback modal + any schedule modals underneath) and
-                // navigate back to home. Schedule modals that were open when the playback
-                // notification arrived can become unresponsive after the playback modal is
-                // popped on top of them, so clearing the entire modal stack avoids that.
-                await navigationService.PopAllModalsAndNavigateToHomeAsync();
+                await navigationService.PopPlaybackPageAsync();
                 isModalOpen = false;
+                isMinimized = false;
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error hiding PlaybackModal");
+                logger.Error(ex, "Error removing PlaybackModal page");
                 isModalOpen = false;
             }
+        });
+    }
+
+    private Task HideMiniBarOnMainThreadAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            try
+            {
+                logger.Information("PlaybackState changed - hiding mini bar (Playback inactive)");
+                navigationService.SetMiniBarVisible(false);
+                navigationService.SetHomePageVisibility(isPlaybackActive: false);
+                isMinimized = false;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error hiding mini bar");
+                isMinimized = false;
+            }
+
+            return Task.CompletedTask;
         });
     }
 
@@ -357,8 +416,8 @@ public sealed class PlaybackModalService(
 
         isDisposed = true;
 
-        // Unsubscribe from playback state changes
         playbackState.StateChanged -= OnPlaybackStateChanged;
+        WeakReferenceMessenger.Default.Unregister<MinimizePlaybackMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<MaximizePlaybackMessage>(this);
     }
 }
-

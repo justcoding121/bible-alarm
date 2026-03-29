@@ -313,9 +313,9 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
     protected override bool OnBackButtonPressed()
     {
-        if (!isDisposed && ViewModel?.DismissCommand != null)
+        if (!isDisposed && ViewModel?.MinimizeCommand != null)
         {
-            ViewModel.DismissCommand.Execute(null);
+            ViewModel.MinimizeCommand.Execute(null);
         }
         return true;
     }

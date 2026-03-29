@@ -46,31 +46,11 @@ public sealed class MessageHandlingService(
         {
             try
             {
+                await navigationService.NavigateToHomeAsync();
+                await Task.Delay(100);
+
                 var modalWasShown = await playbackModalService.ShowPlaybackModalIfNeededOnWindowCreationAsync();
-
                 logger.Information("Post-initialization: modalWasShown={ModalWasShown}", modalWasShown);
-
-                if (modalWasShown)
-                {
-                    // Yield to the platform run loop so the modal presentation is
-                    // processed and the modal becomes visible on screen.
-                    await Task.Delay(300);
-
-#if ANDROID
-                    // On Android, PushAsync works while a modal is presented (fragments handle
-                    // this correctly). Push Home underneath the modal so it's ready when the
-                    // modal is dismissed.
-                    await navigationService.NavigateToHomeAsync();
-#endif
-                    // On iOS, PushAsync on a NavigationPage hangs indefinitely when a modal is
-                    // presented (viewDidAppear never fires on hidden views), which holds the
-                    // navigationLock and deadlocks modal dismiss. Home is pushed after the
-                    // modal is dismissed instead (see PlaybackModalService.CloseModalOnMainThreadAsync).
-                }
-                else
-                {
-                    await navigationService.NavigateToHomeAsync();
-                }
             }
             catch (Exception e)
             {

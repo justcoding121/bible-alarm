@@ -12,4 +12,6 @@ public interface IPlaybackModalService : IDisposable
     /// Returns true if the modal was shown.
     /// </summary>
     Task<bool> ShowPlaybackModalIfNeededOnWindowCreationAsync();
+
+    bool IsMinimized { get; }
 }

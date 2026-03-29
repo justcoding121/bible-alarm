@@ -323,18 +323,46 @@ public sealed class NavigationService(
         });
     }
 
-    public async Task PopAllModalsAndNavigateToHomeAsync()
+    public async Task PopPlaybackPageAsync()
     {
         await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
         {
             var navigation = GetNavigation();
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await stackManager.PopAllModalsAsync(navigation);
-            });
+                var playbackPage = navigation.NavigationStack
+                    .LastOrDefault(p => p?.GetType() == typeof(Views.General.PlaybackModal));
 
-            await homeHandler.NavigateToHomeAsync(navigation, animated: false);
+                if (playbackPage != null)
+                {
+                    navigation.RemovePage(playbackPage);
+
+                    if (playbackPage is IDisposable disposable)
+                    {
+                        try { disposable.Dispose(); }
+                        catch (Exception ex) { logger?.Warning(ex, "Error disposing PlaybackModal (non-fatal)"); }
+                    }
+
+                    WindowSetupService.UpdateNavigationBarColors();
+                }
+            });
         });
+    }
+
+    public void SetMiniBarVisible(bool visible)
+    {
+        var app = Application.Current;
+        if (app?.Windows.Count > 0 && app.Windows[0].Page is Views.Shared.RootPage rootPage)
+        {
+            if (MainThread.IsMainThread)
+            {
+                rootPage.SetMiniBarVisible(visible);
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() => rootPage.SetMiniBarVisible(visible));
+            }
+        }
     }
 
     /// <summary>

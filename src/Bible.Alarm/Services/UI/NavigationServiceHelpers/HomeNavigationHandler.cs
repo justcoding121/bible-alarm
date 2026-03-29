@@ -206,8 +206,9 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
     }
 
     /// <summary>
-    /// Sets Home page visibility based on playback state.
-    /// If playback is active, hides Home to prevent visual flash before alarm modal appears.
+    /// Ensures Home page is fully visible.
+    /// With PushAsync navigation, the NavigationPage handles page visibility automatically,
+    /// so this only needs to reset opacity if it was previously set to 0.
     /// </summary>
     public void SetHomePageVisibility(Home? homePage, bool isPlaybackActive)
     {
@@ -216,22 +217,16 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             return;
         }
 
-        // Set opacity immediately if already on main thread, otherwise invoke on main thread
-        // This prevents visual flash when hiding the home page during cold start from Android Auto
-        if (MainThread.IsMainThread)
+        if (homePage.Opacity < 1.0)
         {
-            // If playback is active, hide Home page to prevent flash before modal appears
-            // Home will be shown when modal appears or playback stops
-            homePage.Opacity = isPlaybackActive ? 0.0 : 1.0;
-        }
-        else
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
+            if (MainThread.IsMainThread)
             {
-                // If playback is active, hide Home page to prevent flash before modal appears
-                // Home will be shown when modal appears or playback stops
-                homePage.Opacity = isPlaybackActive ? 0.0 : 1.0;
-            });
+                homePage.Opacity = 1.0;
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() => homePage.Opacity = 1.0);
+            }
         }
     }
 

@@ -35,6 +35,11 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     {
         var rootPage = serviceProvider.GetRequiredService<RootPage>();
         Initialize(rootPage.InnerNavigationPage);
+
+        var miniBarVm = serviceProvider.GetRequiredService<ViewModels.Shared.MiniPlaybackBarViewModel>();
+        var miniBar = new MiniPlaybackBar { BindingContext = miniBarVm };
+        rootPage.SetMiniBarContent(miniBar);
+
         var window = new Window(rootPage);
         window.Activated += OnWindowFirstActivated;
 

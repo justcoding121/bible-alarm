@@ -34,10 +34,10 @@ public interface INavigationService : IDisposable
     Task PopAsync();
 
     /// <summary>
-    /// Pops all modals and navigates back to the home page.
-    /// Used when the playback modal is dismissed to clean up any schedule modals underneath.
+    /// Pops only the PlaybackModal page from the navigation stack,
+    /// leaving all other pages/modals intact.
     /// </summary>
-    Task PopAllModalsAndNavigateToHomeAsync();
+    Task PopPlaybackPageAsync();
 
     /// <summary>
     /// Pops all modals and pages from the navigation stack, disposing them if they implement IDisposable.
@@ -62,8 +62,13 @@ public interface INavigationService : IDisposable
     void SetHomePageVisibility(bool isPlaybackActive);
 
     /// <summary>
-    /// Returns true if a PlaybackModal is currently in the navigation modal stack.
+    /// Returns true if a PlaybackModal is currently in the navigation stack.
     /// </summary>
     bool IsPlaybackModalOnScreen();
+
+    /// <summary>
+    /// Shows or hides the mini playback bar on the RootPage.
+    /// </summary>
+    void SetMiniBarVisible(bool visible);
 }
 
