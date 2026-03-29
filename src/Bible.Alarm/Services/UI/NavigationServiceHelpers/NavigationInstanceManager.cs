@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Views.Shared;
 using Polly;
 using Polly.Retry;
 using Serilog;
@@ -91,10 +92,21 @@ public sealed class NavigationInstanceManager(ILogger logger)
             var window = app.Windows[0];
             logger?.Debug($"Window found. Page type: {window?.Page?.GetType().Name ?? "null"}");
 
-            // Check if window.Page is NavigationPage
-            if (window?.Page is NavigationPage navPage)
+            NavigationPage? navPage = null;
+
+            if (window?.Page is RootPage rootPage)
+            {
+                logger?.Debug("Found RootPage in window.Page, extracting InnerNavigationPage");
+                navPage = rootPage.InnerNavigationPage;
+            }
+            else if (window?.Page is NavigationPage directNavPage)
             {
                 logger?.Debug("Found NavigationPage in window.Page");
+                navPage = directNavPage;
+            }
+
+            if (navPage != null)
+            {
                 var navigation = navPage.Navigation;
 
                 // Verify navigation is accessible before caching

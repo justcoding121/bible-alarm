@@ -2,6 +2,7 @@
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
+using Bible.Alarm.Views.Shared;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
@@ -48,7 +49,11 @@ public sealed class ScheduleItemStateService(ILogger logger) : IScheduleItemStat
         }
 
         var mainPage = app.Windows[0].Page;
-        if (mainPage is NavigationPage navPage)
+        var navPage = mainPage is RootPage rootPage
+            ? rootPage.InnerNavigationPage
+            : mainPage as NavigationPage;
+
+        if (navPage != null)
         {
             var currentPage = navPage.CurrentPage;
             if (currentPage is Home homePage && homePage.BindingContext is HomeViewModel homeViewModel)
@@ -102,7 +107,11 @@ public sealed class ScheduleItemStateService(ILogger logger) : IScheduleItemStat
         }
 
         var mainPage = app.Windows[0].Page;
-        if (mainPage is NavigationPage navPage)
+        var navPage = mainPage is RootPage rootPage
+            ? rootPage.InnerNavigationPage
+            : mainPage as NavigationPage;
+
+        if (navPage != null)
         {
             var navigation = navPage.Navigation;
             if (navigation != null)
