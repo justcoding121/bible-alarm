@@ -129,13 +129,23 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         MinimizeCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(async () =>
         {
             IsMinimizing = true;
-            await Task.Delay(50);
+            await Task.Delay(100);
             WeakReferenceMessenger.Default.Send(new MinimizePlaybackMessage());
         });
         PlayCommand = commandInitializer.CreatePlayCommand();
         PauseCommand = commandInitializer.CreatePauseCommand();
-        PreviousCommand = commandInitializer.CreatePreviousCommand();
-        NextCommand = commandInitializer.CreateNextCommand();
+        PreviousCommand = commandInitializer.CreatePreviousCommand(() =>
+        {
+            isTrackChangeBusy = true;
+            hasSeenTrackTransition = false;
+            IsPreviousBusy = true;
+        });
+        NextCommand = commandInitializer.CreateNextCommand(() =>
+        {
+            isTrackChangeBusy = true;
+            hasSeenTrackTransition = false;
+            IsNextBusy = true;
+        });
         ForwardCommand = commandInitializer.CreateForwardCommand();
         BackwardCommand = commandInitializer.CreateBackwardCommand();
         SeekCommand = commandInitializer.CreateSeekCommand();
@@ -565,6 +575,39 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         set => SetProperty(ref isRetryBusy, value);
     }
 
+    private bool isPreviousBusy;
+    public bool IsPreviousBusy
+    {
+        get => isPreviousBusy;
+        set
+        {
+            if (SetProperty(ref isPreviousBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowPreviousButton));
+            }
+        }
+    }
+
+    public bool ShowPreviousButton => !IsPreviousBusy;
+
+    private bool isNextBusy;
+    public bool IsNextBusy
+    {
+        get => isNextBusy;
+        set
+        {
+            if (SetProperty(ref isNextBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowNextButton));
+            }
+        }
+    }
+
+    public bool ShowNextButton => !IsNextBusy;
+
+    private bool isTrackChangeBusy;
+    private bool hasSeenTrackTransition;
+
     private void OnPlaybackStateChanged(object? sender, EventArgs e) => UpdateFromState();
 
     private void UpdateFromState()
@@ -573,16 +616,36 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         {
             var state = playbackState.Value;
 
-            if (isStopping && state.Status == PlayStatus.Loading)
+            if (isStopping)
             {
-                SetProperty(ref isStopping, false, nameof(IsStopping));
-                OnPropertyChanged(nameof(ShowPreparingProgress));
-                OnPropertyChanged(nameof(ShowPreparingCard));
-                OnPropertyChanged(nameof(ShowPlaybackControls));
-                OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
-                OnPropertyChanged(nameof(AreControlsEnabled));
-                OnPropertyChanged(nameof(IsBuffering));
-                OnPropertyChanged(nameof(IsStopButtonEnabled));
+                return;
+            }
+
+            if (isTrackChangeBusy)
+            {
+                if (!hasSeenTrackTransition)
+                {
+                    if (state.Status != PlayStatus.Playing && state.Status != PlayStatus.Paused)
+                    {
+                        hasSeenTrackTransition = true;
+                    }
+                }
+                else if (state.Status is PlayStatus.Playing or PlayStatus.Paused)
+                {
+                    isTrackChangeBusy = false;
+                    hasSeenTrackTransition = false;
+                    IsPreviousBusy = false;
+                    IsNextBusy = false;
+                }
+                else if (state.Status is PlayStatus.Failed or PlayStatus.Ended
+                         || (state.Status == PlayStatus.Stopped
+                             && !state.IsTransitioningTrack && !state.IsAutoAdvancing))
+                {
+                    isTrackChangeBusy = false;
+                    hasSeenTrackTransition = false;
+                    IsPreviousBusy = false;
+                    IsNextBusy = false;
+                }
             }
 
             var trackChanged = stateUpdater.DetectTrackChange(state);

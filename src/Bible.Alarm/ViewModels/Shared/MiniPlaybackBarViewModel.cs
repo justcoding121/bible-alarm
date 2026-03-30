@@ -55,7 +55,10 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
             {
                 isTrackChangeBusy = false;
                 hasSeenTrackTransition = false;
-                isPlayPauseBusy = false;
+                IsStopping = false;
+                IsMaximizeBusy = false;
+                IsPreviousBusy = false;
+                IsNextBusy = false;
                 SyncFromState(playbackState.Value);
             }
         }
@@ -133,7 +136,6 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
 
     private bool isTrackChangeBusy;
     private bool hasSeenTrackTransition;
-    private bool isPlayPauseBusy;
 
     public bool PlayVisible => !IsPlaying;
     public bool PauseVisible => IsPlaying;
@@ -274,14 +276,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
 
         if (isStopping)
         {
-            if (state.Status == PlayStatus.Loading)
-            {
-                IsStopping = false;
-            }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         if (isTrackChangeBusy)
@@ -295,7 +290,12 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
                 return;
             }
 
-            if (state.Status == PlayStatus.Playing)
+            var trackReady = state.Status is PlayStatus.Playing or PlayStatus.Paused;
+            var terminalState = state.Status is PlayStatus.Failed or PlayStatus.Ended
+                                || (state.Status == PlayStatus.Stopped
+                                    && !state.IsTransitioningTrack && !state.IsAutoAdvancing);
+
+            if (trackReady || terminalState)
             {
                 isTrackChangeBusy = false;
                 hasSeenTrackTransition = false;
@@ -306,11 +306,6 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
             {
                 return;
             }
-        }
-
-        if (isPlayPauseBusy)
-        {
-            return;
         }
 
         IsMaximizeBusy = false;
@@ -430,10 +425,6 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     {
         try
         {
-            isPlayPauseBusy = true;
-            AreControlsEnabled = false;
-            await Task.Delay(50);
-
             if (IsPlaying)
             {
                 await playbackService.PauseAsync();
@@ -446,10 +437,6 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         catch (Exception ex)
         {
             logger.Warning(ex, "MiniPlaybackBar: Error toggling play/pause");
-        }
-        finally
-        {
-            isPlayPauseBusy = false;
         }
     }
 

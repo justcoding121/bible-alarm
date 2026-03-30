@@ -538,39 +538,54 @@
                         </Grid.ColumnDefinitions>
                         
                         <!-- Previous Track -->
-                        <Border
+                        <Grid
                             Grid.Column="0"
-                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             HeightRequest="{DynamicResource IconStandardContainerSize}"
                             WidthRequest="{DynamicResource IconStandardContainerSize}"
-                            StrokeThickness="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="100" />
-                            </Border.StrokeShape>
-                            <Button
-                                Padding="0"
-                                BackgroundColor="Transparent"
-                                BorderWidth="0"
-                                BorderColor="Transparent"
-                                Command="{Binding PreviousCommand}"
-                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="{DynamicResource IconStandardFontSize}"
-                                HorizontalOptions="Fill"
-                                IsEnabled="{Binding PreviousEnabled}"
-                                Text="{x:Static fn:GlyphNames.Previous}"
-                                VerticalOptions="Fill">
-                                <Button.Triggers>
-                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
-                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
-                                    </Trigger>
-                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
-                                        <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
-                                    </Trigger>
-                                </Button.Triggers>
-                            </Button>
-                        </Border>
+                            <Border
+                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                                WidthRequest="{DynamicResource IconStandardContainerSize}"
+                                StrokeThickness="0"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="100" />
+                                </Border.StrokeShape>
+                                <Button
+                                    Padding="0"
+                                    BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
+                                    Command="{Binding PreviousCommand}"
+                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                    FontSize="{DynamicResource IconStandardFontSize}"
+                                    HorizontalOptions="Fill"
+                                    IsEnabled="{Binding PreviousEnabled}"
+                                    IsVisible="{Binding ShowPreviousButton}"
+                                    Text="{x:Static fn:GlyphNames.Previous}"
+                                    VerticalOptions="Fill">
+                                    <Button.Triggers>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                        </Trigger>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                            <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                        </Trigger>
+                                    </Button.Triggers>
+                                </Button>
+                            </Border>
+                            <ActivityIndicator
+                                IsRunning="{Binding IsPreviousBusy}"
+                                IsVisible="{Binding IsPreviousBusy}"
+                                HeightRequest="20"
+                                WidthRequest="20"
+                                Color="{DynamicResource PrimaryTextColor}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                        </Grid>
                         
                         <!-- Backward (Seek Back) -->
                         <Border
@@ -709,39 +724,54 @@
                         </Border>
                         
                         <!-- Next Track -->
-                        <Border
+                        <Grid
                             Grid.Column="4"
-                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             HeightRequest="{DynamicResource IconStandardContainerSize}"
                             WidthRequest="{DynamicResource IconStandardContainerSize}"
-                            StrokeThickness="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="100" />
-                            </Border.StrokeShape>
-                            <Button
-                                Padding="0"
-                                BackgroundColor="Transparent"
-                                BorderWidth="0"
-                                BorderColor="Transparent"
-                                Command="{Binding NextCommand}"
-                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="{DynamicResource IconStandardFontSize}"
-                                HorizontalOptions="Fill"
-                                IsEnabled="{Binding NextEnabled}"
-                                Text="{x:Static fn:GlyphNames.Next}"
-                                VerticalOptions="Fill">
-                                <Button.Triggers>
-                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
-                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
-                                    </Trigger>
-                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
-                                        <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
-                                    </Trigger>
-                                </Button.Triggers>
-                            </Button>
-                        </Border>
+                            <Border
+                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                                WidthRequest="{DynamicResource IconStandardContainerSize}"
+                                StrokeThickness="0"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="100" />
+                                </Border.StrokeShape>
+                                <Button
+                                    Padding="0"
+                                    BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
+                                    Command="{Binding NextCommand}"
+                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                    FontSize="{DynamicResource IconStandardFontSize}"
+                                    HorizontalOptions="Fill"
+                                    IsEnabled="{Binding NextEnabled}"
+                                    IsVisible="{Binding ShowNextButton}"
+                                    Text="{x:Static fn:GlyphNames.Next}"
+                                    VerticalOptions="Fill">
+                                    <Button.Triggers>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                        </Trigger>
+                                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                            <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                        </Trigger>
+                                    </Button.Triggers>
+                                </Button>
+                            </Border>
+                            <ActivityIndicator
+                                IsRunning="{Binding IsNextBusy}"
+                                IsVisible="{Binding IsNextBusy}"
+                                HeightRequest="20"
+                                WidthRequest="20"
+                                Color="{DynamicResource PrimaryTextColor}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                        </Grid>
                     </Grid>
                 </Grid>
             </Border>

@@ -27,7 +27,7 @@ public interface INavigationService : IDisposable
     /// <summary>
     /// Opens PlaybackModal with control over whether Home should be revealed (opacity=1) behind it once rendered.
     /// </summary>
-    Task OpenPlaybackModalAsync(bool revealHomeBehindModalOnLoad);
+    Task OpenPlaybackModalAsync(bool revealHomeBehindModalOnLoad, bool animated = false);
     Task OpenBatteryOptimizationModalAsync(object bindingContext);
     Task OpenNotificationPermissionModalAsync(object bindingContext);
     Task PopModalAsync();
@@ -37,7 +37,7 @@ public interface INavigationService : IDisposable
     /// Pops only the PlaybackModal page from the navigation stack,
     /// leaving all other pages/modals intact.
     /// </summary>
-    Task PopPlaybackPageAsync();
+    Task PopPlaybackPageAsync(bool animated = false);
 
     /// <summary>
     /// Pops all modals and pages from the navigation stack, disposing them if they implement IDisposable.

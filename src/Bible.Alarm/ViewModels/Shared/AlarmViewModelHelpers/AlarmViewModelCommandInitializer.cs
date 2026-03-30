@@ -84,20 +84,24 @@ public class AlarmViewModelCommandInitializer
         });
     }
 
-    public ICommand CreatePreviousCommand()
+    public ICommand CreatePreviousCommand(Action? onBeginTrackChange = null)
     {
         return new AsyncRelayCommand(async () =>
         {
+            onBeginTrackChange?.Invoke();
             resetProgressUi();
+            await Task.Delay(50);
             await playbackService.PlayPreviousAsync();
         });
     }
 
-    public ICommand CreateNextCommand()
+    public ICommand CreateNextCommand(Action? onBeginTrackChange = null)
     {
         return new AsyncRelayCommand(async () =>
         {
+            onBeginTrackChange?.Invoke();
             resetProgressUi();
+            await Task.Delay(50);
             await playbackService.PlayNextAsync();
         });
     }

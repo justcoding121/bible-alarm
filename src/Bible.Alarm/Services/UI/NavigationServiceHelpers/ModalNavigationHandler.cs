@@ -103,10 +103,12 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         WindowSetupService.UpdateNavigationBarColors();
     }
 
+    private const uint PlaybackModalAnimationDurationMs = 300;
+
     public Task OpenPlaybackModalAsync(INavigation navigation) =>
         OpenPlaybackModalAsync(navigation, revealHomeBehindModalOnLoad: true);
 
-    public async Task OpenPlaybackModalAsync(INavigation navigation, bool revealHomeBehindModalOnLoad)
+    public async Task OpenPlaybackModalAsync(INavigation navigation, bool revealHomeBehindModalOnLoad, bool animated = false)
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
@@ -123,8 +125,21 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
                     modal.ViewModel.RevealHomeBehindModalOnLoad = revealHomeBehindModalOnLoad;
                 }
                 NavigationPage.SetHasNavigationBar(modal, false);
+
+                if (animated)
+                {
+                    modal.TranslationY = 2000;
+                }
+
                 await navigation.PushAsync(modal, animated: false);
                 WindowSetupService.UpdateNavigationBarColors();
+
+                if (animated)
+                {
+                    var startY = modal.Height > 0 ? modal.Height : 2000;
+                    modal.TranslationY = startY;
+                    await modal.TranslateTo(0, 0, PlaybackModalAnimationDurationMs, Easing.CubicOut);
+                }
             }
             catch (Exception ex)
             {

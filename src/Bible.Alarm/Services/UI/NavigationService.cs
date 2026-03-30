@@ -268,10 +268,10 @@ public sealed class NavigationService(
         await OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
     }
 
-    public async Task OpenPlaybackModalAsync(bool revealHomeBehindModalOnLoad)
+    public async Task OpenPlaybackModalAsync(bool revealHomeBehindModalOnLoad, bool animated = false)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenPlaybackModalAsync(navigation, revealHomeBehindModalOnLoad);
+        await modalHandler.OpenPlaybackModalAsync(navigation, revealHomeBehindModalOnLoad, animated);
     }
 
     public bool IsPlaybackModalOnScreen()
@@ -323,7 +323,9 @@ public sealed class NavigationService(
         });
     }
 
-    public async Task PopPlaybackPageAsync()
+    private const uint PlaybackModalAnimationDurationMs = 300;
+
+    public async Task PopPlaybackPageAsync(bool animated = false)
     {
         await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
         {
@@ -335,6 +337,12 @@ public sealed class NavigationService(
 
                 if (playbackPage != null)
                 {
+                    if (animated)
+                    {
+                        var targetY = playbackPage.Height > 0 ? playbackPage.Height : 2000;
+                        await playbackPage.TranslateTo(0, targetY, PlaybackModalAnimationDurationMs, Easing.CubicIn);
+                    }
+
                     navigation.RemovePage(playbackPage);
 
                     if (playbackPage is IDisposable disposable)

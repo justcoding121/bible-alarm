@@ -102,7 +102,7 @@ public sealed class PlaybackModalService :
 
                 if (isModalOpen)
                 {
-                    await navigationService.PopPlaybackPageAsync();
+                    await navigationService.PopPlaybackPageAsync(animated: true);
                     isModalOpen = false;
                 }
 
@@ -127,7 +127,7 @@ public sealed class PlaybackModalService :
 
                 if (!isModalOpen)
                 {
-                    await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
+                    await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true, animated: true);
                     isModalOpen = true;
                 }
             }

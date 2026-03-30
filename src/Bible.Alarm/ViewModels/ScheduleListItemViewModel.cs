@@ -170,8 +170,7 @@ public sealed class ScheduleListItemViewModel(
         // Subscribe to theme changes to update day button colors
         WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this, (r, m) => OnThemeChanged());
 
-        // Initialize commands using helper (recreate with updated schedule)
-        PlayCommand = new AsyncRelayCommand(async () =>
+        PlayCommand ??= new AsyncRelayCommand(async () =>
         {
             if (Schedule?.Id > 0)
             {
@@ -196,7 +195,7 @@ public sealed class ScheduleListItemViewModel(
             }
         });
 
-        ToggleEnabledCommand = new RelayCommand(() =>
+        ToggleEnabledCommand ??= new RelayCommand(() =>
         {
             if (Schedule != null)
             {
@@ -205,14 +204,13 @@ public sealed class ScheduleListItemViewModel(
             }
         });
 
-        DeleteCommand = new AsyncRelayCommand(async () =>
+        DeleteCommand ??= new AsyncRelayCommand(async () =>
         {
             if (Schedule == null || Schedule.Id <= 0)
             {
                 return;
             }
 
-            // Check if this is the last schedule - prevent deletion if it is
             var scheduleCount = applicationState.Value.Schedules?.Count ?? 0;
             if (scheduleCount <= 1)
             {
@@ -220,8 +218,6 @@ public sealed class ScheduleListItemViewModel(
                 return;
             }
 
-            // Dispatch DeleteScheduleAction (following Fluxor best practices)
-            // The Effect will handle the actual DB deletion and dispatch success/failure actions
             dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
         });
 

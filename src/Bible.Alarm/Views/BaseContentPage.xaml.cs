@@ -18,10 +18,16 @@ public partial class BaseContentPage : ContentPage
                 [
                     new RowDefinition(GridLength.Star),
                     new RowDefinition(GridLength.Auto)
-                ]
+                ],
+                VerticalOptions = LayoutOptions.Fill,
+                HorizontalOptions = LayoutOptions.Fill
             };
 
-            var presenter = new ContentPresenter();
+            var presenter = new ContentPresenter
+            {
+                VerticalOptions = LayoutOptions.Fill,
+                HorizontalOptions = LayoutOptions.Fill
+            };
             Grid.SetRow(presenter, 0);
             grid.Add(presenter);
 

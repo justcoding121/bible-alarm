@@ -32,9 +32,9 @@
         <!-- Row 1: Controls row -->
         <Grid
             Grid.Row="1"
-            ColumnDefinitions="44,*,36,36,44,36,36"
-            Padding="8,4,8,4"
-            ColumnSpacing="4"
+            ColumnDefinitions="56,*,48,48,52,48,48"
+            Padding="8,8,8,8"
+            ColumnSpacing="2"
             VerticalOptions="Center"
             HorizontalOptions="Fill">
 
@@ -42,8 +42,8 @@
             <Border
                 Grid.Column="0"
                 StrokeThickness="0"
-                HeightRequest="36"
-                WidthRequest="36"
+                HeightRequest="48"
+                WidthRequest="48"
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
                 BackgroundColor="{DynamicResource ControlBackgroundColor}">
@@ -65,7 +65,7 @@
                     <Label
                         IsVisible="{Binding ShowArtworkFallback}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="14"
+                        FontSize="18"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
                         Text="{x:Static fn:GlyphNames.Bell}"
@@ -96,8 +96,8 @@
             <!-- Stop / Stopping spinner -->
             <Grid
                 Grid.Column="2"
-                HeightRequest="36"
-                WidthRequest="36"
+                HeightRequest="48"
+                WidthRequest="48"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
                 <Button
@@ -107,11 +107,11 @@
                     Command="{Binding StopCommand}"
                     IsEnabled="{Binding IsStopEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="16"
+                    FontSize="18"
                     Text="{x:Static fn:GlyphNames.Xmark}"
                     TextColor="{StaticResource ErrorColor}"
-                    HeightRequest="36"
-                    WidthRequest="36"
+                    HeightRequest="48"
+                    WidthRequest="48"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     IsVisible="{Binding ShowStopButton}">
@@ -137,8 +137,8 @@
             <!-- Previous / Previous spinner -->
             <Grid
                 Grid.Column="3"
-                HeightRequest="36"
-                WidthRequest="36"
+                HeightRequest="48"
+                WidthRequest="48"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
                 <Button
@@ -148,11 +148,11 @@
                     Command="{Binding PreviousCommand}"
                     IsEnabled="{Binding IsPreviousEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="16"
+                    FontSize="18"
                     Text="{x:Static fn:GlyphNames.Previous}"
                     TextColor="{DynamicResource PrimaryTextColor}"
-                    HeightRequest="36"
-                    WidthRequest="36"
+                    HeightRequest="48"
+                    WidthRequest="48"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     IsVisible="{Binding ShowPreviousButton}">
@@ -178,8 +178,8 @@
             <!-- Play/Pause -->
             <Grid
                 Grid.Column="4"
-                HeightRequest="36"
-                WidthRequest="36"
+                HeightRequest="44"
+                WidthRequest="44"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
                 <Button
@@ -190,12 +190,12 @@
                     IsEnabled="{Binding AreControlsEnabled}"
                     IsVisible="{Binding PlayVisible}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="16"
+                    FontSize="18"
                     Text="{x:Static fn:GlyphNames.Play}"
                     TextColor="White"
-                    HeightRequest="36"
-                    WidthRequest="36"
-                    CornerRadius="18"
+                    HeightRequest="44"
+                    WidthRequest="44"
+                    CornerRadius="22"
                     HorizontalOptions="Center"
                     VerticalOptions="Center">
                     <Button.Triggers>
@@ -217,12 +217,12 @@
                     IsEnabled="{Binding AreControlsEnabled}"
                     IsVisible="{Binding PauseVisible}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="16"
+                    FontSize="18"
                     Text="{x:Static fn:GlyphNames.Pause}"
                     TextColor="White"
-                    HeightRequest="36"
-                    WidthRequest="36"
-                    CornerRadius="18"
+                    HeightRequest="44"
+                    WidthRequest="44"
+                    CornerRadius="22"
                     HorizontalOptions="Center"
                     VerticalOptions="Center">
                     <Button.Triggers>
@@ -241,8 +241,8 @@
             <!-- Next / Next spinner -->
             <Grid
                 Grid.Column="5"
-                HeightRequest="36"
-                WidthRequest="36"
+                HeightRequest="48"
+                WidthRequest="48"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
                 <Button
@@ -252,11 +252,11 @@
                     Command="{Binding NextCommand}"
                     IsEnabled="{Binding IsNextEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="16"
+                    FontSize="18"
                     Text="{x:Static fn:GlyphNames.Next}"
                     TextColor="{DynamicResource PrimaryTextColor}"
-                    HeightRequest="36"
-                    WidthRequest="36"
+                    HeightRequest="48"
+                    WidthRequest="48"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     IsVisible="{Binding ShowNextButton}">
@@ -282,8 +282,8 @@
             <!-- Maximize / Maximize spinner -->
             <Grid
                 Grid.Column="6"
-                HeightRequest="36"
-                WidthRequest="36"
+                HeightRequest="48"
+                WidthRequest="48"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
                 <Button
@@ -292,11 +292,11 @@
                     BorderWidth="0"
                     Command="{Binding MaximizeCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="16"
+                    FontSize="18"
                     Text="{x:Static fn:GlyphNames.ChevronUp}"
                     TextColor="{DynamicResource PrimaryTextColor}"
-                    HeightRequest="36"
-                    WidthRequest="36"
+                    HeightRequest="48"
+                    WidthRequest="48"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     IsVisible="{Binding ShowMaximizeButton}" />

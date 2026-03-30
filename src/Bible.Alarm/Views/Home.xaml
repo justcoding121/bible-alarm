@@ -184,12 +184,15 @@
                 x:Name="SchedulesCollectionView"
                 Grid.Row="2"
                 BackgroundColor="Transparent"
-                Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill"
                 ItemsSource="{Binding Schedules}"
-                Margin="{Binding CollectionViewBottomMargin, Converter={StaticResource doubleToBottomThicknessConverter}}"
                 SelectionMode="None">
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="{Binding CollectionViewBottomMargin, Source={RelativeSource AncestorType={x:Type vm:HomeViewModel}}}"
+                             Color="Transparent"
+                             InputTransparent="True" />
+                </CollectionView.Footer>
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" 
                                        ItemSpacing="12" />
