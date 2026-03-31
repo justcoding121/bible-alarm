@@ -204,3 +204,12 @@ public class RequestShowPlaybackModalMessage
 {
     public int? TargetScheduleId { get; init; }
 }
+
+/// <summary>
+/// Sent by PlaybackModalService when the playback modal is confirmed visible on screen.
+/// Covers three cases: (1) modal was just pushed (new play), (2) modal was maximized from
+/// minimized state, (3) modal was already open and a new/same schedule has become active.
+/// ScheduleListItemViewModel uses this to clear its play-button spinner precisely when the
+/// modal covers it, avoiding a flash of the idle play icon before the modal slides in.
+/// </summary>
+public class PlaybackModalOpenedMessage { }

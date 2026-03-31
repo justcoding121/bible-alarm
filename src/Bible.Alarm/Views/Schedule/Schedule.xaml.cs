@@ -8,14 +8,16 @@ namespace Bible.Alarm.Views.Schedule;
 public partial class Schedule : BaseContentPage, IDisposable
 {
     private bool isDisposed;
-    private readonly ScheduleViewModel viewModel;
-
-    public ScheduleViewModel? ViewModel => BindingContext as ScheduleViewModel;
-
     private bool hasHandledFirstLoad;
     private bool isContentLoaded;
 
-    public Schedule(ScheduleViewModel viewModel)
+    // Assigned asynchronously after PushAsync by NavigationService.InitializeViewModelAsync.
+    // Null until then — the BusyOverlay FallbackValue=True keeps the spinner visible in the gap.
+    private ScheduleViewModel? viewModel;
+
+    public ScheduleViewModel? ViewModel => BindingContext as ScheduleViewModel;
+
+    public Schedule()
     {
 #if DEBUG
         var constructorStartTime = DateTime.UtcNow;
@@ -27,30 +29,92 @@ public partial class Schedule : BaseContentPage, IDisposable
 #if DEBUG
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
         Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
-#endif
 
-        BindingContext = viewModel;
-        this.viewModel = viewModel;
-
-        // Setup gesture recognizers after page is loaded to support hot reload
-        Loaded += SetupGestureRecognizers;
-
-#if DEBUG
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
         Log.Information("[PERF] Schedule page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
 #endif
+
+        Loaded += SetupGestureRecognizers;
+    }
+
+    /// <summary>
+    /// Called by NavigationService after PushAsync returns and the spinner is visible.
+    /// Sets the ViewModel, subscribes to property changes, then loads the heavy XAML content.
+    /// </summary>
+    public async Task InitializeViewModelAsync(ScheduleViewModel vm)
+    {
+        if (isDisposed)
+        {
+            if (vm is IDisposable d)
+                d.Dispose();
+            return;
+        }
+
+        viewModel = vm;
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            BindingContext = vm;
+            // Guard against duplicate subscriptions if page is reused
+            vm.PropertyChanged -= OnViewModelPropertyChanged;
+            vm.PropertyChanged += OnViewModelPropertyChanged;
+            hasHandledFirstLoad = true;
+            vm.HideHomePageOverlay();
+        });
+
+        await LoadScheduleContentAsync();
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (!isDisposed)
+            {
+                isContentLoaded = true;
+                vm.OnContentLoaded();
+            }
+        });
     }
 
     private void SetupGestureRecognizers(object? sender, EventArgs e)
     {
-        // Gesture recognizers are now handled in the container views
-        // Unsubscribe after setup
         Loaded -= SetupGestureRecognizers;
     }
 
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        // Returning from a modal — content already loaded, just sync state.
+        if (contentContainer?.Content != null && isContentLoaded)
+        {
+            SyncOverlayWithState();
+#if WINDOWS
+            EnsureContentVisibleAfterModalClosed();
+#endif
+            return;
+        }
+
+        // ViewModel not yet assigned — NavigationService will call InitializeViewModelAsync
+        // once the ViewModel is resolved. Spinner is kept visible by FallbackValue=True.
+        if (viewModel == null)
+        {
+            return;
+        }
+
+        // Page reappearing with an existing ViewModel (physical device page reuse).
+        hasHandledFirstLoad = false;
+        isContentLoaded = false;
+        viewModel.ResetContentLoaded();
+        viewModel.OnPageReappearing();
+        SyncOverlayWithState();
+        OnPageAppearing();
+    }
+
+    /// <summary>
+    /// Handles content loading when a page instance is reused (physical device caching).
+    /// For fresh navigations the equivalent work is done in InitializeViewModelAsync.
+    /// </summary>
     private async void OnPageAppearing()
     {
-        // Only handle once per OnAppearing call
         if (hasHandledFirstLoad)
         {
             return;
@@ -58,32 +122,27 @@ public partial class Schedule : BaseContentPage, IDisposable
 
         hasHandledFirstLoad = true;
 
-        // Subscribe to ViewModel property changes for overlay sync
         if (viewModel != null)
         {
+            // Guard against duplicate subscriptions
+            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
         }
 
-        // Hide Home page overlay after Schedule page is visible
         await this.Dispatcher.DispatchAsync(() =>
         {
             viewModel?.HideHomePageOverlay();
         });
 
-        // Load heavy content asynchronously
         await LoadScheduleContentAsync();
 
-        // Mark content as loaded
         isContentLoaded = true;
-
-        // Notify ViewModel that content is loaded - it will hide overlay if containers are ready
         viewModel?.OnContentLoaded();
     }
 
     private void SyncOverlayWithState()
     {
-        // Binding handles overlay visibility automatically
-        // This method is kept for compatibility but no longer manipulates IsVisible directly
+        // Binding handles overlay visibility automatically.
     }
 
     /// <summary>
@@ -102,8 +161,6 @@ public partial class Schedule : BaseContentPage, IDisposable
         }
 
 #if WINDOWS
-        // MAUI's InvalidateMeasure() doesn't reliably propagate on WinUI (issue #17367).
-        // Force a native layout pass on the WinUI window content.
         try
         {
             var nativeWindow = Application.Current?.Windows?.FirstOrDefault()
@@ -129,11 +186,12 @@ public partial class Schedule : BaseContentPage, IDisposable
         Log.Information("[PERF] Schedule page: Starting content load at {StartTime}", contentLoadStartTime);
 #endif
 
-        // Allow spinner animation to run before heavy XAML parsing
-        await Task.Yield();
+        // Give the spinner at least ~5 frames (80ms at 60fps) to visibly animate before
+        // new ScheduleContent() blocks the UI thread for its XAML parse. A bare Task.Yield()
+        // only cedes one scheduler tick which is not enough for the native ActivityIndicator
+        // animation to render, making the spinner appear frozen to the user.
+        await Task.Delay(80);
 
-        // Create the content view - XAML parsing must be on UI thread
-        // Break into smaller steps with yields for smoother spinner
         ScheduleContent? scheduleContent = null;
 
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -141,7 +199,6 @@ public partial class Schedule : BaseContentPage, IDisposable
             scheduleContent = new ScheduleContent();
         });
 
-        // Yield to allow spinner to animate
         await Task.Yield();
 
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -152,7 +209,6 @@ public partial class Schedule : BaseContentPage, IDisposable
             }
         });
 
-        // Yield again
         await Task.Yield();
 
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -163,12 +219,10 @@ public partial class Schedule : BaseContentPage, IDisposable
             }
         });
 
-        // Yield before fade
         await Task.Yield();
 
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            // Fade in content smoothly
             await contentContainer.FadeToAsync(1.0, 200);
         });
 
@@ -180,11 +234,6 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        // Binding handles IsSchedulePageOverlayVisible automatically
-        // No need to manually sync overlay visibility
-
-        // Check if we should hide overlay when container ViewModels are assigned (after content is loaded)
-        // Only trigger for container VM assignments to avoid resetting timeout on every property change
         var isContainerAssignment = e.PropertyName is
             nameof(ScheduleViewModel.BibleSelectionContainerViewModel) or
             nameof(ScheduleViewModel.MusicSelectionContainerViewModel) or
@@ -197,42 +246,10 @@ public partial class Schedule : BaseContentPage, IDisposable
         }
     }
 
-    protected override void OnAppearing()
-    {
-        base.OnAppearing();
-
-        // Check if returning from a modal - if content is already loaded, we're returning from a modal
-        // In this case, skip full reinitialization to avoid showing the spinner unnecessarily
-        if (contentContainer?.Content != null && isContentLoaded)
-        {
-            SyncOverlayWithState();
-#if WINDOWS
-            // WinUI can leave the page blank after modal pop; force content visible and layout refresh
-            EnsureContentVisibleAfterModalClosed();
-#endif
-            return;
-        }
-
-        // Full initialization for new page navigation (not returning from modal)
-        hasHandledFirstLoad = false;
-        isContentLoaded = false;
-        viewModel?.ResetContentLoaded();
-
-        // Reinitialize containers (critical on physical devices where page may be cached)
-        viewModel?.OnPageReappearing();
-
-        // Binding will handle overlay visibility automatically
-        SyncOverlayWithState();
-        OnPageAppearing();
-    }
-
-
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Stop permission check tasks immediately when navigating away
         ViewModel?.StopPermissionCheckTasks();
-        // Disposal happens in Dispose() when page is popped from navigation stack
     }
 
     protected override bool OnBackButtonPressed()

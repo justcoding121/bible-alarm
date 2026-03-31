@@ -32,6 +32,11 @@ public class HomeStateChangeHandler
     private HashSet<int>? lastProcessedScheduleIds;
     private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek, DateTime? LastPlayedAtUtc)>? lastProcessedScheduleProperties;
 
+    // Stored when a reorder is deferred because the playback modal is visible.
+    // Applied by ApplyDeferredReorderAsync() when the modal is confirmed on screen.
+    private ObservableHashSet<ScheduleListItemViewModel>? deferredNewSchedules;
+    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek, DateTime? LastPlayedAtUtc)>? deferredScheduleProperties;
+
     public HomeStateChangeHandler(
         ILogger logger,
         ScheduleDataPreparer dataPreparer,
@@ -220,7 +225,9 @@ public class HomeStateChangeHandler
                 }
                 else if (deferReorder)
                 {
-                    logger.Debug("OnStateChanged: Properties changed but playback modal visible — deferring list reorder until modal closes");
+                    logger.Debug("OnStateChanged: Properties changed but playback modal visible — deferring list reorder until modal opens");
+                    deferredNewSchedules = newSchedules;
+                    deferredScheduleProperties = currentScheduleProperties;
                 }
                 else if (stateValue.Schedules != null)
                 {
@@ -286,6 +293,40 @@ public class HomeStateChangeHandler
         {
             // Expected if disposed/cancelled
         }
+    }
+
+    /// <summary>
+    /// Applies a reorder that was deferred because the playback modal was covering the home page.
+    /// Call this when the playback modal is confirmed visible so the reorder happens while the list
+    /// is hidden behind the modal — invisible to the user.
+    /// If no reorder was deferred this is a no-op.
+    /// Fallback: if this is never called (e.g. toast shown instead of modal), the next
+    /// HandleStateChangedAsync invocation will detect the stale lastProcessedScheduleProperties
+    /// and reorder when the modal is no longer visible.
+    /// </summary>
+    public Task ApplyDeferredReorderAsync()
+    {
+        if (deferredNewSchedules == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var schedulesToApply = deferredNewSchedules;
+        var propertiesToApply = deferredScheduleProperties;
+        deferredNewSchedules = null;
+        deferredScheduleProperties = null;
+
+        return MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            logger.Debug("ApplyDeferredReorderAsync: Applying deferred list reorder ({Count} items)", schedulesToApply.Count);
+            SyncCollectionToNewSchedules(schedulesToApply);
+            notifySchedulesChanged?.Invoke();
+
+            if (propertiesToApply != null)
+            {
+                lastProcessedScheduleProperties = propertiesToApply;
+            }
+        });
     }
 
     /// <summary>

@@ -80,6 +80,13 @@ public class CommandHandler
 #endif
 
             showProgressBar?.Invoke();
+            x.IsNavigating = true;
+
+            // Give the UI thread ~3 frames to render both the progress bar and the item spinner
+            // before InvokeOnMainThreadAsync re-acquires the main thread for navigation.
+            // Task.Yield() (one scheduler quantum) is not enough for ActivityIndicator to start
+            // its animation visibly — mirrors the Task.Delay(50) used in CreateAddScheduleCommand.
+            await Task.Delay(50);
 
             try
             {
@@ -112,6 +119,7 @@ public class CommandHandler
                     }
                     finally
                     {
+                        x.IsNavigating = false;
                         if (hideProgressBar != null)
                             await hideProgressBar();
                     }
@@ -122,6 +130,7 @@ public class CommandHandler
                 logger.Error(ex, "View schedule failed before navigation for ScheduleId={ScheduleId}", x.Schedule?.Id);
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
+                    x.IsNavigating = false;
                     if (hideProgressBar != null)
                         _ = hideProgressBar();
                 });

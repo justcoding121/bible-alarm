@@ -104,6 +104,23 @@ public sealed class PlaybackModalService :
                 WeakReferenceMessenger.Default.Send(new BeginStoppingPlaybackMessage());
             }
         }
+        else if (isModalOpen)
+        {
+            // Modal is already visible and the same schedule is being resumed (e.g. car tapped
+            // now-playing item). No navigation action needed; requestedShowModal is consumed
+            // immediately so the guard in OnPlaybackStateChanged stays correct.
+            var currentScheduleId = playbackState.Value.CurrentScheduleId;
+            var isSameSchedule = message.TargetScheduleId.HasValue
+                                 && message.TargetScheduleId == currentScheduleId;
+
+            if (isSameSchedule)
+            {
+                requestedShowModal = false;
+                targetScheduleId = null;
+            }
+            // Different schedule: leave requestedShowModal = true so the guard in
+            // OnPlaybackStateChanged keeps the modal open during the schedule switch.
+        }
     }
 
     public void Receive(PlaybackExplicitStopMessage message)
@@ -157,6 +174,9 @@ public sealed class PlaybackModalService :
                 }
 
                 navigationService.SetMiniBarVisible(false);
+
+                // Modal is now on screen — tell list rows to clear their play-button spinners.
+                WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
             }
             catch (Exception ex)
             {
@@ -387,7 +407,7 @@ public sealed class PlaybackModalService :
             // Don't consume on Paused — the AudioPlayer dispatches a transient Paused
             // during teardown of the old schedule, which would kill the protection
             // before the final Stopped event closes the modal.
-            if (state.Status == PlayStatus.Playing)
+            if (state.Status == PlayStatus.Playing && requestedShowModal)
             {
                 requestedShowModal = false;
             }
@@ -434,21 +454,26 @@ public sealed class PlaybackModalService :
                                     logger.Error("PlaybackModal push failed again after waiting for window ready");
                                     isModalOpen = false;
                                     navigationService.SetHomePageVisibility(isPlaybackActive: false);
+                                    return;
                                 }
                             }
                             else
                             {
                                 logger.Information("Playback no longer active after waiting for window - skipping modal retry");
                                 isModalOpen = false;
+                                return;
                             }
                         }
                         catch (Exception retryEx)
                         {
                             logger.Warning(retryEx, "Failed to check playback state during modal retry");
                             isModalOpen = false;
+                            return;
                         }
                     }
 #endif
+                    // Modal is now on screen — tell list rows to clear their play-button spinners.
+                    WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
                 }
                 catch (Exception ex)
                 {

@@ -3,6 +3,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.UI.NavigationServiceHelpers;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -119,19 +120,29 @@ public sealed class NavigationService(
 
     public async Task NavigateToScheduleAsync()
     {
+        Views.Schedule.Schedule? page = null;
         try
         {
+            // Push the lightweight shell (spinner only) immediately — no ViewModel needed yet.
             await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
             {
                 await InvokeOnUiThreadAsync(async () =>
                 {
-                    var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
+                    page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
                     var navigation = GetNavigation();
                     NavigationPage.SetHasNavigationBar(page, false);
                     await navigation.PushAsync(page, animated: false);
                     WindowSetupService.UpdateNavigationBarColors();
                 });
             });
+
+            // Spinner is now visible. Resolve ViewModel on a background thread so it does
+            // not block the UI, then hand it to the page to finish loading content.
+            if (page != null)
+            {
+                var viewModel = await Task.Run(() => serviceProvider.GetRequiredService<ScheduleViewModel>());
+                await InvokeOnUiThreadAsync(async () => await page.InitializeViewModelAsync(viewModel));
+            }
         }
         catch (Exception ex)
         {
@@ -150,8 +161,10 @@ public sealed class NavigationService(
         logger.Information("[PERF] NavigateToScheduleAsync: Start at {StartTime}", overallStartTime);
 #endif
 
+        Views.Schedule.Schedule? page = null;
         try
         {
+            // Push the lightweight shell (spinner only) immediately — ViewModel resolved after push.
             await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
             {
 #if DEBUG
@@ -168,36 +181,53 @@ public sealed class NavigationService(
                 {
 #if DEBUG
                     var beforeResolveTime = DateTime.UtcNow;
-                    logger.Information("[PERF] NavigateToScheduleAsync: Before page resolve at {Time}", beforeResolveTime);
+                    logger.Information("[PERF] NavigateToScheduleAsync: Before shell page resolve at {Time}", beforeResolveTime);
 #endif
 
-                    var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
+                    page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
 
 #if DEBUG
                     var afterResolveTime = DateTime.UtcNow;
-                    logger.Information("[PERF] NavigateToScheduleAsync: Page resolved in {ElapsedMs}ms",
+                    logger.Information("[PERF] NavigateToScheduleAsync: Shell page resolved in {ElapsedMs}ms",
                         (afterResolveTime - beforeResolveTime).TotalMilliseconds);
-#endif
-
-                    var navigation = GetNavigation();
-                    NavigationPage.SetHasNavigationBar(page, false);
-
-#if DEBUG
                     var beforePushTime = DateTime.UtcNow;
                     logger.Information("[PERF] NavigateToScheduleAsync: Before push at {Time}", beforePushTime);
 #endif
 
+                    var navigation = GetNavigation();
+                    NavigationPage.SetHasNavigationBar(page, false);
                     await navigation.PushAsync(page, animated: false);
                     WindowSetupService.UpdateNavigationBarColors();
 
 #if DEBUG
                     var afterPushTime = DateTime.UtcNow;
-                    logger.Information("[PERF] NavigateToScheduleAsync: Push completed in {ElapsedMs}ms, total: {TotalMs}ms",
+                    logger.Information("[PERF] NavigateToScheduleAsync: Push completed in {ElapsedMs}ms, total so far: {TotalMs}ms",
                         (afterPushTime - beforePushTime).TotalMilliseconds,
                         (afterPushTime - overallStartTime).TotalMilliseconds);
 #endif
                 });
             });
+
+            // Spinner is now visible on screen.
+            // Resolve ViewModel on a background thread (doesn't block spinner animation),
+            // then hand it to the page to bind and load the heavy ScheduleContent XAML.
+            if (page != null)
+            {
+#if DEBUG
+                var beforeVmTime = DateTime.UtcNow;
+                logger.Information("[PERF] NavigateToScheduleAsync: Resolving ViewModel at {Time}", beforeVmTime);
+#endif
+                var viewModel = await Task.Run(() => serviceProvider.GetRequiredService<ScheduleViewModel>());
+#if DEBUG
+                logger.Information("[PERF] NavigateToScheduleAsync: ViewModel resolved in {ElapsedMs}ms",
+                    (DateTime.UtcNow - beforeVmTime).TotalMilliseconds);
+#endif
+                await InvokeOnUiThreadAsync(async () => await page.InitializeViewModelAsync(viewModel));
+#if DEBUG
+                logger.Information("[PERF] NavigateToScheduleAsync: InitializeViewModelAsync complete, total: {TotalMs}ms",
+                    (DateTime.UtcNow - overallStartTime).TotalMilliseconds);
+#endif
+            }
         }
         catch (Exception ex)
         {

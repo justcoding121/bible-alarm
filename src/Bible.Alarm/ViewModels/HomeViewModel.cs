@@ -151,6 +151,11 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         // Register for progress bar messages
         WeakReferenceMessenger.Default.Register<ShowProgressBarMessage>(this);
         WeakReferenceMessenger.Default.Register<HideProgressBarMessage>(this);
+
+        // When the playback modal is confirmed on screen the home list is hidden behind it —
+        // apply any deferred reorder now so the list is in the right order before it reappears.
+        WeakReferenceMessenger.Default.Register<PlaybackModalOpenedMessage>(this, (r, m) =>
+            _ = stateChangeHandler.ApplyDeferredReorderAsync());
     }
 
 
@@ -464,6 +469,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<ShowProgressBarMessage>(this);
         WeakReferenceMessenger.Default.Unregister<HideProgressBarMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<PlaybackModalOpenedMessage>(this);
 
         progressBarManager.ProgressBarOpacityChanged -= OnProgressBarOpacityChanged;
         progressBarManager.ProgressBarHiddenChanged -= OnProgressBarHiddenChanged;

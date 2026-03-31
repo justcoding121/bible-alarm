@@ -490,6 +490,22 @@
                                                     HorizontalOptions="End" />
                                         </Grid>
                                         
+                                        <!-- Navigation busy indicator: overlaid at bottom-right, spans full card, floats above content -->
+                                        <ActivityIndicator
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Grid.Row="0"
+                                            Grid.RowSpan="2"
+                                            IsRunning="{Binding IsNavigating, FallbackValue=False}"
+                                            IsVisible="{Binding IsNavigating, FallbackValue=False}"
+                                            Color="{DynamicResource PrimaryColor}"
+                                            WidthRequest="20"
+                                            HeightRequest="20"
+                                            HorizontalOptions="End"
+                                            VerticalOptions="End"
+                                            ZIndex="10"
+                                            InputTransparent="True" />
+
                                         <!-- Row 2: Schedule details (name, publication, section, track, language/music) - spans full width -->
                                         <VerticalStackLayout Grid.Column="0"
                                               Grid.ColumnSpan="2"
@@ -552,38 +568,25 @@
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
                                                    IsVisible="{Binding ShouldShowBiblePublicationTrackNameLine}" />
-                                            <!-- 6. Language Name (hidden when both Language and Music are empty) -->
-                                            <Grid Margin="{DynamicResource MarginThickness0}"
-                                                  HorizontalOptions="Fill"
-                                                  VerticalOptions="Start"
-                                                  ColumnSpacing="{StaticResource SpacingMedium}"
-                                                  IsVisible="{Binding ShouldShowLanguageOrMusicLine}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <!-- Language text -->
-                                                <Label Grid.Column="0"
-                                                        HorizontalOptions="Start"
-                                                        HorizontalTextAlignment="Start"
-                                                        FontSize="{DynamicResource StandardFontSize}"
-                                                        Text="{Binding Language}"
-                                                        TextColor="{DynamicResource TextPrimaryColor}"
-                                                        IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
-                                                        VerticalOptions="Start"
-                                                        LineBreakMode="WordWrap" />
-                                                <!-- Music icon (at the end) -->
-                                                <Label Grid.Column="1"
-                                                        HorizontalOptions="End"
-                                                        VerticalOptions="Start"
-                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                        FontSize="{DynamicResource MediumFontSize}"
-                                                        Text="{x:Static fn:GlyphNames.Music}"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"
-                                                        Opacity="0.8"
-                                                        IsVisible="{Binding MusicEnabled, Mode=OneWay}"
-                                                        InputTransparent="True" />
-                                            </Grid>
+                                            <!-- 6. Language Name with optional music indicator -->
+                                            <HorizontalStackLayout Margin="{DynamicResource MarginThickness0}"
+                                                   HorizontalOptions="Start"
+                                                   VerticalOptions="Start"
+                                                   Spacing="{StaticResource SpacingSmall}"
+                                                   IsVisible="{Binding ShouldShowLanguageOrMusicLine}">
+                                                <Label FontSize="{DynamicResource StandardFontSize}"
+                                                       Text="{Binding Language}"
+                                                       TextColor="{DynamicResource TextPrimaryColor}"
+                                                       IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
+                                                       VerticalOptions="Center"
+                                                       LineBreakMode="NoWrap" />
+                                                <Label FontSize="{DynamicResource StandardFontSize}"
+                                                       Text="♫"
+                                                       TextColor="{DynamicResource TextPrimaryColor}"
+                                                       IsVisible="{Binding MusicEnabled, Mode=OneWay}"
+                                                       VerticalOptions="Center"
+                                                       InputTransparent="True" />
+                                            </HorizontalStackLayout>
                                         </VerticalStackLayout>
                                     </Grid>
                             </Border>

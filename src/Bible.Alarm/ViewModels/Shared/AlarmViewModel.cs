@@ -679,6 +679,15 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            // While stopping, ignore position updates so the progress bar stays frozen.
+            // This prevents the slider from visually moving after dismiss is tapped.
+            // Safe for schedule switching: isStopping is cleared before the new schedule's
+            // position messages arrive (cleared in UpdateFromState when PlayStatus.Loading && HasValue).
+            if (isStopping)
+            {
+                return;
+            }
+
             messageHandler.HandlePlaybackPositionMessage(
                 message,
                 currentDuration,

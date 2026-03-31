@@ -260,6 +260,7 @@
                 <!-- Delete button - SfEffectsView for WinUI only -->
                 <Grid Grid.Row="5"
                       Margin="{DynamicResource MarginThickness0_0_0_16}"
+                      IsVisible="{Binding IsExistingSchedule}"
                       VerticalOptions="End"
                       HorizontalOptions="Fill"
                       HeightRequest="{StaticResource IconStandardContainerSize}">
