@@ -24,6 +24,17 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
     private bool isRegistered;
     private bool disposed;
 
+    // Tokens returned by AddTarget — required to actually remove the handler via RemoveTarget.
+    // Simply setting Enabled = false only hides the lock-screen affordance; the lambda keeps firing.
+    private NSObject? playToken;
+    private NSObject? pauseToken;
+    private NSObject? toggleToken;
+    private NSObject? nextToken;
+    private NSObject? previousToken;
+    private NSObject? skipForwardToken;
+    private NSObject? skipBackwardToken;
+    private NSObject? changePositionToken;
+
     public iOSRemoteCommandCenterManager(IState<PlaybackState> playbackState)
     {
         commandCenter = MPRemoteCommandCenter.Shared;
@@ -48,39 +59,39 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
 
             // Play command
             commandCenter.PlayCommand.Enabled = true;
-            commandCenter.PlayCommand.AddTarget((evt) => HandlePlayCommand(evt));
+            playToken = commandCenter.PlayCommand.AddTarget((evt) => HandlePlayCommand(evt));
 
             // Pause command
             commandCenter.PauseCommand.Enabled = true;
-            commandCenter.PauseCommand.AddTarget((evt) => HandlePauseCommand(evt));
+            pauseToken = commandCenter.PauseCommand.AddTarget((evt) => HandlePauseCommand(evt));
 
             // Toggle Play/Pause (for single button headphones)
             commandCenter.TogglePlayPauseCommand.Enabled = true;
-            commandCenter.TogglePlayPauseCommand.AddTarget((evt) => HandleTogglePlayPauseCommand(evt));
+            toggleToken = commandCenter.TogglePlayPauseCommand.AddTarget((evt) => HandleTogglePlayPauseCommand(evt));
 
             // Next track
             commandCenter.NextTrackCommand.Enabled = true;
-            commandCenter.NextTrackCommand.AddTarget((evt) => HandleNextTrackCommand(evt));
+            nextToken = commandCenter.NextTrackCommand.AddTarget((evt) => HandleNextTrackCommand(evt));
 
             // Previous track
             commandCenter.PreviousTrackCommand.Enabled = true;
-            commandCenter.PreviousTrackCommand.AddTarget((evt) => HandlePreviousTrackCommand(evt));
+            previousToken = commandCenter.PreviousTrackCommand.AddTarget((evt) => HandlePreviousTrackCommand(evt));
 
             // Seek forward (skip forward)
             commandCenter.SkipForwardCommand.Enabled = true;
             // 15 seconds
             commandCenter.SkipForwardCommand.PreferredIntervals = new double[] { 15.0 };
-            commandCenter.SkipForwardCommand.AddTarget((evt) => HandleSkipForwardCommand(evt));
+            skipForwardToken = commandCenter.SkipForwardCommand.AddTarget((evt) => HandleSkipForwardCommand(evt));
 
             // Seek backward (skip backward)
             commandCenter.SkipBackwardCommand.Enabled = true;
             // 15 seconds
             commandCenter.SkipBackwardCommand.PreferredIntervals = new double[] { 15.0 };
-            commandCenter.SkipBackwardCommand.AddTarget((evt) => HandleSkipBackwardCommand(evt));
+            skipBackwardToken = commandCenter.SkipBackwardCommand.AddTarget((evt) => HandleSkipBackwardCommand(evt));
 
             // Seek to position (for scrubbing)
             commandCenter.ChangePlaybackPositionCommand.Enabled = true;
-            commandCenter.ChangePlaybackPositionCommand.AddTarget((evt) => HandleChangePlaybackPositionCommand(evt));
+            changePositionToken = commandCenter.ChangePlaybackPositionCommand.AddTarget((evt) => HandleChangePlaybackPositionCommand(evt));
 
             isRegistered = true;
             logger.Information("[iOS Media] Remote command handlers registered successfully");
@@ -106,7 +117,18 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
         {
             logger.Information("[iOS Media] Unregistering remote command handlers");
 
-            // Remove all targets by disabling commands (simpler than tracking individual handlers)
+            // RemoveTarget fully removes the handler registered by AddTarget so the lambda
+            // is not called in future sessions.  Enabled = false only hides the lock-screen
+            // affordance — without RemoveTarget the lambda keeps accumulating across sessions.
+            RemoveToken(commandCenter.PlayCommand, ref playToken);
+            RemoveToken(commandCenter.PauseCommand, ref pauseToken);
+            RemoveToken(commandCenter.TogglePlayPauseCommand, ref toggleToken);
+            RemoveToken(commandCenter.NextTrackCommand, ref nextToken);
+            RemoveToken(commandCenter.PreviousTrackCommand, ref previousToken);
+            RemoveToken(commandCenter.SkipForwardCommand, ref skipForwardToken);
+            RemoveToken(commandCenter.SkipBackwardCommand, ref skipBackwardToken);
+            RemoveToken(commandCenter.ChangePlaybackPositionCommand, ref changePositionToken);
+
             commandCenter.PlayCommand.Enabled = false;
             commandCenter.PauseCommand.Enabled = false;
             commandCenter.TogglePlayPauseCommand.Enabled = false;
@@ -122,6 +144,27 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
         catch (Exception ex)
         {
             logger.Error(ex, "[iOS Media] Failed to unregister remote command handlers");
+        }
+    }
+
+    private static void RemoveToken(MPRemoteCommand command, ref NSObject? token)
+    {
+        if (token == null)
+        {
+            return;
+        }
+
+        try
+        {
+            command.RemoveTarget(token);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "[iOS Media] RemoveTarget failed for command {Command}", command.GetType().Name);
+        }
+        finally
+        {
+            token = null;
         }
     }
 

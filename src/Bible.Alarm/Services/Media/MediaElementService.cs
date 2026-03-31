@@ -499,6 +499,30 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
         }
 
         isDisposed = true;
+
+        MediaElement? toDispose;
+
+        lock (lockObject)
+        {
+            toDispose = mediaElementInstance;
+            mediaElementInstance = null;
+        }
+
+        if (toDispose == null)
+        {
+            return;
+        }
+
+        // Best-effort cleanup at app shutdown. If already on the main thread, dispose synchronously.
+        // Otherwise, schedule it — disposal at shutdown is fire-and-forget.
+        if (MainThread.IsMainThread)
+        {
+            DisposeMediaElementOnMainThread(toDispose);
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(() => DisposeMediaElementOnMainThread(toDispose));
+        }
     }
 }
 

@@ -131,10 +131,22 @@ public class HomeStateChangeHandler
 
             // Prepare ViewModels and collection on UI thread
             var currentSchedules = getSchedules() ?? new ObservableHashSet<ScheduleListItemViewModel>();
+
+            // Capture the pre-mutation sort order so we can detect whether items actually moved.
+            // PrepareScheduleViewModelsOnUIThread mutates existing VM instances (via InitializeFromSchedule),
+            // which changes LastPlayedAtUtc and invalidates the SortedSet's internal ordering.
+            // We must snapshot the order NOW before those mutations happen.
+            var oldScheduleOrder = currentSchedules.Select(vm => vm.ScheduleId).ToList();
+
             var (schedulesToAdd, schedulesToRemove, newSchedules) = viewModelManager.PrepareScheduleViewModelsOnUIThread(
                 scheduleDataMap,
                 scheduleStateItemMap,
                 currentSchedules);
+
+            // newSchedules is a fresh ObservableHashSet built from the mutated VMs, so its iteration
+            // order reflects the true post-mutation sort order.
+            var newScheduleOrder = newSchedules?.Select(vm => vm.ScheduleId).ToList() ?? [];
+            var orderChanged = !oldScheduleOrder.SequenceEqual(newScheduleOrder);
             var hasSchedulesNow = newSchedules != null && newSchedules.Count > 0;
 
             // Show progress bar when delete is detected
@@ -183,12 +195,28 @@ public class HomeStateChangeHandler
             else
             {
                 // No add/remove, but schedule properties (e.g. LastPlayedAtUtc) may have changed — sync to reorder
-                deferReorder = schedulePropertiesChanged && newSchedules != null && newSchedules.Count > 0 && isPlaybackModalVisible();
+                deferReorder = schedulePropertiesChanged && orderChanged && newSchedules != null && newSchedules.Count > 0 && isPlaybackModalVisible();
                 if (schedulePropertiesChanged && newSchedules != null && newSchedules.Count > 0 && !deferReorder)
                 {
-                    logger.Debug("OnStateChanged: Properties changed (e.g. LastPlayedAtUtc) — syncing collection to reorder");
-                    SyncCollectionToNewSchedules(newSchedules);
-                    notifySchedulesChanged?.Invoke();
+                    if (orderChanged)
+                    {
+                        // Items moved positions (e.g. a different schedule became most-recently-played).
+                        // Replace the collection so the CollectionView reflects the new sort order.
+                        logger.Debug("OnStateChanged: Properties changed and sort order changed — syncing collection to reorder");
+                        SyncCollectionToNewSchedules(newSchedules);
+                        notifySchedulesChanged?.Invoke();
+                    }
+                    else
+                    {
+                        // Only metadata changed (e.g. track/section code during playback transition).
+                        // The ScheduleListItemViewModel instances were already updated in-place by
+                        // PrepareScheduleViewModelsOnUIThread via InitializeFromSchedule, which fires
+                        // INotifyPropertyChanged. The CollectionView cells update through their bindings
+                        // without a collection change event, so no ItemsSource replacement is needed.
+                        // Replacing ItemsSource on WinUI causes a full re-render of the entire list,
+                        // which is the bug this branch avoids.
+                        logger.Debug("OnStateChanged: Properties changed but sort order unchanged — skipping collection sync (VMs updated in place)");
+                    }
                 }
                 else if (deferReorder)
                 {

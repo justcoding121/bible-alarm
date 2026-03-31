@@ -185,11 +185,14 @@ public sealed class ScheduleCommandExecutor
             var musicUpdated = DetectMusicChanges();
             var biblePublicationUpdated = DetectBiblePublicationChanges();
 
-            await scheduleCommandService.StopPlaybackIfNeededAsync(
-                isNewSchedule,
-                playbackState.Value.IsPreparingOrPlaying,
-                scheduleId,
-                playbackState.Value.CurrentScheduleId ?? -1);
+            if (biblePublicationUpdated)
+            {
+                await scheduleCommandService.StopPlaybackIfNeededAsync(
+                    isNewSchedule,
+                    playbackState.Value.IsPreparingOrPlaying,
+                    scheduleId,
+                    playbackState.Value.CurrentScheduleId ?? -1);
+            }
 
             if (currentSchedule != null)
             {

@@ -25,6 +25,7 @@ namespace Bible.Alarm.ViewModels;
 public sealed class ScheduleListItemViewModel(
     ILogger logger,
     ISchedulePlaybackService playbackService,
+    IPlaybackService stopPlaybackService,
     IScheduleStateService scheduleStateService,
     IPlaylistService playlistService,
     IState<ApplicationState> applicationState,
@@ -46,7 +47,6 @@ public sealed class ScheduleListItemViewModel(
 
     private const int SpinnerTimeoutSeconds = 15;
     private bool isBusy;
-    private bool isNavigating;
     private bool isProcessingStateChange;
     private volatile bool isPlayCommandRunning;
     private CancellationTokenSource? spinnerTimeoutCts;
@@ -164,6 +164,9 @@ public sealed class ScheduleListItemViewModel(
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
 
+        var initialPlayback = playbackState.Value;
+        lastObservedGlobalPlaybackActive = initialPlayback.IsPreparingOrPlaying || initialPlayback.CurrentScheduleId.HasValue;
+
         // Sync IsBusy with current playback state (handles car-initiated playback before app open)
         SyncIsBusyWithPlaybackState();
 
@@ -172,19 +175,31 @@ public sealed class ScheduleListItemViewModel(
 
         PlayCommand ??= new AsyncRelayCommand(async () =>
         {
-            if (Schedule?.Id > 0)
+            if (Schedule?.Id is not > 0 || isPlayCommandRunning)
             {
-                isPlayCommandRunning = true;
-                IsBusy = true;
-                StartSpinnerTimeout();
+                return;
+            }
+
+            isPlayCommandRunning = true;
+            try
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = true;
+                    StartSpinnerTimeout();
+                });
                 await Task.Delay(50);
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    onPlayStarted?.Invoke();
-                    WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule.Id });
                     try
                     {
-                        await playbackService.PlayScheduleAsync(Schedule.Id);
+                        onPlayStarted?.Invoke();
+                        WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule!.Id });
+                        await playbackService.PlayScheduleAsync(Schedule!.Id);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        logger.Warning(ex, "Play command failed for schedule {ScheduleId}", Schedule!.Id);
                     }
                     finally
                     {
@@ -193,7 +208,18 @@ public sealed class ScheduleListItemViewModel(
                     }
                 });
             }
-        });
+            catch (OperationCanceledException)
+            {
+                isPlayCommandRunning = false;
+                SyncIsBusyWithPlaybackState();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Play command failed before scheduling playback for schedule {ScheduleId}", Schedule?.Id ?? 0);
+                isPlayCommandRunning = false;
+                SyncIsBusyWithPlaybackState();
+            }
+        }, AsyncRelayCommandOptions.AllowConcurrentExecutions);
 
         ToggleEnabledCommand ??= new RelayCommand(() =>
         {
@@ -216,6 +242,12 @@ public sealed class ScheduleListItemViewModel(
             {
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
                 return;
+            }
+
+            var currentPlayback = playbackState.Value;
+            if (currentPlayback.IsPreparingOrPlaying && currentPlayback.CurrentScheduleId == Schedule.Id)
+            {
+                await stopPlaybackService.StopAsync();
             }
 
             dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
@@ -387,12 +419,6 @@ public sealed class ScheduleListItemViewModel(
         set => SetProperty(ref isBusy, value);
     }
 
-    public bool IsNavigating
-    {
-        get => isNavigating;
-        set => SetProperty(ref isNavigating, value);
-    }
-
     public void RaisePropertiesChangedEvent()
     {
         var properties = GetType()
@@ -530,9 +556,51 @@ public sealed class ScheduleListItemViewModel(
         }
     }
 
+    private bool lastObservedGlobalPlaybackActive;
+
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
+        ResetPlayCommandGateIfPlaybackSessionEnded();
         SyncIsBusyWithPlaybackState();
+    }
+
+    /// <summary>
+    /// Clears a stuck <see cref="isPlayCommandRunning"/> when global playback transitions from active to idle.
+    /// Each list row tracks the previous snapshot itself so every row sees the same edge regardless of
+    /// Fluxor subscriber order, and we do not clear during a fresh tap before PlaybackState shows active.
+    /// </summary>
+    private void ResetPlayCommandGateIfPlaybackSessionEnded()
+    {
+        var state = playbackState.Value;
+        var activeNow = state.IsPreparingOrPlaying || state.CurrentScheduleId.HasValue;
+        var sessionJustEnded = lastObservedGlobalPlaybackActive && !activeNow;
+        lastObservedGlobalPlaybackActive = activeNow;
+
+        if (!sessionJustEnded || !isPlayCommandRunning || isBusy)
+        {
+            return;
+        }
+
+        void ApplyReset()
+        {
+            var snapshot = playbackState.Value;
+            if (snapshot.IsPreparingOrPlaying || snapshot.CurrentScheduleId.HasValue || !isPlayCommandRunning || isBusy)
+            {
+                return;
+            }
+
+            logger.Debug("Clearing play command gate for schedule row {ScheduleId} (playback session ended)", ScheduleId);
+            isPlayCommandRunning = false;
+        }
+
+        if (MainThread.IsMainThread)
+        {
+            ApplyReset();
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(ApplyReset);
+        }
     }
 
     /// <summary>
@@ -557,6 +625,17 @@ public sealed class ScheduleListItemViewModel(
                 SetIsBusy(false);
             }
 
+            return;
+        }
+
+        // Play command completed but the schedule may still be in Loading state (native audio
+        // engine fires Playing asynchronously after PrepareAndPlayAsync returns). Keep the
+        // spinner alive until Playing/Paused so the play button does not flash briefly before
+        // the modal slides in and covers the home page.
+        if (state.CurrentScheduleId == scheduleId &&
+            state.IsPreparingOrPlaying &&
+            state.Status is not PlayStatus.Playing and not PlayStatus.Paused)
+        {
             return;
         }
 

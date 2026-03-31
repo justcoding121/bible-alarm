@@ -13,6 +13,9 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 public sealed class MiniPlaybackBarViewModel : ObservableObject,
     IRecipient<PlaybackPositionChangedMessage>,
+    IRecipient<BeginStoppingPlaybackMessage>,
+    IRecipient<NextButtonPressedMessage>,
+    IRecipient<PreviousButtonPressedMessage>,
     IDisposable
 {
     public static MiniPlaybackBarViewModel? Instance { get; private set; }
@@ -40,6 +43,9 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         MaximizeCommand = new AsyncRelayCommand(OnMaximizeAsync);
 
         WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
+        WeakReferenceMessenger.Default.Register<BeginStoppingPlaybackMessage>(this);
+        WeakReferenceMessenger.Default.Register<NextButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Register<PreviousButtonPressedMessage>(this);
         playbackState.StateChanged += OnPlaybackStateChanged;
 
         SyncFromState(playbackState.Value);
@@ -255,6 +261,45 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
     }
 
+    public void Receive(BeginStoppingPlaybackMessage message)
+    {
+        if (isDisposed) return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            IsStopping = true;
+            AreControlsEnabled = false;
+        });
+    }
+
+    public void Receive(NextButtonPressedMessage message)
+    {
+        if (isDisposed) return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            isTrackChangeBusy = true;
+            hasSeenTrackTransition = false;
+            IsNextBusy = true;
+            AreControlsEnabled = false;
+            Progress = 0;
+        });
+    }
+
+    public void Receive(PreviousButtonPressedMessage message)
+    {
+        if (isDisposed) return;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            isTrackChangeBusy = true;
+            hasSeenTrackTransition = false;
+            IsPreviousBusy = true;
+            AreControlsEnabled = false;
+            Progress = 0;
+        });
+    }
+
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
         if (isDisposed) return;
@@ -314,9 +359,14 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         CanPlayNext = state.CanPlayNext;
         CanPlayPrevious = state.CanPlayPrevious;
 
+        // IsPlaying drives the play/pause button visual only — stays true during auto-advance
+        // and track transitions so the bar looks "playing" without jarring state flips.
         IsPlaying = state.Status == PlayStatus.Playing || state.IsAutoAdvancing || state.IsTransitioningTrack;
-        AreControlsEnabled = state.Status is PlayStatus.Playing or PlayStatus.Paused
-                             || state.IsAutoAdvancing || state.IsTransitioningTrack;
+
+        // Controls are only interactive when a track is stably playing or paused.
+        // Auto-advance and track transitions disable controls until the new track is ready,
+        // matching the full playback modal's behaviour.
+        AreControlsEnabled = state.Status is PlayStatus.Playing or PlayStatus.Paused;
 
         if (state.Duration > TimeSpan.Zero)
         {
@@ -482,5 +532,8 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
 
         playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<PlaybackPositionChangedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<BeginStoppingPlaybackMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<NextButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<PreviousButtonPressedMessage>(this);
     }
 }

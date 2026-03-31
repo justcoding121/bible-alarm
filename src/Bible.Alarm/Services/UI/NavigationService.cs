@@ -342,6 +342,12 @@ public sealed class NavigationService(
                         var targetY = playbackPage.Height > 0 ? playbackPage.Height : 2000;
                         await playbackPage.TranslateTo(0, targetY, PlaybackModalAnimationDurationMs, Easing.CubicIn);
                     }
+                    else
+                    {
+                        // Hide before removal so that the BindingContext=null in Dispose() cannot
+                        // flash a partially-reset frame (e.g. minimize button reappearing briefly).
+                        playbackPage.IsVisible = false;
+                    }
 
                     navigation.RemovePage(playbackPage);
 

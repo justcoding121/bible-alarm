@@ -618,7 +618,26 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
             if (isStopping)
             {
-                return;
+                // A new schedule has started loading after the schedule switch — exit stopping state
+                // so the modal can display the new schedule's content. The old schedule reaches
+                // Stopped (CurrentScheduleId = null) before the new schedule reaches Loading, so
+                // this guard only fires when the new session is genuinely underway.
+                if (state.Status == PlayStatus.Loading && state.CurrentScheduleId.HasValue)
+                {
+                    isStopping = false;
+                    OnPropertyChanged(nameof(IsStopping));
+                    OnPropertyChanged(nameof(ShowPreparingProgress));
+                    OnPropertyChanged(nameof(ShowPreparingCard));
+                    OnPropertyChanged(nameof(ShowPlaybackControls));
+                    OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
+                    OnPropertyChanged(nameof(AreControlsEnabled));
+                    OnPropertyChanged(nameof(IsBuffering));
+                    OnPropertyChanged(nameof(IsStopButtonEnabled));
+                }
+                else
+                {
+                    return;
+                }
             }
 
             if (isTrackChangeBusy)

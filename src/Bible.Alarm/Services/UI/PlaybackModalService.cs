@@ -13,7 +13,8 @@ public sealed class PlaybackModalService :
     IPlaybackModalService,
     IRecipient<MinimizePlaybackMessage>,
     IRecipient<MaximizePlaybackMessage>,
-    IRecipient<RequestShowPlaybackModalMessage>
+    IRecipient<RequestShowPlaybackModalMessage>,
+    IRecipient<PlaybackExplicitStopMessage>
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
@@ -24,6 +25,8 @@ public sealed class PlaybackModalService :
     private bool isDisposed;
     private int popGeneration;
     private volatile bool requestedShowModal;
+    private int? targetScheduleId;
+    private bool bypassPopGenerationGuard;
 
     public bool IsMinimized => isMinimized;
 
@@ -39,6 +42,7 @@ public sealed class PlaybackModalService :
         WeakReferenceMessenger.Default.Register<MinimizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Register<MaximizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Register<RequestShowPlaybackModalMessage>(this);
+        WeakReferenceMessenger.Default.Register<PlaybackExplicitStopMessage>(this);
     }
 
     private static bool IsActiveUiPlaybackStatus(PlayStatus status) =>
@@ -48,6 +52,9 @@ public sealed class PlaybackModalService :
     {
         isModalOpen = false;
         isMinimized = false;
+        requestedShowModal = false;
+        targetScheduleId = null;
+        bypassPopGenerationGuard = false;
         playbackState.StateChanged += OnPlaybackStateChanged;
         logger.Information("SubscribeToPlaybackStateChanges: Subscribed, isModalOpen reset to false");
     }
@@ -56,6 +63,9 @@ public sealed class PlaybackModalService :
     {
         isModalOpen = false;
         isMinimized = false;
+        requestedShowModal = false;
+        targetScheduleId = null;
+        bypassPopGenerationGuard = false;
         playbackState.StateChanged -= OnPlaybackStateChanged;
     }
 
@@ -72,6 +82,7 @@ public sealed class PlaybackModalService :
     public void Receive(RequestShowPlaybackModalMessage message)
     {
         requestedShowModal = true;
+        targetScheduleId = message.TargetScheduleId;
 
         if (isMinimized)
         {
@@ -85,9 +96,22 @@ public sealed class PlaybackModalService :
             }
             else
             {
-                MainThread.BeginInvokeOnMainThread(() => navigationService.SetMiniBarVisible(false));
+                // Keep the mini bar visible so it shows stopping UI during the schedule switch,
+                // matching the behavior when the user taps Stop on the mini bar.
+                // The requestedShowModal guard in OnPlaybackStateChanged prevents
+                // HideMiniBarOnMainThreadAsync from hiding it prematurely; MaximizeAsync will
+                // hide it when the new schedule starts loading.
+                WeakReferenceMessenger.Default.Send(new BeginStoppingPlaybackMessage());
             }
         }
+    }
+
+    public void Receive(PlaybackExplicitStopMessage message)
+    {
+        logger.Debug("PlaybackExplicitStopMessage received — clearing requestedShowModal and bypassing popGeneration guard for next close");
+        requestedShowModal = false;
+        targetScheduleId = null;
+        bypassPopGenerationGuard = true;
     }
 
     private Task MinimizeAsync()
@@ -99,10 +123,11 @@ public sealed class PlaybackModalService :
                 logger.Information("Minimizing playback modal");
                 isMinimized = true;
                 requestedShowModal = false;
+                targetScheduleId = null;
 
                 if (isModalOpen)
                 {
-                    await navigationService.PopPlaybackPageAsync(animated: true);
+                    await navigationService.PopPlaybackPageAsync(animated: false);
                     isModalOpen = false;
                 }
 
@@ -123,13 +148,15 @@ public sealed class PlaybackModalService :
             {
                 logger.Information("Maximizing playback from mini bar");
                 isMinimized = false;
-                navigationService.SetMiniBarVisible(false);
+                targetScheduleId = null;
 
                 if (!isModalOpen)
                 {
-                    await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true, animated: true);
+                    await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true, animated: false);
                     isModalOpen = true;
                 }
+
+                navigationService.SetMiniBarVisible(false);
             }
             catch (Exception ex)
             {
@@ -299,12 +326,22 @@ public sealed class PlaybackModalService :
             : IsActiveUiPlaybackStatus(state.Status);
 
         // When minimized, keep it minimized unless a schedule switch was requested.
-        // For schedule switches, maximize when the new schedule starts Loading.
+        // For schedule switches, maximize when the target schedule starts Loading.
+        // Guard against premature maximize: an intermediate Loading event from the old
+        // schedule during stop/reset must not consume requestedShowModal before the new
+        // schedule fires its own PlaybackStartedAction.
         if (isMinimized && shouldShowPlayback)
         {
-            if (requestedShowModal && state.Status == PlayStatus.Loading)
+            var isTargetScheduleLoading = requestedShowModal
+                && state.Status == PlayStatus.Loading
+                && (!targetScheduleId.HasValue || state.CurrentScheduleId == targetScheduleId);
+
+            if (isTargetScheduleLoading)
             {
-                logger.Information("OnPlaybackStateChanged: New schedule loading while minimized — maximizing. Status={Status}", state.Status);
+                logger.Information(
+                    "OnPlaybackStateChanged: Target schedule loading while minimized — maximizing. Status={Status}, ScheduleId={ScheduleId}, TargetScheduleId={TargetScheduleId}",
+                    state.Status, state.CurrentScheduleId, targetScheduleId);
+                targetScheduleId = null;
                 requestedShowModal = false;
                 _ = MaximizeAsync();
             }
@@ -336,7 +373,15 @@ public sealed class PlaybackModalService :
 
         if (shouldShowPlayback && isModalOpen)
         {
-            popGeneration++;
+            // Don't bump popGeneration for Stopped events. During audio player shutdown,
+            // PlaybackStatusChangedAction(Stopped) fires before PlaybackStoppedAction clears
+            // CurrentScheduleId, making IsPreparingOrPlaying appear true. Bumping here would
+            // make ClosePlaybackOnMainThreadAsync look stale and get skipped. Only bump for
+            // active (Loading/Playing/Paused) states that represent a new schedule starting.
+            if (state.Status != PlayStatus.Stopped)
+            {
+                popGeneration++;
+            }
 
             // Consume the show-request flag only when the NEW schedule reaches Playing.
             // Don't consume on Paused — the AudioPlayer dispatches a transient Paused
@@ -426,19 +471,28 @@ public sealed class PlaybackModalService :
     private Task ClosePlaybackOnMainThreadAsync()
     {
         var capturedGeneration = popGeneration;
+        var capturedBypass = bypassPopGenerationGuard;
         return MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            if (capturedGeneration != popGeneration)
+            // Skip stale pops caused by schedule switches (new schedule increments popGeneration
+            // after the old schedule's stop queues a close). When the user explicitly stopped
+            // (capturedBypass = true), always proceed regardless of popGeneration so the modal
+            // closes even if a new schedule began loading before this task ran on the main thread.
+            if (!capturedBypass && capturedGeneration != popGeneration)
             {
                 logger.Information("Skipping stale playback page pop (schedule switched before pop executed)");
                 return;
             }
 
+            bypassPopGenerationGuard = false;
+
             try
             {
-                logger.Information("PlaybackState changed - removing PlaybackModal page (Playback inactive)");
+                logger.Information("PlaybackState changed - removing PlaybackModal page (Playback inactive). Bypass={Bypass}",
+                    capturedBypass);
 
                 requestedShowModal = false;
+                targetScheduleId = null;
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 await navigationService.PopPlaybackPageAsync();
                 isModalOpen = false;
@@ -468,6 +522,7 @@ public sealed class PlaybackModalService :
             {
                 logger.Information("PlaybackState changed - hiding mini bar (Playback inactive)");
                 requestedShowModal = false;
+                targetScheduleId = null;
                 navigationService.SetMiniBarVisible(false);
                 navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 isMinimized = false;
@@ -495,5 +550,6 @@ public sealed class PlaybackModalService :
         WeakReferenceMessenger.Default.Unregister<MinimizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Unregister<MaximizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Unregister<RequestShowPlaybackModalMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
     }
 }

@@ -103,57 +103,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         overlayTimeoutController = new ScheduleOverlayTimeoutController(logger, state, dispatcher);
 
         // Subscribe to property manager changes to forward property changes
-        propertyManager.PropertyChanged += (sender, e) =>
-        {
-            if (e.PropertyName == nameof(SchedulePropertyManager.IsSchedulePageOverlayVisible))
-            {
-                OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
-            }
-            // Forward IsExistingSchedule property changes (for Delete button visibility)
-            else if (e.PropertyName == nameof(SchedulePropertyManager.IsExistingSchedule))
-            {
-                OnPropertyChanged(nameof(IsExistingSchedule));
-            }
-            // Forward IsNewSchedule property changes
-            else if (e.PropertyName == nameof(SchedulePropertyManager.IsNewSchedule))
-            {
-                OnPropertyChanged(nameof(IsNewSchedule));
-            }
-            // Forward busy property changes
-            else if (e.PropertyName == nameof(SchedulePropertyManager.IsCancelBusy))
-            {
-                OnPropertyChanged(nameof(IsCancelBusy));
-            }
-            else if (e.PropertyName == nameof(SchedulePropertyManager.IsSaveBusy))
-            {
-                OnPropertyChanged(nameof(IsSaveBusy));
-            }
-            else if (e.PropertyName == nameof(SchedulePropertyManager.IsDeleteBusy))
-            {
-                OnPropertyChanged(nameof(IsDeleteBusy));
-            }
-            // Forward container ViewModel property changes
-            else if (e.PropertyName == nameof(SchedulePropertyManager.BibleSelectionContainerViewModel))
-            {
-                OnPropertyChanged(nameof(BibleSelectionContainerViewModel));
-            }
-            else if (e.PropertyName == nameof(SchedulePropertyManager.MusicSelectionContainerViewModel))
-            {
-                OnPropertyChanged(nameof(MusicSelectionContainerViewModel));
-            }
-            else if (e.PropertyName == nameof(SchedulePropertyManager.NumberOfTrackContainerViewModel))
-            {
-                OnPropertyChanged(nameof(NumberOfTrackContainerViewModel));
-            }
-            else if (e.PropertyName == nameof(SchedulePropertyManager.ScheduleDetailsContainerViewModel))
-            {
-                OnPropertyChanged(nameof(ScheduleDetailsContainerViewModel));
-            }
-            else if (e.PropertyName == nameof(SchedulePropertyManager.AlarmSettingsContainerViewModel))
-            {
-                OnPropertyChanged(nameof(AlarmSettingsContainerViewModel));
-            }
-        };
+        propertyManager.PropertyChanged += OnPropertyManagerPropertyChanged;
 
         // Subscribe to state changes
         state.StateChanged += OnStateChanged;
@@ -497,8 +447,57 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 #endif
     }
 
+    private void OnPropertyManagerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SchedulePropertyManager.IsSchedulePageOverlayVisible))
+        {
+            OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.IsExistingSchedule))
+        {
+            OnPropertyChanged(nameof(IsExistingSchedule));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.IsNewSchedule))
+        {
+            OnPropertyChanged(nameof(IsNewSchedule));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.IsCancelBusy))
+        {
+            OnPropertyChanged(nameof(IsCancelBusy));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.IsSaveBusy))
+        {
+            OnPropertyChanged(nameof(IsSaveBusy));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.IsDeleteBusy))
+        {
+            OnPropertyChanged(nameof(IsDeleteBusy));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.BibleSelectionContainerViewModel))
+        {
+            OnPropertyChanged(nameof(BibleSelectionContainerViewModel));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.MusicSelectionContainerViewModel))
+        {
+            OnPropertyChanged(nameof(MusicSelectionContainerViewModel));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.NumberOfTrackContainerViewModel))
+        {
+            OnPropertyChanged(nameof(NumberOfTrackContainerViewModel));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.ScheduleDetailsContainerViewModel))
+        {
+            OnPropertyChanged(nameof(ScheduleDetailsContainerViewModel));
+        }
+        else if (e.PropertyName == nameof(SchedulePropertyManager.AlarmSettingsContainerViewModel))
+        {
+            OnPropertyChanged(nameof(AlarmSettingsContainerViewModel));
+        }
+    }
+
     public void Dispose()
     {
+        propertyManager.PropertyChanged -= OnPropertyManagerPropertyChanged;
         state.StateChanged -= OnStateChanged;
         overlayTimeoutController.Dispose();
         containerManager.DisposeContainers(propertyManager);

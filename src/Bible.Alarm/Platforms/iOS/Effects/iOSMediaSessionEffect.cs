@@ -31,6 +31,7 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
 
     // Track the last status to send correct toggle command
     private PlayStatus lastKnownStatus = PlayStatus.Stopped;
+    private bool messageHandlersRegistered;
 
     // Metadata dedup fields to prevent redundant Now Playing updates that cause visual jitter
     private string? lastMetadataTitle;
@@ -54,6 +55,13 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     /// </summary>
     public void RegisterMessageHandlers()
     {
+        if (messageHandlersRegistered)
+        {
+            logger.Debug("[iOS MediaSession] RegisterMessageHandlers called again — already registered, skipping");
+            return;
+        }
+
+        messageHandlersRegistered = true;
         WeakReferenceMessenger.Default.Register(this);
         // Register remote commands when the effect is initialized
         remoteCommandManager.RegisterCommands();

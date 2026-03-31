@@ -78,16 +78,10 @@ public sealed class IOsAlarmHandler(
 
         isDisposed = true;
 
-        // Dispose static semaphore
-        try
-        {
-            @lock.Dispose();
-        }
-        catch (Exception ex)
-        {
-            // Ignore if already disposed
-            logger.Warning(ex, "Error disposing semaphore, may already be disposed");
-        }
+        // @lock is static — shared across all handler instances for the lifetime of the process.
+        // Disposing it here would permanently break any future handler instance that tries to
+        // acquire it (WaitAsync on a disposed SemaphoreSlim throws ObjectDisposedException).
+        // The OS reclaims unmanaged resources on process exit, so no disposal is needed.
 
         // All injected services (playbackService, IState<PlaybackState>, TaskScheduler) are singletons
         // and should not be disposed here as they are managed by the DI container

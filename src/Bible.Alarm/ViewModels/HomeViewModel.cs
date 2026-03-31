@@ -476,6 +476,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
         bootstrapReadyManager.Dispose();
         progressBarManager.Dispose();
+        progressAnimator.Dispose();
         scheduleViewModelManager.DisposeAll();
     }
 }

@@ -481,26 +481,13 @@
                                                 </Border>
                                             </FlexLayout>
                                             </VerticalStackLayout>
-                                            <!-- Enable/disable toggle + navigation spinner -->
-                                            <Grid Grid.Column="1"
-                                                  Margin="{DynamicResource MarginThickness0}"
-                                                  VerticalOptions="Center"
-                                                  HorizontalOptions="End">
-                                                <shared:PlatformSwitch
-                                                        IsToggled="{Binding IsEnabled, Mode=TwoWay}"
-                                                        VerticalOptions="Center"
-                                                        HorizontalOptions="End"
-                                                        IsVisible="{Binding IsNavigating, Converter={StaticResource negateBooleanConverter}}" />
-                                                <ActivityIndicator
-                                                        IsRunning="{Binding IsNavigating}"
-                                                        IsVisible="{Binding IsNavigating}"
-                                                        Color="{DynamicResource TextPrimaryColor}"
-                                                        WidthRequest="{DynamicResource SpinnerFontSize}"
-                                                        HeightRequest="{DynamicResource SpinnerFontSize}"
-                                                        VerticalOptions="Center"
-                                                        HorizontalOptions="Center"
-                                                        Opacity="0.95" />
-                                            </Grid>
+                                            <!-- Enable/disable toggle -->
+                                            <shared:PlatformSwitch
+                                                    Grid.Column="1"
+                                                    IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                                                    Margin="{DynamicResource MarginThickness0}"
+                                                    VerticalOptions="Center"
+                                                    HorizontalOptions="End" />
                                         </Grid>
                                         
                                         <!-- Row 2: Schedule details (name, publication, section, track, language/music) - spans full width -->

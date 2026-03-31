@@ -79,33 +79,19 @@ public class CommandHandler
                 commandStartTime, x.Schedule?.Id);
 #endif
 
-            // Set IsNavigating immediately to show progress indicator on the item
-            x.IsNavigating = true;
             showProgressBar?.Invoke();
 
             try
             {
-                // Wait 50ms to ensure UI thread renders the update before doing backend work
-                await Task.Delay(50);
-
-                // Run the rest on the UI thread so overlay, navigation, and Schedule page creation (Syncfusion/WinUI) run on the correct thread.
-                // After Task.Delay the continuation can run on a thread-pool thread; WinUI/Release can throw InvalidCastException otherwise.
+                // Run on the UI thread so overlay, navigation, and Schedule page creation (Syncfusion/WinUI) run on the correct thread.
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     try
                     {
-#if DEBUG
-                        Log.Information("[PERF] ViewScheduleCommand: After 50ms delay, checking if should skip");
-#endif
-
                         if (shouldSkipNavigation(x))
                         {
                             return;
                         }
-
-#if DEBUG
-                        Log.Information("[PERF] ViewScheduleCommand: About to call showOverlayAndNavigateAsync");
-#endif
 
                         await showOverlayAndNavigateAsync(x);
 
@@ -117,7 +103,7 @@ public class CommandHandler
                     }
                     catch (OperationCanceledException)
                     {
-                        // Cancellation is expected (e.g. user navigated away); still reset state in finally
+                        // Cancellation is expected (e.g. user navigated away)
                     }
                     catch (Exception ex)
                     {
@@ -126,18 +112,16 @@ public class CommandHandler
                     }
                     finally
                     {
-                        x.IsNavigating = false;
                         if (hideProgressBar != null)
                             await hideProgressBar();
                     }
                 });
             }
-            finally
+            catch (Exception ex)
             {
-                // If Task.Delay or InvokeOnMainThreadAsync throws (e.g. app teardown), ensure UI state is cleared on main thread
+                logger.Error(ex, "View schedule failed before navigation for ScheduleId={ScheduleId}", x.Schedule?.Id);
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    x.IsNavigating = false;
                     if (hideProgressBar != null)
                         _ = hideProgressBar();
                 });

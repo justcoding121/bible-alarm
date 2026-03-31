@@ -200,6 +200,23 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             return;
         }
 
+        // StopAsyncInternal resets Status early (so IsPreparingOrPlaying is false) but then
+        // continues to dispose the old MediaElement asynchronously (MediaElementManager.ResetAsync
+        // has two 100ms waits). Without this wait, PrepareAsync receives the old MediaElement while
+        // its AVPlayer handler is still being disposed — resulting in objc_msgSend to a freed
+        // native object (EXC_BAD_ACCESS on iOS).
+        // stopLock is held for the entire StopAsyncInternal duration, including DisposeMediaElementAsync,
+        // so awaiting it here guarantees the old MediaElement is fully cleaned up before we proceed.
+        bool stopCompleted = await stopLock.WaitAsync(TimeSpan.FromSeconds(3));
+        if (stopCompleted)
+        {
+            stopLock.Release();
+        }
+        else
+        {
+            logger.Warning("PrepareAndPlayAsync: timed out waiting for in-progress stop to complete. Proceeding anyway.");
+        }
+
         try
         {
             stateManager.CurrentScheduleId = scheduleId;
@@ -451,7 +468,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         await operationHandler.SeekToAsync(position, stateManager.IsPreparingOrPlaying(audioPlayer));
     }
 
-    public async Task StopAsync() => await StopAsyncInternal(skipMarkAsPlayed: false);
+    public async Task StopAsync()
+    {
+        WeakReferenceMessenger.Default.Send(new PlaybackExplicitStopMessage());
+        await StopAsyncInternal(skipMarkAsPlayed: false);
+    }
 
     private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false, bool skipDispatchStopped = false)
     {
@@ -707,8 +728,17 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             (playlist, idx) => navigationManager.NotifyNavigationChanged(playlist, idx),
             PlayCurrentTrackAsync);
 
+    private bool isDisposed;
+
     public void Dispose()
     {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        isDisposed = true;
+
         stopLock.Dispose();
         progressTracker.Dispose();
 

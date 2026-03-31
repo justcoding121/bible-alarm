@@ -183,6 +183,17 @@ public class MaximizePlaybackMessage
 }
 
 /// <summary>
+/// Sent by PlaybackService.StopAsync() immediately before stopping playback.
+/// PlaybackModalService uses this to clear requestedShowModal and bypass the
+/// popGeneration guard, ensuring the modal always closes on an explicit user stop —
+/// even if the stop arrives while a schedule switch is in progress or before the
+/// new schedule has reached Playing state.
+/// </summary>
+public class PlaybackExplicitStopMessage
+{
+}
+
+/// <summary>
 /// Sent when a user-initiated action should show the playback modal (e.g. play button tap,
 /// alarm trigger, Android Auto / CarPlay list item tap, notification tap).
 /// When minimized and it's a different schedule, the modal opens only after the new schedule

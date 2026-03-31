@@ -186,8 +186,17 @@ public sealed class ProgressTracker : IDisposable
         }
     }
 
+    private bool isDisposed;
+
     public void Dispose()
     {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        isDisposed = true;
+
         if (progressSaveTimer is { } timer)
         {
             timer.Elapsed -= OnProgressSaveTimerElapsed;
