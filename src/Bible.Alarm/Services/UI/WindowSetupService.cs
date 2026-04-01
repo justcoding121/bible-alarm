@@ -139,8 +139,8 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     }
 
     /// <summary>
-    /// Sets the status bar icon/text color to match the current theme.
-    /// Light mode: dark icons. Dark mode: light icons.
+    /// Sets the status bar and navigation bar colors and icon appearance to match the current theme.
+    /// Light mode: dark icons on light backgrounds. Dark mode: light icons on dark backgrounds.
     /// </summary>
     private static void UpdateStatusBarAppearance()
     {
@@ -153,26 +153,34 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
             var window = activity?.Window;
             if (window != null)
             {
-                // Set status bar background to match page background (obsolete on API 35+; we skip via runtime check).
+                var barColor = isLightTheme
+                    ? ThemeColors.Background.Light
+                    : ThemeColors.Background.Dark;
+                var platformColor = barColor.ToPlatform();
+
 #pragma warning disable CA1422
                 if ((int)Android.OS.Build.VERSION.SdkInt < 35)
                 {
-                    var statusBarColor = isLightTheme
-                        ? ThemeColors.Background.Light
-                        : ThemeColors.Background.Dark;
-                    window.SetStatusBarColor(statusBarColor.ToPlatform());
+                    window.SetStatusBarColor(platformColor);
+                    window.SetNavigationBarColor(platformColor);
                 }
 #pragma warning restore CA1422
 
-                // Use WindowInsetsControllerCompat for reliable status bar icon appearance
+                // On API 35+ (edge-to-edge), status/navigation bars are transparent and show the
+                // window background behind them. Since ConfigChanges.UiMode prevents Activity recreation,
+                // the XML theme's windowBackground never reloads on theme change. Update it here so
+                // the area behind transparent system bars matches the current theme.
+                window.DecorView?.SetBackgroundColor(platformColor);
+
                 var decorView = window.DecorView;
                 if (decorView != null)
                 {
                     var controller = AndroidX.Core.View.WindowCompat.GetInsetsController(window, decorView);
                     if (controller != null)
                     {
-                        // AppearanceLightStatusBars = true means dark icons (for light backgrounds)
+                        // true = dark icons (for light backgrounds), false = light icons (for dark backgrounds)
                         controller.AppearanceLightStatusBars = isLightTheme;
+                        controller.AppearanceLightNavigationBars = isLightTheme;
                     }
                 }
             }

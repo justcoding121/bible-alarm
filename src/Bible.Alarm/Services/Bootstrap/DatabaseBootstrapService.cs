@@ -61,23 +61,11 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         var oldDbPath2 = System.IO.Path.Combine(dbDirectory, "bibleAlarm2.db");
         await DeleteOldDatabaseFilesAsync(oldDbPath2, "old Schedule database (bibleAlarm2.db)");
 
-        // Delete version.dat files in multiple possible locations (legacy, no longer used)
-        // The app previously used version.dat for version tracking, but now uses Preferences only
-        // Check in database directory (same location as database file)
-        var versionDatPath1 = System.IO.Path.Combine(dbDirectory, "version.dat");
-        await DeleteLegacyFileAsync(versionDatPath1, "version.dat (database directory)");
-
-        // Check in storage root directory
-        var versionDatPath2 = System.IO.Path.Combine(storageRoot, "version.dat");
-        await DeleteLegacyFileAsync(versionDatPath2, "version.dat (storage root)");
-
-        // Check in Data subdirectory (Windows stores it here for backward compatibility)
-        var dataSubDir = System.IO.Path.Combine(storageRoot, "Data");
-        if (System.IO.Directory.Exists(dataSubDir))
-        {
-            var versionDatPath3 = System.IO.Path.Combine(dataSubDir, "version.dat");
-            await DeleteLegacyFileAsync(versionDatPath3, "version.dat (Data subdirectory)");
-        }
+        // version.dat files are NOT deleted here — MediaIndexVersionService still uses them as
+        // a fallback when Preferences are unavailable (e.g. iOS evicted NSUserDefaults).
+        // Deleting them here would race with the parallel MediaIndexService.Verify() call and
+        // could cause the media index to be re-extracted unnecessarily, triggering orphan cleanup
+        // that deletes user schedules.
 
         // Check if new database file exists
         var dbExists = System.IO.File.Exists(dbPath);

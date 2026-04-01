@@ -24,10 +24,11 @@ internal sealed class ScheduleMediaBootstrapFetcher(
 {
     private const string SpanishLanguageCode = "S";
 
-    private record ScheduleMediaReference(
+    internal record ScheduleMediaReference(
         string PublicationCode,
         string LanguageCode,
-        string? SectionCode);
+        string? SectionCode,
+        string? TrackCode);
 
     /// <summary>
     /// Fetches only for refs whose pub (and section when present) are in discovery tables.
@@ -130,7 +131,7 @@ internal sealed class ScheduleMediaBootstrapFetcher(
         logger.Information("Schedule media bootstrap fetch completed");
     }
 
-    private static async Task<List<ScheduleMediaReference>> ReadNonEnglishSpanishReferencesAsync(
+    internal static async Task<List<ScheduleMediaReference>> ReadNonEnglishSpanishReferencesAsync(
         string scheduleDbPath)
     {
         var references = new List<ScheduleMediaReference>();
@@ -139,11 +140,11 @@ internal sealed class ScheduleMediaBootstrapFetcher(
 
         using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT DISTINCT PublicationCode, LanguageCode, SectionCode
+            SELECT DISTINCT PublicationCode, LanguageCode, SectionCode, TrackCode
             FROM BiblePublicationSchedules
             WHERE LanguageCode IS NOT NULL AND LanguageCode NOT IN (@e, @s)
             UNION
-            SELECT DISTINCT PublicationCode, LanguageCode, SectionCode
+            SELECT DISTINCT PublicationCode, LanguageCode, SectionCode, TrackCode
             FROM AlarmMusic
             WHERE LanguageCode IS NOT NULL AND LanguageCode NOT IN (@e, @s)
             """;
@@ -156,7 +157,8 @@ internal sealed class ScheduleMediaBootstrapFetcher(
             references.Add(new ScheduleMediaReference(
                 reader.GetString(0),
                 reader.GetString(1),
-                reader.IsDBNull(2) ? null : reader.GetString(2)));
+                reader.IsDBNull(2) ? null : reader.GetString(2),
+                reader.IsDBNull(3) ? null : reader.GetString(3)));
         }
 
         return references;
@@ -166,7 +168,7 @@ internal sealed class ScheduleMediaBootstrapFetcher(
     /// Keeps only refs whose pub is in PublicationLanguages and (when section present) section is in SectionLanguages.
     /// Discovery tables include all languages (E/S and others).
     /// </summary>
-    private static async Task<List<ScheduleMediaReference>> FilterToValidPubAndSectionInDiscoveryAsync(
+    internal static async Task<List<ScheduleMediaReference>> FilterToValidPubAndSectionInDiscoveryAsync(
         string mediaIndexDbPath,
         List<ScheduleMediaReference> references)
     {
@@ -193,7 +195,7 @@ internal sealed class ScheduleMediaBootstrapFetcher(
         return filtered;
     }
 
-    private static async Task<bool> PublicationExistsInDiscoveryAsync(
+    internal static async Task<bool> PublicationExistsInDiscoveryAsync(
         SqliteConnection connection,
         string pubCode,
         string langCode)
@@ -209,7 +211,7 @@ internal sealed class ScheduleMediaBootstrapFetcher(
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
     }
 
-    private static async Task<bool> SectionExistsInDiscoveryAsync(
+    internal static async Task<bool> SectionExistsInDiscoveryAsync(
         SqliteConnection connection,
         string pubCode,
         string sectionCode,

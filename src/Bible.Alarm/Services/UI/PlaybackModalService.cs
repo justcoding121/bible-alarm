@@ -254,6 +254,7 @@ public sealed class PlaybackModalService :
                 // while the modal page is being prepared and pushed.
                 // Hidden again once the modal is on screen.
                 navigationService.SetMiniBarVisible(true);
+                await Task.Delay(150);
                 await navigationService.OpenPlaybackModalAsync();
                 isModalOpen = true;
                 isMinimized = false;

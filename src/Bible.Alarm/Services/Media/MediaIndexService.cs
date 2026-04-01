@@ -125,7 +125,7 @@ public sealed class MediaIndexService(
             wasIndexReplacedThisRun = true;
             CloseMediaDbContextConnections();
 
-            // Rename old DB so we know a version update occurred (MigrateNonEnglishDataIfNeededAsync deletes it without reading).
+            // Rename old DB so MigrateNonEnglishDataIfNeededAsync can copy data from it before deleting.
             // Auxiliary files are renamed alongside the main DB so SQLite can recover WAL data.
             await fileOperationRetryPolicy.ExecuteAsync(async () =>
             {
@@ -143,8 +143,11 @@ public sealed class MediaIndexService(
     }
 
     /// <summary>
-    /// Runs only on version change (new media index was just copied and overwritten). Runs ad-hoc
-    /// non-EnglishSpanish fetch first for valid pubs, then comparison/cleanup of schedule/alarm music.
+    /// Runs only on version change (new media index was just copied and overwritten).
+    /// 1. Copy critical refs from old DB (primary, no network needed).
+    /// 2. API fetch fallback for remaining critical refs.
+    /// 3. Orphan cleanup (safety net).
+    /// 4. Fire-and-forget background copy of remaining sections/tracks, then delete old DB.
     /// </summary>
     public async Task MigrateNonEnglishDataIfNeededAsync()
     {
@@ -157,10 +160,16 @@ public sealed class MediaIndexService(
         var newMediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
         var scheduleDbPath = Path.Combine(IndexRoot, AppConstants.Database.ScheduleDatabaseFileName);
 
-        CleanupOldMediaIndex();
+        try
+        {
+            var copier = new OldMediaIndexDataCopier(logger);
+            await copier.CopyMissingAsync(oldMediaIndexDbPath, newMediaIndexDbPath, scheduleDbPath);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Old media index data copy failed (partially or fully)");
+        }
 
-        // Ad-hoc fetch first for non-EnglishSpanish (valid pubs only), so the new index has more data.
-        // Then run comparison/cleanup so we evaluate against a fuller index.
         try
         {
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
@@ -179,8 +188,25 @@ public sealed class MediaIndexService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to cleanup orphaned schedules (comparison against fetched tables)");
+            logger.Error(ex, "Failed to cleanup orphaned schedules");
         }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var bgCopier = new OldMediaIndexBackgroundCopier(logger);
+                await bgCopier.CopyRemainingDataAsync(oldMediaIndexDbPath, newMediaIndexDbPath, scheduleDbPath);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Background copy of remaining media data failed");
+            }
+            finally
+            {
+                CleanupOldMediaIndex();
+            }
+        });
     }
 
     private string GetOldMediaIndexPath()
