@@ -14,4 +14,12 @@ public interface IPlaybackModalService : IDisposable
     Task<bool> ShowPlaybackModalIfNeededOnWindowCreationAsync();
 
     bool IsMinimized { get; }
+
+    /// <summary>
+    /// True when the playback modal is on screen OR a show request is pending (modal about to open).
+    /// Used to defer home-list reordering until the modal covers the list.
+    /// </summary>
+    bool IsModalOpenOrPending { get; }
+
+    bool WasRecentlyMinimized();
 }

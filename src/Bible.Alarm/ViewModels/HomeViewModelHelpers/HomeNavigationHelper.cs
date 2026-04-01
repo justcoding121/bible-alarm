@@ -30,6 +30,7 @@ public class HomeNavigationHelper
     private readonly ILogger logger;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
+    private readonly IPlaybackModalService playbackModalService;
     private readonly IState<PlaybackState> playbackState;
     private readonly IServiceProvider serviceProvider;
     private readonly IMapper mapper;
@@ -42,6 +43,7 @@ public class HomeNavigationHelper
         ILogger logger,
         IDispatcher dispatcher,
         INavigationService navigationService,
+        IPlaybackModalService playbackModalService,
         IState<PlaybackState> playbackState,
         IServiceProvider serviceProvider,
         IMapper mapper)
@@ -49,6 +51,7 @@ public class HomeNavigationHelper
         this.logger = logger;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
+        this.playbackModalService = playbackModalService;
         this.playbackState = playbackState;
         this.serviceProvider = serviceProvider;
         this.mapper = mapper;
@@ -62,6 +65,12 @@ public class HomeNavigationHelper
             navigationService.IsPlaybackModalOnScreen())
         {
             logger.Debug("ViewScheduleCommand: Skipping navigation - playback modal is on screen for schedule {ScheduleId}", scheduleId);
+            return true;
+        }
+
+        if (playbackModalService.WasRecentlyMinimized())
+        {
+            logger.Debug("ViewScheduleCommand: Skipping navigation - playback was recently minimized (ghost tap guard)");
             return true;
         }
 

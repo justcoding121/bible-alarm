@@ -108,16 +108,6 @@ public sealed class NavigationService(
         }
     }
 
-    /// <summary>
-    /// Sets Home page visibility based on playback state.
-    /// If playback is active, hides Home to prevent visual flash before alarm modal appears.
-    /// </summary>
-    public void SetHomePageVisibility(bool isPlaybackActive)
-    {
-        var homePage = GetCurrentHomePage();
-        homeHandler.SetHomePageVisibility(homePage, isPlaybackActive);
-    }
-
     public async Task NavigateToScheduleAsync()
     {
         Views.Schedule.Schedule? page = null;
@@ -293,15 +283,10 @@ public sealed class NavigationService(
         await modalHandler.OpenCategoryModalAsync(navigation, bindingContext);
     }
 
-    public async Task OpenPlaybackModalAsync()
-    {
-        await OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
-    }
-
-    public async Task OpenPlaybackModalAsync(bool revealHomeBehindModalOnLoad, bool animated = false)
+    public async Task OpenPlaybackModalAsync(bool animated = false)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenPlaybackModalAsync(navigation, revealHomeBehindModalOnLoad, animated);
+        await modalHandler.OpenPlaybackModalAsync(navigation, animated);
     }
 
     public bool IsPlaybackModalOnScreen()

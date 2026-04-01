@@ -26,6 +26,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     private bool isDisposed;
     private TimeSpan currentDuration = TimeSpan.Zero;
     private bool isStopping;
+    private int? stoppingScheduleId;
     private bool isLandscape;
     private bool areLandscapeOverlayControlsVisible = true;
 
@@ -55,7 +56,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     public ICommand SeekCommand { get; set; }
     public ICommand RetryCommand { get; set; }
 
-    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IGeneralSettingsService generalSettingsService)
+    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IGeneralSettingsService generalSettingsService, IAudioPlayer audioPlayer)
     {
         this.logger = logger;
         this.playbackService = playbackService;
@@ -154,6 +155,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
         // Initialize from current state
         UpdateFromState();
+        InitializePositionFromAudioPlayer(audioPlayer);
         AlarmViewModelAutoDisposeMonitor.Start(playbackState, () => isDisposed, Dispose);
     }
 
@@ -243,6 +245,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     {
         if (SetProperty(ref isStopping, true, nameof(IsStopping)))
         {
+            stoppingScheduleId = playbackState.Value.CurrentScheduleId;
             OnPropertyChanged(nameof(ShowPreparingProgress));
             OnPropertyChanged(nameof(ShowPreparingCard));
             OnPropertyChanged(nameof(ShowPlaybackControls));
@@ -250,6 +253,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             OnPropertyChanged(nameof(AreControlsEnabled));
             OnPropertyChanged(nameof(IsBuffering));
             OnPropertyChanged(nameof(IsStopButtonEnabled));
+            OnPropertyChanged(nameof(IsShowProgressBarAnimation));
         }
     }
 
@@ -608,6 +612,23 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     private bool isTrackChangeBusy;
     private bool hasSeenTrackTransition;
 
+    /// <summary>
+    /// Syncs the slider and current-time label with the audio player's position.
+    /// Called once during construction so the modal shows the correct progress
+    /// when re-opened after being minimized while paused (no position messages
+    /// are sent while paused, so without this the slider would start at 0%).
+    /// </summary>
+    private void InitializePositionFromAudioPlayer(IAudioPlayer audioPlayer)
+    {
+        var position = audioPlayer.CurrentPosition;
+        var duration = audioPlayer.Duration;
+        if (position.HasValue && duration > TimeSpan.Zero)
+        {
+            CurrentTime = PositionManager.FormatTime(position.Value);
+            SetProgressDirectly(position.Value.TotalSeconds / duration.TotalSeconds);
+        }
+    }
+
     private void OnPlaybackStateChanged(object? sender, EventArgs e) => UpdateFromState();
 
     private void UpdateFromState()
@@ -618,13 +639,17 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
             if (isStopping)
             {
-                // A new schedule has started loading after the schedule switch — exit stopping state
-                // so the modal can display the new schedule's content. The old schedule reaches
-                // Stopped (CurrentScheduleId = null) before the new schedule reaches Loading, so
-                // this guard only fires when the new session is genuinely underway.
-                if (state.Status == PlayStatus.Loading && state.CurrentScheduleId.HasValue)
+                // Only exit stopping state when a genuinely different schedule starts loading
+                // (schedule switch). During an explicit dismiss, the MediaElement teardown can
+                // produce intermediate Buffering→Loading states for the SAME schedule before
+                // PlaybackStoppedAction clears CurrentScheduleId. Comparing against
+                // stoppingScheduleId prevents those intermediate states from re-enabling controls.
+                if (state.Status == PlayStatus.Loading
+                    && state.CurrentScheduleId.HasValue
+                    && state.CurrentScheduleId != stoppingScheduleId)
                 {
                     isStopping = false;
+                    stoppingScheduleId = null;
                     OnPropertyChanged(nameof(IsStopping));
                     OnPropertyChanged(nameof(ShowPreparingProgress));
                     OnPropertyChanged(nameof(ShowPreparingCard));
@@ -633,6 +658,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                     OnPropertyChanged(nameof(AreControlsEnabled));
                     OnPropertyChanged(nameof(IsBuffering));
                     OnPropertyChanged(nameof(IsStopButtonEnabled));
+                    OnPropertyChanged(nameof(IsShowProgressBarAnimation));
                 }
                 else
                 {
@@ -776,13 +802,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     }
 
 
-    /// <summary>Shows Home page (opacity=1). Called when Playback Modal is fully rendered.</summary>
-    public void HideHomePageOverlay() => navigationService.SetHomePageVisibility(isPlaybackActive: false);
-
     public int? CurrentScheduleId => playbackState.Value.CurrentScheduleId;
-
-    /// <summary>When true, reveal Home behind modal after render; when false, Home stays hidden.</summary>
-    public bool RevealHomeBehindModalOnLoad { get; set; } = true;
 
     public void Dispose()
     {

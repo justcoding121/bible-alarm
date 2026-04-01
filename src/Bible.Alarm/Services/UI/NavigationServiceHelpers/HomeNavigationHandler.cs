@@ -205,29 +205,5 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         }
     }
 
-    /// <summary>
-    /// Ensures Home page is fully visible.
-    /// With PushAsync navigation, the NavigationPage handles page visibility automatically,
-    /// so this only needs to reset opacity if it was previously set to 0.
-    /// </summary>
-    public void SetHomePageVisibility(Home? homePage, bool isPlaybackActive)
-    {
-        if (homePage == null)
-        {
-            return;
-        }
-
-        if (homePage.Opacity < 1.0)
-        {
-            if (MainThread.IsMainThread)
-            {
-                homePage.Opacity = 1.0;
-            }
-            else
-            {
-                MainThread.BeginInvokeOnMainThread(() => homePage.Opacity = 1.0);
-            }
-        }
-    }
 
 }

@@ -49,6 +49,7 @@ public sealed class ScheduleListItemViewModel(
     private bool isBusy;
     private bool isProcessingStateChange;
     private volatile bool isPlayCommandRunning;
+    private volatile bool isShowModalPending;
     private CancellationTokenSource? spinnerTimeoutCts;
     private Action? onPlayStarted;
     private Action? onPlaybackStarted;
@@ -148,7 +149,6 @@ public sealed class ScheduleListItemViewModel(
         WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<RequestShowPlaybackModalMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlaybackModalOpenedMessage>(this);
-        WeakReferenceMessenger.Default.Unregister<MinimizePlaybackMessage>(this);
 
         // Subscribe to ApplicationState changes to react when this schedule is updated
         applicationState.StateChanged += OnApplicationStateChanged;
@@ -180,14 +180,11 @@ public sealed class ScheduleListItemViewModel(
         // for this schedule, show the busy spinner so the user has immediate feedback.
         WeakReferenceMessenger.Default.Register<RequestShowPlaybackModalMessage>(this, (r, m) => OnRequestShowPlaybackModal(m));
 
-        // Clear the spinner as soon as the playback modal is confirmed on screen.
-        // This covers all paths: direct tap, car listing, alarm, and maximizing from minimized state.
+        // Clear the spinner when the playback modal is loaded and rendered on screen.
+        // This is the only place the spinner is cleared during normal operation.
+        // Fallback: SyncIsBusyWithPlaybackState clears the spinner if playback ends without
+        // the modal ever opening (e.g. error/toast), and the timeout covers stuck states.
         WeakReferenceMessenger.Default.Register<PlaybackModalOpenedMessage>(this, (r, m) => SetIsBusy(false));
-
-        // When the modal is minimized the home page becomes visible again while playback is
-        // still active (IsPreparingOrPlaying stays true). Clear the spinner immediately so
-        // the user does not see it spinning on the now-visible play button.
-        WeakReferenceMessenger.Default.Register<MinimizePlaybackMessage>(this, (r, m) => SetIsBusy(false));
 
         PlayCommand ??= new AsyncRelayCommand(async () =>
         {
@@ -197,13 +194,10 @@ public sealed class ScheduleListItemViewModel(
             }
 
             isPlayCommandRunning = true;
+            IsBusy = true;
+            StartSpinnerTimeout();
             try
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    IsBusy = true;
-                    StartSpinnerTimeout();
-                });
                 await Task.Delay(50);
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
@@ -605,6 +599,7 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
+        isShowModalPending = true;
         MainThread.BeginInvokeOnMainThread(() =>
         {
             if (!isBusy)
@@ -655,63 +650,38 @@ public sealed class ScheduleListItemViewModel(
     }
 
     /// <summary>
-    /// Syncs IsBusy (play icon spinner) with playback state.
+    /// Error/end fallback for the play-button spinner.
     ///
-    /// Design principle: the spinner is tied to the playback lifecycle, not to when the modal
-    /// is pushed. The home page is visually covered by the modal for the entire duration that
-    /// playback is active, so keeping the spinner true while Playing is harmless (hidden behind
-    /// the modal). The spinner clears when playback ends — which happens at or before the moment
-    /// the home page is revealed from behind the modal — ensuring the user always sees a clean
-    /// idle state when the home page becomes visible again. This avoids any flash between the
-    /// Loading→Playing transition and the modal's visual appearance on screen, because the
-    /// PushAsync completion does not guarantee the modal page has been composited/rendered yet.
+    /// Normal path: PlaybackModalOpenedMessage (from PlaybackModal.Loaded) clears the spinner.
+    /// This method only clears the spinner when the modal will never open — i.e. playback
+    /// ended or failed before the modal could be pushed.
     ///
-    /// Clears when:
-    ///   (1) our schedule reaches a terminal state (Stopped/Failed/Ended with CurrentScheduleId set)
-    ///   (2) CurrentScheduleId becomes null after the play command has completed (genuine end)
-    ///   (3) a different schedule is definitively active and isPlayCommandRunning is false
-    ///   (4) 15-second timeout fires
-    ///
-    /// Gap protection: while isPlayCommandRunning is true (PlayCommand in flight), only clears
-    /// when a different schedule is ACTIVELY loading/playing — this prevents a false clear during
-    /// the brief window when the old schedule stops before the new schedule (ours) starts loading.
+    /// Gap protection: while isPlayCommandRunning is true the old schedule may briefly stop
+    /// before the new one starts loading. Never clear during this transient gap.
     /// </summary>
     private void SyncIsBusyWithPlaybackState()
     {
-        var scheduleId = ScheduleId;
-        if (scheduleId <= 0 || !isBusy)
+        if (ScheduleId <= 0 || !isBusy)
+        {
+            return;
+        }
+
+        // While PlayCommand or a show-modal request is in flight, never clear —
+        // gap protection during schedule switches (home-page play and car/alarm/external play).
+        if (isPlayCommandRunning || isShowModalPending)
         {
             return;
         }
 
         var state = playbackState.Value;
 
-        if (isPlayCommandRunning)
-        {
-            // While PlayCommand is in flight protect against the gap during schedule switches:
-            // the old schedule stops (CurrentScheduleId might be null or the old id, Status = Stopped)
-            // before our schedule starts loading. Only clear if another schedule is definitively
-            // active (loading or playing), never on a transient Stopped/null state.
-            if (state.CurrentScheduleId.HasValue &&
-                state.CurrentScheduleId != scheduleId &&
-                state.IsPreparingOrPlaying)
-            {
-                SetIsBusy(false);
-            }
-
-            return;
-        }
-
-        // PlayCommand has completed (or play was initiated externally via car/alarm).
-        // Keep the spinner alive while our schedule is still actively loading or playing.
-        // The modal covers the home page during this window, so the spinner being true is safe.
-        // The spinner clears naturally when playback ends (Status transitions out of Loading/Playing/Paused),
-        // which is synchronized with the modal closing and the home page being revealed.
-        if (state.CurrentScheduleId == scheduleId && state.IsPreparingOrPlaying)
+        // Our schedule is actively loading/playing — the modal will open and clear the spinner.
+        if (state.CurrentScheduleId == ScheduleId && state.IsPreparingOrPlaying)
         {
             return;
         }
 
+        // Playback ended or failed, or a different schedule took over. Modal won't open for us.
         SetIsBusy(false);
     }
 
@@ -725,6 +695,7 @@ public sealed class ScheduleListItemViewModel(
         if (!value)
         {
             CancelSpinnerTimeout();
+            isShowModalPending = false;
         }
 
         if (MainThread.IsMainThread)
@@ -794,6 +765,5 @@ public sealed class ScheduleListItemViewModel(
         WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<RequestShowPlaybackModalMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlaybackModalOpenedMessage>(this);
-        WeakReferenceMessenger.Default.Unregister<MinimizePlaybackMessage>(this);
     }
 }

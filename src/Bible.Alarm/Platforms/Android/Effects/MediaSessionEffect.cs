@@ -156,6 +156,27 @@ public class MediaSessionEffect(
                     mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
                 }
             }
+            else if (action.Status == PlayStatus.Paused)
+            {
+                var currentState2 = playbackState.Value;
+                if (currentState2.IsAutoAdvancing || currentState2.IsTransitioningTrack)
+                {
+                    logger.Information(
+                        "[AndroidAuto] Paused status during track transition: keeping Playing state to prevent play button flash (IsAutoAdvancing={IsAutoAdvancing}, IsTransitioningTrack={IsTransitioningTrack})",
+                        currentState2.IsAutoAdvancing,
+                        currentState2.IsTransitioningTrack);
+                    mediaSessionManager.SetPlaybackStatus(PlayStatus.Playing, canPlayNext: true, canPlayPrevious: true);
+                }
+                else
+                {
+                    logger.Information(
+                        "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+                        action.Status,
+                        true,
+                        true);
+                    mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext: true, canPlayPrevious: true);
+                }
+            }
             else
             {
                 // Next/Previous are always enabled.

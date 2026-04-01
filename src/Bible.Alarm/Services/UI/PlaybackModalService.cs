@@ -27,8 +27,16 @@ public sealed class PlaybackModalService :
     private volatile bool requestedShowModal;
     private int? targetScheduleId;
     private bool bypassPopGenerationGuard;
+    private DateTime lastMinimizedAtUtc;
+
+    private const int MinimizeCooldownMs = 500;
 
     public bool IsMinimized => isMinimized;
+
+    public bool IsModalOpenOrPending => isModalOpen || requestedShowModal;
+
+    public bool WasRecentlyMinimized() =>
+        isMinimized && (DateTime.UtcNow - lastMinimizedAtUtc).TotalMilliseconds < MinimizeCooldownMs;
 
     public PlaybackModalService(
         ILogger logger,
@@ -55,6 +63,7 @@ public sealed class PlaybackModalService :
         requestedShowModal = false;
         targetScheduleId = null;
         bypassPopGenerationGuard = false;
+        navigationService.SetMiniBarVisible(false);
         playbackState.StateChanged += OnPlaybackStateChanged;
         logger.Information("SubscribeToPlaybackStateChanges: Subscribed, isModalOpen reset to false");
     }
@@ -139,6 +148,7 @@ public sealed class PlaybackModalService :
             {
                 logger.Information("Minimizing playback modal");
                 isMinimized = true;
+                lastMinimizedAtUtc = DateTime.UtcNow;
                 requestedShowModal = false;
                 targetScheduleId = null;
 
@@ -149,6 +159,12 @@ public sealed class PlaybackModalService :
                 }
 
                 navigationService.SetMiniBarVisible(true);
+
+                // Playback session is now established via the mini bar. Clear any list-item
+                // spinners that are waiting for PlaybackModalOpenedMessage — the modal won't
+                // re-open (or was already open during a schedule switch), so this is the
+                // only signal they will receive.
+                WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
             }
             catch (Exception ex)
             {
@@ -169,14 +185,12 @@ public sealed class PlaybackModalService :
 
                 if (!isModalOpen)
                 {
-                    await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true, animated: false);
+                    await navigationService.OpenPlaybackModalAsync(animated: false);
                     isModalOpen = true;
                 }
 
+                // PlaybackModal.Loaded will send PlaybackModalOpenedMessage
                 navigationService.SetMiniBarVisible(false);
-
-                // Modal is now on screen — tell list rows to clear their play-button spinners.
-                WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
             }
             catch (Exception ex)
             {
@@ -224,7 +238,6 @@ public sealed class PlaybackModalService :
 
                 if (!shouldShow)
                 {
-                    navigationService.SetHomePageVisibility(isPlaybackActive: false);
                     return;
                 }
 
@@ -237,16 +250,20 @@ public sealed class PlaybackModalService :
                 await WaitForWindowReadyAsync();
 #endif
 
-                await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: false);
+                // Show mini bar immediately so the home page reflects active playback
+                // while the modal page is being prepared and pushed.
+                // Hidden again once the modal is on screen.
+                navigationService.SetMiniBarVisible(true);
+                await navigationService.OpenPlaybackModalAsync();
                 isModalOpen = true;
                 isMinimized = false;
+                navigationService.SetMiniBarVisible(false);
                 modalWasShown = true;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error showing PlaybackModal during window creation");
                 isModalOpen = false;
-                navigationService.SetHomePageVisibility(isPlaybackActive: false);
             }
         });
 
@@ -410,6 +427,11 @@ public sealed class PlaybackModalService :
             if (state.Status == PlayStatus.Playing && requestedShowModal)
             {
                 requestedShowModal = false;
+
+                // The modal was already open so PlaybackModal.Loaded never fires again.
+                // Broadcast PlaybackModalOpenedMessage so list-item spinners that set
+                // isShowModalPending=true during the switch are cleared immediately.
+                WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
             }
         }
 
@@ -426,6 +448,7 @@ public sealed class PlaybackModalService :
 
                 isModalOpen = true;
                 isMinimized = false;
+                navigationService.SetMiniBarVisible(false);
 
                 try
                 {
@@ -434,7 +457,7 @@ public sealed class PlaybackModalService :
                         state.Status);
 
                     await Task.Delay(100);
-                    await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
+                    await navigationService.OpenPlaybackModalAsync();
 
 #if IOS
                     if (!navigationService.IsPlaybackModalOnScreen())
@@ -447,13 +470,12 @@ public sealed class PlaybackModalService :
                             var currentState = playbackState.Value;
                             if (IsActiveUiPlaybackStatus(currentState.Status))
                             {
-                                await navigationService.OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
+                                await navigationService.OpenPlaybackModalAsync();
 
                                 if (!navigationService.IsPlaybackModalOnScreen())
                                 {
                                     logger.Error("PlaybackModal push failed again after waiting for window ready");
                                     isModalOpen = false;
-                                    navigationService.SetHomePageVisibility(isPlaybackActive: false);
                                     return;
                                 }
                             }
@@ -472,21 +494,20 @@ public sealed class PlaybackModalService :
                         }
                     }
 #endif
-                    // Modal is now on screen — tell list rows to clear their play-button spinners.
-                    WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
+                    // PlaybackModal.Loaded will send PlaybackModalOpenedMessage
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "Error showing PlaybackModal");
                     isModalOpen = false;
-                    navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 }
             }),
             false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
             false when isMinimized => HideMiniBarOnMainThreadAsync(),
             false when !isModalOpen && !isMinimized => MainThread.InvokeOnMainThreadAsync(() =>
             {
-                navigationService.SetHomePageVisibility(isPlaybackActive: false);
+                requestedShowModal = false;
+                targetScheduleId = null;
                 return Task.CompletedTask;
             }),
             _ => Task.CompletedTask
@@ -518,7 +539,7 @@ public sealed class PlaybackModalService :
 
                 requestedShowModal = false;
                 targetScheduleId = null;
-                navigationService.SetHomePageVisibility(isPlaybackActive: false);
+                navigationService.SetMiniBarVisible(false);
                 await navigationService.PopPlaybackPageAsync();
                 isModalOpen = false;
                 isMinimized = false;
@@ -549,7 +570,6 @@ public sealed class PlaybackModalService :
                 requestedShowModal = false;
                 targetScheduleId = null;
                 navigationService.SetMiniBarVisible(false);
-                navigationService.SetHomePageVisibility(isPlaybackActive: false);
                 isMinimized = false;
             }
             catch (Exception ex)

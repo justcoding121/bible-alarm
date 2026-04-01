@@ -116,6 +116,20 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                     return Task.CompletedTask;
                 }
             }
+            else if (action.Status == PlayStatus.Paused)
+            {
+                var currentState2 = playbackState.Value;
+                if (currentState2.IsAutoAdvancing || currentState2.IsTransitioningTrack)
+                {
+                    logger.Information(
+                        "[iOS MediaSession] Paused during track transition: keeping Playing rate to prevent CarPlay play button flash (IsAutoAdvancing={IsAutoAdvancing}, IsTransitioningTrack={IsTransitioningTrack})",
+                        currentState2.IsAutoAdvancing,
+                        currentState2.IsTransitioningTrack);
+                    nowPlayingManager.UpdatePlaybackStatus(PlayStatus.Playing);
+                    lastKnownStatus = PlayStatus.Playing;
+                    return Task.CompletedTask;
+                }
+            }
 
             lastKnownStatus = action.Status;
             nowPlayingManager.UpdatePlaybackStatus(action.Status);

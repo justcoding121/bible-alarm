@@ -1,7 +1,9 @@
 #nullable enable
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm.Views.General;
@@ -99,7 +101,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         ViewModel?.NotifyLandscapeInteraction();
     }
 
-    private void OnPageLoaded(object? sender, EventArgs e)
+    private async void OnPageLoaded(object? sender, EventArgs e)
     {
         if (hasHandledFirstLoad)
         {
@@ -126,9 +128,11 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         ForceIOSLayoutMeasurement();
 #endif
 
-        if (ViewModel?.RevealHomeBehindModalOnLoad == true)
+        await Task.Delay(1000);
+
+        if (!isDisposed)
         {
-            viewModel?.HideHomePageOverlay();
+            WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
         }
     }
 

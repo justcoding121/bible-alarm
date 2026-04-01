@@ -105,10 +105,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     private const uint PlaybackModalAnimationDurationMs = 300;
 
-    public Task OpenPlaybackModalAsync(INavigation navigation) =>
-        OpenPlaybackModalAsync(navigation, revealHomeBehindModalOnLoad: true);
-
-    public async Task OpenPlaybackModalAsync(INavigation navigation, bool revealHomeBehindModalOnLoad, bool animated = false)
+    public async Task OpenPlaybackModalAsync(INavigation navigation, bool animated = false)
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
@@ -120,10 +117,6 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
                 }
 
                 var modal = serviceProvider.GetRequiredService<PlaybackModal>();
-                if (modal.ViewModel != null)
-                {
-                    modal.ViewModel.RevealHomeBehindModalOnLoad = revealHomeBehindModalOnLoad;
-                }
                 NavigationPage.SetHasNavigationBar(modal, false);
 
                 if (animated)

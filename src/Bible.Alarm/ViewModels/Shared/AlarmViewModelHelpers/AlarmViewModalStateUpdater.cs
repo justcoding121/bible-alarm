@@ -190,7 +190,8 @@ public class AlarmViewModalStateUpdater
         setErrorMessage(state.ErrorMessage ?? "");
 
         var isPlaying = state.Status == PlayStatus.Playing ||
-                        (state.IsAutoAdvancing && state.Status != PlayStatus.Paused);
+                        state.IsAutoAdvancing ||
+                        state.IsTransitioningTrack;
         setPlayVisible(!isPlaying);
         setPauseVisible(isPlaying);
 

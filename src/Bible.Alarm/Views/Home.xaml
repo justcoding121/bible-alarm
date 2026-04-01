@@ -513,16 +513,25 @@
                                               HorizontalOptions="Fill"
                                               VerticalOptions="Start"
                                               Spacing="{StaticResource PaddingSmall}">
-                                            <!-- 1. Schedule name (hidden when empty to avoid reserving space) -->
-                                            <Label Margin="{DynamicResource MarginThickness0}"
-                                                   HorizontalOptions="Fill"
-                                                   HorizontalTextAlignment="Start"
-                                                   FontSize="{DynamicResource LargeFontSize}"
-                                                   FontAttributes="Bold"
-                                                   Text="{Binding Name}"
-                                                   TextColor="{DynamicResource TextPrimaryColor}"
-                                                   LineBreakMode="WordWrap"
-                                                   IsVisible="{Binding Name, Converter={StaticResource isStringNotEmptyConverter}}" />
+                                            <!-- 1. Schedule name + music indicator (♫ shown when music enabled; row collapses when both hidden) -->
+                                            <HorizontalStackLayout Margin="{DynamicResource MarginThickness0}"
+                                                   HorizontalOptions="Start"
+                                                   VerticalOptions="Start"
+                                                   Spacing="{StaticResource SpacingSmall}">
+                                                <Label FontSize="{DynamicResource LargeFontSize}"
+                                                       FontAttributes="Bold"
+                                                       Text="{Binding Name}"
+                                                       TextColor="{DynamicResource TextPrimaryColor}"
+                                                       LineBreakMode="WordWrap"
+                                                       VerticalOptions="Center"
+                                                       IsVisible="{Binding Name, Converter={StaticResource isStringNotEmptyConverter}}" />
+                                                <Label FontSize="{DynamicResource LargeFontSize}"
+                                                       Text="♫"
+                                                       TextColor="{DynamicResource TextPrimaryColor}"
+                                                       VerticalOptions="Center"
+                                                       IsVisible="{Binding MusicEnabled, Mode=OneWay}"
+                                                       InputTransparent="True" />
+                                            </HorizontalStackLayout>
                                             <!-- 1b. Category name (hidden when same as schedule name) -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
@@ -568,25 +577,16 @@
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
                                                    IsVisible="{Binding ShouldShowBiblePublicationTrackNameLine}" />
-                                            <!-- 6. Language Name with optional music indicator -->
-                                            <HorizontalStackLayout Margin="{DynamicResource MarginThickness0}"
+                                            <!-- 6. Language Name (hidden when both Language and Music are empty) -->
+                                            <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Start"
+                                                   HorizontalTextAlignment="Start"
+                                                   FontSize="{DynamicResource StandardFontSize}"
+                                                   Text="{Binding Language}"
+                                                   TextColor="{DynamicResource TextPrimaryColor}"
+                                                   IsVisible="{Binding ShouldShowLanguageOrMusicLine}"
                                                    VerticalOptions="Start"
-                                                   Spacing="{StaticResource SpacingSmall}"
-                                                   IsVisible="{Binding ShouldShowLanguageOrMusicLine}">
-                                                <Label FontSize="{DynamicResource StandardFontSize}"
-                                                       Text="{Binding Language}"
-                                                       TextColor="{DynamicResource TextPrimaryColor}"
-                                                       IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
-                                                       VerticalOptions="Center"
-                                                       LineBreakMode="NoWrap" />
-                                                <Label FontSize="{DynamicResource StandardFontSize}"
-                                                       Text="♫"
-                                                       TextColor="{DynamicResource TextPrimaryColor}"
-                                                       IsVisible="{Binding MusicEnabled, Mode=OneWay}"
-                                                       VerticalOptions="Center"
-                                                       InputTransparent="True" />
-                                            </HorizontalStackLayout>
+                                                   LineBreakMode="WordWrap" />
                                         </VerticalStackLayout>
                                     </Grid>
                             </Border>
