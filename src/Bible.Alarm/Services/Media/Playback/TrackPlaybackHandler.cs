@@ -285,14 +285,20 @@ public sealed class TrackPlaybackHandler
     private async Task SeekWithRetryAsync(TimeSpan position)
     {
 #if IOS || ANDROID
-        // On iOS, we need to retry seeking because AVPlayer.Status may not be ReadyToPlay yet
-        // even though MediaElement state is Paused. This is especially true when transitioning
-        // from one source to another (e.g., music track to Bible track).
         const int maxRetries = 10;
         const int retryDelayMs = 300;
+        var seekBudgetStart = DateTime.UtcNow;
+        var totalSeekBudget = TimeSpan.FromSeconds(15);
 
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
+            if (DateTime.UtcNow - seekBudgetStart > totalSeekBudget)
+            {
+                logger.Warning("[Seek] Total time budget of {Budget}s exceeded after {Attempts} attempts — giving up, will play from current position",
+                    totalSeekBudget.TotalSeconds, attempt - 1);
+                return;
+            }
+
             try
             {
                 await audioPlayer.SeekToAsync(position);

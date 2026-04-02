@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Services.Media.AudioPlayerHelpers;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui;
@@ -17,6 +18,7 @@ public class AudioPlayerStateManager
 {
     private readonly ILogger logger;
     private readonly IDispatcher dispatcher;
+    private BufferingWatchdog? bufferingWatchdog;
     private bool isResetting;
     private bool isSeeking;
     private PlayStatus statusBeforeSeek = PlayStatus.Stopped;
@@ -37,6 +39,8 @@ public class AudioPlayerStateManager
         this.logger = logger;
         this.dispatcher = dispatcher;
     }
+
+    public void SetBufferingWatchdog(BufferingWatchdog watchdog) => bufferingWatchdog = watchdog;
 
     public bool ShouldIgnoreStateChange(MediaElementState newState, MediaElement? mediaElement)
     {
@@ -129,6 +133,7 @@ public class AudioPlayerStateManager
         }
 
         SendStatusMessage();
+        NotifyBufferingWatchdog();
     }
 
     public void StartSeeking()
@@ -161,11 +166,24 @@ public class AudioPlayerStateManager
 
     public void Reset()
     {
+        bufferingWatchdog?.Cancel();
         Status = PlayStatus.Stopped;
         isTransitioningFromLoadingToPlaying = false;
         lastLoadingToPlayingTransitionTime = null;
         isSeeking = false;
         SendStatusMessage();
+    }
+
+    private void NotifyBufferingWatchdog()
+    {
+        if (Status == PlayStatus.Loading)
+        {
+            bufferingWatchdog?.OnBufferingStarted();
+        }
+        else
+        {
+            bufferingWatchdog?.Cancel();
+        }
     }
 
     private void SendStatusMessage()

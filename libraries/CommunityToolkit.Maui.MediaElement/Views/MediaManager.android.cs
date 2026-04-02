@@ -245,9 +245,11 @@ public partial class MediaManager : Object, IPlayerListener
         {
             Player.SeekTo((long)position.TotalMilliseconds);
 
-            // Here, we don't want to throw an exception
-            // and to keep the execution on the thread that called this method
-            await seekToTaskCompletionSource.Task.WaitAsync(TimeSpan.FromMinutes(2), token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
+            // Wait for ExoPlayer to reach readyState after seeking. On flaky mobile networks
+            // ExoPlayer can stay in STATE_BUFFERING indefinitely; a 10-second cap prevents the
+            // caller from blocking for minutes per seek attempt. SuppressThrowing means we just
+            // continue if the timeout fires — the app-level SeekWithRetryAsync handles retries.
+            await seekToTaskCompletionSource.Task.WaitAsync(TimeSpan.FromSeconds(10), token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
 
             MediaElement.SeekCompleted();
         }

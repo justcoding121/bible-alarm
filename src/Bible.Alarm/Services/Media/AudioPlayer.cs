@@ -37,6 +37,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
     private readonly EventHandlerManager eventHandlerManager;
     private readonly PlaybackController playbackController;
     private readonly MediaElementManager mediaElementManager;
+    private readonly BufferingWatchdog bufferingWatchdog;
 
     public TimeSpan? CurrentPosition => mediaElement?.Position;
     public TimeSpan Duration => mediaElement?.Duration ?? TimeSpan.Zero;
@@ -93,6 +94,17 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 
         // Initialize helper classes
         stateManager = new AudioPlayerStateManager(logger, dispatcher);
+
+        bufferingWatchdog = new BufferingWatchdog(
+            logger,
+            onStallDetected: () =>
+            {
+                if (isDisposed) return;
+                logger.Warning("[AudioPlayer] Buffering stall detected — firing MediaFailed for recovery");
+                MediaFailed?.Invoke(this, EventArgs.Empty);
+            });
+        stateManager.SetBufferingWatchdog(bufferingWatchdog);
+
         metadataHandler = new AudioPlayerMetadataHandler(logger, displayMetadataService, dispatcher);
         positionTracker = new AudioPlayerPositionTracker(logger, dispatcher);
 
@@ -180,6 +192,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
 
     public void NotifyTrackTransitionStarting()
     {
+        bufferingWatchdog.Cancel();
         stateManager.Status = PlayStatus.Loading;
     }
 
@@ -194,6 +207,8 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         }
 
         isDisposed = true;
+
+        bufferingWatchdog.Dispose();
 
         // Unsubscribe from current MediaElement if it exists
         if (mediaElement != null)

@@ -7,7 +7,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Stores.Actions.Playback;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -148,6 +150,8 @@ public sealed class PlaybackEventHandler
         }
         else
         {
+            WeakReferenceMessenger.Default.Send(new BeginStoppingPlaybackMessage());
+            await Task.Delay(50);
             await stopAsyncInternal(true);
         }
     }
