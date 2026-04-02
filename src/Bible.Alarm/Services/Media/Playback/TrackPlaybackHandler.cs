@@ -142,10 +142,14 @@ public sealed class TrackPlaybackHandler
             }
         }
         else if (!startFromBeginning && isFirstEncounter && isBibleTrack && track.PlayItem?.Metadata != null
-            && inMemoryFinishedDuration == TimeSpan.Zero && currentScheduleId.HasValue)
+            && inMemoryFinishedDuration == TimeSpan.Zero && currentScheduleId.HasValue
+            && playedBibleTrackKeys.Count == 0)
         {
             // Fallback: in-memory FinishedDuration is zero but the DB may have a saved position
             // (e.g. after process restart if playlist builder didn't propagate the value).
+            // Only applies to the very first Bible track in the session — once any Bible track
+            // has played, the DB's FinishedDuration reflects that track's position and is stale
+            // for subsequent tracks.
             var dbFinishedDuration = await trackPreparationHandler.GetScheduleFinishedDurationAsync(currentScheduleId);
             if (dbFinishedDuration > TimeSpan.Zero)
             {
