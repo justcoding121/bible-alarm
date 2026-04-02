@@ -122,9 +122,15 @@ public class AlarmViewModalStateUpdater
     {
         if (state.IsPreparingOrPlaying && (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
         {
-            // Next/Previous are always enabled during playback.
             setNextEnabled(true);
             setPreviousEnabled(true);
+        }
+        else if (state.IsPreparingOrPlaying && state.Status == PlayStatus.Stopped)
+        {
+            // Transient Stopped during track transitions (auto-advance). MediaElement fires
+            // Paused→Stopped before OnMediaEnded dispatches IsAutoAdvancing/IsTransitioningTrack.
+            // Keep prev/next as-is to avoid a partial-disable flash; AreControlsEnabled handles
+            // disabling all controls uniformly.
         }
         else
         {
@@ -191,7 +197,8 @@ public class AlarmViewModalStateUpdater
 
         var isPlaying = state.Status == PlayStatus.Playing ||
                         state.IsAutoAdvancing ||
-                        state.IsTransitioningTrack;
+                        state.IsTransitioningTrack ||
+                        (state.IsPreparingOrPlaying && state.Status == PlayStatus.Stopped);
         setPlayVisible(!isPlaying);
         setPauseVisible(isPlaying);
 

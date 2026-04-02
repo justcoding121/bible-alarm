@@ -535,7 +535,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         !HasError &&
         !IsStopping &&
         !IsBusy &&
-        playbackState.Value.Status != PlayStatus.Loading;
+        playbackState.Value.Status != PlayStatus.Loading &&
+        playbackState.Value.Status != PlayStatus.Stopped;
 
     /// <summary>Stop button always enabled so users can cancel downloads.</summary>
     public bool IsStopButtonEnabled => !IsStopping;
@@ -727,7 +728,14 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
     public void Receive(BeginStoppingPlaybackMessage message)
     {
-        MainThread.BeginInvokeOnMainThread(() => BeginStoppingUi());
+        if (MainThread.IsMainThread)
+        {
+            BeginStoppingUi();
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(() => BeginStoppingUi());
+        }
     }
 
     public void Receive(PlaybackPreparationProgressMessage message)

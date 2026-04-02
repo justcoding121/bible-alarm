@@ -265,11 +265,19 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     {
         if (isDisposed) return;
 
-        MainThread.BeginInvokeOnMainThread(() =>
+        if (MainThread.IsMainThread)
         {
             IsStopping = true;
             AreControlsEnabled = false;
-        });
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                IsStopping = true;
+                AreControlsEnabled = false;
+            });
+        }
     }
 
     public void Receive(NextButtonPressedMessage message)
@@ -359,9 +367,13 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         CanPlayNext = state.CanPlayNext;
         CanPlayPrevious = state.CanPlayPrevious;
 
-        // IsPlaying drives the play/pause button visual only — stays true during auto-advance
-        // and track transitions so the bar looks "playing" without jarring state flips.
-        IsPlaying = state.Status == PlayStatus.Playing || state.IsAutoAdvancing || state.IsTransitioningTrack;
+        // IsPlaying drives the play/pause button visual only — stays true during auto-advance,
+        // track transitions, and transient Stopped (schedule still active) so the bar looks
+        // "playing" without jarring state flips.
+        IsPlaying = state.Status == PlayStatus.Playing
+                    || state.IsAutoAdvancing
+                    || state.IsTransitioningTrack
+                    || (state.IsPreparingOrPlaying && state.Status == PlayStatus.Stopped);
 
         // Controls are only interactive when a track is stably playing or paused.
         // Auto-advance and track transitions disable controls until the new track is ready,

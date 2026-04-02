@@ -3,8 +3,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
@@ -71,6 +73,24 @@ public sealed class PlaybackMediaEventAdapter
     {
         try
         {
+            // For finite playback ending on the last track, enter stopping UI immediately
+            // before any async work (DB writes, track marking). The MediaElement fires
+            // Paused→Stopped state changes before this handler runs, which disables only
+            // prev/next via UpdateControlsFromState. Sending BeginStoppingPlaybackMessage
+            // here ensures all controls are disabled simultaneously.
+            if (!getIsManualNavigationPending())
+            {
+                var playlist = getPlaylist();
+                var currentIndex = getCurrentTrackIndex();
+                var isLastFiniteTrack = !getIsIndefinitePlayback()
+                    && (playlist == null || currentIndex >= playlist.Count - 1);
+
+                if (isLastFiniteTrack)
+                {
+                    WeakReferenceMessenger.Default.Send(new BeginStoppingPlaybackMessage());
+                }
+            }
+
             progressTracker.Stop();
             await eventHandler.HandleMediaEndedAsync(
                 getPlaylist(),
