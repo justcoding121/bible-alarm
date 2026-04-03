@@ -131,7 +131,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
                 {
                     var startY = modal.Height > 0 ? modal.Height : 2000;
                     modal.TranslationY = startY;
-                    await modal.TranslateTo(0, 0, PlaybackModalAnimationDurationMs, Easing.CubicOut);
+                    await modal.TranslateToAsync(0, 0, PlaybackModalAnimationDurationMs, Easing.CubicOut);
                 }
             }
             catch (Exception ex)

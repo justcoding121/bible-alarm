@@ -171,7 +171,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             if (string.IsNullOrWhiteSpace(trackCode))
             {
                 Log.Warning("CreateSectionSelectionCommand: Invalid trackCode={TrackCode}, returning", trackCode ?? "(null)");
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("This content is not available at the moment."));
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("This content is not available at the moment"));
                 return;
             }
 

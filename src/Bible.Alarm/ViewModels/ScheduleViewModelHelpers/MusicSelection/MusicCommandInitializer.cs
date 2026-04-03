@@ -268,7 +268,7 @@ public sealed class MusicCommandInitializer
             // Show toast message when repeat is enabled, hide it when disabled
             if (newRepeatValue)
             {
-                toastService.ShowMessage("Repeat Enabled");
+                toastService.ShowMessage("Repeat enabled");
             }
             else
             {

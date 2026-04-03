@@ -17,8 +17,7 @@ public sealed class PlaybackModalService :
     IRecipient<MinimizePlaybackMessage>,
     IRecipient<MaximizePlaybackMessage>,
     IRecipient<RequestShowPlaybackModalMessage>,
-    IRecipient<PlaybackExplicitStopMessage>,
-    IRecipient<PlaybackPositionChangedMessage>
+    IRecipient<PlaybackExplicitStopMessage>
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
@@ -34,12 +33,7 @@ public sealed class PlaybackModalService :
     private int? targetScheduleId;
     private bool bypassPopGenerationGuard;
     private DateTime lastMinimizedAtUtc;
-    private bool isSubscribedToStateChanges;
-    private DateTime lastPlaybackUiGuardCheckUtc;
-    private volatile bool zombieCheckPending;
-
     private const int MinimizeCooldownMs = 500;
-    private const int PlaybackUiGuardIntervalMs = 2000;
 
     public bool IsMinimized => isMinimized;
 
@@ -65,7 +59,6 @@ public sealed class PlaybackModalService :
         WeakReferenceMessenger.Default.Register<MaximizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Register<RequestShowPlaybackModalMessage>(this);
         WeakReferenceMessenger.Default.Register<PlaybackExplicitStopMessage>(this);
-        WeakReferenceMessenger.Default.Register<PlaybackPositionChangedMessage>(this);
     }
 
     private static bool IsActiveUiPlaybackStatus(PlayStatus status) =>
@@ -78,23 +71,18 @@ public sealed class PlaybackModalService :
         requestedShowModal = false;
         targetScheduleId = null;
         bypassPopGenerationGuard = false;
-        zombieCheckPending = false;
-        lastPlaybackUiGuardCheckUtc = DateTime.UtcNow;
         navigationService.SetMiniBarVisible(false);
         playbackState.StateChanged += OnPlaybackStateChanged;
-        isSubscribedToStateChanges = true;
         logger.Information("SubscribeToPlaybackStateChanges: Subscribed, isModalOpen reset to false");
     }
 
     public void UnsubscribeToPlaybackStateChanges()
     {
-        isSubscribedToStateChanges = false;
         isModalOpen = false;
         isMinimized = false;
         requestedShowModal = false;
         targetScheduleId = null;
         bypassPopGenerationGuard = false;
-        zombieCheckPending = false;
         playbackState.StateChanged -= OnPlaybackStateChanged;
     }
 
@@ -160,139 +148,6 @@ public sealed class PlaybackModalService :
         bypassPopGenerationGuard = true;
     }
 
-    public void Receive(PlaybackPositionChangedMessage message)
-    {
-        if (!isSubscribedToStateChanges || isDisposed)
-        {
-            return;
-        }
-
-        if (isModalOpen || isMinimized)
-        {
-            ScheduleZombieUiCheck();
-            return;
-        }
-
-        EnsurePlaybackUiVisible();
-    }
-
-    /// <summary>
-    /// Safety net (show direction): position updates are arriving (audio is genuinely playing)
-    /// but neither modal nor mini bar is visible — force-show the mini bar.
-    /// Throttled so the check runs at most once per guard interval.
-    /// </summary>
-    private void EnsurePlaybackUiVisible()
-    {
-        var now = DateTime.UtcNow;
-        if ((now - lastPlaybackUiGuardCheckUtc).TotalMilliseconds < PlaybackUiGuardIntervalMs)
-        {
-            return;
-        }
-
-        lastPlaybackUiGuardCheckUtc = now;
-
-        logger.Warning(
-            "PlaybackUI guard: position updates arriving but neither modal nor mini bar is visible — showing mini bar as fallback");
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (isModalOpen || isMinimized || isDisposed)
-            {
-                return;
-            }
-
-            isMinimized = true;
-            lastMinimizedAtUtc = DateTime.UtcNow;
-            navigationService.SetMiniBarVisible(true);
-        });
-    }
-
-    /// <summary>
-    /// Safety net (dismiss direction): schedules a single deferred check that fires after
-    /// the guard interval. When the check runs, if no new position message re-armed it,
-    /// the player is inactive, and Fluxor confirms playback is truly over, the zombie UI
-    /// is dismissed. Only one check is outstanding at a time.
-    /// </summary>
-    private void ScheduleZombieUiCheck()
-    {
-        if (zombieCheckPending)
-        {
-            return;
-        }
-
-        zombieCheckPending = true;
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(PlaybackUiGuardIntervalMs);
-            }
-            finally
-            {
-                zombieCheckPending = false;
-            }
-
-            try
-            {
-                if (!isSubscribedToStateChanges || isDisposed)
-                {
-                    return;
-                }
-
-                if (!isModalOpen && !isMinimized)
-                {
-                    return;
-                }
-
-                if (requestedShowModal)
-                {
-                    return;
-                }
-
-                if (IsPlayerActuallyActive())
-                {
-                    return;
-                }
-
-                try
-                {
-                    var state = playbackState.Value;
-                    if (state.IsPreparingOrPlaying || state.IsTransitioningTrack || state.IsAutoAdvancing)
-                    {
-                        return;
-                    }
-                }
-                catch
-                {
-                    return;
-                }
-
-                logger.Warning(
-                    "PlaybackUI guard: player inactive and state confirms no playback — dismissing zombie UI");
-
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    if (!isModalOpen && !isMinimized)
-                    {
-                        return;
-                    }
-
-                    if (requestedShowModal)
-                    {
-                        return;
-                    }
-
-                    await DismissZombiePlaybackUiAsync();
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Error in zombie UI check");
-            }
-        });
-    }
-
     private Task MinimizeAsync()
     {
         return MainThread.InvokeOnMainThreadAsync(async () =>
@@ -334,9 +189,28 @@ public sealed class PlaybackModalService :
             {
                 if (!IsPlayerActuallyActive())
                 {
-                    logger.Warning("Maximize requested but player is inactive — dismissing playback UI");
-                    await DismissZombiePlaybackUiAsync();
-                    return;
+                    // During a schedule switch the audio player is legitimately inactive while
+                    // tracks are being prepared, but Fluxor already has IsPreparingOrPlaying=true
+                    // from PlaybackStartedAction. Trust Fluxor and proceed with the maximize
+                    // instead of dismissing as zombie.
+                    var isFluxorActive = false;
+                    try
+                    {
+                        isFluxorActive = playbackState.Value.IsPreparingOrPlaying;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Warning(ex, "Failed to read PlaybackState during maximize");
+                    }
+
+                    if (!isFluxorActive)
+                    {
+                        logger.Warning("Maximize requested but player is inactive — dismissing playback UI");
+                        await DismissZombiePlaybackUiAsync();
+                        return;
+                    }
+
+                    logger.Information("Maximize: player inactive but Fluxor IsPreparingOrPlaying — proceeding (track preparation in progress)");
                 }
 
                 logger.Information("Maximizing playback from mini bar");
@@ -808,14 +682,11 @@ public sealed class PlaybackModalService :
         }
 
         isDisposed = true;
-        isSubscribedToStateChanges = false;
-        zombieCheckPending = false;
 
         playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<MinimizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Unregister<MaximizePlaybackMessage>(this);
         WeakReferenceMessenger.Default.Unregister<RequestShowPlaybackModalMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
-        WeakReferenceMessenger.Default.Unregister<PlaybackPositionChangedMessage>(this);
     }
 }

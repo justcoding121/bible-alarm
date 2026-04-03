@@ -355,7 +355,7 @@ public sealed class NavigationService(
                     if (animated)
                     {
                         var targetY = playbackPage.Height > 0 ? playbackPage.Height : 2000;
-                        await playbackPage.TranslateTo(0, targetY, PlaybackModalAnimationDurationMs, Easing.CubicIn);
+                        await playbackPage.TranslateToAsync(0, targetY, PlaybackModalAnimationDurationMs, Easing.CubicIn);
                     }
                     else
                     {

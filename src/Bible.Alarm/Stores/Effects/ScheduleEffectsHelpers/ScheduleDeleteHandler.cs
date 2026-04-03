@@ -128,6 +128,8 @@ public class ScheduleDeleteHandler
 
             Log.Information("ScheduleEffects: HandleDeleteSchedule - Deleted from DB. ScheduleId: {ScheduleId}", action.ScheduleId);
 
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule removed"));
+
             // Dispatch success action with schedule ID
             dispatcher.Dispatch(new RemoveScheduleSuccessAction(action.ScheduleId));
 

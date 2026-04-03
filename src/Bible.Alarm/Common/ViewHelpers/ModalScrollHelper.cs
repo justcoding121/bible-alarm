@@ -44,7 +44,7 @@ public static class ModalScrollHelper
     /// <summary>
     /// Default error message for fetch failures.
     /// </summary>
-    public const string DefaultFetchErrorMessage = "Please check your internet connection.";
+    public const string DefaultFetchErrorMessage = "Please check your internet connection";
 
     /// <summary>
     /// Handles the standard modal appearing workflow.
@@ -342,15 +342,15 @@ public static class ModalScrollHelper
         {
             var code = (int)httpEx.StatusCode;
             if (code >= 500)
-                return "The server is temporarily unavailable. Please try again later.";
+                return "The server is temporarily unavailable, please try again later";
             if (code == 404)
-                return "Content not found. Please try again later.";
-            return "Something went wrong. Please try again later.";
+                return "Content not found, please try again later";
+            return "Something went wrong, please try again later";
         }
 
         if (ex is TaskCanceledException || ex is TimeoutException)
         {
-            return "The connection took too long. Please check your internet connection and try again.";
+            return "The connection took too long, please check your internet connection";
         }
 
         return DefaultFetchErrorMessage;

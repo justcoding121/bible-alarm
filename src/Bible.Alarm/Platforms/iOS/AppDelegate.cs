@@ -191,8 +191,8 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
                 var popupService = ServiceProviderManager.GetService<IToastService>();
                 await popupService.ShowMessage("You've disabled notifications. " +
-                                         "We won't be able to alert you on scheduled time. " +
-                                         "You can however open the app anytime and resume listening.",
+                                         "We won't be able to alert you on scheduled time, " +
+                                         "but you can open the app anytime and resume listening",
                     8);
             }
         }

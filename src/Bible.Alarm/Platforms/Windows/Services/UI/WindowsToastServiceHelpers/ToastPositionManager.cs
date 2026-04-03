@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Services.UI.ToastLayoutHelpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Serilog;
@@ -23,8 +24,9 @@ internal sealed class ToastPositionManager
             var estimatedPopupWidth = 300;
             var estimatedPopupHeight = 50;
 
+            var bottomMargin = 50 + ToastMiniBarInsetHelper.GetBottomInsetDip();
             popup.HorizontalOffset = (windowWidth - estimatedPopupWidth) / 2;
-            popup.VerticalOffset = windowHeight - estimatedPopupHeight - 50;
+            popup.VerticalOffset = windowHeight - estimatedPopupHeight - bottomMargin;
         }
     }
 
@@ -86,8 +88,9 @@ internal sealed class ToastPositionManager
             {
                 try
                 {
+                    var bottomMargin = 50 + ToastMiniBarInsetHelper.GetBottomInsetDip();
                     popup.HorizontalOffset = (windowWidth - borderWidth) / 2;
-                    popup.VerticalOffset = windowHeight - borderHeight - 50;
+                    popup.VerticalOffset = windowHeight - borderHeight - bottomMargin;
                 }
                 catch (Exception ex)
                 {

@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Runtime.InteropServices;
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 using Bible.Alarm.Services.UI;
 using Microsoft.UI.Xaml;
@@ -11,43 +10,22 @@ using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;
 
+/// <summary>
+/// Custom in-app toast for Windows. Uses a WinUI Popup overlay.
+/// When a new toast arrives while one is showing, the old toast is dismissed immediately.
+/// </summary>
 public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILogger logger) : ToastService, IDisposable
 {
     private bool isDisposed;
     private static readonly SemaphoreSlim @lock = new(1);
 
-    private static TaskCompletionSource<bool>? clearRequest;
+    private static CancellationTokenSource? activeCts;
     private static Popup? currentPopup;
     private static Window? currentWindow;
 
-    public override Task Clear()
-    {
-        if (clearRequest is { } request)
-        {
-            request.SetResult(true);
-        }
-
-        if (currentPopup != null)
-        {
-            try
-            {
-                currentPopup.IsOpen = false;
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Exception occurred while closing popup in Clear()");
-            }
-        }
-
-        return Task.CompletedTask;
-    }
-
     public override async Task ShowMessage(string message, int seconds)
     {
-        if (clearRequest is not null)
-        {
-            return;
-        }
+        CancelActiveCts();
 
         if (!MainThread.IsMainThread)
         {
@@ -63,10 +41,13 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
     private static async Task ShowAlert(string message, double seconds)
     {
-        clearRequest = new TaskCompletionSource<bool>();
+        var cts = new CancellationTokenSource();
 
-        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
+        await @lock.WaitAsync();
+        try
         {
+            activeCts = cts;
+
             try
             {
                 await ToastLifecycleManager.CloseExistingPopupIfNeededAsync(currentPopup);
@@ -78,11 +59,11 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
                 var popup = ToastPopupFactory.CreateToastPopup(message, window);
                 currentPopup = popup;
-                await ShowFlyoutAsync(popup, window, seconds);
+                await ShowFlyoutAsync(popup, window, seconds, cts.Token);
             }
             catch (COMException ex)
             {
-                Log.Warning(ex, "COM exception occurred while showing toast message. This can happen when manipulating UI elements from wrong thread or during cleanup");
+                Log.Warning(ex, "COM exception occurred while showing toast message");
             }
             finally
             {
@@ -92,12 +73,38 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
                     currentPopup = null;
                 }
             }
-        });
+        }
+        finally
+        {
+            if (activeCts == cts)
+            {
+                activeCts = null;
+            }
 
-        clearRequest = null;
+            @lock.Release();
+        }
     }
 
-    private static async Task ShowFlyoutAsync(Popup popup, Window window, double seconds)
+    private static void CancelActiveCts()
+    {
+        var existing = activeCts;
+        if (existing == null)
+        {
+            return;
+        }
+
+        activeCts = null;
+        try
+        {
+            existing.Cancel();
+            existing.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private static async Task ShowFlyoutAsync(Popup popup, Window window, double seconds, CancellationToken ct)
     {
         FrameworkElement? windowContent = null;
 
@@ -109,15 +116,23 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
             ToastPositionManager.SetInitialPopupPosition(popup, windowContent);
             popup.IsOpen = true;
 
-            await Task.Delay(100);
+            await Task.Delay(100, CancellationToken.None);
             ToastPositionManager.UpdatePopupPosition(popup, window);
 
             ToastPositionManager.SubscribeToWindowSizeChanges(windowContent, popup, window);
-            await WaitForDisplayDuration(seconds);
+
+            try
+            {
+                await Task.Delay((int)(seconds * 1000), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
         }
         catch (COMException ex)
         {
-            Log.Warning(ex, "COM exception occurred while showing popup flyout. Closing popup and continuing");
+            Log.Warning(ex, "COM exception occurred while showing popup flyout");
         }
         finally
         {
@@ -125,16 +140,23 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         }
     }
 
-    private static async Task WaitForDisplayDuration(double seconds)
+    public override Task Clear()
     {
-        if (clearRequest is { } request)
+        CancelActiveCts();
+
+        if (currentPopup != null)
         {
-            await Task.WhenAny(request.Task, Task.Delay((int)(seconds * 1000)));
+            try
+            {
+                currentPopup.IsOpen = false;
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Exception occurred while closing popup in Clear()");
+            }
         }
-        else
-        {
-            await Task.Delay((int)(seconds * 1000));
-        }
+
+        return Task.CompletedTask;
     }
 
     public override void Dispose()

@@ -15,11 +15,11 @@ public abstract class ToastService : IToastService, IDisposable
         if (timeSpan.Days > 0)
         {
             await ShowMessage(
-                $"Reminder set for {timeSpan.Days} days, {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now.");
+                $"Reminder set for {timeSpan.Days} days, {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now");
         }
         else
         {
-            await ShowMessage($"Reminder set for {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now.");
+            await ShowMessage($"Reminder set for {timeSpan.Hours} hours and {timeSpan.Minutes} minutes from now");
         }
     }
 

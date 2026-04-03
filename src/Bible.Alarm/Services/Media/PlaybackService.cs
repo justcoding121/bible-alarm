@@ -680,7 +680,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             if (!stateManager.IsAlarm && stateManager.CurrentScheduleId.HasValue)
             {
-                await ShowPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", playDeviceRingtone: false);
+                await ShowPlaybackErrorInModalKeepSessionAsync("Playback failed, tap Retry", playDeviceRingtone: false);
                 return;
             }
 
@@ -699,7 +699,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             {
                 if (!stateManager.IsAlarm && stateManager.CurrentScheduleId.HasValue)
                 {
-                    await ShowPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", playDeviceRingtone: false);
+                    await ShowPlaybackErrorInModalKeepSessionAsync("Playback failed, tap Retry", playDeviceRingtone: false);
                 }
                 else
                 {
@@ -707,7 +707,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                     {
                         ErrorMessage = "Media playback failed. Please try again."
                     });
-                    WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media playback failed. Please try again."));
+                    WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media playback failed, please try again"));
                     await resetExecutor.ResetAsync();
                 }
             }

@@ -129,14 +129,14 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (!modelInitialized)
         {
             logger.Error("SaveAsync: Model not initialized. Cannot save.");
-            await toastService.ShowMessage("Schedule data is not ready. Please try again.");
+            await toastService.ShowMessage("Schedule data is not ready, please try again");
             return false;
         }
 
         if (!isNewSchedule && scheduleId <= 0)
         {
             logger.Error("SaveAsync: Invalid ScheduleId for existing schedule. ScheduleId={ScheduleId}", scheduleId);
-            await toastService.ShowMessage("Invalid schedule ID. Please try again.");
+            await toastService.ShowMessage("Invalid schedule ID, please try again");
             return false;
         }
 
@@ -354,6 +354,10 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (saved && isEnabled)
         {
             await toastService.ShowScheduledNotification(model);
+        }
+        else if (saved && !isEnabled)
+        {
+            await toastService.ShowMessage("Schedule saved");
         }
     }
 }
