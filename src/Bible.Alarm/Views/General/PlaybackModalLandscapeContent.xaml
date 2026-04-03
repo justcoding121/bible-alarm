@@ -272,8 +272,9 @@
 
         <!-- Minimize button (top-right, landscape) -->
         <Grid
+            x:Name="LandscapeMinimizeContainer"
             Grid.Row="0"
-            Margin="0,8,8,0"
+            Margin="0,4,8,0"
             HeightRequest="{DynamicResource IconStandardContainerSize}"
             WidthRequest="{DynamicResource IconStandardContainerSize}"
             HorizontalOptions="End"
@@ -294,7 +295,7 @@
                 WidthRequest="{DynamicResource IconStandardContainerSize}"
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
-                IsVisible="{Binding ShowMinimizeButton}" />
+                IsVisible="{Binding IsMinimizing, Converter={StaticResource negateBooleanConverter}}" />
             <ActivityIndicator
                 IsRunning="{Binding IsMinimizing}"
                 IsVisible="{Binding IsMinimizing}"
@@ -347,11 +348,9 @@
                             FontSize="{DynamicResource IconStandardFontSize}"
                             HorizontalOptions="Fill"
                             VerticalOptions="Fill"
-                            IsEnabled="{Binding IsStopButtonEnabled}"
                             IsVisible="{Binding IsStopping, Converter={StaticResource negateBooleanConverter}}"
                             Text="{x:Static fn:GlyphNames.Xmark}"
                             TextColor="White" />
-
                         <ActivityIndicator
                             IsRunning="{Binding IsStopping}"
                             IsVisible="{Binding IsStopping}"

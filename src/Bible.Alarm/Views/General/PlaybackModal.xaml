@@ -347,8 +347,9 @@
 
             <!-- Minimize button (top-right, portrait) -->
             <Grid
+                x:Name="PortraitMinimizeContainer"
                 Grid.Row="0"
-                Margin="0,12,12,0"
+                Margin="0,4,12,0"
                 HeightRequest="{DynamicResource IconStandardContainerSize}"
                 WidthRequest="{DynamicResource IconStandardContainerSize}"
                 HorizontalOptions="End"
@@ -369,7 +370,7 @@
                     WidthRequest="{DynamicResource IconStandardContainerSize}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    IsVisible="{Binding ShowMinimizeButton}" />
+                    IsVisible="{Binding IsMinimizing, Converter={StaticResource negateBooleanConverter}}" />
                 <ActivityIndicator
                     IsRunning="{Binding IsMinimizing}"
                     IsVisible="{Binding IsMinimizing}"
@@ -425,9 +426,7 @@
                                     Opacity="0.4"
                                     Radius="8" />
                         </Border.Shadow>
-                        <Grid
-                            HorizontalOptions="Fill"
-                            VerticalOptions="Fill">
+                        <Grid HorizontalOptions="Fill" VerticalOptions="Fill">
                             <Button
                                 Padding="0"
                                 BackgroundColor="Transparent"
@@ -438,21 +437,9 @@
                                 FontSize="{DynamicResource IconStandardFontSize}"
                                 HorizontalOptions="Fill"
                                 VerticalOptions="Fill"
-                                IsEnabled="{Binding IsStopButtonEnabled}"
                                 IsVisible="{Binding IsStopping, Converter={StaticResource negateBooleanConverter}}"
                                 Text="{x:Static fn:GlyphNames.Xmark}"
-                                TextColor="White">
-                                <Button.Triggers>
-                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
-                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
-                                    </Trigger>
-                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
-                                        <Setter Property="TextColor" Value="White" />
-                                    </Trigger>
-                                </Button.Triggers>
-                            </Button>
-
-                            <!-- Busy indicator while stopping -->
+                                TextColor="White" />
                             <ActivityIndicator
                                 IsRunning="{Binding IsStopping}"
                                 IsVisible="{Binding IsStopping}"

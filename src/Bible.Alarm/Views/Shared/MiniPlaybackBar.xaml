@@ -105,7 +105,6 @@
                     BackgroundColor="Transparent"
                     BorderWidth="0"
                     Command="{Binding StopCommand}"
-                    IsEnabled="{Binding IsStopEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="18"
                     Text="{x:Static fn:GlyphNames.Xmark}"
@@ -114,16 +113,7 @@
                     WidthRequest="48"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    IsVisible="{Binding ShowStopButton}">
-                    <Button.Triggers>
-                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
-                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
-                        </Trigger>
-                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
-                            <Setter Property="TextColor" Value="{StaticResource ErrorColor}" />
-                        </Trigger>
-                    </Button.Triggers>
-                </Button>
+                    IsVisible="{Binding IsStopping, Converter={StaticResource negateBooleanConverter}}" />
                 <ActivityIndicator
                     IsRunning="{Binding IsStopping}"
                     IsVisible="{Binding IsStopping}"
@@ -279,7 +269,7 @@
                     VerticalOptions="Center" />
             </Grid>
 
-            <!-- Maximize / Maximize spinner -->
+            <!-- Maximize / Maximizing spinner -->
             <Grid
                 Grid.Column="6"
                 HeightRequest="48"

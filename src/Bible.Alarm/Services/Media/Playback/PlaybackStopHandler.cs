@@ -46,75 +46,107 @@ public sealed class PlaybackStopHandler
     {
         logger.Information("StopAsync called - stopping alarm completely");
 
-        // Cancel any ongoing preparation/downloads
+        var dispatched = false;
+
         try
         {
-            preparationCancellationTokenSource?.CancelAsync();
-            logger.Debug("Cancelled preparation cancellation token");
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error cancelling preparation token");
-        }
-
-        // Stop progress timer FIRST to prevent in-flight timer callbacks from racing with state reset.
-        // System.Timers.Timer.Stop() doesn't cancel in-flight callbacks, but it prevents new ones.
-        stopProgressTimer();
-
-        // Reset state to ensure PlayCurrentTrackAsync checks detect stop immediately.
-        // This is especially important for the gap between downloads completing and playback starting.
-        resetState();
-
-        // Stop player immediately for responsive user experience
-        try
-        {
-            await audioPlayer.StopAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error stopping player, will continue with reset");
-        }
-
-        // Skip marking as played if track was already marked as finished (e.g., when last track ends naturally)
-        // This prevents overwriting the database update that MarkTrackAsFinished() already made
-        if (!skipMarkAsPlayed && trackMetadataToMark != null)
-        {
+            // Cancel any ongoing preparation/downloads
             try
             {
-                // Music tracks are handled by ProgressTracker on first progress update
-                // Only mark Bible tracks as played here (saves current position)
-                if (trackMetadataToMark.PlayType != PlayType.Music)
+                preparationCancellationTokenSource?.CancelAsync();
+                logger.Debug("Cancelled preparation cancellation token");
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error cancelling preparation token");
+            }
+
+            // Stop progress timer FIRST to prevent in-flight timer callbacks from racing with state reset.
+            // System.Timers.Timer.Stop() doesn't cancel in-flight callbacks, but it prevents new ones.
+            try
+            {
+                stopProgressTimer();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error stopping progress timer");
+            }
+
+            // Reset state to ensure PlayCurrentTrackAsync checks detect stop immediately.
+            // This is especially important for the gap between downloads completing and playback starting.
+            try
+            {
+                resetState();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error resetting playback state");
+            }
+
+            // Stop player immediately for responsive user experience
+            try
+            {
+                await audioPlayer.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error stopping player, will continue with reset");
+            }
+
+            // Skip marking as played if track was already marked as finished (e.g., when last track ends naturally)
+            // This prevents overwriting the database update that MarkTrackAsFinished() already made
+            if (!skipMarkAsPlayed && trackMetadataToMark != null)
+            {
+                try
                 {
-                    // For Bible tracks, mark as played (which saves current position)
-                    await playlistService.MarkTrackAsPlayed(trackMetadataToMark);
+                    // Music tracks are handled by ProgressTracker on first progress update
+                    // Only mark Bible tracks as played here (saves current position)
+                    if (trackMetadataToMark.PlayType != PlayType.Music)
+                    {
+                        // For Bible tracks, mark as played (which saves current position)
+                        await playlistService.MarkTrackAsPlayed(trackMetadataToMark);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Error marking current track as played/finished");
                 }
             }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Error marking current track as played/finished");
-            }
-        }
 
-        if (scheduleIdToSave.HasValue && !skipSaveLastPlayed)
-        {
+            if (scheduleIdToSave.HasValue && !skipSaveLastPlayed)
+            {
+                try
+                {
+                    await playlistService.SaveLastPlayed(scheduleIdToSave.Value);
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Error saving last played");
+                }
+            }
+
+            // Reset player - state was already reset above, but ensure player is fully reset
+            // This resets the player and dispatches actions to close modal
             try
             {
-                await playlistService.SaveLastPlayed(scheduleIdToSave.Value);
+                await audioPlayer.ResetAsync();
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error saving last played");
+                logger.Error(ex, "Error in audioPlayer.ResetAsync, attempting minimal cleanup");
+                try
+                {
+                    await audioPlayer.ResetAsync();
+                }
+                catch (Exception resetEx)
+                {
+                    logger.Warning(resetEx, "Error resetting player in fallback");
+                }
             }
-        }
-
-        // Reset player - state was already reset above, but ensure player is fully reset
-        // This resets the player and dispatches actions to close modal
-        try
-        {
-            await audioPlayer.ResetAsync();
 
             if (!skipDispatchStopped)
             {
+                dispatched = true;
                 dispatcher.Dispatch(new PlaybackStoppedAction());
 #if ANDROID || IOS
                 dispatcher.Dispatch(new SetCarPlayScreenAction());
@@ -122,21 +154,22 @@ public sealed class PlaybackStopHandler
 #endif
             }
         }
-        catch (Exception ex)
+        finally
         {
-            logger.Error(ex, "Error in audioPlayer.ResetAsync, attempting minimal cleanup");
-            try
+            if (!skipDispatchStopped && !dispatched)
             {
-                await audioPlayer.ResetAsync();
-            }
-            catch (Exception resetEx)
-            {
-                logger.Warning(resetEx, "Error resetting player in fallback");
-            }
-
-            if (!skipDispatchStopped)
-            {
-                dispatcher.Dispatch(new PlaybackStoppedAction());
+                logger.Warning("PlaybackStoppedAction was not dispatched during normal flow — dispatching in finally");
+                try
+                {
+                    dispatcher.Dispatch(new PlaybackStoppedAction());
+#if ANDROID || IOS
+                    dispatcher.Dispatch(new SetCarPlayScreenAction());
+#endif
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Failed to dispatch PlaybackStoppedAction in finally block");
+                }
             }
         }
     }

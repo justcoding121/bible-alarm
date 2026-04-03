@@ -130,14 +130,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
     public bool IsStopping
     {
         get => isStopping;
-        set
-        {
-            if (SetProperty(ref isStopping, value))
-            {
-                OnPropertyChanged(nameof(ShowStopButton));
-                OnPropertyChanged(nameof(IsStopEnabled));
-            }
-        }
+        set => SetProperty(ref isStopping, value);
     }
 
     private bool isTrackChangeBusy;
@@ -145,7 +138,6 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
 
     public bool PlayVisible => !IsPlaying;
     public bool PauseVisible => IsPlaying;
-    public bool ShowStopButton => !IsStopping;
 
     private bool isPreviousBusy;
     public bool IsPreviousBusy
@@ -213,7 +205,6 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
             {
                 OnPropertyChanged(nameof(IsPreviousEnabled));
                 OnPropertyChanged(nameof(IsNextEnabled));
-                OnPropertyChanged(nameof(IsStopEnabled));
             }
         }
     }
@@ -235,7 +226,6 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
 
     public bool IsPreviousEnabled => AreControlsEnabled && CanPlayPrevious;
     public bool IsNextEnabled => AreControlsEnabled && CanPlayNext;
-    public bool IsStopEnabled => AreControlsEnabled && !IsStopping;
 
     public IAsyncRelayCommand StopCommand { get; }
     public IAsyncRelayCommand PreviousCommand { get; }

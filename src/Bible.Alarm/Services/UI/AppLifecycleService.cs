@@ -1,5 +1,8 @@
 #nullable enable
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Playback;
 using Serilog;
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Helpers;
@@ -53,7 +56,9 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
         {
             try
             {
-                await Task.Delay(1000);
+                await Task.Delay(2000);
+
+                ReconcilePlaybackState();
 
 #if WINDOWS
                 // Ensure periodic background tasks are running
@@ -67,6 +72,55 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
                 logger.Error(e, "An error happened inside OnResume task.");
             }
         });
+    }
+
+    /// <summary>
+    /// Detects when Fluxor thinks playback is active but the underlying player is dead
+    /// (e.g. OS killed the foreground service, or an exception prevented PlaybackStoppedAction
+    /// from being dispatched). Dispatches PlaybackStoppedAction to clean up the zombie state
+    /// so the mini bar / playback modal are dismissed.
+    /// </summary>
+    private void ReconcilePlaybackState()
+    {
+        try
+        {
+            var playbackState = serviceProvider.GetService<Fluxor.IState<PlaybackState>>();
+            if (playbackState?.Value?.IsPreparingOrPlaying != true)
+            {
+                return;
+            }
+
+            var audioPlayer = serviceProvider.GetService<IAudioPlayer>();
+            if (audioPlayer == null)
+            {
+                return;
+            }
+
+            if (audioPlayer.IsActuallyPlayingOrPaused)
+            {
+                return;
+            }
+
+            var status = audioPlayer.Status;
+            if (status is Services.Media.Models.PlayStatus.Loading)
+            {
+                return;
+            }
+
+            logger.Warning(
+                "ReconcilePlaybackState: Fluxor IsPreparingOrPlaying=true but player is inactive (Status={Status}) — dispatching PlaybackStoppedAction",
+                status);
+
+            var dispatcher = serviceProvider.GetService<Fluxor.IDispatcher>();
+            dispatcher?.Dispatch(new PlaybackStoppedAction());
+#if ANDROID || IOS
+            dispatcher?.Dispatch(new SetCarPlayScreenAction());
+#endif
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reconciling playback state on resume");
+        }
     }
 
     public void Dispose()

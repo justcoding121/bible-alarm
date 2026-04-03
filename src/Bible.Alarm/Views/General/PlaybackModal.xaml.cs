@@ -6,17 +6,28 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
+#if ANDROID
+using AndroidX.Core.View;
+using Android.Views;
+using View = Android.Views.View;
+#endif
+
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class PlaybackModal : BaseContentPage, IDisposable
 {
+    protected override bool ApplyAndroidSafeAreaPadding => false;
+
     private volatile bool isDisposed;
     private bool hasHandledFirstLoad;
     private readonly PlaybackViewModel viewModel;
 #if IOS
     private TapGestureRecognizer? portraitTapRecognizer;
     private TapGestureRecognizer? landscapeTapRecognizer;
+#endif
+#if ANDROID
+    private bool _statusBarOffsetApplied;
 #endif
 
     public PlaybackViewModel? ViewModel => BindingContext as PlaybackViewModel;
@@ -30,6 +41,72 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         Loaded += OnPageLoaded;
         SizeChanged += OnSizeChanged;
     }
+
+#if ANDROID
+    /// <summary>
+    /// Modal pages on Android don't receive MAUI's native status-bar offset, so the page
+    /// content starts at the very top of the screen (behind the status bar). This method
+    /// queries the actual status bar height and pushes the minimize button and content area
+    /// below it. Called from OnPageLoaded with a short delay so the view tree is ready.
+    /// </summary>
+    private void ApplyStatusBarOffset()
+    {
+        if (_statusBarOffsetApplied || isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            var activity = Platform.CurrentActivity;
+            if (activity == null)
+            {
+                return;
+            }
+
+            var decorView = activity.Window?.DecorView;
+            if (decorView == null)
+            {
+                return;
+            }
+
+            var rootInsets = ViewCompat.GetRootWindowInsets(decorView);
+            if (rootInsets == null)
+            {
+                return;
+            }
+
+            var statusBars = rootInsets.GetInsets(WindowInsetsCompat.Type.StatusBars());
+            if (statusBars == null)
+            {
+                return;
+            }
+
+            int statusBarHeightPx = statusBars.Top;
+            if (statusBarHeightPx <= 0)
+            {
+                return;
+            }
+
+            float density = activity.Resources?.DisplayMetrics?.Density ?? 1f;
+            double statusBarDip = statusBarHeightPx / (double)density;
+
+            _statusBarOffsetApplied = true;
+
+            PortraitMinimizeContainer.Margin = new Thickness(0, 4 + statusBarDip, 12, 0);
+            MainContentArea.Margin = new Thickness(0, statusBarDip, 0, 0);
+
+            if (LandscapeContent?.MinimizeContainer != null)
+            {
+                LandscapeContent.MinimizeContainer.Margin = new Thickness(0, 4 + statusBarDip, 8, 0);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Failed to apply status bar offset in PlaybackModal");
+        }
+    }
+#endif
 
     private bool wasLandscape;
 
@@ -122,6 +199,14 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         }
 
         WireLandscapeContentEvents();
+
+#if ANDROID
+        await Task.Delay(100);
+        if (!isDisposed)
+        {
+            ApplyStatusBarOffset();
+        }
+#endif
 
 #if IOS
         SetupIOSTapToSeek();

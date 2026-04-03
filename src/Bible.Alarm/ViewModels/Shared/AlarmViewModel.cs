@@ -269,16 +269,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     public bool IsMinimizing
     {
         get => isMinimizing;
-        set
-        {
-            if (SetProperty(ref isMinimizing, value))
-            {
-                OnPropertyChanged(nameof(ShowMinimizeButton));
-            }
-        }
+        set => SetProperty(ref isMinimizing, value);
     }
-
-    public bool ShowMinimizeButton => !IsMinimizing;
 
     private async Task ShowDismissProgress()
     {
@@ -538,8 +530,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         playbackState.Value.Status != PlayStatus.Loading &&
         playbackState.Value.Status != PlayStatus.Stopped;
 
-    /// <summary>Stop button always enabled so users can cancel downloads.</summary>
-    public bool IsStopButtonEnabled => !IsStopping;
+    /// <summary>Stop button is always enabled (escape hatch for user to dismiss).</summary>
+    public bool IsStopButtonEnabled => true;
 
     public string ProgressText => PlaybackViewModelProgressTextHelper.GetProgressText(loadedTracks, totalTracks, totalBytesDownloaded, totalBytesExpected, PreparationProgress);
 

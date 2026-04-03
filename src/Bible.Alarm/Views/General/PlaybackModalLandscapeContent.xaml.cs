@@ -18,4 +18,9 @@ public partial class PlaybackModalLandscapeContent
     /// Stop button in landscape bar; used by parent to attach Clicked handler.
     /// </summary>
     public Button? StopButton => LandscapeStopButton;
+
+    /// <summary>
+    /// Minimize button container; used by parent to adjust margin for Android status bar offset.
+    /// </summary>
+    public Grid? MinimizeContainer => LandscapeMinimizeContainer;
 }
