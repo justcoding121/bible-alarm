@@ -332,8 +332,24 @@ public sealed class PlaybackModalService :
         {
             try
             {
-                if (isModalOpen || isMinimized)
+                // A modal push attempted while the app was backgrounded may have been
+                // silently dropped, leaving isModalOpen=true without a visible page.
+                // Validate against the actual navigation stack before trusting the flag.
+                if (isModalOpen)
                 {
+                    if (navigationService.IsPlaybackModalOnScreen())
+                    {
+                        return;
+                    }
+
+                    logger.Warning(
+                        "ShowPlaybackModalIfNeededOnResumeAsync: isModalOpen was true but PlaybackModal is not on navigation stack — resetting state");
+                    isModalOpen = false;
+                }
+
+                if (isMinimized)
+                {
+                    navigationService.SetMiniBarVisible(true);
                     return;
                 }
 
@@ -360,6 +376,8 @@ public sealed class PlaybackModalService :
                     "ShowPlaybackModalIfNeededOnResumeAsync: Playback active (Status={Status}) but no UI visible — showing modal",
                     state?.Status);
 
+                navigationService.SetMiniBarVisible(true);
+                await Task.Delay(150);
                 await navigationService.OpenPlaybackModalAsync();
 
                 if (!navigationService.IsPlaybackModalOnScreen())
@@ -379,6 +397,49 @@ public sealed class PlaybackModalService :
                 FallBackToMiniBar();
             }
         });
+    }
+
+    public void ShowMiniBarIfPlaybackActiveOnResume()
+    {
+        try
+        {
+            if (isModalOpen && navigationService.IsPlaybackModalOnScreen())
+            {
+                return;
+            }
+
+            if (isMinimized)
+            {
+                navigationService.SetMiniBarVisible(true);
+                return;
+            }
+
+            PlaybackState? state = null;
+            try
+            {
+                state = playbackState.Value;
+            }
+            catch
+            {
+                // Fluxor not ready; fall through to platform check
+            }
+
+            var isActive = state != null
+                ? IsActiveUiPlaybackStatus(state.Status)
+                : CheckPlatformPlaybackIsActive();
+
+            if (isActive)
+            {
+                logger.Information(
+                    "ShowMiniBarIfPlaybackActiveOnResume: Playback active (Status={Status}) — showing mini bar as preview while modal is prepared",
+                    state?.Status);
+                navigationService.SetMiniBarVisible(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error in ShowMiniBarIfPlaybackActiveOnResume");
+        }
     }
 
 #if IOS
@@ -550,6 +611,19 @@ public sealed class PlaybackModalService :
         {
             true when shouldAutoOpen => MainThread.InvokeOnMainThreadAsync(async () =>
             {
+                // UI push operations while the app is backgrounded can fail silently
+                // or produce a stale page that isn't visible when foregrounded.
+                // Preserve requestedShowModal so ShowPlaybackModalIfNeededOnResumeAsync
+                // (or a future OnPlaybackStateChanged when foregrounded) can show the
+                // modal reliably.
+                if (!App.IsInForeground)
+                {
+                    logger.Information(
+                        "Auto-open deferred — app is in background (Status={Status}). Resume handler will show modal when foregrounded.",
+                        state.Status);
+                    return;
+                }
+
                 requestedShowModal = false;
 
                 if (isModalOpen)
@@ -618,6 +692,7 @@ public sealed class PlaybackModalService :
             {
                 requestedShowModal = false;
                 targetScheduleId = null;
+                navigationService.SetMiniBarVisible(false);
                 return Task.CompletedTask;
             }),
             _ => Task.CompletedTask

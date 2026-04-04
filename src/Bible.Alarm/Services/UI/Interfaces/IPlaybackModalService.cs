@@ -20,6 +20,13 @@ public interface IPlaybackModalService : IDisposable
     /// </summary>
     Task ShowPlaybackModalIfNeededOnResumeAsync();
 
+    /// <summary>
+    /// Shows the mini playback bar immediately if playback is active and no playback UI
+    /// is currently visible. Called synchronously on the main thread at the start of
+    /// OnResume so the user sees instant feedback while the full modal is prepared.
+    /// </summary>
+    void ShowMiniBarIfPlaybackActiveOnResume();
+
     bool IsMinimized { get; }
 
     /// <summary>

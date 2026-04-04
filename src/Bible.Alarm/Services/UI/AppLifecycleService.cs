@@ -52,6 +52,16 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
     {
         App.IsInForeground = true;
 
+        try
+        {
+            var playbackModalService = serviceProvider.GetService<IPlaybackModalService>();
+            playbackModalService?.ShowMiniBarIfPlaybackActiveOnResume();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error showing mini bar preview on resume");
+        }
+
         Task.Run(async () =>
         {
             try
