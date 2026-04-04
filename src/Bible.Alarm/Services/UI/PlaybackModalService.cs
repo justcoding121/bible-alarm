@@ -326,6 +326,61 @@ public sealed class PlaybackModalService :
         return modalWasShown;
     }
 
+    public async Task ShowPlaybackModalIfNeededOnResumeAsync()
+    {
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            try
+            {
+                if (isModalOpen || isMinimized)
+                {
+                    return;
+                }
+
+                PlaybackState? state = null;
+                try
+                {
+                    state = playbackState.Value;
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "PlaybackState not available during resume check; using platform playback check fallback");
+                }
+
+                var shouldShow = state != null
+                    ? IsActiveUiPlaybackStatus(state.Status)
+                    : CheckPlatformPlaybackIsActive();
+
+                if (!shouldShow)
+                {
+                    return;
+                }
+
+                logger.Information(
+                    "ShowPlaybackModalIfNeededOnResumeAsync: Playback active (Status={Status}) but no UI visible — showing modal",
+                    state?.Status);
+
+                await navigationService.OpenPlaybackModalAsync();
+
+                if (!navigationService.IsPlaybackModalOnScreen())
+                {
+                    logger.Warning("ShowPlaybackModalIfNeededOnResumeAsync: push failed — falling back to mini bar");
+                    FallBackToMiniBar();
+                    return;
+                }
+
+                isModalOpen = true;
+                isMinimized = false;
+                navigationService.SetMiniBarVisible(false);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error showing PlaybackModal on resume — falling back to mini bar");
+                FallBackToMiniBar();
+            }
+        });
+    }
+
 #if IOS
     private async Task WaitForWindowReadyAsync()
     {

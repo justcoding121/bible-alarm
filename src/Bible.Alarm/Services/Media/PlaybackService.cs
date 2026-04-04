@@ -435,6 +435,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             if (defaultScheduleId.HasValue && defaultScheduleId.Value > 0)
             {
                 logger.Information("Play pressed with no active playback - starting default schedule {ScheduleId}", defaultScheduleId.Value);
+                WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = defaultScheduleId.Value });
                 await PrepareAndPlayAsync(defaultScheduleId.Value, isAlarm: false);
                 return;
             }

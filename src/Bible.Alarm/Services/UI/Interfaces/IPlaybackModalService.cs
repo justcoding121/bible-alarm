@@ -13,6 +13,13 @@ public interface IPlaybackModalService : IDisposable
     /// </summary>
     Task<bool> ShowPlaybackModalIfNeededOnWindowCreationAsync();
 
+    /// <summary>
+    /// Called when the app resumes from background. If playback is active but neither
+    /// the modal nor the mini bar is visible (e.g. playback started from Control Center
+    /// or system media controls while backgrounded), shows the playback modal.
+    /// </summary>
+    Task ShowPlaybackModalIfNeededOnResumeAsync();
+
     bool IsMinimized { get; }
 
     /// <summary>

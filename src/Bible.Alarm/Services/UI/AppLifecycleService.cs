@@ -60,6 +60,19 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
 
                 ReconcilePlaybackState();
 
+                try
+                {
+                    var playbackModalService = serviceProvider.GetService<IPlaybackModalService>();
+                    if (playbackModalService != null)
+                    {
+                        await playbackModalService.ShowPlaybackModalIfNeededOnResumeAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Error showing playback modal on resume");
+                }
+
 #if WINDOWS
                 // Ensure periodic background tasks are running
                 // This will run scheduler and media index update immediately on resume, then continue periodically

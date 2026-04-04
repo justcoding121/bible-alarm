@@ -1,24 +1,20 @@
 #nullable enable
 
 using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.Views.Shared;
 
 namespace Bible.Alarm.Services.UI.ToastLayoutHelpers;
 
 /// <summary>
 /// Bottom inset so in-app toasts sit above the mini playback bar when it is visible.
+/// Uses the actual measured height reported by MiniPlaybackBar.SizeChanged,
+/// falling back to an estimate if the bar hasn't been laid out yet.
 /// </summary>
 internal static class ToastMiniBarInsetHelper
 {
-    /// <summary>
-    /// Matches MiniPlaybackBar: 3 progress + controls row (8 + 48 + 8 padding/height).
-    /// </summary>
-    private const double MiniPlaybackBarHeightDip = 72;
+    private const double FallbackMiniPlaybackBarHeightDip = 80;
+    private const double GapAboveMiniBarDip = 16;
 
-    private const double GapBetweenToastAndMiniBarDip = 8;
-
-    /// <summary>
-    /// Extra device-independent space to reserve above the screen bottom when the mini bar is shown.
-    /// </summary>
     public static double GetBottomInsetDip()
     {
         var vm = MiniPlaybackBarViewModel.Instance;
@@ -27,6 +23,10 @@ internal static class ToastMiniBarInsetHelper
             return 0;
         }
 
-        return MiniPlaybackBarHeightDip + GapBetweenToastAndMiniBarDip;
+        var barHeight = MiniPlaybackBar.LastMeasuredHeight > 0
+            ? MiniPlaybackBar.LastMeasuredHeight
+            : FallbackMiniPlaybackBarHeightDip;
+
+        return barHeight + GapAboveMiniBarDip;
     }
 }
