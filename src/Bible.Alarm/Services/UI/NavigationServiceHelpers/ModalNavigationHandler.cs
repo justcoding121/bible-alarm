@@ -107,6 +107,8 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public async Task OpenPlaybackModalAsync(INavigation navigation, bool animated = false)
     {
+        Exception? pushException = null;
+
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
@@ -137,8 +139,14 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
             catch (Exception ex)
             {
                 logger.Error(ex, "Error opening PlaybackModal");
+                pushException = ex;
             }
         });
+
+        if (pushException != null)
+        {
+            throw new InvalidOperationException("PlaybackModal push failed", pushException);
+        }
     }
 
     public static bool IsPlaybackModalAlreadyShown(INavigation navigation)

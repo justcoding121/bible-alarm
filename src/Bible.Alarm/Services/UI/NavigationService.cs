@@ -285,8 +285,11 @@ public sealed class NavigationService(
 
     public async Task OpenPlaybackModalAsync(bool animated = false)
     {
-        var navigation = GetNavigation();
-        await modalHandler.OpenPlaybackModalAsync(navigation, animated);
+        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
+        {
+            var navigation = GetNavigation();
+            await modalHandler.OpenPlaybackModalAsync(navigation, animated);
+        });
     }
 
     public bool IsPlaybackModalOnScreen()

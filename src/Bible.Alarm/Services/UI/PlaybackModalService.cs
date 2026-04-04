@@ -220,17 +220,27 @@ public sealed class PlaybackModalService :
                 if (!isModalOpen)
                 {
                     await navigationService.OpenPlaybackModalAsync(animated: false);
+
+                    if (!navigationService.IsPlaybackModalOnScreen())
+                    {
+                        logger.Warning("MaximizeAsync: PlaybackModal push failed — keeping mini bar visible");
+                        isMinimized = true;
+                        navigationService.SetMiniBarVisible(true);
+                        WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
+                        return;
+                    }
+
                     isModalOpen = true;
                 }
 
-                // PlaybackModal.Loaded will send PlaybackModalOpenedMessage
                 navigationService.SetMiniBarVisible(false);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error maximizing playback");
+                logger.Error(ex, "Error maximizing playback — keeping mini bar visible");
                 isMinimized = true;
                 navigationService.SetMiniBarVisible(true);
+                WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
             }
         });
     }
@@ -290,6 +300,15 @@ public sealed class PlaybackModalService :
                 navigationService.SetMiniBarVisible(true);
                 await Task.Delay(150);
                 await navigationService.OpenPlaybackModalAsync();
+
+                if (!navigationService.IsPlaybackModalOnScreen())
+                {
+                    logger.Warning("ShowPlaybackModalIfNeededOnWindowCreationAsync: push failed — keeping mini bar visible");
+                    isMinimized = true;
+                    modalWasShown = true;
+                    return;
+                }
+
                 isModalOpen = true;
                 isMinimized = false;
                 navigationService.SetMiniBarVisible(false);
@@ -297,8 +316,10 @@ public sealed class PlaybackModalService :
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error showing PlaybackModal during window creation");
+                logger.Error(ex, "Error showing PlaybackModal during window creation — keeping mini bar visible");
                 isModalOpen = false;
+                navigationService.SetMiniBarVisible(true);
+                isMinimized = true;
             }
         });
 
@@ -506,13 +527,6 @@ public sealed class PlaybackModalService :
                             if (IsActiveUiPlaybackStatus(currentState.Status))
                             {
                                 await navigationService.OpenPlaybackModalAsync();
-
-                                if (!navigationService.IsPlaybackModalOnScreen())
-                                {
-                                    logger.Error("PlaybackModal push failed again after waiting for window ready");
-                                    isModalOpen = false;
-                                    return;
-                                }
                             }
                             else
                             {
@@ -529,12 +543,18 @@ public sealed class PlaybackModalService :
                         }
                     }
 #endif
-                    // PlaybackModal.Loaded will send PlaybackModalOpenedMessage
+
+                    if (!navigationService.IsPlaybackModalOnScreen())
+                    {
+                        logger.Warning("PlaybackModal push failed — modal not on navigation stack. Falling back to mini bar");
+                        FallBackToMiniBar();
+                        return;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Error showing PlaybackModal");
-                    isModalOpen = false;
+                    logger.Error(ex, "Error showing PlaybackModal — falling back to mini bar");
+                    FallBackToMiniBar();
                 }
             }),
             false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
@@ -615,6 +635,20 @@ public sealed class PlaybackModalService :
 
             return Task.CompletedTask;
         });
+    }
+
+    /// <summary>
+    /// Resets modal state and falls back to the mini playback bar when the
+    /// PlaybackModal push fails or the page is not on the navigation stack.
+    /// Also sends PlaybackModalOpenedMessage so list-item spinners are cleared.
+    /// Must be called on the main thread.
+    /// </summary>
+    private void FallBackToMiniBar()
+    {
+        isModalOpen = false;
+        isMinimized = true;
+        navigationService.SetMiniBarVisible(true);
+        WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
     }
 
     /// <summary>
