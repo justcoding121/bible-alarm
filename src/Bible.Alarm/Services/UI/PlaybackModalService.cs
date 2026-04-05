@@ -138,6 +138,8 @@ public sealed class PlaybackModalService :
             // Different schedule: leave requestedShowModal = true so the guard in
             // OnPlaybackStateChanged keeps the modal open during the schedule switch.
         }
+
+        ScheduleModalSafetyCheck();
     }
 
     public void Receive(PlaybackExplicitStopMessage message)
@@ -558,12 +560,12 @@ public sealed class PlaybackModalService :
             return;
         }
 
-        // During a schedule switch the old schedule stops briefly before the new one
-        // starts loading. Keep the modal/bar visible so it doesn't flash.
-        // Covers both: modal already open, and bar still showing while MaximizeAsync is queued.
-        if (!shouldShowPlayback && (isModalOpen || isMinimized) && requestedShowModal)
+        // A show request is pending (play was initiated) but playback state is transiently
+        // inactive (e.g. Stopped during audio player reset before Loading arrives).
+        // Preserve the request flag and keep any existing UI visible.
+        if (!shouldShowPlayback && requestedShowModal)
         {
-            logger.Debug("OnPlaybackStateChanged: Keeping UI visible during schedule switch (requestedShowModal pending). Status={Status}, IsModalOpen={IsModalOpen}, IsMinimized={IsMinimized}",
+            logger.Debug("OnPlaybackStateChanged: Preserving requestedShowModal during transient inactive state. Status={Status}, IsModalOpen={IsModalOpen}, IsMinimized={IsMinimized}",
                 state.Status, isModalOpen, isMinimized);
             return;
         }
@@ -573,7 +575,20 @@ public sealed class PlaybackModalService :
         var shouldAutoOpen = shouldShowPlayback && !isModalOpen && !isMinimized && requestedShowModal;
         if (shouldShowPlayback && !isModalOpen && !isMinimized && !requestedShowModal)
         {
-            logger.Debug("OnPlaybackStateChanged: Playback active but no explicit show request — not auto-opening modal. Status={Status}", state.Status);
+            // Playback is active but no explicit show request — show the mini bar as a
+            // safety net so the user always has visible playback controls.
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (!isModalOpen && !isMinimized)
+                {
+                    logger.Information(
+                        "OnPlaybackStateChanged: Playback active with no UI visible — showing mini bar as safety net. Status={Status}",
+                        state.Status);
+                    isMinimized = true;
+                    navigationService.SetMiniBarVisible(true);
+                    WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
+                }
+            });
             return;
         }
 
@@ -779,6 +794,89 @@ public sealed class PlaybackModalService :
         isMinimized = true;
         navigationService.SetMiniBarVisible(true);
         WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
+    }
+
+    private const int ModalSafetyCheckDelayMs = 10_000;
+
+    /// <summary>
+    /// After a show-modal request, schedules a delayed check. If the modal or mini bar
+    /// still hasn't appeared, forces the playback modal (with mini bar fallback).
+    /// Catches edge cases where OnPlaybackStateChanged never fires or the auto-open
+    /// silently fails.
+    /// </summary>
+    private void ScheduleModalSafetyCheck()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(ModalSafetyCheckDelayMs);
+
+                if (isModalOpen || isMinimized || !requestedShowModal)
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    if (isModalOpen || isMinimized || !requestedShowModal)
+                    {
+                        return;
+                    }
+
+                    if (!App.IsInForeground)
+                    {
+                        logger.Debug("Modal safety check: app is backgrounded — deferring to resume handler");
+                        return;
+                    }
+
+                    PlaybackState? state = null;
+                    try { state = playbackState.Value; } catch { /* Fluxor not ready */ }
+
+                    var isActive = state != null
+                        ? IsActiveUiPlaybackStatus(state.Status)
+                        : CheckPlatformPlaybackIsActive();
+
+                    if (!isActive)
+                    {
+                        logger.Debug("Modal safety check: playback is no longer active — clearing stale requestedShowModal");
+                        requestedShowModal = false;
+                        targetScheduleId = null;
+                        return;
+                    }
+
+                    logger.Warning(
+                        "Modal safety check: requestedShowModal pending >{DelayMs}ms with no UI visible (Status={Status}) — forcing playback modal",
+                        ModalSafetyCheckDelayMs, state?.Status);
+
+                    requestedShowModal = false;
+
+                    try
+                    {
+                        await navigationService.OpenPlaybackModalAsync();
+
+                        if (navigationService.IsPlaybackModalOnScreen())
+                        {
+                            isModalOpen = true;
+                            isMinimized = false;
+                            navigationService.SetMiniBarVisible(false);
+                            WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Warning(ex, "Modal safety check: modal push failed");
+                    }
+
+                    FallBackToMiniBar();
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error in modal safety check");
+            }
+        });
     }
 
     /// <summary>
