@@ -15,18 +15,21 @@ public sealed class AndroidAlarmHandler(
     IPlaybackService playbackService,
     IAlarmScheduleService alarmScheduleService,
     IState<PlaybackState> playbackState)
-    : IAndroidAlarmHandler, IDisposable
+    : IAndroidAlarmHandler
 {
-    public event EventHandler<bool> Disposed;
-
     public async Task HandleAsync(int scheduleId, bool isAlarm)
     {
         if (isAlarm && playbackState.Value.IsPreparingOrPlaying)
         {
-            logger.Information("Alarm triggered for schedule {ScheduleId} while playback is already active - skipping to avoid interrupting current playback", scheduleId);
-            Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
-            Dispose();
-            return;
+            logger.Information("Alarm triggered for schedule {ScheduleId} while playback is active - stopping current playback to handle new alarm", scheduleId);
+            try
+            {
+                await playbackService.StopAsync();
+            }
+            catch (Exception e)
+            {
+                logger.Warning(e, "Error stopping current playback before handling alarm for schedule {ScheduleId}", scheduleId);
+            }
         }
 
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
@@ -36,17 +39,12 @@ public sealed class AndroidAlarmHandler(
         {
             logger.Warning("Schedule {ScheduleId} not found - stopping foreground service", scheduleId);
             Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
-            Dispose();
             return;
         }
 
-        // If "play only when I tap on notification" is enabled for alarm,
-        // stop the foreground service and its sticky notification, then show regular notification
         if (isAlarm && schedule.NotificationEnabled)
         {
             logger.Information("Alarm triggered with NotificationEnabled=true for schedule {ScheduleId} - stopping foreground service and showing tap notification", scheduleId);
-
-            // Stop foreground service and its sticky notification (we don't need it if user must tap)
             Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
 
             logger.Debug("Removing any existing local notification for schedule {ScheduleId}", schedule.Id);
@@ -59,26 +57,14 @@ public sealed class AndroidAlarmHandler(
                 "Press to start listening now.");
 
             logger.Information("Local notification shown for schedule {ScheduleId} - waiting for user tap", schedule.Id);
-            Dispose();
             return;
         }
 
-        // When tap is disabled (NotificationEnabled=false) and alarm triggers:
-        // - Do NOT show regular notification
-        // - Keep the foreground service notification (already shown by OnAlarmTriggered, without sound)
-        // - Continue to playback
         if (isAlarm && !schedule.NotificationEnabled)
         {
-            // Tap disabled: foreground service notification is already shown (without sound)
-            // No need to show regular notification - just continue to playback
             logger.Information("Alarm triggered for schedule {ScheduleId} with tap disabled - using foreground service notification (no sound)", scheduleId);
         }
 
-        // When user taps notification (isAlarm=false) or manual playback request:
-        // - Always start playback immediately (user-initiated playback)
-        // - NotificationEnabled flag only applies to alarm triggers, not user-initiated playback
-        // - Remove notification if it exists (user tapped it)
-        // - Do NOT show any notifications or sounds for user-initiated playback
         if (!isAlarm)
         {
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
@@ -95,7 +81,6 @@ public sealed class AndroidAlarmHandler(
                 {
                     logger.Error(e, "An error happened when starting user-initiated playback.");
                     Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
-                    Dispose();
                 }
             });
 
@@ -113,29 +98,7 @@ public sealed class AndroidAlarmHandler(
             {
                 logger.Error(e, "An error happened when ringing the alarm.");
                 Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
-                Dispose();
             }
         });
-    }
-
-    // PlayerNotificationManager removed - using MediaElement instead
-    // Notification handling is now managed by the MediaElement service
-
-    private bool isDisposed;
-
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope
-        // playbackService (IPlaybackService) and IServiceScopeFactory are singletons
-        // and should not be disposed here as they are managed by the DI container
-
-        Disposed?.Invoke(this, true);
     }
 }

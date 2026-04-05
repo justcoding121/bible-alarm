@@ -3,20 +3,15 @@ using Android.OS;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
-using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 
 [BroadcastReceiver(Enabled = true)]
-public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
+public class AlarmRingerReceiver : BroadcastReceiver
 {
     private static readonly ILogger logger = Log.ForContext<AlarmRingerReceiver>();
-
-    private Context context;
-    private Intent intent;
-    private IAndroidAlarmHandler alarmHandler;
 
     private static readonly SemaphoreSlim @lock = new(1);
 
@@ -59,8 +54,6 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
     public override async void OnReceive(Context context, Intent intent)
     {
-        // Create MediaSession as the very first thing - even before MAUI services are registered
-        // This ensures MediaSession is available immediately on process start
         try
         {
             Platforms.Android.Services.Media.MediaSessionHelper.Create();
@@ -76,47 +69,29 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         {
             await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
-                this.context = context;
-                this.intent = intent;
-
                 var scheduleId = intent.GetStringExtra("ScheduleId");
                 var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
 
-                // Always start foreground service immediately to prevent OS kill during bootstrap/download/play
-                // We'll stop it after bootstrap if NotificationEnabled is true
                 if (!string.IsNullOrEmpty(scheduleId) && isAlarm)
                 {
                     await Platforms.Android.Services.Media.ForegroundServiceCoordinator.OnAlarmTriggered(context, int.Parse(scheduleId));
                 }
 
-                // Initialize DI container for background service
                 MauiAppHolder.CreateAndStore();
 
-                // Run bootstrapper asynchronously to avoid blocking the receiver thread
-                // This is critical for BroadcastReceivers which must not block
                 await Task.Run(() =>
                 {
                     MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 });
 
-                // Wait for bootstrap to complete before using database services
                 await MauiProgram.WaitForBootstrapAsync();
 
-                // scheduleId and isAlarm are already defined above (lines 63-64)
-                // Re-read them here to ensure we have the latest values after bootstrap
                 scheduleId = intent.GetStringExtra("ScheduleId");
                 isAlarm = intent.GetBooleanExtra("IsAlarm", true);
 
-                alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
-                // Subscribe to Disposed event if the handler implements it
-                if (alarmHandler is AndroidAlarmHandler concreteHandler)
-                {
-                    concreteHandler.Disposed += OnDisposed;
-                }
+                var alarmHandler = ServiceProviderManager.GetService<IAndroidAlarmHandler>();
                 await alarmHandler.HandleAsync(int.Parse(scheduleId), isAlarm);
 
-                // Reschedule next occurrence immediately after alarm fires (for recurring alarms)
-                // This ensures no gap between alarm occurrences
                 if (isAlarm && !string.IsNullOrEmpty(scheduleId))
                 {
                     try
@@ -131,7 +106,6 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
                     catch (Exception ex)
                     {
                         logger.Warning(ex, "Failed to reschedule next occurrence for schedule {ScheduleId} after alarm fired", scheduleId);
-                        // Don't fail the alarm handling if rescheduling fails - SchedulerJob will handle it
                     }
                 }
             });
@@ -140,37 +114,12 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
         {
             logger.Error(e, "An error happened when creating the task to ring the alarm.");
             Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
-            Dispose();
         }
         finally
         {
+            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
             pendingIntent.Finish();
         }
-    }
-
-    private void OnDisposed(object sender, bool e) => Dispose(true);
-
-    private bool disposed;
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposed)
-        {
-            return;
-        }
-
-        if (alarmHandler is AndroidAlarmHandler concreteHandler)
-        {
-            concreteHandler.Disposed -= OnDisposed;
-        }
-
-        context?.StopService(intent);
-
-        AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-        TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
-
-        disposed = true;
-
-        base.Dispose(disposing);
     }
 }

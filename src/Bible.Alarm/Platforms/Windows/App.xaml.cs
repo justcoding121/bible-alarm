@@ -282,25 +282,25 @@ public partial class App : MauiWinUIApplication
                 (arguments.Contains("scheduleId=") &&
                  int.TryParse(arguments.Split('=').LastOrDefault(), out scheduleId)))
             {
-                Task.Run(async () =>
+            Task.Run(async () =>
+            {
+                try
                 {
-                    try
-                    {
-                        // Ensure MauiApp is created
-                        MauiAppHolder.CreateAndStore();
+                    MauiAppHolder.CreateAndStore();
 
-                        var alarmHandler = MauiAppHolder.Services.GetRequiredService<IWindowsAlarmHandler>();
-                        await alarmHandler.HandleAsync(scheduleId, true);
+                    MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
+                    await MauiProgram.WaitForBootstrapAsync();
 
-                        // Reschedule the next occurrence for recurring alarms
-                        // WinUI 3 doesn't have background tasks, so we reschedule immediately when notification fires
-                        var schedulerService = MauiAppHolder.Services.GetRequiredService<ISchedulerService>();
-                        await schedulerService.RescheduleNextOccurrenceAsync(scheduleId);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e, $"Error handling alarm activation for schedule {scheduleId}");
-                    }
+                    var alarmHandler = MauiAppHolder.Services.GetRequiredService<IWindowsAlarmHandler>();
+                    await alarmHandler.HandleAsync(scheduleId, true);
+
+                    var schedulerService = MauiAppHolder.Services.GetRequiredService<ISchedulerService>();
+                    await schedulerService.RescheduleNextOccurrenceAsync(scheduleId);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e, $"Error handling alarm activation for schedule {scheduleId}");
+                }
                 });
             }
         }
