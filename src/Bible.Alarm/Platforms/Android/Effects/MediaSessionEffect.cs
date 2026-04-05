@@ -305,6 +305,18 @@ public class MediaSessionEffect(
             // - App.IsInForeground: would break the passenger scenario (user on phone while in car).
             if (!CarConnectionHelper.IsCarConnected())
             {
+                // If the bind flag is still stale, OnUnbind was never called (common with
+                // wireless Android Auto on some cars). Clean up the orphaned foreground
+                // notification and deactivate the MediaSession to prevent Android 13+
+                // from auto-generating a system notification for the stale active session.
+                if (ForegroundServiceCoordinator.IsAndroidAutoConnected)
+                {
+                    logger.Warning(
+                        "HandleSetDefaultScheduleMetadata: Car physically disconnected but MediaBrowser bind flag still true — cleaning up stale Android Auto state");
+                    ForegroundServiceCoordinator.OnAndroidAutoDisconnected();
+                }
+
+                mediaSessionManager.SetActive(false);
                 logger.Debug("HandleSetDefaultScheduleMetadata: Car not connected (CarConnection provider), skipping default metadata/notification");
                 return;
             }

@@ -1,4 +1,3 @@
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -20,12 +19,19 @@ public sealed class WindowsAlarmHandler(
     {
         try
         {
-            await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
+            await Common.Helpers.ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
                 if (playbackState.Value.IsPreparingOrPlaying)
                 {
-                    Dispose();
-                    return;
+                    logger.Information("Alarm triggered for schedule {ScheduleId} while playback is active - stopping current playback to handle new alarm", scheduleId);
+                    try
+                    {
+                        await playbackService.StopAsync();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Warning(e, "Error stopping current playback before handling alarm for schedule {ScheduleId}", scheduleId);
+                    }
                 }
 
                 WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleId });
@@ -46,33 +52,6 @@ public sealed class WindowsAlarmHandler(
         catch (Exception e)
         {
             logger.Error(e, "An error happened when creating the task to ring the alarm.");
-            Dispose();
         }
-    }
-
-    private bool isDisposed;
-
-    public void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // Dispose static semaphore
-        try
-        {
-            @lock.Dispose();
-        }
-        catch (Exception ex)
-        {
-            // Ignore if already disposed
-            logger.Warning(ex, "Error disposing semaphore, may already be disposed");
-        }
-
-        // All injected services (playbackService, IState<PlaybackState>) are singletons
-        // and should not be disposed here as they are managed by the DI container
     }
 }
