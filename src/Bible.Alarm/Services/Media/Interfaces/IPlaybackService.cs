@@ -17,6 +17,14 @@ public interface IPlaybackService : IDisposable
 
     Task PrepareAndPlayAsync(int scheduleId, bool isAlarm);
     Task StopAsync();
+
+    /// <summary>
+    /// Stops playback without dispatching Fluxor actions or sending explicit-stop messages.
+    /// Used during window teardown to prevent stale dispatches from interfering with a new session
+    /// after activity recreation (e.g., Android swipe-out → reopen).
+    /// </summary>
+    Task StopForTeardownAsync();
+
     Task ResetAndRetryAsync(int scheduleId);
 }
 

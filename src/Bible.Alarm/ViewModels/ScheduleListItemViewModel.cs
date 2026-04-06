@@ -729,6 +729,25 @@ public sealed class ScheduleListItemViewModel(
                 if (!cts.IsCancellationRequested && isBusy)
                 {
                     SetIsBusy(false);
+
+                    try
+                    {
+                        var state = playbackState.Value;
+                        if (Schedule?.Id > 0
+                            && state.IsPreparingOrPlaying
+                            && state.CurrentScheduleId == Schedule.Id)
+                        {
+                            logger.Warning(
+                                "Spinner timed out but playback active for schedule {ScheduleId} — re-requesting modal as last resort",
+                                ScheduleId);
+                            WeakReferenceMessenger.Default.Send(
+                                new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule.Id });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Debug(ex, "Error checking playback state during spinner timeout fallback");
+                    }
                 }
             });
         });

@@ -4,6 +4,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Stores.Actions.Playback;
 using Serilog;
 
 #if ANDROID
@@ -32,6 +33,11 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
 
     public Window CreateWindow(IActivationState? activationState)
     {
+        // When a new window is created the app will be visible. On Android, after a swipe-out
+        // the old activity's OnStop set IsInForeground=false, but MAUI may not call OnStart/OnResume
+        // again on the Application for the recreated activity, leaving the flag stale.
+        App.IsInForeground = true;
+
         var navigationPage = serviceProvider.GetRequiredService<NavigationPage>();
         Initialize(navigationPage);
 
@@ -264,23 +270,33 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
 
         mainNavPage = null;
 
+        // Dispatch PlaybackStoppedAction synchronously AFTER unsubscribing so Fluxor state
+        // is clean (Stopped) before a new session starts. The handler is already unsubscribed,
+        // so no UI close logic fires (which would fail during activity destruction).
+        // The background StopForTeardownAsync skips dispatching to prevent stale actions
+        // from interfering with a new session after activity recreation.
+        var dispatcher = serviceProvider.GetService<Fluxor.IDispatcher>();
+        dispatcher?.Dispatch(new PlaybackStoppedAction());
+#if ANDROID || IOS
+        dispatcher?.Dispatch(new SetCarPlayScreenAction());
+#endif
+
         var playbackService = serviceProvider.GetService<IPlaybackService>();
 
         if (playbackService != null)
         {
-            logger.Information("TearDown - Calling player dismiss action");
+            logger.Information("TearDown - Calling player teardown stop");
 
             Task.Run(async () =>
             {
                 try
                 {
-                    await playbackService.StopAsync();
-                    logger.Information("TearDown - Player dismiss action completed");
+                    await playbackService.StopForTeardownAsync();
+                    logger.Information("TearDown - Player teardown stop completed");
                 }
                 catch (Exception ex)
                 {
-                    // Disposal errors are non-critical (cleanup operation)
-                    logger.Warning(ex, "Error in StopAsync or disposal");
+                    logger.Warning(ex, "Error in StopForTeardownAsync");
                 }
             });
         }

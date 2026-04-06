@@ -475,6 +475,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         await StopAsyncInternal(skipMarkAsPlayed: false);
     }
 
+    public async Task StopForTeardownAsync()
+    {
+        await StopAsyncInternal(skipMarkAsPlayed: false, skipDispatchStopped: true);
+    }
+
     private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false, bool skipDispatchStopped = false)
     {
         if (!await stopLock.WaitAsync(0))

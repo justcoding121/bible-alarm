@@ -812,14 +812,33 @@ public sealed class PlaybackModalService :
             {
                 await Task.Delay(ModalSafetyCheckDelayMs);
 
-                if (isModalOpen || isMinimized || !requestedShowModal)
+                if (isMinimized)
                 {
                     return;
                 }
 
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    if (isModalOpen || isMinimized || !requestedShowModal)
+                    if (isMinimized)
+                    {
+                        return;
+                    }
+
+                    // isModalOpen might be stale (set before a push that silently failed,
+                    // or the page was removed from the nav stack by an activity recreation).
+                    // Validate against the actual navigation stack.
+                    if (isModalOpen)
+                    {
+                        if (navigationService.IsPlaybackModalOnScreen())
+                        {
+                            return;
+                        }
+
+                        logger.Warning("Modal safety check: isModalOpen was true but PlaybackModal is not on navigation stack — resetting");
+                        isModalOpen = false;
+                    }
+
+                    if (!requestedShowModal)
                     {
                         return;
                     }
