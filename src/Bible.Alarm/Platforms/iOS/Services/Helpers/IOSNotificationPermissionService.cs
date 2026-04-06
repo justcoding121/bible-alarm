@@ -163,7 +163,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
             try
             {
                 var (granted, error) = await UNUserNotificationCenter.Current.RequestAuthorizationAsync(
-                    UNAuthorizationOptions.Alert | UNAuthorizationOptions.Sound | UNAuthorizationOptions.Badge);
+                    UNAuthorizationOptions.Alert | UNAuthorizationOptions.Sound | UNAuthorizationOptions.Badge | UNAuthorizationOptions.TimeSensitive);
 
                 if (error != null)
                 {

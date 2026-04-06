@@ -36,6 +36,7 @@ public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory 
             content.Sound = UNNotificationSound.Default;
             content.UserInfo = @params.ToNsDictionary();
             content.Badge = 1;
+            content.InterruptionLevel = UNNotificationInterruptionLevel.TimeSensitive2;
 
             foreach (var day in daysOfWeek.ToWeekDays())
             {

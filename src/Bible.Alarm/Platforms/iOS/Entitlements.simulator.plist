@@ -17,5 +17,9 @@
     <!-- Enabled for simulator testing with dual-scene configuration -->
     <key>com.apple.developer.carplay-audio</key>
     <true/>
+
+    <!-- Time Sensitive Notifications (iOS 15+) - allows alarm notifications to break through Focus/Sleep modes -->
+    <key>com.apple.developer.usernotifications.time-sensitive</key>
+    <true/>
 </dict>
 </plist>
