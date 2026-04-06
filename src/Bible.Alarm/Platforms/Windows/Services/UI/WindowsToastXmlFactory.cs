@@ -148,8 +148,9 @@ internal static class WindowsToastXmlFactory
         // Create ToastGeneric XML manually for more control over content
         var toastXml = new XmlDocument();
 
-        // Create toast element
+        // Create toast element with alarm scenario so it breaks through Focus Assist
         var toastElement = toastXml.CreateElement("toast");
+        toastElement.SetAttribute("scenario", "alarm");
         toastXml.AppendChild(toastElement);
 
         // Create visual element
