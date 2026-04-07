@@ -51,6 +51,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     private readonly BootstrapReadyManager bootstrapReadyManager;
     private readonly HomeViewModelNotificationPermissionHandler notificationPermissionHandler;
     private readonly HomeViewModelFloatingButtonHandler floatingButtonHandler;
+    private readonly HomeViewModelFocusWarningHandler focusWarningHandler;
 
     public HomeViewModel(
         ILogger logger,
@@ -90,6 +91,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         bootstrapReadyManager = new BootstrapReadyManager(logger);
         notificationPermissionHandler = new HomeViewModelNotificationPermissionHandler(logger, state);
         floatingButtonHandler = new HomeViewModelFloatingButtonHandler(logger, serviceProvider);
+        focusWarningHandler = new HomeViewModelFocusWarningHandler(logger, state);
 
         progressBarManager.ProgressBarOpacityChanged += OnProgressBarOpacityChanged;
         progressBarManager.ProgressBarHiddenChanged += OnProgressBarHiddenChanged;
@@ -115,6 +117,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             async () => await progressBarManager.HideTemporarilyAsync());
         OpenAlarmSettingsCommand = commandHandler.CreateOpenAlarmSettingsCommand();
         OpenNotificationPermissionCommand = commandHandler.CreateOpenNotificationPermissionCommand();
+        OpenFocusSettingsCommand = commandHandler.CreateOpenFocusSettingsCommand(
+            () => { IsFocusWarningVisible = false; });
 
         // Initialize state change handler
         stateChangeHandler = new HomeStateChangeHandler(
@@ -236,6 +240,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         }
         logger.Information("[FLOATING-BUTTON] Calling UpdateNotificationPermissionButtonVisibility");
         UpdateNotificationPermissionButtonVisibility();
+        IsFocusWarningVisible = focusWarningHandler.ComputeShouldShow();
         if (DeviceInfo.Platform == DevicePlatform.Android)
         {
             OnPropertyChanged(nameof(NotificationPermissionButtonMargin));
@@ -270,6 +275,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     public ICommand ViewScheduleCommand { get; set; }
     public ICommand OpenAlarmSettingsCommand { get; private set; } = null!;
     public ICommand OpenNotificationPermissionCommand { get; private set; } = null!;
+    public ICommand OpenFocusSettingsCommand { get; private set; } = null!;
 
     private bool isFloatingButtonVisible = true;
     public bool IsFloatingButtonVisible
@@ -290,6 +296,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
                 }
             }
         }
+    }
+
+    private bool isFocusWarningVisible = false;
+    public bool IsFocusWarningVisible
+    {
+        get => isFocusWarningVisible;
+        set => SetProperty(ref isFocusWarningVisible, value);
     }
 
     private bool isNotificationPermissionButtonVisible = false;

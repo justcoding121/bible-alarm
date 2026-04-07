@@ -185,5 +185,42 @@ public class CommandHandler
             }
         });
     }
+
+    public ICommand CreateOpenFocusSettingsCommand(Action onDismissed)
+    {
+        return new AsyncRelayCommand(async () =>
+        {
+            try
+            {
+                var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+                if (page == null)
+                {
+                    return;
+                }
+
+                var openSettings = await page.DisplayAlertAsync(
+                    "Sleep Mode",
+                    "To ensure your alarms work during iOS Sleep mode, allow Bible Alarm in your Focus settings.\n\n" +
+                    "Go to:\nSettings → Focus → Sleep → Allowed Notifications\n\n" +
+                    "Then add Bible Alarm to the allowed apps list.",
+                    "Open Settings",
+                    "Got it");
+
+                HomeViewModelFocusWarningHandler.Dismiss();
+                onDismissed();
+
+                if (openSettings)
+                {
+#if IOS
+                    await Launcher.OpenAsync(new Uri("app-settings:"));
+#endif
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error showing Focus settings alert");
+            }
+        });
+    }
 }
 

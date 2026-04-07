@@ -673,6 +673,32 @@
                         Opacity="0.4" />
             </Button.Shadow>
         </Button>
+        <!-- iOS Focus/Sleep Warning Button (iOS only) - Right bottom corner -->
+        <!-- Visibility handled by HomeViewModelFocusWarningHandler (returns false on non-iOS) -->
+        <Button x:Name="FocusWarningFloatingButton"
+            AutomationId="FocusWarningFloatingButton"
+            BackgroundColor="{StaticResource PrimaryColor}"
+            CornerRadius="100"
+            Command="{Binding OpenFocusSettingsCommand}"
+            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+            FontSize="{StaticResource IconStandardFontSize}"
+            HeightRequest="{DynamicResource IconLargeContainerSize}"
+            WidthRequest="{DynamicResource IconLargeContainerSize}"
+            HorizontalOptions="End"
+            Opacity="{Binding IsFocusWarningVisible, Converter={StaticResource booleanToOpacityConverter}}"
+            Padding="{DynamicResource PaddingThickness0}"
+            Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
+            VerticalOptions="End"
+            IsVisible="{Binding IsFocusWarningVisible}"
+            Margin="0,0,24,24"
+            ZIndex="100">
+            <Button.Shadow>
+                <helpers:PlatformShadow Brush="#40000000" 
+                        Offset="0,4" 
+                        Radius="8" 
+                        Opacity="0.4" />
+            </Button.Shadow>
+        </Button>
         <!-- Battery Optimization Warning Button (Android only) - Right bottom corner -->
         <Button x:Name="AlarmSettingsFloatingButtonNoEffects"
             AutomationId="AlarmSettingsFloatingButton"
