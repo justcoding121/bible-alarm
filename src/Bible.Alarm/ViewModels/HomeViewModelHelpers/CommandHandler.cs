@@ -192,35 +192,16 @@ public class CommandHandler
         {
             try
             {
-                var page = Application.Current?.Windows.FirstOrDefault()?.Page;
-                if (page == null)
+                var modal = new Views.General.FocusSettingsModal(onDismissed);
+                var navigation = Application.Current?.Windows.FirstOrDefault()?.Page?.Navigation;
+                if (navigation != null)
                 {
-                    return;
-                }
-
-                var openSettings = await page.DisplayAlertAsync(
-                    "Sleep Mode",
-                    "To ensure your alarms work during iOS Sleep mode, allow Bible Alarm in your Focus settings.\n\n" +
-                    "Go to:\nSettings → Focus → Sleep → Allowed Notifications\n\n" +
-                    "Then add Bible Alarm to the allowed apps list.",
-                    "Open Settings",
-                    "Got it");
-
-                if (openSettings)
-                {
-#if IOS
-                    await Launcher.OpenAsync(new Uri("app-settings:"));
-#endif
-                }
-                else
-                {
-                    HomeViewModelFocusWarningHandler.Dismiss();
-                    onDismissed();
+                    await navigation.PushModalAsync(modal);
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error showing Focus settings alert");
+                logger.Error(ex, "Error opening Focus settings modal");
             }
         });
     }

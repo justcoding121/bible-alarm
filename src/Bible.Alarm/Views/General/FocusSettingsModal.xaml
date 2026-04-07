@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<views:BaseContentPage
+    x:Class="Bible.Alarm.Views.General.FocusSettingsModal"
+    xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
+    xmlns:helpers="clr-namespace:Bible.Alarm.Common.ViewHelpers;assembly=Bible.Alarm">
+    <ContentPage.Content>
+        <ScrollView HorizontalOptions="Fill" VerticalOptions="Fill">
+            <Grid BackgroundColor="{DynamicResource BackgroundColor}" Padding="20,20,20,20" HorizontalOptions="Fill" VerticalOptions="Fill">
+                <Border
+                    BackgroundColor="{DynamicResource CardBackgroundColor}"
+                    StrokeThickness="0"
+                    Padding="24">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <helpers:PlatformShadow LightBrush="#E0E0E0" DarkBrush="#000000"
+                                Offset="0,8"
+                                Opacity="0.15"
+                                Radius="16" />
+                    </Border.Shadow>
+                    <Grid HorizontalOptions="Fill" RowSpacing="20" VerticalOptions="Start">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Warning Icon -->
+                        <Label Grid.Row="0"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconLargeFontSize}"
+                            HorizontalOptions="Center"
+                            HorizontalTextAlignment="Center"
+                            Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
+                            TextColor="{DynamicResource PrimaryTextColor}"
+                            VerticalOptions="Start" />
+
+                        <!-- Title -->
+                        <Label Grid.Row="1"
+                            FontSize="{DynamicResource LargeFontSize}"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Fill"
+                            HorizontalTextAlignment="Center"
+                            Text="Sleep Mode"
+                            TextColor="{DynamicResource TextPrimaryColor}"
+                            VerticalOptions="Start" />
+
+                        <!-- Instructions -->
+                        <Label Grid.Row="2"
+                            FontSize="{DynamicResource MediumFontSize}"
+                            HorizontalOptions="Fill"
+                            HorizontalTextAlignment="Start"
+                            LineBreakMode="WordWrap"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Start">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="To ensure your alarms work during iOS Sleep mode:" />
+                                    <Span Text="&#10;&#10;" />
+                                    <Span Text="1. Open " />
+                                    <Span Text="Settings → Focus → Sleep" FontAttributes="Bold" />
+                                    <Span Text="&#10;" />
+                                    <Span Text="2. Tap " />
+                                    <Span Text="Apps" FontAttributes="Bold" />
+                                    <Span Text=" (under Allowed Notifications)" />
+                                    <Span Text="&#10;" />
+                                    <Span Text="3. Tap " />
+                                    <Span Text="+" FontAttributes="Bold" />
+                                    <Span Text=" and add " />
+                                    <Span Text="Bible Alarm" FontAttributes="Bold" />
+                                    <Span Text="&#10;" />
+                                    <Span Text="4. Enable " />
+                                    <Span Text="Time Sensitive Notifications" FontAttributes="Bold" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+
+                        <!-- Buttons -->
+                        <Grid Grid.Row="3" RowSpacing="12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Got it button -->
+                            <Border Grid.Row="0"
+                                x:Name="GotItButton"
+                                BackgroundColor="{StaticResource PrimaryColor}"
+                                HorizontalOptions="Fill"
+                                Padding="12,12"
+                                VerticalOptions="Fill">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Border.Shadow>
+                                    <helpers:PlatformShadow LightBrush="#E0E0E0" DarkBrush="#000000"
+                                            Offset="0,4"
+                                            Opacity="0.2"
+                                            Radius="8" />
+                                </Border.Shadow>
+                                <Label Text="GOT IT"
+                                       FontSize="{DynamicResource MediumFontSize}"
+                                       FontAttributes="Bold"
+                                       HorizontalOptions="Center"
+                                       HorizontalTextAlignment="Center"
+                                       TextColor="White"
+                                       VerticalOptions="Center"
+                                       VerticalTextAlignment="Center" />
+                            </Border>
+
+                            <!-- Remind me later button -->
+                            <Border Grid.Row="1"
+                                x:Name="RemindLaterButton"
+                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                                HorizontalOptions="Fill"
+                                Padding="20,12"
+                                VerticalOptions="Fill">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Border.Shadow>
+                                    <helpers:PlatformShadow LightBrush="#E0E0E0" DarkBrush="#000000"
+                                            Offset="0,2"
+                                            Opacity="0.1"
+                                            Radius="4" />
+                                </Border.Shadow>
+                                <Label Text="REMIND ME LATER"
+                                       FontSize="{DynamicResource ButtonFontSize}"
+                                       FontAttributes="Bold"
+                                       HorizontalOptions="Center"
+                                       TextColor="{DynamicResource PrimaryTextColor}"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </ScrollView>
+    </ContentPage.Content>
+</views:BaseContentPage>
