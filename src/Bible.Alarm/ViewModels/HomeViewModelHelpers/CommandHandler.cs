@@ -206,14 +206,16 @@ public class CommandHandler
                     "Open Settings",
                     "Got it");
 
-                HomeViewModelFocusWarningHandler.Dismiss();
-                onDismissed();
-
                 if (openSettings)
                 {
 #if IOS
                     await Launcher.OpenAsync(new Uri("app-settings:"));
 #endif
+                }
+                else
+                {
+                    HomeViewModelFocusWarningHandler.Dismiss();
+                    onDismissed();
                 }
             }
             catch (Exception ex)
