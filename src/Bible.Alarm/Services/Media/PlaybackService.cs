@@ -763,7 +763,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             idx => stateManager.CurrentTrackIndex = idx,
             () => stateManager.ManuallyVisitedTrackIndices.Clear(),
             (playlist, idx) => navigationManager.NotifyNavigationChanged(playlist, idx),
-            PlayCurrentTrackAsync);
+            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
 
     private bool isDisposed;
 

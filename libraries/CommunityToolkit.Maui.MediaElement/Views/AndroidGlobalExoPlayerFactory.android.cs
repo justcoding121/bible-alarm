@@ -80,6 +80,10 @@ internal static class AndroidGlobalExoPlayerFactory
         lock (globalExoPlayerLock)
         {
             globalExoPlayerCreated = false;
+
+            try { globalPlayer?.Stop(); } catch (Exception) { }
+            try { globalPlayer?.Release(); } catch (Exception) { }
+
             globalPlayer = null;
             globalSession = null;
         }
