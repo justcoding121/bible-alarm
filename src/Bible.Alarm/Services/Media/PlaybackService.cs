@@ -193,11 +193,23 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         if (stateManager.IsPreparingOrPlaying(audioPlayer))
         {
-            logger.Warning("Cannot prepare and play schedule {ScheduleId} - already preparing or playing schedule {CurrentScheduleId}. Status: {Status}",
-                scheduleId,
+            // A concurrent stop is still in progress and hasn't fully reset the player.
+            // Force reset so the new play can proceed. PrepareAsync will handle the
+            // MediaElement (stop old source, create/reuse, set new source).
+            logger.Warning("State still shows playing after stop attempt (schedule {CurrentScheduleId}, status {Status}). Force-resetting for schedule {ScheduleId}.",
                 stateManager.CurrentScheduleId,
-                audioPlayer.Status);
-            return;
+                audioPlayer.Status,
+                scheduleId);
+
+            stateManager.Reset();
+            try
+            {
+                await audioPlayer.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error force-stopping player during state recovery");
+            }
         }
 
         // StopAsyncInternal resets Status early (so IsPreparingOrPlaying is false) but then
@@ -207,14 +219,18 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         // native object (EXC_BAD_ACCESS on iOS).
         // stopLock is held for the entire StopAsyncInternal duration, including DisposeMediaElementAsync,
         // so awaiting it here guarantees the old MediaElement is fully cleaned up before we proceed.
-        bool stopCompleted = await stopLock.WaitAsync(TimeSpan.FromSeconds(3));
+        bool stopCompleted = await stopLock.WaitAsync(TimeSpan.FromSeconds(10));
         if (stopCompleted)
         {
             stopLock.Release();
         }
         else
         {
-            logger.Warning("PrepareAndPlayAsync: timed out waiting for in-progress stop to complete. Proceeding anyway.");
+            // The in-progress stop is hung (e.g. native player disposal stuck on iOS).
+            // Proceeding is safer than aborting: PrepareAsync will stop/clear the old source
+            // and set a new one on the same MediaElement. Aborting would permanently prevent
+            // playback since the hung stop never releases stopLock.
+            logger.Warning("PrepareAndPlayAsync: timed out waiting for in-progress stop to complete (10s). Proceeding — PrepareAsync will reset the player.");
         }
 
         try
@@ -273,9 +289,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             navigationManager.NotifyNavigationChanged(stateManager.Playlist, stateManager.CurrentTrackIndex);
 
             // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
-            await PlayCurrentTrackAsync();
+            await PlayCurrentTrackAsync(cancellationToken: cancellationToken);
 
             await notificationService.ClearDeliveredNotificationAsync(scheduleId);
+        }
+        catch (OperationCanceledException)
+        {
+            logger.Debug("PrepareAndPlayAsync cancelled for schedule {ScheduleId}", scheduleId);
         }
         catch (Exception ex)
         {
@@ -484,7 +504,14 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         if (!await stopLock.WaitAsync(0))
         {
-            logger.Debug("StopAsyncInternal skipped - another stop is already in progress");
+            logger.Warning("StopAsyncInternal: another stop is already in progress. Dispatching PlaybackStoppedAction as safety net.");
+            if (!skipDispatchStopped)
+            {
+                dispatcher.Dispatch(new PlaybackStoppedAction());
+#if ANDROID || IOS
+                dispatcher.Dispatch(new SetCarPlayScreenAction());
+#endif
+            }
             return;
         }
 
@@ -525,7 +552,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         await PrepareAndPlayAsync(scheduleId, isAlarm: false);
     }
 
-    private async Task PlayCurrentTrackAsync(bool startFromBeginning = false)
+    private async Task PlayCurrentTrackAsync(bool startFromBeginning = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -539,14 +566,17 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
             var track = stateManager.Playlist[stateManager.CurrentTrackIndex];
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Ensure the track has a playable URI (cached file or CDN URL for streaming).
-            var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
-            var prepared = await trackOnDemandPreparer.EnsureTrackPreparedAsync(track, token);
+            var prepared = await trackOnDemandPreparer.EnsureTrackPreparedAsync(track, cancellationToken);
             if (!prepared)
             {
                 await HandlePlaybackFailureAsync();
                 return;
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var success = await trackPlaybackHandler.PlayTrackAsync(
             track,
@@ -556,7 +586,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             () => stateManager.IsPreparingOrPlaying(audioPlayer),
             () => stateManager.Playlist,
             isPreparing => stateManager.IsPreparingTrack = isPreparing,
-            stateManager.PlayedBibleTrackKeys);
+            stateManager.PlayedBibleTrackKeys,
+            cancellationToken);
 
             if (!success)
             {

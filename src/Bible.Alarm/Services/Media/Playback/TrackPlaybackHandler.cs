@@ -37,7 +37,8 @@ public sealed class TrackPlaybackHandler
         Func<bool> isPreparingOrPlaying,
         Func<List<AudioPlayerTrack>?> getPlaylist,
         Action<bool> setIsPreparingTrack,
-        HashSet<string> playedBibleTrackKeys)
+        HashSet<string> playedBibleTrackKeys,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(track.Uri))
         {
@@ -72,7 +73,7 @@ public sealed class TrackPlaybackHandler
             // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
             // Wait for the media to be in a ready state (not None or Failed)
             // This also gives time for the state to transition from "Opening" to "Paused"
-            await trackPreparationHandler.WaitForMediaReadyAsync();
+            await trackPreparationHandler.WaitForMediaReadyAsync(cancellationToken);
 
             // Check if stop was called during PrepareAsync or WaitForMediaReadyAsync
             // This ensures stop works correctly in the gap between downloads and playback
@@ -197,9 +198,11 @@ public sealed class TrackPlaybackHandler
         // On non-iOS/Android platforms (Windows), seek BEFORE play
         if (seekPosition.HasValue)
         {
-            await SeekWithRetryAsync(seekPosition.Value);
+            await SeekWithRetryAsync(seekPosition.Value, cancellationToken);
         }
 #endif
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         // Final check before starting playback - ensure stop wasn't called during seek/resume operations.
         // Same rationale as the post-WaitForMediaReadyAsync check: only check playlist validity.
@@ -254,8 +257,8 @@ public sealed class TrackPlaybackHandler
 
             if (seekPosition.HasValue)
             {
-                await SeekWithRetryAsync(seekPosition.Value);
-                await Task.Delay(100);
+                await SeekWithRetryAsync(seekPosition.Value, cancellationToken);
+                await Task.Delay(100, cancellationToken);
             }
 #endif
         }
@@ -282,7 +285,7 @@ public sealed class TrackPlaybackHandler
     /// On Android, ExoPlayer may need time after SetSourceWithDummyQueue and PlayAsync before seeking works reliably.
     /// This method retries the seek operation if it fails due to player not being ready.
     /// </summary>
-    private async Task SeekWithRetryAsync(TimeSpan position)
+    private async Task SeekWithRetryAsync(TimeSpan position, CancellationToken cancellationToken = default)
     {
 #if IOS || ANDROID
         const int maxRetries = 10;
@@ -292,6 +295,8 @@ public sealed class TrackPlaybackHandler
 
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (DateTime.UtcNow - seekBudgetStart > totalSeekBudget)
             {
                 logger.Warning("[Seek] Total time budget of {Budget}s exceeded after {Attempts} attempts — giving up, will play from current position",
@@ -305,7 +310,7 @@ public sealed class TrackPlaybackHandler
 
                 // Verify the seek actually worked by checking position after a brief delay
                 // On iOS/Android, the seek might silently be a no-op if seekable ranges aren't ready yet
-                await Task.Delay(150);
+                await Task.Delay(150, cancellationToken);
                 var currentPos = audioPlayer.CurrentPosition;
 
                 // Check if seek actually moved the position (within 1 second tolerance)
@@ -321,7 +326,7 @@ public sealed class TrackPlaybackHandler
 
                     if (attempt < maxRetries)
                     {
-                        await Task.Delay(retryDelayMs);
+                        await Task.Delay(retryDelayMs, cancellationToken);
                     }
                     else
                     {
@@ -335,7 +340,7 @@ public sealed class TrackPlaybackHandler
                     attempt, ex.Message);
                 if (attempt < maxRetries)
                 {
-                    await Task.Delay(retryDelayMs);
+                    await Task.Delay(retryDelayMs, cancellationToken);
                 }
                 else
                 {

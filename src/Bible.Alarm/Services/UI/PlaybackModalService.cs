@@ -165,6 +165,21 @@ public sealed class PlaybackModalService :
                 if (isModalOpen)
                 {
                     await navigationService.PopPlaybackPageAsync(animated: false);
+
+                    if (navigationService.IsPlaybackModalOnScreen())
+                    {
+                        logger.Warning("MinimizeAsync: PopPlaybackPageAsync returned but modal is still on screen — retrying");
+                        await Task.Delay(100);
+                        await navigationService.PopPlaybackPageAsync(animated: false);
+                    }
+
+                    if (navigationService.IsPlaybackModalOnScreen())
+                    {
+                        logger.Error("MinimizeAsync: Modal still on screen after retry — aborting minimize to prevent zombie state");
+                        isMinimized = false;
+                        return;
+                    }
+
                     isModalOpen = false;
                 }
 
@@ -703,12 +718,17 @@ public sealed class PlaybackModalService :
             }),
             false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
             false when isMinimized => HideMiniBarOnMainThreadAsync(),
-            false when !isModalOpen && !isMinimized => MainThread.InvokeOnMainThreadAsync(() =>
+            false when !isModalOpen && !isMinimized => MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 requestedShowModal = false;
                 targetScheduleId = null;
                 navigationService.SetMiniBarVisible(false);
-                return Task.CompletedTask;
+
+                if (navigationService.IsPlaybackModalOnScreen())
+                {
+                    logger.Warning("OnPlaybackStateChanged: Orphaned modal detected (no flags set but modal on screen) — popping");
+                    await navigationService.PopPlaybackPageAsync();
+                }
             }),
             _ => Task.CompletedTask
         };
@@ -754,14 +774,14 @@ public sealed class PlaybackModalService :
 
     private Task HideMiniBarOnMainThreadAsync()
     {
-        return MainThread.InvokeOnMainThreadAsync(() =>
+        return MainThread.InvokeOnMainThreadAsync(async () =>
         {
             // If MaximizeAsync already opened the modal (race: queued before this),
             // the bar is already hidden and the modal owns the UI. Skip.
             if (isModalOpen)
             {
                 logger.Debug("HideMiniBarOnMainThreadAsync: Modal is open (MaximizeAsync ran first), skipping");
-                return Task.CompletedTask;
+                return;
             }
 
             try
@@ -771,14 +791,18 @@ public sealed class PlaybackModalService :
                 targetScheduleId = null;
                 navigationService.SetMiniBarVisible(false);
                 isMinimized = false;
+
+                if (navigationService.IsPlaybackModalOnScreen())
+                {
+                    logger.Warning("HideMiniBarOnMainThreadAsync: Orphaned modal detected (isModalOpen=false but modal on screen) — popping");
+                    await navigationService.PopPlaybackPageAsync();
+                }
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error hiding mini bar");
                 isMinimized = false;
             }
-
-            return Task.CompletedTask;
         });
     }
 

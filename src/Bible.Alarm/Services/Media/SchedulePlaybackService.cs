@@ -17,13 +17,9 @@ public sealed class SchedulePlaybackService(
     IDispatcher dispatcher)
     : ISchedulePlaybackService
 {
-    /// <summary>
-    /// Ensures only one play request runs at a time. Uses a timeout so that rapid
-    /// play/dismiss cycles don't leave queued requests holding AsyncRelayCommand in a
-    /// "running" state (which disables the button via CanExecute=false).
-    /// </summary>
     private static readonly SemaphoreSlim PlayLock = new(1, 1);
-    private static readonly TimeSpan PlayLockTimeout = TimeSpan.FromSeconds(8);
+
+    private static readonly TimeSpan PlayLockOverallTimeout = TimeSpan.FromSeconds(25);
 
     public async Task PlayScheduleAsync(int scheduleId)
     {
@@ -32,15 +28,31 @@ public sealed class SchedulePlaybackService(
             return;
         }
 
-        if (!await PlayLock.WaitAsync(PlayLockTimeout))
+        // Non-blocking acquire: if another play is already in progress, return immediately
+        // instead of queuing behind it. Queuing causes a cascade where rapid taps hold
+        // PlayLock for minutes (each play attempt can take 10-30s).
+        if (!await PlayLock.WaitAsync(0))
         {
-            logger.Warning("PlayScheduleAsync timed out waiting for PlayLock (schedule {ScheduleId}). Previous play/stop may still be unwinding.", scheduleId);
+            logger.Warning("PlayScheduleAsync: PlayLock already held — skipping (schedule {ScheduleId})", scheduleId);
             return;
         }
 
         try
         {
-            await PlayScheduleCoreAsync(scheduleId);
+            // Overall timeout prevents PlayLock from being held indefinitely if
+            // PrepareAndPlayAsync hangs (e.g. native player stuck, network call hung).
+            // After timeout, PlayLock is released so the next play attempt can proceed.
+            var playTask = PlayScheduleCoreAsync(scheduleId);
+            var completedTask = await Task.WhenAny(playTask, Task.Delay(PlayLockOverallTimeout));
+
+            if (completedTask != playTask)
+            {
+                logger.Error("PlayScheduleAsync: overall timeout ({Timeout}s) for schedule {ScheduleId}. Releasing PlayLock — background task continues.",
+                    PlayLockOverallTimeout.TotalSeconds, scheduleId);
+                return;
+            }
+
+            await playTask;
         }
         finally
         {
@@ -67,6 +79,10 @@ public sealed class SchedulePlaybackService(
             await playbackService.PrepareAndPlayAsync(scheduleId, false);
             // Note: ShowNotificationAsync is not called here because it triggers AlarmRingerReceiver
             // which would cause duplicate playback. Notifications are only shown when alarms actually fire.
+        }
+        catch (OperationCanceledException)
+        {
+            logger.Debug("Playback cancelled for schedule {ScheduleId}", scheduleId);
         }
         catch (Exception e)
         {

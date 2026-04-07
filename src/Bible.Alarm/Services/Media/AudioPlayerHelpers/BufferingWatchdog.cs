@@ -24,7 +24,7 @@ public sealed class BufferingWatchdog : IDisposable
     {
         this.logger = logger;
         this.onStallDetected = onStallDetected;
-        this.stallTimeout = stallTimeout ?? TimeSpan.FromSeconds(30);
+        this.stallTimeout = stallTimeout ?? TimeSpan.FromSeconds(12);
     }
 
     /// <summary>

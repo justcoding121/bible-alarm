@@ -86,6 +86,13 @@ public class MediaElementManager
 
         await SafeStopMediaElementAsync(newMediaElement, clearSource: true);
 
+#if IOS || ANDROID
+        // Allow the native player (AVPlayer/ExoPlayer) to finish releasing the old stream
+        // before setting a new source. Without this, the player can get stuck in a permanent
+        // buffering state on track transitions (especially next/prev).
+        await Task.Delay(50);
+#endif
+
         stateManager.Status = PlayStatus.Loading;
         // Reset duration tracking so new track's duration will be detected as changed
         positionTracker.ResetDuration();
@@ -168,6 +175,14 @@ public class MediaElementManager
                 logger.Information("Disposing MediaElement instance to free up resources");
                 await mediaElementService.DisposeMediaElementAsync();
                 logger.Information("MediaElement disposed - resources freed");
+
+#if IOS
+                // AVPlayer/CoreMedia async cleanup may still be in flight after handler disposal.
+                // Allow native teardown to complete before releasing the stopLock so that
+                // PrepareAndPlayAsync does not create a new AVPlayer while the old one is
+                // still deallocating (EXC_BAD_ACCESS on rapid mp4-to-mp3 switches).
+                await Task.Delay(150);
+#endif
 
 #if ANDROID
                 // Notify coordinator that MediaElement is fully disposed and its notification is removed

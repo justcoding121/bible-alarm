@@ -25,7 +25,7 @@ public sealed class TrackPreparationHandler
         this.logger = logger;
     }
 
-    public async Task WaitForMediaReadyAsync()
+    public async Task WaitForMediaReadyAsync(CancellationToken cancellationToken = default)
     {
         // On iOS, MediaElement may need a moment after PrepareAsync before it can play.
         // When streaming from CDN on slow networks (e.g. 4G), buffering can take several seconds.
@@ -36,6 +36,8 @@ public sealed class TrackPreparationHandler
 
         while (elapsed < maxWaitTime)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Check if MediaElement is in a ready state
             if (audioPlayer.IsActuallyPlayingOrPaused ||
                 audioPlayer.Status == PlayStatus.Loading ||
@@ -46,7 +48,7 @@ public sealed class TrackPreparationHandler
                 return;
             }
 
-            await Task.Delay(checkInterval);
+            await Task.Delay(checkInterval, cancellationToken);
             elapsed = elapsed.Add(checkInterval);
         }
 

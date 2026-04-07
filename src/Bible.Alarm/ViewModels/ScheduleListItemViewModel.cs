@@ -149,6 +149,7 @@ public sealed class ScheduleListItemViewModel(
         WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<RequestShowPlaybackModalMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlaybackModalOpenedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
 
         // Subscribe to ApplicationState changes to react when this schedule is updated
         applicationState.StateChanged += OnApplicationStateChanged;
@@ -186,6 +187,18 @@ public sealed class ScheduleListItemViewModel(
         // the modal ever opening (e.g. error/toast), and the timeout covers stuck states.
         WeakReferenceMessenger.Default.Register<PlaybackModalOpenedMessage>(this, (r, m) => SetIsBusy(false));
 
+        // Explicit stop (dismiss button) clears isShowModalPending so that
+        // SyncIsBusyWithPlaybackState can clear the spinner. This message is NOT sent
+        // during schedule switches (PrepareAndPlayAsync stops the old schedule via
+        // StopAsyncInternal directly), so gap protection remains intact for car listing
+        // and alarm-triggered schedule changes.
+        WeakReferenceMessenger.Default.Register<PlaybackExplicitStopMessage>(this, (r, m) =>
+        {
+            isShowModalPending = false;
+            isPlayCommandRunning = false;
+            SyncIsBusyWithPlaybackState();
+        });
+
         PlayCommand ??= new AsyncRelayCommand(async () =>
         {
             if (Schedule?.Id is not > 0 || isPlayCommandRunning)
@@ -214,6 +227,7 @@ public sealed class ScheduleListItemViewModel(
                     finally
                     {
                         isPlayCommandRunning = false;
+                        ClearShowModalPendingIfPlaybackNotStarted();
                         SyncIsBusyWithPlaybackState();
                     }
                 });
@@ -221,12 +235,14 @@ public sealed class ScheduleListItemViewModel(
             catch (OperationCanceledException)
             {
                 isPlayCommandRunning = false;
+                ClearShowModalPendingIfPlaybackNotStarted();
                 SyncIsBusyWithPlaybackState();
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Play command failed before scheduling playback for schedule {ScheduleId}", Schedule?.Id ?? 0);
                 isPlayCommandRunning = false;
+                ClearShowModalPendingIfPlaybackNotStarted();
                 SyncIsBusyWithPlaybackState();
             }
         }, AsyncRelayCommandOptions.AllowConcurrentExecutions);
@@ -685,6 +701,20 @@ public sealed class ScheduleListItemViewModel(
         SetIsBusy(false);
     }
 
+    private void ClearShowModalPendingIfPlaybackNotStarted()
+    {
+        if (!isShowModalPending)
+        {
+            return;
+        }
+
+        var state = playbackState.Value;
+        if (!state.IsPreparingOrPlaying || state.CurrentScheduleId != ScheduleId)
+        {
+            isShowModalPending = false;
+        }
+    }
+
     private void SetIsBusy(bool value)
     {
         if (value == IsBusy)
@@ -784,5 +814,6 @@ public sealed class ScheduleListItemViewModel(
         WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<RequestShowPlaybackModalMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlaybackModalOpenedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
     }
 }
