@@ -514,6 +514,8 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
 
     private async Task OnMaximizeAsync()
     {
+        if (!AreControlsEnabled) return;
+
         try
         {
             IsMaximizeBusy = true;

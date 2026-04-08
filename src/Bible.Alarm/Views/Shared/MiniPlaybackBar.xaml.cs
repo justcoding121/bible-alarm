@@ -16,15 +16,25 @@ public partial class MiniPlaybackBar : ContentView
     {
         InitializeComponent();
 
-        IsVisible = false;
         SizeChanged += OnSizeChanged;
 
         var vm = MiniPlaybackBarViewModel.Instance;
         if (vm != null)
         {
             BindingContext = vm;
+            IsVisible = vm.IsVisible;
+
+            if (vm.IsVisible && LastMeasuredHeight > 0)
+            {
+                HeightRequest = LastMeasuredHeight;
+            }
+
             SetBinding(IsVisibleProperty,
                 new Binding(nameof(MiniPlaybackBarViewModel.IsVisible), source: vm));
+        }
+        else
+        {
+            IsVisible = false;
         }
     }
 

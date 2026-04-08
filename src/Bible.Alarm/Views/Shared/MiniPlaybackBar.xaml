@@ -281,6 +281,7 @@
                     BackgroundColor="Transparent"
                     BorderWidth="0"
                     Command="{Binding MaximizeCommand}"
+                    IsEnabled="{Binding AreControlsEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="18"
                     Text="{x:Static fn:GlyphNames.ChevronUp}"
@@ -289,7 +290,16 @@
                     WidthRequest="48"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    IsVisible="{Binding ShowMaximizeButton}" />
+                    IsVisible="{Binding ShowMaximizeButton}">
+                    <Button.Triggers>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                        </Trigger>
+                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                            <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+                        </Trigger>
+                    </Button.Triggers>
+                </Button>
                 <ActivityIndicator
                     IsRunning="{Binding IsMaximizeBusy}"
                     IsVisible="{Binding IsMaximizeBusy}"

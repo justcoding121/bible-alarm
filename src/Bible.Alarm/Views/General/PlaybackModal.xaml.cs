@@ -43,11 +43,21 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     }
 
 #if ANDROID
+    protected override void OnHandlerChanged()
+    {
+        base.OnHandlerChanged();
+
+        if (!isDisposed && Handler?.PlatformView != null)
+        {
+            ApplyStatusBarOffset();
+        }
+    }
+
     /// <summary>
-    /// Modal pages on Android don't receive MAUI's native status-bar offset, so the page
-    /// content starts at the very top of the screen (behind the status bar). This method
-    /// queries the actual status bar height and pushes the minimize button and content area
-    /// below it. Called from OnPageLoaded with a short delay so the view tree is ready.
+    /// Ensures the page content is not hidden behind the status bar. On Android API 35+
+    /// (edge-to-edge), MAUI's NavigationPage may or may not apply the status bar inset
+    /// to pushed pages. This method checks the platform view's actual window position
+    /// and only adds manual margins when the content is genuinely behind the status bar.
     /// </summary>
     private void ApplyStatusBarOffset()
     {
@@ -89,6 +99,21 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             }
 
             float density = activity.Resources?.DisplayMetrics?.Density ?? 1f;
+
+            var platformView = Handler?.PlatformView as View;
+            if (platformView != null)
+            {
+                var location = new int[2];
+                platformView.GetLocationInWindow(location);
+                int viewTopPx = location[1];
+
+                if (viewTopPx >= statusBarHeightPx)
+                {
+                    _statusBarOffsetApplied = true;
+                    return;
+                }
+            }
+
             double statusBarDip = statusBarHeightPx / (double)density;
 
             _statusBarOffsetApplied = true;
@@ -201,7 +226,6 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         WireLandscapeContentEvents();
 
 #if ANDROID
-        await Task.Delay(100);
         if (!isDisposed)
         {
             ApplyStatusBarOffset();

@@ -515,6 +515,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             return;
         }
 
+        CancellationTokenSource? safetyNetCts = null;
         try
         {
             defaultDeviceRingtoneService.Stop();
@@ -525,6 +526,12 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             if (!skipMarkAsPlayed && stateManager.Playlist != null && stateManager.CurrentTrackIndex >= 0 && stateManager.CurrentTrackIndex < stateManager.Playlist.Count)
             {
                 trackMetadataToMark = stateManager.Playlist[stateManager.CurrentTrackIndex].PlayItem.Metadata;
+            }
+
+            if (!skipDispatchStopped)
+            {
+                safetyNetCts = new CancellationTokenSource();
+                _ = DispatchStoppedAfterTimeoutAsync(safetyNetCts.Token);
             }
 
             await stopHandler.StopAsync(
@@ -539,8 +546,28 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
         finally
         {
+            safetyNetCts?.Cancel();
+            safetyNetCts?.Dispose();
             stopLock.Release();
         }
+    }
+
+    private async Task DispatchStoppedAfterTimeoutAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        logger.Warning("StopAsyncInternal: stop operation timed out after 15s — dispatching PlaybackStoppedAction as safety net");
+        dispatcher.Dispatch(new PlaybackStoppedAction());
+#if ANDROID || IOS
+        dispatcher.Dispatch(new SetCarPlayScreenAction());
+#endif
     }
 
     private async Task ResetAsync() => await resetExecutor.ResetAsync();

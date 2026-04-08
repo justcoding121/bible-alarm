@@ -384,15 +384,12 @@ public static class ServiceRegistrationHelper
         services.AddTransient<AndroidAlarmPermissionModal>();
         services.AddTransient<NotificationPermissionModal>();
         services.AddTransient<NumberOfTracksModal>();
-        services.AddTransient<Views.Shared.BootstrapOverlay>();
-
-        // NavigationPage with BootstrapOverlay as root; Home is pushed on top by NavigateToHomeAsync.
         services.AddTransient(sp =>
         {
-            var overlayPage = sp.GetRequiredService<Views.Shared.BootstrapOverlay>();
-            var navigationPage = new NavigationPage(overlayPage);
-            NavigationPage.SetHasNavigationBar(overlayPage, false);
-            NavigationPage.SetHasBackButton(overlayPage, false);
+            var homePage = sp.GetRequiredService<Home>();
+            var navigationPage = new NavigationPage(homePage);
+            NavigationPage.SetHasNavigationBar(homePage, false);
+            NavigationPage.SetHasBackButton(homePage, false);
             return navigationPage;
         });
     }

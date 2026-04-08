@@ -25,13 +25,13 @@ public sealed class PlaybackModalService :
     private readonly IAudioPlayer audioPlayer;
     private readonly IDispatcher dispatcher;
 
-    private bool isModalOpen;
-    private bool isMinimized;
+    private volatile bool isModalOpen;
+    private volatile bool isMinimized;
     private bool isDisposed;
     private int popGeneration;
     private volatile bool requestedShowModal;
     private int? targetScheduleId;
-    private bool bypassPopGenerationGuard;
+    private volatile bool bypassPopGenerationGuard;
     private DateTime lastMinimizedAtUtc;
     private const int MinimizeCooldownMs = 500;
 
@@ -148,6 +148,39 @@ public sealed class PlaybackModalService :
         requestedShowModal = false;
         targetScheduleId = null;
         bypassPopGenerationGuard = true;
+
+        if (isModalOpen)
+        {
+            _ = ClosePlaybackUiOnExplicitStopAsync();
+        }
+    }
+
+    private Task ClosePlaybackUiOnExplicitStopAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            try
+            {
+                logger.Information("ClosePlaybackUiOnExplicitStopAsync: Immediately closing playback UI");
+                navigationService.SetMiniBarVisible(false);
+
+                if (isModalOpen || navigationService.IsPlaybackModalOnScreen())
+                {
+                    await navigationService.PopPlaybackPageAsync();
+                }
+
+                isModalOpen = false;
+                isMinimized = false;
+                requestedShowModal = false;
+                targetScheduleId = null;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in ClosePlaybackUiOnExplicitStopAsync");
+                isModalOpen = false;
+                isMinimized = false;
+            }
+        });
     }
 
     private Task MinimizeAsync()
@@ -588,7 +621,7 @@ public sealed class PlaybackModalService :
         // Only auto-open the modal when a user-initiated action (play button, alarm,
         // Android Auto, CarPlay, notification) signalled via RequestShowPlaybackModalMessage.
         var shouldAutoOpen = shouldShowPlayback && !isModalOpen && !isMinimized && requestedShowModal;
-        if (shouldShowPlayback && !isModalOpen && !isMinimized && !requestedShowModal)
+        if (shouldShowPlayback && !isModalOpen && !isMinimized && !requestedShowModal && !bypassPopGenerationGuard)
         {
             // Playback is active but no explicit show request — show the mini bar as a
             // safety net so the user always has visible playback controls.
@@ -716,12 +749,13 @@ public sealed class PlaybackModalService :
                     FallBackToMiniBar();
                 }
             }),
-            false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
             false when isMinimized => HideMiniBarOnMainThreadAsync(),
+            false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
             false when !isModalOpen && !isMinimized => MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 requestedShowModal = false;
                 targetScheduleId = null;
+                bypassPopGenerationGuard = false;
                 navigationService.SetMiniBarVisible(false);
 
                 if (navigationService.IsPlaybackModalOnScreen())
@@ -784,11 +818,18 @@ public sealed class PlaybackModalService :
                 return;
             }
 
+            if (requestedShowModal)
+            {
+                logger.Debug("HideMiniBarOnMainThreadAsync: requestedShowModal is true — keeping mini bar visible during schedule switch");
+                return;
+            }
+
             try
             {
                 logger.Information("PlaybackState changed - hiding mini bar (Playback inactive)");
                 requestedShowModal = false;
                 targetScheduleId = null;
+                bypassPopGenerationGuard = false;
                 navigationService.SetMiniBarVisible(false);
                 isMinimized = false;
 

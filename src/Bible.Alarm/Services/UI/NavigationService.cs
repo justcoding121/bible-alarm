@@ -389,7 +389,8 @@ public sealed class NavigationService(
                 }
 
 #if IOS
-                NavigationStackManager.CleanupIOSNativeViews(playbackPage);
+                try { NavigationStackManager.CleanupIOSNativeViews(playbackPage); }
+                catch (Exception ex) { logger?.Warning(ex, "Error cleaning up iOS native views for PlaybackModal (non-fatal)"); }
 #endif
 
                 WindowSetupService.UpdateNavigationBarColors();

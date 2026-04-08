@@ -38,12 +38,12 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
         // again on the Application for the recreated activity, leaving the flag stale.
         App.IsInForeground = true;
 
+        // Resolve the singleton early so MiniPlaybackBarViewModel.Instance is set
+        // before Home's ControlTemplate (containing MiniPlaybackBar) materializes.
+        serviceProvider.GetRequiredService<ViewModels.Shared.MiniPlaybackBarViewModel>();
+
         var navigationPage = serviceProvider.GetRequiredService<NavigationPage>();
         Initialize(navigationPage);
-
-        // Resolve the singleton early so MiniPlaybackBarViewModel.Instance is set
-        // before any real pages materialize their ControlTemplate.
-        serviceProvider.GetRequiredService<ViewModels.Shared.MiniPlaybackBarViewModel>();
 
         var window = new Window(navigationPage);
         window.Activated += OnWindowFirstActivated;

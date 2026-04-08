@@ -724,5 +724,22 @@
                         Opacity="0.4" />
             </Button.Shadow>
         </Button>
+        <!-- Bootstrap loading overlay: covers the page until schedules are loaded.
+             Home is the NavigationPage root, so this replaces the old BootstrapOverlay page
+             and avoids a fragment transition animation on app start. -->
+        <Grid BackgroundColor="{DynamicResource PageBackgroundColor}"
+              IsVisible="{Binding IsBootstrapReady, Converter={StaticResource negateBooleanConverter}}"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill"
+              InputTransparent="False"
+              ZIndex="200">
+            <ActivityIndicator
+                IsRunning="{Binding IsBootstrapReady, Converter={StaticResource negateBooleanConverter}}"
+                Color="{StaticResource PrimaryColor}"
+                WidthRequest="48"
+                HeightRequest="48"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+        </Grid>
     </Grid>
 </views:BaseContentPage>
