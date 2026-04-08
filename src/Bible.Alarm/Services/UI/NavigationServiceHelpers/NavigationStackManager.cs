@@ -179,6 +179,12 @@ public sealed class NavigationStackManager
 
         var page = navigation.NavigationStack.LastOrDefault();
 
+        if (page is Views.Home)
+        {
+            Log.Warning("NavigationStackManager.PopAsync: Refusing to pop Home page — Home must never be removed from the navigation stack");
+            return;
+        }
+
         try
         {
             await navigation.PopAsync(animated: true);

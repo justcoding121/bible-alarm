@@ -7,4 +7,10 @@ public partial class BootstrapOverlay : ContentPage
     {
         InitializeComponent();
     }
+
+    public void Deactivate()
+    {
+        Content = null;
+        BackgroundColor = Colors.Transparent;
+    }
 }

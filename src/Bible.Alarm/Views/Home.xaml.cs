@@ -253,7 +253,10 @@ public partial class Home : BaseContentPage, IDisposable
     {
         base.OnDisappearing();
 
-        disappearedForModal = Navigation.ModalStack.Count > 0;
+        // PlaybackModal uses PushAsync (navigation stack), not PushModalAsync (modal stack),
+        // so we must also check the navigation stack to avoid ResetScheduleState on return.
+        disappearedForModal = Navigation.ModalStack.Count > 0
+            || Navigation.NavigationStack.LastOrDefault() is General.PlaybackModal;
 
         // On Windows, clear ItemsSource to prevent InvalidOperationException from
         // delayed OnItemsVectorChanged callbacks running with VirtualView == null.

@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Views;
+using Bible.Alarm.Views.Shared;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
@@ -28,6 +29,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             Logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (already on home) in {ElapsedMs:F2}ms", navElapsed);
 #endif
+            DeactivateBootstrapOverlay(navigation);
             return;
         }
 
@@ -48,6 +50,8 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             Logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (new home) in {ElapsedMs:F2}ms", navTotalElapsed);
 #endif
         }
+
+        DeactivateBootstrapOverlay(navigation);
     }
 
     private static bool IsAlreadyOnHomePage(INavigation navigation)
@@ -106,12 +110,6 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
                 }
             }
         }
-
-        // NOTE: Do NOT change opacity when navigating back to an existing Home page.
-        // The Home page's opacity is managed by PlaybackModalService based on playback state.
-        // Changing it here causes bugs:
-        // - If playback is active: opacity = 0 makes Home blank when user returns from Schedule page
-        // - The PlaybackModalService will show/hide Home appropriately when playback starts/stops
     }
 
     private async Task PopToRootAndPushNewHomeAsync(INavigation navigation)
@@ -149,13 +147,16 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
 
     private async Task PopAllPagesToRootAsync(INavigation navigation)
     {
-        // Capture the pages to pop BEFORE starting - this prevents race conditions
-        // where a new page is pushed while we're popping and we accidentally pop the new page too
         var pagesToPop = new List<Page>();
-        // Skip index 0 (root)
         for (int i = navigation.NavigationStack.Count - 1; i >= 1; i--)
         {
-            pagesToPop.Add(navigation.NavigationStack[i]);
+            var page = navigation.NavigationStack[i];
+            if (page is Home)
+            {
+                Logger.Warning("PopAllPagesToRootAsync: Skipping Home page — Home must never be removed from the navigation stack");
+                continue;
+            }
+            pagesToPop.Add(page);
         }
 
         // Pop only the pages that were on the stack when navigation started
@@ -205,5 +206,12 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         }
     }
 
-
+    private static void DeactivateBootstrapOverlay(INavigation navigation)
+    {
+        if (navigation.NavigationStack.Count > 0
+            && navigation.NavigationStack[0] is BootstrapOverlay overlay)
+        {
+            overlay.Deactivate();
+        }
+    }
 }

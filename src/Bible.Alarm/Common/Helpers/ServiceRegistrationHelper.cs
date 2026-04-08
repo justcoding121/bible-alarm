@@ -387,7 +387,6 @@ public static class ServiceRegistrationHelper
         services.AddTransient<Views.Shared.BootstrapOverlay>();
 
         // NavigationPage with BootstrapOverlay as root; Home is pushed on top by NavigateToHomeAsync.
-        // When Home opacity is 0 (cold start), the overlay with ActivityIndicator is visible underneath.
         services.AddTransient(sp =>
         {
             var overlayPage = sp.GetRequiredService<Views.Shared.BootstrapOverlay>();
