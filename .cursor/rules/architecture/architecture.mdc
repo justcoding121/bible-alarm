@@ -113,6 +113,36 @@ Android Auto, alarm receivers, etc. can start the process without the UI. The bo
 
 ---
 
+## Navigation stack invariants
+
+### Stack structure
+
+The app uses a single `NavigationPage` whose root (index 0) is `BootstrapOverlay` (a spinner page shown during cold start). After bootstrap, `Home` is pushed on top (index 1). All other pages (Schedule, PlaybackModal, selection modals) are pushed above Home.
+
+Typical stack: `[BootstrapOverlay] → [Home] → [Schedule | PlaybackModal | SelectionModal …]`
+
+### Home must never be popped
+
+Once `Home` is inserted into the navigation stack it must **never** be removed or popped. All "navigate to home" code paths must pop pages **above** Home, never Home itself. Guards exist in:
+- `NavigationStackManager.PopAsync` — refuses to pop if the top page is `Home`
+- `HomeNavigationHandler.PopAllPagesToRootAsync` — skips `Home` when collecting pages to pop
+
+### PlaybackModal uses `PushAsync` (not `PushModalAsync`)
+
+PlaybackModal is on the **navigation stack**, not the MAUI modal stack. It is pushed via `navigation.PushAsync` and removed via `PopPlaybackPageAsync`.
+
+### Removing pages from the stack (iOS)
+
+**Never use `RemovePage` on the currently visible (topmost) page.** On iOS, `RemovePage` internally calls `UINavigationController.SetViewControllers`, which can cause animation glitches (blank page sliding in). Always use `PopAsync(animated: false)` for the topmost page. `RemovePage` is only safe for pages buried in the middle of the stack.
+
+`PopPlaybackPageAsync` handles this by checking whether the PlaybackModal is the top page and using `PopAsync` in that case.
+
+### BootstrapOverlay deactivation
+
+After Home is pushed, `BootstrapOverlay.Deactivate()` clears its content and sets background to transparent. This prevents the overlay from showing if Home becomes briefly transparent during transitions.
+
+---
+
 ## Data stores (two DBs)
 
 ### Schedule DB (user data)
