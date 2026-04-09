@@ -7,6 +7,9 @@ using Bible.Alarm.Views.Music;
 using Bible.Alarm.Views.Schedule;
 using Bible.Alarm.Views.Shared;
 using Serilog;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Services.UI.Interfaces;
+#endif
 
 namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
 
@@ -128,6 +131,11 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
                 await navigation.PushAsync(modal, animated: false);
                 WindowSetupService.UpdateNavigationBarColors();
+
+#if ANDROID
+                var barHost = serviceProvider.GetService<IAndroidMiniPlaybackBarHost>();
+                barHost?.SetPlaybackModalActive(true);
+#endif
 
                 if (animated)
                 {

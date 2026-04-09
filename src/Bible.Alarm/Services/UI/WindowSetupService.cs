@@ -75,6 +75,21 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
 
         playbackModalService.SubscribeToPlaybackStateChanges();
 
+#if ANDROID
+        window.Created += (_, _) =>
+        {
+            try
+            {
+                var barHost = serviceProvider.GetService<Platforms.Android.Services.UI.Interfaces.IAndroidMiniPlaybackBarHost>();
+                barHost?.Attach();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error attaching AndroidMiniPlaybackBarHost");
+            }
+        };
+#endif
+
         return window;
     }
 

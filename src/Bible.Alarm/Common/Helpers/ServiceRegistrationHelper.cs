@@ -256,6 +256,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IToastService, AndroidToastService>();
         services.AddSingleton<IBatteryOptimizationService, BatteryOptimizationService>();
         services.AddSingleton<IAndroidAlarmHandler, AndroidAlarmHandler>();
+        services.AddSingleton<Bible.Alarm.Platforms.Android.Services.UI.Interfaces.IAndroidMiniPlaybackBarHost, Bible.Alarm.Platforms.Android.Services.UI.AndroidMiniPlaybackBarHost>();
         services.AddSingleton<IStorageService, AndroidStorageService>();
         services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
         services.AddSingleton<IAndroidPlayerNotificationService, AndroidPlayerNotificationService>();

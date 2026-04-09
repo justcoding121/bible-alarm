@@ -33,7 +33,7 @@
         <Grid
             Grid.Row="1"
             ColumnDefinitions="56,*,48,48,52,48,48"
-            Padding="8,8,8,8"
+            Padding="8,12,8,12"
             ColumnSpacing="2"
             VerticalOptions="Center"
             HorizontalOptions="Fill">

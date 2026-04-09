@@ -10,6 +10,9 @@ using IDispatcher = Fluxor.IDispatcher;
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Helpers;
 #endif
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Services.UI.Interfaces;
+#endif
 
 namespace Bible.Alarm.Services.UI;
 
@@ -391,6 +394,11 @@ public sealed class NavigationService(
 #if IOS
                 try { NavigationStackManager.CleanupIOSNativeViews(playbackPage); }
                 catch (Exception ex) { logger?.Warning(ex, "Error cleaning up iOS native views for PlaybackModal (non-fatal)"); }
+#endif
+
+#if ANDROID
+                var barHost = serviceProvider.GetService<IAndroidMiniPlaybackBarHost>();
+                barHost?.SetPlaybackModalActive(false);
 #endif
 
                 WindowSetupService.UpdateNavigationBarColors();

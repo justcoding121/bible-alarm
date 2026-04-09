@@ -1,11 +1,14 @@
 #nullable enable
-using Bible.Alarm.ViewModels.Shared;
+#if !ANDROID
 using Bible.Alarm.Views.Shared;
+#endif
+using Bible.Alarm.ViewModels.Shared;
 using Serilog;
 
 #if ANDROID
 using AndroidX.Core.View;
 using Android.Views;
+using Bible.Alarm.Views.Shared;
 using View = Android.Views.View;
 #endif
 
@@ -20,17 +23,19 @@ public partial class BaseContentPage : ContentPage
 
         ControlTemplate = new ControlTemplate(() =>
         {
-            // Two-row Grid: content fills Row 0 (*), mini bar occupies Row 1.
-            // When playback is active we already know the bar height from the previous page;
-            // use a fixed row height so Row 1 does not start at zero and expand after measure
-            // (which reads as a flicker on push). When the bar is hidden, Auto collapses the row.
-            var miniVm = MiniPlaybackBarViewModel.Instance;
-            var barRow = miniVm != null
-                && miniVm.IsVisible
-                && MiniPlaybackBar.LastMeasuredHeight > 0
-                ? new RowDefinition(new GridLength(MiniPlaybackBar.LastMeasuredHeight, GridUnitType.Absolute))
-                : new RowDefinition(GridLength.Auto);
-
+#if ANDROID
+            // On Android the MiniPlaybackBar is hosted as a single persistent native view
+            // attached to the Activity's content FrameLayout (via AndroidMiniPlaybackBarHost).
+            // This prevents the bar from being recreated on every page push, eliminating flicker.
+            return new ContentPresenter
+            {
+                VerticalOptions = LayoutOptions.Fill,
+                HorizontalOptions = LayoutOptions.Fill
+            };
+#else
+            // iOS / Windows: bar is part of each page's template. Two-row Grid: content
+            // fills Row 0 (*), mini bar occupies Row 1 (Auto). When the mini bar is hidden
+            // (IsVisible=false) the Auto row collapses to zero.
             var grid = new Grid
             {
                 VerticalOptions = LayoutOptions.Fill,
@@ -38,7 +43,7 @@ public partial class BaseContentPage : ContentPage
                 RowDefinitions =
                 {
                     new RowDefinition(GridLength.Star),
-                    barRow
+                    new RowDefinition(GridLength.Auto)
                 }
             };
 
@@ -55,6 +60,7 @@ public partial class BaseContentPage : ContentPage
             grid.Add(miniBar);
 
             return grid;
+#endif
         });
     }
 
@@ -72,13 +78,16 @@ public partial class BaseContentPage : ContentPage
     private View? _trackedPlatformView;
     private readonly int[] _windowLocation = new int[2];
     private double _appliedSafeAreaTop;
+    private double _appliedBarBottom;
 
     private static int _cachedStatusBarHeightPx;
+    private static int _cachedNavBarHeightPx;
 
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
         DetachSafeAreaListener();
+        DetachBarVisibilityListener();
 
         if (!ApplyAndroidSafeAreaPadding)
         {
@@ -91,6 +100,8 @@ public partial class BaseContentPage : ContentPage
             _trackedPlatformView = platformView;
 
             ApplyInitialSafeAreaPadding();
+            SyncBottomPaddingForBar();
+            AttachBarVisibilityListener();
 
             if (platformView.ViewTreeObserver is { IsAlive: true })
             {
@@ -101,9 +112,109 @@ public partial class BaseContentPage : ContentPage
         }
     }
 
+    private void AttachBarVisibilityListener()
+    {
+        var vm = MiniPlaybackBarViewModel.Instance;
+        if (vm != null)
+        {
+            vm.PropertyChanged += OnMiniBarPropertyChanged;
+        }
+    }
+
+    private void DetachBarVisibilityListener()
+    {
+        var vm = MiniPlaybackBarViewModel.Instance;
+        if (vm != null)
+        {
+            vm.PropertyChanged -= OnMiniBarPropertyChanged;
+        }
+    }
+
+    private void OnMiniBarPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MiniPlaybackBarViewModel.IsVisible))
+        {
+            MainThread.BeginInvokeOnMainThread(SyncBottomPaddingForBar);
+        }
+    }
+
+    private void SyncBottomPaddingForBar()
+    {
+        double navBarDip = GetNavigationBarHeightDip();
+
+        var vm = MiniPlaybackBarViewModel.Instance;
+        double barHeight = (vm != null && vm.IsVisible)
+            ? (MiniPlaybackBar.LastMeasuredHeight > 0
+                ? MiniPlaybackBar.LastMeasuredHeight
+                : 75)
+            : 0;
+
+        double totalBottom = barHeight + navBarDip;
+
+        if (Math.Abs(_appliedBarBottom - totalBottom) < 0.5)
+        {
+            return;
+        }
+
+        _appliedBarBottom = totalBottom;
+        Padding = new Thickness(Padding.Left, Padding.Top, Padding.Right, totalBottom);
+    }
+
+    private static double GetNavigationBarHeightDip()
+    {
+        try
+        {
+            var activity = Platform.CurrentActivity;
+            if (activity == null)
+            {
+                return 0;
+            }
+
+            int navBarPx = _cachedNavBarHeightPx;
+
+            if (navBarPx <= 0)
+            {
+                if (OperatingSystem.IsAndroidVersionAtLeast(30))
+                {
+                    var metrics = activity.WindowManager?.CurrentWindowMetrics;
+                    if (metrics != null)
+                    {
+                        var insets = metrics.WindowInsets.GetInsetsIgnoringVisibility(
+                            WindowInsets.Type.NavigationBars());
+                        navBarPx = insets.Bottom;
+                    }
+                }
+
+                if (navBarPx <= 0)
+                {
+                    var decorView = activity.Window?.DecorView;
+                    if (decorView != null)
+                    {
+                        var rootInsets = ViewCompat.GetRootWindowInsets(decorView);
+                        var navBars = rootInsets?.GetInsets(WindowInsetsCompat.Type.NavigationBars());
+                        navBarPx = navBars?.Bottom ?? 0;
+                    }
+                }
+
+                if (navBarPx > 0)
+                {
+                    _cachedNavBarHeightPx = navBarPx;
+                }
+            }
+
+            float density = activity.Resources?.DisplayMetrics?.Density ?? 1f;
+            return navBarPx / (double)density;
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Failed to get navigation bar height");
+            return 0;
+        }
+    }
+
     /// <summary>
     /// Best-effort padding before the first native layout pass (view may not have a
-    /// stable window position yet). A <see cref="View.Post"/> callback and
+    /// stable window position yet). A View.Post callback and
     /// GlobalLayout apply the same inset formula once coordinates are reliable.
     /// </summary>
     private void ApplyInitialSafeAreaPadding()
@@ -139,7 +250,7 @@ public partial class BaseContentPage : ContentPage
             double neededDip = statusBarHeightPx / (double)density;
 
             _appliedSafeAreaTop = neededDip;
-            Padding = new Thickness(Padding.Left, neededDip, Padding.Right, Padding.Bottom);
+            Padding = new Thickness(Padding.Left, neededDip, Padding.Right, _appliedBarBottom);
         }
         catch (Exception ex)
         {
@@ -208,7 +319,7 @@ public partial class BaseContentPage : ContentPage
         if (Math.Abs(_appliedSafeAreaTop - neededDip) > threshold)
         {
             _appliedSafeAreaTop = neededDip;
-            Padding = new Thickness(Padding.Left, neededDip, Padding.Right, Padding.Bottom);
+            Padding = new Thickness(Padding.Left, neededDip, Padding.Right, _appliedBarBottom);
         }
     }
 
@@ -266,6 +377,8 @@ public partial class BaseContentPage : ContentPage
 
     private void DetachSafeAreaListener()
     {
+        DetachBarVisibilityListener();
+
         if (_trackedPlatformView != null)
         {
             try
