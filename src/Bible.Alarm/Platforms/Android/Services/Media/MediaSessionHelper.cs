@@ -152,7 +152,6 @@ public static class MediaSessionHelper
 
     /// <summary>
     /// Loads artwork bitmap from URL and adds it to metadata builder.
-    /// Falls back to app icon if the artwork file cannot be loaded.
     /// Uses simple file-based loading without DI dependencies.
     /// </summary>
     private static void LoadArtworkForMetadata(MediaMetadataCompat.Builder metadataBuilder, string artworkUrl, Context context)
@@ -181,17 +180,11 @@ public static class MediaSessionHelper
                 return;
             }
 
-            logger.Debug("Could not load artwork from: {ArtworkUrl} (file not found or invalid format) — using app icon fallback", artworkUrl);
+            logger.Debug("Could not load artwork from: {ArtworkUrl} (file not found or invalid format) — omitting artwork", artworkUrl);
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl} — using app icon fallback", artworkUrl);
-        }
-
-        var fallback = AndroidAutoPlayScreenHelper.GetOrLoadAppIconBitmap();
-        if (fallback != null)
-        {
-            metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, fallback);
+            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl} — omitting artwork", artworkUrl);
         }
     }
 }

@@ -101,18 +101,12 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         }
 
         // Preserve existing artwork when no artworkUrl is provided or when loading
-        // from artworkUrl failed (file not cached yet). Prevents blank artwork.
+        // from artworkUrl failed (file not cached yet).
+        // Idle default schedule metadata does not fall back to the app icon; the car UI shows no art instead.
         Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
         if (existingArtwork != null)
         {
             builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-            return;
-        }
-
-        var fallback = AndroidAutoPlayScreenHelper.GetOrLoadAppIconBitmap();
-        if (fallback != null)
-        {
-            builder?.PutBitmap(MediaMetadataCompat.MetadataKeyArt, fallback);
         }
     }
 

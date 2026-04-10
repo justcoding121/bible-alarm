@@ -353,7 +353,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     /// <summary>
     /// Sets default metadata for when no playback is active (e.g., for lock screen/CarPlay idle screen).
     /// This allows users to start playback directly from lock screen controls.
-    /// Artwork is always preserved - we never show lock screen without artwork.
+    /// When no artwork URL is available or loading fails, CarPlay may show no artwork (no app icon fallback).
     /// </summary>
     public void SetDefaultMetadata(string? title, string? artist, string? album, string? artworkUrl)
     {
@@ -399,8 +399,6 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                 // No URL provided, keep current artwork
                 artworkToUse = currentArtwork;
             }
-
-            artworkToUse ??= GetOrLoadAppIconArtwork();
 
             var nowPlayingInfo = CreateNowPlayingInfoWithArtwork(title, artist, album, TimeSpan.Zero, artworkToUse);
             nowPlayingInfo.PlaybackRate = 0.0;

@@ -189,18 +189,28 @@ public sealed class MediaSessionManager : IMediaSessionManager
             var currentArtist = currentMetadata.GetString(MediaMetadataCompat.MetadataKeyArtist);
             if (newTitle == currentTitle && newArtist == currentArtist)
             {
-                // Don't skip if the current metadata is missing artwork but new metadata has it.
-                // This happens when MediaSessionHelper pre-loads title/artist from Preferences
-                // but the artwork file was cleaned up; the subsequent default metadata update
-                // has a fresh artwork bitmap that must be applied.
                 var currentArtwork = currentMetadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
                 var newArtwork = metadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-                if (currentArtwork != null || newArtwork == null)
+
+                // Skip redundant SetMetadata when artwork is unchanged in spirit:
+                // both null, or both present (same title/artist refresh with art still present).
+                var shouldApplyArtworkChange =
+                    (currentArtwork == null && newArtwork != null)
+                    || (currentArtwork != null && newArtwork == null);
+
+                if (!shouldApplyArtworkChange)
                 {
                     return;
                 }
 
-                logger.Debug("[AndroidAuto] Title/Artist unchanged but artwork missing from current metadata — applying update with artwork");
+                if (currentArtwork == null && newArtwork != null)
+                {
+                    logger.Debug("[AndroidAuto] Title/Artist unchanged but artwork missing from current metadata — applying update with artwork");
+                }
+                else
+                {
+                    logger.Debug("[AndroidAuto] Title/Artist unchanged but clearing artwork in metadata (e.g. removed app icon fallback)");
+                }
             }
         }
 
