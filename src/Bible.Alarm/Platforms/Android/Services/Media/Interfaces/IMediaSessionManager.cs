@@ -16,6 +16,7 @@ public interface IMediaSessionManager
     void SetBufferingStateOnly();
     void UpdatePlaybackStateForStop();
     void SetPlaybackStatus(PlayStatus status, bool canPlayNext = false, bool canPlayPrevious = false);
+    void SetErrorState(string? errorMessage, bool canPlayNext = false, bool canPlayPrevious = false);
     void SetActive(bool active);
     void UpdateDuration(TimeSpan duration);
     void SetTrackedDuration(long durationMs);

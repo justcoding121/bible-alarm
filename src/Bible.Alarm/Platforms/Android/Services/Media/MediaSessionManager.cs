@@ -1,6 +1,7 @@
 #nullable enable
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelpers;
 using Bible.Alarm.Services.Media.Models;
@@ -306,6 +307,36 @@ public sealed class MediaSessionManager : IMediaSessionManager
         }
     }
 
+
+    /// <summary>
+    /// Sets the MediaSession to error state with a user-facing error message.
+    /// Uses setErrorMessage so Android Auto displays the error on the Now Playing screen
+    /// instead of navigating away to the browse tree with a generic error.
+    /// </summary>
+    public void SetErrorState(string? errorMessage, bool canPlayNext = false, bool canPlayPrevious = false)
+    {
+        if (mediaSession == null)
+        {
+            logger.Warning("[AndroidAuto] MediaSessionCompat is null, cannot set error state. Call GetOrCreate() first.");
+            return;
+        }
+
+        var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var position = mediaSession?.Controller?.PlaybackState?.Position ?? 0;
+        var message = string.IsNullOrEmpty(errorMessage) ? "Playback failed. Tap Play to retry." : errorMessage;
+
+        var playbackState = AndroidAutoPlayScreenHelper.CreateErrorPlaybackState(position, actions, message);
+        if (playbackState != null)
+        {
+            mediaSession?.SetPlaybackState(playbackState);
+            lastSetState = PlaybackStateCompat.StateError;
+            lastSetPosition = position;
+        }
+        else
+        {
+            logger.Warning("[AndroidAuto] Failed to create error PlaybackStateCompat");
+        }
+    }
 
     public void SetActive(bool active)
     {

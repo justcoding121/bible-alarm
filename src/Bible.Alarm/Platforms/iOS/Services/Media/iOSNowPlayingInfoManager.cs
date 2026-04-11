@@ -39,8 +39,8 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     /// <summary>
     /// Updates the Now Playing metadata (title, artist, album, artwork).
     /// Call this when the track changes.
-    /// Following iOS standard practice, artwork is never cleared - if loading new artwork fails,
-    /// we keep the previous artwork to ensure there's always visual content on lock screen.
+    /// Previous artwork is preserved during transitions while async artwork extraction completes.
+    /// If no artwork is ever available, the car/lock screen shows no art (no app icon fallback).
     /// </summary>
     public void UpdateMetadata(string? title, string? artist, string? album, TimeSpan duration, string? artworkUrl)
     {
@@ -51,11 +51,10 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
             currentAlbum = album;
             currentDuration = duration.TotalSeconds;
 
-            // Preserve previous artwork reference - NEVER clear artwork
+            // Preserve previous artwork as placeholder during transitions
             var previousArtwork = currentArtwork;
             var oldArtworkUrl = currentArtworkUrl;
 
-            // Always start with previous artwork as fallback (never show empty lock screen)
             MPMediaItemArtwork? artworkToUse = previousArtwork;
 
             // Try to load new artwork if URL is provided
@@ -78,13 +77,11 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                     }
                     else
                     {
-                        // Failed to load new artwork - keep previous artwork (never show empty)
+                        // Failed to load synchronously - keep previous as placeholder, try async
                         LoadArtworkAsyncAndUpdate(artworkUrl);
                     }
                 }
             }
-
-            artworkToUse ??= GetOrLoadAppIconArtwork();
 
             var nowPlayingInfo = CreateNowPlayingInfoWithArtwork(title, artist, album, duration, artworkToUse);
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;

@@ -140,6 +140,23 @@ public static class AndroidAutoPlayScreenHelper
     }
 
     /// <summary>
+    /// Creates an error PlaybackStateCompat with a user-facing error message.
+    /// Android Auto shows the message on the Now Playing screen instead of
+    /// navigating away to the browse tree with a generic error.
+    /// </summary>
+    public static PlaybackStateCompat? CreateErrorPlaybackState(
+        long position,
+        long actions,
+        string errorMessage)
+    {
+        var builder = new PlaybackStateCompat.Builder();
+        builder.SetActions(actions);
+        builder.SetState(PlaybackStateCompat.StateError, position, 0f, SystemClock.ElapsedRealtime());
+        builder.SetErrorMessage(PlaybackStateCompat.ErrorCodeAppError, errorMessage);
+        return builder.Build();
+    }
+
+    /// <summary>
     /// Creates a PlaybackStateCompat based on an existing playback state, updating position and actions.
     /// Used for position updates during playback.
     /// </summary>

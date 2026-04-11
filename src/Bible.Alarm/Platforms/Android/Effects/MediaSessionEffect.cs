@@ -177,9 +177,16 @@ public class MediaSessionEffect(
                     mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext: true, canPlayPrevious: true);
                 }
             }
+            else if (action.Status == PlayStatus.Failed)
+            {
+                var errorMessage = playbackState.Value.ErrorMessage;
+                logger.Information(
+                    "[AndroidAuto] Playback failed — setting error state with message on Now Playing screen: {ErrorMessage}",
+                    errorMessage);
+                mediaSessionManager.SetErrorState(errorMessage, canPlayNext: true, canPlayPrevious: true);
+            }
             else
             {
-                // Next/Previous are always enabled.
                 var canPlayNext = true;
                 var canPlayPrevious = true;
                 logger.Information(
@@ -461,18 +468,11 @@ public class MediaSessionEffect(
 
         // No new artwork - preserve existing artwork from the MediaSession to prevent
         // blank artwork during transitions (while async artwork extraction is pending).
+        // If no existing artwork either (fresh start), the car UI shows no art (no app icon fallback).
         var existingArtwork = session.Controller?.Metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
         if (existingArtwork != null)
         {
             metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-            return;
-        }
-
-        // No existing artwork (fresh start) - use app icon as fallback
-        var fallback = AndroidAutoPlayScreenHelper.GetOrLoadAppIconBitmap();
-        if (fallback != null)
-        {
-            metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, fallback);
         }
     }
 
