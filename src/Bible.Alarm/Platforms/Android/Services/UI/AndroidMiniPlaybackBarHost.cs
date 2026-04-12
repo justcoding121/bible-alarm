@@ -3,9 +3,11 @@
 using Android.Views;
 using Android.Widget;
 using AndroidX.Core.View;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views.Shared;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Maui.Platform;
 using Serilog;
 using View = Android.Views.View;
@@ -17,7 +19,9 @@ namespace Bible.Alarm.Platforms.Android.Services.UI;
 /// content FrameLayout (android.R.id.content). This keeps the bar outside the MAUI
 /// NavigationPage hierarchy so it is never recreated during page push/pop transitions.
 /// </summary>
-public sealed class AndroidMiniPlaybackBarHost : IAndroidMiniPlaybackBarHost, IDisposable
+public sealed class AndroidMiniPlaybackBarHost : IAndroidMiniPlaybackBarHost,
+    IRecipient<ThemeChangedMessage>,
+    IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<AndroidMiniPlaybackBarHost>();
 
@@ -26,6 +30,11 @@ public sealed class AndroidMiniPlaybackBarHost : IAndroidMiniPlaybackBarHost, ID
     private FrameLayout? rootView;
     private bool isDisposed;
     private bool isPlaybackModalActive;
+
+    public AndroidMiniPlaybackBarHost()
+    {
+        WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this);
+    }
 
     public void Attach()
     {
@@ -189,6 +198,25 @@ public sealed class AndroidMiniPlaybackBarHost : IAndroidMiniPlaybackBarHost, ID
         }
     }
 
+    public void Receive(ThemeChangedMessage message)
+    {
+        if (isDisposed || nativeBarView == null)
+        {
+            return;
+        }
+
+        // The bar lives outside the MAUI visual tree, so DynamicResource updates
+        // from Application.Resources don't propagate. Re-create the bar to pick
+        // up the new theme colors.
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!isDisposed)
+            {
+                Attach();
+            }
+        });
+    }
+
     private void OnMiniBarViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(MiniPlaybackBarViewModel.IsVisible))
@@ -245,6 +273,7 @@ public sealed class AndroidMiniPlaybackBarHost : IAndroidMiniPlaybackBarHost, ID
         }
 
         isDisposed = true;
+        WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
         DetachInternal();
     }
 }
