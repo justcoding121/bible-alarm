@@ -26,9 +26,9 @@ Jehonathan Thomas (@justcoding121). All rights reserved.
 [![Duplicated Lines](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=duplicated_lines_density)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_index)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
 
-## Download
+## Get the app
 
-- **Apple Store**: [Download on App Store](https://apps.apple.com/us/app/bible-alarm/id1513519477?platform=iphone)
+- **Apple Store**: [Get it on the App Store](https://apps.apple.com/us/app/bible-alarm/id1513519477?platform=iphone)
 - **Android Store**: [Get it on Google Play](https://play.google.com/store/apps/details?id=com.jthomas.info.Bible.Alarm)
 - **Windows Store**: [Get it from Microsoft Store](https://apps.microsoft.com/detail/9nhzhb85v6r4)
 
