@@ -1,6 +1,6 @@
 # Bible-Alarm
 
-@justcoding121. All rights reserved.
+Jehonathan Thomas (@justcoding121). All rights reserved.
 
 ## CI/CD Status
 
