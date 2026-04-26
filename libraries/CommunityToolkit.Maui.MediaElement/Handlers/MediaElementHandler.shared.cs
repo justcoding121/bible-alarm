@@ -183,7 +183,13 @@ public partial class MediaElementHandler
     /// <param name="mediaElement">The associated <see cref="MediaElement"/> instance.</param>
     /// <param name="args">The associated event arguments for this request.</param>
     /// <remarks><paramref name="args"/> should be of type <see cref="MediaSeekRequestedEventArgs"/>, otherwise nothing happens.</remarks>
-    public static async void MapSeekRequested(MediaElementHandler handler, MediaElement mediaElement, object? args)
+    public static void MapSeekRequested(MediaElementHandler handler, MediaElement mediaElement, object? args)
+    {
+        // CommandMapper requires void; run async work on a Task (avoid async void on the mapper entry point).
+        _ = MapSeekRequestedCoreAsync(handler, mediaElement, args);
+    }
+
+    private static async Task MapSeekRequestedCoreAsync(MediaElementHandler handler, MediaElement mediaElement, object? args)
     {
         ArgumentNullException.ThrowIfNull(args);
 

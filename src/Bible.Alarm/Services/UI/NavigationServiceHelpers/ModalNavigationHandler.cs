@@ -110,11 +110,9 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public async Task OpenPlaybackModalAsync(INavigation navigation, bool animated = false)
     {
-        Exception? pushException = null;
-
-        await MainThread.InvokeOnMainThreadAsync(async () =>
+        try
         {
-            try
+            await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 if (IsPlaybackModalAlreadyShown(navigation))
                 {
@@ -143,17 +141,12 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
                     modal.TranslationY = startY;
                     await modal.TranslateToAsync(0, 0, PlaybackModalAnimationDurationMs, Easing.CubicOut);
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error opening PlaybackModal");
-                pushException = ex;
-            }
-        });
-
-        if (pushException != null)
+            });
+        }
+        catch (Exception ex)
         {
-            throw new InvalidOperationException("PlaybackModal push failed", pushException);
+            logger.Error(ex, "Error opening PlaybackModal");
+            throw new InvalidOperationException("PlaybackModal push failed", ex);
         }
     }
 

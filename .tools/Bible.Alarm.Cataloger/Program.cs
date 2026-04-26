@@ -313,7 +313,7 @@ public class Program
                 await asyncDisposable.DisposeAsync();
             }
 
-            Log.CloseAndFlush();
+            await Log.CloseAndFlushAsync();
         }
 
         var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";

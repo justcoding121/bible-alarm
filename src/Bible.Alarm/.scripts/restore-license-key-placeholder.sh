@@ -7,7 +7,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SOURCE_FILE="$PROJECT_ROOT/AppSettings.cs"
 PLACEHOLDER='{{SYNCFUSION_LICENSE_KEY}}'
 
-if [ ! -f "$SOURCE_FILE" ]; then
+if [[ ! -f "$SOURCE_FILE" ]]; then
   echo "AppSettings.cs not found at $SOURCE_FILE. Skipping restore."
   exit 0
 fi

@@ -169,7 +169,7 @@ public sealed class MediaBrowser(ILogger logger)
 
             DrawSectionIcon(canvas, sectionDrawable);
 
-            logger.Debug("Created section icon bitmap - Size: {Size}x{Size}", BitmapSize, BitmapSize);
+            logger.Debug("Created section icon bitmap - Size: {WidthPx}x{HeightPx}", BitmapSize, BitmapSize);
             return bitmap;
         }
         catch (Exception ex)

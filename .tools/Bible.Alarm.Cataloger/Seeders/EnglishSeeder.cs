@@ -108,7 +108,7 @@ internal sealed class EnglishSeeder
             {
                 Directory.CreateDirectory(dir);
             }
-            File.WriteAllLines(failedListPath, failed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+            await File.WriteAllLinesAsync(failedListPath, failed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
             logger.Information("Wrote {Count} failed publication code(s) to {Path} for use with --retry-failed", failed.Count, failedListPath);
         }
 

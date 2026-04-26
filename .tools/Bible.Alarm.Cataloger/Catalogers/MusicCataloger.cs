@@ -352,7 +352,7 @@ internal class MusicCataloger : BaseCataloger
                     {
                         var discInfoFile = $"{discDir}/disc.json";
                         var discInfo = new { Code = disc.Key, Name = discName };
-                        File.WriteAllText(discInfoFile, JsonSerializer.Serialize(discInfo));
+                        await File.WriteAllTextAsync(discInfoFile, JsonSerializer.Serialize(discInfo));
                     }
                 }
 

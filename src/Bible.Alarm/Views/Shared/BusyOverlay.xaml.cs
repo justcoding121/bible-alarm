@@ -431,7 +431,7 @@ public partial class BusyOverlay : ContentView
                 {
                     overlay.overlayGrid.Opacity = opacity;
                     overlay.overlayGrid.InputTransparent = inputTransparent;
-                    logger.Debug("BusyOverlay.OnIsVisibleChanged: Set ContentView.InputTransparent to {InputTransparent}, overlayGrid.Opacity to {Opacity}, overlayGrid.InputTransparent to {InputTransparent}", inputTransparent, opacity, inputTransparent);
+                    logger.Debug("BusyOverlay.OnIsVisibleChanged: Set ContentView.InputTransparent to {ContentInputTransparent}, overlayGrid.Opacity to {Opacity}, overlayGrid.InputTransparent to {GridInputTransparent}", inputTransparent, opacity, inputTransparent);
                 }
 
                 if (newBoolValue)

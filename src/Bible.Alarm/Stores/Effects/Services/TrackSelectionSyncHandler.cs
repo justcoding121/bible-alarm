@@ -359,7 +359,6 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.BiblePublicationLanguageCode = currentSchedule.BiblePublicationLanguageCode;
         updatedSchedule.BiblePublicationCode = currentSchedule.BiblePublicationCode;
         updatedSchedule.BiblePublicationSectionCode = currentSchedule.BiblePublicationSectionCode;
-        updatedSchedule.BiblePublicationSectionCode = currentSchedule.BiblePublicationSectionCode;
         updatedSchedule.BiblePublicationTrackCode = currentSchedule.BiblePublicationTrackCode;
         updatedSchedule.BiblePublicationFinishedDuration = currentSchedule.BiblePublicationFinishedDuration;
         updatedSchedule.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
@@ -383,8 +382,12 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
         updatedSchedule.MusicTrackCode = actionMusic.TrackCode;
         updatedSchedule.MusicRepeat = actionMusic.Repeat;
-        updatedSchedule.MusicLanguageName = useScheduleLanguage ? currentSchedule.MusicLanguageName : currentSchedule.MusicLanguageName;
-        updatedSchedule.MusicLanguageDirection = useScheduleLanguage ? currentSchedule.MusicLanguageDirection : currentSchedule.MusicLanguageDirection;
+        updatedSchedule.MusicLanguageName = useScheduleLanguage
+            ? currentSchedule.MusicLanguageName
+            : (actionMusic.LanguageName ?? currentSchedule.MusicLanguageName);
+        updatedSchedule.MusicLanguageDirection = useScheduleLanguage
+            ? currentSchedule.MusicLanguageDirection
+            : (actionMusic.LanguageDirection ?? currentSchedule.MusicLanguageDirection);
         updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
         updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
     }

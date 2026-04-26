@@ -549,8 +549,12 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
         finally
         {
-            safetyNetCts?.Cancel();
-            safetyNetCts?.Dispose();
+            if (safetyNetCts is not null)
+            {
+                await safetyNetCts.CancelAsync();
+                safetyNetCts.Dispose();
+            }
+
             stopLock.Release();
         }
     }

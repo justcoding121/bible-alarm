@@ -8,12 +8,12 @@ SOURCE_FILE="$PROJECT_ROOT/AppSettings.cs"
 PLACEHOLDER='{{SYNCFUSION_LICENSE_KEY}}'
 LICENSE_KEY="${SYNCFUSION_LICENSE_KEY:-}"
 
-if [ -z "$LICENSE_KEY" ]; then
+if [[ -z "$LICENSE_KEY" ]]; then
   echo "SYNCFUSION_LICENSE_KEY environment variable is not set. Using placeholder."
   exit 0
 fi
 
-if [ ! -f "$SOURCE_FILE" ]; then
+if [[ ! -f "$SOURCE_FILE" ]]; then
   echo "Error: AppSettings.cs not found at $SOURCE_FILE" >&2
   exit 1
 fi

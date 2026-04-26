@@ -33,7 +33,7 @@ internal sealed class MusicPublicationFetchCoordinator
         if (string.IsNullOrEmpty(effectiveLanguageCode) && !isMelodyMusic)
             return null;
 
-        var languageForFetch = effectiveLanguageCode ?? string.Empty;
+        var languageForFetch = effectiveLanguageCode!;
         Dictionary<string, BiblePublication>? publicationsData = null;
 
         if (downloadAll)

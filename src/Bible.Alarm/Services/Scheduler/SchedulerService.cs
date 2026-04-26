@@ -45,7 +45,7 @@ public sealed class SchedulerService(
                 }
             }
 
-            (bool Ran, bool Downloaded)? result = await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
+            (bool Ran, bool Downloaded)? result = await ConcurrencyHelper.ExecuteWithTimeoutAsync(@lock, async () =>
             {
                 try
                 {

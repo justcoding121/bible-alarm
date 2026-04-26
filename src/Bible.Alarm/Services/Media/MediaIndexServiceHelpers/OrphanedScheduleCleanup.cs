@@ -224,7 +224,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 reader.GetInt32(0),
                 reader.GetString(1),
                 reader.GetString(2),
-                reader.IsDBNull(3) ? null : reader.GetString(3),
+                await reader.IsDBNullAsync(3) ? null : reader.GetString(3),
                 reader.GetString(4)));
         }
 
@@ -281,7 +281,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
     {
         try
         {
-            using var transaction = connection.BeginTransaction();
+            using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
             try
             {
                 // Delete in dependency order (child tables first)
@@ -294,12 +294,12 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 await ExecuteNonQueryAsync(connection, transaction,
                     "DELETE FROM AlarmSchedules WHERE Id = @id", scheduleId);
 
-                transaction.Commit();
+                await transaction.CommitAsync();
                 logger.Information("Deleted orphaned alarm schedule {ScheduleId}", scheduleId);
             }
             catch
             {
-                transaction.Rollback();
+                await transaction.RollbackAsync();
                 throw;
             }
         }
@@ -313,7 +313,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
     {
         try
         {
-            using var transaction = connection.BeginTransaction();
+            using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
             try
             {
                 await ExecuteNonQueryAsync(connection, transaction,
@@ -321,12 +321,12 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 await ExecuteNonQueryAsync(connection, transaction,
                     "UPDATE AlarmSchedules SET MusicEnabled = 0 WHERE Id = @id", scheduleId);
 
-                transaction.Commit();
+                await transaction.CommitAsync();
                 logger.Information("Reset music for alarm schedule {ScheduleId}", scheduleId);
             }
             catch
             {
-                transaction.Rollback();
+                await transaction.RollbackAsync();
                 throw;
             }
         }

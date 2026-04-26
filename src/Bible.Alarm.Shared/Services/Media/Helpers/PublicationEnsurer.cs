@@ -384,12 +384,12 @@ internal sealed class PublicationEnsurer
             }
 
             // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
-            if (action == null || string.IsNullOrEmpty(firstSectionCode))
+            if (string.IsNullOrEmpty(firstSectionCode))
             {
                 return false;
             }
 
-            switch (action.Value)
+            switch (action!.Value)
             {
                 case FirstSectionAction.FetchSectionTracksOnly:
                     progress?.UpdateProgress(0.5);

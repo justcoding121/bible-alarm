@@ -157,8 +157,8 @@ internal sealed class ScheduleMediaBootstrapFetcher(
             references.Add(new ScheduleMediaReference(
                 reader.GetString(0),
                 reader.GetString(1),
-                reader.IsDBNull(2) ? null : reader.GetString(2),
-                reader.IsDBNull(3) ? null : reader.GetString(3)));
+                await reader.IsDBNullAsync(2) ? null : reader.GetString(2),
+                await reader.IsDBNullAsync(3) ? null : reader.GetString(3)));
         }
 
         return references;

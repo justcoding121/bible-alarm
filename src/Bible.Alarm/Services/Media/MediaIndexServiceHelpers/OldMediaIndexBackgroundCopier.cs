@@ -182,7 +182,7 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
         int newPubId,
         string sectionCode)
     {
-        using var transaction = connection.BeginTransaction();
+        using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
         try
         {
             var newSectionId = await GetOrCopySectionAsync(connection, transaction, pubCode, langCode, newPubId, sectionCode);
@@ -193,11 +193,11 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
 
             await CopyAllTracksForSectionAsync(connection, transaction, pubCode, langCode, newPubId, newSectionId.Value, sectionCode);
 
-            transaction.Commit();
+            await transaction.CommitAsync();
         }
         catch
         {
-            try { transaction.Rollback(); } catch { /* already logged by caller */ }
+            try { await transaction.RollbackAsync(); } catch { /* already logged by caller */ }
             throw;
         }
     }
@@ -208,7 +208,7 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
         string langCode,
         int newPubId)
     {
-        using var transaction = connection.BeginTransaction();
+        using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
         try
         {
             var trackInfos = await ReadOldFlatTracksAsync(connection, transaction, pubCode, langCode);
@@ -229,7 +229,7 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
                 }
             }
 
-            transaction.Commit();
+            await transaction.CommitAsync();
 
             if (copiedCount > 0)
             {
@@ -238,7 +238,7 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
         }
         catch
         {
-            try { transaction.Rollback(); } catch { /* already logged by caller */ }
+            try { await transaction.RollbackAsync(); } catch { /* already logged by caller */ }
             throw;
         }
     }

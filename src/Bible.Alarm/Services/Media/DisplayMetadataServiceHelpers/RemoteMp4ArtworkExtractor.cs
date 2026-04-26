@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using System.Net.Http.Headers;
 using Bible.Alarm.Services.Media.Models;
 using Serilog;
@@ -149,11 +150,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         string? contentRange = null;
         if (response.Headers.TryGetValues("Content-Range", out var values))
         {
-            foreach (var v in values)
-            {
-                contentRange = v;
-                break;
-            }
+            contentRange = values.FirstOrDefault();
         }
 
         if (string.IsNullOrEmpty(contentRange))
@@ -210,18 +207,23 @@ internal sealed class RemoteMp4ArtworkExtractor
         while (offset + 8 <= buffer.Length)
         {
             int size = ReadUInt32BigEndian(buffer, (int)offset);
-            if (size < 8)
+            // ISO BMFF: size 1 means the atom uses a 64-bit size field (must handle before size < 8 check).
+            if (size == 1)
             {
-                return null;
-            }
+                if (offset + 16 > buffer.Length)
+                {
+                    return null;
+                }
 
-            if (size == 1 && offset + 16 <= buffer.Length)
-            {
                 size = (int)ReadUInt64BigEndian(buffer, (int)offset + 8);
                 if (size < 16)
                 {
                     return null;
                 }
+            }
+            else if (size < 8)
+            {
+                return null;
             }
 
             if (MatchesType(buffer, (int)offset + 4, MoovType))

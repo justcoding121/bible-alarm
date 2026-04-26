@@ -84,7 +84,7 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
         string langCode,
         List<ScheduleMediaBootstrapFetcher.ScheduleMediaReference> references)
     {
-        using var transaction = connection.BeginTransaction();
+        using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
         try
         {
             var newLanguageId = await GetLanguageIdAsync(connection, transaction, langCode);
@@ -121,7 +121,7 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
                     newPubId.Value, sectionCode, trackCode);
             }
 
-            transaction.Commit();
+            await transaction.CommitAsync();
             logger.Debug("Copied publication group {PubCode}/{LangCode} from old media index", pubCode, langCode);
         }
         catch (Exception ex)
@@ -130,7 +130,7 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
 
             try
             {
-                transaction.Rollback();
+                await transaction.RollbackAsync();
             }
             catch (Exception rollbackEx)
             {
@@ -204,7 +204,7 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
         var publicationCode = reader.GetString(1);
         var isVideo = reader.GetBoolean(2);
         var isMusic = reader.GetBoolean(3);
-        var catalogType = reader.IsDBNull(4) ? (int?)null : reader.GetInt32(4);
+        var catalogType = await reader.IsDBNullAsync(4) ? (int?)null : reader.GetInt32(4);
         await reader.CloseAsync();
 
         using var insertCmd = connection.CreateCommand();

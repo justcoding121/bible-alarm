@@ -62,11 +62,6 @@ internal sealed class MediatorFetcher
         logger.Information("MediatorFetcher: Fetched {TrackCount} tracks for publication {PublicationCode} in language {LanguageCode}",
             tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
-        if (tracks.Count == 0)
-        {
-            return false;
-        }
-
         // Get language and category
         var language = await db.Languages
             .FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, cancellationToken);

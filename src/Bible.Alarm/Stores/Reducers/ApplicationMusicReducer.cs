@@ -58,10 +58,10 @@ public static class ApplicationMusicReducer
             // Display names: use action when provided. For melody, preserve existing music language name/direction only.
             updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
                 ? music.LanguageName
-                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageName : updatedCurrentSchedule.MusicLanguageName);
+                : updatedCurrentSchedule.MusicLanguageName;
             updatedCurrentSchedule.MusicLanguageDirection = !string.IsNullOrEmpty(music.LanguageDirection)
                 ? music.LanguageDirection
-                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageDirection : updatedCurrentSchedule.MusicLanguageDirection);
+                : updatedCurrentSchedule.MusicLanguageDirection;
             updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
             updatedCurrentSchedule.MusicSectionName = music.SectionName; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
@@ -94,10 +94,10 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
             updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
                 ? music.LanguageName
-                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageName : updatedCurrentSchedule.MusicLanguageName);
+                : updatedCurrentSchedule.MusicLanguageName;
             updatedCurrentSchedule.MusicLanguageDirection = !string.IsNullOrEmpty(music.LanguageDirection)
                 ? music.LanguageDirection
-                : (string.IsNullOrEmpty(music.LanguageCode) ? updatedCurrentSchedule.MusicLanguageDirection : updatedCurrentSchedule.MusicLanguageDirection);
+                : updatedCurrentSchedule.MusicLanguageDirection;
             updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
             updatedCurrentSchedule.MusicSectionName = music.SectionName;
             updatedCurrentSchedule.MusicTrackName = music.TrackName;

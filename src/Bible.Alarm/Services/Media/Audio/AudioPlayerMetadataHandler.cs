@@ -89,12 +89,12 @@ public class AudioPlayerMetadataHandler
             await SendMetadataMessageAsync(fallbackMeta, null);
         }
 
-        DispatchArtworkWhenReadyAsync(track);
+        _ = DispatchArtworkWhenReadyAsync(track);
     }
 
     private const int ArtworkFetchTimeoutSeconds = 15;
 
-    private async void DispatchArtworkWhenReadyAsync(AudioPlayerTrack track)
+    private async Task DispatchArtworkWhenReadyAsync(AudioPlayerTrack track)
     {
         try
         {
