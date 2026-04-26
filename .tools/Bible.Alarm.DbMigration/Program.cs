@@ -61,7 +61,18 @@ class Program
     }
 
     /// <summary>
+    /// Maximum uncompressed bytes per zip entry (mitigates zip bombs; media index files are far smaller).
+    /// </summary>
+    private const long MaxZipEntryUncompressedBytes = 512L * 1024 * 1024;
+
+    /// <summary>
+    /// Maximum number of entries processed (defense in depth for malicious archives).
+    /// </summary>
+    private const int MaxZipEntryCount = 100_000;
+
+    /// <summary>
     /// Extracts a zip without following absolute paths or parent traversals outside the destination (S5042 / zip slip).
+    /// Does not use <see cref="ZipArchiveEntry.ExtractToFile"/> so static analysis accepts the controlled extraction path.
     /// </summary>
     static void ExtractMediaIndexZipSafely(string zipPath, string destinationDirectory)
     {
@@ -73,8 +84,14 @@ class Program
         }
 
         using var archive = ZipFile.OpenRead(zipPath);
+        var processed = 0;
         foreach (var entry in archive.Entries)
         {
+            if (++processed > MaxZipEntryCount)
+            {
+                throw new InvalidDataException($"Zip archive exceeds maximum entry count ({MaxZipEntryCount}).");
+            }
+
             if (string.IsNullOrEmpty(entry.Name))
             {
                 continue;
@@ -94,7 +111,30 @@ class Program
                 Directory.CreateDirectory(entryDir);
             }
 
-            entry.ExtractToFile(destinationPath, overwrite: true);
+            ExtractZipEntryToFileSafely(entry, destinationPath);
+        }
+    }
+
+    /// <summary>
+    /// Writes a single archive entry to disk after path checks, with a byte cap (S5042).
+    /// </summary>
+    static void ExtractZipEntryToFileSafely(ZipArchiveEntry entry, string destinationPath)
+    {
+        using var input = entry.Open();
+        using var output = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        var buffer = new byte[65536];
+        long written = 0;
+        int read;
+        while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (written + read > MaxZipEntryUncompressedBytes)
+            {
+                throw new InvalidDataException(
+                    $"Zip entry '{entry.FullName}' exceeds maximum allowed uncompressed size ({MaxZipEntryUncompressedBytes} bytes).");
+            }
+
+            output.Write(buffer, 0, read);
+            written += read;
         }
     }
 
