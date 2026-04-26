@@ -2,6 +2,7 @@
 #if IOS
 using CoreAnimation;
 using Foundation;
+using Serilog;
 using UIKit;
 
 namespace Bible.Alarm.Platforms.iOS.Helpers;
@@ -27,8 +28,9 @@ public static class IOSNativeViewCleanupHelper
                 }
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            Log.Debug(ex, "IOSNativeViewCleanupHelper: Subviews walk hit disposed view (non-fatal)");
         }
 
         try
@@ -42,8 +44,9 @@ public static class IOSNativeViewCleanupHelper
                 }
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            Log.Debug(ex, "IOSNativeViewCleanupHelper: GestureRecognizers access disposed (non-fatal)");
         }
 
         try
@@ -53,8 +56,9 @@ public static class IOSNativeViewCleanupHelper
                 SuppressFinalizersForLayerHierarchy(view.Layer);
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            Log.Debug(ex, "IOSNativeViewCleanupHelper: Layer access disposed (non-fatal)");
         }
 
         SuppressViewPropertyFinalizers(view);
@@ -81,8 +85,9 @@ public static class IOSNativeViewCleanupHelper
                 SuppressFinalizer(button.CurrentBackgroundImage);
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            Log.Debug(ex, "IOSNativeViewCleanupHelper: Property finalizer walk disposed (non-fatal)");
         }
     }
 
@@ -99,8 +104,9 @@ public static class IOSNativeViewCleanupHelper
                 }
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            Log.Debug(ex, "IOSNativeViewCleanupHelper: Sublayers walk disposed (non-fatal)");
         }
 
         GC.SuppressFinalize(layer);

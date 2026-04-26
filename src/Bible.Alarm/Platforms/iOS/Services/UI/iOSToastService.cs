@@ -3,6 +3,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.ToastLayoutHelpers;
+using Serilog;
 using System.Runtime.InteropServices;
 using UIKit;
 
@@ -110,8 +111,9 @@ public class IOsToastService : ToastService, IDisposable
             IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(currentToastView);
             currentToastView.Dispose();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Log.Debug(ex, "IOsToastService: RemoveCurrentToast cleanup failed (non-fatal)");
         }
 
         currentToastView = null;

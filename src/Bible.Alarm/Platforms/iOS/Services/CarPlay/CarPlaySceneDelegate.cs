@@ -144,11 +144,13 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
                 }
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            logger.Debug(ex, "[CarPlay] SuppressCarPlayFinalizers: disposed during teardown (non-fatal)");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Debug(ex, "[CarPlay] SuppressCarPlayFinalizers: unexpected (non-fatal)");
         }
     }
 
@@ -321,11 +323,13 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
                 GC.SuppressFinalize(section);
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            logger.Debug(ex, "[CarPlay] SuppressOldSectionFinalizers: disposed during teardown (non-fatal)");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Debug(ex, "[CarPlay] SuppressOldSectionFinalizers: unexpected (non-fatal)");
         }
     }
 }
