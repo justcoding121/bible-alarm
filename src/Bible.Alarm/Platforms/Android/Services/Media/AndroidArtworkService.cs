@@ -30,8 +30,9 @@ public class AndroidArtworkService : IAndroidArtworkService
                 {
                     filePath = new Uri(artworkUrl).LocalPath;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    logger.Debug(ex, "Could not parse file URI for artwork: {ArtworkUrl}", artworkUrl);
                     return null;
                 }
             }

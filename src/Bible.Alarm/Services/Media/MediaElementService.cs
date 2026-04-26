@@ -204,8 +204,9 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
             {
                 nativePlatformView = mediaElement.Handler?.PlatformView as UIView;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.Debug(ex, "MediaElement disposal: could not read PlatformView before handler dispose");
             }
 #endif
 
@@ -220,8 +221,9 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
                     viewController = pvh.ViewController;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.Debug(ex, "MediaElement disposal: could not read ViewController before handler dispose");
             }
 #endif
 
@@ -265,11 +267,13 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
                         IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(viewController.View);
                     }
                 }
-                catch (ObjectDisposedException)
+                catch (ObjectDisposedException ex)
                 {
+                    logger.Debug(ex, "MediaElement disposal: view controller already disposed during cleanup");
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    logger.Debug(ex, "MediaElement disposal: view controller cleanup failed");
                 }
             }
 

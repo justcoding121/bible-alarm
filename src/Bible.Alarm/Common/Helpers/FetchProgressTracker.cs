@@ -1,6 +1,7 @@
 #nullable enable
 using System.Threading;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Serilog;
 
 namespace Bible.Alarm.Common.Helpers;
 
@@ -43,9 +44,9 @@ public sealed class FetchProgressTracker : IFetchProgress
             var percent = (int)Math.Round(clampedProgress * 100);
             updateProgressText($"{percent}%");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // ViewModel or UI element was disposed or other error, ignore the update
+            Log.Debug(ex, "FetchProgressTracker.UpdateProgress: UI update failed (element may be disposed)");
         }
     }
 
@@ -57,9 +58,9 @@ public sealed class FetchProgressTracker : IFetchProgress
             // Progress text is automatically set by UpdateProgress
             updateProgressText(text);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // ViewModel or UI element was disposed or other error, ignore the update
+            Log.Debug(ex, "FetchProgressTracker.UpdateProgressText: UI update failed (element may be disposed)");
         }
     }
 
@@ -69,9 +70,9 @@ public sealed class FetchProgressTracker : IFetchProgress
         {
             setIsVisible(isVisible);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // ViewModel or UI element was disposed or other error, ignore the update
+            Log.Debug(ex, "FetchProgressTracker.SetIsVisible: UI update failed (element may be disposed)");
         }
     }
 }
