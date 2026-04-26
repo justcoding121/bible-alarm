@@ -301,7 +301,7 @@ internal static class CatalogValidator
     /// Validates each mediator category URL: GET /categories/E/{code} and asserts category.media exists (array).
     /// Returns true if all pass, false if any fail (cataloger should exit with code 1 when run before catalog).
     /// </summary>
-    public static async Task<bool> ValidateMediatorLinksAsync(ILogger logger, DownloadUtility downloadUtility)
+    public static async Task<bool> ValidateMediatorLinksAsync(ILogger logger)
     {
         logger.Information("=== Validating mediator links: each category must return category.media array ===");
 
@@ -316,7 +316,7 @@ internal static class CatalogValidator
             string? jsonString;
             try
             {
-                jsonString = await downloadUtility.GetMediatorAsync(pathAndQuery);
+                jsonString = await DownloadUtility.GetMediatorAsync(pathAndQuery);
             }
             catch (Exception ex)
             {

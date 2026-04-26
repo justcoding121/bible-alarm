@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
+using DownloadUtilityType = Bible.Alarm.Cataloger.Utility.DownloadUtility;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Serilog;
@@ -68,7 +69,7 @@ internal class MediatorCataloger : BaseCataloger
         string? jsonString;
         try
         {
-            jsonString = await DownloadUtility.GetMediatorAsync(pathAndQuery);
+            jsonString = await DownloadUtilityType.GetMediatorAsync(pathAndQuery);
         }
         catch (Exception ex)
         {
@@ -147,7 +148,7 @@ internal class MediatorCataloger : BaseCataloger
         string? jsonString;
         try
         {
-            jsonString = await DownloadUtility.GetMediatorAsync(pathAndQuery);
+            jsonString = await DownloadUtilityType.GetMediatorAsync(pathAndQuery);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
         {

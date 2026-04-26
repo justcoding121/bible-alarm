@@ -185,7 +185,7 @@ public class Program
 
                 logger.Information("=== DISCOVERY PHASE COMPLETED ===\n");
 
-                var mediatorLinksValid = await CatalogValidator.ValidateMediatorLinksAsync(catalogerLogger, catalogerDownloadUtility);
+                var mediatorLinksValid = await CatalogValidator.ValidateMediatorLinksAsync(catalogerLogger);
                 if (!mediatorLinksValid)
                 {
                     logger.Error("Mediator link validation failed: one or more category URLs did not return valid category.media. Failing cataloger.");

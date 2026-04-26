@@ -39,7 +39,7 @@ internal class DownloadUtility
     /// Fetches from Mediator API using redundant base URLs.
     /// 3 attempts: (1) random base, (2) alternate base, (3) random base.
     /// </summary>
-    internal async Task<string?> GetMediatorAsync(string pathAndQuery)
+    internal static async Task<string?> GetMediatorAsync(string pathAndQuery)
     {
         using var client = CreateHttpClient();
         var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;

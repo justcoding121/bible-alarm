@@ -180,39 +180,6 @@ internal class DbSeeder : IDataPersister
         }
     }
 
-
-    private async Task<T?> GetSafely<T>(Func<Task<T>> getter, string? context = null) where T : class
-    {
-        try
-        {
-            return await getter();
-        }
-        catch (FileNotFoundException ex)
-        {
-            if (!string.IsNullOrEmpty(context))
-            {
-                logger.Warning("File not found for {Context}: {FileName}", context, ex.FileName);
-            }
-            return null;
-        }
-        catch (DirectoryNotFoundException ex)
-        {
-            if (!string.IsNullOrEmpty(context))
-            {
-                logger.Warning("Directory not found for {Context}: {DirectoryName}", context, ex.Message);
-            }
-            return null;
-        }
-        catch (Exception ex)
-        {
-            if (!string.IsNullOrEmpty(context))
-            {
-                logger.Error(ex, "Error in {Context}", context);
-            }
-            return null;
-        }
-    }
-
     public Task SaveBiblePublicationSections(
         string languageCode,
         string publicationCode,
