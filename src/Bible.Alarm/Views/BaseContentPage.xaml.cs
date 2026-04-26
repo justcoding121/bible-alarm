@@ -80,8 +80,8 @@ public partial class BaseContentPage : ContentPage
     private double _appliedSafeAreaTop;
     private double _appliedBarBottom;
 
-    private static int _cachedStatusBarHeightPx;
-    private static int _cachedNavBarHeightPx;
+    private int _cachedStatusBarHeightPx;
+    private int _cachedNavBarHeightPx;
 
     protected override void OnHandlerChanged()
     {

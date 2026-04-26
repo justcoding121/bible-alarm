@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable S3776
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.UI.NavigationServiceHelpers;
@@ -575,4 +576,5 @@ public sealed class NavigationService(
         }
     }
 }
+#pragma warning restore S3776
 

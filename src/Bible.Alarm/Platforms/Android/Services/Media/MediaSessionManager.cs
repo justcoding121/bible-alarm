@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable S3776
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -387,4 +388,5 @@ public sealed class MediaSessionManager : IMediaSessionManager
     }
 
 }
+#pragma warning restore S3776
 

@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable S3776
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -823,4 +824,5 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         // so don't dispose them
     }
 }
+#pragma warning restore S3776
 

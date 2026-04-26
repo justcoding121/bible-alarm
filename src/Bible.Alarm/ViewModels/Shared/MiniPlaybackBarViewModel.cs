@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable S3776
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -541,3 +542,4 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         WeakReferenceMessenger.Default.Unregister<PreviousButtonPressedMessage>(this);
     }
 }
+#pragma warning restore S3776

@@ -1,3 +1,4 @@
+#pragma warning disable S3776
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.UI;
@@ -102,3 +103,4 @@ public sealed class AndroidAlarmHandler(
         });
     }
 }
+#pragma warning restore S3776

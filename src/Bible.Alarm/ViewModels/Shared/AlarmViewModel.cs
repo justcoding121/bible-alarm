@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable S3776
 using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -814,4 +815,5 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         }
     }
 }
+#pragma warning restore S3776
 

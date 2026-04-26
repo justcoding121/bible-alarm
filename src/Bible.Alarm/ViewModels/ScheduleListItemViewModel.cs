@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable S3776
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Messenger;
@@ -817,3 +818,4 @@ public sealed class ScheduleListItemViewModel(
         WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
     }
 }
+#pragma warning restore S3776

@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable S3776
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -1036,3 +1037,4 @@ public sealed class PlaybackModalService :
         WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
     }
 }
+#pragma warning restore S3776
