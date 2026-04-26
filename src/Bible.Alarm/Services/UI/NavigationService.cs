@@ -301,8 +301,9 @@ public sealed class NavigationService(
             var navigation = GetNavigation(shouldRetry: false);
             return ModalNavigationHandler.IsPlaybackModalAlreadyShown(navigation);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.Debug(ex, "IsPlaybackModalOnScreen: navigation unavailable, assuming modal not shown");
             return false;
         }
     }

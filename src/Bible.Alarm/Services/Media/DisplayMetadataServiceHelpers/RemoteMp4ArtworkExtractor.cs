@@ -119,7 +119,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return await ParseMoovWithTagLibAsync(moovBytes, url);
     }
 
-    private async Task<long?> GetContentLengthAsync(HttpClient client, string url, CancellationToken cancellationToken)
+    private static async Task<long?> GetContentLengthAsync(HttpClient client, string url, CancellationToken cancellationToken)
     {
         using var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
         headRequest.Headers.UserAgent.ParseAdd(UserAgent);
@@ -181,7 +181,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return totalLength;
     }
 
-    private async Task<byte[]?> TryGetMoovFromHeadAsync(HttpClient client, string url, CancellationToken cancellationToken)
+    private static async Task<byte[]?> TryGetMoovFromHeadAsync(HttpClient client, string url, CancellationToken cancellationToken)
     {
         var head = await FetchRangeAsync(client, url, 0, HeadChunkSize - 1, cancellationToken);
         if (head == null)
@@ -192,7 +192,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return FindAndExtractMoov(head);
     }
 
-    private async Task<byte[]?> TryGetMoovFromTailAsync(HttpClient client, string url, long contentLength, CancellationToken cancellationToken)
+    private static async Task<byte[]?> TryGetMoovFromTailAsync(HttpClient client, string url, long contentLength, CancellationToken cancellationToken)
     {
         long from = Math.Max(0, contentLength - TailChunkSize);
         var tail = await FetchRangeAsync(client, url, from, contentLength - 1, cancellationToken);
@@ -506,9 +506,9 @@ internal sealed class RemoteMp4ArtworkExtractor
                 {
                     System.IO.File.Delete(tempFilePath);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore cleanup errors.
+                    logger.Debug(ex, "RemoteMp4ArtworkExtractor: Failed to delete temp file {TempPath}", tempFilePath);
                 }
             }
         }
