@@ -10,7 +10,7 @@ using Bible.Alarm.Platforms.Windows.Helpers;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider) : IAppLifecycleService, IDisposable
+public sealed class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider, IReviewPromptService reviewPromptService) : IAppLifecycleService, IDisposable
 {
     private readonly IServiceProvider serviceProvider = serviceProvider;
 
@@ -21,6 +21,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
     public void OnStart()
     {
         App.IsInForeground = true;
+        _ = RecordAppOpenSafeAsync("OnStart");
 
         // NOTE: Do NOT call InitializePlatformBootstrap here
         // WindowSetupService.CreateWindow() already handled bootstrap and sent InitializedMessage
@@ -51,6 +52,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
     public void OnResume()
     {
         App.IsInForeground = true;
+        _ = RecordAppOpenSafeAsync("OnResume");
 
         try
         {
@@ -152,6 +154,18 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
         periodicBackgroundTasks?.Dispose();
         periodicBackgroundTasks = null;
 #endif
+    }
+
+    private async Task RecordAppOpenSafeAsync(string source)
+    {
+        try
+        {
+            await reviewPromptService.RecordAppOpenAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error recording app open from {Source}", source);
+        }
     }
 }
 

@@ -4,7 +4,6 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -21,7 +20,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     private readonly IState<PlaybackState> playbackState;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
-    private readonly IGeneralSettingsService generalSettingsService;
 
     private bool isDisposed;
     private TimeSpan currentDuration = TimeSpan.Zero;
@@ -56,14 +54,13 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     public ICommand SeekCommand { get; set; }
     public ICommand RetryCommand { get; set; }
 
-    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IGeneralSettingsService generalSettingsService, IAudioPlayer audioPlayer)
+    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IReviewPromptService reviewPromptService, IAudioPlayer audioPlayer)
     {
         this.logger = logger;
         this.playbackService = playbackService;
         this.playbackState = playbackState;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
-        this.generalSettingsService = generalSettingsService;
 
         // Initialize string fields to avoid nullable warnings
         title = "";
@@ -73,7 +70,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         endTime = "00:00";
 
         // Initialize helper classes
-        reviewHandler = new AlarmViewModelReviewHandler(logger, generalSettingsService);
+        reviewHandler = new AlarmViewModelReviewHandler(logger, reviewPromptService);
         commandInitializer = new AlarmViewModelCommandInitializer(
             logger,
             playbackService,

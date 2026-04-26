@@ -185,6 +185,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IScheduleItemStateService, ScheduleItemStateService>();
         services.AddSingleton<IExceptionHandlingService, ExceptionHandlingService>();
         services.AddSingleton<IWindowSetupService, WindowSetupService>();
+        services.AddSingleton<IReviewPromptService, ReviewPromptService>();
         services.AddSingleton<IAppLifecycleService, AppLifecycleService>();
         services.AddSingleton<IPlaybackModalService, PlaybackModalService>();
         services.AddSingleton<IMessageHandlingService, MessageHandlingService>();

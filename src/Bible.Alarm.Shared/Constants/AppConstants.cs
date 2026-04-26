@@ -161,6 +161,11 @@ public static class AppConstants
     public static class ReviewSettings
     {
         /// <summary>
+        /// Minimum number of app opens before requesting review.
+        /// </summary>
+        public const int MinimumAppOpens = 7;
+
+        /// <summary>
         /// Minimum number of dismissals before requesting review
         /// Increased from 6 to 10 to align with production app best practices
         /// </summary>
@@ -177,6 +182,21 @@ public static class AppConstants
         /// Prevents asking too early in the user journey
         /// </summary>
         public const int MinimumDaysSinceInstall = 7;
+
+        /// <summary>
+        /// Minimum days since first app open before requesting review.
+        /// </summary>
+        public const int MinimumDaysSinceFirstOpen = 7;
+
+        /// <summary>
+        /// Retry window in days when review flow is not finalized.
+        /// </summary>
+        public const int RetryAfterDaysWhenNotFinalized = 30;
+
+        /// <summary>
+        /// Prevent duplicate app-open increments during rapid start/resume transitions.
+        /// </summary>
+        public const int MinimumMinutesBetweenCountedAppOpens = 5;
     }
 
     /// <summary>
@@ -213,6 +233,46 @@ public static class AppConstants
         /// Key for app install/first launch date (ISO 8601 format)
         /// </summary>
         public const string AppInstallDate = "AppInstallDate";
+
+        /// <summary>
+        /// Key for app open count used by review prompting.
+        /// </summary>
+        public const string ReviewAppOpenCount = "ReviewAppOpenCount";
+
+        /// <summary>
+        /// Key for first app open date (ISO 8601 format).
+        /// </summary>
+        public const string ReviewFirstOpenDate = "ReviewFirstOpenDate";
+
+        /// <summary>
+        /// Key for last app open that was counted for review logic.
+        /// </summary>
+        public const string ReviewLastCountedAppOpenAtUtc = "ReviewLastCountedAppOpenAtUtc";
+
+        /// <summary>
+        /// Key for review attempt count.
+        /// </summary>
+        public const string ReviewAttemptCount = "ReviewAttemptCount";
+
+        /// <summary>
+        /// Key for last review attempt timestamp (ISO 8601 format).
+        /// </summary>
+        public const string ReviewLastAttemptAtUtc = "ReviewLastAttemptAtUtc";
+
+        /// <summary>
+        /// Key for last timestamp when user met review eligibility.
+        /// </summary>
+        public const string ReviewLastEligibleAtUtc = "ReviewLastEligibleAtUtc";
+
+        /// <summary>
+        /// Key indicating review flow is completed/finalized and should no longer prompt.
+        /// </summary>
+        public const string ReviewCompletedOrFinalized = "ReviewCompletedOrFinalized";
+
+        /// <summary>
+        /// Key indicating legacy review settings were migrated to the new format.
+        /// </summary>
+        public const string ReviewStateMigrated = "ReviewStateMigrated";
 
         /// <summary>
         /// Key for Android battery optimization exclusion prompt shown flag
