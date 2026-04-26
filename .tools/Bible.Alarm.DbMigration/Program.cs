@@ -83,7 +83,14 @@ class Program
             destRoot += Path.DirectorySeparatorChar;
         }
 
-        using var archive = ZipFile.OpenRead(zipPath);
+        using var zipStream = new FileStream(
+            zipPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            FileOptions.SequentialScan);
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: false);
         var processed = 0;
         foreach (var entry in archive.Entries)
         {
