@@ -58,7 +58,7 @@ internal class DownloadUtility
             return await retryPolicy.ExecuteAsync(async () =>
             {
                 using var client = CreateHttpClient();
-                return await SendRequestWithFallback(client, catalogLink);
+                return await SendRequestWithFallbackAsync(client, catalogLink);
             });
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
@@ -84,7 +84,7 @@ internal class DownloadUtility
             try
             {
                 using var client = CreateHttpClient();
-                return await SendRequestWithFallback(client, attempts[i]);
+                return await SendRequestWithFallbackAsync(client, attempts[i]);
             }
             catch (HttpRequestException ex) when (
                 ex.Message.Contains("Response status code") &&
@@ -141,19 +141,19 @@ internal class DownloadUtility
         return client;
     }
 
-    private async Task<string> SendRequestWithFallback(HttpClient client, string catalogLink)
+    private static async Task<string> SendRequestWithFallbackAsync(HttpClient client, string catalogLink)
     {
         try
         {
-            return await SendHttpRequest(client, catalogLink, new Version(2, 0), HttpVersionPolicy.RequestVersionOrHigher);
+            return await SendHttpRequestAsync(client, catalogLink, new Version(2, 0), HttpVersionPolicy.RequestVersionOrHigher);
         }
         catch (HttpRequestException ex) when (!ex.Message.Contains("Server busy") && !ex.Message.Contains("Response status code"))
         {
-            return await SendHttpRequest(client, catalogLink, new Version(1, 1), HttpVersionPolicy.RequestVersionExact);
+            return await SendHttpRequestAsync(client, catalogLink, new Version(1, 1), HttpVersionPolicy.RequestVersionExact);
         }
     }
 
-    private async Task<string> SendHttpRequest(
+    private static async Task<string> SendHttpRequestAsync(
         HttpClient client,
         string catalogLink,
         Version httpVersion,
