@@ -21,14 +21,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 {
     private readonly ILogger logger;
     private readonly IAudioPlayer audioPlayer;
-    private readonly IPreparePlaybackService preparePlaybackService;
-    private readonly IPlaylistService playlistService;
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IDispatcher dispatcher;
     private readonly IDisplayMetadataService displayMetadataService;
-    private readonly IFallbackAlarmSoundService fallbackAlarmSoundService;
     private readonly INotificationService notificationService;
-    private readonly IMediaCacheService mediaCacheService;
     private readonly IDefaultDeviceRingtoneService defaultDeviceRingtoneService;
 
     private readonly SemaphoreSlim stopLock = new(1, 1);
@@ -72,14 +68,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         this.logger = logger;
         this.audioPlayer = audioPlayer;
-        this.preparePlaybackService = preparePlaybackService;
-        this.playlistService = playlistService;
         this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
         this.displayMetadataService = displayMetadataService;
-        this.fallbackAlarmSoundService = fallbackAlarmSoundService;
         this.notificationService = notificationService;
-        this.mediaCacheService = mediaCacheService;
         this.defaultDeviceRingtoneService = defaultDeviceRingtoneService;
         this.playbackState = playbackState;
 

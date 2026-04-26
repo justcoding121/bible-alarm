@@ -578,208 +578,235 @@ public sealed class PlaybackModalService :
 #endif
     }
 
-    private void OnPlaybackStateChanged(object? sender, EventArgs e)
+    private bool TryGetPlaybackStateForModalSync(out PlaybackState state)
     {
-        PlaybackState state;
         try
         {
             state = playbackState.Value;
+            return true;
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "Failed to access PlaybackState; skipping PlaybackModal sync");
-            return;
+            state = null!;
+            return false;
         }
+    }
 
-        // Use IsPreparingOrPlaying (resilient to transient Stopped status during track
-        // transitions) when the modal or mini bar is already showing. Use the stricter
-        // IsActiveUiPlaybackStatus only when deciding whether to auto-open from scratch.
-        var shouldShowPlayback = (isModalOpen || isMinimized)
+    private static bool ComputeShouldShowPlaybackForModal(bool modalOrMiniVisible, PlaybackState state) =>
+        modalOrMiniVisible
             ? state.IsPreparingOrPlaying
             : IsActiveUiPlaybackStatus(state.Status);
 
-        // When minimized, keep it minimized unless a schedule switch was requested.
-        // For schedule switches, maximize when the target schedule starts Loading.
-        // Guard against premature maximize: an intermediate Loading event from the old
-        // schedule during stop/reset must not consume requestedShowModal before the new
-        // schedule fires its own PlaybackStartedAction.
-        if (isMinimized && shouldShowPlayback)
+    private bool TryHandleMinimizedActivePlaybackBranch(PlaybackState state, bool shouldShowPlayback)
+    {
+        if (!isMinimized || !shouldShowPlayback)
         {
-            var isTargetScheduleLoading = requestedShowModal
-                && state.Status == PlayStatus.Loading
-                && (!targetScheduleId.HasValue || state.CurrentScheduleId == targetScheduleId);
+            return false;
+        }
 
-            if (isTargetScheduleLoading)
+        var isTargetScheduleLoading = requestedShowModal
+            && state.Status == PlayStatus.Loading
+            && (!targetScheduleId.HasValue || state.CurrentScheduleId == targetScheduleId);
+
+        if (isTargetScheduleLoading)
+        {
+            logger.Information(
+                "OnPlaybackStateChanged: Target schedule loading while minimized — maximizing. Status={Status}, ScheduleId={ScheduleId}, TargetScheduleId={TargetScheduleId}",
+                state.Status, state.CurrentScheduleId, targetScheduleId);
+            targetScheduleId = null;
+            requestedShowModal = false;
+            _ = MaximizeAsync();
+        }
+
+        return true;
+    }
+
+    private bool TryPreserveShowModalDuringTransientInactive(PlaybackState state, bool shouldShowPlayback)
+    {
+        if (shouldShowPlayback || !requestedShowModal)
+        {
+            return false;
+        }
+
+        logger.Debug("OnPlaybackStateChanged: Preserving requestedShowModal during transient inactive state. Status={Status}, IsModalOpen={IsModalOpen}, IsMinimized={IsMinimized}",
+            state.Status, isModalOpen, isMinimized);
+        return true;
+    }
+
+    private bool TryEnqueueMiniBarSafetyNetAndReturn(PlaybackState state, bool shouldShowPlayback)
+    {
+        if (!shouldShowPlayback || isModalOpen || isMinimized || requestedShowModal || bypassPopGenerationGuard)
+        {
+            return false;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!isModalOpen && !isMinimized)
             {
                 logger.Information(
-                    "OnPlaybackStateChanged: Target schedule loading while minimized — maximizing. Status={Status}, ScheduleId={ScheduleId}, TargetScheduleId={TargetScheduleId}",
-                    state.Status, state.CurrentScheduleId, targetScheduleId);
-                targetScheduleId = null;
-                requestedShowModal = false;
-                _ = MaximizeAsync();
+                    "OnPlaybackStateChanged: Playback active with no UI visible — showing mini bar as safety net. Status={Status}",
+                    state.Status);
+                isMinimized = true;
+                navigationService.SetMiniBarVisible(true);
+                WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
             }
+        });
+        return true;
+    }
 
+    private void ApplyPopGenerationWhenModalOpen(PlaybackState state, bool shouldShowPlayback)
+    {
+        if (!shouldShowPlayback || !isModalOpen)
+        {
             return;
         }
 
-        // A show request is pending (play was initiated) but playback state is transiently
-        // inactive (e.g. Stopped during audio player reset before Loading arrives).
-        // Preserve the request flag and keep any existing UI visible.
-        if (!shouldShowPlayback && requestedShowModal)
+        if (state.Status != PlayStatus.Stopped)
         {
-            logger.Debug("OnPlaybackStateChanged: Preserving requestedShowModal during transient inactive state. Status={Status}, IsModalOpen={IsModalOpen}, IsMinimized={IsMinimized}",
-                state.Status, isModalOpen, isMinimized);
+            popGeneration++;
+        }
+
+        if (state.Status == PlayStatus.Playing && requestedShowModal)
+        {
+            requestedShowModal = false;
+            WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
+        }
+    }
+
+    private async Task AutoOpenPlaybackModalOnMainThreadAsync(PlaybackState state)
+    {
+        if (!App.IsInForeground)
+        {
+            logger.Information(
+                "Auto-open deferred — app is in background (Status={Status}). Resume handler will show modal when foregrounded.",
+                state.Status);
             return;
         }
 
-        // Only auto-open the modal when a user-initiated action (play button, alarm,
-        // Android Auto, CarPlay, notification) signalled via RequestShowPlaybackModalMessage.
-        var shouldAutoOpen = shouldShowPlayback && !isModalOpen && !isMinimized && requestedShowModal;
-        if (shouldShowPlayback && !isModalOpen && !isMinimized && !requestedShowModal && !bypassPopGenerationGuard)
+        requestedShowModal = false;
+
+        if (isModalOpen)
         {
-            // Playback is active but no explicit show request — show the mini bar as a
-            // safety net so the user always has visible playback controls.
-            MainThread.BeginInvokeOnMainThread(() =>
+            return;
+        }
+
+        isModalOpen = true;
+        isMinimized = false;
+        navigationService.SetMiniBarVisible(false);
+
+        try
+        {
+            logger.Information(
+                "PlaybackState changed - showing PlaybackModal (Status={Status})",
+                state.Status);
+
+            await Task.Delay(100);
+            await navigationService.OpenPlaybackModalAsync();
+
+#if IOS
+            if (!navigationService.IsPlaybackModalOnScreen())
             {
-                if (!isModalOpen && !isMinimized)
+                logger.Warning("PlaybackModal push was silently ignored by iOS (window not ready) - waiting for window and retrying");
+                await WaitForWindowReadyAsync();
+
+                try
                 {
-                    logger.Information(
-                        "OnPlaybackStateChanged: Playback active with no UI visible — showing mini bar as safety net. Status={Status}",
-                        state.Status);
-                    isMinimized = true;
-                    navigationService.SetMiniBarVisible(true);
-                    WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
+                    var currentState = playbackState.Value;
+                    if (IsActiveUiPlaybackStatus(currentState.Status))
+                    {
+                        await navigationService.OpenPlaybackModalAsync();
+                    }
+                    else
+                    {
+                        logger.Information("Playback no longer active after waiting for window - skipping modal retry");
+                        isModalOpen = false;
+                        return;
+                    }
                 }
-            });
+                catch (Exception retryEx)
+                {
+                    logger.Warning(retryEx, "Failed to check playback state during modal retry");
+                    isModalOpen = false;
+                    return;
+                }
+            }
+#endif
+
+            if (!navigationService.IsPlaybackModalOnScreen())
+            {
+                logger.Warning("PlaybackModal push failed — modal not on navigation stack. Falling back to mini bar");
+                FallBackToMiniBar();
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error showing PlaybackModal — falling back to mini bar");
+            FallBackToMiniBar();
+        }
+    }
+
+    private Task ClearOrphanedModalWhenNoFlagsAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            requestedShowModal = false;
+            targetScheduleId = null;
+            bypassPopGenerationGuard = false;
+            navigationService.SetMiniBarVisible(false);
+
+            if (navigationService.IsPlaybackModalOnScreen())
+            {
+                logger.Warning("OnPlaybackStateChanged: Orphaned modal detected (no flags set but modal on screen) — popping");
+                await navigationService.PopPlaybackPageAsync();
+            }
+        });
+    }
+
+    private void DispatchPlaybackVisibilitySwitch(bool shouldShowPlayback, bool shouldAutoOpen, PlaybackState state)
+    {
+        _ = shouldShowPlayback switch
+        {
+            true when shouldAutoOpen => MainThread.InvokeOnMainThreadAsync(() => AutoOpenPlaybackModalOnMainThreadAsync(state)),
+            false when isMinimized => HideMiniBarOnMainThreadAsync(),
+            false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
+            false when !isModalOpen && !isMinimized => ClearOrphanedModalWhenNoFlagsAsync(),
+            _ => Task.CompletedTask
+        };
+    }
+
+    private void OnPlaybackStateChanged(object? sender, EventArgs e)
+    {
+        if (!TryGetPlaybackStateForModalSync(out var state))
+        {
+            return;
+        }
+
+        var shouldShowPlayback = ComputeShouldShowPlaybackForModal(isModalOpen || isMinimized, state);
+        if (TryHandleMinimizedActivePlaybackBranch(state, shouldShowPlayback))
+        {
+            return;
+        }
+
+        if (TryPreserveShowModalDuringTransientInactive(state, shouldShowPlayback))
+        {
+            return;
+        }
+
+        if (TryEnqueueMiniBarSafetyNetAndReturn(state, shouldShowPlayback))
+        {
             return;
         }
 
         logger.Debug("OnPlaybackStateChanged: Status={Status}, IsModalOpen={IsModalOpen}, IsMinimized={IsMinimized}, ShouldShow={ShouldShow}",
             state.Status, isModalOpen, isMinimized, shouldShowPlayback);
 
-        if (shouldShowPlayback && isModalOpen)
-        {
-            // Don't bump popGeneration for Stopped events. During audio player shutdown,
-            // PlaybackStatusChangedAction(Stopped) fires before PlaybackStoppedAction clears
-            // CurrentScheduleId, making IsPreparingOrPlaying appear true. Bumping here would
-            // make ClosePlaybackOnMainThreadAsync look stale and get skipped. Only bump for
-            // active (Loading/Playing/Paused) states that represent a new schedule starting.
-            if (state.Status != PlayStatus.Stopped)
-            {
-                popGeneration++;
-            }
+        ApplyPopGenerationWhenModalOpen(state, shouldShowPlayback);
 
-            // Consume the show-request flag only when the NEW schedule reaches Playing.
-            // Don't consume on Paused — the AudioPlayer dispatches a transient Paused
-            // during teardown of the old schedule, which would kill the protection
-            // before the final Stopped event closes the modal.
-            if (state.Status == PlayStatus.Playing && requestedShowModal)
-            {
-                requestedShowModal = false;
-
-                // The modal was already open so PlaybackModal.Loaded never fires again.
-                // Broadcast PlaybackModalOpenedMessage so list-item spinners that set
-                // isShowModalPending=true during the switch are cleared immediately.
-                WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
-            }
-        }
-
-        _ = shouldShowPlayback switch
-        {
-            true when shouldAutoOpen => MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                // UI push operations while the app is backgrounded can fail silently
-                // or produce a stale page that isn't visible when foregrounded.
-                // Preserve requestedShowModal so ShowPlaybackModalIfNeededOnResumeAsync
-                // (or a future OnPlaybackStateChanged when foregrounded) can show the
-                // modal reliably.
-                if (!App.IsInForeground)
-                {
-                    logger.Information(
-                        "Auto-open deferred — app is in background (Status={Status}). Resume handler will show modal when foregrounded.",
-                        state.Status);
-                    return;
-                }
-
-                requestedShowModal = false;
-
-                if (isModalOpen)
-                {
-                    return;
-                }
-
-                isModalOpen = true;
-                isMinimized = false;
-                navigationService.SetMiniBarVisible(false);
-
-                try
-                {
-                    logger.Information(
-                        "PlaybackState changed - showing PlaybackModal (Status={Status})",
-                        state.Status);
-
-                    await Task.Delay(100);
-                    await navigationService.OpenPlaybackModalAsync();
-
-#if IOS
-                    if (!navigationService.IsPlaybackModalOnScreen())
-                    {
-                        logger.Warning("PlaybackModal push was silently ignored by iOS (window not ready) - waiting for window and retrying");
-                        await WaitForWindowReadyAsync();
-
-                        try
-                        {
-                            var currentState = playbackState.Value;
-                            if (IsActiveUiPlaybackStatus(currentState.Status))
-                            {
-                                await navigationService.OpenPlaybackModalAsync();
-                            }
-                            else
-                            {
-                                logger.Information("Playback no longer active after waiting for window - skipping modal retry");
-                                isModalOpen = false;
-                                return;
-                            }
-                        }
-                        catch (Exception retryEx)
-                        {
-                            logger.Warning(retryEx, "Failed to check playback state during modal retry");
-                            isModalOpen = false;
-                            return;
-                        }
-                    }
-#endif
-
-                    if (!navigationService.IsPlaybackModalOnScreen())
-                    {
-                        logger.Warning("PlaybackModal push failed — modal not on navigation stack. Falling back to mini bar");
-                        FallBackToMiniBar();
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error showing PlaybackModal — falling back to mini bar");
-                    FallBackToMiniBar();
-                }
-            }),
-            false when isMinimized => HideMiniBarOnMainThreadAsync(),
-            false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
-            false when !isModalOpen && !isMinimized => MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                requestedShowModal = false;
-                targetScheduleId = null;
-                bypassPopGenerationGuard = false;
-                navigationService.SetMiniBarVisible(false);
-
-                if (navigationService.IsPlaybackModalOnScreen())
-                {
-                    logger.Warning("OnPlaybackStateChanged: Orphaned modal detected (no flags set but modal on screen) — popping");
-                    await navigationService.PopPlaybackPageAsync();
-                }
-            }),
-            _ => Task.CompletedTask
-        };
+        var shouldAutoOpen = shouldShowPlayback && !isModalOpen && !isMinimized && requestedShowModal;
+        DispatchPlaybackVisibilitySwitch(shouldShowPlayback, shouldAutoOpen, state);
     }
 
     private Task ClosePlaybackOnMainThreadAsync()

@@ -53,11 +53,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     private readonly PlaylistScheduleDisplayRefresher? scheduleDisplayRefresher;
     private readonly PlaylistBiblePlayItemBuilder biblePlayItemBuilder;
 
-    private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IUrlConstructionService urlConstructionService;
-    private readonly ILanguageContentService? languageContentService;
-    private readonly IServiceScopeFactory? scopeFactory;
-    private readonly IScheduleDisplayNameService? scheduleDisplayNameService;
 
     public PlaylistService(
         ILogger logger,
@@ -82,11 +78,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.generalSettingsService = generalSettingsService;
         this.BiblePublicationService = BiblePublicationService;
         this.melodyMusicService = melodyMusicService;
-        this.urlRefreshService = urlRefreshService;
         this.urlConstructionService = urlConstructionService ?? throw new ArgumentNullException(nameof(urlConstructionService));
-        this.languageContentService = languageContentService;
-        this.scopeFactory = scopeFactory;
-        this.scheduleDisplayNameService = scheduleDisplayNameService;
         biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, urlRefreshService, urlConstructionService, BiblePublicationService);
         musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService, urlRefreshService, urlConstructionService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);

@@ -18,6 +18,48 @@ namespace Bible.Alarm.DbMigration;
 /// </summary>
 class Program
 {
+    private static void TryDeleteFileBestEffort(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(path);
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Warning: could not delete file (may be locked) {path}: {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Warning: could not delete file {path}: {ex.Message}");
+        }
+    }
+
+    private static void TryDeleteDirectoryBestEffort(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.Delete(path, true);
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Warning: could not delete temp directory {path}: {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Warning: could not delete temp directory {path}: {ex.Message}");
+        }
+    }
+
     static async Task Main(string[] args)
     {
         if (args.Length == 0)
@@ -251,14 +293,8 @@ class Program
         // Also clean up any WAL/SHM files
         var walPath = outputPath + "-wal";
         var shmPath = outputPath + "-shm";
-        if (File.Exists(walPath))
-        {
-            try { File.Delete(walPath); } catch { }
-        }
-        if (File.Exists(shmPath))
-        {
-            try { File.Delete(shmPath); } catch { }
-        }
+        TryDeleteFileBestEffort(walPath);
+        TryDeleteFileBestEffort(shmPath);
 
         // Create temporary database with all migrations applied
         var tempDbPath = Path.Combine(Path.GetTempPath(), $"temp_{Guid.NewGuid()}_{AppConstants.Database.ScheduleDatabaseFileName}");
@@ -411,7 +447,7 @@ class Program
             }
             finally
             {
-                try { Directory.Delete(tempDir, true); } catch { }
+                TryDeleteDirectoryBestEffort(tempDir);
             }
             return;
         }
@@ -458,7 +494,7 @@ extractZip:
             }
             finally
             {
-                try { Directory.Delete(tempDir, true); } catch { }
+                TryDeleteDirectoryBestEffort(tempDir);
             }
         }
     }
