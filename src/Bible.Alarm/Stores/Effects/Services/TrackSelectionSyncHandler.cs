@@ -268,7 +268,7 @@ public sealed class TrackSelectionSyncHandler
         }
     }
 
-    private void LogTrackSelectedStart(MusicTrackSelectedAction action)
+    private static void LogTrackSelectedStart(MusicTrackSelectedAction action)
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
         Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackCode: {TrackCode}",
@@ -278,7 +278,7 @@ public sealed class TrackSelectionSyncHandler
             action.CurrentMusic?.TrackCode ?? "(null)");
     }
 
-    private bool CanSyncTrackSelection(ApplicationState? currentState, MusicTrackSelectedAction action)
+    private static bool CanSyncTrackSelection(ApplicationState? currentState, MusicTrackSelectedAction action)
     {
         if (currentState?.CurrentSchedule == null || action.CurrentMusic == null)
         {
@@ -298,7 +298,7 @@ public sealed class TrackSelectionSyncHandler
         return currentSchedule.MusicLanguageCode != effectiveNewLanguageCode;
     }
 
-    private bool ShouldSyncMusic(ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool languageCodeChanged)
+    private static bool ShouldSyncMusic(ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool languageCodeChanged)
     {
         Log.Debug("ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, MusicId: {MusicId}, Action Music Id: {ActionMusicId}",
             currentSchedule.Id, currentSchedule.MusicId, actionMusic.Id);
@@ -389,7 +389,7 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
     }
 
-    private async Task SetMusicDisplayNamesAsync(ScheduleStateItem updatedSchedule, MusicStateItem actionMusic)
+    private static async Task SetMusicDisplayNamesAsync(ScheduleStateItem updatedSchedule, MusicStateItem actionMusic)
     {
         // Use display names from the action when present. For melody (no LanguageName), keep values set in UpdateMusicProperties (e.g. MY display).
         if (!string.IsNullOrEmpty(actionMusic.LanguageName))
@@ -430,8 +430,9 @@ public sealed class TrackSelectionSyncHandler
                     updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Log.Debug(ex, "ScheduleEffects: HandleTrackSelected - Could not resolve vocal language display name for {LanguageCode}", actionMusic.LanguageCode);
                 updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
                 updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }

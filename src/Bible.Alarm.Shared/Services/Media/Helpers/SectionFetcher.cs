@@ -33,8 +33,8 @@ internal sealed class SectionFetcher
     {
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.trackParser = new EnglishTrackParser(logger);
-        this.mediatorTrackParser = new MediatorTrackParser(logger);
+        this.trackParser = new EnglishTrackParser();
+        this.mediatorTrackParser = new MediatorTrackParser();
         this.sectionTracksLoader = new SectionFetcherSectionTracksLoader(httpClient, logger);
     }
 

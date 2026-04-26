@@ -44,7 +44,7 @@ internal sealed class EnglishContentSeeder
         this.mediatorFetcher = mediatorFetcher ?? throw new ArgumentNullException(nameof(mediatorFetcher));
         this.flatPublicationFetcher = flatPublicationFetcher ?? throw new ArgumentNullException(nameof(flatPublicationFetcher));
         
-        var trackParser = new EnglishTrackParser(logger);
+        var trackParser = new EnglishTrackParser();
         this.sectionFetcher = new EnglishSectionFetcher(httpClient, logger, trackParser);
         this.publicationBuilder = new EnglishPublicationBuilder(logger);
     }

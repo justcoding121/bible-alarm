@@ -7,8 +7,6 @@ using System.Text.Json;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
-using Serilog;
-
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
@@ -16,11 +14,8 @@ namespace Bible.Alarm.Shared.Services.Media.Helpers;
 /// </summary>
 internal sealed class EnglishTrackParser
 {
-    private readonly ILogger logger;
-
-    public EnglishTrackParser(ILogger logger)
+    public EnglishTrackParser()
     {
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -111,7 +106,7 @@ internal sealed class EnglishTrackParser
         return tracks;
     }
 
-    private BiblePublicationTrack? ParseTrackFromJson(
+    private static BiblePublicationTrack? ParseTrackFromJson(
         JsonElement trackFile,
         int trackNumber,
         string sectionCode,
