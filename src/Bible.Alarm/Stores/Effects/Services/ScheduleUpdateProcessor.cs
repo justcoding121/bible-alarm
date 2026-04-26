@@ -39,7 +39,7 @@ public sealed class ScheduleUpdateProcessor
     /// <summary>
     /// Logs the start of an update operation.
     /// </summary>
-    public void LogUpdateStart(UpdateScheduleFromViewModelAction action)
+    public static void LogUpdateStart(UpdateScheduleFromViewModelAction action)
     {
         Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, ShouldSave: {ShouldSave}",
             action.Schedule?.Id, action.Schedule?.Name, action.ShouldSave);
@@ -48,7 +48,7 @@ public sealed class ScheduleUpdateProcessor
     /// <summary>
     /// Handles service unavailability.
     /// </summary>
-    public void HandleServiceUnavailable(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
+    public static void HandleServiceUnavailable(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
     {
         Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - Service unavailable, skipping");
         dispatcher.Dispatch(new UpdateScheduleFailureAction(action.Schedule!, "Service unavailable"));
@@ -88,7 +88,7 @@ public sealed class ScheduleUpdateProcessor
     /// <summary>
     /// Logs the result of a schedule update.
     /// </summary>
-    public void LogScheduleUpdateResult(AlarmSchedule savedSchedule)
+    public static void LogScheduleUpdateResult(AlarmSchedule savedSchedule)
     {
         Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.TrackCode={TrackCode}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
             savedSchedule.Id,
@@ -144,7 +144,7 @@ public sealed class ScheduleUpdateProcessor
     /// <summary>
     /// Logs the mapping result.
     /// </summary>
-    public void LogMappingResult(ScheduleStateItem scheduleStateItem)
+    public static void LogMappingResult(ScheduleStateItem scheduleStateItem)
     {
         Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}, scheduleStateItem.MusicTrackCode={TrackCode}",
             scheduleStateItem.MusicPublicationCode ?? "null",
@@ -153,19 +153,10 @@ public sealed class ScheduleUpdateProcessor
     }
 
     /// <summary>
-    /// Copies display names from action schedule to state item.
-    /// </summary>
-    public void CopyDisplayNamesFromAction(ScheduleStateItem scheduleStateItem, ScheduleStateItem actionSchedule)
-    {
-        // Deprecated: Schedule display names are hydrated from media index on save.
-        // Kept only to avoid breaking older call sites; do not use.
-    }
-
-    /// <summary>
     /// Preserves music properties if needed.
     /// Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal.
     /// </summary>
-    public void PreserveMusicPropertiesIfNeeded(ScheduleStateItem scheduleStateItem, ScheduleStateItem actionSchedule)
+    public static void PreserveMusicPropertiesIfNeeded(ScheduleStateItem scheduleStateItem, ScheduleStateItem actionSchedule)
     {
         // Check if publication code mismatches - if so, preserve from action
         if (!string.IsNullOrEmpty(actionSchedule.MusicPublicationCode) &&

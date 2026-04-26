@@ -165,7 +165,7 @@ public class ScheduleEffects(
     {
         try
         {
-            updateProcessor.LogUpdateStart(action);
+            ScheduleUpdateProcessor.LogUpdateStart(action);
 
             if (action.Schedule == null)
             {
@@ -200,7 +200,7 @@ public class ScheduleEffects(
 
             if (alarmScheduleService == null)
             {
-                updateProcessor.HandleServiceUnavailable(action, dispatcher);
+                ScheduleUpdateProcessor.HandleServiceUnavailable(action, dispatcher);
                 return;
             }
 

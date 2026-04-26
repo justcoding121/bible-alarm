@@ -22,7 +22,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
     // Helper classes - initialized in constructor
     private readonly MediaSessionInitializer initializer;
-    private readonly PlaybackStateManager playbackStateManager;
     private readonly MetadataManager metadataManager;
 
     // Dedup tracking: skip redundant SetPlaybackState calls that cause
@@ -36,7 +35,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
         // Initialize helper classes after serviceProvider is set
         initializer = new MediaSessionInitializer(logger, serviceProvider);
-        playbackStateManager = new PlaybackStateManager();
         metadataManager = new MetadataManager(logger, serviceProvider);
     }
 
@@ -71,9 +69,9 @@ public sealed class MediaSessionManager : IMediaSessionManager
             return;
         }
 
-        var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var actions = PlaybackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
 
-        var playbackState = playbackStateManager.CreatePlaybackState(
+        var playbackState = PlaybackStateManager.CreatePlaybackState(
             state,
             position,
             playbackSpeed: 1.0f,
@@ -103,14 +101,14 @@ public sealed class MediaSessionManager : IMediaSessionManager
         }
 
         var playbackState = mediaSession.Controller?.PlaybackState;
-        if (playbackState == null || !playbackStateManager.IsPlaybackActive(playbackState))
+        if (playbackState == null || !PlaybackStateManager.IsPlaybackActive(playbackState))
         {
             return;
         }
 
         var positionMs = (long)position.TotalMilliseconds;
         var durationMs = (long)duration.TotalMilliseconds;
-        var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var actions = PlaybackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
 
         UpdatePlaybackStateWithPosition(playbackState, positionMs, actions);
         metadataManager.UpdateMetadataDuration(mediaSession, durationMs);
@@ -129,7 +127,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
             return;
         }
 
-        var playbackStateCompat = playbackStateManager.CreatePlaybackState(
+        var playbackStateCompat = PlaybackStateManager.CreatePlaybackState(
             stateCode,
             positionMs,
             playbackSpeed: 1.0f,
@@ -250,7 +248,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
         try
         {
-            playbackStateManager.SetBufferingStateOnly(mediaSession);
+            PlaybackStateManager.SetBufferingStateOnly(mediaSession);
             lastSetState = PlaybackStateCompat.StateBuffering;
             lastSetPosition = mediaSession.Controller?.PlaybackState?.Position;
         }
@@ -272,7 +270,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
             return;
         }
 
-        playbackStateManager.SetStoppedState(mediaSession);
+        PlaybackStateManager.SetStoppedState(mediaSession);
         // SetStoppedState uses StatePaused with position 0
         lastSetState = PlaybackStateCompat.StatePaused;
         lastSetPosition = 0;
@@ -289,7 +287,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
             return;
         }
 
-        var state = playbackStateManager.MapPlayStatusToState(status);
+        var state = PlaybackStateManager.MapPlayStatusToState(status);
 
         if (status is PlayStatus.Stopped or PlayStatus.Ended)
         {
@@ -334,7 +332,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
             return;
         }
 
-        var actions = playbackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
+        var actions = PlaybackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
         var position = mediaSession?.Controller?.PlaybackState?.Position ?? 0;
         var message = string.IsNullOrEmpty(errorMessage) ? "Playback failed. Tap Play to retry." : errorMessage;
 

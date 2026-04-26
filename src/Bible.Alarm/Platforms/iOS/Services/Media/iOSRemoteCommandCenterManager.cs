@@ -202,7 +202,7 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private MPRemoteCommandHandlerStatus HandlePauseCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandlePauseCommand(MPRemoteCommandEvent evt)
     {
         logger.Debug("[iOS Media] Pause command received");
         WeakReferenceMessenger.Default.Send(new PauseButtonPressedMessage());
@@ -230,35 +230,35 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
             && playbackState.Value.Status != PlayStatus.Playing;
     }
 
-    private MPRemoteCommandHandlerStatus HandleNextTrackCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandleNextTrackCommand(MPRemoteCommandEvent evt)
     {
         logger.Debug("[iOS Media] Next track command received");
         WeakReferenceMessenger.Default.Send(new NextButtonPressedMessage());
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private MPRemoteCommandHandlerStatus HandlePreviousTrackCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandlePreviousTrackCommand(MPRemoteCommandEvent evt)
     {
         logger.Debug("[iOS Media] Previous track command received");
         WeakReferenceMessenger.Default.Send(new PreviousButtonPressedMessage());
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private MPRemoteCommandHandlerStatus HandleSkipForwardCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandleSkipForwardCommand(MPRemoteCommandEvent evt)
     {
         logger.Debug("[iOS Media] Skip forward command received");
         WeakReferenceMessenger.Default.Send(new SeekForwardButtonPressedMessage());
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private MPRemoteCommandHandlerStatus HandleSkipBackwardCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandleSkipBackwardCommand(MPRemoteCommandEvent evt)
     {
         logger.Debug("[iOS Media] Skip backward command received");
         WeakReferenceMessenger.Default.Send(new SeekBackwardButtonPressedMessage());
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private MPRemoteCommandHandlerStatus HandleChangePlaybackPositionCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandleChangePlaybackPositionCommand(MPRemoteCommandEvent evt)
     {
         if (evt is MPChangePlaybackPositionCommandEvent positionEvent)
         {

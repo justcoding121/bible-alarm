@@ -6,63 +6,45 @@ using Bible.Alarm.Services.Media.Models;
 namespace Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelpers;
 
 /// <summary>
-/// Handles playback state management for MediaSession.
+/// Playback state helpers for MediaSession (pure functions — no instance state).
 /// </summary>
-public sealed class PlaybackStateManager
+public static class PlaybackStateManager
 {
     /// <summary>
     /// Builds playback actions based on navigation availability.
     /// </summary>
-    public long BuildPlaybackActions(bool canPlayNext, bool canPlayPrevious)
+    public static long BuildPlaybackActions(bool canPlayNext, bool canPlayPrevious)
     {
-        // Base actions that are always available
         long actions = PlaybackStateCompat.ActionPlay |
                        PlaybackStateCompat.ActionPause |
                        PlaybackStateCompat.ActionPlayPause |
                        PlaybackStateCompat.ActionPlayFromMediaId;
 
-        // Next/Previous are always available.
         actions |= PlaybackStateCompat.ActionSkipToNext;
         actions |= PlaybackStateCompat.ActionSkipToPrevious;
 
         return actions;
     }
 
-    /// <summary>
-    /// Creates a playback state from parameters.
-    /// </summary>
-    public PlaybackStateCompat? CreatePlaybackState(int state, long position, float playbackSpeed, long actions)
+    public static PlaybackStateCompat? CreatePlaybackState(int state, long position, float playbackSpeed, long actions)
     {
         return AndroidAutoPlayScreenHelper.CreatePlaybackState(state, position, playbackSpeed, actions);
     }
 
-    /// <summary>
-    /// Creates a playback state from an existing one with updated position.
-    /// </summary>
-    public PlaybackStateCompat? CreatePlaybackStateFromExisting(PlaybackStateCompat playbackState, long positionMs, long actions)
+    public static PlaybackStateCompat? CreatePlaybackStateFromExisting(PlaybackStateCompat playbackState, long positionMs, long actions)
     {
         return AndroidAutoPlayScreenHelper.CreatePlaybackStateFromExisting(playbackState, positionMs, actions);
     }
 
-    /// <summary>
-    /// Checks if playback is currently active.
-    /// </summary>
-    public bool IsPlaybackActive(PlaybackStateCompat playbackState)
+    public static bool IsPlaybackActive(PlaybackStateCompat playbackState)
     {
         return playbackState.State is PlaybackStateCompat.StatePlaying or
                PlaybackStateCompat.StateBuffering or
                PlaybackStateCompat.StatePaused;
     }
 
-    /// <summary>
-    /// Maps PlayStatus to PlaybackStateCompat state.
-    /// </summary>
-    public int MapPlayStatusToState(PlayStatus status)
+    public static int MapPlayStatusToState(PlayStatus status)
     {
-        // Stopped/Ended use StatePaused (not StateStopped) to stay consistent with
-        // SetStoppedState, which uses StatePaused to hint Android Auto that media is
-        // "ready" rather than "unavailable". This prevents conflicting state updates
-        // between handlers that would cause rapid play/pause button flashing.
         return status switch
         {
             PlayStatus.Playing => PlaybackStateCompat.StatePlaying,
@@ -75,18 +57,12 @@ public sealed class PlaybackStateManager
         };
     }
 
-    /// <summary>
-    /// Sets buffering state only on the MediaSession.
-    /// </summary>
-    public void SetBufferingStateOnly(MediaSessionCompat mediaSession)
+    public static void SetBufferingStateOnly(MediaSessionCompat mediaSession)
     {
         AndroidAutoPlayScreenHelper.SetBufferingStateOnly(mediaSession);
     }
 
-    /// <summary>
-    /// Sets stopped state on the MediaSession.
-    /// </summary>
-    public void SetStoppedState(MediaSessionCompat mediaSession)
+    public static void SetStoppedState(MediaSessionCompat mediaSession)
     {
         AndroidAutoPlayScreenHelper.SetStoppedState(mediaSession);
     }
