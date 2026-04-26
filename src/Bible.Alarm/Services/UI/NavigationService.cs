@@ -1,5 +1,4 @@
 #nullable enable
-#pragma warning disable S3776
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.UI.NavigationServiceHelpers;
@@ -354,57 +353,83 @@ public sealed class NavigationService(
             var navigation = GetNavigation();
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                var playbackPage = navigation.NavigationStack
-                    .LastOrDefault(p => p?.GetType() == typeof(Views.General.PlaybackModal));
-
+                var playbackPage = FindPlaybackModalInStack(navigation);
                 if (playbackPage == null)
                 {
                     return;
                 }
 
-                if (animated)
-                {
-                    var targetY = playbackPage.Height > 0 ? playbackPage.Height : 2000;
-                    await playbackPage.TranslateToAsync(0, targetY, PlaybackModalAnimationDurationMs, Easing.CubicIn);
-                }
-
-                // Hide before removal so that the BindingContext=null in Dispose() cannot
-                // flash a partially-reset frame (e.g. minimize button reappearing briefly).
+                await AnimatePlaybackModalExitIfNeededAsync(playbackPage, animated);
                 playbackPage.IsVisible = false;
 
-                var isTopPage = navigation.NavigationStack.LastOrDefault() == playbackPage;
-                if (isTopPage)
-                {
-                    // Use PopAsync for the topmost page. On iOS, RemovePage on the top page
-                    // uses UINavigationController.SetViewControllers which can cause an
-                    // animation glitch (blank page sliding in). PopAsync uses the proper
-                    // PopViewController API.
-                    await navigation.PopAsync(animated: false);
-                }
-                else
-                {
-                    navigation.RemovePage(playbackPage);
-                }
-
-                if (playbackPage is IDisposable disposable)
-                {
-                    try { disposable.Dispose(); }
-                    catch (Exception ex) { logger?.Warning(ex, "Error disposing PlaybackModal (non-fatal)"); }
-                }
-
-#if IOS
-                try { NavigationStackManager.CleanupIOSNativeViews(playbackPage); }
-                catch (Exception ex) { logger?.Warning(ex, "Error cleaning up iOS native views for PlaybackModal (non-fatal)"); }
-#endif
-
-#if ANDROID
-                var barHost = serviceProvider.GetService<IAndroidMiniPlaybackBarHost>();
-                barHost?.SetPlaybackModalActive(false);
-#endif
-
-                WindowSetupService.UpdateNavigationBarColors();
+                await PopOrRemovePlaybackPageAsync(navigation, playbackPage);
+                DisposePlaybackModalSafely(playbackPage);
+                NotifyPlaybackModalClosedOnPlatforms();
             });
         });
+    }
+
+    private static Page? FindPlaybackModalInStack(INavigation navigation) =>
+        navigation.NavigationStack.LastOrDefault(p => p?.GetType() == typeof(Views.General.PlaybackModal));
+
+    private static async Task AnimatePlaybackModalExitIfNeededAsync(Page playbackPage, bool animated)
+    {
+        if (!animated)
+        {
+            return;
+        }
+
+        var targetY = playbackPage.Height > 0 ? playbackPage.Height : 2000;
+        await playbackPage.TranslateToAsync(0, targetY, PlaybackModalAnimationDurationMs, Easing.CubicIn);
+    }
+
+    private static async Task PopOrRemovePlaybackPageAsync(INavigation navigation, Page playbackPage)
+    {
+        var isTopPage = navigation.NavigationStack.LastOrDefault() == playbackPage;
+        if (isTopPage)
+        {
+            await navigation.PopAsync(animated: false);
+        }
+        else
+        {
+            navigation.RemovePage(playbackPage);
+        }
+    }
+
+    private void DisposePlaybackModalSafely(Page playbackPage)
+    {
+        if (playbackPage is IDisposable disposable)
+        {
+            try
+            {
+                disposable.Dispose();
+            }
+            catch (Exception ex)
+            {
+                logger?.Warning(ex, "Error disposing PlaybackModal (non-fatal)");
+            }
+        }
+
+#if IOS
+        try
+        {
+            NavigationStackManager.CleanupIOSNativeViews(playbackPage);
+        }
+        catch (Exception ex)
+        {
+            logger?.Warning(ex, "Error cleaning up iOS native views for PlaybackModal (non-fatal)");
+        }
+#endif
+    }
+
+    private void NotifyPlaybackModalClosedOnPlatforms()
+    {
+#if ANDROID
+        var barHost = serviceProvider.GetService<IAndroidMiniPlaybackBarHost>();
+        barHost?.SetPlaybackModalActive(false);
+#endif
+
+        WindowSetupService.UpdateNavigationBarColors();
     }
 
     public void SetMiniBarVisible(bool visible)
@@ -576,5 +601,4 @@ public sealed class NavigationService(
         }
     }
 }
-#pragma warning restore S3776
 

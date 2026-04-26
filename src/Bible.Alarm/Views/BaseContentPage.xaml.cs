@@ -160,7 +160,7 @@ public partial class BaseContentPage : ContentPage
         Padding = new Thickness(Padding.Left, Padding.Top, Padding.Right, totalBottom);
     }
 
-    private static double GetNavigationBarHeightDip()
+    private double GetNavigationBarHeightDip()
     {
         try
         {

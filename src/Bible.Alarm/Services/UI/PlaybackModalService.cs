@@ -1,5 +1,4 @@
 #nullable enable
-#pragma warning disable S3776
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -379,75 +378,89 @@ public sealed class PlaybackModalService :
 
     public async Task ShowPlaybackModalIfNeededOnResumeAsync()
     {
-        await MainThread.InvokeOnMainThreadAsync(async () =>
+        await MainThread.InvokeOnMainThreadAsync(ShowPlaybackModalIfNeededOnResumeCoreAsync);
+    }
+
+    private async Task ShowPlaybackModalIfNeededOnResumeCoreAsync()
+    {
+        try
         {
+            if (!ShouldContinueResumeFlowAfterModalStackCheck())
+            {
+                return;
+            }
+
+            if (isMinimized)
+            {
+                navigationService.SetMiniBarVisible(true);
+                return;
+            }
+
+            PlaybackState? state = null;
             try
             {
-                // A modal push attempted while the app was backgrounded may have been
-                // silently dropped, leaving isModalOpen=true without a visible page.
-                // Validate against the actual navigation stack before trusting the flag.
-                if (isModalOpen)
-                {
-                    if (navigationService.IsPlaybackModalOnScreen())
-                    {
-                        return;
-                    }
-
-                    logger.Warning(
-                        "ShowPlaybackModalIfNeededOnResumeAsync: isModalOpen was true but PlaybackModal is not on navigation stack — resetting state");
-                    isModalOpen = false;
-                }
-
-                if (isMinimized)
-                {
-                    navigationService.SetMiniBarVisible(true);
-                    return;
-                }
-
-                PlaybackState? state = null;
-                try
-                {
-                    state = playbackState.Value;
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning(ex, "PlaybackState not available during resume check; using platform playback check fallback");
-                }
-
-                var shouldShow = state != null
-                    ? IsActiveUiPlaybackStatus(state.Status)
-                    : CheckPlatformPlaybackIsActive();
-
-                if (!shouldShow)
-                {
-                    return;
-                }
-
-                logger.Information(
-                    "ShowPlaybackModalIfNeededOnResumeAsync: Playback active (Status={Status}) but no UI visible — showing modal",
-                    state?.Status);
-
-                navigationService.SetMiniBarVisible(true);
-                await Task.Delay(150);
-                await navigationService.OpenPlaybackModalAsync();
-
-                if (!navigationService.IsPlaybackModalOnScreen())
-                {
-                    logger.Warning("ShowPlaybackModalIfNeededOnResumeAsync: push failed — falling back to mini bar");
-                    FallBackToMiniBar();
-                    return;
-                }
-
-                isModalOpen = true;
-                isMinimized = false;
-                navigationService.SetMiniBarVisible(false);
+                state = playbackState.Value;
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error showing PlaybackModal on resume — falling back to mini bar");
-                FallBackToMiniBar();
+                logger.Warning(ex, "PlaybackState not available during resume check; using platform playback check fallback");
             }
-        });
+
+            var shouldShow = state != null
+                ? IsActiveUiPlaybackStatus(state.Status)
+                : CheckPlatformPlaybackIsActive();
+
+            if (!shouldShow)
+            {
+                return;
+            }
+
+            logger.Information(
+                "ShowPlaybackModalIfNeededOnResumeAsync: Playback active (Status={Status}) but no UI visible — showing modal",
+                state?.Status);
+
+            navigationService.SetMiniBarVisible(true);
+            await Task.Delay(150);
+            await navigationService.OpenPlaybackModalAsync();
+
+            if (!navigationService.IsPlaybackModalOnScreen())
+            {
+                logger.Warning("ShowPlaybackModalIfNeededOnResumeAsync: push failed — falling back to mini bar");
+                FallBackToMiniBar();
+                return;
+            }
+
+            isModalOpen = true;
+            isMinimized = false;
+            navigationService.SetMiniBarVisible(false);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error showing PlaybackModal on resume — falling back to mini bar");
+            FallBackToMiniBar();
+        }
+    }
+
+    /// <summary>
+    /// Returns false when the modal is already visible (nothing to do). Otherwise resets a stale
+    /// <see cref="isModalOpen"/> flag when the page is missing from the stack, then returns true.
+    /// </summary>
+    private bool ShouldContinueResumeFlowAfterModalStackCheck()
+    {
+        if (!isModalOpen)
+        {
+            return true;
+        }
+
+        if (navigationService.IsPlaybackModalOnScreen())
+        {
+            return false;
+        }
+
+        logger.Warning(
+            "ShowPlaybackModalIfNeededOnResumeAsync: isModalOpen was true but PlaybackModal is not on navigation stack — resetting state");
+        isModalOpen = false;
+        return true;
     }
 
     public void ShowMiniBarIfPlaybackActiveOnResume()
@@ -883,85 +896,98 @@ public sealed class PlaybackModalService :
                     return;
                 }
 
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    if (isMinimized)
-                    {
-                        return;
-                    }
-
-                    // isModalOpen might be stale (set before a push that silently failed,
-                    // or the page was removed from the nav stack by an activity recreation).
-                    // Validate against the actual navigation stack.
-                    if (isModalOpen)
-                    {
-                        if (navigationService.IsPlaybackModalOnScreen())
-                        {
-                            return;
-                        }
-
-                        logger.Warning("Modal safety check: isModalOpen was true but PlaybackModal is not on navigation stack — resetting");
-                        isModalOpen = false;
-                    }
-
-                    if (!requestedShowModal)
-                    {
-                        return;
-                    }
-
-                    if (!App.IsInForeground)
-                    {
-                        logger.Debug("Modal safety check: app is backgrounded — deferring to resume handler");
-                        return;
-                    }
-
-                    PlaybackState? state = null;
-                    try { state = playbackState.Value; } catch { /* Fluxor not ready */ }
-
-                    var isActive = state != null
-                        ? IsActiveUiPlaybackStatus(state.Status)
-                        : CheckPlatformPlaybackIsActive();
-
-                    if (!isActive)
-                    {
-                        logger.Debug("Modal safety check: playback is no longer active — clearing stale requestedShowModal");
-                        requestedShowModal = false;
-                        targetScheduleId = null;
-                        return;
-                    }
-
-                    logger.Warning(
-                        "Modal safety check: requestedShowModal pending >{DelayMs}ms with no UI visible (Status={Status}) — forcing playback modal",
-                        ModalSafetyCheckDelayMs, state?.Status);
-
-                    requestedShowModal = false;
-
-                    try
-                    {
-                        await navigationService.OpenPlaybackModalAsync();
-
-                        if (navigationService.IsPlaybackModalOnScreen())
-                        {
-                            isModalOpen = true;
-                            isMinimized = false;
-                            navigationService.SetMiniBarVisible(false);
-                            WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
-                            return;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Warning(ex, "Modal safety check: modal push failed");
-                    }
-
-                    FallBackToMiniBar();
-                });
+                await MainThread.InvokeOnMainThreadAsync(RunModalSafetyCheckOnMainThreadAsync);
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error in modal safety check");
             }
         });
+    }
+
+    private async Task RunModalSafetyCheckOnMainThreadAsync()
+    {
+        if (isMinimized)
+        {
+            return;
+        }
+
+        ResetModalOpenIfNotOnNavigationStack();
+
+        if (!requestedShowModal)
+        {
+            return;
+        }
+
+        if (!App.IsInForeground)
+        {
+            logger.Debug("Modal safety check: app is backgrounded — deferring to resume handler");
+            return;
+        }
+
+        PlaybackState? state = null;
+        try
+        {
+            state = playbackState.Value;
+        }
+        catch
+        {
+            // Fluxor not ready
+        }
+
+        var isActive = state != null
+            ? IsActiveUiPlaybackStatus(state.Status)
+            : CheckPlatformPlaybackIsActive();
+
+        if (!isActive)
+        {
+            logger.Debug("Modal safety check: playback is no longer active — clearing stale requestedShowModal");
+            requestedShowModal = false;
+            targetScheduleId = null;
+            return;
+        }
+
+        logger.Warning(
+            "Modal safety check: requestedShowModal pending >{DelayMs}ms with no UI visible (Status={Status}) — forcing playback modal",
+            ModalSafetyCheckDelayMs, state?.Status);
+
+        requestedShowModal = false;
+
+        try
+        {
+            await navigationService.OpenPlaybackModalAsync();
+
+            if (navigationService.IsPlaybackModalOnScreen())
+            {
+                isModalOpen = true;
+                isMinimized = false;
+                navigationService.SetMiniBarVisible(false);
+                WeakReferenceMessenger.Default.Send(new PlaybackModalOpenedMessage());
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Modal safety check: modal push failed");
+        }
+
+        FallBackToMiniBar();
+    }
+
+    private void ResetModalOpenIfNotOnNavigationStack()
+    {
+        if (!isModalOpen)
+        {
+            return;
+        }
+
+        if (navigationService.IsPlaybackModalOnScreen())
+        {
+            return;
+        }
+
+        logger.Warning("Modal safety check: isModalOpen was true but PlaybackModal is not on navigation stack — resetting");
+        isModalOpen = false;
     }
 
     /// <summary>
@@ -1037,4 +1063,3 @@ public sealed class PlaybackModalService :
         WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
     }
 }
-#pragma warning restore S3776
