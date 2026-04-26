@@ -253,7 +253,8 @@ internal sealed class SectionFetcher
                 {
                     var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
                     tracks = MediatorTrackParser.ParseTracksFromJson(
-                        filesElement, normalizedLanguageCode, sectionCode, isVideoDrama);
+                        filesElement,
+                        new MediatorTrackParseContext(normalizedLanguageCode, sectionCode, IsVideo: isVideoDrama));
                 }
 
                 // Create and save section immediately (incremental save)

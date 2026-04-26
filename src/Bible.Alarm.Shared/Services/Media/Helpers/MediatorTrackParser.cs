@@ -16,19 +16,12 @@ internal static class MediatorTrackParser
 {
     public static List<BiblePublicationTrack> ParseTracksFromJson(
         JsonElement sectionFilesElement,
-        string normalizedLanguageCode,
-        string sectionCode,
-        bool isVideo = false,
-        int? trackNumber = null,
-        bool allowAudioDescriptionTitles = false,
-        bool useIssueParameter = false,
-        bool omitTrackFromUrlParams = false,
-        bool useDocidParam = false)
+        MediatorTrackParseContext context)
     {
         var tracks = new List<BiblePublicationTrack>();
-        var formatKey = isVideo ? "MP4" : "MP3";
+        var formatKey = context.IsVideo ? "MP4" : "MP3";
 
-        if (!TryGetLanguageFormatArray(sectionFilesElement, normalizedLanguageCode, formatKey, out var formatFiles))
+        if (!TryGetLanguageFormatArray(sectionFilesElement, context.NormalizedLanguageCode, formatKey, out var formatFiles))
         {
             return tracks;
         }
@@ -36,11 +29,11 @@ internal static class MediatorTrackParser
         // For mediator media items (trackNumber set), API may return multiple format entries (e.g. qualities); take only the first to avoid duplicate TrackCodes.
         foreach (var trackFile in formatFiles.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, sectionCode, normalizedLanguageCode, isVideo, trackNumber, allowAudioDescriptionTitles, useIssueParameter, omitTrackFromUrlParams, useDocidParam);
+            var track = ParseSingleTrack(trackFile, context);
             if (track != null)
             {
                 tracks.Add(track);
-                if (trackNumber.HasValue)
+                if (context.TrackNumber.HasValue)
                 {
                     break;
                 }
@@ -52,14 +45,7 @@ internal static class MediatorTrackParser
 
     private static BiblePublicationTrack? ParseSingleTrack(
         JsonElement trackFile,
-        string sectionCode,
-        string normalizedLanguageCode,
-        bool isVideo = false,
-        int? trackNumber = null,
-        bool allowAudioDescriptionTitles = false,
-        bool useIssueParameter = false,
-        bool omitTrackFromUrlParams = false,
-        bool useDocidParam = false)
+        MediatorTrackParseContext context)
     {
         if (!trackFile.TryGetProperty("file", out var fileElement))
         {
@@ -96,20 +82,20 @@ internal static class MediatorTrackParser
             }
         }
 
-        if (!allowAudioDescriptionTitles && AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(normalizedLanguageCode, title))
+        if (!context.AllowAudioDescriptionTitles && AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(context.NormalizedLanguageCode, title))
         {
             return null;
         }
 
         string trackCode;
-        if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
+        if (context.UseDocidParam && context.SectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
         {
-            var docidValue = sectionCode.Substring(6);
-            trackCode = trackNumber.HasValue ? $"{docidValue}-{trackNumber.Value}" : docidValue;
+            var docidValue = context.SectionCode.Substring(6);
+            trackCode = context.TrackNumber.HasValue ? $"{docidValue}-{context.TrackNumber.Value}" : docidValue;
         }
         else
         {
-            trackCode = (trackNumber.HasValue && !omitTrackFromUrlParams) ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
+            trackCode = (context.TrackNumber.HasValue && !context.OmitTrackFromUrlParams) ? $"{context.SectionCode}-{context.TrackNumber.Value}" : context.SectionCode;
         }
 
         return new BiblePublicationTrack
