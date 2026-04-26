@@ -10,15 +10,11 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Helper class for parsing mediator/video tracks from JSON responses.
+/// Parsing mediator/video tracks from JSON responses.
 /// </summary>
-internal sealed class MediatorTrackParser
+internal static class MediatorTrackParser
 {
-    public MediatorTrackParser()
-    {
-    }
-
-    public List<BiblePublicationTrack> ParseTracksFromJson(
+    public static List<BiblePublicationTrack> ParseTracksFromJson(
         JsonElement sectionFilesElement,
         string normalizedLanguageCode,
         string sectionCode,
