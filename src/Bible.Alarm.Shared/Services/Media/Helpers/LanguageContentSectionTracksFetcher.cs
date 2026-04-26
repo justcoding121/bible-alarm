@@ -114,10 +114,16 @@ internal sealed class LanguageContentSectionTracksFetcher
 
             await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
 
-            return await sectionFetcher.FetchSectionTracksAsync(
-                db, normalizedPublicationCode, normalizedSectionCode, normalizedLanguageCode,
-                publicationCodeForDb, publication, section, cancellationToken,
-                replaceExisting: replaceExistingTracksFromApi);
+            return await sectionFetcher.FetchSectionTracksAsync(new FetchSectionTracksRequest(
+                db,
+                normalizedPublicationCode,
+                normalizedSectionCode,
+                normalizedLanguageCode,
+                publicationCodeForDb,
+                publication,
+                section,
+                cancellationToken,
+                replaceExistingTracksFromApi));
         }
         catch (Exception ex)
         {

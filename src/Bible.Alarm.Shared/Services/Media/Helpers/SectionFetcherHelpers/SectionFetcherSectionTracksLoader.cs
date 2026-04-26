@@ -14,6 +14,7 @@ using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Services.Media.Helpers;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -31,17 +32,18 @@ internal sealed class SectionFetcherSectionTracksLoader
         this.logger = logger;
     }
 
-    public async Task<bool> FetchSectionTracksAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string normalizedSectionCode,
-        string normalizedLanguageCode,
-        string publicationCodeForDb,
-        BiblePublication publication,
-        BiblePublicationSection section,
-        CancellationToken cancellationToken,
-        bool replaceExisting = false)
+    public async Task<bool> FetchSectionTracksAsync(FetchSectionTracksRequest request)
     {
+        var db = request.Db;
+        var normalizedPublicationCode = request.NormalizedPublicationCode;
+        var normalizedSectionCode = request.NormalizedSectionCode;
+        var normalizedLanguageCode = request.NormalizedLanguageCode;
+        var publicationCodeForDb = request.PublicationCodeForDb;
+        var publication = request.Publication;
+        var section = request.Section;
+        var cancellationToken = request.CancellationToken;
+        var replaceExisting = request.ReplaceExisting;
+
         var entry = db.Entry(section);
         if (entry.State == EntityState.Detached)
         {

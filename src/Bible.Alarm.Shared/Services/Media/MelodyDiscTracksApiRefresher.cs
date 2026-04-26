@@ -60,7 +60,7 @@ public sealed class MelodyDiscTracksApiRefresher(
             }
 
             var sectionFetcher = new SectionFetcher(httpClient, logger);
-            return await sectionFetcher.FetchSectionTracksAsync(
+            return await sectionFetcher.FetchSectionTracksAsync(new FetchSectionTracksRequest(
                 db,
                 normPub.ToLowerInvariant(),
                 normSection,
@@ -69,7 +69,7 @@ public sealed class MelodyDiscTracksApiRefresher(
                 publication,
                 section,
                 cancellationToken,
-                replaceExisting: true);
+                ReplaceExisting: true));
         }
         catch (Exception ex)
         {

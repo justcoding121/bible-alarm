@@ -39,7 +39,6 @@ internal sealed class SectionFetcher
         var db = request.Db;
         var normalizedPublicationCode = request.NormalizedPublicationCode;
         var normalizedLanguageCode = request.NormalizedLanguageCode;
-        var publicationCodeForDb = request.PublicationCodeForDb;
         var englishPublication = request.EnglishPublication;
         var sectionCodes = request.SectionCodes;
         var cancellationToken = request.CancellationToken;
@@ -332,18 +331,9 @@ internal sealed class SectionFetcher
         return true;
     }
 
-    public Task<bool> FetchSectionTracksAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string normalizedSectionCode,
-        string normalizedLanguageCode,
-        string publicationCodeForDb,
-        BiblePublication publication,
-        BiblePublicationSection section,
-        CancellationToken cancellationToken,
-        bool replaceExisting = false)
+    public Task<bool> FetchSectionTracksAsync(FetchSectionTracksRequest request)
     {
-        return sectionTracksLoader.FetchSectionTracksAsync(db, normalizedPublicationCode, normalizedSectionCode, normalizedLanguageCode, publicationCodeForDb, publication, section, cancellationToken, replaceExisting);
+        return sectionTracksLoader.FetchSectionTracksAsync(request);
     }
 
     /// <summary>

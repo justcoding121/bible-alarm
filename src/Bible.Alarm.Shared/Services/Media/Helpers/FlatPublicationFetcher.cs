@@ -38,17 +38,18 @@ internal sealed class FlatPublicationFetcher
     /// Unified method for fetching flat-track publications (Music and Video).
     /// Handles both MP3 (Music) and MP4 (Video) formats with their specific behaviors.
     /// </summary>
-    public async Task<bool> FetchFlatPublicationTracksAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        BiblePublication englishPublication,
-        bool isVideo,
-        bool isMusic,
-        string fileFormat,
-        Language? language = null,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> FetchFlatPublicationTracksAsync(FetchFlatPublicationTracksRequest request)
     {
+        var db = request.Db;
+        var normalizedPublicationCode = request.NormalizedPublicationCode;
+        var normalizedLanguageCode = request.NormalizedLanguageCode;
+        var englishPublication = request.EnglishPublication;
+        var isVideo = request.IsVideo;
+        var isMusic = request.IsMusic;
+        var fileFormat = request.FileFormat;
+        var language = request.Language;
+        var cancellationToken = request.CancellationToken;
+
         string? localizedPubName = null;
         if (isVideo && !normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {

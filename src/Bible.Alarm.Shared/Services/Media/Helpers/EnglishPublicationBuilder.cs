@@ -27,18 +27,18 @@ internal sealed class EnglishPublicationBuilder
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<bool> BuildAndSavePublicationAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string? publicationName,
-        Language? language,
-        Category category,
-        bool isVideo,
-        bool isBible,
-        bool publicationWithoutLanguage,
-        List<BiblePublicationSection> sections,
-        CancellationToken cancellationToken)
+    public async Task<bool> BuildAndSavePublicationAsync(BuildEnglishPublicationRequest request)
     {
+        var db = request.Db;
+        var normalizedPublicationCode = request.NormalizedPublicationCode;
+        var publicationName = request.PublicationName;
+        var language = request.Language;
+        var isVideo = request.IsVideo;
+        var isBible = request.IsBible;
+        var publicationWithoutLanguage = request.PublicationWithoutLanguage;
+        var sections = request.Sections;
+        var cancellationToken = request.CancellationToken;
+
         if (sections.Count == 0)
         {
             logger.Warning("No sections found for publication {PublicationCode} in English", normalizedPublicationCode);

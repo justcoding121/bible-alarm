@@ -40,18 +40,21 @@ internal sealed class EnglishSectionFetcher
         CancellationToken cancellationToken)
     {
         var isVideo = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
-        return await FetchSectionsAsync(db, normalizedPublicationCode, normalizedLanguageCode, categoryName, sectionCodes, isVideo, cancellationToken);
+        return await FetchSectionsAsync(new FetchEnglishSectionsRequest(
+            db, normalizedPublicationCode, normalizedLanguageCode, categoryName, sectionCodes, isVideo, cancellationToken));
     }
 
     public async Task<(List<BiblePublicationSection> Sections, string? LocalizedPubName)> FetchSectionsAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        string categoryName,
-        List<string> sectionCodes,
-        bool isVideo,
-        CancellationToken cancellationToken)
+        FetchEnglishSectionsRequest request)
     {
+        var db = request.Db;
+        var normalizedPublicationCode = request.NormalizedPublicationCode;
+        var normalizedLanguageCode = request.NormalizedLanguageCode;
+        var categoryName = request.CategoryName;
+        var sectionCodes = request.SectionCodes;
+        var isVideo = request.IsVideo;
+        var cancellationToken = request.CancellationToken;
+
         // Data-driven: Check if publication has LanguageId == null (determines API parameter pattern)
         var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         var fileFormat = isVideo ? "MP4" : "MP3";

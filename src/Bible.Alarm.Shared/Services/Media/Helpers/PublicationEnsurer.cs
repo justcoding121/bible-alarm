@@ -383,12 +383,8 @@ internal sealed class PublicationEnsurer
                 }
             }
 
-            // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
-            if (string.IsNullOrEmpty(firstSectionCode))
-            {
-                return false;
-            }
-
+            // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked").
+            // firstSectionCode is non-empty here: empty case returned above inside the scope.
             switch (action!.Value)
             {
                 case FirstSectionAction.FetchSectionTracksOnly:

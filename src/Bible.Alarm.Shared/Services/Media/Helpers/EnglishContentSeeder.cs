@@ -245,7 +245,7 @@ internal sealed class EnglishContentSeeder
 
                     // Use the existing FetchPublicationSectionsAsync logic but adapted for English
                     return await FetchEnglishPublicationSectionsAsync(
-                        db, publicationCodeForDb, normalizedLanguageCode, language, category, 
+                        db, publicationCodeForDb, normalizedLanguageCode, language,
                         categoryName, isVideo, sectionCodes, cancellationToken);
                 }
 
@@ -270,13 +270,13 @@ internal sealed class EnglishContentSeeder
                         issueSectionCodes.Count, publicationCode);
 
                     return await FetchEnglishPublicationSectionsAsync(
-                        db, publicationCodeForDb, normalizedLanguageCode, language, category,
+                        db, publicationCodeForDb, normalizedLanguageCode, language,
                         categoryName, isVideo, issueSectionCodes, cancellationToken);
                 }
 
                 case Models.Enums.CatalogType.MediatorSectioned:
                     return await mediatorFetcher.FetchEnglishMediatorPublicationAsync(
-                        db, publicationCodeForDb, normalizedLanguageCode, language, category, cancellationToken);
+                        db, publicationCodeForDb, normalizedLanguageCode, language, cancellationToken);
 
                 case Models.Enums.CatalogType.Flat:
                 default:
@@ -297,7 +297,6 @@ internal sealed class EnglishContentSeeder
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         Language? language,
-        Category category,
         string categoryName,
         bool isVideo,
         List<string> sectionCodes,
@@ -318,12 +317,19 @@ internal sealed class EnglishContentSeeder
                 .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == null, cancellationToken);
         }
 
-        var (sections, localizedPubName) = await sectionFetcher.FetchSectionsAsync(
-            db, normalizedPublicationCode, normalizedLanguageCode, categoryName, sectionCodes, isVideo, cancellationToken);
+        var (sections, localizedPubName) = await sectionFetcher.FetchSectionsAsync(new FetchEnglishSectionsRequest(
+            db, normalizedPublicationCode, normalizedLanguageCode, categoryName, sectionCodes, isVideo, cancellationToken));
 
-        return await publicationBuilder.BuildAndSavePublicationAsync(
-            db, normalizedPublicationCode, localizedPubName, language, category,
-            isVideo, isBible, publicationWithoutLanguage, sections, cancellationToken);
+        return await publicationBuilder.BuildAndSavePublicationAsync(new BuildEnglishPublicationRequest(
+            db,
+            normalizedPublicationCode,
+            localizedPubName,
+            language,
+            isVideo,
+            isBible,
+            publicationWithoutLanguage,
+            sections,
+            cancellationToken));
     }
 
     private async Task<bool> FetchEnglishPublicationTracksAsync(
@@ -342,7 +348,7 @@ internal sealed class EnglishContentSeeder
         if (isDrama)
         {
             return await mediatorFetcher.FetchEnglishMediatorPublicationAsync(
-                db, normalizedPublicationCode, normalizedLanguageCode, language, category, cancellationToken);
+                db, normalizedPublicationCode, normalizedLanguageCode, language, cancellationToken);
         }
 
         // Unified flat-track fetching for Music and Video (both use same GETPUBMEDIALINKS pattern)
@@ -357,8 +363,8 @@ internal sealed class EnglishContentSeeder
             IsVideo = isVideo
         };
 
-        return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(
+        return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(new FetchFlatPublicationTracksRequest(
             db, normalizedPublicationCode, normalizedLanguageCode, tempEnglishPublication,
-            isVideo, isMusic, fileFormat, language, cancellationToken);
+            isVideo, isMusic, fileFormat, language, cancellationToken));
     }
 }

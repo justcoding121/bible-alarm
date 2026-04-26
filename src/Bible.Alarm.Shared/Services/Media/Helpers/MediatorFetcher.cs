@@ -81,8 +81,8 @@ internal sealed class MediatorFetcher
 
         // Build and save publication
         var publicationCodeForDb = publicationBuilder.GetPublicationCodeForDb(normalizedPublicationCode);
-        return await publicationBuilder.BuildAndSavePublicationAsync(
-            db, publicationCodeForDb, localizedPubName, language, category, tracks, cancellationToken);
+        return await publicationBuilder.BuildAndSavePublicationAsync(new BuildMediatorPublicationRequest(
+            db, publicationCodeForDb, localizedPubName, language, tracks, cancellationToken));
     }
 
     public async Task<bool> FetchEnglishMediatorPublicationAsync(
@@ -90,7 +90,6 @@ internal sealed class MediatorFetcher
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         Language language,
-        Category category,
         CancellationToken cancellationToken)
     {
         var (localizedPubName, mediatorTracks) = await mediatorApiClient.FetchCategoryAndTracksAsync(
@@ -118,7 +117,7 @@ internal sealed class MediatorFetcher
 
         // Build and save publication
         var publicationCodeForDb = publicationBuilder.GetPublicationCodeForDb(normalizedPublicationCode);
-        return await publicationBuilder.BuildAndSavePublicationAsync(
-            db, publicationCodeForDb, localizedPubName, language, category, tracks, cancellationToken);
+        return await publicationBuilder.BuildAndSavePublicationAsync(new BuildMediatorPublicationRequest(
+            db, publicationCodeForDb, localizedPubName, language, tracks, cancellationToken));
     }
 }

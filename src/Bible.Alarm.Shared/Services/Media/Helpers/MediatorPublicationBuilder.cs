@@ -34,15 +34,15 @@ internal sealed class MediatorPublicationBuilder
     /// (2) App on-demand fetch uses EnsurePublicationExistsAsync which skips when the row exists, or FetchPublicationTracksAsync which deletes then re-fetches; neither hits this with an existing row.
     /// The update path is for idempotency: e.g. SeedEnglishPublicationAsync invoked twice (race, future refresh-English, or logic change), so we update instead of creating a duplicate row.
     /// </summary>
-    public async Task<bool> BuildAndSavePublicationAsync(
-        MediaDbContext db,
-        string publicationCodeForDb,
-        string? publicationName,
-        Language language,
-        Category category,
-        List<BiblePublicationTrack> tracks,
-        CancellationToken cancellationToken)
+    public async Task<bool> BuildAndSavePublicationAsync(BuildMediatorPublicationRequest request)
     {
+        var db = request.Db;
+        var publicationCodeForDb = request.PublicationCodeForDb;
+        var publicationName = request.PublicationName;
+        var language = request.Language;
+        var tracks = request.Tracks;
+        var cancellationToken = request.CancellationToken;
+
         if (tracks.Count == 0)
         {
             logger.Warning("No tracks found for mediator publication {PublicationCode}", publicationCodeForDb);
