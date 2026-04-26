@@ -1,5 +1,4 @@
 #nullable enable
-#pragma warning disable S3776
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -179,41 +178,10 @@ public sealed class MediaSessionManager : IMediaSessionManager
             return;
         }
 
-        // Compare against actual session metadata (not tracked values) because
-        // MediaSessionEffect.HandlePlaybackMetadataChanged sets metadata directly
-        // on the session, bypassing this method.
         var currentMetadata = mediaSession?.Controller?.Metadata;
-        if (currentMetadata != null)
+        if (ShouldSkipRedundantMetadataUpdate(metadata, currentMetadata))
         {
-            var newTitle = metadata.GetString(MediaMetadataCompat.MetadataKeyTitle);
-            var newArtist = metadata.GetString(MediaMetadataCompat.MetadataKeyArtist);
-            var currentTitle = currentMetadata.GetString(MediaMetadataCompat.MetadataKeyTitle);
-            var currentArtist = currentMetadata.GetString(MediaMetadataCompat.MetadataKeyArtist);
-            if (newTitle == currentTitle && newArtist == currentArtist)
-            {
-                var currentArtwork = currentMetadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-                var newArtwork = metadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-
-                // Skip redundant SetMetadata when artwork is unchanged in spirit:
-                // both null, or both present (same title/artist refresh with art still present).
-                var shouldApplyArtworkChange =
-                    (currentArtwork == null && newArtwork != null)
-                    || (currentArtwork != null && newArtwork == null);
-
-                if (!shouldApplyArtworkChange)
-                {
-                    return;
-                }
-
-                if (currentArtwork == null && newArtwork != null)
-                {
-                    logger.Debug("[AndroidAuto] Title/Artist unchanged but artwork missing from current metadata — applying update with artwork");
-                }
-                else
-                {
-                    logger.Debug("[AndroidAuto] Title/Artist unchanged but clearing artwork in metadata (e.g. removed app icon fallback)");
-                }
-            }
+            return;
         }
 
         mediaSession?.SetMetadata(metadata);
@@ -221,6 +189,50 @@ public sealed class MediaSessionManager : IMediaSessionManager
         // same duration get deduped (avoid redundant SetMetadata calls that cause time bounce).
         var durationMs = metadata.GetLong(MediaMetadataCompat.MetadataKeyDuration);
         metadataManager.LastDurationMs = durationMs > 0 ? durationMs : null;
+    }
+
+    /// <summary>
+    /// Returns true when the new metadata would not change anything meaningful on the session
+    /// (same title/artist and no meaningful artwork delta), so SetMetadata can be skipped.
+    /// </summary>
+    private bool ShouldSkipRedundantMetadataUpdate(MediaMetadataCompat metadata, MediaMetadataCompat? currentMetadata)
+    {
+        if (currentMetadata == null)
+        {
+            return false;
+        }
+
+        var newTitle = metadata.GetString(MediaMetadataCompat.MetadataKeyTitle);
+        var newArtist = metadata.GetString(MediaMetadataCompat.MetadataKeyArtist);
+        var currentTitle = currentMetadata.GetString(MediaMetadataCompat.MetadataKeyTitle);
+        var currentArtist = currentMetadata.GetString(MediaMetadataCompat.MetadataKeyArtist);
+        if (newTitle != currentTitle || newArtist != currentArtist)
+        {
+            return false;
+        }
+
+        var currentArtwork = currentMetadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+        var newArtwork = metadata.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+
+        var shouldApplyArtworkChange =
+            (currentArtwork == null && newArtwork != null)
+            || (currentArtwork != null && newArtwork == null);
+
+        if (shouldApplyArtworkChange)
+        {
+            if (currentArtwork == null && newArtwork != null)
+            {
+                logger.Debug("[AndroidAuto] Title/Artist unchanged but artwork missing from current metadata — applying update with artwork");
+            }
+            else
+            {
+                logger.Debug("[AndroidAuto] Title/Artist unchanged but clearing artwork in metadata (e.g. removed app icon fallback)");
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -388,5 +400,3 @@ public sealed class MediaSessionManager : IMediaSessionManager
     }
 
 }
-#pragma warning restore S3776
-

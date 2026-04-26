@@ -1,5 +1,4 @@
 #nullable enable
-#pragma warning disable S3776
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -305,52 +304,9 @@ public sealed class TrackPlaybackHandler
                 return;
             }
 
-            try
+            var outcome = await TrySeekSingleAttemptAsync(position, attempt, maxRetries, retryDelayMs, cancellationToken);
+            if (outcome == SeekAttemptOutcome.Success || outcome == SeekAttemptOutcome.FatalError)
             {
-                await audioPlayer.SeekToAsync(position);
-
-                // Verify the seek actually worked by checking position after a brief delay
-                // On iOS/Android, the seek might silently be a no-op if seekable ranges aren't ready yet
-                await Task.Delay(150, cancellationToken);
-                var currentPos = audioPlayer.CurrentPosition;
-
-                // Check if seek actually moved the position (within 1 second tolerance)
-                if (currentPos.HasValue && Math.Abs(currentPos.Value.TotalSeconds - position.TotalSeconds) < 1.0)
-                {
-                    return;
-                }
-                else
-                {
-                    // Seek was a no-op (probably no seekable ranges yet)
-                    logger.Warning("[Seek] Attempt {Attempt} was NO-OP - Target: {Target}, Current: {Current}, will retry",
-                        attempt, position, currentPos);
-
-                    if (attempt < maxRetries)
-                    {
-                        await Task.Delay(retryDelayMs, cancellationToken);
-                    }
-                    else
-                    {
-                        logger.Error("[Seek] All {MaxRetries} attempts were no-ops, will start from beginning", maxRetries);
-                    }
-                }
-            }
-            catch (InvalidOperationException ex)
-            {
-                logger.Warning(ex, "[Seek] Attempt {Attempt} FAILED (InvalidOperationException): {Message}",
-                    attempt, ex.Message);
-                if (attempt < maxRetries)
-                {
-                    await Task.Delay(retryDelayMs, cancellationToken);
-                }
-                else
-                {
-                    logger.Error("[Seek] All {MaxRetries} attempts FAILED, will start from beginning", maxRetries);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "[Seek] Attempt {Attempt} FAILED with unexpected error: {Message}", attempt, ex.Message);
                 return;
             }
         }
@@ -370,6 +326,69 @@ public sealed class TrackPlaybackHandler
         }
 #endif
     }
+
+#if IOS || ANDROID
+    private enum SeekAttemptOutcome
+    {
+        Retry,
+        Success,
+        FatalError
+    }
+
+    private async Task<SeekAttemptOutcome> TrySeekSingleAttemptAsync(
+        TimeSpan position,
+        int attempt,
+        int maxRetries,
+        int retryDelayMs,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await audioPlayer.SeekToAsync(position);
+
+            await Task.Delay(150, cancellationToken);
+            var currentPos = audioPlayer.CurrentPosition;
+
+            if (currentPos.HasValue && Math.Abs(currentPos.Value.TotalSeconds - position.TotalSeconds) < 1.0)
+            {
+                return SeekAttemptOutcome.Success;
+            }
+
+            logger.Warning("[Seek] Attempt {Attempt} was NO-OP - Target: {Target}, Current: {Current}, will retry",
+                attempt, position, currentPos);
+
+            if (attempt < maxRetries)
+            {
+                await Task.Delay(retryDelayMs, cancellationToken);
+            }
+            else
+            {
+                logger.Error("[Seek] All {MaxRetries} attempts were no-ops, will start from beginning", maxRetries);
+            }
+
+            return SeekAttemptOutcome.Retry;
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.Warning(ex, "[Seek] Attempt {Attempt} FAILED (InvalidOperationException): {Message}",
+                attempt, ex.Message);
+            if (attempt < maxRetries)
+            {
+                await Task.Delay(retryDelayMs, cancellationToken);
+            }
+            else
+            {
+                logger.Error("[Seek] All {MaxRetries} attempts FAILED, will start from beginning", maxRetries);
+            }
+
+            return SeekAttemptOutcome.Retry;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "[Seek] Attempt {Attempt} FAILED with unexpected error: {Message}", attempt, ex.Message);
+            return SeekAttemptOutcome.FatalError;
+        }
+    }
+#endif
 }
-#pragma warning restore S3776
 

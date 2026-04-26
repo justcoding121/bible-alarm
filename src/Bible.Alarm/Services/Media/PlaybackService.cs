@@ -1,5 +1,4 @@
 #nullable enable
-#pragma warning disable S3776
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -146,153 +145,19 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         defaultDeviceRingtoneService.Stop();
 
-        if (stateManager.IsPreparingOrPlaying(audioPlayer) && stateManager.CurrentScheduleId.HasValue && stateManager.CurrentScheduleId.Value != scheduleId)
+        await StopOtherScheduleIfNeededAsync(scheduleId);
+
+        if (await TryResumeSameScheduleAsync(scheduleId))
         {
-            logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}",
-                stateManager.CurrentScheduleId.Value, scheduleId);
-
-            // Tell the playback modal to enter the same stopping UI state as a user stop-button tap.
-            // IsStopping=true suppresses all intermediate property changes (controls, buffering,
-            // play/pause) so the modal shows a spinner and stays visually stable during the stop.
-            WeakReferenceMessenger.Default.Send(new BeginStoppingPlaybackMessage());
-            await Task.Delay(50);
-
-            await trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
-            await StopAsyncInternal(skipMarkAsPlayed: true, skipSaveLastPlayed: true);
-
-            // PlaybackStoppedAction closes the modal via PlaybackModalService. Wait for the main
-            // thread to process the close before dispatching PlaybackStartedAction, otherwise the
-            // popGeneration guard cancels the close and the stale modal stays open with bouncing UI.
-            await Task.Delay(500);
+            return;
         }
 
-        if (stateManager.IsPreparingOrPlaying(audioPlayer) && stateManager.CurrentScheduleId == scheduleId)
-        {
-            if (audioPlayer.IsActuallyPlayingOrPaused)
-            {
-                logger.Information("Resuming playback for schedule {ScheduleId} (already paused/playing same schedule)", scheduleId);
-                await PlayAsync();
-                return;
-            }
-
-            // Player state is stale: cached status says Paused/Playing but ExoPlayer
-            // may have released resources while paused (e.g. Bluetooth disconnect + idle).
-            // Save progress, reset, and fall through to full re-preparation with seek.
-            logger.Warning(
-                "Stale player state for schedule {ScheduleId}: cached status {Status} but MediaElement is not active. Will re-prepare with seek.",
-                scheduleId, audioPlayer.Status);
-
-            await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex, forceSave: true);
-            stateManager.PlayedBibleTrackKeys.Clear();
-            stateManager.ManuallyVisitedTrackIndices.Clear();
-            stateManager.IsPreparingTrack = false;
-            progressTracker.Stop();
-            await audioPlayer.ResetAsync();
-            stateManager.Playlist = null;
-            stateManager.CurrentTrackIndex = -1;
-        }
-
-        if (stateManager.IsPreparingOrPlaying(audioPlayer))
-        {
-            // A concurrent stop is still in progress and hasn't fully reset the player.
-            // Force reset so the new play can proceed. PrepareAsync will handle the
-            // MediaElement (stop old source, create/reuse, set new source).
-            logger.Warning("State still shows playing after stop attempt (schedule {CurrentScheduleId}, status {Status}). Force-resetting for schedule {ScheduleId}.",
-                stateManager.CurrentScheduleId,
-                audioPlayer.Status,
-                scheduleId);
-
-            stateManager.Reset();
-            try
-            {
-                await audioPlayer.StopAsync();
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Error force-stopping player during state recovery");
-            }
-        }
-
-        // StopAsyncInternal resets Status early (so IsPreparingOrPlaying is false) but then
-        // continues to dispose the old MediaElement asynchronously (MediaElementManager.ResetAsync
-        // has two 100ms waits). Without this wait, PrepareAsync receives the old MediaElement while
-        // its AVPlayer handler is still being disposed — resulting in objc_msgSend to a freed
-        // native object (EXC_BAD_ACCESS on iOS).
-        // stopLock is held for the entire StopAsyncInternal duration, including DisposeMediaElementAsync,
-        // so awaiting it here guarantees the old MediaElement is fully cleaned up before we proceed.
-        bool stopCompleted = await stopLock.WaitAsync(TimeSpan.FromSeconds(10));
-        if (stopCompleted)
-        {
-            stopLock.Release();
-        }
-        else
-        {
-            // The in-progress stop is hung (e.g. native player disposal stuck on iOS).
-            // Proceeding is safer than aborting: PrepareAsync will stop/clear the old source
-            // and set a new one on the same MediaElement. Aborting would permanently prevent
-            // playback since the hung stop never releases stopLock.
-            logger.Warning("PrepareAndPlayAsync: timed out waiting for in-progress stop to complete (10s). Proceeding — PrepareAsync will reset the player.");
-        }
+        await ForceResetIfStillPreparingAsync(scheduleId);
+        await WaitForInFlightStopAsync();
 
         try
         {
-            stateManager.CurrentScheduleId = scheduleId;
-            stateManager.IsAlarm = isAlarm;
-
-            var lastPlayedAtUtc = DateTime.UtcNow;
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await alarmScheduleService.UpdateScheduleByIdAsync(scheduleId, s => s.LastPlayedAtUtc = lastPlayedAtUtc);
-                    dispatcher.Dispatch(new UpdateScheduleLastPlayedAction(scheduleId, lastPlayedAtUtc));
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning(ex, "Failed to update LastPlayedAtUtc for schedule {ScheduleId}", scheduleId);
-                }
-            });
-
-            stateManager.PreparationCancellationTokenSource?.Dispose();
-            stateManager.PreparationCancellationTokenSource = new CancellationTokenSource();
-            var cancellationToken = stateManager.PreparationCancellationTokenSource.Token;
-
-            // Capture playback mode once for this session.
-            stateManager.IsIndefinitePlayback = await modeResolver.IsIndefinitePlaybackAsync(scheduleId, cancellationToken);
-
-            stateManager.Playlist = await initializer.PrepareTracksAsync(scheduleId, cancellationToken);
-
-            if (stateManager.Playlist is null)
-            {
-                await PlaybackPreparationFailureHandler.HandleAsync(
-                    scheduleId, isAlarm, "Track preparation cancelled or failed for schedule {ScheduleId}",
-                    dispatcher, logger, TryPlayFallbackAlarmSoundAsync);
-                return;
-            }
-
-            if (stateManager.Playlist.Count == 0)
-            {
-                await PlaybackPreparationFailureHandler.HandleAsync(
-                    scheduleId, isAlarm, "No tracks prepared for schedule {ScheduleId}",
-                    dispatcher, logger, TryPlayFallbackAlarmSoundAsync);
-                return;
-            }
-
-            stateManager.CurrentTrackIndex = 0;
-            stateManager.ManuallyVisitedTrackIndices.Clear();
-
-            await sessionContextInitializer.InitializeAsync(
-                stateManager.Playlist,
-                p => stateManager.SessionMusicPlayItem = p,
-                m => stateManager.AnchorBibleMetadata = m,
-                m => stateManager.PreAnchorBibleMetadata = m);
-
-            navigationManager.NotifyNavigationChanged(stateManager.Playlist, stateManager.CurrentTrackIndex);
-
-            // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
-            await PlayCurrentTrackAsync(cancellationToken: cancellationToken);
-
-            await notificationService.ClearDeliveredNotificationAsync(scheduleId);
+            await PrepareAndPlayCoreAsync(scheduleId, isAlarm);
         }
         catch (OperationCanceledException)
         {
@@ -304,6 +169,151 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             await ResetAsync();
             throw;
         }
+    }
+
+    private async Task StopOtherScheduleIfNeededAsync(int scheduleId)
+    {
+        if (!stateManager.IsPreparingOrPlaying(audioPlayer)
+            || !stateManager.CurrentScheduleId.HasValue
+            || stateManager.CurrentScheduleId.Value == scheduleId)
+        {
+            return;
+        }
+
+        logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}",
+            stateManager.CurrentScheduleId.Value, scheduleId);
+
+        WeakReferenceMessenger.Default.Send(new BeginStoppingPlaybackMessage());
+        await Task.Delay(50);
+
+        await trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
+        await StopAsyncInternal(skipMarkAsPlayed: true, skipSaveLastPlayed: true);
+
+        await Task.Delay(500);
+    }
+
+    private async Task<bool> TryResumeSameScheduleAsync(int scheduleId)
+    {
+        if (!stateManager.IsPreparingOrPlaying(audioPlayer) || stateManager.CurrentScheduleId != scheduleId)
+        {
+            return false;
+        }
+
+        if (audioPlayer.IsActuallyPlayingOrPaused)
+        {
+            logger.Information("Resuming playback for schedule {ScheduleId} (already paused/playing same schedule)", scheduleId);
+            await PlayAsync();
+            return true;
+        }
+
+        logger.Warning(
+            "Stale player state for schedule {ScheduleId}: cached status {Status} but MediaElement is not active. Will re-prepare with seek.",
+            scheduleId, audioPlayer.Status);
+
+        await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex, forceSave: true);
+        stateManager.PlayedBibleTrackKeys.Clear();
+        stateManager.ManuallyVisitedTrackIndices.Clear();
+        stateManager.IsPreparingTrack = false;
+        progressTracker.Stop();
+        await audioPlayer.ResetAsync();
+        stateManager.Playlist = null;
+        stateManager.CurrentTrackIndex = -1;
+        return false;
+    }
+
+    private async Task ForceResetIfStillPreparingAsync(int scheduleId)
+    {
+        if (!stateManager.IsPreparingOrPlaying(audioPlayer))
+        {
+            return;
+        }
+
+        logger.Warning("State still shows playing after stop attempt (schedule {CurrentScheduleId}, status {Status}). Force-resetting for schedule {ScheduleId}.",
+            stateManager.CurrentScheduleId,
+            audioPlayer.Status,
+            scheduleId);
+
+        stateManager.Reset();
+        try
+        {
+            await audioPlayer.StopAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error force-stopping player during state recovery");
+        }
+    }
+
+    private async Task WaitForInFlightStopAsync()
+    {
+        bool stopCompleted = await stopLock.WaitAsync(TimeSpan.FromSeconds(10));
+        if (stopCompleted)
+        {
+            stopLock.Release();
+        }
+        else
+        {
+            logger.Warning("PrepareAndPlayAsync: timed out waiting for in-progress stop to complete (10s). Proceeding — PrepareAsync will reset the player.");
+        }
+    }
+
+    private async Task PrepareAndPlayCoreAsync(int scheduleId, bool isAlarm)
+    {
+        stateManager.CurrentScheduleId = scheduleId;
+        stateManager.IsAlarm = isAlarm;
+
+        var lastPlayedAtUtc = DateTime.UtcNow;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await alarmScheduleService.UpdateScheduleByIdAsync(scheduleId, s => s.LastPlayedAtUtc = lastPlayedAtUtc);
+                dispatcher.Dispatch(new UpdateScheduleLastPlayedAction(scheduleId, lastPlayedAtUtc));
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Failed to update LastPlayedAtUtc for schedule {ScheduleId}", scheduleId);
+            }
+        });
+
+        stateManager.PreparationCancellationTokenSource?.Dispose();
+        stateManager.PreparationCancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = stateManager.PreparationCancellationTokenSource.Token;
+
+        stateManager.IsIndefinitePlayback = await modeResolver.IsIndefinitePlaybackAsync(scheduleId, cancellationToken);
+
+        stateManager.Playlist = await initializer.PrepareTracksAsync(scheduleId, cancellationToken);
+
+        if (stateManager.Playlist is null)
+        {
+            await PlaybackPreparationFailureHandler.HandleAsync(
+                scheduleId, isAlarm, "Track preparation cancelled or failed for schedule {ScheduleId}",
+                dispatcher, logger, TryPlayFallbackAlarmSoundAsync);
+            return;
+        }
+
+        if (stateManager.Playlist.Count == 0)
+        {
+            await PlaybackPreparationFailureHandler.HandleAsync(
+                scheduleId, isAlarm, "No tracks prepared for schedule {ScheduleId}",
+                dispatcher, logger, TryPlayFallbackAlarmSoundAsync);
+            return;
+        }
+
+        stateManager.CurrentTrackIndex = 0;
+        stateManager.ManuallyVisitedTrackIndices.Clear();
+
+        await sessionContextInitializer.InitializeAsync(
+            stateManager.Playlist,
+            p => stateManager.SessionMusicPlayItem = p,
+            m => stateManager.AnchorBibleMetadata = m,
+            m => stateManager.PreAnchorBibleMetadata = m);
+
+        navigationManager.NotifyNavigationChanged(stateManager.Playlist, stateManager.CurrentTrackIndex);
+
+        await PlayCurrentTrackAsync(cancellationToken: cancellationToken);
+
+        await notificationService.ClearDeliveredNotificationAsync(scheduleId);
     }
 
     public async Task PlayAsync()
@@ -824,5 +834,3 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         // so don't dispose them
     }
 }
-#pragma warning restore S3776
-
