@@ -29,17 +29,18 @@ public sealed class TrackPlaybackHandler
         this.progressTracker = progressTracker;
     }
 
-    public async Task<bool> PlayTrackAsync(
-        AudioPlayerTrack track,
-        int currentTrackIndex,
-        bool startFromBeginning,
-        int? currentScheduleId,
-        Func<bool> isPreparingOrPlaying,
-        Func<List<AudioPlayerTrack>?> getPlaylist,
-        Action<bool> setIsPreparingTrack,
-        HashSet<string> playedBibleTrackKeys,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> PlayTrackAsync(PlayTrackRequest request)
     {
+        var track = request.Track;
+        var currentTrackIndex = request.CurrentTrackIndex;
+        var startFromBeginning = request.StartFromBeginning;
+        var currentScheduleId = request.CurrentScheduleId;
+        Func<bool> isPreparingOrPlaying = request.IsPreparingOrPlaying;
+        Func<List<AudioPlayerTrack>?> getPlaylist = request.GetPlaylist;
+        Action<bool> setIsPreparingTrack = request.SetIsPreparingTrack;
+        var playedBibleTrackKeys = request.PlayedBibleTrackKeys;
+        var cancellationToken = request.CancellationToken;
+
         if (string.IsNullOrEmpty(track.Uri))
         {
             logger.Error("Cannot play track at index {TrackIndex}: URI is null or empty. URL: {TrackUrl}",

@@ -301,8 +301,9 @@ internal sealed class SectionFetcherSectionTracksLoader
                 normalizedSectionCode, section.Name, db.Entry(section).Property(s => s.Name).IsModified);
         }
 
-        await SaveTracksWithRetryAsync(db, section, normalizedSectionCode, normalizedPublicationCode,
-            normalizedLanguageCode, tracks.Count, cancellationToken);
+        await SaveTracksWithRetryAsync(new SaveSectionTracksPersistenceRequest(
+            db, section, normalizedSectionCode, normalizedPublicationCode,
+            normalizedLanguageCode, cancellationToken));
         await db.Entry(section).ReloadAsync(cancellationToken);
         var persistedSectionName = section.Name;
 
@@ -316,15 +317,15 @@ internal sealed class SectionFetcherSectionTracksLoader
         return true;
     }
 
-    private async Task SaveTracksWithRetryAsync(
-        MediaDbContext db,
-        BiblePublicationSection section,
-        string sectionCode,
-        string publicationCode,
-        string languageCode,
-        int trackCount,
-        CancellationToken cancellationToken)
+    private async Task SaveTracksWithRetryAsync(SaveSectionTracksPersistenceRequest request)
     {
+        var db = request.Db;
+        var section = request.Section;
+        var sectionCode = request.SectionCode;
+        var publicationCode = request.PublicationCode;
+        var languageCode = request.LanguageCode;
+        var cancellationToken = request.CancellationToken;
+
         const int maxAttempts = 4;
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {

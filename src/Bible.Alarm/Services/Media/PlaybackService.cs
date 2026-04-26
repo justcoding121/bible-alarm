@@ -612,16 +612,16 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var success = await trackPlaybackHandler.PlayTrackAsync(
-            track,
-            stateManager.CurrentTrackIndex,
-            startFromBeginning,
-            stateManager.CurrentScheduleId,
-            () => stateManager.IsPreparingOrPlaying(audioPlayer),
-            () => stateManager.Playlist,
-            isPreparing => stateManager.IsPreparingTrack = isPreparing,
-            stateManager.PlayedBibleTrackKeys,
-            cancellationToken);
+            var success = await trackPlaybackHandler.PlayTrackAsync(new PlayTrackRequest(
+                track,
+                stateManager.CurrentTrackIndex,
+                startFromBeginning,
+                stateManager.CurrentScheduleId,
+                () => stateManager.IsPreparingOrPlaying(audioPlayer),
+                () => stateManager.Playlist,
+                isPreparing => stateManager.IsPreparingTrack = isPreparing,
+                stateManager.PlayedBibleTrackKeys,
+                cancellationToken));
 
             if (!success)
             {

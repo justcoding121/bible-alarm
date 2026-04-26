@@ -244,9 +244,9 @@ internal sealed class EnglishContentSeeder
                     }
 
                     // Use the existing FetchPublicationSectionsAsync logic but adapted for English
-                    return await FetchEnglishPublicationSectionsAsync(
+                    return await FetchEnglishPublicationSectionsAsync(new FetchEnglishPublicationSectionsRequest(
                         db, publicationCodeForDb, normalizedLanguageCode, language,
-                        categoryName, isVideo, sectionCodes, cancellationToken);
+                        categoryName, isVideo, sectionCodes, cancellationToken));
                 }
 
                 case Models.Enums.CatalogType.IssueSectioned:
@@ -269,9 +269,9 @@ internal sealed class EnglishContentSeeder
                     logger.Information("Found {Count} issue section codes for {PublicationCode} from SectionLanguages",
                         issueSectionCodes.Count, publicationCode);
 
-                    return await FetchEnglishPublicationSectionsAsync(
+                    return await FetchEnglishPublicationSectionsAsync(new FetchEnglishPublicationSectionsRequest(
                         db, publicationCodeForDb, normalizedLanguageCode, language,
-                        categoryName, isVideo, issueSectionCodes, cancellationToken);
+                        categoryName, isVideo, issueSectionCodes, cancellationToken));
                 }
 
                 case Models.Enums.CatalogType.MediatorSectioned:
@@ -280,9 +280,9 @@ internal sealed class EnglishContentSeeder
 
                 case Models.Enums.CatalogType.Flat:
                 default:
-                    return await FetchEnglishPublicationTracksAsync(
-                        db, publicationCodeForDb, normalizedLanguageCode, language, category, 
-                        categoryName, isVideo, cancellationToken);
+                    return await FetchEnglishPublicationTracksAsync(new FetchEnglishPublicationTracksRequest(
+                        db, publicationCodeForDb, normalizedLanguageCode, language, category,
+                        categoryName, isVideo, cancellationToken));
             }
         }
         catch (Exception ex)
@@ -292,16 +292,17 @@ internal sealed class EnglishContentSeeder
         }
     }
 
-    private async Task<bool> FetchEnglishPublicationSectionsAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        Language? language,
-        string categoryName,
-        bool isVideo,
-        List<string> sectionCodes,
-        CancellationToken cancellationToken)
+    private async Task<bool> FetchEnglishPublicationSectionsAsync(FetchEnglishPublicationSectionsRequest req)
     {
+        var db = req.Db;
+        var normalizedPublicationCode = req.NormalizedPublicationCode;
+        var normalizedLanguageCode = req.NormalizedLanguageCode;
+        var language = req.Language;
+        var categoryName = req.CategoryName;
+        var isVideo = req.IsVideo;
+        var sectionCodes = req.SectionCodes;
+        var cancellationToken = req.CancellationToken;
+
         var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         
         // Data-driven: Check if publication has LanguageId == null (determines if it's instrumental music)
@@ -332,16 +333,17 @@ internal sealed class EnglishContentSeeder
             cancellationToken));
     }
 
-    private async Task<bool> FetchEnglishPublicationTracksAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        Language language,
-        Category category,
-        string categoryName,
-        bool isVideo,
-        CancellationToken cancellationToken)
+    private async Task<bool> FetchEnglishPublicationTracksAsync(FetchEnglishPublicationTracksRequest req)
     {
+        var db = req.Db;
+        var normalizedPublicationCode = req.NormalizedPublicationCode;
+        var normalizedLanguageCode = req.NormalizedLanguageCode;
+        var language = req.Language;
+        var category = req.Category;
+        var categoryName = req.CategoryName;
+        var isVideo = req.IsVideo;
+        var cancellationToken = req.CancellationToken;
+
         // Check if this is a drama (uses Mediator API, not GETPUBMEDIALINKS)
         var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
         
