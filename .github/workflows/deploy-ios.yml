@@ -38,7 +38,7 @@ jobs:
     # Xcode 26.0.x ships iphonesimulator SDK 23A339; .NET iOS 26 workload actool expects newer simulator runtimes (23B86+).
     # Pin 26.3 so CI matches installed Simulator 26.2 SDKs on macos-26 (see runner-images macos-26 Xcode table).
     - name: Select Xcode version
-      uses: maxim-lobanov/setup-xcode@v1
+      uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
       with:
         xcode-version: '26.3'
 
@@ -205,7 +205,7 @@ jobs:
 
     - name: Create release tag and GitHub Release (beta suffix on beta branch)
       if: steps.store_upload.outcome == 'success' && steps.version.outcome == 'success' && steps.version.outputs.version != ''
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
       with:
         tag_name: v${{ steps.version.outputs.version }}-ios${{ github.ref == 'refs/heads/beta' && '-beta' || '' }}
         target_commitish: ${{ github.sha }}

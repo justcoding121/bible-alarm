@@ -17,6 +17,8 @@ namespace Bible.Alarm.Services.Media.Audio;
 /// </summary>
 public class AudioPlayerMetadataHandler
 {
+    private static readonly TimeSpan ArtworkKeyRegexTimeout = TimeSpan.FromMilliseconds(250);
+
     private readonly ILogger logger;
     private readonly IDisplayMetadataService displayMetadataService;
     private readonly IDispatcher dispatcher;
@@ -186,7 +188,7 @@ public class AudioPlayerMetadataHandler
         var m = track?.PlayItem?.Metadata;
         if (m == null) return null;
         var raw = $"{m.ScheduleId}_{m.LanguageCode}_{m.PublicationCode}_{m.SectionCode ?? "n"}_{m.TrackCode}";
-        return Regex.Replace(raw, @"[\<\>\:\""\/\\\|\?\*]", "_");
+        return Regex.Replace(raw, @"[\<\>\:\""\/\\\|\?\*]", "_", RegexOptions.None, ArtworkKeyRegexTimeout);
     }
 
     private async Task SendMetadataMessageAsync(MetaData meta, AudioPlayerTrack? track)

@@ -48,9 +48,7 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
             await pragmaCmd.ExecuteNonQueryAsync();
         }
 
-        using var attachCmd = connection.CreateCommand();
-        attachCmd.CommandText = $"ATTACH DATABASE '{oldMediaIndexDbPath.Replace("'", "''")}' AS old_media";
-        await attachCmd.ExecuteNonQueryAsync();
+        await OldMediaIndexSqliteAttachHelper.AttachOldMediaDatabaseAsync(connection, oldMediaIndexDbPath);
 
         try
         {
@@ -62,7 +60,7 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
         finally
         {
             using var detachCmd = connection.CreateCommand();
-            detachCmd.CommandText = "DETACH DATABASE old_media";
+            detachCmd.CommandText = $"DETACH DATABASE {OldMediaIndexSqliteAttachHelper.OldMediaAlias}";
             await detachCmd.ExecuteNonQueryAsync();
         }
 

@@ -60,6 +60,44 @@ class Program
         }
     }
 
+    /// <summary>
+    /// Extracts a zip without following absolute paths or parent traversals outside the destination (S5042 / zip slip).
+    /// </summary>
+    static void ExtractMediaIndexZipSafely(string zipPath, string destinationDirectory)
+    {
+        Directory.CreateDirectory(destinationDirectory);
+        var destRoot = Path.GetFullPath(destinationDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        if (!destRoot.EndsWith(Path.DirectorySeparatorChar))
+        {
+            destRoot += Path.DirectorySeparatorChar;
+        }
+
+        using var archive = ZipFile.OpenRead(zipPath);
+        foreach (var entry in archive.Entries)
+        {
+            if (string.IsNullOrEmpty(entry.Name))
+            {
+                continue;
+            }
+
+            var entryRelative = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+            var destinationPath = Path.GetFullPath(Path.Combine(destRoot, entryRelative));
+            if (!destinationPath.StartsWith(destRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine($"Warning: skipping unsafe zip path: {entry.FullName}");
+                continue;
+            }
+
+            var entryDir = Path.GetDirectoryName(destinationPath);
+            if (!string.IsNullOrEmpty(entryDir))
+            {
+                Directory.CreateDirectory(entryDir);
+            }
+
+            entry.ExtractToFile(destinationPath, overwrite: true);
+        }
+    }
+
     static async Task Main(string[] args)
     {
         if (args.Length == 0)
@@ -436,7 +474,7 @@ class Program
             Directory.CreateDirectory(tempDir);
             try
             {
-                ZipFile.ExtractToDirectory(searchDir, tempDir);
+                ExtractMediaIndexZipSafely(searchDir, tempDir);
                 dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
                 if (!File.Exists(dbPath))
                 {
@@ -483,7 +521,7 @@ extractZip:
             Directory.CreateDirectory(tempDir);
             try
             {
-                ZipFile.ExtractToDirectory(path!, tempDir);
+                ExtractMediaIndexZipSafely(path!, tempDir);
                 dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
                 if (!File.Exists(dbPath))
                 {
