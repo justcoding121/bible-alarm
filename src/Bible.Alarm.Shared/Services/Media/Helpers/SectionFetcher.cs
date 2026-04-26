@@ -34,16 +34,17 @@ internal sealed class SectionFetcher
         this.sectionTracksLoader = new SectionFetcherSectionTracksLoader(httpClient, logger);
     }
 
-    public async Task<bool> FetchPublicationSectionsAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        string publicationCodeForDb,
-        BiblePublication englishPublication,
-        List<string> sectionCodes,
-        CancellationToken cancellationToken,
-        IFetchProgress? progress = null)
+    public async Task<bool> FetchPublicationSectionsAsync(FetchPublicationSectionsRequest request)
     {
+        var db = request.Db;
+        var normalizedPublicationCode = request.NormalizedPublicationCode;
+        var normalizedLanguageCode = request.NormalizedLanguageCode;
+        var publicationCodeForDb = request.PublicationCodeForDb;
+        var englishPublication = request.EnglishPublication;
+        var sectionCodes = request.SectionCodes;
+        var cancellationToken = request.CancellationToken;
+        var progress = request.Progress;
+
         // Use progress token if available, otherwise use provided token
         var effectiveToken = progress?.CancellationToken ?? cancellationToken;
 

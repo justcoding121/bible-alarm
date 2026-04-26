@@ -415,9 +415,9 @@ internal sealed class PublicationEnsurer
                     }
                     return false;
                 }
-                default:
-                    return false;
             }
+
+            throw new InvalidOperationException($"Unexpected FirstSectionAction: {action}");
         }
         catch (HttpRequestException)
         {
