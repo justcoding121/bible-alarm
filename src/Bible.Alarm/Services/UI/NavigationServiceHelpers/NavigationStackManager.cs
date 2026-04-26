@@ -308,8 +308,9 @@ public static class NavigationStackManager
                 views.Add(vcView);
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            Log.Debug(ex, "CollectNativeViews: ViewController access disposed (non-fatal)");
         }
     }
 
@@ -365,8 +366,9 @@ public static class NavigationStackManager
                 IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(vc.View);
             }
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            Log.Debug(ex, "SuppressViewControllerFinalizer: ViewController disposed (non-fatal)");
         }
         catch (Exception ex)
         {
