@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Music;
@@ -81,7 +82,7 @@ public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposab
             return;
         }
 
-        try { await cancellationTokenSource.CancelAsync(); } catch { }
+        await SafeTeardown.CancelAsyncNoThrow(cancellationTokenSource);
 
         if (isSelectingPublication)
         {

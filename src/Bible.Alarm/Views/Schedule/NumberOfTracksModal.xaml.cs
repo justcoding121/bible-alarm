@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Schedule;
@@ -42,7 +43,7 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
             return;
         }
 
-        try { await cancellationTokenSource.CancelAsync(); } catch { }
+        await SafeTeardown.CancelAsyncNoThrow(cancellationTokenSource);
 
         trackItem.IsNavigating = true;
         await Task.Delay(50);

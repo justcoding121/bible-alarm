@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Categories;
@@ -61,7 +62,7 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
             return;
         }
 
-        try { await cancellationTokenSource.CancelAsync(); } catch { }
+        await SafeTeardown.CancelAsyncNoThrow(cancellationTokenSource);
 
         if (isSelectingCategory)
         {

@@ -88,7 +88,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
         UnfocusSearchEntry();
 
-        try { await cancellationTokenSource.CancelAsync(); } catch { }
+        await SafeTeardown.CancelAsyncNoThrow(cancellationTokenSource);
 
         if (isSelectingLanguage)
         {

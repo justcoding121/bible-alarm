@@ -74,7 +74,14 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         // Only clear search term if it's not already empty - avoids triggering unnecessary re-population
         if (bibleViewModel != null && !string.IsNullOrEmpty(bibleViewModel.LanguageSearchTerm))
         {
-            try { bibleViewModel.LanguageSearchTerm = string.Empty; } catch { }
+            try
+            {
+                bibleViewModel.LanguageSearchTerm = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Debug(ex, "BiblePublicationLanguageModal: could not clear language search term");
+            }
         }
 
         var result = await ModalScrollHelper.HandleModalAppearingAsync(
@@ -146,7 +153,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
 
         UnfocusSearchEntry();
 
-        try { await cancellationTokenSource.CancelAsync(); } catch { }
+        await SafeTeardown.CancelAsyncNoThrow(cancellationTokenSource);
 
         if (isSelectingLanguage)
         {

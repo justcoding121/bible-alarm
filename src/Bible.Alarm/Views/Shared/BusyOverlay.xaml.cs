@@ -1,5 +1,6 @@
 #nullable enable
 using System.Windows.Input;
+using Bible.Alarm.Common.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
@@ -288,12 +289,7 @@ public partial class BusyOverlay : ContentView
     {
         if (timeoutCancellation != null)
         {
-            try
-            {
-                timeoutCancellation.Cancel();
-                timeoutCancellation.Dispose();
-            }
-            catch { }
+            SafeTeardown.CancelDisposeNoThrow(timeoutCancellation);
             timeoutCancellation = null;
         }
     }
@@ -612,12 +608,7 @@ public partial class BusyOverlay : ContentView
     {
         if (spinnerStopCancellation != null)
         {
-            try
-            {
-                spinnerStopCancellation.Cancel();
-                spinnerStopCancellation.Dispose();
-            }
-            catch { }
+            SafeTeardown.CancelDisposeNoThrow(spinnerStopCancellation);
             spinnerStopCancellation = null;
         }
     }

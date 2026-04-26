@@ -184,8 +184,8 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                 // Clean up WAL and SHM files if they exist (these are usually easier to delete)
                 var walPath = dbPath + "-wal";
                 var shmPath = dbPath + "-shm";
-                try { if (System.IO.File.Exists(walPath)) System.IO.File.Delete(walPath); } catch { }
-                try { if (System.IO.File.Exists(shmPath)) System.IO.File.Delete(shmPath); } catch { }
+                TryDeleteAuxiliaryDbFile(walPath);
+                TryDeleteAuxiliaryDbFile(shmPath);
 
                 // Force overwrite with bundled database (no conditional - always copy)
                 await CopyScheduleDatabaseFromResourceForceAsync(dbPath);
@@ -302,6 +302,28 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
     }
 
     /// <summary>
+    /// Best-effort delete for SQLite WAL/SHM sidecar files (may be locked briefly after main DB delete).
+    /// </summary>
+    private static void TryDeleteAuxiliaryDbFile(string path)
+    {
+        try
+        {
+            if (System.IO.File.Exists(path))
+            {
+                System.IO.File.Delete(path);
+            }
+        }
+        catch (System.IO.IOException ex)
+        {
+            Log.Logger.Debug(ex, "[BOOTSTRAP] Could not delete auxiliary file {Path}", path);
+        }
+        catch (System.UnauthorizedAccessException ex)
+        {
+            Log.Logger.Debug(ex, "[BOOTSTRAP] Could not delete auxiliary file {Path}", path);
+        }
+    }
+
+    /// <summary>
     /// Deletes old database file and its auxiliary files (WAL, SHM) if they exist.
     /// </summary>
     private async Task DeleteOldDatabaseFilesAsync(string dbPath, string description)
@@ -316,8 +338,8 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
             System.IO.File.Delete(dbPath);
             var oldWalPath = dbPath + "-wal";
             var oldShmPath = dbPath + "-shm";
-            try { if (System.IO.File.Exists(oldWalPath)) System.IO.File.Delete(oldWalPath); } catch { }
-            try { if (System.IO.File.Exists(oldShmPath)) System.IO.File.Delete(oldShmPath); } catch { }
+            TryDeleteAuxiliaryDbFile(oldWalPath);
+            TryDeleteAuxiliaryDbFile(oldShmPath);
             Log.Logger.Information("[BOOTSTRAP] Deleted {Description}: {DbPath}", description, dbPath);
         }
         catch (Exception ex)

@@ -517,7 +517,10 @@ public static class ModalScrollHelper
                 busyOverlay.IsVisible = false;
                 busyOverlay.InputTransparent = true;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Logger.Debug(ex, "ModalScrollHelper: could not force-hide busy overlay");
+            }
         });
     }
 
