@@ -1,5 +1,4 @@
 #nullable enable
-#pragma warning disable S3776
 using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -622,67 +621,90 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e) => UpdateFromState();
 
+    /// <summary>
+    /// Returns false when the UI should ignore this state tick while <see cref="isStopping"/> is true.
+    /// Clears stopping only when a different schedule begins loading; intermediate Loading for the
+    /// same schedule after dismiss must not re-enable controls (<see cref="stoppingScheduleId"/>).
+    /// </summary>
+    private bool TryExitStoppingStateForNewScheduleLoading(PlaybackState state)
+    {
+        if (!isStopping)
+        {
+            return true;
+        }
+
+        if (state.Status == PlayStatus.Loading
+            && state.CurrentScheduleId.HasValue
+            && state.CurrentScheduleId != stoppingScheduleId)
+        {
+            isStopping = false;
+            stoppingScheduleId = null;
+            OnPropertyChanged(nameof(IsStopping));
+            OnPropertyChanged(nameof(ShowPreparingProgress));
+            OnPropertyChanged(nameof(ShowPreparingCard));
+            OnPropertyChanged(nameof(ShowPlaybackControls));
+            OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
+            OnPropertyChanged(nameof(AreControlsEnabled));
+            OnPropertyChanged(nameof(IsBuffering));
+            OnPropertyChanged(nameof(IsStopButtonEnabled));
+            OnPropertyChanged(nameof(IsShowProgressBarAnimation));
+            return true;
+        }
+
+        return false;
+    }
+
+    private void ClearTrackChangeBusyFlags()
+    {
+        isTrackChangeBusy = false;
+        hasSeenTrackTransition = false;
+        IsPreviousBusy = false;
+        IsNextBusy = false;
+    }
+
+    private void UpdateTrackChangeBusyFromPlaybackState(PlaybackState state)
+    {
+        if (!isTrackChangeBusy)
+        {
+            return;
+        }
+
+        if (!hasSeenTrackTransition)
+        {
+            if (state.Status != PlayStatus.Playing && state.Status != PlayStatus.Paused)
+            {
+                hasSeenTrackTransition = true;
+            }
+
+            return;
+        }
+
+        if (state.Status is PlayStatus.Playing or PlayStatus.Paused)
+        {
+            ClearTrackChangeBusyFlags();
+            return;
+        }
+
+        if (state.Status is PlayStatus.Failed or PlayStatus.Ended
+            || (state.Status == PlayStatus.Stopped
+                && !state.IsTransitioningTrack && !state.IsAutoAdvancing))
+        {
+            ClearTrackChangeBusyFlags();
+        }
+    }
+
     private void UpdateFromState()
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
             var state = playbackState.Value;
 
-            if (isStopping)
+            if (!TryExitStoppingStateForNewScheduleLoading(state))
             {
-                // Only exit stopping state when a genuinely different schedule starts loading
-                // (schedule switch). During an explicit dismiss, the MediaElement teardown can
-                // produce intermediate Buffering→Loading states for the SAME schedule before
-                // PlaybackStoppedAction clears CurrentScheduleId. Comparing against
-                // stoppingScheduleId prevents those intermediate states from re-enabling controls.
-                if (state.Status == PlayStatus.Loading
-                    && state.CurrentScheduleId.HasValue
-                    && state.CurrentScheduleId != stoppingScheduleId)
-                {
-                    isStopping = false;
-                    stoppingScheduleId = null;
-                    OnPropertyChanged(nameof(IsStopping));
-                    OnPropertyChanged(nameof(ShowPreparingProgress));
-                    OnPropertyChanged(nameof(ShowPreparingCard));
-                    OnPropertyChanged(nameof(ShowPlaybackControls));
-                    OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
-                    OnPropertyChanged(nameof(AreControlsEnabled));
-                    OnPropertyChanged(nameof(IsBuffering));
-                    OnPropertyChanged(nameof(IsStopButtonEnabled));
-                    OnPropertyChanged(nameof(IsShowProgressBarAnimation));
-                }
-                else
-                {
-                    return;
-                }
+                return;
             }
 
-            if (isTrackChangeBusy)
-            {
-                if (!hasSeenTrackTransition)
-                {
-                    if (state.Status != PlayStatus.Playing && state.Status != PlayStatus.Paused)
-                    {
-                        hasSeenTrackTransition = true;
-                    }
-                }
-                else if (state.Status is PlayStatus.Playing or PlayStatus.Paused)
-                {
-                    isTrackChangeBusy = false;
-                    hasSeenTrackTransition = false;
-                    IsPreviousBusy = false;
-                    IsNextBusy = false;
-                }
-                else if (state.Status is PlayStatus.Failed or PlayStatus.Ended
-                         || (state.Status == PlayStatus.Stopped
-                             && !state.IsTransitioningTrack && !state.IsAutoAdvancing))
-                {
-                    isTrackChangeBusy = false;
-                    hasSeenTrackTransition = false;
-                    IsPreviousBusy = false;
-                    IsNextBusy = false;
-                }
-            }
+            UpdateTrackChangeBusyFromPlaybackState(state);
 
             var trackChanged = stateUpdater.DetectTrackChange(state);
             stateUpdater.HandleTrackChange(trackChanged, state);
@@ -815,5 +837,3 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         }
     }
 }
-#pragma warning restore S3776
-

@@ -1,5 +1,4 @@
 #nullable enable
-#pragma warning disable S3776
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -314,6 +313,48 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
     }
 
+    private void ClearMiniBarTrackChangeBusy()
+    {
+        isTrackChangeBusy = false;
+        hasSeenTrackTransition = false;
+        IsPreviousBusy = false;
+        IsNextBusy = false;
+    }
+
+    /// <summary>
+    /// Returns true when <see cref="SyncFromState"/> should return without applying the rest of the UI.
+    /// </summary>
+    private bool ShouldDeferSyncForTrackChange(PlaybackState state)
+    {
+        if (!isTrackChangeBusy)
+        {
+            return false;
+        }
+
+        if (!hasSeenTrackTransition)
+        {
+            if (state.Status != PlayStatus.Playing && state.Status != PlayStatus.Paused)
+            {
+                hasSeenTrackTransition = true;
+            }
+
+            return true;
+        }
+
+        var trackReady = state.Status is PlayStatus.Playing or PlayStatus.Paused;
+        var terminalState = state.Status is PlayStatus.Failed or PlayStatus.Ended
+                            || (state.Status == PlayStatus.Stopped
+                                && !state.IsTransitioningTrack && !state.IsAutoAdvancing);
+
+        if (trackReady || terminalState)
+        {
+            ClearMiniBarTrackChangeBusy();
+            return false;
+        }
+
+        return true;
+    }
+
     private void SyncFromState(PlaybackState state)
     {
         if (isDisposed) return;
@@ -323,33 +364,9 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
             return;
         }
 
-        if (isTrackChangeBusy)
+        if (ShouldDeferSyncForTrackChange(state))
         {
-            if (!hasSeenTrackTransition)
-            {
-                if (state.Status != PlayStatus.Playing && state.Status != PlayStatus.Paused)
-                {
-                    hasSeenTrackTransition = true;
-                }
-                return;
-            }
-
-            var trackReady = state.Status is PlayStatus.Playing or PlayStatus.Paused;
-            var terminalState = state.Status is PlayStatus.Failed or PlayStatus.Ended
-                                || (state.Status == PlayStatus.Stopped
-                                    && !state.IsTransitioningTrack && !state.IsAutoAdvancing);
-
-            if (trackReady || terminalState)
-            {
-                isTrackChangeBusy = false;
-                hasSeenTrackTransition = false;
-                IsPreviousBusy = false;
-                IsNextBusy = false;
-            }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         IsMaximizeBusy = false;
@@ -542,4 +559,3 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         WeakReferenceMessenger.Default.Unregister<PreviousButtonPressedMessage>(this);
     }
 }
-#pragma warning restore S3776

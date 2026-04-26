@@ -1,5 +1,4 @@
 #nullable enable
-#pragma warning disable S3776
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Messenger;
@@ -111,6 +110,16 @@ public sealed class ScheduleListItemViewModel(
     /// </summary>
     private void InitializeCommon(AlarmSchedule schedule, ScheduleStateItem? scheduleStateItem)
     {
+        ApplyScheduleFromPropertyManager(schedule);
+        RaiseCoreSchedulePropertyNotifications();
+        DisconnectScheduleSubscriptions();
+        ConnectScheduleSubscriptions(scheduleStateItem);
+        EnsureScheduleCommands();
+        RefreshSubTitleFromState(scheduleStateItem);
+    }
+
+    private void ApplyScheduleFromPropertyManager(AlarmSchedule schedule)
+    {
         propertyManager.IsInitializing = true;
         try
         {
@@ -122,10 +131,10 @@ public sealed class ScheduleListItemViewModel(
         {
             propertyManager.IsInitializing = false;
         }
+    }
 
-        // Trigger property change notifications (UI thread operation)
-        // Ensure these are on UI thread for proper binding updates
-        // NOTE: Also notify 'This' property to trigger converters that bind to the entire ViewModel
+    private void RaiseCoreSchedulePropertyNotifications()
+    {
         MainThread.BeginInvokeOnMainThread(() =>
         {
             OnPropertyChanged(nameof(Name));
@@ -139,25 +148,25 @@ public sealed class ScheduleListItemViewModel(
             OnPropertyChanged(nameof(DaysOfWeek));
             OnPropertyChanged(nameof(IsEnabled));
             OnPropertyChanged(nameof(MusicEnabled));
-            // Notify 'This' to trigger converters that bind to the entire ViewModel (e.g., dayColorConverter, dayBackgroundColorConverter)
             OnPropertyChanged(nameof(This));
         });
-        // Note: SubTitle and Language will be set by RefreshSubTitleFromState() below
+    }
 
-        // Unsubscribe first to avoid duplicate subscriptions when InitializeCommon is called multiple times
+    private void DisconnectScheduleSubscriptions()
+    {
         applicationState.StateChanged -= OnApplicationStateChanged;
         playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<RequestShowPlaybackModalMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlaybackModalOpenedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
+    }
 
-        // Subscribe to ApplicationState changes to react when this schedule is updated
+    private void ConnectScheduleSubscriptions(ScheduleStateItem? scheduleStateItem)
+    {
         applicationState.StateChanged += OnApplicationStateChanged;
-        // Store initial state for comparison
         stateHandler.LastKnownSchedule = Schedule;
 
-        // Initialize tracked subtitle values from state
         if (scheduleStateItem != null)
         {
             stateHandler.LastKnownBiblePublicationLanguageName = scheduleStateItem.BiblePublicationLanguageName;
@@ -166,40 +175,26 @@ public sealed class ScheduleListItemViewModel(
             stateHandler.LastKnownBiblePublicationCode = scheduleStateItem.BiblePublicationCode;
         }
 
-        // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
 
         var initialPlayback = playbackState.Value;
         lastObservedGlobalPlaybackActive = initialPlayback.IsPreparingOrPlaying || initialPlayback.CurrentScheduleId.HasValue;
 
-        // Sync IsBusy with current playback state (handles car-initiated playback before app open)
         SyncIsBusyWithPlaybackState();
 
-        // Subscribe to theme changes to update day button colors
         WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this, (r, m) => OnThemeChanged());
-
-        // When any source (home button, car listing, alarm, Android Auto) requests playback
-        // for this schedule, show the busy spinner so the user has immediate feedback.
         WeakReferenceMessenger.Default.Register<RequestShowPlaybackModalMessage>(this, (r, m) => OnRequestShowPlaybackModal(m));
-
-        // Clear the spinner when the playback modal is loaded and rendered on screen.
-        // This is the only place the spinner is cleared during normal operation.
-        // Fallback: SyncIsBusyWithPlaybackState clears the spinner if playback ends without
-        // the modal ever opening (e.g. error/toast), and the timeout covers stuck states.
         WeakReferenceMessenger.Default.Register<PlaybackModalOpenedMessage>(this, (r, m) => SetIsBusy(false));
-
-        // Explicit stop (dismiss button) clears isShowModalPending so that
-        // SyncIsBusyWithPlaybackState can clear the spinner. This message is NOT sent
-        // during schedule switches (PrepareAndPlayAsync stops the old schedule via
-        // StopAsyncInternal directly), so gap protection remains intact for car listing
-        // and alarm-triggered schedule changes.
         WeakReferenceMessenger.Default.Register<PlaybackExplicitStopMessage>(this, (r, m) =>
         {
             isShowModalPending = false;
             isPlayCommandRunning = false;
             SyncIsBusyWithPlaybackState();
         });
+    }
 
+    private void EnsureScheduleCommands()
+    {
         PlayCommand ??= new AsyncRelayCommand(async () =>
         {
             if (Schedule?.Id is not > 0 || isPlayCommandRunning)
@@ -279,10 +274,6 @@ public sealed class ScheduleListItemViewModel(
 
             dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
         });
-
-        // Initialize subtitle and language from state (SectionName is pre-populated during bootstrap)
-        // Use the provided scheduleStateItem if available to avoid re-looking it up
-        RefreshSubTitleFromState(scheduleStateItem);
     }
 
     public int ScheduleId => Schedule?.Id ?? 0;
@@ -818,4 +809,3 @@ public sealed class ScheduleListItemViewModel(
         WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
     }
 }
-#pragma warning restore S3776
