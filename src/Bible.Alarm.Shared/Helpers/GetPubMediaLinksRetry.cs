@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
+using Serilog;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -55,12 +56,14 @@ public static class GetPubMediaLinksRetry
                     return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
+                Log.Debug(ex, "GetPubMediaLinksRetry: HTTP error on host index {HostIndex}, retrying", idx);
                 continue;
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
+                Log.Debug(ex, "GetPubMediaLinksRetry: timeout on host index {HostIndex}, retrying", idx);
                 continue;
             }
         }
