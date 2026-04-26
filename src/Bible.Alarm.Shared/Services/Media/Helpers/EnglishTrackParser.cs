@@ -10,18 +10,14 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Helper class for parsing tracks from JSON responses for English content seeding.
+/// Parsing tracks from JSON responses for English content seeding.
 /// </summary>
-internal sealed class EnglishTrackParser
+internal static class EnglishTrackParser
 {
-    public EnglishTrackParser()
-    {
-    }
-
     /// <summary>
     /// Parses iam (Kingdom Melodies) tracks from JSON response.
     /// </summary>
-    public List<BiblePublicationTrack> ParseIamTracks(
+    public static List<BiblePublicationTrack> ParseIamTracks(
         JsonElement filesElement,
         string sectionCode)
     {
@@ -49,7 +45,7 @@ internal sealed class EnglishTrackParser
     /// <summary>
     /// Parses Bible publication tracks from JSON response.
     /// </summary>
-    public List<BiblePublicationTrack> ParseBibleTracks(
+    public static List<BiblePublicationTrack> ParseBibleTracks(
         JsonElement filesElement,
         string normalizedLanguageCode,
         string normalizedPublicationCode,
@@ -80,7 +76,7 @@ internal sealed class EnglishTrackParser
     /// <summary>
     /// Parses tracks for non-Bible, non-iam sectioned publications (e.g., video sections).
     /// </summary>
-    public List<BiblePublicationTrack> ParseGenericTracks(
+    public static List<BiblePublicationTrack> ParseGenericTracks(
         JsonElement filesElement,
         string normalizedLanguageCode,
         string fileFormat,

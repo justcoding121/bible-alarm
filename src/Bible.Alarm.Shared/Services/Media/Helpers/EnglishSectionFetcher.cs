@@ -24,13 +24,11 @@ internal sealed class EnglishSectionFetcher
 {
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
-    private readonly EnglishTrackParser trackParser;
 
-    public EnglishSectionFetcher(HttpClient httpClient, ILogger logger, EnglishTrackParser trackParser)
+    public EnglishSectionFetcher(HttpClient httpClient, ILogger logger)
     {
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.trackParser = trackParser ?? throw new ArgumentNullException(nameof(trackParser));
     }
 
     public async Task<(List<BiblePublicationSection> Sections, string? LocalizedPubName)> FetchSectionsAsync(
@@ -182,24 +180,24 @@ internal sealed class EnglishSectionFetcher
 
         if (isIssueSectioned)
         {
-            var tracks = trackParser.ParseGenericTracks(
+            var tracks = EnglishTrackParser.ParseGenericTracks(
                 filesElement, normalizedLanguageCode, "MP3", sectionCode);
             section.Tracks.AddRange(tracks);
         }
         else if (publicationWithoutLanguage)
         {
-            var tracks = trackParser.ParseIamTracks(filesElement, sectionCode);
+            var tracks = EnglishTrackParser.ParseIamTracks(filesElement, sectionCode);
             section.Tracks.AddRange(tracks);
         }
         else if (isBible)
         {
-            var tracks = trackParser.ParseBibleTracks(
+            var tracks = EnglishTrackParser.ParseBibleTracks(
                 filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode);
             section.Tracks.AddRange(tracks);
         }
         else
         {
-            var tracks = trackParser.ParseGenericTracks(
+            var tracks = EnglishTrackParser.ParseGenericTracks(
                 filesElement, normalizedLanguageCode, fileFormat, sectionCode);
             section.Tracks.AddRange(tracks);
         }

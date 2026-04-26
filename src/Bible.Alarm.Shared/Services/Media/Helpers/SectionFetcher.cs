@@ -25,7 +25,6 @@ internal sealed class SectionFetcher
 {
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
-    private readonly EnglishTrackParser trackParser;
     private readonly MediatorTrackParser mediatorTrackParser;
     private readonly SectionFetcherSectionTracksLoader sectionTracksLoader;
 
@@ -33,7 +32,6 @@ internal sealed class SectionFetcher
     {
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.trackParser = new EnglishTrackParser();
         this.mediatorTrackParser = new MediatorTrackParser();
         this.sectionTracksLoader = new SectionFetcherSectionTracksLoader(httpClient, logger);
     }
@@ -245,12 +243,12 @@ internal sealed class SectionFetcher
                 var tracks = new List<BiblePublicationTrack>();
                 if (isIssueSectioned)
                 {
-                    tracks = trackParser.ParseGenericTracks(
+                    tracks = EnglishTrackParser.ParseGenericTracks(
                         filesElement, normalizedLanguageCode, "MP3", sectionCode);
                 }
                 else if (isBible)
                 {
-                    tracks = trackParser.ParseBibleTracks(
+                    tracks = EnglishTrackParser.ParseBibleTracks(
                         filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode);
                 }
                 else
