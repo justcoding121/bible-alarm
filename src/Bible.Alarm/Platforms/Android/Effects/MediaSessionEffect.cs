@@ -394,7 +394,7 @@ public class MediaSessionEffect(
         return session;
     }
 
-    private bool HasValidMetadata(PlaybackMetadataChangedAction action)
+    private static bool HasValidMetadata(PlaybackMetadataChangedAction action)
     {
         return !string.IsNullOrEmpty(action.Title) || !string.IsNullOrEmpty(action.Artist);
     }
@@ -537,7 +537,7 @@ public class MediaSessionEffect(
         return Task.CompletedTask;
     }
 
-    private int MapPlayStatusToPlaybackState(PlayStatus status)
+    private static int MapPlayStatusToPlaybackState(PlayStatus status)
     {
         // Stopped/Ended use StatePaused (not StateStopped) to stay consistent with
         // SetStoppedState, which uses StatePaused to hint Android Auto that media is
@@ -555,7 +555,7 @@ public class MediaSessionEffect(
         };
     }
 
-    private long GetCurrentPlaybackPosition(MediaSessionCompat session)
+    private static long GetCurrentPlaybackPosition(MediaSessionCompat session)
     {
         var playbackStateCompat = session.Controller?.PlaybackState;
         return playbackStateCompat?.Position ?? 0;

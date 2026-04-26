@@ -15,7 +15,6 @@ using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media;
-using BiblePublication = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication;
 using Language = Bible.Alarm.Shared.Models.Media.Language;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +25,6 @@ using SharedBiblePublicationSection = Bible.Alarm.Shared.Models.Media.BiblePubli
 using SharedBiblePublicationTrack = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack;
 using MediatorTrack = Bible.Alarm.Cataloger.Models.MediatorTrack;
 using MusicTrack = Bible.Alarm.Cataloger.Models.MusicTrack;
-using Publication = Bible.Alarm.Cataloger.Models.Publication;
 using VideoEpisode = Bible.Alarm.Cataloger.Models.VideoEpisode;
 using Bible.Alarm.Cataloger.Seeders;
 
@@ -214,37 +212,6 @@ internal class DbSeeder : IDataPersister
             return null;
         }
     }
-
-
-    private async Task<Category> GetCategory(MediaDbContext db, string categoryCode)
-    {
-        return await db.Categories.FirstAsync(x => x.CategoryCode == categoryCode);
-    }
-
-    private async Task<BiblePublication> CreateBiblePublication(
-        MediaDbContext db,
-        Publication publication,
-        Language? newLanguage,
-        Category category,
-        string? languageCode,
-        bool isVideo = false)
-    {
-        var normalizedCode = publication.Code.ToLowerInvariant();
-        var isMusic = category.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase) ||
-                      JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedCode);
-        var biblePublication = new BiblePublication
-        {
-            Name = publication.Name,
-            PublicationCode = normalizedCode,
-            Language = newLanguage,
-            BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { CategoryId = category.Id, Category = category } },
-            IsVideo = isVideo,
-            IsMusic = isMusic
-        };
-        return biblePublication;
-    }
-
-
 
     public Task SaveBiblePublicationSections(
         string languageCode,

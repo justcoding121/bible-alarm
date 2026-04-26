@@ -31,7 +31,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     {
         LogSetup.Initialize(new AssemblyAppVersionFinder(), [], "iOS");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-        TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         ObjCRuntime.Runtime.MarshalManagedException += OnMarshalManagedException;
         ObjCRuntime.Runtime.MarshalObjectiveCException += OnMarshalObjectiveCException;
@@ -39,14 +39,14 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     private const int CrashFlushDelayMs = 500;
 
-    private void UnobserverdTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         IOsBootstrapLogger.WriteException(e.Exception);
         logger.Error(e.Exception, "Unobserved task exception.");
         FlushAndDelay();
     }
 
-    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
         var exception = e.ExceptionObject as Exception;
         if (exception != null)
@@ -82,8 +82,9 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         {
             Log.CloseAndFlush();
         }
-        catch
+        catch (Exception ex)
         {
+            logger.Warning(ex, "Log.CloseAndFlush failed during crash path");
         }
 
         Thread.Sleep(CrashFlushDelayMs);
@@ -153,7 +154,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         return result;
     }
 
-    private void SetupBackgroundTasks()
+    private static void SetupBackgroundTasks()
     {
         try
         {
@@ -174,36 +175,12 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         UNUserNotificationCenter.Current.Delegate = this;
     }
 
-    private async Task ShowNotificationDisabledMessageAsync()
-    {
-        MauiAppHolder.CreateAndStore();
-        MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-        await MauiProgram.WaitForBootstrapAsync();
-
-        var generalSettingsService = ServiceProviderManager.GetService<IGeneralSettingsService>();
-        if (generalSettingsService != null)
-        {
-            if (!await generalSettingsService.GeneralSettingExistsAsync("iOSNotificationDisabledMsgShown"))
-            {
-                await generalSettingsService.SetGeneralSettingAsync(
-                    "iOSNotificationDisabledMsgShown",
-                    "true");
-
-                var popupService = ServiceProviderManager.GetService<IToastService>();
-                await popupService.ShowMessage("You've disabled notifications. " +
-                                         "We won't be able to alert you on scheduled time, " +
-                                         "but you can open the app anytime and resume listening",
-                    8);
-            }
-        }
-    }
-
     public override void OnActivated(UIApplication uiApplication)
     {
         try
         {
             HandleDeliveredNotifications();
-            ResetBadgeCount();
+            ResetBadgeCountStatic();
         }
         catch (Exception e)
         {
@@ -213,7 +190,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         base.OnActivated(uiApplication);
     }
 
-    private void HandleDeliveredNotifications()
+    private static void HandleDeliveredNotifications()
     {
         var delivered = UNUserNotificationCenter.Current.GetDeliveredNotificationsAsync().Result;
 
@@ -230,7 +207,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
     }
 
-    private void ResetBadgeCount()
+    private static void ResetBadgeCountStatic()
     {
         UNUserNotificationCenter.Current.SetBadgeCount(0, error =>
         {
@@ -337,12 +314,12 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     {
         _ = Task.Run(async () =>
         {
-            var downloaded = await PerformBackgroundFetchAsync();
+            var downloaded = await PerformBackgroundFetchAsyncStatic();
             completionHandler(downloaded ? UIBackgroundFetchResult.NewData : UIBackgroundFetchResult.NoData);
         });
     }
 
-    private async Task<bool> PerformBackgroundFetchAsync()
+    private static async Task<bool> PerformBackgroundFetchAsyncStatic()
     {
         var downloaded = false;
 
@@ -374,7 +351,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
 
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-        TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
+        TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
         ObjCRuntime.Runtime.MarshalManagedException -= OnMarshalManagedException;
         ObjCRuntime.Runtime.MarshalObjectiveCException -= OnMarshalObjectiveCException;
 

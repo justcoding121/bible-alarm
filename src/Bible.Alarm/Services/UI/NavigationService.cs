@@ -28,7 +28,6 @@ public sealed class NavigationService(
     private readonly NavigationInstanceManager navigationManager = new(logger);
     private readonly HomeNavigationHandler homeHandler = new(logger, serviceProvider);
     private readonly ModalNavigationHandler modalHandler = new(logger, serviceProvider);
-    private readonly NavigationStackManager stackManager = new();
 
     // Navigation lock to prevent concurrent page navigation operations (push/pop race conditions)
     private readonly SemaphoreSlim navigationLock = new(1, 1);
@@ -327,7 +326,7 @@ public sealed class NavigationService(
             var navigation = GetNavigation();
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await stackManager.PopAsync(navigation);
+                await NavigationStackManager.PopAsync(navigation);
             });
         });
     }
@@ -339,7 +338,7 @@ public sealed class NavigationService(
             var navigation = GetNavigation();
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await stackManager.PopAsync(navigation);
+                await NavigationStackManager.PopAsync(navigation);
             });
         });
     }

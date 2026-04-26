@@ -66,13 +66,11 @@ public class ScheduleEffects(
     private ScheduleUpdateHandler? _updateHandler;
     private ScheduleCreateHandler? _createHandler;
     private ScheduleDeleteHandler? _deleteHandler;
-    private ScheduleSuccessHandler? _successHandler;
 
     private ScheduleAddHandler addHandler => _addHandler ??= new ScheduleAddHandler(mapper, scheduleDisplayNameService);
     private ScheduleUpdateHandler updateHandler => _updateHandler ??= new ScheduleUpdateHandler(mapper, scheduleDisplayNameService);
     private ScheduleCreateHandler createHandler => _createHandler ??= new ScheduleCreateHandler(mapper, this.alarmScheduleService, this.alarmService, scheduleDisplayNameService);
     private ScheduleDeleteHandler deleteHandler => _deleteHandler ??= new ScheduleDeleteHandler(mapper, this.alarmScheduleService, this.alarmService, this.mediaCacheService, scheduleDisplayNameService);
-    private ScheduleSuccessHandler successHandler => _successHandler ??= new ScheduleSuccessHandler();
 
     [EffectMethod]
     public async Task HandleViewSchedule(ViewScheduleAction action, IDispatcher dispatcher)
@@ -336,7 +334,7 @@ public class ScheduleEffects(
     [EffectMethod]
     public Task HandleUpdateScheduleSuccess(UpdateScheduleSuccessAction action, IDispatcher dispatcher)
     {
-        return successHandler.HandleUpdateScheduleSuccess(action, dispatcher);
+        return ScheduleSuccessHandler.HandleUpdateScheduleSuccess(action, dispatcher);
     }
 
     /// <summary>
@@ -346,7 +344,7 @@ public class ScheduleEffects(
     [EffectMethod]
     public async Task HandleRemoveScheduleSuccess(RemoveScheduleSuccessAction action, IDispatcher dispatcher)
     {
-        await successHandler.HandleRemoveScheduleSuccess(action, dispatcher);
+        await ScheduleSuccessHandler.HandleRemoveScheduleSuccess(action, dispatcher);
     }
 
     /// <summary>

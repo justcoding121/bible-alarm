@@ -134,7 +134,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return fromRange;
     }
 
-    private async Task<long?> GetContentLengthFromRangeRequestAsync(HttpClient client, string url, CancellationToken cancellationToken)
+    private static async Task<long?> GetContentLengthFromRangeRequestAsync(HttpClient client, string url, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(UserAgent);
@@ -319,7 +319,7 @@ internal sealed class RemoteMp4ArtworkExtractor
                | ((long)b[i + 4] << 24) | ((long)b[i + 5] << 16) | ((long)b[i + 6] << 8) | b[i + 7];
     }
 
-    private async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
+    private static async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(UserAgent);
@@ -413,7 +413,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return buffer;
     }
 
-    private async Task<byte[]?> FetchSuffixRangeAsync(HttpClient client, string url, int suffixLength, CancellationToken cancellationToken)
+    private static async Task<byte[]?> FetchSuffixRangeAsync(HttpClient client, string url, int suffixLength, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(UserAgent);

@@ -16,7 +16,7 @@ namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
 /// <summary>
 /// Handles navigation stack operations like pop.
 /// </summary>
-public sealed class NavigationStackManager
+public static class NavigationStackManager
 {
     private const int PopModalRetryDelayMs = 350;
 
@@ -24,7 +24,7 @@ public sealed class NavigationStackManager
     /// Pops the current modal page from the navigation stack.
     /// On WinUI the platform stack can be out of sync with MAUI; we retry once after a short delay.
     /// </summary>
-    public async Task PopModalAsync(INavigation navigation)
+    public static async Task PopModalAsync(INavigation navigation)
     {
         if (navigation.ModalStack.Count == 0)
         {
@@ -159,7 +159,7 @@ public sealed class NavigationStackManager
     /// <summary>
     /// Pops all modals from the navigation stack (top to bottom), disposing each.
     /// </summary>
-    public async Task PopAllModalsAsync(INavigation navigation)
+    public static async Task PopAllModalsAsync(INavigation navigation)
     {
         while (navigation.ModalStack.Count > 0)
         {
@@ -170,7 +170,7 @@ public sealed class NavigationStackManager
     /// <summary>
     /// Pops the current page from the navigation stack.
     /// </summary>
-    public async Task PopAsync(INavigation navigation)
+    public static async Task PopAsync(INavigation navigation)
     {
         if (navigation.NavigationStack.Count <= 1)
         {

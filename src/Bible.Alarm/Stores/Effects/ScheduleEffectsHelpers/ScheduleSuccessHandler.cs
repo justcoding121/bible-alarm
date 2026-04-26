@@ -13,11 +13,9 @@ namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 /// <summary>
 /// Handles success action effects for schedule operations.
 /// </summary>
-public class ScheduleSuccessHandler
+public static class ScheduleSuccessHandler
 {
-    public ScheduleSuccessHandler() { }
-
-    public Task HandleUpdateScheduleSuccess(UpdateScheduleSuccessAction action, IDispatcher dispatcher)
+    public static Task HandleUpdateScheduleSuccess(UpdateScheduleSuccessAction action, IDispatcher dispatcher)
     {
         try
         {
@@ -49,7 +47,7 @@ public class ScheduleSuccessHandler
         return Task.CompletedTask;
     }
 
-    public async Task HandleRemoveScheduleSuccess(RemoveScheduleSuccessAction action, IDispatcher dispatcher)
+    public static async Task HandleRemoveScheduleSuccess(RemoveScheduleSuccessAction action, IDispatcher dispatcher)
     {
         try
         {
