@@ -34,16 +34,17 @@ public sealed class PlaybackStopHandler
         this.progressTracker = progressTracker;
     }
 
-    public async Task StopAsync(
-        int? scheduleIdToSave,
-        TrackMetadata? trackMetadataToMark,
-        bool skipMarkAsPlayed,
-        bool skipSaveLastPlayed,
-        CancellationTokenSource? preparationCancellationTokenSource,
-        Action resetState,
-        Action stopProgressTimer,
-        bool skipDispatchStopped = false)
+    public async Task StopAsync(PlaybackStopRequest request)
     {
+        var scheduleIdToSave = request.ScheduleIdToSave;
+        var trackMetadataToMark = request.TrackMetadataToMark;
+        var skipMarkAsPlayed = request.SkipMarkAsPlayed;
+        var skipSaveLastPlayed = request.SkipSaveLastPlayed;
+        var preparationCancellationTokenSource = request.PreparationCancellationTokenSource;
+        var resetState = request.ResetState;
+        var stopProgressTimer = request.StopProgressTimer;
+        var skipDispatchStopped = request.SkipDispatchStopped;
+
         logger.Information("StopAsync called - stopping alarm completely");
 
         var dispatched = false;

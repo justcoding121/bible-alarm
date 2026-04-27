@@ -346,7 +346,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         // Any manual next/prev interaction makes the playback session indefinite.
         stateManager.IsIndefinitePlayback = true;
-        await navigationHandler.PlayNextAsync(
+        await navigationHandler.PlayNextAsync(new PlaybackNavigationNextRequest(
             stateManager.Playlist,
             () => stateManager.CurrentTrackIndex,
             idx => stateManager.CurrentTrackIndex = idx,
@@ -356,15 +356,15 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.ManuallyVisitedTrackIndices,
             idx => trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, idx),
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
-            stopPlaybackAsync: () => StopAsyncInternal(skipMarkAsPlayed: true),
-            handlePlaybackFailureAsync: () => HandlePlaybackFailureAsync());
+            () => StopAsyncInternal(skipMarkAsPlayed: true),
+            () => HandlePlaybackFailureAsync()));
     }
 
     public async Task PlayPreviousAsync()
     {
         // Any manual next/prev interaction makes the playback session indefinite.
         stateManager.IsIndefinitePlayback = true;
-        await navigationHandler.PlayPreviousAsync(
+        await navigationHandler.PlayPreviousAsync(new PlaybackNavigationPreviousRequest(
             stateManager.Playlist,
             () => stateManager.CurrentTrackIndex,
             idx => stateManager.CurrentTrackIndex = idx,
@@ -374,7 +374,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.ManuallyVisitedTrackIndices,
             idx => trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, idx),
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
-            handlePlaybackFailureAsync: () => HandlePlaybackFailureAsync());
+            () => HandlePlaybackFailureAsync()));
     }
 
     public void Receive(NextButtonPressedMessage message)
@@ -537,7 +537,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 _ = DispatchStoppedAfterTimeoutAsync(safetyNetCts.Token);
             }
 
-            await stopHandler.StopAsync(
+            await stopHandler.StopAsync(new PlaybackStopRequest(
                 scheduleIdToSave,
                 trackMetadataToMark,
                 skipMarkAsPlayed,
@@ -545,7 +545,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 stateManager.PreparationCancellationTokenSource,
                 () => stateManager.Reset(),
                 () => progressTracker.Stop(),
-                skipDispatchStopped);
+                skipDispatchStopped));
         }
         finally
         {

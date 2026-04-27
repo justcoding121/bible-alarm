@@ -34,19 +34,20 @@ public sealed class PlaybackNavigationHandler
         this.navigationManager = navigationManager;
     }
 
-    public async Task PlayNextAsync(
-        List<AudioPlayerTrack>? playlist,
-        Func<int> getCurrentTrackIndex,
-        Action<int> setCurrentTrackIndex,
-        int? currentScheduleId,
-        bool isIndefinitePlayback,
-        Func<Task<bool>> tryAppendNextTrackAsync,
-        HashSet<int> manuallyVisitedTrackIndices,
-        Func<int, Task> markCurrentTrackAsPlayedAsync,
-        Func<bool, Task> playCurrentTrackAsync,
-        Func<Task> stopPlaybackAsync,
-        Func<Task> handlePlaybackFailureAsync)
+    public async Task PlayNextAsync(PlaybackNavigationNextRequest request)
     {
+        var playlist = request.Playlist;
+        Func<int> getCurrentTrackIndex = request.GetCurrentTrackIndex;
+        Action<int> setCurrentTrackIndex = request.SetCurrentTrackIndex;
+        var currentScheduleId = request.CurrentScheduleId;
+        var isIndefinitePlayback = request.IsIndefinitePlayback;
+        Func<Task<bool>> tryAppendNextTrackAsync = request.TryAppendNextTrackAsync;
+        var manuallyVisitedTrackIndices = request.ManuallyVisitedTrackIndices;
+        Func<int, Task> markCurrentTrackAsPlayedAsync = request.MarkCurrentTrackAsPlayedAsync;
+        Func<bool, Task> playCurrentTrackAsync = request.PlayCurrentTrackAsync;
+        Func<Task> stopPlaybackAsync = request.StopPlaybackAsync;
+        Func<Task> handlePlaybackFailureAsync = request.HandlePlaybackFailureAsync;
+
         if (playlist is null || playlist.Count == 0)
         {
             return;
@@ -126,18 +127,19 @@ public sealed class PlaybackNavigationHandler
         await stopPlaybackAsync();
     }
 
-    public async Task PlayPreviousAsync(
-        List<AudioPlayerTrack>? playlist,
-        Func<int> getCurrentTrackIndex,
-        Action<int> setCurrentTrackIndex,
-        int? currentScheduleId,
-        bool isIndefinitePlayback,
-        Func<Task<bool>> tryPrependPreviousTrackAsync,
-        HashSet<int> manuallyVisitedTrackIndices,
-        Func<int, Task> markCurrentTrackAsPlayedAsync,
-        Func<bool, Task> playCurrentTrackAsync,
-        Func<Task> handlePlaybackFailureAsync)
+    public async Task PlayPreviousAsync(PlaybackNavigationPreviousRequest request)
     {
+        var playlist = request.Playlist;
+        Func<int> getCurrentTrackIndex = request.GetCurrentTrackIndex;
+        Action<int> setCurrentTrackIndex = request.SetCurrentTrackIndex;
+        var currentScheduleId = request.CurrentScheduleId;
+        var isIndefinitePlayback = request.IsIndefinitePlayback;
+        Func<Task<bool>> tryPrependPreviousTrackAsync = request.TryPrependPreviousTrackAsync;
+        var manuallyVisitedTrackIndices = request.ManuallyVisitedTrackIndices;
+        Func<int, Task> markCurrentTrackAsPlayedAsync = request.MarkCurrentTrackAsPlayedAsync;
+        Func<bool, Task> playCurrentTrackAsync = request.PlayCurrentTrackAsync;
+        Func<Task> handlePlaybackFailureAsync = request.HandlePlaybackFailureAsync;
+
         if (playlist is null || playlist.Count == 0)
         {
             return;
