@@ -757,13 +757,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 return;
             }
 
-            await failureHandler.HandlePlaybackFailureAsync(
+            await failureHandler.HandlePlaybackFailureAsync(new PlaybackHandleFailureRequest(
                 stateManager.IsAlarm,
                 stateManager.CurrentScheduleId,
                 () => ResetAsync(),
                 playlist => stateManager.Playlist = playlist,
                 idx => stateManager.CurrentTrackIndex = idx,
-                startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
+                startFromBeginning => PlayCurrentTrackAsync(startFromBeginning)));
         }
         catch (Exception ex)
         {
@@ -792,14 +792,14 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     }
 
     private Task TryPlayFallbackAlarmSoundAsync(int scheduleId, bool keepErrorMessage = false) =>
-        failureHandler.TryPlayFallbackWhenPrepareFailedAsync(
+        failureHandler.TryPlayFallbackWhenPrepareFailedAsync(new PlaybackPrepareFallbackRequest(
             scheduleId,
             keepErrorMessage,
             playlist => stateManager.Playlist = playlist,
             idx => stateManager.CurrentTrackIndex = idx,
             () => stateManager.ManuallyVisitedTrackIndices.Clear(),
             (playlist, idx) => navigationManager.NotifyNavigationChanged(playlist, idx),
-            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
+            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning)));
 
     private bool isDisposed;
 

@@ -34,14 +34,15 @@ public sealed class PlaybackFailureHandler
         this.logger = logger;
     }
 
-    public async Task HandlePlaybackFailureAsync(
-        bool isAlarm,
-        int? currentScheduleId,
-        Func<Task> resetAsync,
-        Action<List<AudioPlayerTrack>> setPlaylist,
-        Action<int> setCurrentTrackIndex,
-        Func<bool, Task> playCurrentTrackAsync)
+    public async Task HandlePlaybackFailureAsync(PlaybackHandleFailureRequest request)
     {
+        var isAlarm = request.IsAlarm;
+        var currentScheduleId = request.CurrentScheduleId;
+        var resetAsync = request.ResetAsync;
+        var setPlaylist = request.SetPlaylist;
+        var setCurrentTrackIndex = request.SetCurrentTrackIndex;
+        var playCurrentTrackAsync = request.PlayCurrentTrackAsync;
+
         // Reset player and playlist service
         await resetAsync();
 
@@ -80,15 +81,16 @@ public sealed class PlaybackFailureHandler
         }
     }
 
-    public async Task TryPlayFallbackWhenPrepareFailedAsync(
-        int scheduleId,
-        bool keepErrorMessage,
-        Action<List<AudioPlayerTrack>> setPlaylist,
-        Action<int> setCurrentTrackIndex,
-        Action clearManuallyVisited,
-        Action<List<AudioPlayerTrack>, int> notifyNavigationChanged,
-        Func<bool, Task> playCurrentTrackAsync)
+    public async Task TryPlayFallbackWhenPrepareFailedAsync(PlaybackPrepareFallbackRequest request)
     {
+        var scheduleId = request.ScheduleId;
+        var keepErrorMessage = request.KeepErrorMessage;
+        var setPlaylist = request.SetPlaylist;
+        var setCurrentTrackIndex = request.SetCurrentTrackIndex;
+        var clearManuallyVisited = request.ClearManuallyVisited;
+        var notifyNavigationChanged = request.NotifyNavigationChanged;
+        var playCurrentTrackAsync = request.PlayCurrentTrackAsync;
+
         try
         {
             await notificationService.ShowNotificationAsync(scheduleId);
