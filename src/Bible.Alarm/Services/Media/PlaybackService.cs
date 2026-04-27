@@ -101,20 +101,22 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         modeResolver = new PlaybackModeResolver(alarmScheduleService, logger);
         resetExecutor = new PlaybackResetExecutor(progressTracker, audioPlayer, stateManager, dispatcher, logger);
         mediaEventAdapter = new PlaybackMediaEventAdapter(
-            eventHandler, progressTracker, logger,
-            () => stateManager.Playlist,
-            () => stateManager.CurrentTrackIndex,
-            idx => stateManager.CurrentTrackIndex = idx,
-            () => stateManager.CurrentScheduleId,
-            () => stateManager.IsIndefinitePlayback,
-            () => TryAppendNextTrackAsync(),
-            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
-            skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false),
-            () => HandlePlaybackFailureAsync(),
-            () => stateManager.ManualNavigationPending,
-            () => stateManager.IsAlarm,
-            async (msg, playRingtone) => await ShowPlaybackErrorInModalKeepSessionAsync(msg, playRingtone),
-            idx => stateManager.IsPlaybackEstablishedForTrack(idx));
+            eventHandler,
+            progressTracker,
+            logger,
+            new PlaybackMediaEventAdapterCallbacks(
+                () => stateManager.Playlist,
+                () => stateManager.CurrentTrackIndex,
+                idx => stateManager.CurrentTrackIndex = idx,
+                () => stateManager.CurrentScheduleId,
+                () => stateManager.IsIndefinitePlayback,
+                () => TryAppendNextTrackAsync(),
+                startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
+                skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false),
+                () => stateManager.ManualNavigationPending,
+                () => stateManager.IsAlarm,
+                async (msg, playRingtone) => await ShowPlaybackErrorInModalKeepSessionAsync(msg, playRingtone),
+                idx => stateManager.IsPlaybackEstablishedForTrack(idx)));
 
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));

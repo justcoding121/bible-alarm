@@ -1,11 +1,9 @@
 #nullable enable
 
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
@@ -19,54 +17,18 @@ public sealed class PlaybackMediaEventAdapter
     private readonly PlaybackEventHandler eventHandler;
     private readonly ProgressTracker progressTracker;
     private readonly ILogger logger;
-    private readonly Func<List<AudioPlayerTrack>?> getPlaylist;
-    private readonly Func<int> getCurrentTrackIndex;
-    private readonly Action<int> setCurrentTrackIndex;
-    private readonly Func<int?> getCurrentScheduleId;
-    private readonly Func<bool> getIsIndefinitePlayback;
-    private readonly Func<Task<bool>> tryAppendNextTrackAsync;
-    private readonly Func<bool, Task> playCurrentTrackAsync;
-    private readonly Func<bool, Task> stopAsyncInternal;
-    private readonly Func<Task> handlePlaybackFailureAsync;
-    private readonly Func<bool> getIsManualNavigationPending;
-    private readonly Func<bool> getIsAlarm;
-    private readonly Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync;
-    private readonly Func<int, bool> isPlaybackEstablishedForTrack;
+    private readonly PlaybackMediaEventAdapterCallbacks callbacks;
 
     public PlaybackMediaEventAdapter(
         PlaybackEventHandler eventHandler,
         ProgressTracker progressTracker,
         ILogger logger,
-        Func<List<AudioPlayerTrack>?> getPlaylist,
-        Func<int> getCurrentTrackIndex,
-        Action<int> setCurrentTrackIndex,
-        Func<int?> getCurrentScheduleId,
-        Func<bool> getIsIndefinitePlayback,
-        Func<Task<bool>> tryAppendNextTrackAsync,
-        Func<bool, Task> playCurrentTrackAsync,
-        Func<bool, Task> stopAsyncInternal,
-        Func<Task> handlePlaybackFailureAsync,
-        Func<bool> getIsManualNavigationPending,
-        Func<bool> getIsAlarm,
-        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync,
-        Func<int, bool> isPlaybackEstablishedForTrack)
+        PlaybackMediaEventAdapterCallbacks callbacks)
     {
         this.eventHandler = eventHandler;
         this.progressTracker = progressTracker;
         this.logger = logger;
-        this.getPlaylist = getPlaylist;
-        this.getCurrentTrackIndex = getCurrentTrackIndex;
-        this.setCurrentTrackIndex = setCurrentTrackIndex;
-        this.getCurrentScheduleId = getCurrentScheduleId;
-        this.getIsIndefinitePlayback = getIsIndefinitePlayback;
-        this.tryAppendNextTrackAsync = tryAppendNextTrackAsync;
-        this.playCurrentTrackAsync = playCurrentTrackAsync;
-        this.stopAsyncInternal = stopAsyncInternal;
-        this.handlePlaybackFailureAsync = handlePlaybackFailureAsync;
-        this.getIsManualNavigationPending = getIsManualNavigationPending;
-        this.getIsAlarm = getIsAlarm;
-        this.showPlaybackErrorInModalKeepSessionAsync = showPlaybackErrorInModalKeepSessionAsync;
-        this.isPlaybackEstablishedForTrack = isPlaybackEstablishedForTrack;
+        this.callbacks = callbacks;
     }
 
     public async void OnMediaEnded(object? sender, EventArgs e)
@@ -78,11 +40,11 @@ public sealed class PlaybackMediaEventAdapter
             // Paused→Stopped state changes before this handler runs, which disables only
             // prev/next via UpdateControlsFromState. Sending BeginStoppingPlaybackMessage
             // here ensures all controls are disabled simultaneously.
-            if (!getIsManualNavigationPending())
+            if (!callbacks.GetIsManualNavigationPending())
             {
-                var playlist = getPlaylist();
-                var currentIndex = getCurrentTrackIndex();
-                var isLastFiniteTrack = !getIsIndefinitePlayback()
+                var playlist = callbacks.GetPlaylist();
+                var currentIndex = callbacks.GetCurrentTrackIndex();
+                var isLastFiniteTrack = !callbacks.GetIsIndefinitePlayback()
                     && (playlist == null || currentIndex >= playlist.Count - 1);
 
                 if (isLastFiniteTrack)
@@ -92,19 +54,18 @@ public sealed class PlaybackMediaEventAdapter
             }
 
             progressTracker.Stop();
-            await eventHandler.HandleMediaEndedAsync(
-                getPlaylist(),
-                getCurrentTrackIndex,
-                setCurrentTrackIndex,
-                getCurrentScheduleId(),
-                getIsIndefinitePlayback(),
-                tryAppendNextTrackAsync,
-                playCurrentTrackAsync,
-                stopAsyncInternal,
-                handlePlaybackFailureAsync,
-                getIsManualNavigationPending,
-                getIsAlarm,
-                showPlaybackErrorInModalKeepSessionAsync);
+            await eventHandler.HandleMediaEndedAsync(new PlaybackMediaEndedRequest(
+                callbacks.GetPlaylist(),
+                callbacks.GetCurrentTrackIndex,
+                callbacks.SetCurrentTrackIndex,
+                callbacks.GetCurrentScheduleId(),
+                callbacks.GetIsIndefinitePlayback(),
+                callbacks.TryAppendNextTrackAsync,
+                callbacks.PlayCurrentTrackAsync,
+                callbacks.StopAsyncInternal,
+                callbacks.GetIsManualNavigationPending,
+                callbacks.GetIsAlarm,
+                callbacks.ShowPlaybackErrorInModalKeepSessionAsync));
         }
         catch (Exception ex)
         {
@@ -116,8 +77,8 @@ public sealed class PlaybackMediaEventAdapter
     {
         try
         {
-            var playlist = getPlaylist();
-            var index = getCurrentTrackIndex();
+            var playlist = callbacks.GetPlaylist();
+            var index = callbacks.GetCurrentTrackIndex();
             var trackUri = playlist != null && index >= 0 && index < playlist.Count
                 ? playlist[index].Uri ?? "Unknown"
                 : "Unknown";
@@ -125,25 +86,23 @@ public sealed class PlaybackMediaEventAdapter
                 ? playlist[index].PlayItem?.Url ?? "Unknown"
                 : "Unknown";
 
-            await eventHandler.HandleMediaFailedAsync(
+            await eventHandler.HandleMediaFailedAsync(new PlaybackMediaFailedRequest(
                 playlist,
-                getCurrentTrackIndex,
-                setCurrentTrackIndex,
+                callbacks.GetCurrentTrackIndex,
                 trackUri,
                 trackUrl,
-                playCurrentTrackAsync,
-                handlePlaybackFailureAsync,
-                getIsManualNavigationPending,
-                getIsAlarm,
-                showPlaybackErrorInModalKeepSessionAsync,
-                isPlaybackEstablishedForTrack);
+                callbacks.PlayCurrentTrackAsync,
+                callbacks.GetIsManualNavigationPending,
+                callbacks.GetIsAlarm,
+                callbacks.ShowPlaybackErrorInModalKeepSessionAsync,
+                callbacks.IsPlaybackEstablishedForTrack));
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error handling media failed event");
             try
             {
-                await showPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", getIsAlarm());
+                await callbacks.ShowPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", callbacks.GetIsAlarm());
             }
             catch (Exception innerEx)
             {

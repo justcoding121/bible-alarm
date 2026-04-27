@@ -46,20 +46,20 @@ public sealed class PlaybackEventHandler
         this.trackCdnUrlRefresher = trackCdnUrlRefresher;
     }
 
-    public async Task HandleMediaEndedAsync(
-        List<AudioPlayerTrack>? playlist,
-        Func<int> getCurrentTrackIndex,
-        Action<int> setCurrentTrackIndex,
-        int? currentScheduleId,
-        bool isIndefinitePlayback,
-        Func<Task<bool>> tryAppendNextTrackAsync,
-        Func<bool, Task> playCurrentTrackAsync,
-        Func<bool, Task> stopAsyncInternal,
-        Func<Task> handlePlaybackFailureAsync,
-        Func<bool> getIsManualNavigationPending,
-        Func<bool> getIsAlarm,
-        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync)
+    public async Task HandleMediaEndedAsync(PlaybackMediaEndedRequest request)
     {
+        var playlist = request.Playlist;
+        Func<int> getCurrentTrackIndex = request.GetCurrentTrackIndex;
+        Action<int> setCurrentTrackIndex = request.SetCurrentTrackIndex;
+        var currentScheduleId = request.CurrentScheduleId;
+        var isIndefinitePlayback = request.IsIndefinitePlayback;
+        Func<Task<bool>> tryAppendNextTrackAsync = request.TryAppendNextTrackAsync;
+        Func<bool, Task> playCurrentTrackAsync = request.PlayCurrentTrackAsync;
+        Func<bool, Task> stopAsyncInternal = request.StopAsyncInternal;
+        Func<bool> getIsManualNavigationPending = request.GetIsManualNavigationPending;
+        Func<bool> getIsAlarm = request.GetIsAlarm;
+        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync = request.ShowPlaybackErrorInModalKeepSessionAsync;
+
         if (getIsManualNavigationPending())
         {
             logger.Debug("HandleMediaEndedAsync: manual Next/Prev pending - skipping to avoid double advance");
@@ -156,19 +156,18 @@ public sealed class PlaybackEventHandler
         }
     }
 
-    public async Task HandleMediaFailedAsync(
-        List<AudioPlayerTrack>? playlist,
-        Func<int> getCurrentTrackIndex,
-        Action<int> setCurrentTrackIndex,
-        string trackUri,
-        string trackUrl,
-        Func<bool, Task> playCurrentTrackAsync,
-        Func<Task> handlePlaybackFailureAsync,
-        Func<bool> getIsManualNavigationPending,
-        Func<bool> getIsAlarm,
-        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync,
-        Func<int, bool> isPlaybackEstablishedForTrack)
+    public async Task HandleMediaFailedAsync(PlaybackMediaFailedRequest request)
     {
+        var playlist = request.Playlist;
+        Func<int> getCurrentTrackIndex = request.GetCurrentTrackIndex;
+        var trackUri = request.TrackUri;
+        var trackUrl = request.TrackUrl;
+        Func<bool, Task> playCurrentTrackAsync = request.PlayCurrentTrackAsync;
+        Func<bool> getIsManualNavigationPending = request.GetIsManualNavigationPending;
+        Func<bool> getIsAlarm = request.GetIsAlarm;
+        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync = request.ShowPlaybackErrorInModalKeepSessionAsync;
+        Func<int, bool> isPlaybackEstablishedForTrack = request.IsPlaybackEstablishedForTrack;
+
         try
         {
             if (getIsManualNavigationPending())
