@@ -140,7 +140,15 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IDownloadService, DownloadService>();
         services.AddSingleton<IMediaIndexVersionService, MediaIndexVersionService>();
         services.AddSingleton<IMediaIndexService, MediaIndexService>();
-        services.AddSingleton<IMediaService, MediaService>();
+        services.AddSingleton<IMediaService>(sp => new MediaService(new MediaServiceDependencies(
+            sp.GetRequiredService<IMediaIndexService>(),
+            sp.GetRequiredService<IBiblePublicationService>(),
+            sp.GetRequiredService<IBiblePublicationSectionService>(),
+            sp.GetRequiredService<IBiblePublicationTrackService>(),
+            sp.GetRequiredService<IMelodyMusicService>(),
+            sp.GetRequiredService<IVocalMusicService>(),
+            sp.GetRequiredService<ILanguageContentService>(),
+            sp.GetRequiredService<IServiceScopeFactory>())));
         services.AddSingleton<IMediaCacheService, MediaCacheService>();
         services.AddSingleton<IMediaUrlRefreshService, MediaUrlRefreshService>();
         services.AddSingleton<IPlaylistService, PlaylistService>();

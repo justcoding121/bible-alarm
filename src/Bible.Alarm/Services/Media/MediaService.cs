@@ -16,25 +16,17 @@ using System.Collections.Concurrent;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class MediaService(
-    IMediaIndexService mediaIndexService,
-    IBiblePublicationService BiblePublicationService,
-    IBiblePublicationSectionService biblePublicationSectionService,
-    IBiblePublicationTrackService biblePublicationTrackService,
-    IMelodyMusicService melodyMusicService,
-    IVocalMusicService vocalMusicService,
-    ILanguageContentService languageContentService,
-    IServiceScopeFactory scopeFactory)
+public sealed class MediaService(MediaServiceDependencies dependencies)
     : IMediaService, IDisposable
 {
-    private readonly IMediaIndexService mediaIndexService = mediaIndexService ?? throw new ArgumentNullException(nameof(mediaIndexService));
-    private readonly IBiblePublicationService BiblePublicationService = BiblePublicationService ?? throw new ArgumentNullException(nameof(BiblePublicationService));
-    private readonly IBiblePublicationSectionService biblePublicationSectionService = biblePublicationSectionService ?? throw new ArgumentNullException(nameof(biblePublicationSectionService));
-    private readonly IBiblePublicationTrackService biblePublicationTrackService = biblePublicationTrackService ?? throw new ArgumentNullException(nameof(biblePublicationTrackService));
-    private readonly IMelodyMusicService melodyMusicService = melodyMusicService ?? throw new ArgumentNullException(nameof(melodyMusicService));
-    private readonly IVocalMusicService vocalMusicService = vocalMusicService ?? throw new ArgumentNullException(nameof(vocalMusicService));
-    private readonly ILanguageContentService languageContentService = languageContentService ?? throw new ArgumentNullException(nameof(languageContentService));
-    private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly IMediaIndexService mediaIndexService = dependencies.MediaIndexService ?? throw new ArgumentNullException(nameof(dependencies.MediaIndexService));
+    private readonly IBiblePublicationService BiblePublicationService = dependencies.BiblePublicationService ?? throw new ArgumentNullException(nameof(dependencies.BiblePublicationService));
+    private readonly IBiblePublicationSectionService biblePublicationSectionService = dependencies.BiblePublicationSectionService ?? throw new ArgumentNullException(nameof(dependencies.BiblePublicationSectionService));
+    private readonly IBiblePublicationTrackService biblePublicationTrackService = dependencies.BiblePublicationTrackService ?? throw new ArgumentNullException(nameof(dependencies.BiblePublicationTrackService));
+    private readonly IMelodyMusicService melodyMusicService = dependencies.MelodyMusicService ?? throw new ArgumentNullException(nameof(dependencies.MelodyMusicService));
+    private readonly IVocalMusicService vocalMusicService = dependencies.VocalMusicService ?? throw new ArgumentNullException(nameof(dependencies.VocalMusicService));
+    private readonly ILanguageContentService languageContentService = dependencies.LanguageContentService ?? throw new ArgumentNullException(nameof(dependencies.LanguageContentService));
+    private readonly IServiceScopeFactory scopeFactory = dependencies.ScopeFactory ?? throw new ArgumentNullException(nameof(dependencies.ScopeFactory));
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -305,6 +306,8 @@ internal sealed class PublicationEnsurer
         FetchFirstSectionThenTracks,
     }
 
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2583",
+        Justification = "FetchPublicationSectionsAsync / FetchSingleSectionForNewPublicationAsync can return false; Sonar does not fully analyze across ILanguageContentService implementations.")]
     private async Task<bool> FetchFirstSectionWithTracksAsync(
         string publicationCode,
         string languageCode,
@@ -392,24 +395,27 @@ internal sealed class PublicationEnsurer
                     return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
                 case FirstSectionAction.FetchAllSectionsThenTracks:
                 {
-                    var sectionsFetched = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
-                    if (sectionsFetched)
+                    if (!await languageContentService.FetchPublicationSectionsAsync(
+                            publicationCode, languageCode, cancellationToken))
                     {
-                        progress?.UpdateProgress(0.5);
-                        return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
+                        return false;
                     }
-                    return false;
+
+                    progress?.UpdateProgress(0.5);
+                    return await languageContentService.FetchSectionTracksAsync(
+                        publicationCode, firstSectionCode, languageCode, cancellationToken);
                 }
                 case FirstSectionAction.FetchFirstSectionThenTracks:
                 {
-                    var firstSectionFetched = await FetchSingleSectionForNewPublicationAsync(
-                        publicationCode, firstSectionCode, languageCode, cancellationToken);
-                    if (firstSectionFetched)
+                    if (!await FetchSingleSectionForNewPublicationAsync(
+                            publicationCode, firstSectionCode, languageCode, cancellationToken))
                     {
-                        progress?.UpdateProgress(0.5);
-                        return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
+                        return false;
                     }
-                    return false;
+
+                    progress?.UpdateProgress(0.5);
+                    return await languageContentService.FetchSectionTracksAsync(
+                        publicationCode, firstSectionCode, languageCode, cancellationToken);
                 }
             }
 
