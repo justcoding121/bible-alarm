@@ -184,24 +184,24 @@ internal sealed class EnglishSectionFetcher
         if (isIssueSectioned)
         {
             var tracks = EnglishTrackParser.ParseGenericTracks(
-                filesElement, normalizedLanguageCode, "MP3", sectionCode);
+                filesElement, normalizedLanguageCode, "MP3");
             section.Tracks.AddRange(tracks);
         }
         else if (publicationWithoutLanguage)
         {
-            var tracks = EnglishTrackParser.ParseIamTracks(filesElement, sectionCode);
+            var tracks = EnglishTrackParser.ParseIamTracks(filesElement);
             section.Tracks.AddRange(tracks);
         }
         else if (isBible)
         {
             var tracks = EnglishTrackParser.ParseBibleTracks(
-                filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode);
+                filesElement, normalizedLanguageCode);
             section.Tracks.AddRange(tracks);
         }
         else
         {
             var tracks = EnglishTrackParser.ParseGenericTracks(
-                filesElement, normalizedLanguageCode, fileFormat, sectionCode);
+                filesElement, normalizedLanguageCode, fileFormat);
             section.Tracks.AddRange(tracks);
         }
 

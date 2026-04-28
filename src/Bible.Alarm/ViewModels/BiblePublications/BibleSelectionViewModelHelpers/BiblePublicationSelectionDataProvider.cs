@@ -363,7 +363,7 @@ public sealed class BiblePublicationSelectionDataProvider
             foreach (var publication in publicationsData.Values)
             {
                 // Skip duplicates - if code already exists, use the existing one
-                if (mapping.TryGetValue(publication.PublicationCode, out var existingVm))
+                if (mapping.TryGetValue(publication.PublicationCode, out _))
                 {
                     // Don't set IsSelected here - it will be set later by SetSelectedPublication()
                     continue;

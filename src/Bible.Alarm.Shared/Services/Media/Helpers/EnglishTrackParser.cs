@@ -17,9 +17,7 @@ internal static class EnglishTrackParser
     /// <summary>
     /// Parses iam (Kingdom Melodies) tracks from JSON response.
     /// </summary>
-    public static List<BiblePublicationTrack> ParseIamTracks(
-        JsonElement filesElement,
-        string sectionCode)
+    public static List<BiblePublicationTrack> ParseIamTracks(JsonElement filesElement)
     {
         var tracks = new List<BiblePublicationTrack>();
         
@@ -27,14 +25,12 @@ internal static class EnglishTrackParser
         if (filesElement.TryGetProperty("E", out var englishFiles) &&
             englishFiles.TryGetProperty("MP3", out var mp3Files))
         {
-            var trackNumber = 1;
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
-                var track = ParseTrackFromJson(trackFile, trackNumber, sectionCode, isIam: true);
+                var track = ParseTrackFromJson(trackFile, "E");
                 if (track != null)
                 {
                     tracks.Add(track);
-                    trackNumber++;
                 }
             }
         }
@@ -47,9 +43,7 @@ internal static class EnglishTrackParser
     /// </summary>
     public static List<BiblePublicationTrack> ParseBibleTracks(
         JsonElement filesElement,
-        string normalizedLanguageCode,
-        string normalizedPublicationCode,
-        string sectionCode)
+        string normalizedLanguageCode)
     {
         var tracks = new List<BiblePublicationTrack>();
         
@@ -57,15 +51,12 @@ internal static class EnglishTrackParser
         if (filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) &&
             languageFiles.TryGetProperty("MP3", out var mp3Files))
         {
-            var trackNumber = 1;
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
-                var track = ParseTrackFromJson(trackFile, trackNumber, sectionCode,
-                    normalizedPublicationCode, normalizedLanguageCode, isBible: true);
+                var track = ParseTrackFromJson(trackFile, normalizedLanguageCode);
                 if (track != null)
                 {
                     tracks.Add(track);
-                    trackNumber++;
                 }
             }
         }
@@ -79,22 +70,19 @@ internal static class EnglishTrackParser
     public static List<BiblePublicationTrack> ParseGenericTracks(
         JsonElement filesElement,
         string normalizedLanguageCode,
-        string fileFormat,
-        string sectionCode)
+        string fileFormat)
     {
         var tracks = new List<BiblePublicationTrack>();
 
         if (filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) &&
             languageFiles.TryGetProperty(fileFormat, out var formatFiles))
         {
-            var trackNumber = 1;
             foreach (var trackFile in formatFiles.EnumerateArray())
             {
-                var track = ParseTrackFromJson(trackFile, trackNumber, sectionCode);
+                var track = ParseTrackFromJson(trackFile, normalizedLanguageCode);
                 if (track != null)
                 {
                     tracks.Add(track);
-                    trackNumber++;
                 }
             }
         }
@@ -104,12 +92,7 @@ internal static class EnglishTrackParser
 
     private static BiblePublicationTrack? ParseTrackFromJson(
         JsonElement trackFile,
-        int trackNumber,
-        string sectionCode,
-        string? normalizedPublicationCode = null,
-        string? normalizedLanguageCode = null,
-        bool isIam = false,
-        bool isBible = false)
+        string? normalizedLanguageCode = null)
     {
         if (!trackFile.TryGetProperty("file", out var fileElement) ||
             !fileElement.TryGetProperty("url", out var urlElement))

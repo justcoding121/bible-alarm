@@ -242,12 +242,12 @@ internal sealed class SectionFetcher
                 if (isIssueSectioned)
                 {
                     tracks = EnglishTrackParser.ParseGenericTracks(
-                        filesElement, normalizedLanguageCode, "MP3", sectionCode);
+                        filesElement, normalizedLanguageCode, "MP3");
                 }
                 else if (isBible)
                 {
                     tracks = EnglishTrackParser.ParseBibleTracks(
-                        filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode);
+                        filesElement, normalizedLanguageCode);
                 }
                 else
                 {

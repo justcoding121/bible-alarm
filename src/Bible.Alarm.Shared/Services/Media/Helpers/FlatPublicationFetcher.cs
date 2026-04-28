@@ -245,7 +245,7 @@ internal sealed class FlatPublicationFetcher
                     continue;
                 }
 
-                if (!byTrack.TryGetValue(trackNum, out var existing))
+                if (!byTrack.TryGetValue(trackNum, out _))
                 {
                     byTrack[trackNum] = file;
                     continue;

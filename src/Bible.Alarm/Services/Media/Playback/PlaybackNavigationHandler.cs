@@ -133,7 +133,6 @@ public sealed class PlaybackNavigationHandler
         Func<int> getCurrentTrackIndex = request.GetCurrentTrackIndex;
         Action<int> setCurrentTrackIndex = request.SetCurrentTrackIndex;
         var currentScheduleId = request.CurrentScheduleId;
-        var isIndefinitePlayback = request.IsIndefinitePlayback;
         Func<Task<bool>> tryPrependPreviousTrackAsync = request.TryPrependPreviousTrackAsync;
         var manuallyVisitedTrackIndices = request.ManuallyVisitedTrackIndices;
         Func<int, Task> markCurrentTrackAsPlayedAsync = request.MarkCurrentTrackAsPlayedAsync;

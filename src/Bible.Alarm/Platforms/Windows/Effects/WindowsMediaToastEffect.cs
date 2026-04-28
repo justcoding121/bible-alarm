@@ -122,8 +122,6 @@ public class WindowsMediaToastEffect(
     {
         try
         {
-            var currentState = playbackState.Value;
-
             // If playback is stopped/ended, dismiss the toast
             if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
             {

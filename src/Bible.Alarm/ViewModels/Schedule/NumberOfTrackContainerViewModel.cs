@@ -379,9 +379,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
                 return;
             }
             
-            var isUserAction = !isSyncingFromState;
-
 #if ANDROID || IOS
+            var isUserAction = !isSyncingFromState;
             if (isUserAction && value &&
                 NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
                     value,

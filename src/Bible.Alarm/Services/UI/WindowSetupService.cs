@@ -167,7 +167,9 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     {
         try
         {
+#if ANDROID || IOS
             var isLightTheme = ThemeColors.GetCurrentTheme() == AppTheme.Light;
+#endif
 
 #if ANDROID
             var activity = Platform.CurrentActivity;

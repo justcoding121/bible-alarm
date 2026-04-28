@@ -52,8 +52,6 @@ public sealed class ProgressTracker : IDisposable
             return;
         }
 
-        var track = playlist[currentTrackIndex];
-
         // Reset music track finished flag when track changes
         if (lastMusicTrackIndex != currentTrackIndex)
         {

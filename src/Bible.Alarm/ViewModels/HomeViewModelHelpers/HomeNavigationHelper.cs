@@ -234,12 +234,10 @@ public class HomeNavigationHelper
                                 {
                                     await Task.Delay(100); // Brief delay to ensure modal is fully dismissed
                                     
-                                    // Get services on background thread
-                                    var dbDispatcher = serviceProvider.GetRequiredService<IDispatcher>();
-                                    var alarmScheduleService = serviceProvider.GetRequiredService<IAlarmScheduleService>();
-                                    var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
-                                    
+                                    // Get services on background thread (platform-specific to avoid unused locals per target)
 #if ANDROID
+                                    var dbDispatcher = serviceProvider.GetRequiredService<IDispatcher>();
+                                    var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
                                     // Android: Update NotificationEnabled in state only (not DB)
                                     MainThread.BeginInvokeOnMainThread(() =>
                                     {
@@ -263,10 +261,13 @@ public class HomeNavigationHelper
                                         }
                                     });
 #elif IOS
+                                    var dbDispatcher = serviceProvider.GetRequiredService<IDispatcher>();
+                                    var alarmScheduleService = serviceProvider.GetRequiredService<IAlarmScheduleService>();
+                                    var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
                                     // iOS: Update IsEnabled in DB (like ScheduleStateService does)
                                     try
                                     {
-                                        var dbUpdatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
+                                        _ = await alarmScheduleService.UpdateScheduleByIdAsync(
                                             scheduleId,
                                             s => s.IsEnabled = permissionGranted,
                                             CancellationToken.None);

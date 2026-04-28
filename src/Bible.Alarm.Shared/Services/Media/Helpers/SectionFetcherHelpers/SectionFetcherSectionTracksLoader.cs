@@ -38,7 +38,6 @@ internal sealed class SectionFetcherSectionTracksLoader
         var normalizedPublicationCode = request.NormalizedPublicationCode;
         var normalizedSectionCode = request.NormalizedSectionCode;
         var normalizedLanguageCode = request.NormalizedLanguageCode;
-        var publicationCodeForDb = request.PublicationCodeForDb;
         var publication = request.Publication;
         var section = request.Section;
         var cancellationToken = request.CancellationToken;

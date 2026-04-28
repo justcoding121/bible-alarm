@@ -58,7 +58,6 @@ public sealed class MusicCascadeHandler
                 return;
             }
 
-            var languageCode = currentSchedule.MusicLanguageCode;
             var publicationCode = currentSchedule.MusicPublicationCode;
             var sectionCode = currentSchedule.MusicSectionCode;
             var trackCode = currentSchedule.MusicTrackCode;

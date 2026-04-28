@@ -150,7 +150,7 @@ public sealed class AlarmSchedule : IComparable
 
     private static void ValidateNextFire(CronExpression expression)
     {
-        var nextFire = expression.GetNextValidTimeAfter(DateTimeOffset.Now) ?? throw new Exception("Invalid alarm time.");
+        _ = expression.GetNextValidTimeAfter(DateTimeOffset.Now) ?? throw new Exception("Invalid alarm time.");
     }
 
     public int CompareTo(object? obj)

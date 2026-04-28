@@ -22,18 +22,8 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
     {
         InitializeComponent();
 
-        // Apply platform-specific styling in code-behind for better performance
-        // This avoids expensive OnPlatform markup extension evaluation at runtime
-        ApplyPlatformSpecificStyling();
-
         // SelectionChanged handler removed - using SelectionMode="None" with TapGestureRecognizer instead
         Appearing += OnAppearing;
-    }
-
-    private void ApplyPlatformSpecificStyling()
-    {
-        var platform = DeviceInfo.Platform;
-
     }
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)

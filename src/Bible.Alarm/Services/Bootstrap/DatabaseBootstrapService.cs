@@ -51,7 +51,6 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         // Get database directory and storage root for cleanup
         var dbPath = scheduleDb.Database.GetDbConnection().DataSource;
         var dbDirectory = System.IO.Path.GetDirectoryName(dbPath) ?? "";
-        var storageRoot = storageService.StorageRoot;
 
         // Delete only legacy-named database files (never the current schedule DB file if it exists).
         // Recovery path below may delete the current file when migration fails due to corruption.

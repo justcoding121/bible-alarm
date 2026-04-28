@@ -359,9 +359,8 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                 return;
             }
             
-            var isUserAction = !isSyncingFromState;
-            
 #if ANDROID || IOS
+            var isUserAction = !isSyncingFromState;
             if (isUserAction && value &&
                 NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
                     value,

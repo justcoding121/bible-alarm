@@ -272,8 +272,6 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
         try
         {
-            var newTemplate = CreateScheduleListTemplate();
-
             if (scheduleListTemplate != null)
             {
                 var oldSections = scheduleListTemplate.Sections;

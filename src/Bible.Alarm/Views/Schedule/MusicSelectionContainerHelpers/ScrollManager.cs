@@ -46,8 +46,8 @@ public class ScrollManager
 
             if (scrollView != null)
             {
-                var containerName = container.GetType().Name;
 #if DEBUG
+                var containerName = container.GetType().Name;
                 if (scrollToBottom)
                 {
                     Serilog.Log.Debug("[{ContainerName}] Found ScrollView, scrolling to bottom", containerName);
