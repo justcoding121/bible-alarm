@@ -26,15 +26,10 @@ public sealed class AlarmService(
     public async Task Create(AlarmSchedule schedule)
     {
         // Only schedule OS notification if alarm is enabled, has at least one day selected, and notifications are available
-        if (schedule.IsEnabled && schedule.DaysOfWeek != 0 && await notificationService.CanScheduleAsync())
+        if (schedule.IsEnabled && schedule.DaysOfWeek != 0 && await notificationService.CanScheduleAsync()
+            && ShouldScheduleNotification(schedule))
         {
-            // Check permission before scheduling
-            // Android: If NotificationEnabled=true but permission not granted, treat as NotificationEnabled=false
-            // iOS: If IsEnabled=true but permission not granted, don't schedule
-            if (ShouldScheduleNotification(schedule))
-            {
-                await ScheduleNotification(schedule);
-            }
+            await ScheduleNotification(schedule);
         }
     }
 
@@ -121,15 +116,10 @@ public sealed class AlarmService(
         }
 
         // Schedule new notification only if alarm is enabled, has at least one day selected, and permission check passes
-        if (schedule.IsEnabled && schedule.DaysOfWeek != 0 && await notificationService.CanScheduleAsync())
+        if (schedule.IsEnabled && schedule.DaysOfWeek != 0 && await notificationService.CanScheduleAsync()
+            && ShouldScheduleNotification(schedule))
         {
-            // Check permission before scheduling
-            // Android: If NotificationEnabled=true but permission not granted, treat as NotificationEnabled=false
-            // iOS: If IsEnabled=true but permission not granted, don't schedule
-            if (ShouldScheduleNotification(schedule))
-            {
-                await ScheduleNotification(schedule);
-            }
+            await ScheduleNotification(schedule);
         }
     }
 

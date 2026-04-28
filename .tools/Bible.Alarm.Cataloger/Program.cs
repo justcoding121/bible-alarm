@@ -398,30 +398,25 @@ public class Program
     private static HashSet<string>? ParsePublicationFilter(string[] args, ILogger logger, string indexDirectory)
     {
         const StringComparison cmp = StringComparison.OrdinalIgnoreCase;
-        foreach (var arg in args)
+        var pubArg = args.FirstOrDefault(a => a.StartsWith("--publications=", cmp));
+        if (pubArg != null)
         {
-            if (arg.StartsWith("--publications=", cmp))
+            var list = pubArg.Substring("--publications=".Length).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (list.Length == 0)
             {
-                var list = arg.Substring("--publications=".Length).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (list.Length == 0)
-                {
-                    logger.Warning("--publications= was empty, ignoring");
-                    return null;
-                }
-                var set = new HashSet<string>(list, StringComparer.OrdinalIgnoreCase);
-                logger.Information("Publication filter: {Count} code(s) from --publications", set.Count);
-                return set;
+                logger.Warning("--publications= was empty, ignoring");
+                return null;
             }
+            var set = new HashSet<string>(list, StringComparer.OrdinalIgnoreCase);
+            logger.Information("Publication filter: {Count} code(s) from --publications", set.Count);
+            return set;
         }
 
-        foreach (var arg in args)
+        var retryArg = args.FirstOrDefault(a => a.StartsWith("--retry-failed", cmp));
+        if (retryArg != null)
         {
-            if (!arg.StartsWith("--retry-failed", cmp))
-            {
-                continue;
-            }
-            var path = arg.Length > "--retry-failed".Length && arg.AsSpan()["--retry-failed".Length] == '='
-                ? arg.Substring("--retry-failed=".Length).Trim()
+            var path = retryArg.Length > "--retry-failed".Length && retryArg.AsSpan()["--retry-failed".Length] == '='
+                ? retryArg.Substring("--retry-failed=".Length).Trim()
                 : Path.Combine(indexDirectory, "last_run_failed.txt");
             if (!File.Exists(path))
             {

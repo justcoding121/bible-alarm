@@ -378,12 +378,9 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         get => progress;
         set
         {
-            if (!sliderHandler.IsUserInteracting)
+            if (!sliderHandler.IsUserInteracting && Math.Abs(progress - value) > 0.0001)
             {
-                if (Math.Abs(progress - value) > 0.0001)
-                {
-                    SetProperty(ref progress, value);
-                }
+                SetProperty(ref progress, value);
             }
         }
     }

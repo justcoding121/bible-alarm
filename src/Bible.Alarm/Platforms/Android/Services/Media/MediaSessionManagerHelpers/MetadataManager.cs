@@ -92,12 +92,9 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
 
     private void PreserveOrLoadArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, string? artworkUrl)
     {
-        if (!string.IsNullOrEmpty(artworkUrl))
+        if (!string.IsNullOrEmpty(artworkUrl) && TryLoadArtworkFromUrl(builder, artworkUrl))
         {
-            if (TryLoadArtworkFromUrl(builder, artworkUrl))
-            {
-                return;
-            }
+            return;
         }
 
         // Preserve existing artwork when no artworkUrl is provided or when loading

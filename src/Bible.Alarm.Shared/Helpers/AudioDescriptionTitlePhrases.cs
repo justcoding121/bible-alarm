@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace Bible.Alarm.Shared.Helpers;
@@ -88,12 +89,9 @@ public static class AudioDescriptionTitlePhrases
             }
 
             var list = new List<string>();
-            foreach (var s in kvp.Value)
+            foreach (var s in kvp.Value.Where(s => !string.IsNullOrWhiteSpace(s)))
             {
-                if (!string.IsNullOrWhiteSpace(s))
-                {
-                    list.Add(s.Trim());
-                }
+                list.Add(s.Trim());
             }
 
             result[kvp.Key.Trim()] = list;

@@ -233,15 +233,8 @@ public static class JwSourceHelper
         }
 
         var normalized = normalizedPublicationCode.ToLowerInvariant();
-        foreach (var code in CanonicalMediatorPublicationCodes)
-        {
-            if (code.Equals(normalized, StringComparison.OrdinalIgnoreCase))
-            {
-                return code;
-            }
-        }
-
-        return null;
+        return CanonicalMediatorPublicationCodes.FirstOrDefault(code =>
+            code.Equals(normalized, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

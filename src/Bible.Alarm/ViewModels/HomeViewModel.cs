@@ -283,17 +283,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         get => isFloatingButtonVisible;
         set
         {
-            if (SetProperty(ref isFloatingButtonVisible, value))
+            if (SetProperty(ref isFloatingButtonVisible, value) && DeviceInfo.Platform == DevicePlatform.Android)
             {
-                // Update notification button margin when battery button visibility changes (Android)
-                if (DeviceInfo.Platform == DevicePlatform.Android)
+                logger.Debug("[MARGIN] Battery button visibility changed to {Visible}, recalculating notification margin", value);
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    logger.Debug("[MARGIN] Battery button visibility changed to {Visible}, recalculating notification margin", value);
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        OnPropertyChanged(nameof(NotificationPermissionButtonMargin));
-                    });
-                }
+                    OnPropertyChanged(nameof(NotificationPermissionButtonMargin));
+                });
             }
         }
     }

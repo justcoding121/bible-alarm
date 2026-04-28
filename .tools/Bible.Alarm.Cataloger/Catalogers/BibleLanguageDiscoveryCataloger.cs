@@ -113,12 +113,9 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
                         }
 
                         // Merge languages into consolidated dictionary
-                        foreach (var lang in bookLanguages)
+                        foreach (var lang in bookLanguages.Where(l => !allDiscoveredLanguages.ContainsKey(l.Key)))
                         {
-                            if (!allDiscoveredLanguages.ContainsKey(lang.Key))
-                            {
-                                allDiscoveredLanguages[lang.Key] = lang.Value;
-                            }
+                            allDiscoveredLanguages[lang.Key] = lang.Value;
                         }
 
                         Logger.Debug("Book {BookNum}: Discovered {LanguageCount} languages (total unique: {TotalLanguages})",

@@ -188,16 +188,13 @@ internal sealed class SectionFetcherSectionTracksLoader
                 if (isBible && !string.IsNullOrEmpty(title) && title != "Unknown")
                 {
                     var separators = new[] { " - ", " – ", " — ", " -", "- " };
-                    foreach (var separator in separators)
+                    foreach (var separator in separators.Where(sep => title.Contains(sep, StringComparison.Ordinal)))
                     {
-                        if (title.Contains(separator))
+                        var parts = title.Split(new[] { separator }, StringSplitOptions.None);
+                        if (parts.Length > 1)
                         {
-                            var parts = title.Split(new[] { separator }, StringSplitOptions.None);
-                            if (parts.Length > 1)
-                            {
-                                title = parts[parts.Length - 1].Trim();
-                                break;
-                            }
+                            title = parts[parts.Length - 1].Trim();
+                            break;
                         }
                     }
                 }
@@ -269,12 +266,9 @@ internal sealed class SectionFetcherSectionTracksLoader
             logger.Information(
                 "Replacing {Count} existing tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode} (API refresh)",
                 existingTracksToReplace.Count, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
-            foreach (var oldTrack in existingTracksToReplace)
+            foreach (var oldTrack in existingTracksToReplace.Where(t => t.TrackUrl is not null))
             {
-                if (oldTrack.TrackUrl is not null)
-                {
-                    db.TrackUrls.Remove(oldTrack.TrackUrl);
-                }
+                db.TrackUrls.Remove(oldTrack.TrackUrl!);
             }
 
             db.BiblePublicationTracks.RemoveRange(existingTracksToReplace);

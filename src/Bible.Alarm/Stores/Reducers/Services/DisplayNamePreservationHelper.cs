@@ -84,14 +84,12 @@ public static class DisplayNamePreservationHelper
         // Only preserve section name if publication type hasn't changed, both are sectioned,
         // and section CODE hasn't changed (playback track advance changes section/track; don't preserve stale names).
         var sectionCodeUnchanged = string.Equals(actionSchedule.BiblePublicationSectionCode, existingScheduleItem.BiblePublicationSectionCode, StringComparison.OrdinalIgnoreCase);
-        if (actionHasSectionStructure == existingHasSectionStructure && actionHasSectionStructure && sectionCodeUnchanged)
+        if (actionHasSectionStructure == existingHasSectionStructure && actionHasSectionStructure && sectionCodeUnchanged
+            && string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationSectionName))
         {
-            if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationSectionName))
-            {
-                Log.Debug("ApplicationReducer: Preserving existing BiblePublicationSectionName: {SectionName}",
-                    existingScheduleItem.BiblePublicationSectionName);
-                actionSchedule.BiblePublicationSectionName = existingScheduleItem.BiblePublicationSectionName;
-            }
+            Log.Debug("ApplicationReducer: Preserving existing BiblePublicationSectionName: {SectionName}",
+                existingScheduleItem.BiblePublicationSectionName);
+            actionSchedule.BiblePublicationSectionName = existingScheduleItem.BiblePublicationSectionName;
         }
         // Only preserve track title if publication type hasn't changed, both are non-sectioned,
         // and track CODE hasn't changed (playback track advance; don't preserve stale titles).
@@ -110,7 +108,6 @@ public static class DisplayNamePreservationHelper
                     actionSchedule.BiblePublicationTrackTitle);
             }
         }
-        // If publication type changed, don't preserve incompatible display names
         else
         {
             Log.Debug("ApplicationReducer: Publication type changed (sectioned: {ActionSectioned} -> {ExistingSectioned}), not preserving incompatible display names",
@@ -140,14 +137,12 @@ public static class DisplayNamePreservationHelper
             PublicationTypeHelper.HasSectionStructure(actionSchedule.MusicPublicationCode);
         var existingMusicSectioned = !string.IsNullOrWhiteSpace(existingScheduleItem.MusicPublicationCode) &&
             PublicationTypeHelper.HasSectionStructure(existingScheduleItem.MusicPublicationCode);
-        if (actionMusicSectioned == existingMusicSectioned && actionMusicSectioned)
+        if (actionMusicSectioned == existingMusicSectioned && actionMusicSectioned
+            && string.IsNullOrWhiteSpace(actionSchedule.MusicSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicSectionName))
         {
-            if (string.IsNullOrWhiteSpace(actionSchedule.MusicSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicSectionName))
-            {
-                Log.Debug("ApplicationReducer: Preserving existing MusicSectionName: {SectionName}",
-                    existingScheduleItem.MusicSectionName);
-                actionSchedule.MusicSectionName = existingScheduleItem.MusicSectionName;
-            }
+            Log.Debug("ApplicationReducer: Preserving existing MusicSectionName: {SectionName}",
+                existingScheduleItem.MusicSectionName);
+            actionSchedule.MusicSectionName = existingScheduleItem.MusicSectionName;
         }
 
         if (string.IsNullOrWhiteSpace(actionSchedule.MusicTrackName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicTrackName))

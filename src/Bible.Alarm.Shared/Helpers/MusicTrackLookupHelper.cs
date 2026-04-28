@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using Bible.Alarm.Shared.Models.Media.Music;
 
 namespace Bible.Alarm.Shared.Helpers;
@@ -22,13 +23,11 @@ public static class MusicTrackLookupHelper
         if (tracks == null || tracks.Count == 0 || string.IsNullOrWhiteSpace(trackCode))
             return false;
 
-        foreach (var kvp in tracks)
+        var match = tracks.FirstOrDefault(kvp => CodeComparisonHelper.Equals(kvp.Value.TrackCode, trackCode));
+        if (match.Value != null)
         {
-            if (CodeComparisonHelper.Equals(kvp.Value.TrackCode, trackCode))
-            {
-                result = (kvp.Key, kvp.Value);
-                return true;
-            }
+            result = (match.Key, match.Value);
+            return true;
         }
 
         return false;

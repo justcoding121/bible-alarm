@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text.Json;
 using Bible.Alarm.Cataloger.Models;
@@ -99,12 +100,9 @@ internal static class MediatorCategoryLanguageExtractor
 
             // For other languages, we'll use defaults (name = code, direction = ltr)
             // They can be updated when fetched on-demand
-            foreach (var langCode in languageCodes)
+            foreach (var langCode in languageCodes.Where(c => !languageInfoMap.ContainsKey(c)))
             {
-                if (!languageInfoMap.ContainsKey(langCode))
-                {
-                    languageInfoMap[langCode] = new LanguageInfo(langCode, "ltr");
-                }
+                languageInfoMap[langCode] = new LanguageInfo(langCode, "ltr");
             }
         }
         catch (Exception ex)

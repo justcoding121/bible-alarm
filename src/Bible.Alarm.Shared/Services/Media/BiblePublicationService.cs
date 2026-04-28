@@ -364,12 +364,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             // Deduplicate by case-insensitive key while preserving original case from first occurrence
             var uniqueCodes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var code in publicationCodes)
+            foreach (var code in publicationCodes.Where(c => !uniqueCodes.ContainsKey(c)))
             {
-                if (!uniqueCodes.ContainsKey(code))
-                {
-                    uniqueCodes[code] = code;
-                }
+                uniqueCodes[code] = code;
             }
 
             var result = uniqueCodes.Values.OrderBy(x => x).ToList();

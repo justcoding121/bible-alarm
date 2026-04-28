@@ -356,12 +356,9 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                 // Double-check permission status and dismissing flag before dismissing
                 CheckPermissionStatus();
                 
-                if (IsNotificationPermissionGranted && !isDismissing)
+                if (IsNotificationPermissionGranted && !isDismissing && DismissCommand is AsyncRelayCommand asyncCommand)
                 {
-                    if (DismissCommand is AsyncRelayCommand asyncCommand)
-                    {
-                        await asyncCommand.ExecuteAsync(null);
-                    }
+                    await asyncCommand.ExecuteAsync(null);
                 }
             }
         });

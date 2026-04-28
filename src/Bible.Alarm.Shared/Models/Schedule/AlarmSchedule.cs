@@ -217,20 +217,17 @@ public sealed class AlarmSchedule : IComparable
                 // Sort publications by priority: nwt first, then bi12, then others
                 var sortedPublications = PublicationSortHelper.SortByPriority(englishPublications, pub => pub.Name);
                 
-                foreach (var pub in sortedPublications)
+                foreach (var pub in sortedPublications.Where(p => PublicationTypeHelper.HasSectionStructure(p.Key)))
                 {
-                    if (PublicationTypeHelper.HasSectionStructure(pub.Key))
+                    // Load with sections in one call - this includes Category
+                    var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                        DefaultLanguageCode, pub.Key);
+                    if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
                     {
-                        // Load with sections in one call - this includes Category
-                        var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                            DefaultLanguageCode, pub.Key);
-                        if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
-                        {
-                            bibleLanguageCode = DefaultLanguageCode;
-                            biblePublicationCode = pub.Key;
-                            selectedBible = biblePub;
-                            break;
-                        }
+                        bibleLanguageCode = DefaultLanguageCode;
+                        biblePublicationCode = pub.Key;
+                        selectedBible = biblePub;
+                        break;
                     }
                 }
             }
@@ -250,20 +247,17 @@ public sealed class AlarmSchedule : IComparable
                 // Sort publications by priority: nwt first, then bi12, then others
                 var sortedPublications = PublicationSortHelper.SortByPriority(publications, pub => pub.Name);
                 
-                foreach (var pub in sortedPublications)
+                foreach (var pub in sortedPublications.Where(p => PublicationTypeHelper.HasSectionStructure(p.Key)))
                 {
-                    if (PublicationTypeHelper.HasSectionStructure(pub.Key))
+                    // Load with sections in one call - this includes Category
+                    var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                        lang.Key, pub.Key);
+                    if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
                     {
-                        // Load with sections in one call - this includes Category
-                        var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                            lang.Key, pub.Key);
-                        if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
-                        {
-                            bibleLanguageCode = lang.Key;
-                            biblePublicationCode = pub.Key;
-                            selectedBible = biblePub;
-                            break;
-                        }
+                        bibleLanguageCode = lang.Key;
+                        biblePublicationCode = pub.Key;
+                        selectedBible = biblePub;
+                        break;
                     }
                 }
                 

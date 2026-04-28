@@ -59,12 +59,9 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             // Add tracks from sections (for sectioned melody music like iam)
             if (publication.Sections != null)
             {
-                foreach (var section in publication.Sections)
+                foreach (var section in publication.Sections.Where(s => s.Tracks != null))
                 {
-                    if (section.Tracks != null)
-                    {
-                        allTracks.AddRange(section.Tracks);
-                    }
+                    allTracks.AddRange(section.Tracks!);
                 }
             }
             
@@ -166,12 +163,9 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             // Add tracks from sections (for sectioned melody music like iam)
             if (publication.Sections != null)
             {
-                foreach (var section in publication.Sections)
+                foreach (var section in publication.Sections.Where(s => s.Tracks != null))
                 {
-                    if (section.Tracks != null)
-                    {
-                        allTracks.AddRange(section.Tracks);
-                    }
+                    allTracks.AddRange(section.Tracks!);
                 }
             }
             

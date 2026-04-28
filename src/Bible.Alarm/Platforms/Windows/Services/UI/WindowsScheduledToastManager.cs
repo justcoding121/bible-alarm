@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using Serilog;
 using Windows.UI.Notifications;
 
@@ -13,15 +14,9 @@ internal static class WindowsScheduledToastManager
         // Notification IDs are in format: "{scheduleId}_{hash}" (max 16 characters total)
         var scheduledToasts = notifier.GetScheduledToastNotifications();
         var scheduleIdPrefix = $"{scheduleId}_";
-        foreach (var toast in scheduledToasts)
-        {
-            // Check if notification ID starts with scheduleId (supports both old format and new format)
-            if (toast.Id == scheduleId.ToString() || toast.Id.StartsWith(scheduleIdPrefix, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-        return false;
+        return scheduledToasts.Any(toast =>
+            toast.Id == scheduleId.ToString()
+            || toast.Id.StartsWith(scheduleIdPrefix, StringComparison.Ordinal));
     }
 
     /// <summary>

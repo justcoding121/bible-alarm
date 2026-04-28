@@ -101,12 +101,9 @@ internal sealed class MagazineCataloger : BaseCataloger
                     await dataPersister.SaveSectionLanguages(pubCode, sectionCode, issueLanguages);
                 }
 
-                foreach (var lang in issueLanguages)
+                foreach (var lang in issueLanguages.Where(l => !mergedLanguages.ContainsKey(l.Key)))
                 {
-                    if (!mergedLanguages.ContainsKey(lang.Key))
-                    {
-                        mergedLanguages[lang.Key] = lang.Value;
-                    }
+                    mergedLanguages[lang.Key] = lang.Value;
                 }
             }
             finally
@@ -154,12 +151,9 @@ internal sealed class MagazineCataloger : BaseCataloger
             if (isTestRun)
             {
                 var filtered = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
-                foreach (var kvp in discoveredLanguages)
+                foreach (var kvp in discoveredLanguages.Where(k => TestRunLanguageCodes.Contains(k.Key)))
                 {
-                    if (TestRunLanguageCodes.Contains(kvp.Key))
-                    {
-                        filtered[kvp.Key] = kvp.Value;
-                    }
+                    filtered[kvp.Key] = kvp.Value;
                 }
                 return filtered.Count > 0 ? filtered : null;
             }

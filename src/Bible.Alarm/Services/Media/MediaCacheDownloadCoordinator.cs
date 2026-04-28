@@ -65,34 +65,32 @@ internal static class MediaCacheDownloadCoordinator
         var downloadTask = downloadTaskSource.Task;
 
         // Try to add our task to the dictionary - if another thread beat us, use their task
-        if (!inProgressDownloads.TryAdd(downloadKey, downloadTask))
+        if (!inProgressDownloads.TryAdd(downloadKey, downloadTask)
+            && inProgressDownloads.TryGetValue(downloadKey, out existingTask))
         {
             // Another thread just started the download, wait for their result
-            if (inProgressDownloads.TryGetValue(downloadKey, out existingTask))
+            logger.Debug(
+                "Another thread started download for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}. Waiting for that download.",
+                lookUpPath,
+                playItem.Url,
+                scheduleId);
+            try
             {
-                logger.Debug(
-                    "Another thread started download for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}. Waiting for that download.",
+                return await existingTask;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(
+                    ex,
+                    "Concurrent download failed for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}",
                     lookUpPath,
                     playItem.Url,
                     scheduleId);
-                try
-                {
-                    return await existingTask;
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning(
-                        ex,
-                        "Concurrent download failed for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}",
-                        lookUpPath,
-                        playItem.Url,
-                        scheduleId);
-                    return null;
-                }
+                return null;
             }
         }
 

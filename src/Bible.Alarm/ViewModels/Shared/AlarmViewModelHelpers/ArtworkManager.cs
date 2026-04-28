@@ -65,12 +65,9 @@ public sealed class ArtworkManager(ILogger logger)
             }
 
             var filePath = ResolveFilePath(artworkUrl);
-            if (!string.IsNullOrEmpty(filePath))
+            if (!string.IsNullOrEmpty(filePath) && LoadFromFile(filePath, setArtworkSource, setIsArtworkLoading))
             {
-                if (LoadFromFile(filePath, setArtworkSource, setIsArtworkLoading))
-                {
-                    return;
-                }
+                return;
             }
 
             TryFallbackArtwork(fallbackUrl, setArtworkSource, setIsArtworkLoading);

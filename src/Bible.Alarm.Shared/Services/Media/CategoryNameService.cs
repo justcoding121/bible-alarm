@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading;
@@ -86,12 +87,9 @@ public sealed class CategoryNameService(ILogger logger) : ICategoryNameService
         }
 
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var kvp in dict)
+        foreach (var kvp in dict.Where(k => !string.IsNullOrEmpty(k.Key)))
         {
-            if (!string.IsNullOrEmpty(kvp.Key))
-            {
-                result[kvp.Key] = kvp.Value ?? kvp.Key;
-            }
+            result[kvp.Key] = kvp.Value ?? kvp.Key;
         }
 
         return result;

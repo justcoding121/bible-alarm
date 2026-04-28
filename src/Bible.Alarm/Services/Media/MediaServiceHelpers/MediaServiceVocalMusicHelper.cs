@@ -57,13 +57,10 @@ public static class MediaServiceVocalMusicHelper
         {
             result[downloadedRelease.Code] = downloadedRelease;
         }
-        foreach (var pubWithoutLang in publicationsWithoutLanguage.Values)
+        foreach (var pubWithoutLang in publicationsWithoutLanguage.Values.Where(p => !result.ContainsKey(p.PublicationCode)))
         {
-            if (!result.ContainsKey(pubWithoutLang.PublicationCode))
-            {
-                var vocalMusic = new VocalMusic { Publication = pubWithoutLang };
-                result[vocalMusic.Code] = vocalMusic;
-            }
+            var vocalMusic = new VocalMusic { Publication = pubWithoutLang };
+            result[vocalMusic.Code] = vocalMusic;
         }
 
         var normalizedLanguageCode = languageCode.ToUpperInvariant();

@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -75,33 +76,27 @@ public class AndroidAutoScheduleChangeTracker
         var changes = new List<ScheduleChange>();
 
         // Find added schedules (in current but not in last)
-        foreach (var schedule in currentSchedules)
+        foreach (var schedule in currentSchedules.Where(s => !lastScheduleSignatures.ContainsKey(s.Id)))
         {
-            if (!lastScheduleSignatures.ContainsKey(schedule.Id))
+            changes.Add(new ScheduleChange
             {
-                changes.Add(new ScheduleChange
-                {
-                    ChangeType = ScheduleChangeType.Added,
-                    ScheduleId = schedule.Id,
-                    Schedule = schedule
-                });
-                logger.Debug("Detected schedule added: {ScheduleId}", schedule.Id);
-            }
+                ChangeType = ScheduleChangeType.Added,
+                ScheduleId = schedule.Id,
+                Schedule = schedule
+            });
+            logger.Debug("Detected schedule added: {ScheduleId}", schedule.Id);
         }
 
         // Find removed schedules (in last but not in current)
-        foreach (var kvp in lastScheduleSignatures)
+        foreach (var kvp in lastScheduleSignatures.Where(k => !currentSignatures.ContainsKey(k.Key)))
         {
-            if (!currentSignatures.ContainsKey(kvp.Key))
+            changes.Add(new ScheduleChange
             {
-                changes.Add(new ScheduleChange
-                {
-                    ChangeType = ScheduleChangeType.Removed,
-                    ScheduleId = kvp.Key,
-                    Schedule = null
-                });
-                logger.Debug("Detected schedule removed: {ScheduleId}", kvp.Key);
-            }
+                ChangeType = ScheduleChangeType.Removed,
+                ScheduleId = kvp.Key,
+                Schedule = null
+            });
+            logger.Debug("Detected schedule removed: {ScheduleId}", kvp.Key);
         }
 
         // Find updated schedules (in both but signature changed)

@@ -124,12 +124,9 @@ internal sealed class FlatPublicationFetcher
         {
             logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, updating tracks and categories",
                 normalizedPublicationCode, normalizedLanguageCode ?? "(null)");
-            foreach (var track in existingPublication.Tracks)
+            foreach (var track in existingPublication.Tracks.Where(t => t.TrackUrl != null))
             {
-                if (track.TrackUrl != null)
-                {
-                    db.TrackUrls.Remove(track.TrackUrl);
-                }
+                db.TrackUrls.Remove(track.TrackUrl!);
             }
             db.BiblePublicationTracks.RemoveRange(existingPublication.Tracks);
             existingPublication.Tracks.Clear();
@@ -185,13 +182,10 @@ internal sealed class FlatPublicationFetcher
         var existingCategoryIds = publication.BiblePublicationCategories
             .Select(bpc => bpc.CategoryId)
             .ToHashSet();
-        foreach (var cat in categories)
+        foreach (var cat in categories.Where(c => existingCategoryIds.Add(c.Id)))
         {
-            if (existingCategoryIds.Add(cat.Id))
-            {
-                publication.BiblePublicationCategories.Add(
-                    new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
-            }
+            publication.BiblePublicationCategories.Add(
+                new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
         }
     }
 

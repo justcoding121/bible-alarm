@@ -76,15 +76,11 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
 
         try
         {
-            if (ViewModel is CategorySelectionViewModel categoryViewModel)
+            if (ViewModel is CategorySelectionViewModel categoryViewModel
+                && categoryViewModel.SelectCategoryCommand is IAsyncRelayCommand<CategoryListViewItemModel> asyncCommand
+                && asyncCommand.CanExecute(categoryItem))
             {
-                if (categoryViewModel.SelectCategoryCommand is IAsyncRelayCommand<CategoryListViewItemModel> asyncCommand)
-                {
-                    if (asyncCommand.CanExecute(categoryItem))
-                    {
-                        await asyncCommand.ExecuteAsync(categoryItem);
-                    }
-                }
+                await asyncCommand.ExecuteAsync(categoryItem);
             }
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))

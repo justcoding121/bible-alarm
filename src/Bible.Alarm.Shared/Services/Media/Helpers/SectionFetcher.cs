@@ -386,13 +386,10 @@ internal sealed class SectionFetcher
         var existingCategoryIds = publication.BiblePublicationCategories
             .Select(bpc => bpc.CategoryId)
             .ToHashSet();
-        foreach (var cat in categories)
+        foreach (var cat in categories.Where(c => existingCategoryIds.Add(c.Id)))
         {
-            if (existingCategoryIds.Add(cat.Id))
-            {
-                publication.BiblePublicationCategories.Add(
-                    new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
-            }
+            publication.BiblePublicationCategories.Add(
+                new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
         }
     }
 }

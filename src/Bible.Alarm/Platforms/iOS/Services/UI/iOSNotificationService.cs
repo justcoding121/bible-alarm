@@ -1,3 +1,4 @@
+using System.Linq;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.iOS.Extensions;
 using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
@@ -88,14 +89,14 @@ public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory 
 
             if (pending != null)
             {
-                foreach (var notification in pending)
+                var prefix = $"{scheduleId}_";
+                var idString = scheduleId.ToString();
+                foreach (var notification in pending.Where(n =>
+                             n.Identifier.StartsWith(prefix, StringComparison.Ordinal)
+                             || n.Identifier == idString))
                 {
-                    if (notification.Identifier.StartsWith($"{scheduleId}_")
-                        || notification.Identifier == scheduleId.ToString())
-                    {
-                        UNUserNotificationCenter.Current.RemovePendingNotificationRequests([notification.Identifier
-                        ]);
-                    }
+                    UNUserNotificationCenter.Current.RemovePendingNotificationRequests([notification.Identifier
+                    ]);
                 }
             }
         });
@@ -109,13 +110,13 @@ public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory 
 
             if (pending != null)
             {
-                foreach (var notification in pending)
+                var prefix = $"{scheduleId}_";
+                var idString = scheduleId.ToString();
+                if (pending.Any(n =>
+                        n.Identifier.StartsWith(prefix, StringComparison.Ordinal)
+                        || n.Identifier == idString))
                 {
-                    if (notification.Identifier.StartsWith($"{scheduleId}_")
-                        || notification.Identifier == scheduleId.ToString())
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
 

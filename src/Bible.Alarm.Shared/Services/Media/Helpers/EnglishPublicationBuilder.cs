@@ -64,15 +64,9 @@ internal sealed class EnglishPublicationBuilder
 
         if (existingPublication != null)
         {
-            foreach (var section in existingPublication.Sections)
+            foreach (var track in existingPublication.Sections.SelectMany(s => s.Tracks).Where(t => t.TrackUrl != null))
             {
-                foreach (var track in section.Tracks)
-                {
-                    if (track.TrackUrl != null)
-                    {
-                        db.TrackUrls.Remove(track.TrackUrl);
-                    }
-                }
+                db.TrackUrls.Remove(track.TrackUrl!);
             }
 
             db.BiblePublicationTracks.RemoveRange(existingPublication.Sections.SelectMany(s => s.Tracks));
@@ -196,13 +190,10 @@ internal sealed class EnglishPublicationBuilder
         var existingCategoryIds = publication.BiblePublicationCategories
             .Select(bpc => bpc.CategoryId)
             .ToHashSet();
-        foreach (var cat in categories)
+        foreach (var cat in categories.Where(c => existingCategoryIds.Add(c.Id)))
         {
-            if (existingCategoryIds.Add(cat.Id))
-            {
-                publication.BiblePublicationCategories.Add(
-                    new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
-            }
+            publication.BiblePublicationCategories.Add(
+                new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
         }
     }
 }

@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers.LookupLoading;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
@@ -234,13 +235,10 @@ internal sealed class LookupDataLoader
         // Only attempt no-language lookups for publications that were requested but not found via language-bound queries.
         // This keeps the no-language queries tightly bounded and avoids scanning large parts of the media index.
         var missingPublicationCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var task in publicationTasks)
+        foreach (var result in publicationTasks.Select(t => t.Result).Where(r =>
+                     r.Publication == null && !string.IsNullOrWhiteSpace(r.Key.PublicationCode)))
         {
-            var result = task.Result;
-            if (result.Publication == null && !string.IsNullOrWhiteSpace(result.Key.PublicationCode))
-            {
-                missingPublicationCodes.Add(result.Key.PublicationCode);
-            }
+            missingPublicationCodes.Add(result.Key.PublicationCode);
         }
 
         if (missingPublicationCodes.Count == 0)
