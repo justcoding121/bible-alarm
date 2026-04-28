@@ -204,7 +204,7 @@ public partial class ScheduleContent : ContentView
             .FirstOrDefault();
 
         var entry = scheduleDetailsContainer?.GetScheduleNameEntry();
-        if (entry?.IsFocused == true)
+        if (entry?.IsFocused is true)
         {
             KeyboardHelper.HideKeyboard(entry);
         }

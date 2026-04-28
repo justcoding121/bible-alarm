@@ -1,13 +1,13 @@
 #nullable enable
-using System.Collections.Generic;
-using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Models;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;

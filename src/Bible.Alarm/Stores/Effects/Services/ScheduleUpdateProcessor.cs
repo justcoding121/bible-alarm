@@ -1,8 +1,8 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Common;
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;

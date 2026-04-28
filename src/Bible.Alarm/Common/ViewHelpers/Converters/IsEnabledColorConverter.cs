@@ -31,7 +31,7 @@ public sealed class IsEnabledColorConverter : IValueConverter
 
             // Try to get from resources if parameter is a resource key string
             if (parameter is string resourceKey &&
-                Application.Current?.Resources.TryGetValue(resourceKey, out var resourceValue) == true &&
+                Application.Current?.Resources.TryGetValue(resourceKey, out var resourceValue) is true &&
                 resourceValue is Color resourceColor)
             {
                 return resourceColor;
@@ -39,7 +39,7 @@ public sealed class IsEnabledColorConverter : IValueConverter
 
             // If parameter is a DynamicResource or unresolved, try common resource keys
             // This handles cases where DynamicResource in ConverterParameter doesn't resolve properly
-            if (Application.Current?.Resources.TryGetValue("TextPrimaryColor", out var textPrimary) == true &&
+            if (Application.Current?.Resources.TryGetValue("TextPrimaryColor", out var textPrimary) is true &&
                 textPrimary is Color textPrimaryColor)
             {
                 return textPrimaryColor;
@@ -52,7 +52,7 @@ public sealed class IsEnabledColorConverter : IValueConverter
         }
 
         // When disabled: read from Application resources for automatic theme updates
-        if (Application.Current?.Resources.TryGetValue("DisabledTextColor", out var disabledColor) == true &&
+        if (Application.Current?.Resources.TryGetValue("DisabledTextColor", out var disabledColor) is true &&
             disabledColor is Color disabledTextColor)
         {
             return disabledTextColor;

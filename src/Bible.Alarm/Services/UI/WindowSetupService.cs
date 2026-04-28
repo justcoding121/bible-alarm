@@ -126,7 +126,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
 
         try
         {
-            if (Application.Current?.Resources.TryGetValue("CardBackgroundColor", out var cardBgColor) == true &&
+            if (Application.Current?.Resources.TryGetValue("CardBackgroundColor", out var cardBgColor) is true &&
                 cardBgColor is Color cardBg)
             {
                 mainNavPage.BarBackgroundColor = cardBg;
@@ -137,7 +137,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
                 mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
             }
 
-            if (Application.Current?.Resources.TryGetValue("PrimaryTextColor", out var primaryTextColor) == true &&
+            if (Application.Current?.Resources.TryGetValue("PrimaryTextColor", out var primaryTextColor) is true &&
                 primaryTextColor is Color primaryText)
             {
                 mainNavPage.BarTextColor = primaryText;

@@ -1,7 +1,7 @@
 #nullable enable
 
-using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;

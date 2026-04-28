@@ -1,9 +1,9 @@
 #nullable enable
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
-using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;

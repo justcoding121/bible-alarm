@@ -174,7 +174,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 await MauiProgram.WaitForBootstrapAsync();
 
                 var pState = ServiceProviderManager.GetService<IState<PlaybackState>>();
-                if (pState?.Value?.IsPreparingOrPlaying == true)
+                if (pState?.Value?.IsPreparingOrPlaying is true)
                 {
                     logger.Debug("Playback is active on car connect - skipping default metadata refresh");
 

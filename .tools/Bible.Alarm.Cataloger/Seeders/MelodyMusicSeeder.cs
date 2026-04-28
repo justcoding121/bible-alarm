@@ -8,10 +8,10 @@ using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
-using BiblePublicationCategory = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationCategory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using BiblePublicationCategory = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationCategory;
 using SharedBiblePublicationSection = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection;
 using SharedBiblePublicationTrack = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack;
 

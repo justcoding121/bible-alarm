@@ -1,4 +1,5 @@
 #nullable enable annotations
+using System.Collections.Concurrent;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.MediaServiceHelpers;
 using Bible.Alarm.Shared.Constants;
@@ -12,21 +13,20 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using System.Collections.Concurrent;
 
 namespace Bible.Alarm.Services.Media;
 
 public sealed class MediaService(MediaServiceDependencies dependencies)
     : IMediaService, IDisposable
 {
-    private readonly IMediaIndexService mediaIndexService = dependencies.MediaIndexService ?? throw new ArgumentNullException(nameof(dependencies.MediaIndexService));
-    private readonly IBiblePublicationService BiblePublicationService = dependencies.BiblePublicationService ?? throw new ArgumentNullException(nameof(dependencies.BiblePublicationService));
-    private readonly IBiblePublicationSectionService biblePublicationSectionService = dependencies.BiblePublicationSectionService ?? throw new ArgumentNullException(nameof(dependencies.BiblePublicationSectionService));
-    private readonly IBiblePublicationTrackService biblePublicationTrackService = dependencies.BiblePublicationTrackService ?? throw new ArgumentNullException(nameof(dependencies.BiblePublicationTrackService));
-    private readonly IMelodyMusicService melodyMusicService = dependencies.MelodyMusicService ?? throw new ArgumentNullException(nameof(dependencies.MelodyMusicService));
-    private readonly IVocalMusicService vocalMusicService = dependencies.VocalMusicService ?? throw new ArgumentNullException(nameof(dependencies.VocalMusicService));
-    private readonly ILanguageContentService languageContentService = dependencies.LanguageContentService ?? throw new ArgumentNullException(nameof(dependencies.LanguageContentService));
-    private readonly IServiceScopeFactory scopeFactory = dependencies.ScopeFactory ?? throw new ArgumentNullException(nameof(dependencies.ScopeFactory));
+    private readonly IMediaIndexService mediaIndexService = dependencies.MediaIndexService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.MediaIndexService)} is required.");
+    private readonly IBiblePublicationService BiblePublicationService = dependencies.BiblePublicationService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.BiblePublicationService)} is required.");
+    private readonly IBiblePublicationSectionService biblePublicationSectionService = dependencies.BiblePublicationSectionService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.BiblePublicationSectionService)} is required.");
+    private readonly IBiblePublicationTrackService biblePublicationTrackService = dependencies.BiblePublicationTrackService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.BiblePublicationTrackService)} is required.");
+    private readonly IMelodyMusicService melodyMusicService = dependencies.MelodyMusicService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.MelodyMusicService)} is required.");
+    private readonly IVocalMusicService vocalMusicService = dependencies.VocalMusicService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.VocalMusicService)} is required.");
+    private readonly ILanguageContentService languageContentService = dependencies.LanguageContentService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.LanguageContentService)} is required.");
+    private readonly IServiceScopeFactory scopeFactory = dependencies.ScopeFactory ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.ScopeFactory)} is required.");
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

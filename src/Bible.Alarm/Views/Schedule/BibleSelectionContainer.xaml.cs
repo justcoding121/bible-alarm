@@ -4,8 +4,8 @@ using System;
 using System.ComponentModel;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
-using Syncfusion.Maui.Core;
 using Serilog;
+using Syncfusion.Maui.Core;
 
 namespace Bible.Alarm.Views.Schedule;
 

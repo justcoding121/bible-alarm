@@ -51,7 +51,7 @@ public sealed class DefaultScheduleService(
         {
             var lastPlayedScheduleId = lastPlayedMetadata.Value.ScheduleId.Value;
             // Verify the schedule still exists in state
-            if (applicationState.Value.Schedules?.Any(s => s.Id == lastPlayedScheduleId) == true)
+            if (applicationState.Value.Schedules?.Any(s => s.Id == lastPlayedScheduleId) is true)
             {
                 scheduleId = lastPlayedScheduleId;
                 logger.Debug("GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in state)", scheduleId);

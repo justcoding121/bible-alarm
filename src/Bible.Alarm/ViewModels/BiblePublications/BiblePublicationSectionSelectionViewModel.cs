@@ -8,24 +8,24 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
-using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
+using Bible.Alarm.Stores.Messages.ModalOverlay;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionHelpers;
 using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.Stores.Messages.ModalOverlay;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 

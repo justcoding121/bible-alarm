@@ -17,9 +17,9 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media;
 

@@ -1,8 +1,8 @@
 #nullable enable
 using System.Net;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
-using Bible.Alarm.Shared.Helpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;

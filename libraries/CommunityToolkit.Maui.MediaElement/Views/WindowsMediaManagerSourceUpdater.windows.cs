@@ -10,8 +10,8 @@ using Windows.Media;
 using Windows.Media.Playback;
 using Windows.Storage;
 using Windows.Storage.Streams;
-using WinMediaSource = Windows.Media.Core.MediaSource;
 using WindowsMediaElement = Windows.Media.Playback.MediaPlayer;
+using WinMediaSource = Windows.Media.Core.MediaSource;
 
 namespace CommunityToolkit.Maui.Views;
 

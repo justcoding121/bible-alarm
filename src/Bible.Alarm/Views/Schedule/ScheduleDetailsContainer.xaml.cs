@@ -96,7 +96,7 @@ public partial class ScheduleDetailsContainer : ContentView
         }
 
         // Also hide keyboard directly as fallback
-        if (ScheduleNameEntry?.IsFocused == true)
+        if (ScheduleNameEntry?.IsFocused is true)
         {
             KeyboardHelper.HideKeyboard(ScheduleNameEntry);
         }
@@ -113,7 +113,7 @@ public partial class ScheduleDetailsContainer : ContentView
 
     private void OnEntryUnfocused(object? sender, FocusEventArgs e)
     {
-        if (ScheduleNameEntry?.IsFocused == false)
+        if (ScheduleNameEntry?.IsFocused is false)
         {
             KeyboardHelper.HideKeyboard(ScheduleNameEntry);
         }

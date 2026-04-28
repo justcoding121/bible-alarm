@@ -1,10 +1,10 @@
 #nullable enable
+using System.Runtime.InteropServices;
 using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.ToastLayoutHelpers;
 using Serilog;
-using System.Runtime.InteropServices;
 using UIKit;
 
 [assembly: Dependency(typeof(IOsToastService))]

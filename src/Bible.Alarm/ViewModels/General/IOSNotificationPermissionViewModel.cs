@@ -2,10 +2,10 @@
 
 using System.Windows.Input;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Serilog;
-using Bible.Alarm.ViewModels;
 
 #if IOS
 using Bible.Alarm.Platforms.iOS.Services.Helpers;

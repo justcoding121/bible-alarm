@@ -2,10 +2,10 @@
 
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

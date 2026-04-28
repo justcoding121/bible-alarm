@@ -5,8 +5,8 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
 using BiblePublicationTrackSelectedAction = Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction;
-using MusicTrackSelectedAction = Bible.Alarm.Stores.Actions.Music.TrackSelectedAction;
 using FluxorDispatcher = Fluxor.IDispatcher;
+using MusicTrackSelectedAction = Bible.Alarm.Stores.Actions.Music.TrackSelectedAction;
 
 namespace Bible.Alarm.Platforms.iOS.Effects;
 

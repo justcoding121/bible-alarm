@@ -2,13 +2,14 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Stores.Actions.BiblePublications;
+using Bible.Alarm.Stores.Messages.CategoryProgress;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,7 +17,6 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.Stores.Messages.CategoryProgress;
 
 namespace Bible.Alarm.ViewModels.Categories;
 

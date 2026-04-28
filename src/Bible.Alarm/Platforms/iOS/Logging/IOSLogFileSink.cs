@@ -1,11 +1,11 @@
 #if IOS
 #nullable enable
+using System.IO;
+using System.Text;
 using Serilog.Core;
 using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Formatting.Display;
-using System.IO;
-using System.Text;
 
 namespace Bible.Alarm.Platforms.iOS.Logging;
 

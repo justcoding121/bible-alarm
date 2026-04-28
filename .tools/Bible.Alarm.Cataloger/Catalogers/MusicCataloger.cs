@@ -12,8 +12,8 @@ using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
 using Bible.Alarm.Shared.Constants;
-using SharedHelpers = Bible.Alarm.Shared.Helpers;
 using Serilog;
+using SharedHelpers = Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Cataloger.Catalogers;
 

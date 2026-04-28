@@ -165,7 +165,7 @@ internal static class CollectionViewReadinessChecker
                     }
 
                     // Use Equals for value comparison
-                    if (sourceItem?.Equals(item) == true)
+                    if (sourceItem?.Equals(item) is true)
                     {
                         return true;
                     }

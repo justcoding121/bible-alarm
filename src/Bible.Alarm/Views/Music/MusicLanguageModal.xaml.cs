@@ -73,7 +73,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
     private void UnfocusSearchEntry()
     {
-        if (LanguageSearchEntry?.IsFocused == true)
+        if (LanguageSearchEntry?.IsFocused is true)
         {
             KeyboardHelper.HideKeyboard(LanguageSearchEntry);
         }

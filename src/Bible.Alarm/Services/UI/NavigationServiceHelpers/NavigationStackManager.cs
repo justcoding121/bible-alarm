@@ -234,7 +234,7 @@ public static class NavigationStackManager
     {
 #if ANDROID
         return ex is Java.Lang.IllegalArgumentException
-            && ex.Message?.Contains("NavController's back stack") == true;
+            && ex.Message?.Contains("NavController's back stack") is true;
 #else
         return false;
 #endif

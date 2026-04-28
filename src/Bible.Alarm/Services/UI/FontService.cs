@@ -85,15 +85,13 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
 
         var platform = DeviceInfo.Platform;
         bool isAndroid = platform == DevicePlatform.Android;
-        var alarmReduction = GetAndroidAlarmReduction(isAndroid);
-
         if (!hasValidDisplayInfo)
         {
             SetFallbackFontSizes(platform, isAndroid);
         }
         else
         {
-            SetScaledFontSizes(mainDisplayInfo, isAndroid, alarmReduction);
+            SetScaledFontSizes(mainDisplayInfo, isAndroid);
         }
 
         buttonFontSize = headerFontSize - 1.0;
@@ -106,11 +104,6 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         return displayInfo.Width > 0 &&
                displayInfo.Height > 0 &&
                displayInfo.Density > 0;
-    }
-
-    private static double GetAndroidAlarmReduction(bool isAndroid)
-    {
-        return isAndroid ? 0.75 : 1.0;
     }
 
     private void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid)
@@ -304,7 +297,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
             isAndroid ? "Android" : "iOS", BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
     }
 
-    private void SetScaledFontSizes(DisplayInfo mainDisplayInfo, bool isAndroid, double androidAlarmReduction)
+    private void SetScaledFontSizes(DisplayInfo mainDisplayInfo, bool isAndroid)
     {
         double density = mainDisplayInfo.Density;
         double widthDp = mainDisplayInfo.Width / density;

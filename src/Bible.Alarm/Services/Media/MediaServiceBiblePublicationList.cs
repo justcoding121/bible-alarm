@@ -138,7 +138,7 @@ internal static class MediaServiceBiblePublicationList
                     return;
 
                 seenCodes.Add(codeForKey);
-                var isMusic = plInfo.Category?.CategoryCode?.Equals("Music", StringComparison.OrdinalIgnoreCase) == true;
+                var isMusic = plInfo.Category?.CategoryCode?.Equals("Music", StringComparison.OrdinalIgnoreCase) is true;
                 var placeholderName = JwSourceHelper.GetPublicationDisplayNameFallback(codeForKey) ?? codeForKey;
                 var placeholder = new BiblePublication
                 {

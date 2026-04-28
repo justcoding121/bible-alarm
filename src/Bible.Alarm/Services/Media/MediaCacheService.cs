@@ -1,11 +1,11 @@
 #nullable enable
 using System.Collections.Concurrent;
+using System.Net.Http;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
-using System.Net.Http;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;

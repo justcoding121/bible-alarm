@@ -1,7 +1,7 @@
 #nullable enable
 
-using Foundation;
 using Bible.Alarm.Platforms.iOS.Helpers;
+using Foundation;
 using Serilog;
 using UIKit;
 

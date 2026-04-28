@@ -2,25 +2,25 @@
 
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Helpers;
-using CommunityToolkit.Mvvm.Messaging;
 using AutoMapper;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels.BiblePublications;
-using Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
-using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.Stores.Actions.Music;
+using Bible.Alarm.Stores.Messages.ModalOverlay;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.BiblePublications;
+using Bible.Alarm.ViewModels.Interfaces;
+using Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.Stores.Messages.ModalOverlay;
 
 namespace Bible.Alarm.ViewModels.Music;
 

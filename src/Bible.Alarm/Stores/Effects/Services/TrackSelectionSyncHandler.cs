@@ -7,8 +7,8 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 using BiblePublicationTrackSelectedAction = Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction;
+using IDispatcher = Fluxor.IDispatcher;
 using MusicTrackSelectedAction = Bible.Alarm.Stores.Actions.Music.TrackSelectedAction;
 
 namespace Bible.Alarm.Stores.Effects.Services;

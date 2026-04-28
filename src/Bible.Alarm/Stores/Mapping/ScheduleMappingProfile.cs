@@ -1,8 +1,8 @@
 #nullable enable
 using AutoMapper;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Stores.Mapping;
 

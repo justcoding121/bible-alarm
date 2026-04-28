@@ -49,7 +49,7 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
             if (isDayEnabled)
             {
                 // Use PrimaryColor resource when both alarm and button are enabled (matches Save button)
-                if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryColorResource) == true &&
+                if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryColorResource) is true &&
                     primaryColorResource is Color primaryColor)
                 {
                     return primaryColor;
@@ -101,7 +101,7 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
             if (isDayEnabled)
             {
                 // Use PrimaryColor resource when both alarm and button are enabled (matches Save button)
-                if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryColorResource) == true &&
+                if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryColorResource) is true &&
                     primaryColorResource is Color primaryColor)
                 {
                     return primaryColor;

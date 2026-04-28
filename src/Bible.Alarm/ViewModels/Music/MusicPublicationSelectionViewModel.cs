@@ -6,22 +6,22 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
-using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Messages.ListItemProgress;
+using Bible.Alarm.Stores.Messages.ModalOverlay;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.Stores.Messages.ListItemProgress;
-using Bible.Alarm.Stores.Messages.ModalOverlay;
 namespace Bible.Alarm.ViewModels.Music;
 
 public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable

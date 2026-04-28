@@ -13,7 +13,7 @@ public sealed class SelectableTextColorConverter : IValueConverter
         try
         {
             // Always return PrimaryColor regardless of selectable state
-            if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryColor) == true &&
+            if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryColor) is true &&
                 primaryColor is Color primary)
             {
                 return primary;

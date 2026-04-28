@@ -57,7 +57,7 @@ public sealed class ScheduleListItemSubtitleManager(
                 scheduleStateItem?.BiblePublicationSectionName ?? "null",
                 scheduleStateItem?.BiblePublicationTrackTitle ?? "null");
 
-            if (scheduleStateItem?.BiblePublicationScheduleId.HasValue == true)
+            if (scheduleStateItem?.BiblePublicationScheduleId.HasValue is true)
             {
                 UpdateLanguageFromState(scheduleStateItem, setLanguage, onPropertyChanged);
                 var playingTrackTitle = (playbackState.Value.CurrentScheduleId == scheduleId && playbackState.Value.IsPreparingOrPlaying && !string.IsNullOrWhiteSpace(playbackState.Value.Title))

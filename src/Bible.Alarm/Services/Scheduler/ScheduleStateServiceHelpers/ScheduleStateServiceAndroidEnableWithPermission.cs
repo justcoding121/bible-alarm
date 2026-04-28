@@ -4,7 +4,7 @@
 using System.Linq;
 using AutoMapper;
 using Bible.Alarm.Common.Interfaces.UI;
-using Microsoft.Extensions.DependencyInjection;
+using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -14,10 +14,10 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.General;
 using Fluxor;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.Platforms.Android.Services.Helpers;
 
 namespace Bible.Alarm.Services.Scheduler.ScheduleStateServiceHelpers;
 

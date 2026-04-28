@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.PlaylistServiceHelpers.TrackNavigatorHelpers;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.PlaylistServiceHelpers.TrackNavigatorHelpers;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;

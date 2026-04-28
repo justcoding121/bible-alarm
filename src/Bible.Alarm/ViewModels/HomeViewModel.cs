@@ -3,6 +3,7 @@
 using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
@@ -11,7 +12,6 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
-using Bible.Alarm.Common.Messenger;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;

@@ -138,7 +138,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
 
     private void UnfocusSearchEntry()
     {
-        if (LanguageSearchEntry?.IsFocused == true)
+        if (LanguageSearchEntry?.IsFocused is true)
         {
             KeyboardHelper.HideKeyboard(LanguageSearchEntry);
         }

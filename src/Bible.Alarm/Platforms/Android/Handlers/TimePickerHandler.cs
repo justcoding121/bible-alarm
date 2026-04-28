@@ -1,4 +1,5 @@
 #nullable enable
+using System.ComponentModel;
 using Android.App;
 using Android.Content;
 using Android.Content.Res;
@@ -8,7 +9,6 @@ using AndroidX.AppCompat.App;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
 using Microsoft.Maui.Platform;
-using System.ComponentModel;
 using Color = Android.Graphics.Color;
 
 namespace Bible.Alarm.Platforms.Android.Handlers;

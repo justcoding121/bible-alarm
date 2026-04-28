@@ -10,7 +10,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Catalogers;
 using Bible.Alarm.Cataloger.Models;
-using CatalogValidator = Bible.Alarm.Cataloger.Utility.CatalogValidator;
 using Bible.Alarm.Cataloger.Utility;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -21,6 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
+using CatalogValidator = Bible.Alarm.Cataloger.Utility.CatalogValidator;
 using DirectoryHelper = Bible.Alarm.Cataloger.Utility.DirectoryHelper;
 using ILogger = Serilog.ILogger;
 

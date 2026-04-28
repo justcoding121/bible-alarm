@@ -1,6 +1,6 @@
 #nullable enable
-using Fluxor;
 using Bible.Alarm.Stores;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;

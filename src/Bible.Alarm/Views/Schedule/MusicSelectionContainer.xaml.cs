@@ -180,7 +180,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             animationManager,
             () =>
             {
-                if (propertyChangeHandler?.ShouldScrollOnExpand == true)
+                if (propertyChangeHandler?.ShouldScrollOnExpand is true)
                 {
                     scrollManager?.ScrollToExpandedContent();
                     if (propertyChangeHandler != null)

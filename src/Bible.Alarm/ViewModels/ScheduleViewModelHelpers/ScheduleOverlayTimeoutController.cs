@@ -71,7 +71,7 @@ internal sealed class ScheduleOverlayTimeoutController : IDisposable
         // Only process if overlay visibility actually changed or if we need to hide it based on conditions
         // This prevents infinite loops from redundant state changes
         var overlayVisibilityChanged = lastOverlayVisibility != currentOverlayVisibility;
-        var wasVisible = lastOverlayVisibility == true;
+        var wasVisible = lastOverlayVisibility is true;
         lastOverlayVisibility = currentOverlayVisibility;
         
         // Only process overlay-related logic if visibility changed or if we need to check conditions

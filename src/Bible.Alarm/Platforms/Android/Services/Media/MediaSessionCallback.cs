@@ -3,9 +3,9 @@ using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
-using Bible.Alarm.Platforms.Android.Effects;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Platforms.Android.Effects;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -77,7 +77,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         // normally like any media player. This preserves playlist position, avoids
         // restarting music intro, and lets PlaybackOperationHandler handle stale
         // ExoPlayer state (re-prepares current track with seek when resources lost).
-        if (pState?.Value?.IsPreparingOrPlaying == true)
+        if (pState?.Value?.IsPreparingOrPlaying is true)
         {
             logger.Information("MediaSessionCallback.OnPlay() - active session exists (Status={Status}), resuming via PlayButtonPressedMessage",
                 pState.Value.Status);
@@ -264,7 +264,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
         // exits early for the same schedule without dispatching a new Playing status,
         // leaving lastSetState pinned to Buffering indefinitely.
         var pState = PlaybackState;
-        if (pState?.Value?.IsPreparingOrPlaying == true
+        if (pState?.Value?.IsPreparingOrPlaying is true
             && pState.Value.CurrentScheduleId == parsedScheduleId)
         {
             logger.Information(

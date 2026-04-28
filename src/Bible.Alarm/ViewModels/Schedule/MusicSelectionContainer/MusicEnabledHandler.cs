@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Net;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -8,7 +9,6 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
-using System.Net;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
@@ -92,8 +92,7 @@ public class MusicEnabledHandler
 
         if (value && !currentValue)
         {
-            var shouldResetToDefault = initialMusicEnabledOnPageLoad.HasValue &&
-                                      initialMusicEnabledOnPageLoad.Value == false;
+            var shouldResetToDefault = initialMusicEnabledOnPageLoad is false;
 
             if (shouldResetToDefault)
             {
@@ -171,7 +170,7 @@ public class MusicEnabledHandler
                                 latestSchedule.MusicPublicationCode == defaultPublicationCode &&
                                 latestSchedule.MusicSectionCode == chosenSection?.SectionCode &&
                                 latestSchedule.MusicTrackCode == TrackCodeHelper.GetFromTrack(chosenTrack) &&
-                                latestSchedule.MusicEnabled == true)
+                                latestSchedule.MusicEnabled)
                             {
                                 return;
                             }

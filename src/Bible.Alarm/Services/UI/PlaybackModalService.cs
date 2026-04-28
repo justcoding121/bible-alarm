@@ -1,8 +1,8 @@
 #nullable enable
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
@@ -520,7 +520,7 @@ public sealed class PlaybackModalService :
             if (page?.Handler?.PlatformView != null)
             {
                 var vc = (page.Handler as IPlatformViewHandler)?.ViewController;
-                if (vc?.IsViewLoaded == true && vc.View?.Window != null)
+                if (vc?.IsViewLoaded is true && vc.View?.Window != null)
                 {
                     logger.Debug("WaitForWindowReadyAsync: Window ready after {ElapsedMs}ms, waiting for appearance cycle", elapsed);
                     await Task.Delay(1000);
