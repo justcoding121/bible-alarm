@@ -92,6 +92,8 @@ public static class CollectionViewHelper
             return await WindowsNativeScrollHelper.CanSafelyScrollWindows(collectionView, cancellationToken);
         }
 #endif
+        _ = collectionView;
+        _ = cancellationToken;
         return true;
     }
 

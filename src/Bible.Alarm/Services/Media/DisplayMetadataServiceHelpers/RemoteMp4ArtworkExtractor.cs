@@ -107,7 +107,7 @@ internal sealed class RemoteMp4ArtworkExtractor
                 var tailSuffix = await FetchSuffixRangeAsync(client, url, TailChunkSize, cancellationToken);
                 if (tailSuffix != null)
                 {
-                    moovBytes = FindAndExtractMoovFromTail(tailSuffix, tailSuffix.Length);
+                    moovBytes = FindAndExtractMoovFromTail(tailSuffix);
                 }
             }
         }
@@ -117,7 +117,7 @@ internal sealed class RemoteMp4ArtworkExtractor
             return null;
         }
 
-        return await ParseMoovWithTagLibAsync(moovBytes, url);
+        return await ParseMoovWithTagLibAsync(moovBytes);
     }
 
     private static async Task<long?> GetContentLengthAsync(HttpClient client, string url, CancellationToken cancellationToken)
@@ -198,7 +198,7 @@ internal sealed class RemoteMp4ArtworkExtractor
             return null;
         }
 
-        return FindAndExtractMoovFromTail(tail, contentLength - from);
+        return FindAndExtractMoovFromTail(tail);
     }
 
     private static byte[]? FindAndExtractMoov(byte[] buffer)
@@ -244,7 +244,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return null;
     }
 
-    private static byte[]? FindAndExtractMoovFromTail(byte[] tail, long fileTailLength)
+    private static byte[]? FindAndExtractMoovFromTail(byte[] tail)
     {
         for (int i = tail.Length - 4; i >= 4; i--)
         {
@@ -439,7 +439,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return bytes;
     }
 
-    private async Task<MetaData?> ParseMoovWithTagLibAsync(byte[] moovBytes, string url)
+    private async Task<MetaData?> ParseMoovWithTagLibAsync(byte[] moovBytes)
     {
         string? tempFilePath = null;
         try

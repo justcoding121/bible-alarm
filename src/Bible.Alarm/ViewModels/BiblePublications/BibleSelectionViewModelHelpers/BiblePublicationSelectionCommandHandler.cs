@@ -312,7 +312,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                 updateSelectedLanguage(x);
 
                 var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
-                    x, publicationCode, sectionCode, trackCode, sectionName, publicationName, trackTitle, currentSchedule);
+                    x, publicationCode, sectionCode, trackCode, sectionName, publicationName, trackTitle);
                 var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
                 actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem);
                 
@@ -403,8 +403,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         string trackCode,
         string sectionName,
         string publicationName,
-        string trackTitle,
-        ScheduleStateItem currentSchedule)
+        string trackTitle)
     {
         // Match the pattern used in BiblePublicationSectionSelectionViewModel and TrackSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0

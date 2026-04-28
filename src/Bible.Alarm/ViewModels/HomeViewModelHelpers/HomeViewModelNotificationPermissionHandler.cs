@@ -32,7 +32,13 @@ public sealed class HomeViewModelNotificationPermissionHandler
         {
             logger.Information("UpdateNotificationPermissionButtonVisibility called - Platform={Platform}", DeviceInfo.Platform);
 
-            var shouldShow = ComputeShouldShow(setButtonVisible, setButtonBottomMargin, setCollectionViewBottomMargin, notifyMarginChanged);
+#if ANDROID
+            var shouldShow = ComputeAndroidShouldShow();
+#elif IOS
+            var shouldShow = ComputeIosShouldShow(setButtonVisible, setButtonBottomMargin, setCollectionViewBottomMargin, notifyMarginChanged);
+#else
+            var shouldShow = false;
+#endif
 
             logger.Information("[NOTIFICATION-BUTTON] Current button visible: {CurrentVisible}, Should show: {ShouldShow}",
                 getNotificationButtonVisible(), shouldShow);
@@ -62,21 +68,6 @@ public sealed class HomeViewModelNotificationPermissionHandler
             setButtonVisible(false);
             setButtonBottomMargin(0);
         }
-    }
-
-    private bool ComputeShouldShow(
-        Action<bool> setButtonVisible,
-        Action<double> setButtonBottomMargin,
-        Action<double> setCollectionViewBottomMargin,
-        Action notifyMarginChanged)
-    {
-#if ANDROID
-        return ComputeAndroidShouldShow();
-#elif IOS
-        return ComputeIosShouldShow(setButtonVisible, setButtonBottomMargin, setCollectionViewBottomMargin, notifyMarginChanged);
-#else
-        return false;
-#endif
     }
 
 #if ANDROID

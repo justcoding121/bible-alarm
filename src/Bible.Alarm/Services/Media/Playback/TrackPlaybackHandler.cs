@@ -312,6 +312,7 @@ public sealed class TrackPlaybackHandler
             }
         }
 #else
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
             await audioPlayer.SeekToAsync(position);

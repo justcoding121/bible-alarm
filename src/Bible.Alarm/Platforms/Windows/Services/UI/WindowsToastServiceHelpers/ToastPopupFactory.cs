@@ -24,7 +24,7 @@ internal sealed class ToastPopupFactory
     {
         var theme = Application.Current?.RequestedTheme ?? AppTheme.Light;
         var backgroundColor = GetToastBackgroundColor(theme);
-        var textColor = GetToastTextColor(theme);
+        var textColor = GetToastTextColor();
 
         // Create a TextBlock for the message
         var textBlock = new TextBlock
@@ -70,9 +70,6 @@ internal sealed class ToastPopupFactory
         }
     }
 
-    private static WinUIColor GetToastTextColor(AppTheme theme)
-    {
-        return Colors.White;
-    }
+    private static WinUIColor GetToastTextColor() => Colors.White;
 }
 

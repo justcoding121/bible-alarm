@@ -60,35 +60,35 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
 
             // Play command
             commandCenter.PlayCommand.Enabled = true;
-            playToken = commandCenter.PlayCommand.AddTarget((evt) => HandlePlayCommand(evt));
+            playToken = commandCenter.PlayCommand.AddTarget((_) => HandlePlayCommand());
 
             // Pause command
             commandCenter.PauseCommand.Enabled = true;
-            pauseToken = commandCenter.PauseCommand.AddTarget((evt) => HandlePauseCommand(evt));
+            pauseToken = commandCenter.PauseCommand.AddTarget((_) => HandlePauseCommand());
 
             // Toggle Play/Pause (for single button headphones)
             commandCenter.TogglePlayPauseCommand.Enabled = true;
-            toggleToken = commandCenter.TogglePlayPauseCommand.AddTarget((evt) => HandleTogglePlayPauseCommand(evt));
+            toggleToken = commandCenter.TogglePlayPauseCommand.AddTarget((_) => HandleTogglePlayPauseCommand());
 
             // Next track
             commandCenter.NextTrackCommand.Enabled = true;
-            nextToken = commandCenter.NextTrackCommand.AddTarget((evt) => HandleNextTrackCommand(evt));
+            nextToken = commandCenter.NextTrackCommand.AddTarget((_) => HandleNextTrackCommand());
 
             // Previous track
             commandCenter.PreviousTrackCommand.Enabled = true;
-            previousToken = commandCenter.PreviousTrackCommand.AddTarget((evt) => HandlePreviousTrackCommand(evt));
+            previousToken = commandCenter.PreviousTrackCommand.AddTarget((_) => HandlePreviousTrackCommand());
 
             // Seek forward (skip forward)
             commandCenter.SkipForwardCommand.Enabled = true;
             // 15 seconds
             commandCenter.SkipForwardCommand.PreferredIntervals = new double[] { 15.0 };
-            skipForwardToken = commandCenter.SkipForwardCommand.AddTarget((evt) => HandleSkipForwardCommand(evt));
+            skipForwardToken = commandCenter.SkipForwardCommand.AddTarget((_) => HandleSkipForwardCommand());
 
             // Seek backward (skip backward)
             commandCenter.SkipBackwardCommand.Enabled = true;
             // 15 seconds
             commandCenter.SkipBackwardCommand.PreferredIntervals = new double[] { 15.0 };
-            skipBackwardToken = commandCenter.SkipBackwardCommand.AddTarget((evt) => HandleSkipBackwardCommand(evt));
+            skipBackwardToken = commandCenter.SkipBackwardCommand.AddTarget((_) => HandleSkipBackwardCommand());
 
             // Seek to position (for scrubbing)
             commandCenter.ChangePlaybackPositionCommand.Enabled = true;
@@ -188,7 +188,7 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
         }
     }
 
-    private MPRemoteCommandHandlerStatus HandlePlayCommand(MPRemoteCommandEvent evt)
+    private MPRemoteCommandHandlerStatus HandlePlayCommand()
     {
         if (ShouldSuppressCarPlayConnectResume())
         {
@@ -202,7 +202,7 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private static MPRemoteCommandHandlerStatus HandlePauseCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandlePauseCommand()
     {
         logger.Debug("[iOS Media] Pause command received");
         WeakReferenceMessenger.Default.Send(new PauseButtonPressedMessage());
@@ -230,28 +230,28 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
             && playbackState.Value.Status != PlayStatus.Playing;
     }
 
-    private static MPRemoteCommandHandlerStatus HandleNextTrackCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandleNextTrackCommand()
     {
         logger.Debug("[iOS Media] Next track command received");
         WeakReferenceMessenger.Default.Send(new NextButtonPressedMessage());
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private static MPRemoteCommandHandlerStatus HandlePreviousTrackCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandlePreviousTrackCommand()
     {
         logger.Debug("[iOS Media] Previous track command received");
         WeakReferenceMessenger.Default.Send(new PreviousButtonPressedMessage());
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private static MPRemoteCommandHandlerStatus HandleSkipForwardCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandleSkipForwardCommand()
     {
         logger.Debug("[iOS Media] Skip forward command received");
         WeakReferenceMessenger.Default.Send(new SeekForwardButtonPressedMessage());
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private static MPRemoteCommandHandlerStatus HandleSkipBackwardCommand(MPRemoteCommandEvent evt)
+    private static MPRemoteCommandHandlerStatus HandleSkipBackwardCommand()
     {
         logger.Debug("[iOS Media] Skip backward command received");
         WeakReferenceMessenger.Default.Send(new SeekBackwardButtonPressedMessage());

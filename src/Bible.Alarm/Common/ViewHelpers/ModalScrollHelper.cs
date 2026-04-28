@@ -183,7 +183,7 @@ public static class ModalScrollHelper
         catch (OperationCanceledException)
         {
             // User cancelled (e.g., tapped an item) - reveal immediately
-            await CleanupOnCancelOrError(viewModel, busyOverlay, collectionView);
+            await CleanupOnCancelOrError(viewModel, collectionView);
             return ModalAppearingResult.Cancelled;
         }
         catch (Exception ex) when (IsFetchFailure(ex))
@@ -199,7 +199,7 @@ public static class ModalScrollHelper
         catch (Exception ex)
         {
             Log.Warning(ex, "Error in ModalScrollHelper.HandleModalAppearingAsync");
-            await CleanupOnCancelOrError(viewModel, busyOverlay, collectionView);
+            await CleanupOnCancelOrError(viewModel, collectionView);
             return ModalAppearingResult.Success; // Don't close modal for non-fetch errors
         }
     }
@@ -476,7 +476,7 @@ public static class ModalScrollHelper
     /// <summary>
     /// Cleanup helper for cancellation or error scenarios.
     /// </summary>
-    private static async Task CleanupOnCancelOrError(IListViewModel? viewModel, View? busyOverlay, MauiCollectionView? collectionView)
+    private static async Task CleanupOnCancelOrError(IListViewModel? viewModel, MauiCollectionView? collectionView)
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {

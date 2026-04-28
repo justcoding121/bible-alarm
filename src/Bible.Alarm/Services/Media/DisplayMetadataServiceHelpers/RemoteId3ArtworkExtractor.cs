@@ -95,7 +95,7 @@ internal sealed class RemoteId3ArtworkExtractor
         }
 
         // Step 3: Write to a temp file and parse with TagLib.
-        return await ParseTagBytesWithTagLibAsync(tagBytes, url);
+        return await ParseTagBytesWithTagLibAsync(tagBytes);
     }
 
     private async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
@@ -124,7 +124,7 @@ internal sealed class RemoteId3ArtworkExtractor
         return bytes;
     }
 
-    private async Task<MetaData?> ParseTagBytesWithTagLibAsync(byte[] tagBytes, string url)
+    private async Task<MetaData?> ParseTagBytesWithTagLibAsync(byte[] tagBytes)
     {
         string? tempFilePath = null;
         try

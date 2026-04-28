@@ -45,7 +45,7 @@ public static class MediaSessionHelper
 
                     // Set last played metadata to MediaSession if available (before DI initialization)
                     // This ensures Android Auto shows the last played item immediately on process start
-                    ApplyLastPlayedMetadataIfAvailable(mediaSession, context);
+                    ApplyLastPlayedMetadataIfAvailable(mediaSession);
 
                     logger.Information("MediaSessionCompat created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}",
                         mediaSession.SessionToken != null);
@@ -107,7 +107,7 @@ public static class MediaSessionHelper
     /// This happens before DI initialization, so we set metadata directly on MediaSessionCompat.
     /// Similar to how default schedule metadata is set, but using saved Preferences data.
     /// </summary>
-    private static void ApplyLastPlayedMetadataIfAvailable(MediaSessionCompat session, Context context)
+    private static void ApplyLastPlayedMetadataIfAvailable(MediaSessionCompat session)
     {
         try
         {
@@ -132,7 +132,7 @@ public static class MediaSessionHelper
             // Try to load artwork if URL is available (simple file-based loading without DI)
             if (!string.IsNullOrEmpty(metadata.Value.ArtworkUrl))
             {
-                LoadArtworkForMetadata(metadataBuilder, metadata.Value.ArtworkUrl, context);
+                LoadArtworkForMetadata(metadataBuilder, metadata.Value.ArtworkUrl);
             }
 
             // Apply metadata to session
@@ -154,7 +154,7 @@ public static class MediaSessionHelper
     /// Loads artwork bitmap from URL and adds it to metadata builder.
     /// Uses simple file-based loading without DI dependencies.
     /// </summary>
-    private static void LoadArtworkForMetadata(MediaMetadataCompat.Builder metadataBuilder, string artworkUrl, Context context)
+    private static void LoadArtworkForMetadata(MediaMetadataCompat.Builder metadataBuilder, string artworkUrl)
     {
         try
         {

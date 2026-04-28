@@ -593,7 +593,7 @@ public class MediaSessionEffect(
             }
 
             var duration = message.Duration ?? playbackState.Value.Duration;
-            UpdatePlaybackPosition(session, message.CurrentPosition.Value, duration);
+            UpdatePlaybackPosition(message.CurrentPosition.Value, duration);
         }
         catch (Exception ex)
         {
@@ -601,7 +601,7 @@ public class MediaSessionEffect(
         }
     }
 
-    private void UpdatePlaybackPosition(MediaSessionCompat session, TimeSpan currentPosition, TimeSpan duration)
+    private void UpdatePlaybackPosition(TimeSpan currentPosition, TimeSpan duration)
     {
         var currentState = playbackState.Value;
         var canPlayNext = currentState.CanPlayNext;

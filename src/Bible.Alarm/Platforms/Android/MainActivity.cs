@@ -41,7 +41,7 @@ public class MainActivity : MauiAppCompatActivity
 
         try
         {
-            PerformOnCreateInitialization(savedInstanceState);
+            PerformOnCreateInitialization();
             SetupActivityComponents();
             Logger.Debug("MainActivity: OnCreate completed successfully");
         }
@@ -52,7 +52,7 @@ public class MainActivity : MauiAppCompatActivity
         }
     }
 
-    private void PerformOnCreateInitialization(Bundle? savedInstanceState)
+    private void PerformOnCreateInitialization()
     {
         InitializeMauiApp();
 

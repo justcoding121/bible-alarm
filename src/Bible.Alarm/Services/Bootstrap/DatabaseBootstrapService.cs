@@ -73,7 +73,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         // This eliminates the need for migrations on clean install (saves ~1.2 seconds)
         if (!dbExists)
         {
-            await CopyScheduleDatabaseFromResourceIfNeededAsync(scope, scheduleDb, dbPath);
+            await CopyScheduleDatabaseFromResourceIfNeededAsync(dbPath);
             dbExists = System.IO.File.Exists(dbPath); // Re-check after copy attempt
         }
 
@@ -237,10 +237,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
 #endif
     }
 
-    private async Task CopyScheduleDatabaseFromResourceIfNeededAsync(
-        IServiceScope scope,
-        ScheduleDbContext scheduleDb,
-        string dbPath)
+    private async Task CopyScheduleDatabaseFromResourceIfNeededAsync(string dbPath)
     {
         var dbExists = System.IO.File.Exists(dbPath);
 

@@ -461,7 +461,7 @@ public sealed class DisplayMetadataService(
                 {
                     var tag = file.Tag;
                     var meta = ExtractBasicMetadata(tag);
-                    ExtractArtworkIfAvailable(tag, meta, uri);
+                    ExtractArtworkIfAvailable(tag, meta);
                     return meta;
                 }
             }
@@ -519,12 +519,12 @@ public sealed class DisplayMetadataService(
         };
     }
 
-    private void ExtractArtworkIfAvailable(TagLib.Tag tag, MetaData meta, string uri)
+    private void ExtractArtworkIfAvailable(TagLib.Tag tag, MetaData meta)
     {
         // Extract artwork if available - find the largest picture
         if (tag.Pictures != null && tag.Pictures.Length > 0)
         {
-            var largestPicture = FindLargestPicture(tag.Pictures, uri);
+            var largestPicture = FindLargestPicture(tag.Pictures);
             if (largestPicture != null && largestPicture.Data != null && largestPicture.Data.Data != null)
             {
                 meta.ArtworkBytes = largestPicture.Data.Data;
@@ -532,7 +532,7 @@ public sealed class DisplayMetadataService(
         }
     }
 
-    private IPicture? FindLargestPicture(IPicture[] pictures, string uri)
+    private IPicture? FindLargestPicture(IPicture[] pictures)
     {
         IPicture? largestPicture = null;
         int largestSize = 0;

@@ -51,7 +51,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         model.CategoryCode = isMusicPublication ? null : (string.IsNullOrWhiteSpace(currentSchedule?.BiblePublicationCategoryName) ? null : currentSchedule.BiblePublicationCategoryName);
 
         // For Bible/Music schedule content, always keep the selected language (even for no-language pubs) so the schedule page can show language + pubs. Only normalize begin-with-music (AlarmMusic) for no-language.
-        await NormalizeLanguageCodeForNoLanguagePublicationsAsync(model);
+        await NormalizeLanguageCodeForNoLanguagePublicationsAsync();
         
         logger.Information("PrepareModelForSave: After mapping - model.NumberOfTracksToPlay={NumberOfTracksToPlay}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}",
             model.NumberOfTracksToPlay, model.AlwaysPlayFromStart);
@@ -304,7 +304,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
     /// For no-language music (e.g. iam), we store the schedule's current language (e.g. MY) in Music.LanguageCode,
     /// same as Bible container stores BiblePublicationSchedule.LanguageCode, so the schedule page shows the correct language when viewed again.
     /// </summary>
-    private Task NormalizeLanguageCodeForNoLanguagePublicationsAsync(AlarmSchedule model)
+    private Task NormalizeLanguageCodeForNoLanguagePublicationsAsync()
     {
         return Task.CompletedTask;
     }

@@ -220,7 +220,7 @@ public class IOsToastService : ToastService, IDisposable
     private static UILabel CreateToastLabel(string message)
     {
         var theme = Application.Current?.RequestedTheme ?? AppTheme.Light;
-        var textColor = GetToastTextColor(theme);
+        var textColor = GetToastTextColor();
 
         return new UILabel
         {
@@ -262,10 +262,7 @@ public class IOsToastService : ToastService, IDisposable
         }
     }
 
-    private static UIColor GetToastTextColor(AppTheme theme)
-    {
-        return UIColor.White;
-    }
+    private static UIColor GetToastTextColor() => UIColor.White;
 
     private static UIView CreateToastContainer()
     {

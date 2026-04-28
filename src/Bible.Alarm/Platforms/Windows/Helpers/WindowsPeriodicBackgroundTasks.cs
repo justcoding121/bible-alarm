@@ -60,6 +60,7 @@ public sealed class WindowsPeriodicBackgroundTasks : IDisposable
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             logger.Debug("Running scheduler task immediately on app start");
             var schedulerService = serviceProvider.GetRequiredService<ISchedulerService>();
             await schedulerService.HandleAsync();

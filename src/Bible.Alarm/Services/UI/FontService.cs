@@ -89,7 +89,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
 
         if (!hasValidDisplayInfo)
         {
-            SetFallbackFontSizes(platform, isAndroid, alarmReduction);
+            SetFallbackFontSizes(platform, isAndroid);
         }
         else
         {
@@ -113,7 +113,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         return isAndroid ? 0.75 : 1.0;
     }
 
-    private void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid, double androidAlarmReduction)
+    private void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid)
     {
         var deviceIdiom = DeviceInfo.Idiom;
         
@@ -126,15 +126,15 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
 
         if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
         {
-            SetWindowsDesktopFallbackFontSizes(androidAlarmReduction, deviceSizeMultiplier);
+            SetWindowsDesktopFallbackFontSizes(deviceSizeMultiplier);
         }
         else
         {
-            SetOtherPlatformFallbackFontSizes(isAndroid, androidAlarmReduction, deviceSizeMultiplier);
+            SetOtherPlatformFallbackFontSizes(isAndroid, deviceSizeMultiplier);
         }
     }
 
-    private void SetWindowsDesktopFallbackFontSizes(double androidAlarmReduction, double deviceSizeMultiplier)
+    private void SetWindowsDesktopFallbackFontSizes(double deviceSizeMultiplier)
     {
         // Apply progressive accessibility scaling to fallback sizes
         // Use Windows-specific defaults per Fluent Design System
@@ -214,7 +214,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
             BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
     }
 
-    private void SetOtherPlatformFallbackFontSizes(bool isAndroid, double androidAlarmReduction, double deviceSizeMultiplier)
+    private void SetOtherPlatformFallbackFontSizes(bool isAndroid, double deviceSizeMultiplier)
     {
         // Apply progressive accessibility scaling to fallback sizes
         // Use platform-specific defaults: iOS or Android based on industry standards
@@ -320,14 +320,14 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         double deviceSizeMultiplier = FontServiceSizingHelpers.GetDeviceSizeMultiplier(deviceSizeCategory, platform);
         
         double densityScale = FontServiceSizingHelpers.CalculateDensityScaleFactor(widthDp, density);
-        SetStandardFontSizes(densityScale, accessibilityScale, platform, deviceSizeMultiplier);
-        SetAlarmFontSizes(densityScale, accessibilityScale, widthDp, isAndroid, androidAlarmReduction, platform, deviceSizeMultiplier);
+        SetStandardFontSizes(accessibilityScale, platform, deviceSizeMultiplier);
+        SetAlarmFontSizes(accessibilityScale, widthDp, platform, deviceSizeMultiplier);
 
         Log.Logger.Debug("Font sizes updated with density scale {DensityScale:F2}, accessibility scale {AccessibilityScale:F2}, device size multiplier {DeviceSizeMultiplier:F2} for platform {Platform} ({DeviceSizeCategory})",
             densityScale, accessibilityScale, deviceSizeMultiplier, platform, deviceSizeCategory);
     }
 
-    private void SetStandardFontSizes(double densityScale, double accessibilityScale, DevicePlatform platform, double deviceSizeMultiplier)
+    private void SetStandardFontSizes(double accessibilityScale, DevicePlatform platform, double deviceSizeMultiplier)
     {
         // Get platform-specific defaults based on industry standards
         PlatformFontDefaults defaults;
@@ -411,7 +411,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         contentWidthLarge = Math.Min(BaseContentWidthLarge * contentWidthProgressiveScale, 420.0 * accessibilityCap);
     }
 
-    private void SetAlarmFontSizes(double densityScale, double accessibilityScale, double widthDp, bool isAndroid, double androidAlarmReduction, DevicePlatform platform, double deviceSizeMultiplier)
+    private void SetAlarmFontSizes(double accessibilityScale, double widthDp, DevicePlatform platform, double deviceSizeMultiplier)
     {
         // Get platform-specific alarm font defaults per industry standards
         PlatformFontDefaults defaults;
