@@ -13,8 +13,6 @@ namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 /// </summary>
 internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
 {
-    private record OldSectionInfo(string Name, string SectionCode);
-
     public async Task CopyRemainingDataAsync(
         string oldMediaIndexDbPath,
         string newMediaIndexDbPath,

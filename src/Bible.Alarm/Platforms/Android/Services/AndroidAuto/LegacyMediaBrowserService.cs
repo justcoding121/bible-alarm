@@ -39,7 +39,6 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     private readonly MediaSessionInitializer mediaSessionInitializer = new(logger);
     private readonly ClientValidator clientValidator = new(logger);
     private readonly MediaBrowser mediaBrowser = new(logger);
-    private readonly PlaybackController playbackController = new(logger);
     private readonly StateSubscriptionManager stateSubscriptionManager = new(logger);
 
     // MediaSession references
@@ -166,25 +165,6 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     }
 
 
-    private static async Task<bool> WaitForBootstrapAsync(string parentId)
-    {
-        try
-        {
-            await MauiProgram.WaitForBootstrapAsync();
-            logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
-            return true;
-        }
-        catch (Exception bootstrapEx)
-        {
-            logger.Warning(bootstrapEx, "Bootstrap not ready or timed out for parent: {ParentId} - returning empty list", parentId);
-            return false;
-        }
-    }
-
-
-
-
-
     private void RefreshDefaultMetadataAfterBootstrap()
     {
         _ = Task.Run(async () =>
@@ -220,11 +200,6 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 logger.Warning(ex, "Failed to refresh default metadata on car connect");
             }
         });
-    }
-
-    private static int GetSectionIconSize()
-    {
-        return 128;
     }
 
     private static void SendEmptyResultSafely(Result result, string parentId)

@@ -295,7 +295,9 @@ public static class BootstrapHelper
         }
     }
 
-    private static readonly System.Diagnostics.Stopwatch bootstrapStopwatch = System.Diagnostics.Stopwatch.StartNew();
+#if DEBUG
+    private static readonly Stopwatch bootstrapStopwatch = Stopwatch.StartNew();
+#endif
 
     private static async Task ExecuteBootstrapWithErrorHandlingAsync(IServiceProvider services, bool isForeground, string context)
     {

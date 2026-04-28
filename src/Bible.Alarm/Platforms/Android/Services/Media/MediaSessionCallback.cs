@@ -25,20 +25,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
     private readonly IPlaybackService playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    private IState<ApplicationState>? applicationState;
     private IState<PlaybackState>? playbackState;
-
-    private IState<ApplicationState> ApplicationState
-    {
-        get
-        {
-            if (applicationState == null)
-            {
-                applicationState = ServiceProviderManager.GetService<IState<ApplicationState>>();
-            }
-            return applicationState ?? throw new InvalidOperationException("ApplicationState not available");
-        }
-    }
 
     private IState<PlaybackState> PlaybackState
     {

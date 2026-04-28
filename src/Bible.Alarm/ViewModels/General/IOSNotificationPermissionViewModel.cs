@@ -75,9 +75,9 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
 #endif
     }
 
+#if IOS
     private void CheckPermissionStatus()
     {
-#if IOS
         if (DeviceInfo.Platform != DevicePlatform.iOS || permissionService == null)
         {
             return;
@@ -97,8 +97,8 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
         {
             logger.Error(ex, "Error checking iOS notification permission status");
         }
-#endif
     }
+#endif
 
     public void StartPermissionCheckTimer()
     {
