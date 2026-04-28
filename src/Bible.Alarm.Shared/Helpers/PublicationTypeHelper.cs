@@ -43,22 +43,6 @@ public static class PublicationTypeHelper
     };
 
     /// <summary>
-    /// Series category publications that use Mediator API (MediatorSectioned, video). Treated as MediatorSectioned + IsVideo.
-    /// </summary>
-    private static readonly HashSet<string> SeriesMediatorPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "SeriesDigForTreasures" // Dig for Treasures in God's Word
-    };
-
-    /// <summary>
-    /// Children category publications that use Mediator API (MediatorSectioned, video).
-    /// </summary>
-    private static readonly HashSet<string> ChildrenMediatorPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "SeriesBJFLessons" // Bible Stories for Little Ones
-    };
-
-    /// <summary>
     /// Returns true if the publication has a Section → Track structure.
     /// Bible (books 1-66), Music "iam" (Kingdom Melodies discs), and Magazines (issue-based) have sections.
     /// Returns false for dramas, videos, and other music which have a flat Track structure.

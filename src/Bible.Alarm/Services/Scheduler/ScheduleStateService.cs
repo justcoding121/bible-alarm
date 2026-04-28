@@ -105,10 +105,8 @@ public sealed class ScheduleStateService(
 #pragma warning disable CS9113 // Parameter 'notificationService' is used in iOS/WinUI paths (#else block)
     private async Task<bool> CheckNotificationPermissionsAsync(int scheduleId)
     {
-        // Get the schedule to check NotificationEnabled status
-        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
-        
 #if ANDROID
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
         // Android: Only check notification permission if "Tap to Play" (NotificationEnabled) is enabled
         // The main reminder (IsEnabled) can work without notification permission
         // However, if user enables IsEnabled (reminder) from home page and NotificationEnabled is already true,
@@ -216,6 +214,7 @@ public sealed class ScheduleStateService(
         }
         return true; // iOS permission check passed
 #else
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
         // WinUI and other platforms
         if (DeviceInfo.Platform == DevicePlatform.WinUI)
         {
@@ -237,17 +236,6 @@ public sealed class ScheduleStateService(
 #endif
     }
 #pragma warning restore CS9113
-
-    private async Task ShowNotificationPermissionMessageAsync()
-    {
-        var message = DeviceInfo.Platform == DevicePlatform.iOS
-            ? "Cannot schedule reminder because you've disabled notifications. " +
-              "Please enable notification for this app under system settings."
-            : "Cannot schedule reminder because you've denied background apps permission. " +
-              "Please grant background apps permission for this app under system settings.";
-
-        await toastService.ShowMessage(message, 7);
-    }
 
     private async Task<AlarmSchedule> UpdateScheduleEnabledStateInDatabaseAsync(int scheduleId, bool isEnabled)
     {

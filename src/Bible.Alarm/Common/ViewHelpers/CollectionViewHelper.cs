@@ -86,14 +86,14 @@ public static class CollectionViewHelper
 
     private static async Task<bool> CanSafelyScrollAsync(MauiCollectionView collectionView, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(collectionView);
+        cancellationToken.ThrowIfCancellationRequested();
 #if WINDOWS
         if (DeviceInfo.Platform == DevicePlatform.WinUI)
         {
             return await WindowsNativeScrollHelper.CanSafelyScrollWindows(collectionView, cancellationToken);
         }
 #endif
-        _ = collectionView;
-        _ = cancellationToken;
         return true;
     }
 

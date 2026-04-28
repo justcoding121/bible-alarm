@@ -1,11 +1,14 @@
 # List open Sonar issues for selected rules, limited to app + shared source (excludes libraries/.tools).
 param(
     [string[]]$Rules = @("csharpsquid:S1481", "csharpsquid:S1172"),
-    [string]$IssuesPath = (Join-Path (Split-Path $PSScriptRoot -Parent) "sonar-reports\all-open-issues.json"),
+    [string]$IssuesPath = "",
     [int]$PerRule = 30
 )
 $ErrorActionPreference = "Stop"
-$issues = Get-Content $IssuesPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($IssuesPath)) {
+    $IssuesPath = [System.IO.Path]::GetFullPath((Join-Path (Split-Path $PSScriptRoot -Parent) "sonar-reports\all-open-issues.json"))
+}
+$issues = [System.IO.File]::ReadAllText($IssuesPath) | ConvertFrom-Json
 $prefix = "justcoding121_bible-alarm:src/Bible.Alarm"
 
 foreach ($rule in $Rules) {

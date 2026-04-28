@@ -16,13 +16,9 @@ public sealed class SchedulePersistenceService(
     IAlarmService alarmService,
     IDispatcher dispatcher,
     IMediaCacheService mediaCacheService,
-    IAlarmScheduleService alarmScheduleService,
-    IBiblePublicationService BiblePublicationService,
-    IMelodyMusicService melodyMusicService)
+    IAlarmScheduleService alarmScheduleService)
     : ISchedulePersistenceService, IDisposable
 {
-    private readonly IBiblePublicationService BiblePublicationService = BiblePublicationService;
-    private readonly IMelodyMusicService melodyMusicService = melodyMusicService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

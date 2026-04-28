@@ -447,23 +447,6 @@ public sealed class NavigationService(
         }
     }
 
-    /// <summary>
-    /// Pushes a fresh page instance, then clears all other pages from the stack, leaving only the newly pushed page.
-    /// </summary>
-    private async Task PushFreshPageAsync<T>(T page, bool hasNavigationBar = true) where T : Page
-    {
-        var navigation = GetNavigation();
-
-        // Set navigation bar settings
-        NavigationPage.SetHasNavigationBar(page, hasNavigationBar);
-        // Enable back button when navigation bar is enabled
-        NavigationPage.SetHasBackButton(page, hasNavigationBar);
-
-        // Push the fresh page first - keep animation enabled
-        await navigation.PushAsync(page, animated: true);
-        WindowSetupService.UpdateNavigationBarColors();
-    }
-
     public void Dispose()
     {
         if (isDisposed)

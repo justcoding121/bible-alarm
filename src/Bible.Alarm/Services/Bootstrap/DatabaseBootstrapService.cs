@@ -345,28 +345,5 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
 
         await Task.CompletedTask;
     }
-
-    /// <summary>
-    /// Deletes a legacy file if it exists.
-    /// </summary>
-    private async Task DeleteLegacyFileAsync(string filePath, string description)
-    {
-        if (!System.IO.File.Exists(filePath))
-        {
-            return;
-        }
-
-        try
-        {
-            System.IO.File.Delete(filePath);
-            Log.Logger.Information("[BOOTSTRAP] Deleted legacy {Description}: {FilePath}", description, filePath);
-        }
-        catch (Exception ex)
-        {
-            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to delete legacy {Description} (non-critical): {FilePath}", description, filePath);
-        }
-
-        await Task.CompletedTask;
-    }
 }
 

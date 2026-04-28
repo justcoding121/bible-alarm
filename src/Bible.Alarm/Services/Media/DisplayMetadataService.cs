@@ -21,12 +21,9 @@ public sealed class DisplayMetadataService(
     IMediaService mediaService,
     HttpMessageHandler httpHandler,
     IBiblePublicationService? biblePublicationService = null,
-    IVocalMusicService? vocalMusicService = null,
-    ILanguageNameService? languageNameService = null)
+    IVocalMusicService? vocalMusicService = null)
     : IDisplayMetadataService
 {
-    private readonly IVocalMusicService? vocalMusicService = vocalMusicService;
-    private readonly ILanguageNameService? languageNameService = languageNameService;
     private readonly DisplayMetadataServiceMusicHelper musicHelper = new(logger, mediaService, vocalMusicService);
     private readonly RemoteId3ArtworkExtractor remoteId3ArtworkExtractor = new(httpHandler, logger);
     private readonly RemoteMp4ArtworkExtractor remoteMp4ArtworkExtractor = new(httpHandler, logger);

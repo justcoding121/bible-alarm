@@ -18,7 +18,6 @@ public sealed class MediaCacheService(
     IStorageService storageService,
     IDownloadService downloadService,
     IPlaylistService mediaPlayService,
-    IServiceScopeFactory scopeFactory,
     IMediaService mediaService,
     INetworkStatusService networkStatusService,
     IMediaUrlRefreshService urlRefreshService,
@@ -26,7 +25,6 @@ public sealed class MediaCacheService(
     ITrackCdnUrlRefresher trackCdnUrlRefresher)
     : IMediaCacheService, IDisposable
 {
-    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

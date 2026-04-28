@@ -198,7 +198,6 @@ public class HomeNavigationHelper
             {
                 try
                 {
-                    var scheduleId = schedule.Id;
                     var notificationViewModel = new NotificationPermissionViewModel(
                         serviceProvider.GetRequiredService<ILogger>(),
                         navigationService,
@@ -244,7 +243,7 @@ public class HomeNavigationHelper
                                         try
                                         {
                                             var schedules = state.Value.Schedules;
-                                            var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
+                                            var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
                                             
                                             if (scheduleToUpdate != null)
                                             {
@@ -252,7 +251,7 @@ public class HomeNavigationHelper
                                                 updatedSchedule.NotificationEnabled = permissionGranted;
                                                 dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
                                                 logger.Information("ShowOverlayAndNavigateAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} for schedule {ScheduleId}", 
-                                                    permissionGranted ? "granted" : "denied", permissionGranted, scheduleId);
+                                                    permissionGranted ? "granted" : "denied", permissionGranted, schedule.Id);
                                             }
                                         }
                                         catch (Exception stateEx)
@@ -268,7 +267,7 @@ public class HomeNavigationHelper
                                     try
                                     {
                                         _ = await alarmScheduleService.UpdateScheduleByIdAsync(
-                                            scheduleId,
+                                            schedule.Id,
                                             s => s.IsEnabled = permissionGranted,
                                             CancellationToken.None);
                                         
@@ -278,7 +277,7 @@ public class HomeNavigationHelper
                                             try
                                             {
                                                 var schedules = state.Value.Schedules;
-                                                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
+                                                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
                                 
                                                 if (scheduleToUpdate != null)
                                                 {
@@ -288,7 +287,7 @@ public class HomeNavigationHelper
                                                 }
                                 
                                                 logger.Information("ShowOverlayAndNavigateAsync: Permission {PermissionStatus} from modal - set IsEnabled to {IsEnabled} in DB for schedule {ScheduleId}", 
-                                                    permissionGranted ? "granted" : "denied", permissionGranted, scheduleId);
+                                                    permissionGranted ? "granted" : "denied", permissionGranted, schedule.Id);
                                             }
                                             catch (Exception stateEx)
                                             {
@@ -305,7 +304,7 @@ public class HomeNavigationHelper
                                             try
                                             {
                                                 var schedules = state.Value.Schedules;
-                                                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
+                                                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
                                                 
                                                 if (scheduleToUpdate != null)
                                                 {
