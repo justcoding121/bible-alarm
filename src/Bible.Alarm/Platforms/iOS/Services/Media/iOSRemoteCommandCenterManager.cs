@@ -68,7 +68,7 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
 
             // Toggle Play/Pause (for single button headphones)
             commandCenter.TogglePlayPauseCommand.Enabled = true;
-            toggleToken = commandCenter.TogglePlayPauseCommand.AddTarget((_) => HandleTogglePlayPauseCommand());
+            toggleToken = commandCenter.TogglePlayPauseCommand.AddTarget((evt) => HandleTogglePlayPauseCommand(evt));
 
             // Next track
             commandCenter.NextTrackCommand.Enabled = true;

@@ -76,10 +76,12 @@ public class PlaybackController
 #endif
     }
 
+#if !IOS
     private async Task InvokePlayOnMainThreadAsync()
     {
         await MainThread.InvokeOnMainThreadAsync(() => getMediaElement()?.Play());
     }
+#endif
 
     public Task PauseAsync() => MainThread.InvokeOnMainThreadAsync(() => getMediaElement()?.Pause());
 

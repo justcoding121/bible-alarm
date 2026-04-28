@@ -45,13 +45,6 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
     private bool isSyncingFromState;
     private bool isWaitingForPermissionResponse;
     private IOSNotificationPermissionService? permissionService;
-#else
-#pragma warning disable CS0649, CS0169 // Stub for non-Android/iOS: fields not used on Windows
-    private bool isUpdatingFromPermissionCheck;
-    private bool isSyncingFromState;
-    private bool isWaitingForPermissionResponse;
-    private object? permissionService;
-#pragma warning restore CS0649, CS0169
 #endif
 
     private readonly INavigationService navigationService;
@@ -275,6 +268,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                     OnPropertyChanged(nameof(IsEnabled));
                 }
                 
+#if ANDROID || IOS
                 // Don't sync NotificationEnabled if permission check task is running
                 // This prevents OnStateChanged from overriding permission-based updates
                 if (!isWaitingForPermissionResponse && notificationEnabled != currentSchedule.NotificationEnabled)
@@ -283,7 +277,6 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                     try
                     {
                         var newValue = currentSchedule.NotificationEnabled;
-#if ANDROID || IOS
                         newValue = NotificationPermissionSyncHelper.SyncValueWithPermission(
                             newValue,
                             () => permissionService != null && permissionService.IsGranted,
@@ -291,8 +284,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                             "OnStateChanged: NotificationEnabled is true in state but permission is not granted - syncing to OFF",
                             "OnStateChanged: Exception checking notification permission for NotificationEnabled",
                             () => DispatchScheduleUpdate(s => s.NotificationEnabled = false));
-#endif
-                        
+
                         notificationEnabled = newValue;
                         OnPropertyChanged(nameof(NotificationEnabled));
                     }
@@ -301,6 +293,13 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                         isSyncingFromState = false;
                     }
                 }
+#else
+                if (notificationEnabled != currentSchedule.NotificationEnabled)
+                {
+                    notificationEnabled = currentSchedule.NotificationEnabled;
+                    OnPropertyChanged(nameof(NotificationEnabled));
+                }
+#endif
             }
         }
         finally
@@ -351,6 +350,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
         get => notificationEnabled;
         set
         {
+#if ANDROID || IOS
             // Prevent re-entrancy - if we're already processing, ignore
             if (isUpdatingFromPermissionCheck || isSyncingFromState)
             {
@@ -358,8 +358,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                     isUpdatingFromPermissionCheck, isSyncingFromState, value);
                 return;
             }
-            
-#if ANDROID || IOS
+
             var isUserAction = !isSyncingFromState;
             if (isUserAction && value &&
                 NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(

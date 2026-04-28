@@ -53,13 +53,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
     private bool isSyncingFromState;
     private bool isWaitingForPermissionResponse;
     private IOSNotificationPermissionService? permissionService;
-#else
-#pragma warning disable CS0649, CS0169 // Stub for non-Android/iOS: fields not used on Windows
-    private bool isUpdatingFromPermissionCheck;
-    private bool isSyncingFromState;
-    private bool isWaitingForPermissionResponse;
-    private object? permissionService;
-#pragma warning restore CS0649, CS0169
 #endif
     private readonly ContainerReadySignaler containerReadySignaler;
     private readonly NumberOfTracksListPopulator listPopulator;
@@ -266,8 +259,10 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
 
             if (currentSchedule != null)
             {
+#if ANDROID || IOS
                 isSyncingFromState = true;
                 try
+#endif
                 {
                     var categoryBefore = lastCategoryName;
                     stateChangeHandler.ApplyPropertyChanges(
@@ -276,7 +271,11 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
                         ref alwaysPlayFromStart,
                         ref playIndefinitely,
                         ref lastCategoryName,
+#if ANDROID || IOS
                         isWaitingForPermissionResponse,
+#else
+                        false,
+#endif
 #if ANDROID || IOS
                         () => permissionService != null && permissionService.IsGranted,
 #else
@@ -299,10 +298,12 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
                         OnPropertyChanged(nameof(RestartLabelText));
                     }
                 }
+#if ANDROID || IOS
                 finally
                 {
                     isSyncingFromState = false;
                 }
+#endif
             }
         }
         finally
@@ -372,14 +373,14 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
         get => notificationEnabled;
         set
         {
+#if ANDROID || IOS
             if (isUpdatingFromPermissionCheck || isSyncingFromState)
             {
                 logger.Debug("NotificationEnabled setter called during update/sync - ignoring. isUpdatingFromPermissionCheck={IsUpdating}, isSyncingFromState={IsSyncing}, value={Value}", 
                     isUpdatingFromPermissionCheck, isSyncingFromState, value);
                 return;
             }
-            
-#if ANDROID || IOS
+
             var isUserAction = !isSyncingFromState;
             if (isUserAction && value &&
                 NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(

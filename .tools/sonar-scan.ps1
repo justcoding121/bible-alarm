@@ -1,4 +1,5 @@
 # Local Sonar-style report for developers: build, test with coverage, save reports under .\sonar-reports\.
+# Use -LocalOnly to skip SonarCloud even if SONAR_TOKEN is set in the user environment.
 # No upload to SonarCloud unless you set SONAR_TOKEN (then issues/hotspots/measures are fetched from the cloud after upload).
 #
 # Without SONAR_TOKEN: build + test with coverage; writes coverage XML, measures.json, and issues-roslyn.sarif (code
@@ -11,7 +12,9 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$SonarToken = $env:SONAR_TOKEN,
     [Parameter(Mandatory = $false)]
-    [bool]$ExportJson = $true
+    [bool]$ExportJson = $true,
+    [Parameter(Mandatory = $false)]
+    [switch]$LocalOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,11 +29,14 @@ $ReportsDir = Join-Path $RepoRoot "sonar-reports"
 $Exclusions = "**/bin/**/*,**/obj/**/*,**/*.Tests/**," +
     "**/Database/Migrations/**,**/*.pem"
 
-if (-not $SonarToken) {
+if ($LocalOnly) {
+    $SonarToken = $null
+}
+elseif ([string]::IsNullOrWhiteSpace($SonarToken)) {
     $SonarToken = [Environment]::GetEnvironmentVariable("SONAR_TOKEN", "User")
 }
 
-$UseSonarCloud = [bool]$SonarToken
+$UseSonarCloud = -not [string]::IsNullOrWhiteSpace($SonarToken)
 $CoverageReportPattern = "**/coverage.opencover.xml"
 if (-not (Test-Path $ReportsDir)) {
     New-Item -ItemType Directory -Path $ReportsDir -Force | Out-Null
