@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text.Json;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
@@ -119,11 +118,10 @@ internal static class EnglishTrackParser
         }
 
         // Get title
-        string title = "Unknown";
+        var title = MediaTrackTitleHelper.UnknownTitle;
         if (trackFile.TryGetProperty("title", out var titleElement))
         {
-            var rawTitle = titleElement.GetString();
-            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+            title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
         }
 
         if (AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(normalizedLanguageCode, title))

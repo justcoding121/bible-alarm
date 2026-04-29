@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text.Json;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
@@ -67,19 +66,16 @@ internal static class MediatorTrackParser
             return null;
         }
 
-        static string DecodeTitle(string? rawTitle) =>
-            rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
-
-        var title = "Unknown";
+        var title = MediaTrackTitleHelper.UnknownTitle;
         if (trackFile.TryGetProperty("title", out var titleElement))
         {
             if (titleElement.ValueKind == JsonValueKind.String)
             {
-                title = DecodeTitle(titleElement.GetString());
+                title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
             }
             else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty("text", out var titleTextElement))
             {
-                title = DecodeTitle(titleTextElement.GetString());
+                title = MediaTrackTitleHelper.DecodeHtmlTitle(titleTextElement.GetString());
             }
         }
 

@@ -172,20 +172,19 @@ internal sealed class SectionFetcherSectionTracksLoader
             if (string.IsNullOrEmpty(url))
                 continue;
 
-            string title = "Unknown";
+            var title = MediaTrackTitleHelper.UnknownTitle;
             if (trackFile.TryGetProperty("title", out var titleElement))
             {
                 if (titleElement.ValueKind == JsonValueKind.String)
                 {
-                    var rawTitle = titleElement.GetString();
-                    title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                    title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
                 }
                 else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty("text", out var titleTextElement))
                 {
-                    var rawTitle = titleTextElement.GetString();
-                    title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                    title = MediaTrackTitleHelper.DecodeHtmlTitle(titleTextElement.GetString());
                 }
-                if (isBible && !string.IsNullOrEmpty(title) && title != "Unknown")
+
+                if (isBible && !string.IsNullOrEmpty(title) && title != MediaTrackTitleHelper.UnknownTitle)
                 {
                     var separators = new[] { " - ", " – ", " — ", " -", "- " };
                     foreach (var separator in separators.Where(sep => title.Contains(sep, StringComparison.Ordinal)))

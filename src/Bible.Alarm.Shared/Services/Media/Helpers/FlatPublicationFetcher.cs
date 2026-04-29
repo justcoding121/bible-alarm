@@ -268,11 +268,10 @@ internal sealed class FlatPublicationFetcher
                     continue;
                 }
 
-                string title = "Unknown";
+                var title = MediaTrackTitleHelper.UnknownTitle;
                 if (fileElement.TryGetProperty("title", out var titleElement))
                 {
-                    var rawTitle = titleElement.GetString();
-                    title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                    title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
                 }
 
                 if (AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(normalizedLanguageCode, title))
