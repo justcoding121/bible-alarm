@@ -18,12 +18,12 @@ public static class IosMediaElementHelper
     /// </summary>
     public static string ProcessUriForMediaElement(string uri, ILogger logger)
     {
-        logger.Debug("Original track URI: {Uri}", uri);
+        logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.OriginalTrackUri, uri);
 
         // HTTPS URLs are CDN streaming links -- pass through unchanged
         if (uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
         {
-            logger.Debug("HTTPS URL detected, passing through for streaming: {Uri}", uri);
+            logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.HttpsUrlPassThroughForStreaming, uri);
             return uri;
         }
 
@@ -34,12 +34,12 @@ public static class IosMediaElementHelper
             {
                 var fileUri = new Uri(uri);
                 var localPath = fileUri.LocalPath;
-                logger.Debug("Converted file:// URI to plain path: {Path}", localPath);
+                logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.ConvertedFileUriToPlainPath, localPath);
                 return ProcessFilePath(localPath, logger);
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to convert file:// URI, using original: {Uri}", uri);
+                logger.Warning(ex, AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.FailedToConvertFileUriUsingOriginal, uri);
                 return ProcessFilePath(uri, logger);
             }
         }
@@ -56,20 +56,20 @@ public static class IosMediaElementHelper
         try
         {
             var normalizedPath = NormalizeFilePath(filePath);
-            logger.Debug("Normalized path: {Path} (original: {Original})", normalizedPath, filePath);
+            logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.NormalizedPathWithOriginal, normalizedPath, filePath);
 
             // Verify file exists
             if (!File.Exists(normalizedPath))
             {
-                logger.Error("File does not exist at normalized path: {Path}", normalizedPath);
+                logger.Error(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.FileDoesNotExistAtNormalizedPath, normalizedPath);
                 // Try the original path as fallback
                 if (File.Exists(filePath))
                 {
-                    logger.Warning("File exists at original path, using original: {Path}", filePath);
+                    logger.Warning(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.FileExistsAtOriginalUsingOriginal, filePath);
                     return filePath;
                 }
 
-                logger.Error("File does not exist at original path either: {Path}", filePath);
+                logger.Error(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.FileDoesNotExistAtOriginalEither, filePath);
                 throw new FileNotFoundException($"File not found: {normalizedPath}");
             }
 
@@ -78,15 +78,15 @@ public static class IosMediaElementHelper
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error normalizing file path: {Path}", filePath);
+            logger.Error(ex, AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.ErrorNormalizingFilePath, filePath);
             // Fallback: use original path if normalization fails
             if (File.Exists(filePath))
             {
-                logger.Warning("Using original path as fallback: {Path}", filePath);
+                logger.Warning(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.UsingOriginalPathAsFallback, filePath);
                 return filePath;
             }
 
-            logger.Error("Original path also does not exist: {Path}", filePath);
+            logger.Error(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.OriginalPathDoesNotExist, filePath);
             throw;
         }
     }
@@ -123,12 +123,12 @@ public static class IosMediaElementHelper
     /// </summary>
     public static async Task ConfigureAudioSessionBeforePlayAsync(ILogger logger)
     {
-        logger.Debug("Configuring iOS audio session before Play()");
+        logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.ConfiguringIosAudioSessionBeforePlay);
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             IOsAudioSessionHelper.ConfigureAudioSession(logger, "main playback");
         });
-        logger.Debug("iOS audio session configuration completed");
+        logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.IosAudioSessionConfigurationCompleted);
     }
 
     /// <summary>
@@ -140,7 +140,7 @@ public static class IosMediaElementHelper
         return await MainThread.InvokeOnMainThreadAsync(() =>
         {
             var state = mediaElement.CurrentState;
-            logger.Debug("MediaElement state: {CurrentState}, Source: {Source}",
+            logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.MediaElementStateCurrentAndSource,
                 state,
                 mediaElement.Source?.ToString() ?? "null");
             return state;
@@ -163,7 +163,7 @@ public static class IosMediaElementHelper
             // Stop() tries to seek to zero, which can fail if the player isn't ready yet (seekable ranges not available).
             // Only try Stop() if we're resuming from a previously paused playback, but that's rare in our alarm flow.
             // For now, skip Stop() and just proceed with Play() - it should work fine for newly loaded media.
-            logger.Debug("MediaElement is in Paused state on iOS. Skipping Stop() and proceeding directly to Play() - this is safe for newly loaded media");
+            logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.MediaElementPausedSkippingStopProceedingToPlay);
 
             // Small delay to ensure media is fully loaded
             await Task.Delay(50);
@@ -178,7 +178,7 @@ public static class IosMediaElementHelper
     {
         mediaElement.Source = processedUri;
         mediaElement.Volume = 1.0;
-        logger.Debug("Set MediaElement Source and Volume on iOS. Source: {Source}, CurrentState: {State}",
+        logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.SetMediaElementSourceAndVolumeIos,
             mediaElement.Source?.ToString() ?? "null",
             mediaElement.CurrentState);
     }
@@ -190,7 +190,7 @@ public static class IosMediaElementHelper
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            logger.Debug("About to call MediaElement.Play(). Current state: {State}, Source: {Source}",
+            logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.AboutToCallMediaElementPlayCurrentStateAndSource,
                 mediaElement.CurrentState,
                 mediaElement.Source?.ToString() ?? "null");
 
@@ -198,7 +198,7 @@ public static class IosMediaElementHelper
 
             // Ensure volume is set to 1.0 before playing on iOS
             mediaElement.Volume = 1.0;
-            logger.Debug("Set MediaElement Volume to 1.0 before Play() on iOS. Current Volume: {Volume}, State after Play(): {State}",
+            logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.SetVolumeBeforePlayIos,
                 mediaElement.Volume,
                 mediaElement.CurrentState);
         });
@@ -215,7 +215,7 @@ public static class IosMediaElementHelper
 
         if (!isPlayingOrBuffering)
         {
-            logger.Debug("MediaElement not in Playing/Buffering state after Play(), waiting longer and retrying. Current state: {State}", stateAfterPlay);
+            logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.NotPlayingOrBufferingAfterPlayWaitingRetry, stateAfterPlay);
             await Task.Delay(200);
 
             var stateAfterWait = await GetCurrentStateAsync(mediaElement, logger);
@@ -224,11 +224,11 @@ public static class IosMediaElementHelper
 
             if (!isStillPlayingOrBuffering)
             {
-                logger.Debug("MediaElement still not playing after wait, attempting Play() again. State: {State}", stateAfterWait);
+                logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.StillNotPlayingAfterWaitAttemptPlayAgain, stateAfterWait);
                 await MainThread.InvokeOnMainThreadAsync(mediaElement.Play);
                 await Task.Delay(100);
                 stateAfterWait = await GetCurrentStateAsync(mediaElement, logger);
-                logger.Debug("After retry, MediaElement state: {State}", stateAfterWait);
+                logger.Debug(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.AfterRetryMediaElementState, stateAfterWait);
             }
         }
     }

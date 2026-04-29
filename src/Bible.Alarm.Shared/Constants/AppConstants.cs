@@ -2872,6 +2872,62 @@ public static class AppConstants
                 "Registered iOS audio route change observer";
         }
 
+        /// <summary>iOS <c>IosMediaElementHelper</c> URI / playback diagnostics.</summary>
+        public static class IosMediaElementHelperDiagnosticsLog
+        {
+            public const string OriginalTrackUri = "Original track URI: {Uri}";
+
+            public const string HttpsUrlPassThroughForStreaming =
+                "HTTPS URL detected, passing through for streaming: {Uri}";
+
+            public const string ConvertedFileUriToPlainPath = "Converted file:// URI to plain path: {Path}";
+
+            public const string FailedToConvertFileUriUsingOriginal =
+                "Failed to convert file:// URI, using original: {Uri}";
+
+            public const string NormalizedPathWithOriginal = "Normalized path: {Path} (original: {Original})";
+
+            public const string FileDoesNotExistAtNormalizedPath = "File does not exist at normalized path: {Path}";
+
+            public const string FileExistsAtOriginalUsingOriginal = "File exists at original path, using original: {Path}";
+
+            public const string FileDoesNotExistAtOriginalEither =
+                "File does not exist at original path either: {Path}";
+
+            public const string ErrorNormalizingFilePath = "Error normalizing file path: {Path}";
+
+            public const string UsingOriginalPathAsFallback = "Using original path as fallback: {Path}";
+
+            public const string OriginalPathDoesNotExist = "Original path also does not exist: {Path}";
+
+            public const string ConfiguringIosAudioSessionBeforePlay = "Configuring iOS audio session before Play()";
+
+            public const string IosAudioSessionConfigurationCompleted = "iOS audio session configuration completed";
+
+            public const string MediaElementStateCurrentAndSource =
+                "MediaElement state: {CurrentState}, Source: {Source}";
+
+            public const string MediaElementPausedSkippingStopProceedingToPlay =
+                "MediaElement is in Paused state on iOS. Skipping Stop() and proceeding directly to Play() - this is safe for newly loaded media";
+
+            public const string SetMediaElementSourceAndVolumeIos =
+                "Set MediaElement Source and Volume on iOS. Source: {Source}, CurrentState: {State}";
+
+            public const string AboutToCallMediaElementPlayCurrentStateAndSource =
+                "About to call MediaElement.Play(). Current state: {State}, Source: {Source}";
+
+            public const string SetVolumeBeforePlayIos =
+                "Set MediaElement Volume to 1.0 before Play() on iOS. Current Volume: {Volume}, State after Play(): {State}";
+
+            public const string NotPlayingOrBufferingAfterPlayWaitingRetry =
+                "MediaElement not in Playing/Buffering state after Play(), waiting longer and retrying. Current state: {State}";
+
+            public const string StillNotPlayingAfterWaitAttemptPlayAgain =
+                "MediaElement still not playing after wait, attempting Play() again. State: {State}";
+
+            public const string AfterRetryMediaElementState = "After retry, MediaElement state: {State}";
+        }
+
         /// <summary>Android Auto media browser service (<c>LegacyMediaBrowserService</c>).</summary>
         public static class LegacyMediaBrowserDiagnosticsLog
         {
