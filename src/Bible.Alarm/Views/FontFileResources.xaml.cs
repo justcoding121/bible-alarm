@@ -1,5 +1,7 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
+
 namespace Bible.Alarm.Views;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
@@ -14,10 +16,8 @@ public partial class FontFileResources : ResourceDictionary
     {
         get
         {
-            // Use the alias registered in MauiProgram.cs for all platforms
-            // This is the simplest and most reliable approach
-            // The font is registered as "FontAwesomeSolid" in ConfigureFonts
-            return "FontAwesomeSolid";
+            // Use the alias registered in MauiProgram.cs for all platforms (see AppConstants.Fonts).
+            return AppConstants.Fonts.FontAwesomeSolidAlias;
         }
     }
 }

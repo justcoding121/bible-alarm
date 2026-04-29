@@ -9,6 +9,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using CommunityToolkit.Maui;
 using Serilog;
 using Syncfusion.Licensing;
@@ -72,9 +73,9 @@ public static class MauiProgram
                 // Font Awesome 7 fonts - use underscores in filenames for Android compatibility
                 // This works universally across all platforms (Android, iOS, Windows)
                 Log.Logger.Debug("Registering Font Awesome fonts");
-                fonts.AddFont("fa_solid_900.otf", "FontAwesomeSolid");
-                fonts.AddFont("fa_regular_400.otf", "FontAwesomeRegular");
-                fonts.AddFont("fa_brands_400.otf", "FontAwesomeBrands");
+                fonts.AddFont(AppConstants.Fonts.FontAwesomeSolidFontFileName, AppConstants.Fonts.FontAwesomeSolidAlias);
+                fonts.AddFont(AppConstants.Fonts.FontAwesomeRegularFontFileName, AppConstants.Fonts.FontAwesomeRegularAlias);
+                fonts.AddFont(AppConstants.Fonts.FontAwesomeBrandsFontFileName, AppConstants.Fonts.FontAwesomeBrandsAlias);
                 Log.Logger.Debug("Font Awesome fonts registered successfully");
             });
 

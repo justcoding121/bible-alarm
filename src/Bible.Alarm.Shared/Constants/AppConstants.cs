@@ -213,6 +213,30 @@ public static class AppConstants
     }
 
     /// <summary>
+    /// Font Awesome bundled filenames and MAUI font registration aliases (<c>ConfigureFonts</c>).
+    /// </summary>
+    public static class Fonts
+    {
+        /// <summary>Font Awesome Solid OTF under app Resources.</summary>
+        public const string FontAwesomeSolidFontFileName = "fa_solid_900.otf";
+
+        /// <summary>Font Awesome Regular OTF under app Resources.</summary>
+        public const string FontAwesomeRegularFontFileName = "fa_regular_400.otf";
+
+        /// <summary>Font Awesome Brands OTF under app Resources.</summary>
+        public const string FontAwesomeBrandsFontFileName = "fa_brands_400.otf";
+
+        /// <summary>Alias registered for Solid (<c>FontFamily</c>).</summary>
+        public const string FontAwesomeSolidAlias = "FontAwesomeSolid";
+
+        /// <summary>Alias registered for Regular.</summary>
+        public const string FontAwesomeRegularAlias = "FontAwesomeRegular";
+
+        /// <summary>Alias registered for Brands.</summary>
+        public const string FontAwesomeBrandsAlias = "FontAwesomeBrands";
+    }
+
+    /// <summary>
     /// Application settings and configuration constants
     /// </summary>
     public static class AppSettings

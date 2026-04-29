@@ -4,11 +4,12 @@
     x:Class="Bible.Alarm.Views.FontFileResources"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:c="clr-namespace:Bible.Alarm.Shared.Constants;assembly=Bible.Alarm.Shared"
     xmlns:system="clr-namespace:System;assembly=System.Runtime">
     <OnPlatform x:Key="FontAwesomeSolidId" x:TypeArguments="x:String">
-        <On Platform="iOS" Value="FontAwesomeSolid" />
-        <On Platform="Android" Value="FontAwesomeSolid" />
-        <On Platform="WinUI" Value="FontAwesomeSolid" />
+        <On Platform="iOS" Value="{x:Static c:AppConstants+Fonts.FontAwesomeSolidAlias}" />
+        <On Platform="Android" Value="{x:Static c:AppConstants+Fonts.FontAwesomeSolidAlias}" />
+        <On Platform="WinUI" Value="{x:Static c:AppConstants+Fonts.FontAwesomeSolidAlias}" />
     </OnPlatform>
     <Style x:Key="FontAwesomeSolid" TargetType="Label">
         <Setter Property="FontFamily" Value="{StaticResource FontAwesomeSolidId}" />
