@@ -11,6 +11,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Java.Lang;
@@ -42,7 +43,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error happened when playing alarm manually.");
+            logger.Error(e, AppConstants.Logging.ProcessDiagnosticsLog.ErrorPlayingAlarmManually);
             await Task.Delay(1500);
             throw;
         }
@@ -68,7 +69,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
                 if (toastService != null)
                 {
                     await toastService.ShowMessage(
-                        "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.",
+                        AppConstants.ToastMessages.CannotScheduleReminderExactAlarmPermission,
                         7);
                 }
             }

@@ -42,8 +42,6 @@ public static class ModalScrollHelper
     /// </summary>
     private const int MaxRenderWaitMs = 10000;
 
-    private const string LogFetchFailedDuringModalAppearing = "Fetch failed during modal appearing";
-
     /// <summary>
     /// Default error message for fetch failures.
     /// </summary>
@@ -100,7 +98,7 @@ public static class ModalScrollHelper
                 }
                 catch (Exception ex) when (IsFetchFailure(ex))
                 {
-                    Log.Warning(ex, LogFetchFailedDuringModalAppearing);
+                    Log.Warning(ex, AppConstants.Logging.ProcessDiagnosticsLog.FetchFailedDuringModalAppearing);
                     if (onFetchFailed != null)
                     {
                         var msg = GetFetchErrorMessage(ex);
@@ -191,7 +189,7 @@ public static class ModalScrollHelper
         }
         catch (Exception ex) when (IsFetchFailure(ex))
         {
-            Log.Warning(ex, LogFetchFailedDuringModalAppearing);
+            Log.Warning(ex, AppConstants.Logging.ProcessDiagnosticsLog.FetchFailedDuringModalAppearing);
             if (onFetchFailed != null)
             {
                 var msg = GetFetchErrorMessage(ex);
@@ -238,7 +236,7 @@ public static class ModalScrollHelper
                 }
                 catch (Exception ex) when (IsFetchFailure(ex))
                 {
-                    Log.Warning(ex, LogFetchFailedDuringModalAppearing);
+                    Log.Warning(ex, AppConstants.Logging.ProcessDiagnosticsLog.FetchFailedDuringModalAppearing);
                     if (onFetchFailed != null)
                     {
                         var msg = GetFetchErrorMessage(ex);
@@ -306,7 +304,7 @@ public static class ModalScrollHelper
         }
         catch (Exception ex) when (IsFetchFailure(ex))
         {
-            Log.Warning(ex, LogFetchFailedDuringModalAppearing);
+            Log.Warning(ex, AppConstants.Logging.ProcessDiagnosticsLog.FetchFailedDuringModalAppearing);
             if (onFetchFailed != null)
             {
                 var msg = GetFetchErrorMessage(ex);

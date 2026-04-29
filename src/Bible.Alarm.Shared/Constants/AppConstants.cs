@@ -473,6 +473,15 @@ public static class AppConstants
             public const string ManagedExceptionMarshalingToObjCMode = "Managed exception marshaling to ObjC (Mode={Mode})";
 
             public const string ObjCExceptionCaughtModeException = "ObjC exception caught (Mode={Mode}, Exception={Exception})";
+
+            /// <summary>Android: alarm fires with tap notification disabled.</summary>
+            public const string AlarmTriggeredTapDisabledForegroundNoSound =
+                "Alarm triggered for schedule {ScheduleId} with tap disabled - using foreground service notification (no sound)";
+
+            public const string FetchFailedDuringModalAppearing = "Fetch failed during modal appearing";
+
+            /// <summary>Android manual alarm broadcast playback failure (<c>ShowNotificationAsync</c>).</summary>
+            public const string ErrorPlayingAlarmManually = "Error happened when playing alarm manually.";
         }
     }
 
@@ -496,6 +505,28 @@ public static class AppConstants
         public const string PleaseCheckInternetConnection = "Please check your internet connection";
         public const string NotificationPermissionDeniedByAndroid = "Notification permission is denied by Android";
         public const string RepeatEnabled = "Repeat enabled";
+
+        public const string CannotScheduleReminderExactAlarmPermission =
+            "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.";
+
+        public const string NotificationPermissionRequiredRemindersIos =
+            "Notification permission is required for reminders on iOS. Please enable notifications in system settings.";
+
+        public const string NotificationPermissionRequiredTapToPlayWinUi =
+            "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.";
+    }
+
+    /// <summary>Notification permission modal primary explanatory text.</summary>
+    public static class NotificationPermissionModalMessages
+    {
+        public const string MainAndroidTapToPlayReminders =
+            "Notification permission is required for tap-to-play alarms. Please enable notifications to allow the app to show reminder notifications that you can tap to play alarms.";
+
+        public const string MainIosScheduledAlarms =
+            "Notification permission is required for alarms to work on iOS. Please enable notifications to allow the app to play alarms at scheduled times.";
+
+        public const string MainOtherPlatforms =
+            "Notification permission is required for alarms. Please enable notifications.";
     }
 
     /// <summary>Sample schedule seeding — exception text and substring filters for sample schedule creation.</summary>
@@ -559,6 +590,15 @@ public static class AppConstants
 
         /// <summary><c>Accept</c> header value meaning any media type.</summary>
         public const string HttpAcceptAny = "*/*";
+
+        /// <summary>Fragments in HTTP exception messages treated as permanent failures for download retries.</summary>
+        public static class DownloadPermanentFailureHttpFragments
+        {
+            public const string StatusCode403 = "403";
+            public const string StatusCode404 = "404";
+            public const string Forbidden = "Forbidden";
+            public const string NotFound = "Not Found";
+        }
 
         /// <summary>HTTP User-Agent for cataloger tool downloads from JW/CDN.</summary>
         public const string CatalogerHttpUserAgent = "Mozilla/5.0 (compatible; curl/8.0.1)";

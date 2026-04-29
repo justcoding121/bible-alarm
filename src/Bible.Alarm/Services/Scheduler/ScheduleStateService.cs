@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -200,7 +201,7 @@ public sealed class ScheduleStateService(
                 {
                     logger.Warning("Cannot enable schedule {ScheduleId} - notification permission denied. iOS requires notification permission for reminders.", scheduleId);
                     await toastService.ShowMessage(
-                        "Notification permission is required for reminders on iOS. Please enable notifications in system settings.",
+                        AppConstants.ToastMessages.NotificationPermissionRequiredRemindersIos,
                         7);
                     return false;
                 }
@@ -226,7 +227,7 @@ public sealed class ScheduleStateService(
 
             logger.Warning("Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied", scheduleId);
             await toastService.ShowMessage(
-                "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
+                AppConstants.ToastMessages.NotificationPermissionRequiredTapToPlayWinUi,
                 7);
             return false;
         }
@@ -261,7 +262,7 @@ public sealed class ScheduleStateService(
         if (DeviceInfo.Platform == DevicePlatform.Android)
         {
             await toastService.ShowMessage(
-                "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.",
+                AppConstants.ToastMessages.CannotScheduleReminderExactAlarmPermission,
                 7);
         }
 

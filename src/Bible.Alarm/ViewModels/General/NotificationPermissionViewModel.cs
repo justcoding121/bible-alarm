@@ -2,6 +2,7 @@
 
 using System.Windows.Input;
 using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.UI.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -470,11 +471,11 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         get
         {
 #if ANDROID
-            return "Notification permission is required for tap-to-play alarms. Please enable notifications to allow the app to show reminder notifications that you can tap to play alarms.";
+            return AppConstants.NotificationPermissionModalMessages.MainAndroidTapToPlayReminders;
 #elif IOS
-            return "Notification permission is required for alarms to work on iOS. Please enable notifications to allow the app to play alarms at scheduled times.";
+            return AppConstants.NotificationPermissionModalMessages.MainIosScheduledAlarms;
 #else
-            return "Notification permission is required for alarms. Please enable notifications.";
+            return AppConstants.NotificationPermissionModalMessages.MainOtherPlatforms;
 #endif
         }
     }

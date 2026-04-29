@@ -41,7 +41,7 @@ public sealed class AndroidAlarmHandler(
 
         if (isAlarm && !schedule.NotificationEnabled)
         {
-            logger.Information("Alarm triggered for schedule {ScheduleId} with tap disabled - using foreground service notification (no sound)", scheduleId);
+            logger.Information(AppConstants.Logging.ProcessDiagnosticsLog.AlarmTriggeredTapDisabledForegroundNoSound, scheduleId);
         }
 
         if (!isAlarm)
