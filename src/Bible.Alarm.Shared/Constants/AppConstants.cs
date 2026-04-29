@@ -1133,6 +1133,86 @@ public static class AppConstants
                 "LegacyMediaBrowserService.OnDestroy: failed to stop rotation service";
         }
 
+        /// <summary>Legacy AA browse state subscription (<c>StateSubscriptionManager</c>).</summary>
+        public static class LegacyMediaBrowserStateSubscriptionDiagnosticsLog
+        {
+            public const string BootstrapTimedOutOnCreateWillRetry =
+                "Bootstrap timed out in LegacyMediaBrowserService.OnCreate - will retry when schedules are loaded";
+
+            public const string SubscribedToScheduleListChanges =
+                "✅ LegacyMediaBrowserService subscribed to schedule list changes";
+
+            public const string ApplicationStateNotAvailable =
+                "IState<ApplicationState> not available - schedule updates will not refresh Android Auto UI";
+
+            public const string OnApplicationStateChangedScheduleChangeTrackerNullSkipping =
+                "OnApplicationStateChanged: scheduleChangeTracker is null, skipping";
+
+            public const string OnApplicationStateChangedCheckingForScheduleChanges =
+                "OnApplicationStateChanged: Checking for schedule changes";
+
+            public const string OnApplicationStateChangedNoChangesDetected =
+                "OnApplicationStateChanged: No changes detected (changes is null or empty)";
+
+            public const string OnApplicationStateChangedDetectedScheduleChangesNotifying =
+                "OnApplicationStateChanged: Detected {Count} schedule changes, notifying Android Auto";
+
+            public const string OnApplicationStateChangedMediaBrowserServiceNull =
+                "OnApplicationStateChanged: MediaBrowserService is null, cannot notify Android Auto of changes";
+
+            public const string ErrorCheckingScheduleListChangesFallbackRefresh =
+                "Error checking schedule list changes - falling back to full refresh";
+
+            public const string DetectedScheduleAdded =
+                "Detected schedule added: {ScheduleId}";
+
+            public const string DetectedScheduleRemoved =
+                "Detected schedule removed: {ScheduleId}";
+
+            public const string DetectedScheduleUpdated =
+                "Detected schedule updated: {ScheduleId}";
+
+            public const string NotifiedAndroidAutoOfScheduleChanges =
+                "Notified Android Auto of schedule changes: {ChangeCount} changes ({AddedCount} added, {UpdatedCount} updated, {RemovedCount} removed)";
+
+            public const string ErrorPerformingFallbackFullRefresh =
+                "Error performing fallback full refresh";
+        }
+
+        /// <summary>Legacy AA MediaSession/bootstrap init (<c>MediaSessionInitializer</c>).</summary>
+        public static class LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog
+        {
+            public const string ErrorInitializingMediaSessionWillRetryWhenBound =
+                "Error initializing MediaSession in LegacyMediaBrowserService - will retry when service is bound";
+
+            public const string MediaSessionManagerNullCannotCreateMediaSession =
+                "MediaSessionManager is null - cannot create MediaSession";
+
+            public const string MediaSessionCompatNullAfterGetOrCreateCannotSetSessionToken =
+                "MediaSessionCompat is null after GetOrCreate() - cannot set SessionToken";
+
+            public const string MediaSessionCompatSessionTokenNullMayNotBeInitialized =
+                "MediaSessionCompat.SessionToken is null - MediaSessionCompat may not be properly initialized";
+
+            public const string SessionTokenSuccessfullySet =
+                "SessionToken successfully set: {Token}";
+
+            public const string OnCreateCompletedLegacyAaConnectingSessionTokenOk =
+                "✅ LegacyMediaBrowserService.OnCreate() completed - Legacy Android Auto is connecting! SessionToken set correctly.";
+
+            public const string OnCreateCompletedBootstrapInitializationStarted =
+                "✅ LegacyMediaBrowserService.OnCreate() completed - Bootstrap initialization started";
+
+            public const string BootstrapInitializationCompletedForLegacyMediaBrowser =
+                "Bootstrap initialization completed for LegacyMediaBrowserService";
+
+            public const string ErrorInBootstrapInitialization =
+                "Error in bootstrap initialization";
+
+            public const string ErrorInitializingBootstrapInLegacyMediaBrowser =
+                "Error initializing bootstrap in LegacyMediaBrowserService";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {

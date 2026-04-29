@@ -2,6 +2,7 @@
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
@@ -26,7 +27,7 @@ public sealed class MediaSessionInitializer(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error initializing MediaSession in LegacyMediaBrowserService - will retry when service is bound");
+            logger.Error(ex, AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.ErrorInitializingMediaSessionWillRetryWhenBound);
         }
     }
 
@@ -40,25 +41,25 @@ public sealed class MediaSessionInitializer(ILogger logger)
         mediaSessionManager = ServiceProviderManager.GetService<IMediaSessionManager>();
         if (mediaSessionManager == null)
         {
-            logger.Warning("MediaSessionManager is null - cannot create MediaSession");
+            logger.Warning(AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.MediaSessionManagerNullCannotCreateMediaSession);
             return;
         }
 
         session = mediaSessionManager.GetOrCreate();
         if (session == null)
         {
-            logger.Error("MediaSessionCompat is null after GetOrCreate() - cannot set SessionToken");
+            logger.Error(AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.MediaSessionCompatNullAfterGetOrCreateCannotSetSessionToken);
             return;
         }
 
         if (session.SessionToken == null)
         {
-            logger.Error("MediaSessionCompat.SessionToken is null - MediaSessionCompat may not be properly initialized");
+            logger.Error(AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.MediaSessionCompatSessionTokenNullMayNotBeInitialized);
             return;
         }
 
-        logger.Information("SessionToken successfully set: {Token}", session.SessionToken?.ToString() ?? "null");
-        logger.Information("✅ LegacyMediaBrowserService.OnCreate() completed - Legacy Android Auto is connecting! SessionToken set correctly.");
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.SessionTokenSuccessfullySet, session.SessionToken?.ToString() ?? "null");
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.OnCreateCompletedLegacyAaConnectingSessionTokenOk);
     }
 
     /// <summary>
@@ -76,24 +77,24 @@ public sealed class MediaSessionInitializer(ILogger logger)
             try
             {
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-                logger.Information("✅ LegacyMediaBrowserService.OnCreate() completed - Bootstrap initialization started");
+                logger.Information(AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.OnCreateCompletedBootstrapInitializationStarted);
 
                 _ = Task.Run(async () =>
                 {
                     try
                     {
                         // State subscription will be handled by StateSubscriptionManager
-                        logger.Information("Bootstrap initialization completed for LegacyMediaBrowserService");
+                        logger.Information(AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.BootstrapInitializationCompletedForLegacyMediaBrowser);
                     }
                     catch (Exception ex)
                     {
-                        logger.Error(ex, "Error in bootstrap initialization");
+                        logger.Error(ex, AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.ErrorInBootstrapInitialization);
                     }
                 });
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error initializing bootstrap in LegacyMediaBrowserService");
+                logger.Error(ex, AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.ErrorInitializingBootstrapInLegacyMediaBrowser);
             }
         });
     }

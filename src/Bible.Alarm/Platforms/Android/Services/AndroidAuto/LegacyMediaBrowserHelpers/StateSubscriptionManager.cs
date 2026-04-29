@@ -2,6 +2,7 @@
 using Android.OS;
 using AndroidX.Media;
 using Bible.Alarm.Common;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
@@ -37,7 +38,7 @@ public sealed class StateSubscriptionManager(ILogger logger)
         }
         catch (Exception bootstrapEx)
         {
-            logger.Warning(bootstrapEx, "Bootstrap timed out in LegacyMediaBrowserService.OnCreate - will retry when schedules are loaded");
+            logger.Warning(bootstrapEx, AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.BootstrapTimedOutOnCreateWillRetry);
             return;
         }
 
@@ -47,11 +48,11 @@ public sealed class StateSubscriptionManager(ILogger logger)
             scheduleChangeTracker = new AndroidAutoScheduleChangeTracker();
             scheduleChangeTracker.Initialize(applicationState);
             applicationState.StateChanged += OnApplicationStateChanged;
-            logger.Information("✅ LegacyMediaBrowserService subscribed to schedule list changes");
+            logger.Information(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.SubscribedToScheduleListChanges);
         }
         else
         {
-            logger.Warning("IState<ApplicationState> not available - schedule updates will not refresh Android Auto UI");
+            logger.Warning(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.ApplicationStateNotAvailable);
         }
     }
 
@@ -68,15 +69,15 @@ public sealed class StateSubscriptionManager(ILogger logger)
                 return;
             }
 
-            logger.Debug("OnApplicationStateChanged: Checking for schedule changes");
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.OnApplicationStateChangedCheckingForScheduleChanges);
             var changes = scheduleChangeTracker.GetSpecificChanges();
             if (changes == null || changes.Count == 0)
             {
-                logger.Debug("OnApplicationStateChanged: No changes detected (changes is null or empty)");
+                logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.OnApplicationStateChangedNoChangesDetected);
                 return;
             }
 
-            logger.Information("OnApplicationStateChanged: Detected {Count} schedule changes, notifying Android Auto", changes.Count);
+            logger.Information(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.OnApplicationStateChangedDetectedScheduleChangesNotifying, changes.Count);
 
             if (mediaBrowserService != null)
             {
@@ -86,12 +87,12 @@ public sealed class StateSubscriptionManager(ILogger logger)
             }
             else
             {
-                logger.Warning("OnApplicationStateChanged: MediaBrowserService is null, cannot notify Android Auto of changes");
+                logger.Warning(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.OnApplicationStateChangedMediaBrowserServiceNull);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking schedule list changes - falling back to full refresh");
+            logger.Error(ex, AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.ErrorCheckingScheduleListChangesFallbackRefresh);
             PerformFallbackRefresh();
         }
     }
@@ -122,14 +123,14 @@ public sealed class StateSubscriptionManager(ILogger logger)
         {
             case ScheduleChangeType.Added:
                 addedIds.Add(change.ScheduleId);
-                logger.Debug("Detected schedule added: {ScheduleId}", change.ScheduleId);
+                logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleAdded, change.ScheduleId);
                 break;
             case ScheduleChangeType.Removed:
                 removedIds.Add(change.ScheduleId);
-                logger.Debug("Detected schedule removed: {ScheduleId}", change.ScheduleId);
+                logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleRemoved, change.ScheduleId);
                 break;
             case ScheduleChangeType.Updated:
-                logger.Debug("Detected schedule updated: {ScheduleId}", change.ScheduleId);
+                logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleUpdated, change.ScheduleId);
                 break;
         }
     }
@@ -140,7 +141,7 @@ public sealed class StateSubscriptionManager(ILogger logger)
         var updatedCount = changes.Count(c => c.ChangeType == ScheduleChangeType.Updated);
         var removedCount = changes.Count(c => c.ChangeType == ScheduleChangeType.Removed);
 
-        logger.Debug("Notified Android Auto of schedule changes: {ChangeCount} changes ({AddedCount} added, {UpdatedCount} updated, {RemovedCount} removed)",
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.NotifiedAndroidAutoOfScheduleChanges,
             changes.Count, addedCount, updatedCount, removedCount);
     }
 
@@ -155,7 +156,7 @@ public sealed class StateSubscriptionManager(ILogger logger)
         }
         catch (Exception fallbackEx)
         {
-            logger.Error(fallbackEx, "Error performing fallback full refresh");
+            logger.Error(fallbackEx, AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.ErrorPerformingFallbackFullRefresh);
         }
     }
 
