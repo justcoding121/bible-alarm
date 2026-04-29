@@ -51,7 +51,11 @@ public class ResourceBootstrapService : IResourceBootstrapService
         {
             var storageDir = storageService.StorageRoot;
 
-            string[] legacyNames = ["silent.mp3", "silent_preparing.mp3"];
+            string[] legacyNames =
+            [
+                AppConstants.FilePaths.SilentMp3LegacyFileName,
+                AppConstants.FilePaths.SilentMp3LegacyPreparingFileName,
+            ];
             foreach (var legacyName in legacyNames)
             {
                 var legacyPath = System.IO.Path.Combine(storageDir, legacyName);

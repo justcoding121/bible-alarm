@@ -172,6 +172,12 @@ public static class AppConstants
         /// Change this when updating the file so bootstrap copies the new file on existing installs.
         /// </summary>
         public const string SilentMp3FileName = "silent_preparing_v2.mp3";
+
+        /// <summary>Removed from storage on Android bootstrap (replaced by <see cref="SilentMp3FileName"/>).</summary>
+        public const string SilentMp3LegacyFileName = "silent.mp3";
+
+        /// <summary>Removed from storage on Android bootstrap (superseded by <see cref="SilentMp3FileName"/>).</summary>
+        public const string SilentMp3LegacyPreparingFileName = "silent_preparing.mp3";
     }
 
     /// <summary>

@@ -200,7 +200,7 @@ class Program
         Console.WriteLine("  dotnet run -- status [Schedule|Media]    - Show migration status (checks Resources database for Schedule)");
         Console.WriteLine("  dotnet run -- generate-empty-schedule-db [outputPath] - Generate empty Schedule database with all migrations applied");
         Console.WriteLine("  dotnet run -- apply-and-update-resources [Schedule|Media] - Apply migrations and update Resources database");
-        Console.WriteLine("  dotnet run -- list-bible-languages [path] - List Bible category language names from media index (path: index.zip or mediaIndex.db, default: .tools/_index)");
+        Console.WriteLine($"  dotnet run -- list-bible-languages [path] - List Bible category language names from media index (path: {AppConstants.FilePaths.MediaIndexZipFileName} or {AppConstants.Database.MediaIndexDatabaseFileName}, default: .tools/_index)");
         Console.WriteLine();
         Console.WriteLine("To create migrations, use EF Core tools:");
         Console.WriteLine("  dotnet ef migrations add <MigrationName> --project .tools/Bible.Alarm.DbMigration --context ScheduleDbContext");
@@ -502,7 +502,7 @@ class Program
         }
         else if (contextName.Equals("Media", StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine("Media database is managed separately (shipped as index.zip).");
+            Console.WriteLine($"Media database is managed separately (shipped as {AppConstants.FilePaths.MediaIndexZipFileName}).");
             Console.WriteLine("Use the cataloger tool to regenerate the Media index database.");
         }
         else
@@ -527,7 +527,7 @@ class Program
                 dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
                 if (!File.Exists(dbPath))
                 {
-                    Console.WriteLine("Error: index.zip does not contain mediaIndex.db");
+                    Console.WriteLine($"Error: {AppConstants.FilePaths.MediaIndexZipFileName} does not contain {AppConstants.Database.MediaIndexDatabaseFileName}");
                     return;
                 }
                 await QueryBibleLanguages(dbPath);
@@ -549,7 +549,7 @@ class Program
                     path = zipPath;
                     goto extractZip;
                 }
-                Console.WriteLine($"Error: mediaIndex.db not found in {searchDir}");
+                Console.WriteLine($"Error: {AppConstants.Database.MediaIndexDatabaseFileName} not found in {searchDir}");
                 return;
             }
         }
@@ -574,7 +574,7 @@ extractZip:
                 dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
                 if (!File.Exists(dbPath))
                 {
-                    Console.WriteLine("Error: index.zip does not contain mediaIndex.db");
+                    Console.WriteLine($"Error: {AppConstants.FilePaths.MediaIndexZipFileName} does not contain {AppConstants.Database.MediaIndexDatabaseFileName}");
                     return;
                 }
                 await QueryBibleLanguages(dbPath);
