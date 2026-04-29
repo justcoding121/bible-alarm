@@ -293,7 +293,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             {
                 publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
                     ? AppConstants.Media.BiblePublicationCategoryDramas
-                    : "DramaticBibleReadings";
+                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
             }
             else
             {

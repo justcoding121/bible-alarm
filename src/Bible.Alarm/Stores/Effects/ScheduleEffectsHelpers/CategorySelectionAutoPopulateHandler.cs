@@ -178,7 +178,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                     var publicationCodeForDb = isDrama
                         ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
                             ? AppConstants.Media.BiblePublicationCategoryDramas
-                            : "DramaticBibleReadings")
+                            : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings)
                         : pl.PublicationCode;
 
                     var isAlreadyCataloged = await CategorySelectionAutoPopulateCatalogCheck.CheckIfPublicationWithFirstSectionCatalogedAsync(

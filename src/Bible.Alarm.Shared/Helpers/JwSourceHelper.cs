@@ -106,7 +106,7 @@ public static class JwSourceHelper
     public static HashSet<string> DramaCategoryCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.BiblePublicationCategoryDramas,
-        "DramaticBibleReadings",
+        AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
         "DramasGoodNews",
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
@@ -121,7 +121,7 @@ public static class JwSourceHelper
     private static readonly string[] CanonicalMediatorPublicationCodes =
     {
         AppConstants.Media.BiblePublicationCategoryDramas,
-        "DramaticBibleReadings",
+        AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
         "DramasGoodNews",
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",

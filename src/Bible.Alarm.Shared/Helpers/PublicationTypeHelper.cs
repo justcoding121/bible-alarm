@@ -19,7 +19,7 @@ public static class PublicationTypeHelper
     private static readonly HashSet<string> DramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.BiblePublicationCategoryDramas,
-        "DramaticBibleReadings",
+        AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
         "VODMoviesAnimated",
@@ -101,7 +101,7 @@ public static class PublicationTypeHelper
     private static readonly HashSet<string> AudioDramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.BiblePublicationCategoryDramas,
-        "DramaticBibleReadings"
+        AppConstants.Media.BiblePublicationCodeDramaticBibleReadings
     };
 
     /// <summary>

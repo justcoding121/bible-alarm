@@ -83,7 +83,7 @@ public static class LookUpPathBuilder
     /// <summary>
     /// Builds a lookup path for a mediator track using the Mediator API.
     /// </summary>
-    /// <param name="categoryKey">The category key (e.g., "Dramas", "DramaticBibleReadings", "MakingMusic")</param>
+    /// <param name="categoryKey">The JW mediator category key (e.g. Dramas or MakingMusic).</param>
     /// <param name="languageCode">The language code (e.g., "E" for English)</param>
     /// <param name="trackCode">The track number</param>
     /// <param name="naturalKey">Optional natural key for more precise lookup (e.g., "pub-dwj_E_1_AUDIO")</param>

@@ -302,7 +302,7 @@ public sealed class TrackNavigatorSectionCataloger
         {
             return normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
                 ? AppConstants.Media.BiblePublicationCategoryDramas
-                : "DramaticBibleReadings";
+                : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
         }
         return normalizedPublicationCode;
     }

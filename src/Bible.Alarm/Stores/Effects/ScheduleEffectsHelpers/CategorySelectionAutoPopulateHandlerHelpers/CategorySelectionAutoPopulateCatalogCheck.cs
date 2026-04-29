@@ -24,7 +24,7 @@ public static class CategorySelectionAutoPopulateCatalogCheck
             var lowerCode = publicationCode.ToLowerInvariant();
             var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
             var publicationCodeForDb = isDrama
-                ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.BiblePublicationCategoryDramas : "DramaticBibleReadings")
+                ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.BiblePublicationCategoryDramas : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings)
                 : publicationCode;
 
             var publicationId = await db.BiblePublications

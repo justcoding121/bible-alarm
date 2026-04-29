@@ -342,6 +342,11 @@ public static class AppConstants
         public const string BiblePublicationCategoryDramas = "Dramas";
 
         /// <summary>
+        /// Canonical JW publication code for Dramatic Bible Readings (DB/API; used with drama publication normalization).
+        /// </summary>
+        public const string BiblePublicationCodeDramaticBibleReadings = "DramaticBibleReadings";
+
+        /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
         public const string TextDirectionLeftToRight = "ltr";

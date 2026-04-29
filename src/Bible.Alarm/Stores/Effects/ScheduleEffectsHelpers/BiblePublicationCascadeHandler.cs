@@ -195,7 +195,7 @@ public sealed class BiblePublicationCascadeHandler
             var publicationCodeForDb = isDrama
                 ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
                     ? AppConstants.Media.BiblePublicationCategoryDramas
-                    : "DramaticBibleReadings")
+                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings)
                 : pl.PublicationCode;
 
             var isCataloged = await languageContentService.EnsurePublicationExistsAsync(pl.PublicationCode, languageCode);

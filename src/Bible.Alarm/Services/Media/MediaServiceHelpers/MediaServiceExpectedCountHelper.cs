@@ -89,7 +89,7 @@ public static class MediaServiceExpectedCountHelper
             var lower = code.ToLowerInvariant();
             if (PublicationTypeHelper.IsDrama(lower))
             {
-                unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.BiblePublicationCategoryDramas : "DramaticBibleReadings");
+                unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.BiblePublicationCategoryDramas : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings);
             }
             else
             {
