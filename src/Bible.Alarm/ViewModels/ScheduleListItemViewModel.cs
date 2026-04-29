@@ -217,7 +217,7 @@ public sealed class ScheduleListItemViewModel(
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        logger.Warning(ex, "Play command failed for schedule {ScheduleId}", Schedule!.Id);
+                        logger.Warning(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedForSchedule, Schedule!.Id);
                     }
                     finally
                     {
@@ -235,7 +235,7 @@ public sealed class ScheduleListItemViewModel(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Play command failed before scheduling playback for schedule {ScheduleId}", Schedule?.Id ?? 0);
+                logger.Warning(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedBeforeSchedulingPlaybackForSchedule, Schedule?.Id ?? 0);
                 isPlayCommandRunning = false;
                 ClearShowModalPendingIfPlaybackNotStarted();
                 SyncIsBusyWithPlaybackState();
@@ -637,7 +637,7 @@ public sealed class ScheduleListItemViewModel(
                 return;
             }
 
-            logger.Debug("Clearing play command gate for schedule row {ScheduleId} (playback session ended)", ScheduleId);
+            logger.Debug(AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.ClearingPlayCommandGatePlaybackSessionEnded, ScheduleId);
             isPlayCommandRunning = false;
         }
 
@@ -762,7 +762,7 @@ public sealed class ScheduleListItemViewModel(
                     }
                     catch (Exception ex)
                     {
-                        logger.Debug(ex, "Error checking playback state during spinner timeout fallback");
+                        logger.Debug(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.ErrorCheckingPlaybackStateSpinnerTimeoutFallback);
                     }
                 }
             });

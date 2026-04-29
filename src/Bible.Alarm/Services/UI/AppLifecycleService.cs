@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
@@ -42,7 +43,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened inside OnStart task.");
+                logger.Error(e, AppConstants.Logging.AppLifecycleDiagnosticsLog.ErrorInOnStartTask);
             }
         });
     }
@@ -61,7 +62,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error showing mini bar preview on resume");
+            logger.Warning(ex, AppConstants.Logging.AppLifecycleDiagnosticsLog.ErrorShowingMiniBarPreviewOnResume);
         }
 
         Task.Run(async () =>
@@ -82,7 +83,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Error showing playback modal on resume");
+                    logger.Warning(ex, AppConstants.Logging.AppLifecycleDiagnosticsLog.ErrorShowingPlaybackModalOnResume);
                 }
 
 #if WINDOWS
@@ -94,7 +95,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error happened inside OnResume task.");
+                logger.Error(e, AppConstants.Logging.AppLifecycleDiagnosticsLog.ErrorInOnResumeTask);
             }
         });
     }
@@ -133,7 +134,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
             }
 
             logger.Warning(
-                "ReconcilePlaybackState: Fluxor IsPreparingOrPlaying=true but player is inactive (Status={Status}) — dispatching PlaybackStoppedAction",
+                AppConstants.Logging.AppLifecycleDiagnosticsLog.ReconcilePlaybackStateFluxorActivePlayerInactiveDispatchStopped,
                 status);
 
             var dispatcher = serviceProvider.GetService<Fluxor.IDispatcher>();
@@ -144,7 +145,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error reconciling playback state on resume");
+            logger.Warning(ex, AppConstants.Logging.AppLifecycleDiagnosticsLog.ErrorReconcilingPlaybackStateOnResume);
         }
     }
 
@@ -164,7 +165,7 @@ public sealed class AppLifecycleService(ILogger logger, IServiceProvider service
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error recording app open from {Source}", source);
+            logger.Warning(ex, AppConstants.Logging.AppLifecycleDiagnosticsLog.ErrorRecordingAppOpenFromSource, source);
         }
     }
 }

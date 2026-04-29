@@ -128,7 +128,7 @@ public class CommandHandler
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "View schedule failed before navigation for ScheduleId={ScheduleId}", x.Schedule?.Id);
+                logger.Error(ex, AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.ViewScheduleFailedBeforeNavigationScheduleId, x.Schedule?.Id);
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     x.IsNavigating = false;
@@ -152,7 +152,7 @@ public class CommandHandler
                 var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
                 if (batteryService == null)
                 {
-                    logger.Warning("IBatteryOptimizationService not available");
+                    logger.Warning(AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.BatteryOptimizationServiceNotAvailable);
                     return;
                 }
                 var batteryViewModel = new BatteryOptimizationViewModel(logger, navigationService, serviceProvider);
@@ -165,7 +165,7 @@ public class CommandHandler
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error opening alarm settings modal from floating button");
+                logger.Error(ex, AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.ErrorOpeningAlarmSettingsModalFloatingButton);
             }
         });
     }
@@ -182,7 +182,7 @@ public class CommandHandler
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error opening notification permission modal from floating button");
+                logger.Error(ex, AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.ErrorOpeningNotificationPermissionModalFloatingButton);
             }
         });
     }
@@ -204,7 +204,7 @@ public class CommandHandler
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error opening Focus settings modal");
+                logger.Error(ex, AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.ErrorOpeningFocusSettingsModal);
             }
         });
     }

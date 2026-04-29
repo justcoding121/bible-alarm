@@ -2556,6 +2556,9 @@ public static class AppConstants
         {
             public const string FaultedTaskContextTemplate =
                 "BiblePublicationSectionSelectionViewModel: {Context}";
+
+            public const string CancelFetchCommandUserCancelledFetch =
+                "BiblePublicationSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch";
         }
 
         /// <summary>Music publication selection commands (<c>MusicPublicationSelectionCommandHandler</c>).</summary>
@@ -2599,6 +2602,21 @@ public static class AppConstants
 
             public const string ViewScheduleFailedForScheduleId =
                 "View schedule failed for ScheduleId={ScheduleId}";
+
+            public const string ViewScheduleFailedBeforeNavigationScheduleId =
+                "View schedule failed before navigation for ScheduleId={ScheduleId}";
+
+            public const string BatteryOptimizationServiceNotAvailable =
+                "IBatteryOptimizationService not available";
+
+            public const string ErrorOpeningAlarmSettingsModalFloatingButton =
+                "Error opening alarm settings modal from floating button";
+
+            public const string ErrorOpeningNotificationPermissionModalFloatingButton =
+                "Error opening notification permission modal from floating button";
+
+            public const string ErrorOpeningFocusSettingsModal =
+                "Error opening Focus settings modal";
         }
 
         /// <summary>Single-track play, resume seek, and seek retry (<c>TrackPlaybackHandler</c>).</summary>
@@ -3727,6 +3745,18 @@ public static class AppConstants
         {
             public const string SpinnerCancellationTokenSourceAlreadyDisposed =
                 "ScheduleListItemViewModel: Spinner cancellation token source already disposed";
+
+            public const string PlayCommandFailedForSchedule =
+                "Play command failed for schedule {ScheduleId}";
+
+            public const string PlayCommandFailedBeforeSchedulingPlaybackForSchedule =
+                "Play command failed before scheduling playback for schedule {ScheduleId}";
+
+            public const string ClearingPlayCommandGatePlaybackSessionEnded =
+                "Clearing play command gate for schedule row {ScheduleId} (playback session ended)";
+
+            public const string ErrorCheckingPlaybackStateSpinnerTimeoutFallback =
+                "Error checking playback state during spinner timeout fallback";
         }
 
         /// <summary>WinUI Action Center + rich media toasts (<c>WindowsNotificationService</c>).</summary>
@@ -3782,6 +3812,31 @@ public static class AppConstants
 
             public const string ErrorShowingMediaToastNotification =
                 "Error showing media toast notification";
+        }
+
+        /// <summary><c>IAppLifecycleService</c> / <c>AppLifecycleService</c> foreground hooks.</summary>
+        public static class AppLifecycleDiagnosticsLog
+        {
+            public const string ErrorInOnStartTask =
+                "An error happened inside OnStart task.";
+
+            public const string ErrorShowingMiniBarPreviewOnResume =
+                "Error showing mini bar preview on resume";
+
+            public const string ErrorShowingPlaybackModalOnResume =
+                "Error showing playback modal on resume";
+
+            public const string ErrorInOnResumeTask =
+                "An error happened inside OnResume task.";
+
+            public const string ReconcilePlaybackStateFluxorActivePlayerInactiveDispatchStopped =
+                "ReconcilePlaybackState: Fluxor IsPreparingOrPlaying=true but player is inactive (Status={Status}) — dispatching PlaybackStoppedAction";
+
+            public const string ErrorReconcilingPlaybackStateOnResume =
+                "Error reconciling playback state on resume";
+
+            public const string ErrorRecordingAppOpenFromSource =
+                "Error recording app open from {Source}";
         }
     }
 

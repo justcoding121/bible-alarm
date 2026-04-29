@@ -152,7 +152,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
         try
         {
-            logger.Information("BiblePublicationSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            logger.Information(AppConstants.Logging.BiblePublicationSectionSelectionViewModelDiagnosticsLog.CancelFetchCommandUserCancelledFetch);
             fetchCts?.CancelAsync();
             CanCancelFetch = false;
             ShowProgress = false;
