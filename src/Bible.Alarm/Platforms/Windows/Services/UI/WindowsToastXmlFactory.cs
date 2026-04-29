@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
@@ -77,7 +78,7 @@ internal static class WindowsToastXmlFactory
             }
             catch (Exception ex)
             {
-                Log.Debug(ex, "Failed to add artwork image to toast: {ArtworkUrl}", artworkUrl);
+                Log.Debug(ex, AppConstants.Logging.MauiPlatformUiDiagnosticsLog.WindowsToastXmlFailedToAddArtwork, artworkUrl);
             }
         }
 

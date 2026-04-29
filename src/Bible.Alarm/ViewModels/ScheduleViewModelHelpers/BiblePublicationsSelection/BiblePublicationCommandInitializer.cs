@@ -4,6 +4,7 @@ using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
@@ -55,12 +56,12 @@ public sealed class BiblePublicationCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            logger.Information("BibleSelectionContainerViewModel: SelectCategoryCommand - Opening category modal");
+            logger.Information(AppConstants.Logging.BiblePublicationCommandInitializerDiagnosticsLog.SelectCategoryOpeningCategoryModal);
             // Create a CategorySelectionViewModel instance for the category modal
             var categoryViewModel = serviceProvider.GetRequiredService<CategorySelectionViewModel>();
-            logger.Debug("BibleSelectionContainerViewModel: SelectCategoryCommand - Created CategorySelectionViewModel, opening modal");
+            logger.Debug(AppConstants.Logging.BiblePublicationCommandInitializerDiagnosticsLog.SelectCategoryCreatedOpeningModal);
             await navigationService.OpenCategoryModalAsync(categoryViewModel);
-            logger.Debug("BibleSelectionContainerViewModel: SelectCategoryCommand - Modal opened");
+            logger.Debug(AppConstants.Logging.BiblePublicationCommandInitializerDiagnosticsLog.SelectCategoryModalOpened);
         });
     }
 
@@ -77,7 +78,7 @@ public sealed class BiblePublicationCommandInitializer
                 return;
             }
 
-            logger.Information("BibleSelectionContainerViewModel: SelectLanguageCommand - Opening language modal");
+            logger.Information(AppConstants.Logging.BiblePublicationCommandInitializerDiagnosticsLog.SelectLanguageOpeningLanguageModal);
             var bibleSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationSelectionViewModel>();
             await navigationService.OpenLanguageModalAsync(bibleSelectionViewModel);
         });

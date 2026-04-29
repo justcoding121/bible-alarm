@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -777,7 +778,7 @@ public sealed class ScheduleListItemViewModel(
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Logger.Debug(ex, "ScheduleListItemViewModel: Spinner cancellation token source already disposed");
+            Log.Logger.Debug(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.SpinnerCancellationTokenSourceAlreadyDisposed);
         }
         finally
         {

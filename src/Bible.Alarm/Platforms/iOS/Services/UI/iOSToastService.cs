@@ -4,6 +4,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.ToastLayoutHelpers;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 using UIKit;
 
@@ -113,7 +114,7 @@ public class IOsToastService : ToastService, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "IOsToastService: RemoveCurrentToast cleanup failed (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.MauiPlatformUiDiagnosticsLog.IOSRemoveCurrentToastCleanupFailedNonFatal);
         }
 
         currentToastView = null;

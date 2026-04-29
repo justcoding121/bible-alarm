@@ -2,6 +2,7 @@
 
 using System;
 using System.ComponentModel;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
 using Serilog;
@@ -152,7 +153,7 @@ public partial class BibleSelectionContainer : ContentView
         if (e.PropertyName == nameof(BiblePublicationSelectionContainerViewModel.ShouldScrollToContainer) && viewModel.ShouldScrollToContainer)
         {
 #if DEBUG
-            Log.Debug("[BibleSelectionContainer] ShouldScrollToContainer property changed, scrolling to container");
+            Log.Debug(AppConstants.Logging.MauiPlatformUiDiagnosticsLog.BibleSelectionContainerShouldScrollToContainerDebug);
 #endif
             // Small delay to ensure UI is updated after modal closes
             Dispatcher.DispatchAsync(async () =>

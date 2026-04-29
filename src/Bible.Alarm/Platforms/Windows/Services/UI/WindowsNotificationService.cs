@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.Windows.Helpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -37,8 +38,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             var notifier = WindowsToastNotifierFactory.GetToastNotifier();
             if (notifier == null)
             {
-                logger.Error("Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications. " +
-                    "Scheduled notifications require the app to be installed as an MSIX package.", scheduleId);
+                logger.Error(AppConstants.Logging.MauiPlatformUiDiagnosticsLog.WindowsNotificationFailedToastNotifierScheduleMsixHint, scheduleId);
                 return Task.CompletedTask;
             }
 

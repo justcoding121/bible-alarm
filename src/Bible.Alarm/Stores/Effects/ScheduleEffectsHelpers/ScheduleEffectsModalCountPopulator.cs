@@ -47,7 +47,7 @@ public static class ScheduleEffectsModalCountPopulator
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "ScheduleEffects: Error populating modal counts. ScheduleId={ScheduleId}", currentSchedule.Id);
+            logger.Error(ex, AppConstants.Logging.ScheduleEffectsHelpersDiagnosticsLog.ErrorPopulatingModalCountsScheduleId, currentSchedule.Id);
             return null;
         }
     }

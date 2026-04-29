@@ -3661,6 +3661,70 @@ public static class AppConstants
             public const string FailedRemovingScheduledNotificationForSchedule =
                 "Failed to remove scheduled notification {NotificationId} for schedule {ScheduleId}";
         }
+
+        /// <summary>Cross-platform chrome toasts/views (iOS/Android/Windows UI helpers).</summary>
+        public static class MauiPlatformUiDiagnosticsLog
+        {
+            public const string IOSRemoveCurrentToastCleanupFailedNonFatal =
+                "IOsToastService: RemoveCurrentToast cleanup failed (non-fatal)";
+
+            public const string BibleSelectionContainerShouldScrollToContainerDebug =
+                "[BibleSelectionContainer] ShouldScrollToContainer property changed, scrolling to container";
+
+            public const string PlatformSwitchMinWidthSetFailedWinRtThreadRelease =
+                "PlatformSwitch: MinWidth set failed (e.g. WinRT cast on wrong thread in Release)";
+
+            public const string WindowsToastXmlFailedToAddArtwork =
+                "Failed to add artwork image to toast: {ArtworkUrl}";
+
+            public const string KeyboardHelperFailedToHideKeyboardAndroid =
+                "[KeyboardHelper] Failed to hide keyboard on Android";
+
+            public const string AndroidMainApplicationFailedToCreateMediaSession =
+                "MainApplication: Failed to create MediaSession";
+
+            public const string WindowsNotificationFailedToastNotifierScheduleMsixHint =
+                "Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications. Scheduled notifications require the app to be installed as an MSIX package.";
+        }
+
+        /// <summary><c>ScheduleEffects</c> modal counts and melody section enrichment.</summary>
+        public static class ScheduleEffectsHelpersDiagnosticsLog
+        {
+            public const string ErrorPopulatingModalCountsScheduleId =
+                "ScheduleEffects: Error populating modal counts. ScheduleId={ScheduleId}";
+
+            public const string ClearedMusicSectionForNonSectionedPublication =
+                "ScheduleEffects: Cleared MusicSectionCode and MusicSectionName for non-sectioned publication {PublicationCode}";
+
+            public const string PopulatedMusicSectionFromTrack =
+                "ScheduleEffects: Populated MusicSectionCode '{MusicSectionCode}' and MusicSectionName '{MusicSectionName}' from track {TrackCode}";
+
+            public const string ErrorPopulatingMusicSectionNameForState =
+                "ScheduleEffects: Error populating music section name for state";
+        }
+
+        /// <summary>Bible category/language modals from schedule editor (<c>BiblePublicationCommandInitializer</c>).</summary>
+        public static class BiblePublicationCommandInitializerDiagnosticsLog
+        {
+            public const string SelectCategoryOpeningCategoryModal =
+                "BibleSelectionContainerViewModel: SelectCategoryCommand - Opening category modal";
+
+            public const string SelectCategoryCreatedOpeningModal =
+                "BibleSelectionContainerViewModel: SelectCategoryCommand - Created CategorySelectionViewModel, opening modal";
+
+            public const string SelectCategoryModalOpened =
+                "BibleSelectionContainerViewModel: SelectCategoryCommand - Modal opened";
+
+            public const string SelectLanguageOpeningLanguageModal =
+                "BibleSelectionContainerViewModel: SelectLanguageCommand - Opening language modal";
+        }
+
+        /// <summary>Home list row (<c>ScheduleListItemViewModel</c>) spinner teardown.</summary>
+        public static class ScheduleListItemViewModelDiagnosticsLog
+        {
+            public const string SpinnerCancellationTokenSourceAlreadyDisposed =
+                "ScheduleListItemViewModel: Spinner cancellation token source already disposed";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>

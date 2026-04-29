@@ -3,6 +3,7 @@
 #if WINDOWS
 using Microsoft.UI.Xaml.Controls;
 #endif
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 using Syncfusion.Maui.Buttons;
 
@@ -113,7 +114,7 @@ public partial class PlatformSwitch : ContentView
             }
             catch (Exception ex)
             {
-                Log.Debug(ex, "PlatformSwitch: MinWidth set failed (e.g. WinRT cast on wrong thread in Release)");
+                Log.Debug(ex, AppConstants.Logging.MauiPlatformUiDiagnosticsLog.PlatformSwitchMinWidthSetFailedWinRtThreadRelease);
             }
 #endif
         }

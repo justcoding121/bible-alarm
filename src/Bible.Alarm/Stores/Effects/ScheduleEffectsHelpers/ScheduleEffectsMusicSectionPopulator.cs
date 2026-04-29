@@ -49,7 +49,7 @@ public static class ScheduleEffectsMusicSectionPopulator
                     updatedSchedule.MusicSectionCode = null;
                     updatedSchedule.MusicSectionName = null;
 
-                    logger.Debug("ScheduleEffects: Cleared MusicSectionCode and MusicSectionName for non-sectioned publication {PublicationCode}",
+                    logger.Debug(AppConstants.Logging.ScheduleEffectsHelpersDiagnosticsLog.ClearedMusicSectionForNonSectionedPublication,
                         scheduleStateItem.MusicPublicationCode);
 
                     dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
@@ -86,7 +86,7 @@ public static class ScheduleEffectsMusicSectionPopulator
                 updatedSchedule.MusicSectionCode = sectionInfo.SectionCode;
                 updatedSchedule.MusicSectionName = sectionInfo.Name;
 
-                logger.Debug("ScheduleEffects: Populated MusicSectionCode '{MusicSectionCode}' and MusicSectionName '{MusicSectionName}' from track {TrackCode}",
+                logger.Debug(AppConstants.Logging.ScheduleEffectsHelpersDiagnosticsLog.PopulatedMusicSectionFromTrack,
                     sectionInfo.SectionCode, sectionInfo.Name, scheduleStateItem.MusicTrackCode);
 
                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
@@ -94,7 +94,7 @@ public static class ScheduleEffectsMusicSectionPopulator
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "ScheduleEffects: Error populating music section name for state");
+            logger.Warning(ex, AppConstants.Logging.ScheduleEffectsHelpersDiagnosticsLog.ErrorPopulatingMusicSectionNameForState);
         }
     }
 }

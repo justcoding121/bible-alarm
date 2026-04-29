@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Platform;
 
@@ -60,7 +61,7 @@ public static class KeyboardHelper
         }
         catch (System.Exception ex)
         {
-            Serilog.Log.Warning(ex, "[KeyboardHelper] Failed to hide keyboard on Android");
+            Serilog.Log.Warning(ex, AppConstants.Logging.MauiPlatformUiDiagnosticsLog.KeyboardHelperFailedToHideKeyboardAndroid);
         }
     }
 
