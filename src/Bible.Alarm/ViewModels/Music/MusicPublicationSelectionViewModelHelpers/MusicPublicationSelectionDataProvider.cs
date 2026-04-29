@@ -66,7 +66,7 @@ public sealed class MusicPublicationSelectionDataProvider(
                 {
                     languageVm.IsSelected = true;
                     selectedLanguage = languageVm;
-                    Log.Debug("PopulateLanguages: Marked language {LanguageCode} ({LanguageName}) as selected",
+                    Log.Debug(AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.PopulateLanguagesMarkedLanguageSelected,
                         languageVm.Code, languageVm.Name);
                 }
             }

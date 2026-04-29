@@ -101,7 +101,7 @@ public sealed class MusicPublicationSelectionInitHandler
                 : AppConstants.Media.DefaultLanguageCode;
             var tempCurrent = new AlarmMusic { LanguageCode = effectiveLanguageCode };
 
-            Serilog.Log.Debug("MusicPublicationSelectionViewModel.RefreshLanguagesAsync: currentLanguageCode={LanguageCode}, effectiveLanguageCode={Effective}",
+            Serilog.Log.Debug(AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.RefreshLanguagesAsyncCurrentEffective,
                 currentLanguageCode ?? "(null)", effectiveLanguageCode);
 
             await dataProvider.PopulateLanguages(
@@ -113,7 +113,7 @@ public sealed class MusicPublicationSelectionInitHandler
         }
         catch (Exception ex)
         {
-            Serilog.Log.Warning(ex, "MusicPublicationSelectionViewModel: Error refreshing languages");
+            Serilog.Log.Warning(ex, AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.ErrorRefreshingLanguages);
         }
     }
 

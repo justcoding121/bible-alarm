@@ -2398,6 +2398,60 @@ public static class AppConstants
                 "ApplicationMusicReducer.OnMusicSectionSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, SectionCode={SectionCode}, SectionName={SectionName}, TrackCode={TrackCode}";
         }
 
+        /// <summary><c>MusicPublicationSelectionViewModel</c> language list population and modal refresh.</summary>
+        public static class MusicPublicationSelectionViewModelDiagnosticsLog
+        {
+            public const string PopulateLanguagesMarkedLanguageSelected =
+                "PopulateLanguages: Marked language {LanguageCode} ({LanguageName}) as selected";
+
+            public const string RefreshLanguagesAsyncCurrentEffective =
+                "MusicPublicationSelectionViewModel.RefreshLanguagesAsync: currentLanguageCode={LanguageCode}, effectiveLanguageCode={Effective}";
+
+            public const string ErrorRefreshingLanguages =
+                "MusicPublicationSelectionViewModel: Error refreshing languages";
+
+            public const string FetchCancelledByUser =
+                "MusicPublicationSelectionViewModel: Fetch cancelled by user";
+
+            public const string FetchFailedNetworkError =
+                "MusicPublicationSelectionViewModel: Fetch failed with network error";
+
+            public const string FetchFailedDuringRefresh =
+                "MusicPublicationSelectionViewModel: Fetch failed during refresh";
+        }
+
+        /// <summary>First vocal song publication/track cascade (<c>VocalMusicFirstPublicationTrackSelector</c>).</summary>
+        public static class VocalMusicFirstSongCascadeDiagnosticsLog
+        {
+            public const string ScopeFactoryNullCannotFilterPublicationsWithoutLanguageId =
+                "GetFirstSongPublicationAndTrackForLanguageAsync: scopeFactory is null, cannot filter publications without LanguageId";
+
+            public const string NoFirstPublicationForLanguage =
+                "GetFirstSongPublicationAndTrackForLanguageAsync: No first publication found for language={LanguageCode}";
+
+            public const string FirstPublicationByIdOrder =
+                "GetFirstSongPublicationAndTrackForLanguageAsync: First publication by ID order={PublicationCode} for language={LanguageCode}";
+
+            public const string DownloadingFirstVocalPublicationCascade =
+                "Downloading first vocal music publication {PublicationCode} (by ID order) for language {LanguageCode} (cascade)";
+
+            public const string FailedToDownloadFirstVocalPublication =
+                "Failed to download first vocal music publication {PublicationCode} for language {LanguageCode}";
+
+            public const string ErrorDownloadingFirstVocalPublication =
+                "Error downloading first vocal music publication {PublicationCode} for language {LanguageCode}";
+        }
+
+        /// <summary><c>PlaybackReducer</c> auto-advancing telemetry.</summary>
+        public static class PlaybackReducerDiagnosticsLog
+        {
+            public const string AutoAdvancingFlagClearedWhenPlaying =
+                "[AutoAdvancing] Flag cleared when status changed to Playing - PreviousStatus={PreviousStatus}, ScheduleId={ScheduleId}";
+
+            public const string AutoAdvancingFlagChanged =
+                "[AutoAdvancing] Flag changed: {PreviousValue} -> {NewValue}, Status={Status}, ScheduleId={ScheduleId}";
+        }
+
         /// <summary>Single-track play, resume seek, and seek retry (<c>TrackPlaybackHandler</c>).</summary>
         public static class TrackPlaybackHandlerDiagnosticsLog
         {

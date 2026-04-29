@@ -55,7 +55,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
             // Get publications without LanguageId from BiblePublications (data-driven)
             if (scopeFactory == null)
             {
-                Serilog.Log.Warning("GetFirstSongPublicationAndTrackForLanguageAsync: scopeFactory is null, cannot filter publications without LanguageId");
+                Serilog.Log.Warning(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.ScopeFactoryNullCannotFilterPublicationsWithoutLanguageId);
                 return (null, string.Empty, string.Empty, string.Empty);
             }
 
@@ -121,11 +121,11 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         if (string.IsNullOrEmpty(firstPublicationCode))
         {
-            Serilog.Log.Warning("GetFirstSongPublicationAndTrackForLanguageAsync: No first publication found for language={LanguageCode}", language.Code);
+            Serilog.Log.Warning(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.NoFirstPublicationForLanguage, language.Code);
             return (null, string.Empty, string.Empty, string.Empty);
         }
 
-        Serilog.Log.Debug("GetFirstSongPublicationAndTrackForLanguageAsync: First publication by ID order={PublicationCode} for language={LanguageCode}",
+        Serilog.Log.Debug(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.FirstPublicationByIdOrder,
             firstPublicationCode, language.Code);
 
         // Step 2: Download the first publication with its first section (if sectioned) and tracks
@@ -133,7 +133,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         // EnsurePublicationExistsAsync reports: 50% (pub+section saved), 100% (tracks saved)
         if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
-            Serilog.Log.Information("Downloading first vocal music publication {PublicationCode} (by ID order) for language {LanguageCode} (cascade)",
+            Serilog.Log.Information(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.DownloadingFirstVocalPublicationCascade,
                 firstPublicationCode, language.Code);
 
             try
@@ -145,7 +145,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
                 if (!fetchSuccess)
                 {
-                    Serilog.Log.Warning("Failed to download first vocal music publication {PublicationCode} for language {LanguageCode}",
+                    Serilog.Log.Warning(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.FailedToDownloadFirstVocalPublication,
                         firstPublicationCode, language.Code);
                 }
                 else
@@ -162,7 +162,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                     throw;
                 }
 
-                Serilog.Log.Warning(ex, "Error downloading first vocal music publication {PublicationCode} for language {LanguageCode}",
+                Serilog.Log.Warning(ex, AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.ErrorDownloadingFirstVocalPublication,
                     firstPublicationCode, language.Code);
             }
         }

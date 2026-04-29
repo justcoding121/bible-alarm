@@ -112,18 +112,18 @@ public sealed class MusicPublicationSelectionRefreshHandler
         }
         catch (OperationCanceledException)
         {
-            Serilog.Log.Debug("MusicPublicationSelectionViewModel: Fetch cancelled by user");
+            Serilog.Log.Debug(AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchCancelledByUser);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
-            Serilog.Log.Warning(ex, "MusicPublicationSelectionViewModel: Fetch failed with network error");
+            Serilog.Log.Warning(ex, AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchFailedNetworkError);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
             throw;
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "MusicPublicationSelectionViewModel: Fetch failed during refresh");
+            Serilog.Log.Error(ex, AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchFailedDuringRefresh);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
             throw;
         }

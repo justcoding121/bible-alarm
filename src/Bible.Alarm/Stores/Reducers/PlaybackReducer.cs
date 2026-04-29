@@ -1,4 +1,5 @@
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores.Actions.Playback;
 using Fluxor;
 
@@ -113,7 +114,7 @@ public static class PlaybackReducer
         if (wasAutoAdvancing && !isAutoAdvancing && action.Status == PlayStatus.Playing)
         {
             Serilog.Log.Information(
-                "[AutoAdvancing] Flag cleared when status changed to Playing - PreviousStatus={PreviousStatus}, ScheduleId={ScheduleId}",
+                AppConstants.Logging.PlaybackReducerDiagnosticsLog.AutoAdvancingFlagClearedWhenPlaying,
                 state.Status,
                 state.CurrentScheduleId);
         }
@@ -245,7 +246,7 @@ public static class PlaybackReducer
         if (wasAutoAdvancing != isAutoAdvancing)
         {
             Serilog.Log.Information(
-                "[AutoAdvancing] Flag changed: {PreviousValue} -> {NewValue}, Status={Status}, ScheduleId={ScheduleId}",
+                AppConstants.Logging.PlaybackReducerDiagnosticsLog.AutoAdvancingFlagChanged,
                 wasAutoAdvancing,
                 isAutoAdvancing,
                 state.Status,
