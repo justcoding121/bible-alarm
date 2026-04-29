@@ -222,7 +222,7 @@ internal sealed class LanguageSeeder
     private async Task<JsonDocument> LoadLanguagesCacheAsync()
     {
         logger.Debug("Fetching languages from JW.org /en/languages endpoint for lookup...");
-        var url = "https://www.jw.org/en/languages";
+        var url = AppConstants.ApiEndpoints.JwOrgLanguagesListUrl;
         var jsonString = await downloadUtility.GetAsync(url);
         return JsonDocument.Parse(jsonString);
     }

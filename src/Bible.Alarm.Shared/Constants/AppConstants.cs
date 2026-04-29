@@ -58,6 +58,11 @@ public static class AppConstants
         };
 
         /// <summary>
+        /// JW.org public languages list JSON (<c>/en/languages</c>). Catalog seeding and sign-language detection.
+        /// </summary>
+        public const string JwOrgLanguagesListUrl = "https://www.jw.org/en/languages";
+
+        /// <summary>
         /// Media index file name prefix for new format (v2+)
         /// Old format files don't have this prefix and will be preserved for backward compatibility
         /// </summary>
