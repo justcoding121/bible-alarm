@@ -174,7 +174,7 @@ internal class DownloadUtility
         };
 
         request.Headers.Add("User-Agent", AppConstants.Media.CatalogerHttpUserAgent);
-        request.Headers.Add("Accept", "application/json, text/plain, */*");
+        request.Headers.Add("Accept", AppConstants.Media.CatalogerHttpAcceptHeader);
 
         return request;
     }
