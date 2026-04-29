@@ -18,10 +18,7 @@ namespace Bible.Alarm.Services.Bootstrap;
 internal sealed class ScheduleStatePopulator
 {
     private readonly IMapper mapper;
-    private readonly LookupDataCollector keyCollector;
     private readonly LookupDataLoader dataLoader;
-    private readonly BiblePublicationDisplayNamePopulator biblePublicationPopulator;
-    private readonly MusicDisplayNamePopulator musicPopulator;
     private readonly DefaultMusicPopulator defaultMusicPopulator;
     private readonly IMediaService? mediaService;
 
@@ -36,10 +33,7 @@ internal sealed class ScheduleStatePopulator
     {
         this.mapper = mapper;
         this.mediaService = mediaService;
-        keyCollector = new LookupDataCollector();
         dataLoader = new LookupDataLoader(BiblePublicationService, biblePublicationSectionService, mediaService, vocalMusicService, scopeFactory);
-        biblePublicationPopulator = new BiblePublicationDisplayNamePopulator();
-        musicPopulator = new MusicDisplayNamePopulator();
         defaultMusicPopulator = new DefaultMusicPopulator(melodyMusicService);
     }
 
@@ -49,7 +43,7 @@ internal sealed class ScheduleStatePopulator
         Dictionary<string, string>? languageNamesByCode = null)
     {
         // Collect all unique keys needed
-        var keys = keyCollector.CollectKeys(alarmSchedules);
+        var keys = LookupDataCollector.CollectKeys(alarmSchedules);
 
         // Batch load all required data upfront to avoid N+1 queries
         var lookupData = await dataLoader.LoadAllAsync(keys);
@@ -60,14 +54,14 @@ internal sealed class ScheduleStatePopulator
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(schedule);
 
             // Use pre-loaded lookup data instead of making individual queries
-            biblePublicationPopulator.Populate(
+            BiblePublicationDisplayNamePopulator.Populate(
                 schedule,
                 scheduleStateItem,
                 lookupData,
                 languagesDict,
                 languageNamesByCode);
 
-            musicPopulator.Populate(
+            MusicDisplayNamePopulator.Populate(
                 schedule,
                 scheduleStateItem,
                 lookupData,

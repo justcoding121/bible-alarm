@@ -9,9 +9,9 @@ namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 /// Collects all unique keys needed for batch loading lookup data.
 /// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
 /// </summary>
-internal sealed class LookupDataCollector
+internal static class LookupDataCollector
 {
-    public LookupKeys CollectKeys(List<AlarmSchedule> alarmSchedules)
+    public static LookupKeys CollectKeys(List<AlarmSchedule> alarmSchedules)
     {
         var publicationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, string SectionCode)>();

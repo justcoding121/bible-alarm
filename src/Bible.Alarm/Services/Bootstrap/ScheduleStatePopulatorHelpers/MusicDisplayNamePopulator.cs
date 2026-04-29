@@ -11,9 +11,9 @@ namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 /// Populates music display names from cached lookup data.
 /// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
 /// </summary>
-internal sealed class MusicDisplayNamePopulator
+internal static class MusicDisplayNamePopulator
 {
-    public void Populate(
+    public static void Populate(
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
         LookupDataLoader.LookupData lookupData,

@@ -11,9 +11,9 @@ namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 /// <summary>
 /// Populates Bible reading display names from cached lookup data.
 /// </summary>
-internal sealed class BiblePublicationDisplayNamePopulator
+internal static class BiblePublicationDisplayNamePopulator
 {
-    public void Populate(
+    public static void Populate(
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
         LookupDataLoader.LookupData lookupData,
