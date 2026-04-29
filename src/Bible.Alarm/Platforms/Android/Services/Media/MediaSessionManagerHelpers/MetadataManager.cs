@@ -124,15 +124,15 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
                 if (artworkBitmap != null)
                 {
                     builder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
-                    logger.Debug("Loaded artwork bitmap from: {ArtworkUrl}", artworkUrl);
+                    logger.Debug(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.LoadedArtworkBitmapFromArtworkUrl, artworkUrl);
                     return true;
                 }
 
-                logger.Debug("Failed to load artwork bitmap from: {ArtworkUrl}", artworkUrl);
+                logger.Debug(AppConstants.Logging.AndroidMediaArtworkLog.FailedToLoadArtworkBitmapFromArtworkUrl, artworkUrl);
             }
             else
             {
-                logger.Warning("AndroidArtworkService not available - cannot load artwork");
+                logger.Warning(AppConstants.Logging.AndroidMediaArtworkLog.AndroidArtworkServiceNotAvailableCannotLoadArtwork);
             }
         }
         catch (Exception ex)
@@ -171,7 +171,7 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
             {
                 mediaSession?.SetMetadata(metadata);
                 lastDurationMs = durationMs;
-                logger.Debug("Duration updated in metadata - Duration: {Duration}ms (artwork preserved)", durationMs);
+                logger.Debug(AppConstants.Logging.AndroidMediaArtworkLog.DurationUpdatedInMetadataArtworkPreserved, durationMs);
             }
         }
     }

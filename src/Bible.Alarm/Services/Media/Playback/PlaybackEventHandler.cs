@@ -64,7 +64,7 @@ public sealed class PlaybackEventHandler
 
         if (getIsManualNavigationPending())
         {
-            logger.Debug("HandleMediaEndedAsync: manual Next/Prev pending - skipping to avoid double advance");
+            logger.Debug(AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedManualNavigationPendingSkipping);
             return;
         }
 
@@ -88,7 +88,7 @@ public sealed class PlaybackEventHandler
                 setCurrentTrackIndex(nextTrackIndex);
                 navigationManager.NotifyNavigationChanged(pl, nextTrackIndex);
                 logger.Information(
-                    "[PlaybackEventHandler] Indefinite: advancing to next track - ScheduleId={ScheduleId}, NextIndex={NextIndex}, PlaylistCount={Count}",
+                    AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.IndefiniteAdvancingToNextTrack,
                     currentScheduleId, nextTrackIndex, pl.Count);
                 await playCurrentTrackAsync(false);
                 return;
@@ -97,7 +97,7 @@ public sealed class PlaybackEventHandler
             if (appended && !canAdvance)
             {
                 logger.Warning(
-                    "HandleMediaEndedAsync: Append succeeded but cannot advance - ScheduleId={ScheduleId}, CurrentIndex={CurrentIndex}, PlaylistCount={Count}",
+                    AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedAppendSucceededCannotAdvance,
                     currentScheduleId, currentTrackIndex, pl.Count);
             }
 
@@ -111,13 +111,13 @@ public sealed class PlaybackEventHandler
                 catch (Exception ex)
                 {
                     logger.Error(ex,
-                        "HandleMediaEndedAsync: failed to persist schedule pointer after indefinite append failure - ScheduleId={ScheduleId}",
+                        AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedFailedPersistSchedulePointerAfterIndefiniteAppend,
                         finishedMeta.ScheduleId);
                 }
             }
 
             logger.Warning(
-                "HandleMediaEndedAsync: indefinite append failed; schedule left on finished track; showing error modal - ScheduleId={ScheduleId}",
+                AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedIndefiniteAppendFailedShowingErrorModal,
                 currentScheduleId);
             await showPlaybackErrorInModalKeepSessionAsync(
                 AppConstants.Media.PlaybackModalMessages.CouldNotLoadNextPartCheckConnectionTapRetry,
@@ -136,7 +136,7 @@ public sealed class PlaybackEventHandler
             dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
 
             logger.Information(
-                "[PlaybackService] OnMediaEnded: Dispatching SetAutoAdvancingAction(true) for automatic next track - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}, NextTrackIsBible={NextTrackIsBible}, WillCallPlayCurrentTrackAsync(false)",
+                AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.OnMediaEndedDispatchingSetAutoAdvancingForAutomaticNextTrack,
                 currentScheduleId,
                 currentTrackIndex,
                 nextTrackIndex,
@@ -147,7 +147,7 @@ public sealed class PlaybackEventHandler
 
             navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
 
-            logger.Debug("[PlaybackService] OnMediaEnded: Calling playCurrentTrackAsync(false) for automatic transition to track {TrackIndex}", nextTrackIndex);
+            logger.Debug(AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.OnMediaEndedCallingPlayCurrentTrackAsyncAutomaticTransition, nextTrackIndex);
             await playCurrentTrackAsync(false);
         }
         else
@@ -174,12 +174,12 @@ public sealed class PlaybackEventHandler
         {
             if (getIsManualNavigationPending())
             {
-                logger.Debug("HandleMediaFailedAsync: manual Next/Prev pending - skipping to avoid double advance");
+                logger.Debug(AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaFailedManualNavigationPendingSkipping);
                 return;
             }
 
             var currentTrackIndex = getCurrentTrackIndex();
-            logger.Warning("Media failed for track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}",
+            logger.Warning(AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.MediaFailedForTrackAtIndexUriUrl,
                 currentTrackIndex,
                 trackUri,
                 trackUrl);
@@ -222,7 +222,7 @@ public sealed class PlaybackEventHandler
                         }
 
                         logger.Information(
-                            "Playback: CDN URL unreachable or gone — refreshed section/pub URLs, auto-replaying same track once");
+                            AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.PlaybackCdnUrlUnreachableRefreshedAutoReplayingSameTrackOnce);
                         await playCurrentTrackAsync(true);
                         return;
                     }
@@ -231,7 +231,7 @@ public sealed class PlaybackEventHandler
                 if (probeOutcome == CdnUrlProbeOutcome.ResourceReachable)
                 {
                     logger.Warning(
-                        "Playback: media failed while CDN URL still responds (network, buffering, or player)");
+                        AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.PlaybackMediaFailedWhileCdnUrlStillResponds);
                 }
             }
 
@@ -246,7 +246,7 @@ public sealed class PlaybackEventHandler
                 {
                     failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone = true;
                     logger.Information(
-                        "MediaFailed during stream open/buffer (before playback started) — one silent retry, no error modal");
+                        AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.MediaFailedDuringStreamOpenBufferSilentRetryNoModal);
                     await playCurrentTrackAsync(true);
                     return;
                 }

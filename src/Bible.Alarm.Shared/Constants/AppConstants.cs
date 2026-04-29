@@ -1606,6 +1606,15 @@ public static class AppConstants
 
             public const string ErrorLoadingBitmapFromArtworkUrlOmittingArtwork =
                 "Error loading artwork bitmap from: {ArtworkUrl} — omitting artwork";
+
+            public const string FailedToLoadArtworkBitmapFromArtworkUrl =
+                "Failed to load artwork bitmap from: {ArtworkUrl}";
+
+            public const string AndroidArtworkServiceNotAvailableCannotLoadArtwork =
+                "AndroidArtworkService not available - cannot load artwork";
+
+            public const string DurationUpdatedInMetadataArtworkPreserved =
+                "Duration updated in metadata - Duration: {Duration}ms (artwork preserved)";
         }
 
         /// <summary>Android alarm foreground bootstrap (<c>AlarmSetupService</c>, <c>SchedulerJob</c>).</summary>
@@ -1677,6 +1686,46 @@ public static class AppConstants
 
             public const string FailureRecoveryAfterMediaFailedHandlerError =
                 "Failure recovery after media failed handler error";
+        }
+
+        /// <summary>Media ended/failed orchestration (<c>PlaybackEventHandler</c>).</summary>
+        public static class PlaybackEventHandlerDiagnosticsLog
+        {
+            public const string HandleMediaEndedManualNavigationPendingSkipping =
+                "HandleMediaEndedAsync: manual Next/Prev pending - skipping to avoid double advance";
+
+            public const string IndefiniteAdvancingToNextTrack =
+                "[PlaybackEventHandler] Indefinite: advancing to next track - ScheduleId={ScheduleId}, NextIndex={NextIndex}, PlaylistCount={Count}";
+
+            public const string HandleMediaEndedAppendSucceededCannotAdvance =
+                "HandleMediaEndedAsync: Append succeeded but cannot advance - ScheduleId={ScheduleId}, CurrentIndex={CurrentIndex}, PlaylistCount={Count}";
+
+            public const string HandleMediaEndedFailedPersistSchedulePointerAfterIndefiniteAppend =
+                "HandleMediaEndedAsync: failed to persist schedule pointer after indefinite append failure - ScheduleId={ScheduleId}";
+
+            public const string HandleMediaEndedIndefiniteAppendFailedShowingErrorModal =
+                "HandleMediaEndedAsync: indefinite append failed; schedule left on finished track; showing error modal - ScheduleId={ScheduleId}";
+
+            public const string OnMediaEndedDispatchingSetAutoAdvancingForAutomaticNextTrack =
+                "[PlaybackService] OnMediaEnded: Dispatching SetAutoAdvancingAction(true) for automatic next track - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}, NextTrackIsBible={NextTrackIsBible}, WillCallPlayCurrentTrackAsync(false)";
+
+            public const string OnMediaEndedCallingPlayCurrentTrackAsyncAutomaticTransition =
+                "[PlaybackService] OnMediaEnded: Calling playCurrentTrackAsync(false) for automatic transition to track {TrackIndex}";
+
+            public const string HandleMediaFailedManualNavigationPendingSkipping =
+                "HandleMediaFailedAsync: manual Next/Prev pending - skipping to avoid double advance";
+
+            public const string MediaFailedForTrackAtIndexUriUrl =
+                "Media failed for track at index {TrackIndex}. URI: {TrackUri}, URL: {TrackUrl}";
+
+            public const string PlaybackCdnUrlUnreachableRefreshedAutoReplayingSameTrackOnce =
+                "Playback: CDN URL unreachable or gone — refreshed section/pub URLs, auto-replaying same track once";
+
+            public const string PlaybackMediaFailedWhileCdnUrlStillResponds =
+                "Playback: media failed while CDN URL still responds (network, buffering, or player)";
+
+            public const string MediaFailedDuringStreamOpenBufferSilentRetryNoModal =
+                "MediaFailed during stream open/buffer (before playback started) — one silent retry, no error modal";
         }
 
         /// <summary><c>MediaElement</c> event handler diagnostics (<c>EventHandlerManager</c>).</summary>
