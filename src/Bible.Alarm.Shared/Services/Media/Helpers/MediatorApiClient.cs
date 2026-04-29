@@ -54,7 +54,7 @@ internal sealed class MediatorApiClient
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("category", out var categoryElement))
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var categoryElement))
         {
             logger.Warning("Invalid response structure for mediator category {CategoryKey}", categoryKey);
             return (null, new List<MediatorTrack>());
@@ -64,14 +64,14 @@ internal sealed class MediatorApiClient
         string? categoryName = null;
         string? parentCategoryName = null;
 
-        if (categoryElement.TryGetProperty("name", out var nameElement))
+        if (categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
         {
             var rawName = nameElement.GetString();
             categoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
         }
 
-        if (categoryElement.TryGetProperty("parentCategory", out var parentCategoryElement) &&
-            parentCategoryElement.TryGetProperty("name", out var parentNameElement))
+        if (categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.ParentCategory, out var parentCategoryElement) &&
+            parentCategoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var parentNameElement))
         {
             var rawParentName = parentNameElement.GetString();
             parentCategoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawParentName);
@@ -86,7 +86,7 @@ internal sealed class MediatorApiClient
                 localizedPubName = categoryName;
         }
 
-        if (!categoryElement.TryGetProperty("media", out var mediaArray) || mediaArray.ValueKind != JsonValueKind.Array)
+        if (!categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaArray) || mediaArray.ValueKind != JsonValueKind.Array)
         {
             logger.Warning("No media items found in mediator category {CategoryKey}", categoryKey);
             return (localizedPubName, new List<MediatorTrack>());
@@ -96,23 +96,23 @@ internal sealed class MediatorApiClient
         var index = 0;
         foreach (var mediaItem in mediaArray.EnumerateArray())
         {
-            if (mediaItem.TryGetProperty("primaryCategory", out var primaryCatElement))
+            if (mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.PrimaryCategory, out var primaryCatElement))
             {
                 var primaryCat = primaryCatElement.GetString();
                 if (!PrimaryCategoryMatches(categoryKey, primaryCat))
                     continue;
             }
 
-            if (!mediaItem.TryGetProperty("naturalKey", out var _))
+            if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.NaturalKey, out var _))
                 continue;
 
-            if (!mediaItem.TryGetProperty("files", out var filesElement) || filesElement.ValueKind != JsonValueKind.Array)
+            if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement) || filesElement.ValueKind != JsonValueKind.Array)
                 continue;
 
             string? url = null;
             foreach (var file in filesElement.EnumerateArray())
             {
-                if (file.TryGetProperty("progressiveDownloadURL", out var urlEl))
+                if (file.TryGetProperty(AppConstants.Media.PubMediaJson.ProgressiveDownloadUrl, out var urlEl))
                 {
                     url = urlEl.GetString();
                     break;
@@ -123,7 +123,7 @@ internal sealed class MediatorApiClient
                 continue;
 
             var title = MediaTrackTitleHelper.UnknownTitle;
-            if (mediaItem.TryGetProperty("title", out var titleElement))
+            if (mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
             {
                 title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
             }

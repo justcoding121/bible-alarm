@@ -94,8 +94,8 @@ internal static class EnglishTrackParser
         JsonElement trackFile,
         string? normalizedLanguageCode = null)
     {
-        if (!trackFile.TryGetProperty("file", out var fileElement) ||
-            !fileElement.TryGetProperty("url", out var urlElement))
+        if (!trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileElement) ||
+            !fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
         {
             return null;
         }
@@ -108,7 +108,7 @@ internal static class EnglishTrackParser
 
         // Get track number from API (original track number within the disc/book)
         int originalTrackCode = 0;
-        if (trackFile.TryGetProperty("track", out var trackElement))
+        if (trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var trackElement))
         {
             originalTrackCode = trackElement.GetInt32();
         }
@@ -120,7 +120,7 @@ internal static class EnglishTrackParser
 
         // Get title
         var title = MediaTrackTitleHelper.UnknownTitle;
-        if (trackFile.TryGetProperty("title", out var titleElement))
+        if (trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
         {
             title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
         }

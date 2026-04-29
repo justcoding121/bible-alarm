@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Bible.Alarm.Shared.Constants;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -57,7 +58,7 @@ public static class AudioDescriptionTitlePhrases
             return list;
         }
 
-        if (dict.TryGetValue("E", out var english))
+        if (dict.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var english))
         {
             return english;
         }

@@ -177,7 +177,7 @@ internal sealed class SectionFetcher
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
 
-                if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
+                if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement))
                 {
                     completedSections++;
                     continue;
@@ -188,13 +188,13 @@ internal sealed class SectionFetcher
                 {
                     string? pubName = null;
                     string? formattedDate = null;
-                    if (root.TryGetProperty("pubName", out var pnEl))
+                    if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pnEl))
                         pubName = pnEl.GetString();
-                    if (root.TryGetProperty("formattedDate", out var fdEl))
+                    if (root.TryGetProperty(AppConstants.Media.PubMediaJson.FormattedDate, out var fdEl))
                         formattedDate = fdEl.GetString();
                     sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
                 }
-                else if (root.TryGetProperty("pubName", out var pubNameElement))
+                else if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
                 {
                     var rawName = pubNameElement.GetString();
                     sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
@@ -211,7 +211,7 @@ internal sealed class SectionFetcher
                     localizedPubName = MagazineHelper.GetYear(normalizedPublicationCode).ToString();
                     publication.Name = localizedPubName;
                 }
-                else if (localizedPubName == null && root.TryGetProperty("parentPubName", out var parentPubNameElement))
+                else if (localizedPubName == null && root.TryGetProperty(AppConstants.Media.PubMediaJson.ParentPubName, out var parentPubNameElement))
                 {
                     var rawName = parentPubNameElement.GetString();
                     var extractedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);

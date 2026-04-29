@@ -99,7 +99,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement))
         {
             logger.Warning("Invalid response format for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
                 normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
@@ -111,9 +111,9 @@ internal sealed class SectionFetcherSectionTracksLoader
         {
             string? pubName = null;
             string? formattedDate = null;
-            if (root.TryGetProperty("pubName", out var pnEl))
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pnEl))
                 pubName = pnEl.GetString();
-            if (root.TryGetProperty("formattedDate", out var fdEl))
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.FormattedDate, out var fdEl))
                 formattedDate = fdEl.GetString();
             var sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
             if (!string.IsNullOrEmpty(sectionName))
@@ -126,7 +126,7 @@ internal sealed class SectionFetcherSectionTracksLoader
                     oldName, sectionName, normalizedSectionCode);
             }
         }
-        else if (root.TryGetProperty("pubName", out var pubNameElement))
+        else if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
         {
             var rawName = pubNameElement.GetString();
             logger.Debug("Found pubName in API response for section {SectionCode}: rawName={RawName}", normalizedSectionCode, rawName);
@@ -161,24 +161,24 @@ internal sealed class SectionFetcherSectionTracksLoader
 
         foreach (var trackFile in formatFiles.EnumerateArray())
         {
-            if (!trackFile.TryGetProperty("file", out var fileElement))
+            if (!trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileElement))
                 continue;
             string? url = null;
             if (fileElement.ValueKind == JsonValueKind.String)
                 url = fileElement.GetString();
-            else if (fileElement.ValueKind == JsonValueKind.Object && fileElement.TryGetProperty("url", out var urlElement))
+            else if (fileElement.ValueKind == JsonValueKind.Object && fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
                 url = urlElement.GetString();
             if (string.IsNullOrEmpty(url))
                 continue;
 
             var title = MediaTrackTitleHelper.UnknownTitle;
-            if (trackFile.TryGetProperty("title", out var titleElement))
+            if (trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
             {
                 if (titleElement.ValueKind == JsonValueKind.String)
                 {
                     title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
                 }
-                else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty("text", out var titleTextElement))
+                else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty(AppConstants.Media.PubMediaJson.Text, out var titleTextElement))
                 {
                     title = MediaTrackTitleHelper.DecodeHtmlTitle(titleTextElement.GetString());
                 }
@@ -206,7 +206,7 @@ internal sealed class SectionFetcherSectionTracksLoader
             }
             else if (isIssueSectioned)
             {
-                if (trackFile.TryGetProperty("track", out var issueTrackEl) &&
+                if (trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var issueTrackEl) &&
                     issueTrackEl.ValueKind == JsonValueKind.Number &&
                     issueTrackEl.TryGetInt32(out var issueTrackNum) &&
                     issueTrackNum > 0)
@@ -220,7 +220,7 @@ internal sealed class SectionFetcherSectionTracksLoader
             }
             else if (publication.IsMusic && !publication.IsVideo)
             {
-                if (trackFile.TryGetProperty("track", out var trackNumEl) &&
+                if (trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var trackNumEl) &&
                     trackNumEl.ValueKind == JsonValueKind.Number &&
                     trackNumEl.TryGetInt32(out var apiTrackNum))
                 {

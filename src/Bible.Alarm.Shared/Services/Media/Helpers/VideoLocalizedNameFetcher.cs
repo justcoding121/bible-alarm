@@ -65,8 +65,8 @@ internal sealed class VideoLocalizedNameFetcher
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (root.TryGetProperty("category", out var category) &&
-                category.TryGetProperty("name", out var nameElement))
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category) &&
+                category.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
             {
                 var rawName = nameElement.GetString();
                 var localizedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);

@@ -151,7 +151,7 @@ internal sealed class EnglishSectionFetcher
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement))
         {
             return null;
         }
@@ -161,13 +161,13 @@ internal sealed class EnglishSectionFetcher
         {
             string? pubName = null;
             string? formattedDate = null;
-            if (root.TryGetProperty("pubName", out var pnElement))
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pnElement))
                 pubName = pnElement.GetString();
-            if (root.TryGetProperty("formattedDate", out var fdElement))
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.FormattedDate, out var fdElement))
                 formattedDate = fdElement.GetString();
             sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
         }
-        else if (root.TryGetProperty("pubName", out var pubNameElement))
+        else if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
         {
             var rawName = pubNameElement.GetString();
             sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
@@ -247,7 +247,7 @@ internal sealed class EnglishSectionFetcher
             var root = doc.RootElement;
 
             // Extract localized publication name from parentPubName
-            if (root.TryGetProperty("parentPubName", out var parentPubNameElement))
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.ParentPubName, out var parentPubNameElement))
             {
                 var rawName = parentPubNameElement.GetString();
                 var extractedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
@@ -270,8 +270,8 @@ internal sealed class EnglishSectionFetcher
             }
 
             // For Drama, also check category.name
-            if (!isBible && root.TryGetProperty("category", out var categoryElement) &&
-                categoryElement.TryGetProperty("name", out var categoryNameElement))
+            if (!isBible && root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var categoryElement) &&
+                categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var categoryNameElement))
             {
                 var rawName = categoryNameElement.GetString();
                 return MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);

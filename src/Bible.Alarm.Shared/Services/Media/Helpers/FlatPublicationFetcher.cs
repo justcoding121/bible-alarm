@@ -209,7 +209,7 @@ internal sealed class FlatPublicationFetcher
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement) ||
+            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement) ||
                 !filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
                 !languageFiles.TryGetProperty(fileFormat, out var formatFiles) ||
                 formatFiles.ValueKind != JsonValueKind.Array)
@@ -218,7 +218,7 @@ internal sealed class FlatPublicationFetcher
             }
 
             string? fetchedPubName = null;
-            if (root.TryGetProperty("pubName", out var pubNameElement))
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
             {
                 var rawName = pubNameElement.GetString();
                 fetchedPubName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
@@ -227,7 +227,7 @@ internal sealed class FlatPublicationFetcher
             var byTrack = new Dictionary<int, JsonElement>();
             foreach (var file in formatFiles.EnumerateArray())
             {
-                if (!file.TryGetProperty("track", out var trackEl))
+                if (!file.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var trackEl))
                 {
                     continue;
                 }
@@ -244,7 +244,7 @@ internal sealed class FlatPublicationFetcher
                     continue;
                 }
 
-                var prefer240p = file.TryGetProperty("label", out var labelEl) && labelEl.GetString() == AppConstants.Media.VideoQualityLabel240p;
+                var prefer240p = file.TryGetProperty(AppConstants.Media.PubMediaJson.Label, out var labelEl) && labelEl.GetString() == AppConstants.Media.VideoQualityLabel240p;
                 if (prefer240p)
                 {
                     byTrack[trackNum] = file;
@@ -255,8 +255,8 @@ internal sealed class FlatPublicationFetcher
             foreach (var kv in byTrack.OrderBy(x => x.Key))
             {
                 var fileElement = kv.Value;
-                if (!fileElement.TryGetProperty("file", out var fileInfo) ||
-                    !fileInfo.TryGetProperty("url", out var urlElement))
+                if (!fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileInfo) ||
+                    !fileInfo.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
                 {
                     continue;
                 }
@@ -268,7 +268,7 @@ internal sealed class FlatPublicationFetcher
                 }
 
                 var title = MediaTrackTitleHelper.UnknownTitle;
-                if (fileElement.TryGetProperty("title", out var titleElement))
+                if (fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
                 {
                     title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
                 }

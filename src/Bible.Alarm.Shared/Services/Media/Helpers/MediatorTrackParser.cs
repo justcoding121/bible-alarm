@@ -47,7 +47,7 @@ internal static class MediatorTrackParser
         JsonElement trackFile,
         MediatorTrackParseContext context)
     {
-        if (!trackFile.TryGetProperty("file", out var fileElement))
+        if (!trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileElement))
         {
             return null;
         }
@@ -57,7 +57,7 @@ internal static class MediatorTrackParser
         {
             url = fileElement.GetString();
         }
-        else if (fileElement.ValueKind == JsonValueKind.Object && fileElement.TryGetProperty("url", out var urlElement))
+        else if (fileElement.ValueKind == JsonValueKind.Object && fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
         {
             url = urlElement.GetString();
         }
@@ -68,13 +68,13 @@ internal static class MediatorTrackParser
         }
 
         var title = MediaTrackTitleHelper.UnknownTitle;
-        if (trackFile.TryGetProperty("title", out var titleElement))
+        if (trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
         {
             if (titleElement.ValueKind == JsonValueKind.String)
             {
                 title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
             }
-            else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty("text", out var titleTextElement))
+            else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty(AppConstants.Media.PubMediaJson.Text, out var titleTextElement))
             {
                 title = MediaTrackTitleHelper.DecodeHtmlTitle(titleTextElement.GetString());
             }

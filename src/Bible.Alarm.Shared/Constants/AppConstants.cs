@@ -347,6 +347,28 @@ public static class AppConstants
         /// <summary>JW GETPUB/Mediator video <c>files[].label</c> for lowest-tier stream (preferred for audio-only).</summary>
         public const string VideoQualityLabel240p = "240p";
 
+        /// <summary>JSON property names shared across JW GETPUB/Mediator response parsers.</summary>
+        public static class PubMediaJson
+        {
+            public const string Files = "files";
+            public const string Category = "category";
+            public const string Name = "name";
+            public const string PubName = "pubName";
+            public const string ParentPubName = "parentPubName";
+            public const string FormattedDate = "formattedDate";
+            public const string File = "file";
+            public const string Url = "url";
+            public const string Track = "track";
+            public const string Title = "title";
+            public const string Text = "text";
+            public const string Label = "label";
+            public const string ParentCategory = "parentCategory";
+            public const string Media = "media";
+            public const string PrimaryCategory = "primaryCategory";
+            public const string NaturalKey = "naturalKey";
+            public const string ProgressiveDownloadUrl = "progressiveDownloadURL";
+        }
+
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
         public const string PublicationUiTrackSingular = "Track";
 
