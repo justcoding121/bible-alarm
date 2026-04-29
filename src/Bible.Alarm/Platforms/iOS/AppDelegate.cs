@@ -194,14 +194,10 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     {
         var delivered = UNUserNotificationCenter.Current.GetDeliveredNotificationsAsync().Result;
 
-        if (delivered != null)
+        if (delivered is { Length: > 0 })
         {
-            var notification = delivered.FirstOrDefault();
-
-            if (notification != null)
-            {
-                HandleNotification(notification.Request.Content.UserInfo);
-            }
+            var notification = delivered[0];
+            HandleNotification(notification.Request.Content.UserInfo);
 
             UNUserNotificationCenter.Current.RemoveAllDeliveredNotifications();
         }

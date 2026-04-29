@@ -134,9 +134,13 @@ public class IOsToastService : ToastService, IDisposable
             {
                 if (scene is UIWindowScene windowScene && windowScene.Windows != null)
                 {
-                    var window = windowScene.Windows.FirstOrDefault(w => w.IsKeyWindow);
-                    if (window != null)
-                        return window;
+                    foreach (UIWindow w in windowScene.Windows)
+                    {
+                        if (w.IsKeyWindow)
+                        {
+                            return w;
+                        }
+                    }
                 }
             }
         }

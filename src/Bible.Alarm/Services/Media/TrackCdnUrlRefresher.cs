@@ -54,7 +54,7 @@ public sealed class TrackCdnUrlRefresher(
                 metadata.DownloadCode,
                 metadata.TrackCode);
 
-            return melodyUrls.FirstOrDefault();
+            return melodyUrls is { Count: > 0 } list ? list[0] : null;
         }
 
         var lang = (metadata.LanguageCode ?? string.Empty).Trim();
