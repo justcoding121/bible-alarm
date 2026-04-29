@@ -13,7 +13,7 @@ public class ProgressBarAnimator : IDisposable
     public double AnimatedProgressStart { get; private set; } = 0.0;
     public double AnimatedProgressEnd { get; private set; } = 0.3;
     public double AnimatedProgress => AnimatedProgressEnd;
-    public double AnimatedProgressRangeWidth => RangeWidth;
+    public static double AnimatedProgressRangeWidth => RangeWidth;
 
     public event Action? ProgressChanged;
 

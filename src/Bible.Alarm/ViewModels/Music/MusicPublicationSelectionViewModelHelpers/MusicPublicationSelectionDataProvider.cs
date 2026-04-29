@@ -190,7 +190,7 @@ public sealed class MusicPublicationSelectionDataProvider(
         });
     }
 
-    public void SetSelectedSongPublication(
+    public static void SetSelectedSongPublication(
         AlarmMusic? current,
         Dictionary<string, PublicationListViewItemModel> songPublicationVMsMapping,
         PublicationListViewItemModel? currentSelectedSongPublication,

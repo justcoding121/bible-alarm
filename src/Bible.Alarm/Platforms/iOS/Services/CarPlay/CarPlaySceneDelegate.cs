@@ -244,7 +244,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// Creates a loading/empty state template shown when schedules are not yet loaded or unavailable.
     /// Replaced by the actual schedule list once bootstrap completes and state is populated.
     /// </summary>
-    private CPListTemplate CreateEmptyStateTemplate()
+    private static CPListTemplate CreateEmptyStateTemplate()
     {
         var emptyItem = new CPListItem("Loading schedules…", "Schedules will appear once the app is ready");
         emptyItem.Handler = (item, completion) =>

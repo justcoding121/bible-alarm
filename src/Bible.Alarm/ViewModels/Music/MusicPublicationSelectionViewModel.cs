@@ -190,7 +190,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     private void SetSelectedSongPublication()
     {
-        dataProvider.SetSelectedSongPublication(
+        MusicPublicationSelectionDataProvider.SetSelectedSongPublication(
             stateManager.Current,
             dataProvider.SongPublicationVMsMapping,
             propertyManager.SelectedSongPublication,
