@@ -2132,6 +2132,43 @@ public static class AppConstants
                 "Migrated version {Version} from version.dat to Preferences";
         }
 
+        /// <summary>Post-fetch schedule DB cleanup vs cataloged media (<c>OrphanedScheduleCleanup</c>).</summary>
+        public static class OrphanedScheduleCleanupDiagnosticsLog
+        {
+            public const string BibleScheduleTrackNotInFetchedTablesDeletingSchedule =
+                "Schedule {ScheduleId} pub/section/track {PubCode}/{SectionCode}/{TrackCode} not in fetched tables; deleting schedule";
+
+            public const string AlarmMusicScheduleTrackNotInFetchedTablesResettingMusic =
+                "Alarm music schedule {ScheduleId} pub/section/track {PubCode}/{SectionCode}/{TrackCode} not in fetched tables; resetting music";
+
+            public const string CleanedUpOrphanedSchedulesAndResetMusicCounts =
+                "Cleaned up {DeletedCount} orphaned schedule(s) and reset music for {ResetCount} schedule(s)";
+
+            public const string AllScheduleReferencesVerifiedInFetchedTables =
+                "All schedule references verified in fetched tables";
+
+            public const string AssignedCategoryCodeFromPublication =
+                "Assigned CategoryCode {CategoryCode} for schedule {ScheduleId} from pub {PubCode}/{LangCode}";
+
+            public const string FailedToAssignCategoryCodeForSchedule =
+                "Failed to assign CategoryCode for schedule {ScheduleId}";
+
+            public const string AssignedCategoryCodeFirstMatchForNullCategoryCount =
+                "Assigned CategoryCode (first match by pub) for {Count} schedule(s) with null CategoryCode";
+
+            public const string DeletedOrphanedAlarmSchedule =
+                "Deleted orphaned alarm schedule {ScheduleId}";
+
+            public const string FailedToDeleteOrphanedAlarmSchedule =
+                "Failed to delete orphaned alarm schedule {ScheduleId}";
+
+            public const string ResetMusicForAlarmSchedule =
+                "Reset music for alarm schedule {ScheduleId}";
+
+            public const string FailedToResetMusicForAlarmSchedule =
+                "Failed to reset music for alarm schedule {ScheduleId}";
+        }
+
         /// <summary><c>MediaService</c>, Bible publication list query, vocal music helpers.</summary>
         public static class MediaServiceDiagnosticsLog
         {

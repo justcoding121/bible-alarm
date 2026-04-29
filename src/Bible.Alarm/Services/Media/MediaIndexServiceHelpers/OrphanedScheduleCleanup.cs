@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Microsoft.Data.Sqlite;
 using Serilog;
 
@@ -61,7 +62,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 {
                     scheduleIdsToDelete.Add(r.AlarmScheduleId);
                     logger.Warning(
-                        "Schedule {ScheduleId} pub/section/track {PubCode}/{SectionCode}/{TrackCode} not in fetched tables; deleting schedule",
+                        AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.BibleScheduleTrackNotInFetchedTablesDeletingSchedule,
                         r.AlarmScheduleId, r.PublicationCode, r.SectionCode ?? "(none)", r.TrackCode);
                 }
             }
@@ -77,7 +78,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 {
                     musicScheduleIdsToReset.Add(r.AlarmScheduleId);
                     logger.Warning(
-                        "Alarm music schedule {ScheduleId} pub/section/track {PubCode}/{SectionCode}/{TrackCode} not in fetched tables; resetting music",
+                        AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AlarmMusicScheduleTrackNotInFetchedTablesResettingMusic,
                         r.AlarmScheduleId, r.PublicationCode, r.SectionCode ?? "(none)", r.TrackCode);
                 }
             }
@@ -99,12 +100,12 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
             }
 
             logger.Information(
-                "Cleaned up {DeletedCount} orphaned schedule(s) and reset music for {ResetCount} schedule(s)",
+                AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.CleanedUpOrphanedSchedulesAndResetMusicCounts,
                 scheduleIdsToDelete.Count, musicScheduleIdsToReset.Count);
         }
         else
         {
-            logger.Information("All schedule references verified in fetched tables");
+            logger.Information(AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AllScheduleReferencesVerifiedInFetchedTables);
         }
 
         await AssignCategoryCodeForNullSchedulesAsync(mediaIndexDbPath, scheduleConn);
@@ -146,20 +147,20 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                     if (n > 0)
                     {
                         updated++;
-                        logger.Debug("Assigned CategoryCode {CategoryCode} for schedule {ScheduleId} from pub {PubCode}/{LangCode}",
+                        logger.Debug(AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AssignedCategoryCodeFromPublication,
                             categoryCode, scheduleId, publicationCode, languageCode);
                     }
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Failed to assign CategoryCode for schedule {ScheduleId}", scheduleId);
+                    logger.Warning(ex, AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.FailedToAssignCategoryCodeForSchedule, scheduleId);
                 }
             }
         }
 
         if (updated > 0)
         {
-            logger.Information("Assigned CategoryCode (first match by pub) for {Count} schedule(s) with null CategoryCode", updated);
+            logger.Information(AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AssignedCategoryCodeFirstMatchForNullCategoryCount, updated);
         }
     }
 
@@ -298,7 +299,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                     "DELETE FROM AlarmSchedules WHERE Id = @id", scheduleId);
 
                 await transaction.CommitAsync();
-                logger.Information("Deleted orphaned alarm schedule {ScheduleId}", scheduleId);
+                logger.Information(AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.DeletedOrphanedAlarmSchedule, scheduleId);
             }
             catch
             {
@@ -308,7 +309,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to delete orphaned alarm schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.FailedToDeleteOrphanedAlarmSchedule, scheduleId);
         }
     }
 
@@ -325,7 +326,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                     "UPDATE AlarmSchedules SET MusicEnabled = 0 WHERE Id = @id", scheduleId);
 
                 await transaction.CommitAsync();
-                logger.Information("Reset music for alarm schedule {ScheduleId}", scheduleId);
+                logger.Information(AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.ResetMusicForAlarmSchedule, scheduleId);
             }
             catch
             {
@@ -335,7 +336,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to reset music for alarm schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.FailedToResetMusicForAlarmSchedule, scheduleId);
         }
     }
 
