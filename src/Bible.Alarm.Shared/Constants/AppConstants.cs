@@ -464,6 +464,15 @@ public static class AppConstants
             public const string UnhandledNonExceptionObjectIsTerminating =
                 "Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}";
             public const string UnhandledExceptionInSchedulerJob = "Unhandled exception in SchedulerJob";
+
+            /// <summary>Logged when an alarm fires while playback is active (handlers stop playback first).</summary>
+            public const string AlarmTriggeredWhilePlaybackActiveStoppingForNewAlarm =
+                "Alarm triggered for schedule {ScheduleId} while playback is active - stopping current playback to handle new alarm";
+
+            /// <summary>iOS ObjC marshaling diagnostics (<c>AppDelegate</c>).</summary>
+            public const string ManagedExceptionMarshalingToObjCMode = "Managed exception marshaling to ObjC (Mode={Mode})";
+
+            public const string ObjCExceptionCaughtModeException = "ObjC exception caught (Mode={Mode}, Exception={Exception})";
         }
     }
 
@@ -483,6 +492,21 @@ public static class AppConstants
         public const string InvalidScheduleIdTryAgain = "Invalid schedule ID, please try again";
         public const string CannotDeleteLastSchedule = "Cannot delete last schedule";
         public const string ScheduleSaved = "Schedule saved";
+
+        public const string PleaseCheckInternetConnection = "Please check your internet connection";
+        public const string NotificationPermissionDeniedByAndroid = "Notification permission is denied by Android";
+        public const string RepeatEnabled = "Repeat enabled";
+    }
+
+    /// <summary>Sample schedule seeding — exception text and substring filters for sample schedule creation.</summary>
+    public static class SampleScheduleDiagnostics
+    {
+        public const string MessageContainsNoBiblePublications = "No Bible publications found";
+        public const string MessageContainsNoSectionedPublication = "No sectioned Bible publication";
+
+        public const string NoBiblePublicationsInDatabaseMessage = "No Bible publications found in database";
+        public const string NoSectionedPublicationForSampleScheduleMessage =
+            "No sectioned Bible publication found in database for sample schedule";
     }
 
     /// <summary>CarPlay schedule browse template strings.</summary>

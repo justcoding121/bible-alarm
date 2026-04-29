@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
@@ -268,7 +269,7 @@ public sealed class MusicCommandInitializer
             // Show toast message when repeat is enabled, hide it when disabled
             if (newRepeatValue)
             {
-                toastService.ShowMessage("Repeat enabled");
+                toastService.ShowMessage(AppConstants.ToastMessages.RepeatEnabled);
             }
             else
             {

@@ -1,6 +1,7 @@
 #nullable enable
 using System.Linq;
 using System.Net.Http;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels.Interfaces;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
@@ -46,7 +47,7 @@ public static class ModalScrollHelper
     /// <summary>
     /// Default error message for fetch failures.
     /// </summary>
-    public const string DefaultFetchErrorMessage = "Please check your internet connection";
+    public const string DefaultFetchErrorMessage = AppConstants.ToastMessages.PleaseCheckInternetConnection;
 
     /// <summary>
     /// Handles the standard modal appearing workflow.

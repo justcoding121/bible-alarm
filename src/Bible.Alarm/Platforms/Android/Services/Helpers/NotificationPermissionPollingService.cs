@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.UI.Interfaces;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
@@ -140,7 +141,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
                                     var toastService = GetToastService?.Invoke();
                                     if (toastService != null)
                                     {
-                                        _ = toastService.ShowMessage("Notification permission is denied by Android", 5);
+                                        _ = toastService.ShowMessage(AppConstants.ToastMessages.NotificationPermissionDeniedByAndroid, 5);
                                     }
                                 }
                             }

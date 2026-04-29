@@ -159,7 +159,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
                 await Task.Delay(500);
                 await navigationService.PopModalAsync();
                 var toastService = ServiceProviderManager.GetService<IToastService>();
-                await (toastService?.ShowMessage("Please check your internet connection") ?? Task.CompletedTask);
+                await (toastService?.ShowMessage(AppConstants.ToastMessages.PleaseCheckInternetConnection) ?? Task.CompletedTask);
             }
             catch (Exception ex)
             {

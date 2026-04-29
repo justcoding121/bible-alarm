@@ -67,13 +67,13 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     private static void OnMarshalManagedException(object? sender, ObjCRuntime.MarshalManagedExceptionEventArgs args)
     {
-        logger.Error(args.Exception, "Managed exception marshaling to ObjC (Mode={Mode})", args.ExceptionMode);
+        logger.Error(args.Exception, AppConstants.Logging.ProcessDiagnosticsLog.ManagedExceptionMarshalingToObjCMode, args.ExceptionMode);
         FlushAndDelay();
     }
 
     private static void OnMarshalObjectiveCException(object? sender, ObjCRuntime.MarshalObjectiveCExceptionEventArgs args)
     {
-        logger.Error("ObjC exception caught (Mode={Mode}, Exception={Exception})", args.ExceptionMode, args.Exception?.ToString() ?? "null");
+        logger.Error(AppConstants.Logging.ProcessDiagnosticsLog.ObjCExceptionCaughtModeException, args.ExceptionMode, args.Exception?.ToString() ?? "null");
         FlushAndDelay();
     }
 

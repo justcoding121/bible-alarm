@@ -24,7 +24,7 @@ public sealed class WindowsAlarmHandler(
             {
                 if (playbackState.Value.IsPreparingOrPlaying)
                 {
-                    logger.Information("Alarm triggered for schedule {ScheduleId} while playback is active - stopping current playback to handle new alarm", scheduleId);
+                    logger.Information(AppConstants.Logging.ProcessDiagnosticsLog.AlarmTriggeredWhilePlaybackActiveStoppingForNewAlarm, scheduleId);
                     try
                     {
                         await playbackService.StopAsync();

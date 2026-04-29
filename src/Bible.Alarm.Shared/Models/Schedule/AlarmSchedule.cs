@@ -176,7 +176,7 @@ public sealed class AlarmSchedule : IComparable
 
         if (bibleLanguages == null || bibleLanguages.Count == 0)
         {
-            throw new InvalidOperationException("No Bible publications found in database");
+            throw new InvalidOperationException(AppConstants.SampleScheduleDiagnostics.NoBiblePublicationsInDatabaseMessage);
         }
 
         // Using centralized sorting helper from Bible.Alarm.Shared.Helpers.PublicationSortHelper
@@ -271,7 +271,7 @@ public sealed class AlarmSchedule : IComparable
 
         if (selectedBible == null || bibleLanguageCode == null || biblePublicationCode == null)
         {
-            throw new InvalidOperationException("No sectioned Bible publication found in database for sample schedule");
+            throw new InvalidOperationException(AppConstants.SampleScheduleDiagnostics.NoSectionedPublicationForSampleScheduleMessage);
         }
 
         // Get first available melody music from database that has tracks
