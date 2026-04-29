@@ -3759,6 +3759,53 @@ public static class AppConstants
                 "Error checking playback state during spinner timeout fallback";
         }
 
+        /// <summary>Home list subtitle assembly (<c>ScheduleListItemSubtitleManager</c>).</summary>
+        public static class ScheduleListItemSubtitleManagerDiagnosticsLog
+        {
+            public const string RefreshInvalidScheduleId =
+                "ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Invalid scheduleId: {ScheduleId}";
+
+            public const string RefreshScheduleIdProvidedFoundPublicationSectionTrack =
+                "ScheduleListItemSubtitleManager: RefreshSubTitleFromState - ScheduleId: {ScheduleId}, ProvidedItem: {HasProvidedItem}, FoundInState: {FoundInState}, PublicationCode: {PublicationCode}, SectionName: {SectionName}, TrackTitle: {TrackTitle}";
+
+            public const string RefreshBuiltSubtitleForSchedule =
+                "ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Built subtitle: '{Subtitle}' for schedule {ScheduleId}";
+
+            public const string RefreshSettingSubtitleForSchedule =
+                "ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Setting subtitle to '{Subtitle}' for schedule {ScheduleId}";
+
+            public const string RefreshSectionStructureWaitingSectionNameTrackTitle =
+                "ScheduleListItemSubtitleManager: RefreshSubTitleFromState - ScheduleId: {ScheduleId}, HasSectionStructure: {HasSectionStructure}, WaitingForDisplayNames: {WaitingForDisplayNames}, SectionName: '{SectionName}', TrackTitle: '{TrackTitle}'";
+
+            public const string WaitingForDisplayNamesToPopulate =
+                "ScheduleListItemSubtitleManager: Waiting for display names to be populated for schedule {ScheduleId}. HasSectionStructure: {HasSectionStructure}";
+
+            public const string RefreshNoBiblePublicationScheduleIdClearingLanguage =
+                "ScheduleListItemSubtitleManager: RefreshSubTitleFromState - No BiblePublicationScheduleId for schedule {ScheduleId}, clearing language";
+
+            public const string ErrorWhileRefreshingSubtitleFromStateForSchedule =
+                "An error happened while refreshing subtitle from state for schedule {ScheduleId}";
+        }
+
+        /// <summary>Remote ID3/MP4 artwork extraction (<c>RemoteId3ArtworkExtractor</c>, <c>RemoteMp4ArtworkExtractor</c>).</summary>
+        public static class RemoteArtworkExtractorDiagnosticsLog
+        {
+            public const string Id3ArtworkExtractionFailedForUrl =
+                "Remote ID3 artwork extraction failed for URL: {Url}";
+
+            public const string Id3FailedToCreateTagLibFileFromTempPath =
+                "RemoteId3ArtworkExtractor: Failed to create TagLib file from temp path {TempPath}";
+
+            public const string Mp4ArtworkExtractionFailedForUrl =
+                "Remote MP4 artwork extraction failed for URL: {Url}";
+
+            public const string Mp4FailedToCreateTagLibFileFromTempPath =
+                "RemoteMp4ArtworkExtractor: Failed to create TagLib file from temp path {TempPath}";
+
+            public const string Mp4FailedToDeleteTempFileFromTempPath =
+                "RemoteMp4ArtworkExtractor: Failed to delete temp file {TempPath}";
+        }
+
         /// <summary>WinUI Action Center + rich media toasts (<c>WindowsNotificationService</c>).</summary>
         public static class WindowsNotificationServiceDiagnosticsLog
         {

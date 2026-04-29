@@ -40,7 +40,7 @@ public sealed class ScheduleListItemSubtitleManager(
     {
         if (scheduleId <= 0)
         {
-            logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Invalid scheduleId: {ScheduleId}", scheduleId);
+            logger.Debug(AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.RefreshInvalidScheduleId, scheduleId);
             return;
         }
 
@@ -50,7 +50,7 @@ public sealed class ScheduleListItemSubtitleManager(
             var scheduleStateItem = providedScheduleStateItem ??
                 applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
 
-            logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - ScheduleId: {ScheduleId}, ProvidedItem: {HasProvidedItem}, FoundInState: {FoundInState}, PublicationCode: {PublicationCode}, SectionName: {SectionName}, TrackTitle: {TrackTitle}",
+            logger.Debug(AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.RefreshScheduleIdProvidedFoundPublicationSectionTrack,
                 scheduleId,
                 providedScheduleStateItem != null,
                 scheduleStateItem != null,
@@ -66,11 +66,11 @@ public sealed class ScheduleListItemSubtitleManager(
                     : null;
                 var subtitle = BuildSubtitleFromState(scheduleStateItem, playingTrackTitle);
                 
-                logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Built subtitle: '{Subtitle}' for schedule {ScheduleId}", subtitle, scheduleId);
+                logger.Debug(AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.RefreshBuiltSubtitleForSchedule, subtitle, scheduleId);
                 
                 if (!string.IsNullOrEmpty(subtitle))
                 {
-                    logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Setting subtitle to '{Subtitle}' for schedule {ScheduleId}", subtitle, scheduleId);
+                    logger.Debug(AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.RefreshSettingSubtitleForSchedule, subtitle, scheduleId);
                     setSubTitle(subtitle);
                     onPropertyChanged("SubTitle");
                     return;
@@ -83,7 +83,7 @@ public sealed class ScheduleListItemSubtitleManager(
                 var waitingForDisplayNames = (hasSectionStructure && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName)) ||
                                             (!hasSectionStructure && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle));
                 
-                logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - ScheduleId: {ScheduleId}, HasSectionStructure: {HasSectionStructure}, WaitingForDisplayNames: {WaitingForDisplayNames}, SectionName: '{SectionName}', TrackTitle: '{TrackTitle}'",
+                logger.Debug(AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.RefreshSectionStructureWaitingSectionNameTrackTitle,
                     scheduleId, hasSectionStructure, waitingForDisplayNames,
                     scheduleStateItem.BiblePublicationSectionName ?? "null",
                     scheduleStateItem.BiblePublicationTrackTitle ?? "null");
@@ -92,14 +92,14 @@ public sealed class ScheduleListItemSubtitleManager(
                 // The delayed refresh will catch it when display names are populated
                 if (waitingForDisplayNames)
                 {
-                    logger.Debug("ScheduleListItemSubtitleManager: Waiting for display names to be populated for schedule {ScheduleId}. HasSectionStructure: {HasSectionStructure}", 
+                    logger.Debug(AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.WaitingForDisplayNamesToPopulate,
                         scheduleId, hasSectionStructure);
                     return;
                 }
             }
             else
             {
-                logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - No BiblePublicationScheduleId for schedule {ScheduleId}, clearing language", scheduleId);
+                logger.Debug(AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.RefreshNoBiblePublicationScheduleIdClearingLanguage, scheduleId);
                 ClearLanguage(setLanguage, onPropertyChanged);
             }
 
@@ -107,7 +107,7 @@ public sealed class ScheduleListItemSubtitleManager(
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened while refreshing subtitle from state for schedule {ScheduleId}", scheduleId);
+            logger.Error(e, AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.ErrorWhileRefreshingSubtitleFromStateForSchedule, scheduleId);
             // No DB fallback.
         }
     }

@@ -54,7 +54,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Remote MP4 artwork extraction failed for URL: {Url}", url);
+            logger.Debug(ex, AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Mp4ArtworkExtractionFailedForUrl, url);
             return null;
         }
     }
@@ -458,7 +458,7 @@ internal sealed class RemoteMp4ArtworkExtractor
             }
             catch (Exception ex)
             {
-                logger.Debug(ex, "RemoteMp4ArtworkExtractor: Failed to create TagLib file from temp path {TempPath}", tempFilePath);
+                logger.Debug(ex, AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Mp4FailedToCreateTagLibFileFromTempPath, tempFilePath);
                 return null;
             }
 
@@ -510,7 +510,7 @@ internal sealed class RemoteMp4ArtworkExtractor
                 }
                 catch (Exception ex)
                 {
-                    logger.Debug(ex, "RemoteMp4ArtworkExtractor: Failed to delete temp file {TempPath}", tempFilePath);
+                    logger.Debug(ex, AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Mp4FailedToDeleteTempFileFromTempPath, tempFilePath);
                 }
             }
         }

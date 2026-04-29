@@ -52,7 +52,7 @@ internal sealed class RemoteId3ArtworkExtractor
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Remote ID3 artwork extraction failed for URL: {Url}", url);
+            logger.Debug(ex, AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Id3ArtworkExtractionFailedForUrl, url);
             return null;
         }
     }
@@ -139,7 +139,7 @@ internal sealed class RemoteId3ArtworkExtractor
             }
             catch (Exception ex)
             {
-                logger.Debug(ex, "RemoteId3ArtworkExtractor: Failed to create TagLib file from temp path {TempPath}", tempFilePath);
+                logger.Debug(ex, AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Id3FailedToCreateTagLibFileFromTempPath, tempFilePath);
                 return null;
             }
 
