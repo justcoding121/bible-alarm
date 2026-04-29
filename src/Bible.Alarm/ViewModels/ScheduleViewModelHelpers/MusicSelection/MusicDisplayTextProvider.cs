@@ -191,7 +191,7 @@ public sealed class MusicDisplayTextProvider
             {
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    onPropertyChanged("MusicLanguageDisplayText");
+                    onPropertyChanged(AppConstants.Media.ScheduleMusicLanguageDisplayTextPropertyName);
                 });
             }
         }

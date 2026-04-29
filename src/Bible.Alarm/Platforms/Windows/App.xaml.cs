@@ -87,7 +87,7 @@ public partial class App : MauiWinUIApplication
         // Check for existing instance BEFORE calling base.OnLaunched to prevent window flash
         // Use AppInstance to ensure only one instance of the app runs
         // This prevents opening a new instance when clicking toast notifications or alarms
-        var key = "BibleAlarmInstance";
+        var key = AppConstants.WinUi.SingleInstanceRegistrationKey;
         var activatedEventArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
         var instance = AppInstance.FindOrRegisterForKey(key);
 

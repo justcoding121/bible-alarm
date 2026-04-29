@@ -621,6 +621,9 @@ public static class AppConstants
         /// <summary>Short status label for disabled schedules in listing subtitles.</summary>
         public const string ScheduleUiStatusDisabled = "Disabled";
 
+        /// <summary>Bound property name <c>MusicLanguageDisplayText</c> on schedule music selection UI.</summary>
+        public const string ScheduleMusicLanguageDisplayTextPropertyName = "MusicLanguageDisplayText";
+
         /// <summary>Melody disc fallback UI: prefix before volume index (e.g. <c>Volume 1</c>).</summary>
         public const string PublicationUiMelodyVolumePrefix = "Volume ";
 
@@ -1191,5 +1194,12 @@ public static class AppConstants
         /// Windows platform identifier
         /// </summary>
         public const string Windows = "Windows";
+    }
+
+    /// <summary>Windows App SDK / WinUI integration identifiers.</summary>
+    public static class WinUi
+    {
+        /// <summary><c>AppInstance.FindOrRegisterForKey</c> value for single-instance activation routing.</summary>
+        public const string SingleInstanceRegistrationKey = "BibleAlarmInstance";
     }
 }
