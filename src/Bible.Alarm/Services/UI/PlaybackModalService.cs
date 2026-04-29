@@ -322,7 +322,7 @@ public sealed class PlaybackModalService :
 
                 var shouldShow = state != null
                     ? IsActiveUiPlaybackStatus(state.Status)
-                    : CheckPlatformPlaybackIsActive();
+                    : CheckPlatformPlaybackIsActive(logger);
 
                 logger.Information(
                     "ShowPlaybackModalIfNeededOnWindowCreationAsync - PlaybackStateAvailable={PlaybackStateAvailable}, Status={Status}, ShouldShow={ShouldShow}",
@@ -408,7 +408,7 @@ public sealed class PlaybackModalService :
 
             var shouldShow = state != null
                 ? IsActiveUiPlaybackStatus(state.Status)
-                : CheckPlatformPlaybackIsActive();
+                : CheckPlatformPlaybackIsActive(logger);
 
             if (!shouldShow)
             {
@@ -490,7 +490,7 @@ public sealed class PlaybackModalService :
 
             var isActive = state != null
                 ? IsActiveUiPlaybackStatus(state.Status)
-                : CheckPlatformPlaybackIsActive();
+                : CheckPlatformPlaybackIsActive(logger);
 
             if (isActive)
             {
@@ -536,7 +536,7 @@ public sealed class PlaybackModalService :
     }
 #endif
 
-    private bool CheckPlatformPlaybackIsActive()
+    private static bool CheckPlatformPlaybackIsActive(ILogger logger)
     {
 #if ANDROID
         try
@@ -964,7 +964,7 @@ public sealed class PlaybackModalService :
 
         var isActive = state != null
             ? IsActiveUiPlaybackStatus(state.Status)
-            : CheckPlatformPlaybackIsActive();
+            : CheckPlatformPlaybackIsActive(logger);
 
         if (!isActive)
         {

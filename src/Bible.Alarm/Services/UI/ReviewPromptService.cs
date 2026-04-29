@@ -149,7 +149,7 @@ public sealed class ReviewPromptService(ILogger logger, IGeneralSettingsService 
         {
             try
             {
-                ConfigureWindowsStoreReviewWindow();
+                ConfigureWindowsStoreReviewWindow(logger);
                 await CrossStoreReview.Current.RequestReview(false);
                 logger.Information("Review request attempted successfully. Attempt #{AttemptCount}", attemptCount);
             }
@@ -254,7 +254,7 @@ public sealed class ReviewPromptService(ILogger logger, IGeneralSettingsService 
         return false;
     }
 
-    private void ConfigureWindowsStoreReviewWindow()
+    private static void ConfigureWindowsStoreReviewWindow(ILogger logger)
     {
 #if WINDOWS
         try

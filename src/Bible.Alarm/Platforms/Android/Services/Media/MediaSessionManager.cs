@@ -193,7 +193,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
     /// Returns true when the new metadata would not change anything meaningful on the session
     /// (same title/artist and no meaningful artwork delta), so SetMetadata can be skipped.
     /// </summary>
-    private bool ShouldSkipRedundantMetadataUpdate(MediaMetadataCompat metadata, MediaMetadataCompat? currentMetadata)
+    private static bool ShouldSkipRedundantMetadataUpdate(MediaMetadataCompat metadata, MediaMetadataCompat? currentMetadata)
     {
         if (currentMetadata == null)
         {
