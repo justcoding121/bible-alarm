@@ -292,7 +292,7 @@ public class SerilogSetup
 #else
             _ = ex; // Suppress unused variable warning in Release builds
 #endif
-            return "AssemblyVersionNotFound";
+            return AppConstants.Logging.AssemblyVersionFallback;
         }
     }
 

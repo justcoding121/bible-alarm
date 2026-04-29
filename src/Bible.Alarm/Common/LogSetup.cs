@@ -1,4 +1,5 @@
 using Bible.Alarm.Common.Interfaces.Platform;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Common;
@@ -32,7 +33,7 @@ public class LogSetup
 
         var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Debug()
-            .Enrich.WithProperty("Application", "Bible-Alarm")
+            .Enrich.WithProperty("Application", AppConstants.AppSettings.ApplicationName)
             .Enrich.WithProperty("Version", versionName)
             .Enrich.WithProperty("Platform", CurrentDevice.RuntimePlatform);
 
@@ -70,7 +71,7 @@ public class LogSetup
         catch (Exception ex)
         {
             Log.Logger.Debug(ex, "Failed to get version name from version finder, using fallback");
-            return "AssemblyVersionNotFound";
+            return AppConstants.Logging.AssemblyVersionFallback;
         }
     }
 }

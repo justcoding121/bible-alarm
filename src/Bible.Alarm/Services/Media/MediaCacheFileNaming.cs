@@ -45,21 +45,21 @@ internal static class MediaCacheFileNaming
             !string.IsNullOrEmpty(uri.AbsolutePath))
         {
             var path = uri.AbsolutePath;
-            if (path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)) return ".mp4";
+            if (path.EndsWith(AppConstants.Media.MediaVideoFileExtension, StringComparison.OrdinalIgnoreCase)) return AppConstants.Media.MediaVideoFileExtension;
             if (path.EndsWith(AppConstants.Media.MediaFileExtension, StringComparison.OrdinalIgnoreCase)) return AppConstants.Media.MediaFileExtension;
-            if (path.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase)) return ".m4a";
-            if (path.EndsWith(".aac", StringComparison.OrdinalIgnoreCase)) return ".aac";
+            if (path.EndsWith(AppConstants.Media.MediaM4aFileExtension, StringComparison.OrdinalIgnoreCase)) return AppConstants.Media.MediaM4aFileExtension;
+            if (path.EndsWith(AppConstants.Media.MediaAacFileExtension, StringComparison.OrdinalIgnoreCase)) return AppConstants.Media.MediaAacFileExtension;
         }
 
         // Query-string style lookup path (GETPUBMEDIALINKS refetch)
         if (lookUpPath.Contains($"{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp4}", StringComparison.OrdinalIgnoreCase))
-            return ".mp4";
+            return AppConstants.Media.MediaVideoFileExtension;
         if (lookUpPath.Contains($"{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}", StringComparison.OrdinalIgnoreCase))
             return AppConstants.Media.MediaFileExtension;
         if (lookUpPath.Contains($"{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatM4a}", StringComparison.OrdinalIgnoreCase))
-            return ".m4a";
+            return AppConstants.Media.MediaM4aFileExtension;
         if (lookUpPath.Contains($"{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatAac}", StringComparison.OrdinalIgnoreCase))
-            return ".aac";
+            return AppConstants.Media.MediaAacFileExtension;
 
         return AppConstants.Media.MediaFileExtension;
     }

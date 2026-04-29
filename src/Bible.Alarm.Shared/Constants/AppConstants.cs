@@ -428,6 +428,9 @@ public static class AppConstants
         /// Debug environment identifier
         /// </summary>
         public const string DebugEnvironment = "DEBUG";
+
+        /// <summary>Placeholder when assembly informational version cannot be resolved.</summary>
+        public const string AssemblyVersionFallback = "AssemblyVersionNotFound";
     }
 
     /// <summary>
@@ -457,6 +460,15 @@ public static class AppConstants
         /// Media file extension for cached files
         /// </summary>
         public const string MediaFileExtension = ".mp3";
+
+        /// <summary>Video/cache file extension for MP4 streams.</summary>
+        public const string MediaVideoFileExtension = ".mp4";
+
+        /// <summary>M4A audio file extension.</summary>
+        public const string MediaM4aFileExtension = ".m4a";
+
+        /// <summary>AAC audio file extension.</summary>
+        public const string MediaAacFileExtension = ".aac";
 
         /// <summary>JW GETPUB/Mediator JSON files.* stream format key for MP3 (uppercase).</summary>
         public const string MediaStreamFormatMp3 = "MP3";

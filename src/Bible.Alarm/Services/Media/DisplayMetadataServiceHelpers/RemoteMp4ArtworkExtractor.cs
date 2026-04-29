@@ -69,7 +69,7 @@ internal sealed class RemoteMp4ArtworkExtractor
 
         var q = url.AsSpan().IndexOf('?');
         var path = q >= 0 ? url.AsSpan(0, q) : url.AsSpan();
-        return path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase);
+        return path.EndsWith(AppConstants.Media.MediaVideoFileExtension.AsSpan(), StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<MetaData?> ExtractMetadataInternalAsync(string url, CancellationToken cancellationToken)
