@@ -528,6 +528,15 @@ public static class AppConstants
         /// <summary>JW catalog vocal music publication code Sing Joyfully—Convention Songs.</summary>
         public const string MusicPublicationCodeSjjc = "sjjc";
 
+        /// <summary>JW catalog vocal music publication code <c>sjji</c> (flat MP3).</summary>
+        public const string MusicPublicationCodeSjji = "sjji";
+
+        /// <summary>JW catalog vocal music publication code <c>snv</c> (flat MP3).</summary>
+        public const string MusicPublicationCodeSnv = "snv";
+
+        /// <summary>JW catalog vocal music publication code <c>pksjj</c> (flat MP3).</summary>
+        public const string MusicPublicationCodePksjj = "pksjj";
+
         /// <summary>JW catalog publication code for Kingdom Melodies (instrumental).</summary>
         public const string MelodyMusicPublicationCodeIam = "iam";
 
@@ -975,9 +984,9 @@ public static class AppConstants
         {
             MusicPublicationCodeOsg,
             MusicPublicationCodeSjjc,
-            "sjji",
-            "snv",
-            "pksjj"
+            MusicPublicationCodeSjji,
+            MusicPublicationCodeSnv,
+            MusicPublicationCodePksjj
         };
 
         /// <summary>JW GETPUB flat MP3 publication codes (Books category).</summary>
