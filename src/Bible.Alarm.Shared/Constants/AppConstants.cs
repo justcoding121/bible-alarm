@@ -109,6 +109,12 @@ public static class AppConstants
         /// </summary>
         public const string ScheduleDatabaseFileName = "schedule.db";
 
+        /// <summary>Legacy Schedule SQLite filename superseded by <see cref="ScheduleDatabaseFileName"/>.</summary>
+        public const string ScheduleDatabaseLegacyBibleAlarmFileName = "bibleAlarm.db";
+
+        /// <summary>Legacy Schedule SQLite filename superseded by <see cref="ScheduleDatabaseFileName"/>.</summary>
+        public const string ScheduleDatabaseLegacyBibleAlarm2FileName = "bibleAlarm2.db";
+
         /// <summary>
         /// Media index database filename
         /// </summary>
@@ -537,6 +543,15 @@ public static class AppConstants
 
         /// <summary>Sample schedule placeholder name for templates.</summary>
         public const string ScheduleUiSampleNamePlaceholder = "Schedule Name";
+
+        /// <summary>Display when a non–Bible schedule has no user-provided name (<c>Unnamed schedule</c>).</summary>
+        public const string ScheduleUiUnnamedPlaceholder = "Unnamed schedule";
+
+        /// <summary>Short status label for enabled schedules in listing subtitles.</summary>
+        public const string ScheduleUiStatusEnabled = "Enabled";
+
+        /// <summary>Short status label for disabled schedules in listing subtitles.</summary>
+        public const string ScheduleUiStatusDisabled = "Disabled";
 
         /// <summary>Melody disc fallback UI: prefix before volume index (e.g. <c>Volume 1</c>).</summary>
         public const string PublicationUiMelodyVolumePrefix = "Volume ";

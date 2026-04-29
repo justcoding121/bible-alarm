@@ -34,7 +34,7 @@ public static class ScheduleDisplayMetadataHelper
 
             if (string.IsNullOrWhiteSpace(scheduleName))
             {
-                return scheduleItem.MusicEnabled ? sym : "Unnamed schedule";
+                return scheduleItem.MusicEnabled ? sym : AppConstants.Media.ScheduleUiUnnamedPlaceholder;
             }
 
             return scheduleItem.MusicEnabled ? scheduleName + " " + sym : scheduleName;
@@ -81,7 +81,7 @@ public static class ScheduleDisplayMetadataHelper
 
         if (string.IsNullOrWhiteSpace(fallbackScheduleName))
         {
-            return scheduleItem.MusicEnabled ? sym : "Unnamed schedule";
+            return scheduleItem.MusicEnabled ? sym : AppConstants.Media.ScheduleUiUnnamedPlaceholder;
         }
 
         return scheduleItem.MusicEnabled ? fallbackScheduleName + " " + sym : fallbackScheduleName;
@@ -100,7 +100,9 @@ public static class ScheduleDisplayMetadataHelper
 
         if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
+            var statusText = scheduleItem.IsEnabled
+                ? AppConstants.Media.ScheduleUiStatusEnabled
+                : AppConstants.Media.ScheduleUiStatusDisabled;
             var timeText = scheduleItem.TimeText;
             return $"• {statusText} • {timeText}";
         }
@@ -147,7 +149,9 @@ public static class ScheduleDisplayMetadataHelper
             return string.Join(" • ", subtitleParts);
         }
 
-        var fallbackStatusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
+        var fallbackStatusText = scheduleItem.IsEnabled
+            ? AppConstants.Media.ScheduleUiStatusEnabled
+            : AppConstants.Media.ScheduleUiStatusDisabled;
         var fallbackTimeText = scheduleItem.TimeText;
         return $"• {fallbackStatusText} • {fallbackTimeText}";
     }

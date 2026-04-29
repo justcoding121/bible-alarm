@@ -54,11 +54,11 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
 
         // Delete only legacy-named database files (never the current schedule DB file if it exists).
         // Recovery path below may delete the current file when migration fails due to corruption.
-        var oldDbPath1 = System.IO.Path.Combine(dbDirectory, "bibleAlarm.db");
-        await DeleteOldDatabaseFilesAsync(oldDbPath1, "old Schedule database (bibleAlarm.db)");
+        var oldDbPath1 = System.IO.Path.Combine(dbDirectory, AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName);
+        await DeleteOldDatabaseFilesAsync(oldDbPath1, $"old Schedule database ({AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName})");
         
-        var oldDbPath2 = System.IO.Path.Combine(dbDirectory, "bibleAlarm2.db");
-        await DeleteOldDatabaseFilesAsync(oldDbPath2, "old Schedule database (bibleAlarm2.db)");
+        var oldDbPath2 = System.IO.Path.Combine(dbDirectory, AppConstants.Database.ScheduleDatabaseLegacyBibleAlarm2FileName);
+        await DeleteOldDatabaseFilesAsync(oldDbPath2, $"old Schedule database ({AppConstants.Database.ScheduleDatabaseLegacyBibleAlarm2FileName})");
 
         // version.dat files are NOT deleted here — MediaIndexVersionService still uses them as
         // a fallback when Preferences are unavailable (e.g. iOS evicted NSUserDefaults).
