@@ -8,6 +8,8 @@ using BiblePublicationTrackSelectedAction = Bible.Alarm.Stores.Actions.BiblePubl
 using FluxorDispatcher = Fluxor.IDispatcher;
 using MusicTrackSelectedAction = Bible.Alarm.Stores.Actions.Music.TrackSelectedAction;
 
+#pragma warning disable CA1822 // Fluxor [EffectMethod] requires instance methods.
+
 namespace Bible.Alarm.Platforms.iOS.Effects;
 
 /// <summary>
@@ -112,3 +114,5 @@ public class CarPlayScheduleListEffect
         }
     }
 }
+
+#pragma warning restore CA1822

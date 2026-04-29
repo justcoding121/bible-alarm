@@ -199,7 +199,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// <summary>
     /// Creates the schedule list template with all available schedules.
     /// </summary>
-    private CPListTemplate CreateScheduleListTemplate()
+    private static CPListTemplate CreateScheduleListTemplate()
     {
         var schedules = CarPlayScheduleHelper.LoadScheduleStateItemsFromState();
 

@@ -15,7 +15,7 @@ public sealed class PositionManager()
     /// <summary>
     /// Updates position from a playback position changed message.
     /// </summary>
-    public void UpdatePositionFromMessage(
+    public static void UpdatePositionFromMessage(
         PlaybackPositionChangedMessage message,
         TimeSpan currentDuration,
         Func<bool> shouldIgnorePositionUpdate,

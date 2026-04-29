@@ -323,7 +323,7 @@ public sealed class TrackSelectionSyncHandler
         return true;
     }
 
-    private async Task<ScheduleStateItem> CreateUpdatedScheduleFromTrackSelectionAsync(ScheduleStateItem currentSchedule, MusicTrackSelectedAction action, bool languageCodeChanged)
+    private static async Task<ScheduleStateItem> CreateUpdatedScheduleFromTrackSelectionAsync(ScheduleStateItem currentSchedule, MusicTrackSelectedAction action, bool languageCodeChanged)
     {
         var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
         PreserveBiblePublicationProperties(updatedSchedule, currentSchedule);

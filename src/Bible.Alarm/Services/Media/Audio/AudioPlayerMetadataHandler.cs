@@ -117,7 +117,7 @@ public class AudioPlayerMetadataHandler
         }
     }
 
-    private async Task ApplyMetadataToMediaElement(MetaData meta, MediaElement mediaElement)
+    private static async Task ApplyMetadataToMediaElement(MetaData meta, MediaElement mediaElement)
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {

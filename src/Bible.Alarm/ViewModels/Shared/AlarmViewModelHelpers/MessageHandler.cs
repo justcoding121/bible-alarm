@@ -38,7 +38,7 @@ public sealed class MessageHandler
 
         // Update position from message
         // Note: shouldIgnorePositionUpdate check is already done above, so we pass a lambda that always returns false
-        positionManager.UpdatePositionFromMessage(
+        PositionManager.UpdatePositionFromMessage(
             message,
             currentDuration,
             () => false,

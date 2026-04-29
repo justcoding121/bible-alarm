@@ -21,6 +21,7 @@ using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using System.Diagnostics.CodeAnalysis;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Stores.Effects;
@@ -116,6 +117,7 @@ public class ScheduleEffects(
     /// Effect: Extract schedule ID and dispatch success action.
     /// Called when RemoveScheduleAction is dispatched with a DB entity.
     /// </summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Fluxor EffectMethod must remain instance.")]
     [EffectMethod]
     public Task HandleRemoveSchedule(RemoveScheduleAction action, IDispatcher dispatcher)
     {
@@ -331,6 +333,7 @@ public class ScheduleEffects(
     /// Effect: Handle UpdateScheduleSuccessAction - Invalidate cache when a schedule is updated in the database.
     /// This covers track navigation, enable/disable toggle, track changes, and other schedule updates.
     /// </summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Fluxor EffectMethod must remain instance.")]
     [EffectMethod]
     public Task HandleUpdateScheduleSuccess(UpdateScheduleSuccessAction action, IDispatcher dispatcher)
     {
@@ -341,6 +344,7 @@ public class ScheduleEffects(
     /// Effect: Handle RemoveScheduleSuccessAction - Invalidate cache when a schedule is deleted from the database.
     /// Also refreshes last played metadata if deleted schedule was the last played item and refreshes Android Auto.
     /// </summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Fluxor EffectMethod must remain instance.")]
     [EffectMethod]
     public async Task HandleRemoveScheduleSuccess(RemoveScheduleSuccessAction action, IDispatcher dispatcher)
     {
