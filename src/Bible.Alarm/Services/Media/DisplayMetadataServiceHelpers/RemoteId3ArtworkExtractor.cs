@@ -98,7 +98,7 @@ internal sealed class RemoteId3ArtworkExtractor
         return await ParseTagBytesWithTagLibAsync(tagBytes);
     }
 
-    private async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
+    private static async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(UserAgent);

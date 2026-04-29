@@ -56,7 +56,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
 #endif
     private readonly ContainerReadySignaler containerReadySignaler;
     private readonly NumberOfTracksListPopulator listPopulator;
-    private readonly NumberOfTrackStateChangeHandler stateChangeHandler;
     private readonly NumberOfTrackStateChangeOrchestrator stateChangeOrchestrator;
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
@@ -88,7 +87,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
         this.mapper = mapper;
         containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "NumberOfTrack", s => s.ContainerReadiness.NumberOfTrack);
         listPopulator = new NumberOfTracksListPopulator(logger, serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>());
-        stateChangeHandler = new NumberOfTrackStateChangeHandler(logger);
         stateChangeOrchestrator = new NumberOfTrackStateChangeOrchestrator(containerReadySignaler);
 
         state.StateChanged += OnStateChanged;
@@ -265,7 +263,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
 #endif
                 {
                     var categoryBefore = lastCategoryName;
-                    stateChangeHandler.ApplyPropertyChanges(
+                    NumberOfTrackStateChangeHandler.ApplyPropertyChanges(
                         currentSchedule,
                         ref notificationEnabled,
                         ref alwaysPlayFromStart,
@@ -283,7 +281,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
 #endif
                         () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
                         forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
-                        () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1));
+                        () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1),
+                        logger);
 
                     OnPropertyChanged(nameof(NotificationEnabled));
                     OnPropertyChanged(nameof(AlwaysPlayFromStart));

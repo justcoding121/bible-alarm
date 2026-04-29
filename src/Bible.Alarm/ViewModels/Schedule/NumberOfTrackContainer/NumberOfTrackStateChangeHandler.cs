@@ -10,16 +10,9 @@ namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 /// Handles property sync from ApplicationState when schedule changes within the same schedule.
 /// Extracted from NumberOfTrackContainerViewModel.OnStateChanged.
 /// </summary>
-public sealed class NumberOfTrackStateChangeHandler
+public static class NumberOfTrackStateChangeHandler
 {
-    private readonly ILogger logger;
-
-    public NumberOfTrackStateChangeHandler(ILogger logger)
-    {
-        this.logger = logger;
-    }
-
-    public void ApplyPropertyChanges(
+    public static void ApplyPropertyChanges(
         ScheduleStateItem currentSchedule,
         ref bool notificationEnabled,
         ref bool alwaysPlayFromStart,
@@ -29,7 +22,8 @@ public sealed class NumberOfTrackStateChangeHandler
         Func<bool> getIsGranted,
         Action dispatchNotificationEnabledOff,
         Func<int, Task> populateListViewAsync,
-        Action dispatchNumberOfTracksToPlay)
+        Action dispatchNumberOfTracksToPlay,
+        ILogger logger)
     {
         if (!isWaitingForPermissionResponse && notificationEnabled != currentSchedule.NotificationEnabled)
         {
