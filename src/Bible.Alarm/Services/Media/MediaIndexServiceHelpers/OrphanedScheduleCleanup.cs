@@ -12,6 +12,9 @@ namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 /// </summary>
 internal sealed class OrphanedScheduleCleanup(ILogger logger)
 {
+    private const string SqlParamPubCode = "@pubCode";
+    private const string SqlParamLangCode = "@langCode";
+
     private record ScheduleRef(
         int AlarmScheduleId,
         string PublicationCode,
@@ -192,17 +195,17 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
         string langCode)
     {
         using var cmd = mediaConn.CreateCommand();
-        cmd.CommandText = """
+        cmd.CommandText = $"""
             SELECT c.CategoryCode FROM BiblePublications p
             LEFT JOIN Languages l ON p.LanguageId = l.Id
             JOIN BiblePublicationCategories bpc ON p.Id = bpc.BiblePublicationId
             JOIN Categories c ON bpc.CategoryId = c.Id
-            WHERE p.PublicationCode = @pubCode AND (l.LanguageCode = @langCode OR p.LanguageId IS NULL)
+            WHERE p.PublicationCode = {SqlParamPubCode} AND (l.LanguageCode = {SqlParamLangCode} OR p.LanguageId IS NULL)
             ORDER BY c.Id
             LIMIT 1
             """;
-        cmd.Parameters.AddWithValue("@pubCode", pubCode);
-        cmd.Parameters.AddWithValue("@langCode", langCode);
+        cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+        cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
 
         var result = await cmd.ExecuteScalarAsync();
         return result is string s ? s : null;
@@ -246,31 +249,31 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
         if (string.IsNullOrEmpty(sectionCode))
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = """
+            cmd.CommandText = $"""
                 SELECT COUNT(1) FROM BiblePublicationTracks t
                 JOIN BiblePublications p ON t.BiblePublicationId = p.Id
                 LEFT JOIN Languages l ON p.LanguageId = l.Id
-                WHERE p.PublicationCode = @pubCode AND t.BiblePublicationSectionId IS NULL AND t.TrackCode = @trackCode
-                  AND (l.LanguageCode = @langCode OR p.LanguageId IS NULL)
+                WHERE p.PublicationCode = {SqlParamPubCode} AND t.BiblePublicationSectionId IS NULL AND t.TrackCode = @trackCode
+                  AND (l.LanguageCode = {SqlParamLangCode} OR p.LanguageId IS NULL)
                 """;
-            cmd.Parameters.AddWithValue("@pubCode", pubCode);
-            cmd.Parameters.AddWithValue("@langCode", langCode);
+            cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+            cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
             cmd.Parameters.AddWithValue("@trackCode", trackCode);
             return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
         }
 
         using (var cmd = connection.CreateCommand())
         {
-            cmd.CommandText = """
+            cmd.CommandText = $"""
                 SELECT COUNT(1) FROM BiblePublicationTracks t
                 JOIN BiblePublicationSections s ON t.BiblePublicationSectionId = s.Id
                 JOIN BiblePublications p ON s.BiblePublicationId = p.Id
                 LEFT JOIN Languages l ON p.LanguageId = l.Id
-                WHERE p.PublicationCode = @pubCode AND s.SectionCode = @sectionCode AND t.TrackCode = @trackCode
-                  AND (l.LanguageCode = @langCode OR p.LanguageId IS NULL)
+                WHERE p.PublicationCode = {SqlParamPubCode} AND s.SectionCode = @sectionCode AND t.TrackCode = @trackCode
+                  AND (l.LanguageCode = {SqlParamLangCode} OR p.LanguageId IS NULL)
                 """;
-            cmd.Parameters.AddWithValue("@pubCode", pubCode);
-            cmd.Parameters.AddWithValue("@langCode", langCode);
+            cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+            cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
             cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
             cmd.Parameters.AddWithValue("@trackCode", trackCode);
             return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;

@@ -10,6 +10,8 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 /// </summary>
 public static class IosMediaElementHelper
 {
+    private const string HttpsUriSchemePrefix = "https://";
+
     /// <summary>
     /// Processes a URI for iOS MediaElement.
     /// HTTPS URLs (CDN streaming) are passed through unchanged.
@@ -20,7 +22,7 @@ public static class IosMediaElementHelper
         logger.Debug("Original track URI: {Uri}", uri);
 
         // HTTPS URLs are CDN streaming links -- pass through unchanged
-        if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        if (uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
             logger.Debug("HTTPS URL detected, passing through for streaming: {Uri}", uri);
             return uri;

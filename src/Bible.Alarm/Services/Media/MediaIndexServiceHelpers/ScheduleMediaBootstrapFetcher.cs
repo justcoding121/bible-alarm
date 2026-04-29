@@ -23,6 +23,8 @@ internal sealed class ScheduleMediaBootstrapFetcher(
     IServiceScopeFactory scopeFactory)
 {
     private const string SpanishLanguageCode = "S";
+    private const string SqlParamPubCode = "@pubCode";
+    private const string SqlParamLangCode = "@langCode";
 
     internal record ScheduleMediaReference(
         string PublicationCode,
@@ -197,13 +199,13 @@ internal sealed class ScheduleMediaBootstrapFetcher(
         string langCode)
     {
         using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
+        cmd.CommandText = $"""
             SELECT COUNT(1) FROM PublicationLanguages pl
             JOIN Languages l ON pl.LanguageId = l.Id
-            WHERE pl.PublicationCode = @pubCode AND l.LanguageCode = @langCode
+            WHERE pl.PublicationCode = {SqlParamPubCode} AND l.LanguageCode = {SqlParamLangCode}
             """;
-        cmd.Parameters.AddWithValue("@pubCode", pubCode);
-        cmd.Parameters.AddWithValue("@langCode", langCode);
+        cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+        cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
     }
 
@@ -214,14 +216,14 @@ internal sealed class ScheduleMediaBootstrapFetcher(
         string langCode)
     {
         using var cmd = connection.CreateCommand();
-        cmd.CommandText = """
+        cmd.CommandText = $"""
             SELECT COUNT(1) FROM SectionLanguages sl
             JOIN Languages l ON sl.LanguageId = l.Id
-            WHERE sl.PublicationCode = @pubCode AND sl.SectionCode = @sectionCode AND l.LanguageCode = @langCode
+            WHERE sl.PublicationCode = {SqlParamPubCode} AND sl.SectionCode = @sectionCode AND l.LanguageCode = {SqlParamLangCode}
             """;
-        cmd.Parameters.AddWithValue("@pubCode", pubCode);
+        cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
         cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
-        cmd.Parameters.AddWithValue("@langCode", langCode);
+        cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
     }
 
