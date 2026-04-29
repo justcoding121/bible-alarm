@@ -6,6 +6,9 @@ namespace Bible.Alarm.Common;
 /// </summary>
 public static class ThemeColors
 {
+    private const string HexB0B0B0 = "#B0B0B0";
+    private const string Hex404040 = "#404040";
+
     // Background Colors
     public static class Background
     {
@@ -58,7 +61,7 @@ public static class ThemeColors
 
     public static class TextSecondary
     {
-        public static Color Dark => Color.FromArgb("#B0B0B0");
+        public static Color Dark => Color.FromArgb(HexB0B0B0);
         public static Color Light => Color.FromArgb("#6C757D");
 
         public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
@@ -67,7 +70,7 @@ public static class ThemeColors
     public static class DisabledText
     {
         public static Color Dark => Color.FromArgb("#303030");
-        public static Color Light => Color.FromArgb("#B0B0B0");
+        public static Color Light => Color.FromArgb(HexB0B0B0);
 
         public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
     }
@@ -75,7 +78,7 @@ public static class ThemeColors
     // UI Element Colors
     public static class Divider
     {
-        public static Color Dark => Color.FromArgb("#404040");
+        public static Color Dark => Color.FromArgb(Hex404040);
         public static Color Light => Color.FromArgb("#E9ECEF");
 
         public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
@@ -83,7 +86,7 @@ public static class ThemeColors
 
     public static class ProgressBarBackground
     {
-        public static Color Dark => Color.FromArgb("#404040");
+        public static Color Dark => Color.FromArgb(Hex404040);
         public static Color Light => Color.FromArgb("#E9ECEF");
 
         public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;

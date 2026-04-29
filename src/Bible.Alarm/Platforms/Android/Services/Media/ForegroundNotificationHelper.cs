@@ -26,6 +26,7 @@ internal static class ForegroundNotificationHelper
     private const int ForegroundNotificationId = 2; // MediaElement uses 1, so we use 2
     private const string ForegroundChannelId = "foreground_service_channel";
     private const string ForegroundChannelName = "Media Playback";
+    private const string NotificationTitleAppDisplayName = "Bible Alarm";
 
     public static int NotificationId => ForegroundNotificationId;
 
@@ -86,7 +87,7 @@ internal static class ForegroundNotificationHelper
 
         var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
         builder.SetSmallIcon(ResourceConstant.Drawable.ic_launcher_round);
-        builder.SetContentTitle("Bible Alarm");
+        builder.SetContentTitle(NotificationTitleAppDisplayName);
         builder.SetContentText("Loading...");
         builder.SetOngoing(true);
         builder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
@@ -108,7 +109,7 @@ internal static class ForegroundNotificationHelper
 
         var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
         builder.SetSmallIcon(ResourceConstant.Drawable.ic_launcher_round);
-        builder.SetContentTitle("Bible Alarm");
+        builder.SetContentTitle(NotificationTitleAppDisplayName);
         builder.SetContentText("Starting...");
         builder.SetOngoing(true);
         builder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
@@ -147,7 +148,7 @@ internal static class ForegroundNotificationHelper
         {
             // Alarm notification: Show app icon and "preparing" message
             // Alarm automatically starts playback, so we show a preparing state
-            title = "Bible Alarm";
+            title = NotificationTitleAppDisplayName;
             artist = "Preparing playback...";
             artwork = null; // Don't use artwork, use app icon instead
         }
@@ -163,7 +164,7 @@ internal static class ForegroundNotificationHelper
             // Fallback values for early bootstrap scenarios (before metadata is set)
             if (string.IsNullOrEmpty(title))
             {
-                title = "Bible Alarm";
+                title = NotificationTitleAppDisplayName;
             }
             if (string.IsNullOrEmpty(artist))
             {

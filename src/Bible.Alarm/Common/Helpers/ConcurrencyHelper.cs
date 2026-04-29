@@ -8,6 +8,8 @@ namespace Bible.Alarm.Common.Helpers;
 /// </summary>
 public static class ConcurrencyHelper
 {
+    private const string LogMessageSemaphoreReleaseDisposed = "ObjectDisposedException while releasing SemaphoreSlim lock";
+
     /// <summary>
     /// Executes an async action within a SemaphoreSlim lock with a timeout, automatically releasing the lock in a finally block if acquired.
     /// </summary>
@@ -91,7 +93,7 @@ public static class ConcurrencyHelper
             }
             catch (ObjectDisposedException ex)
             {
-                Log.Logger.Debug(ex, "ObjectDisposedException while releasing SemaphoreSlim lock");
+                Log.Logger.Debug(ex, LogMessageSemaphoreReleaseDisposed);
                 onDisposedException?.Invoke(ex);
             }
         }
@@ -116,7 +118,7 @@ public static class ConcurrencyHelper
             }
             catch (ObjectDisposedException ex)
             {
-                Log.Logger.Debug(ex, "ObjectDisposedException while releasing SemaphoreSlim lock");
+                Log.Logger.Debug(ex, LogMessageSemaphoreReleaseDisposed);
                 onDisposedException?.Invoke(ex);
             }
         }
@@ -141,7 +143,7 @@ public static class ConcurrencyHelper
             }
             catch (ObjectDisposedException ex)
             {
-                Log.Logger.Debug(ex, "ObjectDisposedException while releasing SemaphoreSlim lock");
+                Log.Logger.Debug(ex, LogMessageSemaphoreReleaseDisposed);
                 onDisposedException?.Invoke(ex);
             }
         }
@@ -166,7 +168,7 @@ public static class ConcurrencyHelper
             }
             catch (ObjectDisposedException ex)
             {
-                Log.Logger.Debug(ex, "ObjectDisposedException while releasing SemaphoreSlim lock");
+                Log.Logger.Debug(ex, LogMessageSemaphoreReleaseDisposed);
                 onDisposedException?.Invoke(ex);
             }
         }
