@@ -93,14 +93,14 @@ public sealed class MediaIndexVersionService(
 
             // Save to Preferences (new method)
             await preferencesService.SetAsync(AppConstants.GeneralSettingsKeys.MediaIndexVersion, currentVersion);
-            logger.Debug("Saved current version {Version} to Preferences", currentVersion);
+            logger.Debug(AppConstants.Logging.MediaIndexDiagnosticsLog.SavedCurrentVersionToPreferences, currentVersion);
 
             // Also save to version.dat for backward compatibility during transition
             // This ensures older app versions or code paths that still check version.dat will work
             try
             {
                 await storageService.SaveFile(IndexRoot, AppConstants.FilePaths.MediaIndexVersionLegacyFileName, currentVersion);
-                logger.Debug("Saved current version {Version} to {VersionFilePath} for backward compatibility", currentVersion, VersionFilePath);
+                logger.Debug(AppConstants.Logging.MediaIndexDiagnosticsLog.SavedCurrentVersionToVersionFileBackwardCompatibility, currentVersion, VersionFilePath);
             }
             catch (Exception ex)
             {
@@ -126,7 +126,7 @@ public sealed class MediaIndexVersionService(
             if (!preferencesService.ContainsKey(AppConstants.GeneralSettingsKeys.MediaIndexVersion))
             {
                 await preferencesService.SetAsync(AppConstants.GeneralSettingsKeys.MediaIndexVersion, version);
-                logger.Debug("Migrated version {Version} from version.dat to Preferences", version);
+                logger.Debug(AppConstants.Logging.MediaIndexDiagnosticsLog.MigratedVersionFromDatToPreferences, version);
             }
         }
         catch (Exception ex)

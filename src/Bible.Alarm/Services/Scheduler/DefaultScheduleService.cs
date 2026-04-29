@@ -55,7 +55,7 @@ public sealed class DefaultScheduleService(
             if (applicationState.Value.Schedules?.Any(s => s.Id == lastPlayedScheduleId) is true)
             {
                 scheduleId = lastPlayedScheduleId;
-                logger.Debug("GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in state)", scheduleId);
+                logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInState, scheduleId);
             }
             else
             {
@@ -67,11 +67,11 @@ public sealed class DefaultScheduleService(
                     if (await alarmScheduleService.ScheduleExistsAsync(lastPlayedScheduleId, cancellationTokenSource.Token))
                     {
                         scheduleId = lastPlayedScheduleId;
-                        logger.Debug("GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in DB, state not yet loaded)", scheduleId);
+                        logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInDbStateNotLoaded, scheduleId);
                     }
                     else
                     {
-                        logger.Debug("GetNextScheduleTrackMetaDataAsync: Last played schedule {ScheduleId} no longer exists in DB, querying for first schedule", lastPlayedScheduleId);
+                        logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleLastPlayedNoLongerInDbQueryingFirst, lastPlayedScheduleId);
                         var firstSchedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
                             includeMusic: false,
                             includeBiblePublication: false,
@@ -79,7 +79,7 @@ public sealed class DefaultScheduleService(
                         if (firstSchedule != null)
                         {
                             scheduleId = firstSchedule.Id;
-                            logger.Debug("GetNextScheduleTrackMetaDataAsync: Found first schedule {ScheduleId} from database", scheduleId);
+                            logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleFoundFirstScheduleFromDatabase, scheduleId);
                         }
                     }
                 }
@@ -98,7 +98,7 @@ public sealed class DefaultScheduleService(
 
         if (!scheduleId.HasValue || scheduleId.Value <= 0)
         {
-            logger.Warning("GetNextScheduleTrackMetaDataAsync: No schedules available in state; returning fallback metadata");
+            logger.Warning(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleTrackMetaDataNoSchedulesInStateReturningFallback);
             // Return empty values - builders will handle fallbacks
             return new ScheduleTrackMetadata
             {
@@ -121,7 +121,7 @@ public sealed class DefaultScheduleService(
             metadata.Album,
             metadata.ArtworkUrl,
             metadata.ScheduleId > 0 ? metadata.ScheduleId : null);
-        logger.Debug("Saved default schedule metadata to Preferences - Title: {Title}, Artist: {Artist}, ScheduleId: {ScheduleId}",
+        logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.SavedDefaultScheduleMetadataToPreferences,
             metadata.Title, metadata.Artist, metadata.ScheduleId);
 
         return metadata;
@@ -132,7 +132,7 @@ public sealed class DefaultScheduleService(
         var schedules = applicationState.Value.Schedules;
         if (schedules == null || schedules.Count == 0)
         {
-            logger.Warning("GetNextScheduleInRotationMetadataAsync: No schedules in state; returning fallback");
+            logger.Warning(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleInRotationNoSchedulesInStateReturningFallback);
             return new ScheduleTrackMetadata
             {
                 ScheduleId = 0,
@@ -147,7 +147,7 @@ public sealed class DefaultScheduleService(
         var rotatable = schedules.Where(s => !s.BiblePublicationIsMusic).OrderBy(s => s.Id).ToList();
         if (rotatable.Count == 0)
         {
-            logger.Warning("GetNextScheduleInRotationMetadataAsync: No non-Music schedules; returning fallback");
+            logger.Warning(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleInRotationNoNonMusicSchedulesReturningFallback);
             return new ScheduleTrackMetadata
             {
                 ScheduleId = 0,
@@ -174,7 +174,7 @@ public sealed class DefaultScheduleService(
         var scheduleId = rotatable[index].Id;
         var metadata = await GetTrackMetadataForScheduleAsync(scheduleId);
         AndroidAutoRotationHelper.SetLastRotationScheduleId(scheduleId);
-        logger.Debug("GetNextScheduleInRotationMetadataAsync: Rotated to schedule index {Index}, ScheduleId={ScheduleId} (Music schedules skipped)", index, scheduleId);
+        logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleInRotationRotatedToScheduleIndex, index, scheduleId);
         return metadata;
     }
 
@@ -188,7 +188,7 @@ public sealed class DefaultScheduleService(
 
         if (internetConnectivityChecker != null && !await internetConnectivityChecker.IsInternetAvailableAsync())
         {
-            logger.Debug("GetTrackMetadataForScheduleAsync: No internet - returning fallback metadata for schedule {ScheduleId} without network call", scheduleId);
+            logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetTrackMetadataNoInternetReturningFallbackForSchedule, scheduleId);
             return CreateFallbackMetadata(scheduleId, firstPlayItem);
         }
 
@@ -197,7 +197,7 @@ public sealed class DefaultScheduleService(
 
         if (audioPlayerTrack == null)
         {
-            logger.Warning("Failed to prepare first track for schedule {ScheduleId}, using fallback metadata", scheduleId);
+            logger.Warning(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.FailedToPrepareFirstTrackUsingFallbackMetadata, scheduleId);
             return CreateFallbackMetadata(scheduleId, firstPlayItem);
         }
 
@@ -232,7 +232,7 @@ public sealed class DefaultScheduleService(
                 });
                 
                 artworkUrl = artworkPath;
-                logger.Debug("Saved default schedule artwork to {ArtworkPath}, size: {Size} bytes", artworkPath, metadata.ArtworkBytes.Length);
+                logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.SavedDefaultScheduleArtworkToPathAndSize, artworkPath, metadata.ArtworkBytes.Length);
             }
             catch (Exception ex)
             {
@@ -253,11 +253,11 @@ public sealed class DefaultScheduleService(
 #endif
             title = ScheduleDisplayMetadataHelper.BuildScheduleTitle(scheduleItem, musicSymbol);
             artist = ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(scheduleItem, musicSymbol);
-            logger.Debug("Using listing-format metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}",
+            logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.UsingListingFormatMetadataForSchedule,
                 scheduleId, title, artist);
         }
 
-        logger.Debug("Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}, HasArtwork={HasArtwork}",
+        logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.ReturningTrackMetadataForSchedule,
             scheduleId, title, artist, metadata.Album, !string.IsNullOrEmpty(artworkUrl));
 
         return new ScheduleTrackMetadata

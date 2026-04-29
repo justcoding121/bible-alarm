@@ -654,6 +654,48 @@ public static class AppConstants
 
             public const string FailedToCleanupOldDefaultScheduleArtworkFiles =
                 "Failed to cleanup old default schedule artwork files";
+
+            public const string GetNextScheduleUsingLastPlayedVerifiedInState =
+                "GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in state)";
+
+            public const string GetNextScheduleUsingLastPlayedVerifiedInDbStateNotLoaded =
+                "GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in DB, state not yet loaded)";
+
+            public const string GetNextScheduleLastPlayedNoLongerInDbQueryingFirst =
+                "GetNextScheduleTrackMetaDataAsync: Last played schedule {ScheduleId} no longer exists in DB, querying for first schedule";
+
+            public const string GetNextScheduleFoundFirstScheduleFromDatabase =
+                "GetNextScheduleTrackMetaDataAsync: Found first schedule {ScheduleId} from database";
+
+            public const string GetNextScheduleTrackMetaDataNoSchedulesInStateReturningFallback =
+                "GetNextScheduleTrackMetaDataAsync: No schedules available in state; returning fallback metadata";
+
+            public const string SavedDefaultScheduleMetadataToPreferences =
+                "Saved default schedule metadata to Preferences - Title: {Title}, Artist: {Artist}, ScheduleId: {ScheduleId}";
+
+            public const string GetNextScheduleInRotationNoSchedulesInStateReturningFallback =
+                "GetNextScheduleInRotationMetadataAsync: No schedules in state; returning fallback";
+
+            public const string GetNextScheduleInRotationNoNonMusicSchedulesReturningFallback =
+                "GetNextScheduleInRotationMetadataAsync: No non-Music schedules; returning fallback";
+
+            public const string GetNextScheduleInRotationRotatedToScheduleIndex =
+                "GetNextScheduleInRotationMetadataAsync: Rotated to schedule index {Index}, ScheduleId={ScheduleId} (Music schedules skipped)";
+
+            public const string GetTrackMetadataNoInternetReturningFallbackForSchedule =
+                "GetTrackMetadataForScheduleAsync: No internet - returning fallback metadata for schedule {ScheduleId} without network call";
+
+            public const string FailedToPrepareFirstTrackUsingFallbackMetadata =
+                "Failed to prepare first track for schedule {ScheduleId}, using fallback metadata";
+
+            public const string SavedDefaultScheduleArtworkToPathAndSize =
+                "Saved default schedule artwork to {ArtworkPath}, size: {Size} bytes";
+
+            public const string UsingListingFormatMetadataForSchedule =
+                "Using listing-format metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}";
+
+            public const string ReturningTrackMetadataForSchedule =
+                "Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}, HasArtwork={HasArtwork}";
         }
 
         /// <summary>Foreground service notifications (<c>ForegroundNotificationHelper</c>).</summary>
@@ -793,6 +835,15 @@ public static class AppConstants
 
             public const string FailedToMigrateVersionToPreferencesNonCritical =
                 "Failed to migrate version to Preferences (non-critical)";
+
+            public const string SavedCurrentVersionToPreferences =
+                "Saved current version {Version} to Preferences";
+
+            public const string SavedCurrentVersionToVersionFileBackwardCompatibility =
+                "Saved current version {Version} to {VersionFilePath} for backward compatibility";
+
+            public const string MigratedVersionFromDatToPreferences =
+                "Migrated version {Version} from version.dat to Preferences";
         }
 
         /// <summary>Single-track play, resume seek, and seek retry (<c>TrackPlaybackHandler</c>).</summary>
