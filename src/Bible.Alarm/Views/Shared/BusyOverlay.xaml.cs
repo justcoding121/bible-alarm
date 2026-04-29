@@ -1,6 +1,7 @@
 #nullable enable
 using System.Windows.Input;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
@@ -234,7 +235,7 @@ public partial class BusyOverlay : ContentView
             var oldValue = (bool)GetValue(IsVisibleProperty);
             if (oldValue != value)
             {
-                logger.Debug("BusyOverlay.IsVisible: Setting from {OldValue} to {NewValue} (via property setter)", oldValue, value);
+                logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.IsVisibleSetterFromTo, oldValue, value);
                 SetValue(IsVisibleProperty, value);
                 // Note: OnIsVisibleChanged will be called automatically by BindableProperty, which handles:
                 // - opacity/InputTransparent
@@ -268,7 +269,7 @@ public partial class BusyOverlay : ContentView
 
                 if (!token.IsCancellationRequested)
                 {
-                    logger.Warning("BusyOverlay: Hard timeout reached ({TimeoutMs}ms), auto-hiding overlay", timeoutMs);
+                    logger.Warning(AppConstants.Logging.BusyOverlayDiagnosticsLog.HardTimeoutReachedAutoHiding, timeoutMs);
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
                         IsVisible = false;
@@ -319,7 +320,7 @@ public partial class BusyOverlay : ContentView
             overlay.CancelHardTimeout();
             overlay.StopSpinnerAfterDelay();
             overlay.isProcessingVisibilityChange = false;
-            logger.Debug("BusyOverlay.DeferredApplyHide: Applied hide (opacity 0, input transparent)");
+            logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideApplied);
         }
 
         try
@@ -332,28 +333,28 @@ public partial class BusyOverlay : ContentView
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    logger.Warning(ex, "BusyOverlay.DeferredApplyHide: Object disposed, skipping UI update");
+                    logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideObjectDisposedSkippingUpdate);
                     overlay.CancelHardTimeout();
                     overlay.StopSpinnerAfterDelay();
                     overlay.isProcessingVisibilityChange = false;
                 }
                 catch (InvalidOperationException ex)
                 {
-                    logger.Warning(ex, "BusyOverlay.DeferredApplyHide: MAUI InvalidOperationException, skipping UI update");
+                    logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideInvalidOperationSkippingUpdate);
                     overlay.CancelHardTimeout();
                     overlay.StopSpinnerAfterDelay();
                     overlay.isProcessingVisibilityChange = false;
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "BusyOverlay.DeferredApplyHide: Failed to apply hide");
+                    logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideFailedToApplyHide);
                     overlay.isProcessingVisibilityChange = false;
                 }
             });
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "BusyOverlay.DeferredApplyHide: Failed to dispatch, using MainThread");
+            logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideFailedDispatchUsingMainThread);
             try
             {
                 MainThread.BeginInvokeOnMainThread(() =>
@@ -393,10 +394,10 @@ public partial class BusyOverlay : ContentView
             {
                 if (newBoolValue)
                 {
-                    logger.Debug("BusyOverlay.OnIsVisibleChanged: Skipping - already processing visibility change");
+                    logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedSkippingAlreadyProcessing);
                     return;
                 }
-                logger.Debug("BusyOverlay.OnIsVisibleChanged: Deferring hide - already processing visibility change");
+                logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedDeferringHideAlreadyProcessing);
                 DeferredApplyHide(overlay);
                 return;
             }
@@ -406,7 +407,7 @@ public partial class BusyOverlay : ContentView
             var opacity = newBoolValue ? 1.0 : 0.0;
             // When visible, don't allow input through (false), when hidden, allow input through (true)
             var inputTransparent = !newBoolValue;
-            logger.Debug("BusyOverlay.OnIsVisibleChanged: Property changed from {OldValue} to {NewValue} (via binding, opacity will be {Opacity}, inputTransparent will be {InputTransparent})",
+            logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedPropertyChangedBindingOpacity,
                 oldValue, newBoolValue, opacity, inputTransparent);
 
             // Set opacity and InputTransparent directly on both the ContentView itself and the overlay grid
@@ -431,7 +432,8 @@ public partial class BusyOverlay : ContentView
                 {
                     overlay.overlayGrid.Opacity = opacity;
                     overlay.overlayGrid.InputTransparent = inputTransparent;
-                    logger.Debug("BusyOverlay.OnIsVisibleChanged: Set ContentView.InputTransparent to {ContentInputTransparent}, overlayGrid.Opacity to {Opacity}, overlayGrid.InputTransparent to {GridInputTransparent}", inputTransparent, opacity, inputTransparent);
+                    logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedSetContentAndGridInputTransparent,
+                        inputTransparent, opacity, inputTransparent);
                 }
 
                 if (newBoolValue)
@@ -473,14 +475,14 @@ public partial class BusyOverlay : ContentView
                     }
                     catch (ObjectDisposedException ex)
                     {
-                        logger.Warning(ex, "BusyOverlay.OnIsVisibleChanged: Object disposed during visibility apply, skipping UI update");
+                        logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedObjectDisposedDuringVisibilityApply);
                         overlay.CancelHardTimeout();
                         if (!newBoolValue)
                             overlay.StopSpinnerAfterDelay();
                     }
                     catch (InvalidOperationException ex)
                     {
-                        logger.Warning(ex, "BusyOverlay.OnIsVisibleChanged: MAUI InvalidOperationException during visibility apply (view may be detached), skipping UI update");
+                        logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedInvalidOperationDuringVisibilityApply);
                         overlay.CancelHardTimeout();
                         if (!newBoolValue)
                             overlay.StopSpinnerAfterDelay();
@@ -493,7 +495,7 @@ public partial class BusyOverlay : ContentView
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "BusyOverlay.OnIsVisibleChanged: Failed to dispatch UI update, falling back to MainThread");
+                logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedFailedDispatchFallingBackMainThread);
                 try
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
@@ -504,14 +506,14 @@ public partial class BusyOverlay : ContentView
                         }
                         catch (ObjectDisposedException ex2)
                         {
-                            logger.Warning(ex2, "BusyOverlay.OnIsVisibleChanged: Object disposed during visibility apply (MainThread fallback)");
+                            logger.Warning(ex2, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedObjectDisposedDuringVisibilityApplyMainThreadFallback);
                             overlay.CancelHardTimeout();
                             if (!newBoolValue)
                                 overlay.StopSpinnerAfterDelay();
                         }
                         catch (InvalidOperationException ex2)
                         {
-                            logger.Warning(ex2, "BusyOverlay.OnIsVisibleChanged: MAUI InvalidOperationException during visibility apply (MainThread fallback)");
+                            logger.Warning(ex2, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedInvalidOperationDuringVisibilityApplyMainThreadFallback);
                             overlay.CancelHardTimeout();
                             if (!newBoolValue)
                                 overlay.StopSpinnerAfterDelay();
@@ -524,7 +526,7 @@ public partial class BusyOverlay : ContentView
                 }
                 catch (Exception ex2)
                 {
-                    logger.Warning(ex2, "BusyOverlay.OnIsVisibleChanged: Failed to apply UI update on MainThread");
+                    logger.Warning(ex2, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedFailedToApplyOnMainThread);
                     overlay.isProcessingVisibilityChange = false;
                 }
             }
@@ -541,7 +543,7 @@ public partial class BusyOverlay : ContentView
         // This bypasses the binding evaluation delay
         if (busyIndicator != null)
         {
-            logger.Debug("BusyOverlay: Starting spinner immediately");
+            logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.StartingSpinnerImmediately);
             busyIndicator.IsRunning = true;
         }
     }
@@ -556,7 +558,7 @@ public partial class BusyOverlay : ContentView
         
         if (busyIndicator != null)
         {
-            logger.Debug("BusyOverlay: Stopping spinner immediately");
+            logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.StoppingSpinnerImmediately);
             busyIndicator.IsRunning = false;
         }
     }
@@ -587,7 +589,7 @@ public partial class BusyOverlay : ContentView
                     {
                         if (busyIndicator != null)
                         {
-                            logger.Debug("BusyOverlay: Stopping spinner after fade delay (card and spinner hide together)");
+                            logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.StoppingSpinnerAfterFadeDelay);
                             busyIndicator.IsRunning = false;
                         }
                         UpdateIsSpinnerRunning();
@@ -628,7 +630,7 @@ public partial class BusyOverlay : ContentView
         {
             if (IsSpinnerRunning && busyIndicator != null)
             {
-                logger.Debug("BusyOverlay: Loaded and visible, starting spinner immediately");
+                logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.LoadedAndVisibleStartingSpinnerImmediately);
                 busyIndicator.IsRunning = true;
             }
             StartHardTimeout();

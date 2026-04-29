@@ -2366,6 +2366,71 @@ public static class AppConstants
                 "OnAddScheduleButtonClicked: Command cannot execute. IsBootstrapComplete={IsBootstrapComplete}";
         }
 
+        /// <summary>Shared busy overlay visibility, dispatcher, and spinner diagnostics (<c>BusyOverlay</c>).</summary>
+        public static class BusyOverlayDiagnosticsLog
+        {
+            public const string IsVisibleSetterFromTo =
+                "BusyOverlay.IsVisible: Setting from {OldValue} to {NewValue} (via property setter)";
+
+            public const string HardTimeoutReachedAutoHiding =
+                "BusyOverlay: Hard timeout reached ({TimeoutMs}ms), auto-hiding overlay";
+
+            public const string DeferredApplyHideApplied =
+                "BusyOverlay.DeferredApplyHide: Applied hide (opacity 0, input transparent)";
+
+            public const string DeferredApplyHideObjectDisposedSkippingUpdate =
+                "BusyOverlay.DeferredApplyHide: Object disposed, skipping UI update";
+
+            public const string DeferredApplyHideInvalidOperationSkippingUpdate =
+                "BusyOverlay.DeferredApplyHide: MAUI InvalidOperationException, skipping UI update";
+
+            public const string DeferredApplyHideFailedToApplyHide =
+                "BusyOverlay.DeferredApplyHide: Failed to apply hide";
+
+            public const string DeferredApplyHideFailedDispatchUsingMainThread =
+                "BusyOverlay.DeferredApplyHide: Failed to dispatch, using MainThread";
+
+            public const string OnIsVisibleChangedSkippingAlreadyProcessing =
+                "BusyOverlay.OnIsVisibleChanged: Skipping - already processing visibility change";
+
+            public const string OnIsVisibleChangedDeferringHideAlreadyProcessing =
+                "BusyOverlay.OnIsVisibleChanged: Deferring hide - already processing visibility change";
+
+            public const string OnIsVisibleChangedPropertyChangedBindingOpacity =
+                "BusyOverlay.OnIsVisibleChanged: Property changed from {OldValue} to {NewValue} (via binding, opacity will be {Opacity}, inputTransparent will be {InputTransparent})";
+
+            public const string OnIsVisibleChangedSetContentAndGridInputTransparent =
+                "BusyOverlay.OnIsVisibleChanged: Set ContentView.InputTransparent to {ContentInputTransparent}, overlayGrid.Opacity to {Opacity}, overlayGrid.InputTransparent to {GridInputTransparent}";
+
+            public const string OnIsVisibleChangedObjectDisposedDuringVisibilityApply =
+                "BusyOverlay.OnIsVisibleChanged: Object disposed during visibility apply, skipping UI update";
+
+            public const string OnIsVisibleChangedInvalidOperationDuringVisibilityApply =
+                "BusyOverlay.OnIsVisibleChanged: MAUI InvalidOperationException during visibility apply (view may be detached), skipping UI update";
+
+            public const string OnIsVisibleChangedFailedDispatchFallingBackMainThread =
+                "BusyOverlay.OnIsVisibleChanged: Failed to dispatch UI update, falling back to MainThread";
+
+            public const string OnIsVisibleChangedObjectDisposedDuringVisibilityApplyMainThreadFallback =
+                "BusyOverlay.OnIsVisibleChanged: Object disposed during visibility apply (MainThread fallback)";
+
+            public const string OnIsVisibleChangedInvalidOperationDuringVisibilityApplyMainThreadFallback =
+                "BusyOverlay.OnIsVisibleChanged: MAUI InvalidOperationException during visibility apply (MainThread fallback)";
+
+            public const string OnIsVisibleChangedFailedToApplyOnMainThread =
+                "BusyOverlay.OnIsVisibleChanged: Failed to apply UI update on MainThread";
+
+            public const string StartingSpinnerImmediately = "BusyOverlay: Starting spinner immediately";
+
+            public const string StoppingSpinnerImmediately = "BusyOverlay: Stopping spinner immediately";
+
+            public const string StoppingSpinnerAfterFadeDelay =
+                "BusyOverlay: Stopping spinner after fade delay (card and spinner hide together)";
+
+            public const string LoadedAndVisibleStartingSpinnerImmediately =
+                "BusyOverlay: Loaded and visible, starting spinner immediately";
+        }
+
         /// <summary>Schedule page performance and WinUI layout diagnostics.</summary>
         public static class SchedulePageDiagnosticsLog
         {
