@@ -752,6 +752,49 @@ public static class AppConstants
                 "Refetch did not yield a new URL; failing so UI can show error";
         }
 
+        /// <summary>Bundled media index extraction, migration, and version persistence.</summary>
+        public static class MediaIndexDiagnosticsLog
+        {
+            public const string FileOperationFailedRetryingLocked =
+                "File operation failed (likely locked), retrying (attempt {RetryCount}/5) after {DelayMs}ms";
+
+            public const string LockDisposedError =
+                "MediaIndexService: @lock disposed error.";
+
+            public const string OldMediaIndexDataCopyFailed =
+                "Old media index data copy failed (partially or fully)";
+
+            public const string ScheduleMediaBootstrapFetchFailed =
+                "Schedule media bootstrap fetch failed (partially or fully)";
+
+            public const string FailedToCleanupOrphanedSchedules =
+                "Failed to cleanup orphaned schedules";
+
+            public const string BackgroundCopyRemainingMediaDataFailed =
+                "Background copy of remaining media data failed";
+
+            public const string FailedToCleanupOldMediaIndexFiles =
+                "Failed to clean up old media index files";
+
+            public const string ClosedMediaDbContextConnectionAllowDeletion =
+                "Closed MediaDbContext connection to allow database file deletion";
+
+            public const string FailedToCloseMediaDbContextConnectionsGracefully =
+                "Failed to close MediaDbContext connections gracefully, using ClearAllPools() as last resort";
+
+            public const string FailedToReadVersionFromFile =
+                "Failed to read version from {VersionFilePath}";
+
+            public const string FailedToSaveVersionToLegacyFileNonCritical =
+                "Failed to save version to {VersionFilePath} (non-critical, Preferences is primary)";
+
+            public const string FailedToSaveVersionToPreferences =
+                "Failed to save version to Preferences";
+
+            public const string FailedToMigrateVersionToPreferencesNonCritical =
+                "Failed to migrate version to Preferences (non-critical)";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {

@@ -41,7 +41,7 @@ public sealed class MediaIndexService(
             sleepDurationProvider: retryAttempt => TimeSpan.FromMilliseconds(100 * Math.Pow(2, retryAttempt - 1)), // 100ms, 200ms, 400ms, 800ms, 1600ms
             onRetry: (exception, timespan, retryCount, _) =>
             {
-                Log.Logger.Warning(exception, "File operation failed (likely locked), retrying (attempt {RetryCount}/5) after {DelayMs}ms",
+                Log.Logger.Warning(exception, AppConstants.Logging.MediaIndexDiagnosticsLog.FileOperationFailedRetryingLocked,
                     retryCount, timespan.TotalMilliseconds);
             });
 
@@ -67,7 +67,7 @@ public sealed class MediaIndexService(
             }
 
             verified = true;
-        }, ex => logger.Error(ex, "MediaIndexService: @lock disposed error."));
+        }, ex => logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.LockDisposedError));
     }
 
 
@@ -165,7 +165,7 @@ public sealed class MediaIndexService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Old media index data copy failed (partially or fully)");
+            logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.OldMediaIndexDataCopyFailed);
         }
 
         try
@@ -176,7 +176,7 @@ public sealed class MediaIndexService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Schedule media bootstrap fetch failed (partially or fully)");
+            logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.ScheduleMediaBootstrapFetchFailed);
         }
 
         try
@@ -186,7 +186,7 @@ public sealed class MediaIndexService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to cleanup orphaned schedules");
+            logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToCleanupOrphanedSchedules);
         }
 
         _ = Task.Run(async () =>
@@ -198,7 +198,7 @@ public sealed class MediaIndexService(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Background copy of remaining media data failed");
+                logger.Warning(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.BackgroundCopyRemainingMediaDataFailed);
             }
             finally
             {
@@ -228,7 +228,7 @@ public sealed class MediaIndexService(
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to clean up old media index files");
+            logger.Warning(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToCleanupOldMediaIndexFiles);
         }
     }
 
@@ -335,7 +335,7 @@ public sealed class MediaIndexService(
                 if (connection.State != System.Data.ConnectionState.Closed)
                 {
                     connection.Close();
-                    logger.Debug("Closed MediaDbContext connection to allow database file deletion");
+                    logger.Debug(AppConstants.Logging.MediaIndexDiagnosticsLog.ClosedMediaDbContextConnectionAllowDeletion);
                 }
             }
 
@@ -347,7 +347,7 @@ public sealed class MediaIndexService(
         {
             // If we can't close connections gracefully, fall back to clearing all pools as last resort
             // This is a trade-off: we affect ScheduleDbContext, but it's better than failing to delete the file
-            logger.Warning(ex, "Failed to close MediaDbContext connections gracefully, using ClearAllPools() as last resort");
+            logger.Warning(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToCloseMediaDbContextConnectionsGracefully);
             SqliteConnection.ClearAllPools();
         }
     }

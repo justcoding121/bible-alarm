@@ -66,7 +66,7 @@ public sealed class MediaIndexVersionService(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to read version from {VersionFilePath}", VersionFilePath);
+                logger.Warning(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToReadVersionFromFile, VersionFilePath);
             }
         }
 
@@ -105,12 +105,12 @@ public sealed class MediaIndexVersionService(
             catch (Exception ex)
             {
                 // Log but don't fail - Preferences is the primary storage now
-                logger.Warning(ex, "Failed to save version to {VersionFilePath} (non-critical, Preferences is primary)", VersionFilePath);
+                logger.Warning(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToSaveVersionToLegacyFileNonCritical, VersionFilePath);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to save version to Preferences");
+            logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToSaveVersionToPreferences);
             throw;
         }
     }
@@ -132,7 +132,7 @@ public sealed class MediaIndexVersionService(
         catch (Exception ex)
         {
             // Log but don't fail - migration is non-critical
-            logger.Warning(ex, "Failed to migrate version to Preferences (non-critical)");
+            logger.Warning(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToMigrateVersionToPreferencesNonCritical);
         }
     }
 }
