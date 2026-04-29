@@ -483,6 +483,32 @@ public static class AppConstants
             /// <summary>Android manual alarm broadcast playback failure (<c>ShowNotificationAsync</c>).</summary>
             public const string ErrorPlayingAlarmManually = "Error happened when playing alarm manually.";
         }
+
+        /// <summary>Serilog templates when schedule lookup by id fails.</summary>
+        public static class ScheduleLookupDiagnosticsLog
+        {
+            public const string NotFoundStoppingForegroundService =
+                "Schedule {ScheduleId} not found - stopping foreground service";
+
+            public const string NotFoundForDeletion =
+                "Schedule {ScheduleId} not found for deletion";
+
+            public const string LoadExistingScheduleNotFoundInDatabase =
+                "LoadExistingScheduleAsync: Schedule {ScheduleId} not found in database";
+
+            public const string SetScheduleIdNotFoundInState =
+                "SetScheduleId: Schedule {ScheduleId} not found in state";
+        }
+
+        /// <summary>Android exact-alarm / <c>SCHEDULE_EXACT_ALARM</c> scheduling failures.</summary>
+        public static class AndroidExactAlarmSchedulingLog
+        {
+            public const string SecurityExceptionSchedulingAlarmForSchedule =
+                "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.";
+
+            public const string SecurityExceptionUpdatingSchedule =
+                "SecurityException when updating schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>
@@ -527,6 +553,21 @@ public static class AppConstants
 
         public const string MainOtherPlatforms =
             "Notification permission is required for alarms. Please enable notifications.";
+
+        public const string RequestNotificationPermissionButtonLabel = "REQUEST NOTIFICATION PERMISSION";
+
+        public const string OpenAppSettingsButtonLabel = "OPEN APP SETTINGS";
+
+        public const string OpenSettingsButtonLabel = "OPEN SETTINGS";
+
+        public const string InstructionsAndroidAfterAllowDialog =
+            "After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications. If you've previously denied permission, use 'Open App Settings' to enable it in system settings.";
+
+        public const string InstructionsIosAfterAllowDialog =
+            "After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications. If you've previously denied permission, use 'Open Settings' to enable it in system settings.";
+
+        public const string InstructionsOtherPlatformsEnableInSettings =
+            "Please enable notifications in system settings.";
     }
 
     /// <summary>Sample schedule seeding — exception text and substring filters for sample schedule creation.</summary>

@@ -60,7 +60,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         }
         catch (SecurityException ex)
         {
-            logger.Error(ex, "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", schedule.Id);
+            logger.Error(ex, AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionSchedulingAlarmForSchedule, schedule.Id);
 
             // Show user-friendly message
             try

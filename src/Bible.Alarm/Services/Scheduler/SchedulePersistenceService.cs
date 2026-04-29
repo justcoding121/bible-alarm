@@ -1,6 +1,7 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -165,7 +166,7 @@ public sealed class SchedulePersistenceService(
 
             if (scheduleToRemove == null)
             {
-                logger.Warning("Schedule {ScheduleId} not found for deletion", scheduleId);
+                logger.Warning(AppConstants.Logging.ScheduleLookupDiagnosticsLog.NotFoundForDeletion, scheduleId);
                 return;
             }
 

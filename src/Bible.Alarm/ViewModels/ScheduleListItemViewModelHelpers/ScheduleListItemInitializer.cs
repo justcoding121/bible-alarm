@@ -1,5 +1,6 @@
 #nullable enable
 using AutoMapper;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
@@ -48,7 +49,7 @@ public sealed class ScheduleListItemInitializer(
         var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
         if (scheduleStateItem == null)
         {
-            logger.Warning("SetScheduleId: Schedule {ScheduleId} not found in state", scheduleId);
+            logger.Warning(AppConstants.Logging.ScheduleLookupDiagnosticsLog.SetScheduleIdNotFoundInState, scheduleId);
             return (null!, null);
         }
 

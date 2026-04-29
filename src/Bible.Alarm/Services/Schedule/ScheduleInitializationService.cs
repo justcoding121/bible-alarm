@@ -1,6 +1,7 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -86,7 +87,7 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
 
             if (schedule == null)
             {
-                logger.Warning("LoadExistingScheduleAsync: Schedule {ScheduleId} not found in database", scheduleId);
+                logger.Warning(AppConstants.Logging.ScheduleLookupDiagnosticsLog.LoadExistingScheduleNotFoundInDatabase, scheduleId);
                 return null;
             }
 

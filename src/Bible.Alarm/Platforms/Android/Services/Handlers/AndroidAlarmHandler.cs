@@ -28,7 +28,7 @@ public sealed class AndroidAlarmHandler(
 
         if (schedule == null)
         {
-            logger.Warning("Schedule {ScheduleId} not found - stopping foreground service", scheduleId);
+            logger.Warning(AppConstants.Logging.ScheduleLookupDiagnosticsLog.NotFoundStoppingForegroundService, scheduleId);
             Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
             return;
         }

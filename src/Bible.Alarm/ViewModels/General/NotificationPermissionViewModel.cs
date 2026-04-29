@@ -450,18 +450,16 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
     }
 
-    public string RequestButtonText => "REQUEST NOTIFICATION PERMISSION";
+    public string RequestButtonText => AppConstants.NotificationPermissionModalMessages.RequestNotificationPermissionButtonLabel;
 
     public string OpenSettingsButtonText
     {
         get
         {
 #if ANDROID
-            return "OPEN APP SETTINGS";
-#elif IOS
-            return "OPEN SETTINGS";
+            return AppConstants.NotificationPermissionModalMessages.OpenAppSettingsButtonLabel;
 #else
-            return "OPEN SETTINGS";
+            return AppConstants.NotificationPermissionModalMessages.OpenSettingsButtonLabel;
 #endif
         }
     }
@@ -485,11 +483,11 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         get
         {
 #if ANDROID
-            return "After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications. If you've previously denied permission, use 'Open App Settings' to enable it in system settings.";
+            return AppConstants.NotificationPermissionModalMessages.InstructionsAndroidAfterAllowDialog;
 #elif IOS
-            return "After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications. If you've previously denied permission, use 'Open Settings' to enable it in system settings.";
+            return AppConstants.NotificationPermissionModalMessages.InstructionsIosAfterAllowDialog;
 #else
-            return "Please enable notifications in system settings.";
+            return AppConstants.NotificationPermissionModalMessages.InstructionsOtherPlatformsEnableInSettings;
 #endif
         }
     }

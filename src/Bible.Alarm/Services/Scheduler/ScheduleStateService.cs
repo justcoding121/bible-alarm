@@ -257,7 +257,7 @@ public sealed class ScheduleStateService(
 
     private async Task<bool> HandleSecurityExceptionAsync(int scheduleId, Exception ex)
     {
-        logger.Error(ex, "SecurityException when updating schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.", scheduleId);
+        logger.Error(ex, AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionUpdatingSchedule, scheduleId);
 
         if (DeviceInfo.Platform == DevicePlatform.Android)
         {
