@@ -3553,6 +3553,114 @@ public static class AppConstants
             public const string SuppressViewControllerFinalizerErrorNonFatal =
                 "SuppressViewControllerFinalizer: Error (non-fatal)";
         }
+
+        /// <summary>iOS UIView/CALayer finalizer suppression (<c>IOSNativeViewCleanupHelper</c>).</summary>
+        public static class IOSNativeViewCleanupDiagnosticsLog
+        {
+            public const string SubviewsWalkHitDisposedViewNonFatal =
+                "IOSNativeViewCleanupHelper: Subviews walk hit disposed view (non-fatal)";
+
+            public const string GestureRecognizersAccessDisposedNonFatal =
+                "IOSNativeViewCleanupHelper: GestureRecognizers access disposed (non-fatal)";
+
+            public const string LayerAccessDisposedNonFatal =
+                "IOSNativeViewCleanupHelper: Layer access disposed (non-fatal)";
+
+            public const string PropertyFinalizerWalkDisposedNonFatal =
+                "IOSNativeViewCleanupHelper: Property finalizer walk disposed (non-fatal)";
+
+            public const string SublayersWalkDisposedNonFatal =
+                "IOSNativeViewCleanupHelper: Sublayers walk disposed (non-fatal)";
+        }
+
+        /// <summary>WinRT toast notifier creation (<c>WindowsToastNotifierFactory</c>).</summary>
+        public static class WindowsToastNotifierFactoryDiagnosticsLog
+        {
+            public const string UnableToCreateToastNotifierHints =
+                "Unable to create toast notifier. Scheduled notifications will not work. "
+                + "This is common in debug mode or when the app is not properly registered for notifications. "
+                + "Try running the app from an installed package instead of Visual Studio.";
+
+            public const string UnexpectedErrorCreatingToastNotifier =
+                "Unexpected error creating toast notifier. Scheduled notifications will not work.";
+
+            public const string AttemptingToCreateNotifierWithoutParameters =
+                "Attempting to create toast notifier without parameters...";
+
+            public const string SuccessfullyCreatedNotifierWithoutParameters =
+                "Successfully created toast notifier without parameters";
+
+            public const string CreateToastNotifierReturnedNull =
+                "ToastNotificationManager.CreateToastNotifier() returned null";
+
+            public const string FailedWithoutParameters80070490DebugHint =
+                "Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...";
+
+            public const string COMExceptionCreatingNotifierWithoutParametersHResultTryingAumid =
+                "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...";
+
+            public const string ExceptionCreatingNotifierWithoutParametersHResultTryingAumid =
+                "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...";
+
+            public const string FailedToCreateNotifierWithAnyAumidPackage =
+                "Failed to create toast notifier with any AUMID format. Package: {PackageName}, FamilyName: {FamilyName}, Publisher: {Publisher}";
+
+            public const string PackageCurrentUnavailableUnpackagedHint =
+                "Package.Current is not available. This is expected in debug mode or unpackaged WinUI 3 apps. "
+                + "Scheduled notifications require the app to be properly packaged and installed.";
+
+            public const string ExceptionTryingToCreateNotifierWithAumid =
+                "Exception while trying to create toast notifier with AUMID";
+
+            public const string TryingToCreateNotifierWithAumid =
+                "Trying to create toast notifier with AUMID: {AUMID}";
+
+            public const string SuccessfullyCreatedNotifierWithAumid =
+                "Successfully created toast notifier with AUMID: {AUMID}";
+
+            public const string FailedToCreateNotifierWithAumidHResult =
+                "Failed to create toast notifier with AUMID '{AUMID}'. HResult: 0x{HR:X8}";
+        }
+
+        /// <summary>WinUI in-app toast popup/flyout (<c>ToastLifecycleManager</c>, <c>ToastPositionManager</c>, <c>WindowsToastService</c>).</summary>
+        public static class WindowsToastFlyoutDiagnosticsLog
+        {
+            public const string ExceptionClosingExistingPopupBeforeShowingNew =
+                "Exception occurred while closing existing popup before showing new one";
+
+            public const string PopupNotAccessibleDuringCleanup =
+                "Popup not accessible during cleanup (popup may be disposed)";
+
+            public const string ExceptionClearingPopupChild =
+                "Exception occurred while clearing popup child";
+
+            public const string ExceptionClosingPopupInShowFlyoutFinally =
+                "Exception occurred while closing popup in ShowFlyoutAsync finally block";
+
+            public const string WindowContentNotAccessibleWhenSettingUpPopup =
+                "Window content not accessible when setting up popup (window may be disposed)";
+
+            public const string ExceptionUpdatingPopupPositionOnWindowResize =
+                "Exception occurred while updating popup position on window resize";
+
+            public const string WindowContentNotAccessibleDuringCleanupUnsubscribe =
+                "Window content not accessible during cleanup (window may be disposed)";
+
+            public const string ExceptionUnsubscribingFromWindowSizeChanged =
+                "Exception occurred while unsubscribing from window size changed event";
+
+            public const string ExceptionUpdatingPopupPosition =
+                "Exception occurred while updating popup position";
+
+            public const string COMExceptionShowingToastMessage =
+                "COM exception occurred while showing toast message";
+
+            public const string COMExceptionShowingPopupFlyout =
+                "COM exception occurred while showing popup flyout";
+
+            public const string FailedRemovingScheduledNotificationForSchedule =
+                "Failed to remove scheduled notification {NotificationId} for schedule {ScheduleId}";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>

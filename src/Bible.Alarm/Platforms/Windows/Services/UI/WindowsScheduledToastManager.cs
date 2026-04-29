@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Linq;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 using Windows.UI.Notifications;
 
@@ -50,7 +51,7 @@ internal static class WindowsScheduledToastManager
             catch (Exception ex)
             {
                 // Log but continue removing others
-                Log.Warning(ex, "Failed to remove scheduled notification {NotificationId} for schedule {ScheduleId}", toast.Id, scheduleId);
+                Log.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.FailedRemovingScheduledNotificationForSchedule, toast.Id, scheduleId);
             }
         }
 

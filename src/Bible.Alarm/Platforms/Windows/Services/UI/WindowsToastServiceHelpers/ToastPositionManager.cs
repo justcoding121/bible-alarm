@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.UI.ToastLayoutHelpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -42,7 +43,7 @@ internal sealed class ToastPositionManager
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Exception occurred while updating popup position on window resize");
+                    Log.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.ExceptionUpdatingPopupPositionOnWindowResize);
                 }
             };
             windowContent.SizeChanged += sizeChangedHandler;
@@ -62,11 +63,11 @@ internal sealed class ToastPositionManager
             }
             catch (System.Runtime.InteropServices.COMException ex)
             {
-                Log.Debug(ex, "Window content not accessible during cleanup (window may be disposed)");
+                Log.Debug(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.WindowContentNotAccessibleDuringCleanupUnsubscribe);
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Exception occurred while unsubscribing from window size changed event");
+                Log.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.ExceptionUnsubscribingFromWindowSizeChanged);
             }
             finally
             {
@@ -94,7 +95,7 @@ internal sealed class ToastPositionManager
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Exception occurred while updating popup position");
+                    Log.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.ExceptionUpdatingPopupPosition);
                 }
             }
         }

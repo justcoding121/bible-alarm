@@ -1,7 +1,7 @@
 #nullable enable
 
 using System.Runtime.InteropServices;
-using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 using Windows.ApplicationModel;
 using Windows.UI.Notifications;
@@ -26,15 +26,12 @@ internal static class WindowsToastNotifierFactory
                 return notifier;
             }
 
-            Log.Warning(
-                "Unable to create toast notifier. Scheduled notifications will not work. " +
-                "This is common in debug mode or when the app is not properly registered for notifications. " +
-                "Try running the app from an installed package instead of Visual Studio.");
+            Log.Warning(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.UnableToCreateToastNotifierHints);
         }
         catch (Exception ex)
         {
             // Catch any unexpected exceptions during notifier creation
-            Log.Warning(ex, "Unexpected error creating toast notifier. Scheduled notifications will not work.");
+            Log.Warning(ex, AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.UnexpectedErrorCreatingToastNotifier);
         }
 
         return null;
@@ -44,14 +41,14 @@ internal static class WindowsToastNotifierFactory
     {
         try
         {
-            Log.Debug("Attempting to create toast notifier without parameters...");
+            Log.Debug(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.AttemptingToCreateNotifierWithoutParameters);
             var notifier = ToastNotificationManager.CreateToastNotifier();
             if (notifier is not null)
             {
-                Log.Debug("Successfully created toast notifier without parameters");
+                Log.Debug(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.SuccessfullyCreatedNotifierWithoutParameters);
                 return notifier;
             }
-            Log.Warning("ToastNotificationManager.CreateToastNotifier() returned null");
+            Log.Warning(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.CreateToastNotifierReturnedNull);
         }
         catch (COMException ex)
         {
@@ -60,19 +57,19 @@ internal static class WindowsToastNotifierFactory
             if (ex.HResult == unchecked((int)0x80070490))
             {
                 // This is expected and handled gracefully - no need to log as error
-                Log.Debug("Failed to create toast notifier without parameters (0x80070490 - Element not found). This is expected in debug mode. Trying with AUMID...");
+                Log.Debug(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.FailedWithoutParameters80070490DebugHint);
             }
             else
             {
                 // Catch any other COM exceptions
-                Log.Debug(ex, "COMException creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", ex.HResult);
+                Log.Debug(ex, AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.COMExceptionCreatingNotifierWithoutParametersHResultTryingAumid, ex.HResult);
             }
         }
         catch (Exception ex)
         {
             // Catch any other exceptions - safely get HResult if available
             var hResult = ex.HResult;
-            Log.Debug(ex, "Exception creating toast notifier without parameters. HResult: 0x{HR:X8}. Trying with AUMID...", hResult);
+            Log.Debug(ex, AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.ExceptionCreatingNotifierWithoutParametersHResultTryingAumid, hResult);
         }
         return null;
     }
@@ -100,20 +97,16 @@ internal static class WindowsToastNotifierFactory
                 }
             }
 
-            Log.Warning(
-                "Failed to create toast notifier with any AUMID format. " +
-                "Package: {PackageName}, FamilyName: {FamilyName}, Publisher: {Publisher}",
+            Log.Warning(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.FailedToCreateNotifierWithAnyAumidPackage,
                 packageId.Name, packageId.FamilyName, packageId.Publisher);
         }
         catch (InvalidOperationException)
         {
-            Log.Warning(
-                "Package.Current is not available. This is expected in debug mode or unpackaged WinUI 3 apps. " +
-                "Scheduled notifications require the app to be properly packaged and installed.");
+            Log.Warning(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.PackageCurrentUnavailableUnpackagedHint);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Exception while trying to create toast notifier with AUMID");
+            Log.Error(ex, AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.ExceptionTryingToCreateNotifierWithAumid);
         }
         return null;
     }
@@ -122,17 +115,17 @@ internal static class WindowsToastNotifierFactory
     {
         try
         {
-            Log.Debug("Trying to create toast notifier with AUMID: {AUMID}", aumid);
+            Log.Debug(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.TryingToCreateNotifierWithAumid, aumid);
             var notifier = ToastNotificationManager.CreateToastNotifier(aumid);
             if (notifier is not null)
             {
-                Log.Information("Successfully created toast notifier with AUMID: {AUMID}", aumid);
+                Log.Information(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.SuccessfullyCreatedNotifierWithAumid, aumid);
                 return notifier;
             }
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "Failed to create toast notifier with AUMID '{AUMID}'. HResult: 0x{HR:X8}", aumid, ex.HResult);
+            Log.Debug(ex, AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.FailedToCreateNotifierWithAumidHResult, aumid, ex.HResult);
         }
         return null;
     }

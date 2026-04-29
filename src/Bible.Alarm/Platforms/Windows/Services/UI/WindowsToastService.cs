@@ -3,6 +3,7 @@
 using System.Runtime.InteropServices;
 using Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 using Bible.Alarm.Services.UI;
+using Bible.Alarm.Shared.Constants;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Serilog;
@@ -63,7 +64,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
             }
             catch (COMException ex)
             {
-                Log.Warning(ex, "COM exception occurred while showing toast message");
+                Log.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.COMExceptionShowingToastMessage);
             }
             finally
             {
@@ -132,7 +133,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         }
         catch (COMException ex)
         {
-            Log.Warning(ex, "COM exception occurred while showing popup flyout");
+            Log.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.COMExceptionShowingPopupFlyout);
         }
         finally
         {

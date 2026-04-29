@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Serilog;
@@ -22,7 +23,7 @@ internal sealed class ToastLifecycleManager
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Exception occurred while closing existing popup before showing new one");
+                Log.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.ExceptionClosingExistingPopupBeforeShowingNew);
             }
             finally
             {
@@ -44,11 +45,11 @@ internal sealed class ToastLifecycleManager
         }
         catch (System.Runtime.InteropServices.COMException ex)
         {
-            Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
+            Log.Debug(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.PopupNotAccessibleDuringCleanup);
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "Exception occurred while clearing popup child");
+            Log.Debug(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.ExceptionClearingPopupChild);
         }
     }
 
@@ -65,11 +66,11 @@ internal sealed class ToastLifecycleManager
         }
         catch (System.Runtime.InteropServices.COMException ex)
         {
-            Log.Debug(ex, "Popup not accessible during cleanup (popup may be disposed)");
+            Log.Debug(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.PopupNotAccessibleDuringCleanup);
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Exception occurred while closing popup in ShowFlyoutAsync finally block");
+            Log.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.ExceptionClosingPopupInShowFlyoutFinally);
         }
 
         await Task.Delay(200);
@@ -91,7 +92,7 @@ internal sealed class ToastLifecycleManager
         }
         catch (System.Runtime.InteropServices.COMException ex)
         {
-            Log.Debug(ex, "Window content not accessible when setting up popup (window may be disposed)");
+            Log.Debug(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.WindowContentNotAccessibleWhenSettingUpPopup);
         }
 
         return null;

@@ -1,5 +1,6 @@
 #nullable enable
 #if IOS
+using Bible.Alarm.Shared.Constants;
 using CoreAnimation;
 using Foundation;
 using Serilog;
@@ -30,7 +31,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, "IOSNativeViewCleanupHelper: Subviews walk hit disposed view (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.SubviewsWalkHitDisposedViewNonFatal);
         }
 
         try
@@ -46,7 +47,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, "IOSNativeViewCleanupHelper: GestureRecognizers access disposed (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.GestureRecognizersAccessDisposedNonFatal);
         }
 
         try
@@ -58,7 +59,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, "IOSNativeViewCleanupHelper: Layer access disposed (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.LayerAccessDisposedNonFatal);
         }
 
         SuppressViewPropertyFinalizers(view);
@@ -87,7 +88,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, "IOSNativeViewCleanupHelper: Property finalizer walk disposed (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.PropertyFinalizerWalkDisposedNonFatal);
         }
     }
 
@@ -106,7 +107,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, "IOSNativeViewCleanupHelper: Sublayers walk disposed (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.SublayersWalkDisposedNonFatal);
         }
 
         GC.SuppressFinalize(layer);
