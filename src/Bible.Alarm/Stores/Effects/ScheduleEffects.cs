@@ -89,7 +89,7 @@ public class ScheduleEffects(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleViewSchedule (modal counts)");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleViewScheduleModalCounts);
         }
     }
 
@@ -123,24 +123,24 @@ public class ScheduleEffects(
     {
         try
         {
-            Log.Information("ScheduleEffects: HandleRemoveSchedule - ScheduleId: {ScheduleId}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleScheduleId,
                 action.Schedule?.Id);
 
             if (action.Schedule == null)
             {
-                Log.Warning("ScheduleEffects: HandleRemoveSchedule - Schedule is null, skipping");
+                Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleScheduleNullSkipping);
                 return Task.CompletedTask;
             }
 
             // Dispatch success action with schedule ID (reducer will handle this)
             dispatcher.Dispatch(new RemoveScheduleSuccessAction(action.Schedule.Id));
 
-            Log.Information("ScheduleEffects: HandleRemoveSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleDispatchedRemoveScheduleSuccess,
                 action.Schedule.Id);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleRemoveSchedule");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleRemoveSchedule);
         }
 
         return Task.CompletedTask;
@@ -169,13 +169,13 @@ public class ScheduleEffects(
 
             if (action.Schedule == null)
             {
-                Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - Schedule is null, skipping");
+                Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelScheduleNullSkipping);
                 return;
             }
 
             if (!action.ShouldSave)
             {
-                Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - ShouldSave=false, skipping DB update. Only state was updated.");
+                Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelShouldSaveFalseSkippingDb);
                 
                 // Even when not saving, we may need to populate missing display names (e.g., section name from track number)
                 // This is especially important when switching music types where track number is preserved but section name is missing
@@ -186,7 +186,7 @@ public class ScheduleEffects(
                     string.IsNullOrWhiteSpace(action.Schedule.MusicSectionName) &&
                     !string.IsNullOrWhiteSpace(action.Schedule.MusicPublicationCode))
                 {
-                    Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - Populating MusicSectionName from track for Instrumental. PublicationCode={PublicationCode}, TrackCode={TrackCode}",
+                    Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelPopulateMusicSectionNameInstrumental,
                         action.Schedule.MusicPublicationCode, action.Schedule.MusicTrackCode);
                     var sf = ServiceProviderManager.GetService<IServiceScopeFactory>();
                     if (sf != null)
@@ -210,14 +210,14 @@ public class ScheduleEffects(
             var scheduleStateItem = await updateProcessor.MapAndPreserveDisplayNames(action, savedSchedule);
             dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleStateItem));
 
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicLanguageCode={LanguageCode}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelDispatchedUpdateScheduleSuccess,
                 scheduleStateItem.Id, scheduleStateItem.MusicLanguageCode ?? "null");
 
             // Note: Cache invalidation is handled by HandleUpdateScheduleSuccess effect to avoid duplication
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleUpdateScheduleFromViewModel");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleUpdateScheduleFromViewModel);
             if (action.Schedule != null)
             {
                 dispatcher.Dispatch(new UpdateScheduleFailureAction(action.Schedule, ex.Message));
@@ -252,11 +252,11 @@ public class ScheduleEffects(
             var alarmSchedule = mapper.Map<AlarmSchedule>(scheduleCopy);
             await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleCopy, alarmSchedule);
             dispatcher.Dispatch(new UpdateDraftScheduleAction(scheduleCopy));
-            Log.Debug("ScheduleEffects: Populated Bible display names (BiblePublicationIsMusic={IsMusic}) for ScheduleId={ScheduleId}", scheduleCopy.BiblePublicationIsMusic, scheduleCopy.Id);
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.PopulatedBibleDisplayNamesIsMusicForScheduleId, scheduleCopy.BiblePublicationIsMusic, scheduleCopy.Id);
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "ScheduleEffects: Error populating Bible display names after BiblePublicationUpdated");
+            Log.Warning(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.WarningErrorPopulatingBibleDisplayNamesAfterBiblePublicationUpdated);
         }
     }
 
@@ -295,14 +295,14 @@ public class ScheduleEffects(
                 return;
             }
 
-            Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModelPopulateModalCounts - Refreshing modal counts. Reason: BibleUpdated={BibleUpdated}, MusicUpdated={MusicUpdated}, MusicNeedsModalCounts={MusicNeedsModalCounts}",
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateSchedulePopulateModalCountsRefreshing,
                 action.BiblePublicationUpdated, action.MusicUpdated, musicNeedsModalCounts);
 
             await TryDispatchModalCountsUpdateAsync(currentSchedule, dispatcher, reason: "UpdateScheduleFromViewModelAction");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error populating modal counts from UpdateScheduleFromViewModelAction");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorPopulatingModalCountsFromUpdateScheduleFromViewModelAction);
         }
     }
 
@@ -315,15 +315,15 @@ public class ScheduleEffects(
     {
         try
         {
-            Log.Information("ScheduleEffects: HandleDeleteSchedule Effect method called - ScheduleId: {ScheduleId}", action.ScheduleId);
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleEffectMethodCalled, action.ScheduleId);
 
-            Log.Debug("ScheduleEffects: HandleDeleteSchedule - Calling deleteHandler.HandleAsync for ScheduleId: {ScheduleId}", action.ScheduleId);
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleCallingDeleteHandler, action.ScheduleId);
             await deleteHandler.HandleAsync(action, dispatcher);
-            Log.Debug("ScheduleEffects: HandleDeleteSchedule - deleteHandler.HandleAsync completed for ScheduleId: {ScheduleId}", action.ScheduleId);
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleDeleteHandlerCompleted, action.ScheduleId);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: HandleDeleteSchedule - Exception occurred! ScheduleId: {ScheduleId}", action?.ScheduleId ?? -1);
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleExceptionOccurred, action?.ScheduleId ?? -1);
             // Re-throw to ensure Fluxor sees the error
             throw;
         }
@@ -375,14 +375,14 @@ public class ScheduleEffects(
             var alarmSchedule = mapper.Map<AlarmSchedule>(scheduleCopy);
             await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleCopy, alarmSchedule);
             dispatcher.Dispatch(new UpdateDraftScheduleAction(scheduleCopy));
-            Log.Debug("ScheduleEffects: Populated Bible display names after track selection (BiblePublicationIsMusic={IsMusic}, PubCode={PubCode})",
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.PopulatedBibleDisplayNamesAfterTrackSelection,
                 scheduleCopy.BiblePublicationIsMusic, scheduleCopy.BiblePublicationCode);
 
             await TryDispatchModalCountsUpdateAsync(scheduleCopy, dispatcher, reason: "Bible TrackSelectedAction");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleBiblePublicationTrackSelected");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleBiblePublicationTrackSelected);
         }
     }
 
@@ -413,7 +413,7 @@ public class ScheduleEffects(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleMusicSectionSelected (modal counts)");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleMusicSectionSelectedModalCounts);
         }
     }
 
@@ -424,7 +424,7 @@ public class ScheduleEffects(
             var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
             if (scopeFactory == null)
             {
-                Log.Warning("ScheduleEffects: Cannot populate modal counts - IServiceScopeFactory not available. ScheduleId={ScheduleId}", currentSchedule.Id);
+                Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.CannotPopulateModalCountsScopeFactoryUnavailable, currentSchedule.Id);
                 return;
             }
 
@@ -439,7 +439,7 @@ public class ScheduleEffects(
                 return;
             }
 
-            Log.Debug("ScheduleEffects: Updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}, BiblePubCount={BiblePubCount}, BibleSectionCount={BibleSectionCount}, MusicPubCount={MusicPubCount}, MusicSectionCount={MusicSectionCount}",
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdatingModalCounts,
                 reason,
                 currentSchedule.Id,
                 updatedSchedule.BiblePublicationModalItemCount,
@@ -451,7 +451,7 @@ public class ScheduleEffects(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}",
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorUpdatingModalCountsReasonScheduleId,
                 reason, currentSchedule.Id);
         }
     }
@@ -493,7 +493,7 @@ public class ScheduleEffects(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error handling category selection for category={CategoryName}", action.CategoryName);
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorHandlingCategorySelectionForCategory, action.CategoryName);
         }
     }
 
@@ -538,7 +538,7 @@ public class ScheduleEffects(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error handling Bible publication cascade");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorHandlingBiblePublicationCascade);
         }
     }
 
@@ -554,11 +554,11 @@ public class ScheduleEffects(
             // Only trigger if this is a music update
             if (!action.MusicUpdated)
             {
-                Log.Debug("ScheduleEffects: HandleMusicCascade - Skipping, musicUpdated=false, ScheduleId={ScheduleId}", action.Schedule?.Id ?? 0);
+                Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleMusicCascadeSkippingMusicUpdatedFalse, action.Schedule?.Id ?? 0);
                 return;
             }
 
-            Log.Debug("ScheduleEffects: HandleMusicCascade - Triggered, ScheduleId={ScheduleId}, MusicPublicationCode={PublicationCode}",
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleMusicCascadeTriggered,
                 action.Schedule?.Id ?? 0, action.Schedule?.MusicPublicationCode ?? "null");
 
             var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
@@ -579,7 +579,7 @@ public class ScheduleEffects(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error handling Music cascade");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorHandlingMusicCascade);
         }
     }
 

@@ -1405,6 +1405,97 @@ public static class AppConstants
                 "TrackSelectionDataProvider.SetSelectedTrack: Could not find track {TrackCode} in tracks collection";
         }
 
+        /// <summary>Fluxor schedule effects (<c>ScheduleEffects</c>).</summary>
+        public static class ScheduleEffectsDiagnosticsLog
+        {
+            public const string ErrorInHandleViewScheduleModalCounts =
+                "ScheduleEffects: Error in HandleViewSchedule (modal counts)";
+
+            public const string HandleRemoveScheduleScheduleId =
+                "ScheduleEffects: HandleRemoveSchedule - ScheduleId: {ScheduleId}";
+
+            public const string HandleRemoveScheduleScheduleNullSkipping =
+                "ScheduleEffects: HandleRemoveSchedule - Schedule is null, skipping";
+
+            public const string HandleRemoveScheduleDispatchedRemoveScheduleSuccess =
+                "ScheduleEffects: HandleRemoveSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}";
+
+            public const string ErrorInHandleRemoveSchedule =
+                "ScheduleEffects: Error in HandleRemoveSchedule";
+
+            public const string HandleUpdateScheduleFromViewModelScheduleNullSkipping =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Schedule is null, skipping";
+
+            public const string HandleUpdateScheduleFromViewModelShouldSaveFalseSkippingDb =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - ShouldSave=false, skipping DB update. Only state was updated.";
+
+            public const string HandleUpdateScheduleFromViewModelPopulateMusicSectionNameInstrumental =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Populating MusicSectionName from track for Instrumental. PublicationCode={PublicationCode}, TrackCode={TrackCode}";
+
+            public const string HandleUpdateScheduleFromViewModelDispatchedUpdateScheduleSuccess =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicLanguageCode={LanguageCode}";
+
+            public const string ErrorInHandleUpdateScheduleFromViewModel =
+                "ScheduleEffects: Error in HandleUpdateScheduleFromViewModel";
+
+            public const string PopulatedBibleDisplayNamesIsMusicForScheduleId =
+                "ScheduleEffects: Populated Bible display names (BiblePublicationIsMusic={IsMusic}) for ScheduleId={ScheduleId}";
+
+            public const string WarningErrorPopulatingBibleDisplayNamesAfterBiblePublicationUpdated =
+                "ScheduleEffects: Error populating Bible display names after BiblePublicationUpdated";
+
+            public const string HandleUpdateSchedulePopulateModalCountsRefreshing =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModelPopulateModalCounts - Refreshing modal counts. Reason: BibleUpdated={BibleUpdated}, MusicUpdated={MusicUpdated}, MusicNeedsModalCounts={MusicNeedsModalCounts}";
+
+            public const string ErrorPopulatingModalCountsFromUpdateScheduleFromViewModelAction =
+                "ScheduleEffects: Error populating modal counts from UpdateScheduleFromViewModelAction";
+
+            public const string HandleDeleteScheduleEffectMethodCalled =
+                "ScheduleEffects: HandleDeleteSchedule Effect method called - ScheduleId: {ScheduleId}";
+
+            public const string HandleDeleteScheduleCallingDeleteHandler =
+                "ScheduleEffects: HandleDeleteSchedule - Calling deleteHandler.HandleAsync for ScheduleId: {ScheduleId}";
+
+            public const string HandleDeleteScheduleDeleteHandlerCompleted =
+                "ScheduleEffects: HandleDeleteSchedule - deleteHandler.HandleAsync completed for ScheduleId: {ScheduleId}";
+
+            public const string HandleDeleteScheduleExceptionOccurred =
+                "ScheduleEffects: HandleDeleteSchedule - Exception occurred! ScheduleId: {ScheduleId}";
+
+            public const string PopulatedBibleDisplayNamesAfterTrackSelection =
+                "ScheduleEffects: Populated Bible display names after track selection (BiblePublicationIsMusic={IsMusic}, PubCode={PubCode})";
+
+            public const string ErrorInHandleBiblePublicationTrackSelected =
+                "ScheduleEffects: Error in HandleBiblePublicationTrackSelected";
+
+            public const string ErrorInHandleMusicSectionSelectedModalCounts =
+                "ScheduleEffects: Error in HandleMusicSectionSelected (modal counts)";
+
+            public const string CannotPopulateModalCountsScopeFactoryUnavailable =
+                "ScheduleEffects: Cannot populate modal counts - IServiceScopeFactory not available. ScheduleId={ScheduleId}";
+
+            public const string UpdatingModalCounts =
+                "ScheduleEffects: Updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}, BiblePubCount={BiblePubCount}, BibleSectionCount={BibleSectionCount}, MusicPubCount={MusicPubCount}, MusicSectionCount={MusicSectionCount}";
+
+            public const string ErrorUpdatingModalCountsReasonScheduleId =
+                "ScheduleEffects: Error updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}";
+
+            public const string ErrorHandlingCategorySelectionForCategory =
+                "ScheduleEffects: Error handling category selection for category={CategoryName}";
+
+            public const string ErrorHandlingBiblePublicationCascade =
+                "ScheduleEffects: Error handling Bible publication cascade";
+
+            public const string HandleMusicCascadeSkippingMusicUpdatedFalse =
+                "ScheduleEffects: HandleMusicCascade - Skipping, musicUpdated=false, ScheduleId={ScheduleId}";
+
+            public const string HandleMusicCascadeTriggered =
+                "ScheduleEffects: HandleMusicCascade - Triggered, ScheduleId={ScheduleId}, MusicPublicationCode={PublicationCode}";
+
+            public const string ErrorHandlingMusicCascade =
+                "ScheduleEffects: Error handling Music cascade";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {
