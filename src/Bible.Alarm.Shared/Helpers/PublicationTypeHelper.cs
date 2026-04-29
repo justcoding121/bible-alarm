@@ -133,12 +133,8 @@ public static class PublicationTypeHelper
     /// </summary>
     public static bool IsVideo(string? publicationCode)
     {
-        if (string.IsNullOrEmpty(publicationCode))
-        {
-            return false;
-        }
-
-        if (MagazineHelper.IsMagazinePublicationCode(publicationCode))
+        if (string.IsNullOrEmpty(publicationCode)
+            || MagazineHelper.IsMagazinePublicationCode(publicationCode))
         {
             return false;
         }

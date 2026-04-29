@@ -408,22 +408,20 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             // Wait a bit for the visual tree to be ready
             await Task.Delay(100);
 
-            if (CollapsibleContent != null && viewModel != null && Handler != null && propertyChangeHandler != null)
+            var ready = CollapsibleContent != null && viewModel != null && Handler != null && propertyChangeHandler != null;
+            if (ready && propertyChangeHandler!.IsInitialLoad)
             {
-                if (propertyChangeHandler.IsInitialLoad)
-                {
 #if DEBUG
-                    Log.Debug("[MusicSelectionContainer] OnHandlerChanged: Setting initial visibility - MusicEnabled = {MusicEnabled}", viewModel.MusicEnabled);
+                Log.Debug("[MusicSelectionContainer] OnHandlerChanged: Setting initial visibility - MusicEnabled = {MusicEnabled}", viewModel!.MusicEnabled);
 #endif
-                    visibilityManager?.UpdateCollapsibleContentVisibility(viewModel.MusicEnabled, animate: false);
-                }
-                else if (viewModel.MusicEnabled && animationManager != null)
+                visibilityManager?.UpdateCollapsibleContentVisibility(viewModel!.MusicEnabled, animate: false);
+            }
+            else if (ready && viewModel!.MusicEnabled && animationManager != null)
+            {
+                // Trigger a layout update to measure (for non-initial loads)
+                if (CollapsibleContent!.IsVisible && !animationManager.IsAnimating)
                 {
-                    // Trigger a layout update to measure (for non-initial loads)
-                    if (CollapsibleContent.IsVisible && !animationManager.IsAnimating)
-                    {
-                        CollapsibleContent.HeightRequest = -1;
-                    }
+                    CollapsibleContent.HeightRequest = -1;
                 }
             }
         });

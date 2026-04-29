@@ -105,8 +105,7 @@ internal sealed class PublicationEnsurer
                         languageCode, publicationCode);
                     return false;
                 }
-
-                if (publicationLanguage.LanguageId == null)
+                else if (publicationLanguage.LanguageId == null)
                 {
                     logger.Warning("Publication {PublicationCode} doesn't support ad-hoc fetching with language code (has LanguageId = NULL in PublicationLanguages)",
                         publicationCode);
