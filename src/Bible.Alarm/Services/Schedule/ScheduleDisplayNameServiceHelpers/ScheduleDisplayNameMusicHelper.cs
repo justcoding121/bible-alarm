@@ -206,7 +206,7 @@ public sealed class ScheduleDisplayNameMusicHelper
     {
         if (string.IsNullOrWhiteSpace(publicationCode))
             return null;
-        return string.Equals(publicationCode, AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase) ? "Kingdom Melodies" : null;
+        return string.Equals(publicationCode, AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.PublicationDisplayNameKingdomMelodies : null;
     }
 
     /// <summary>

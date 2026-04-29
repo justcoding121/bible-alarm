@@ -540,6 +540,9 @@ public static class AppConstants
         /// <summary>JW catalog publication code for Kingdom Melodies (instrumental).</summary>
         public const string MelodyMusicPublicationCodeIam = "iam";
 
+        /// <summary>English fallback display name for Kingdom Melodies (<see cref="MelodyMusicPublicationCodeIam"/>).</summary>
+        public const string PublicationDisplayNameKingdomMelodies = "Kingdom Melodies";
+
         /// <summary>JW catalog publication code for Apply Yourself to Reading and Teaching—Videos (series).</summary>
         public const string SeriesPublicationCodeThv = "thv";
 

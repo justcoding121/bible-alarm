@@ -89,9 +89,9 @@ internal sealed class MelodyMusicSeeder
                 {
                     // For iam, the disc name might be something like "Kingdom Melodies 1"
                     // Try to extract a better publication name
-                    if (firstDiscName.Contains("Kingdom Melodies", StringComparison.OrdinalIgnoreCase))
+                    if (firstDiscName.Contains(AppConstants.Media.PublicationDisplayNameKingdomMelodies, StringComparison.OrdinalIgnoreCase))
                     {
-                        publicationName = "Kingdom Melodies";
+                        publicationName = AppConstants.Media.PublicationDisplayNameKingdomMelodies;
                     }
                     else
                     {
