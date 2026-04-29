@@ -1179,6 +1179,79 @@ public static class AppConstants
                 "GetPublicationSectionAndTrackForLanguageAsync: Non-sectioned result: trackCode={TrackCode}, trackTitle={TrackTitle}";
         }
 
+        /// <summary>Bible selection list population (<c>BiblePublicationSelectionDataProvider</c>).</summary>
+        public static class BiblePublicationSelectionDataProviderDiagnosticsLog
+        {
+            public const string PopulateLanguagesLoaded =
+                "PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages, currentLanguageCode={CurrentLanguageCode}";
+
+            public const string PopulateLanguagesMarkedSelected =
+                "PopulateLanguagesAsync: Marked language {LanguageCode} ({LanguageName}) as selected";
+
+            public const string PopulatePublicationsCategoryNullOrEmpty =
+                "PopulatePublicationsAsync: Category is null or empty. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}";
+
+            public const string PopulatePublicationsAllExpectedAlreadyCatalogedSkippingFetch =
+                "PopulatePublicationsAsync: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category={CategoryName}, skipping fetch";
+
+            public const string PopulatePublicationsStartingFetchWithRetries =
+                "PopulatePublicationsAsync: Starting fetch with retries for language={LanguageCode}, category={CategoryName}";
+
+            public const string PopulatePublicationsAllExpectedCatalogedOnAttempt =
+                "PopulatePublicationsAsync: All {ExpectedCount} expected publications cataloged on attempt {Attempt} for language={LanguageCode}, category={CategoryName}";
+
+            public const string PopulatePublicationsNoProgressBetweenRetriesStopping =
+                "PopulatePublicationsAsync: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}, category={CategoryName}";
+
+            public const string PopulatePublicationsAttemptStillWaitingForPlaceholders =
+                "PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be cataloged: {Placeholders}";
+
+            public const string PopulatePublicationsAttemptPartialCountWillRetry =
+                "PopulatePublicationsAsync: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} publications found, will retry";
+
+            public const string PopulatePublicationsAttemptNoPublicationsYetWillRetry =
+                "PopulatePublicationsAsync: Attempt {Attempt}: No publications found yet, will retry";
+
+            public const string PopulatePublicationsFetchCancelledAtAttempt =
+                "PopulatePublicationsAsync: Fetch cancelled at attempt {Attempt} for language={LanguageCode}";
+
+            public const string PopulatePublicationsAttemptFailedWillRetry =
+                "PopulatePublicationsAsync: Attempt {Attempt} failed for language={LanguageCode}, will retry";
+
+            public const string PopulatePublicationsTimeoutWaitingForCatalog =
+                "PopulatePublicationsAsync: Timeout after {Attempts} attempts waiting for all publications to be cataloged for language {LanguageCode}. Some may still be placeholders.";
+
+            public const string PopulatePublicationsFinalFetchAttemptFailed =
+                "PopulatePublicationsAsync: Final fetch attempt failed for language={LanguageCode}";
+
+            public const string PopulatePublicationsRemovedUnfetchablePlaceholders =
+                "PopulatePublicationsAsync: Removed {Count} unfetchable placeholder publications: {Codes}";
+
+            public const string PopulatePublicationsSortedFirstThreeCodes =
+                "PopulatePublicationsAsync: Sorted {Count} publications for category={Category}. First 3: {FirstThree}";
+
+            public const string DispatchDefaultPublicationStarting =
+                "DispatchDefaultPublicationAsync: Starting for language={LanguageCode}, publication={PublicationCode}";
+
+            public const string DispatchDefaultPublicationNoSectionsMayBeFlat =
+                "DispatchDefaultPublicationAsync: No sections found for language={LanguageCode}, publication={PublicationCode}. This publication may not have section data.";
+
+            public const string DispatchDefaultPublicationFirstSectionIndexAndName =
+                "DispatchDefaultPublicationAsync: First section index={SectionIndex}, name={SectionName}";
+
+            public const string DispatchDefaultPublicationNoTracksForSection =
+                "DispatchDefaultPublicationAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, sectionIndex={SectionIndex}";
+
+            public const string DispatchDefaultPublicationFirstTrackCodeAndTitle =
+                "DispatchDefaultPublicationAsync: First track trackCode={TrackCode}, title={TrackTitle}";
+
+            public const string DispatchDefaultPublicationDispatchingTrackSelected =
+                "DispatchDefaultPublicationAsync: Dispatching TrackSelectedAction for publication={PublicationCode}, section={SectionCode}/{SectionName}, track={TrackCode}/{TrackTitle}";
+
+            public const string ErrorDispatchingDefaultPublicationSelection =
+                "BibleSelectionDataProvider: Error dispatching default publication selection for language={LanguageCode}, publication={PublicationCode}";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {
