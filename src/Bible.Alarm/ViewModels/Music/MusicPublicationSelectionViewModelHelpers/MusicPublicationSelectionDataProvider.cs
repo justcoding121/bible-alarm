@@ -43,7 +43,7 @@ public sealed class MusicPublicationSelectionDataProvider(
         {
             // Do ALL processing on background thread to avoid blocking spinner animation
             // Use GetBiblePublicationLanguages with category="Music" (same API as Bible publication)
-            var languagesFromDb = await mediaService.GetBiblePublicationLanguages("Music", requireIsMusicForMusicCategory: true);
+            var languagesFromDb = await mediaService.GetBiblePublicationLanguages(MusicPublicationFetchCoordinator.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
             var languageIds = languagesFromDb.Values.Select(l => l.Id).ToList();
@@ -132,7 +132,7 @@ public sealed class MusicPublicationSelectionDataProvider(
                 {
                     publicationsData.Remove(code);
                 }
-                Serilog.Log.Information("PopulateSongPublications: Removed {Count} unfetchable placeholder publications: {Codes}",
+                Serilog.Log.Information(MusicPublicationFetchCoordinator.LogPrefixPopulateSongPublications + "Removed {Count} unfetchable placeholder publications: {Codes}",
                     unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
             }
 

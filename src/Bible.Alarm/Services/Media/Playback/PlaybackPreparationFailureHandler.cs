@@ -25,8 +25,8 @@ public static class PlaybackPreparationFailureHandler
         logger.Information(logMessage, scheduleId);
 
         var errorMessage = isAlarm
-            ? "Download failed, playing default alarm sound"
-            : "Media download failed, check your internet connection";
+            ? PlaybackUserFacingStrings.DownloadFailedPlayingDefaultAlarmSound
+            : PlaybackUserFacingStrings.MediaDownloadFailedCheckInternet;
 
         dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = errorMessage });
         dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));

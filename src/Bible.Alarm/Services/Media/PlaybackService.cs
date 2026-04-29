@@ -772,15 +772,15 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             {
                 if (!stateManager.IsAlarm && stateManager.CurrentScheduleId.HasValue)
                 {
-                    await ShowPlaybackErrorInModalKeepSessionAsync("Playback failed, tap Retry", playDeviceRingtone: false);
+                    await ShowPlaybackErrorInModalKeepSessionAsync(PlaybackUserFacingStrings.PlaybackFailedTapRetry, playDeviceRingtone: false);
                 }
                 else
                 {
                     dispatcher.Dispatch(new PlaybackErrorAction
                     {
-                        ErrorMessage = "Media playback failed. Please try again."
+                        ErrorMessage = PlaybackUserFacingStrings.MediaPlaybackFailedPleaseTryAgainModal
                     });
-                    WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media playback failed, please try again"));
+                    WeakReferenceMessenger.Default.Send(new ShowToastMessage(PlaybackUserFacingStrings.MediaPlaybackFailedPleaseTryAgainToast));
                     await resetExecutor.ResetAsync();
                 }
             }
