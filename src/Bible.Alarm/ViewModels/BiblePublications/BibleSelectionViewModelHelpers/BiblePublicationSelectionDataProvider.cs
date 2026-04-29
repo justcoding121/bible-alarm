@@ -466,7 +466,9 @@ public sealed class BiblePublicationSelectionDataProvider
                 return;
             }
 
-            var firstSectionKvp = sections.First();
+            using var sectionEnumerator = sections.GetEnumerator();
+            _ = sectionEnumerator.MoveNext();
+            var firstSectionKvp = sectionEnumerator.Current;
             var firstSection = firstSectionKvp.Value;
             // Use the dictionary key (parsed from SectionCode)
             var firstSectionIndex = firstSectionKvp.Key;
@@ -481,7 +483,9 @@ public sealed class BiblePublicationSelectionDataProvider
                 return;
             }
 
-            var firstTrack = tracks.Values.First();
+            using var trackEnumerator = tracks.Values.GetEnumerator();
+            _ = trackEnumerator.MoveNext();
+            var firstTrack = trackEnumerator.Current;
             Log.Debug("DispatchDefaultPublicationAsync: First track trackCode={TrackCode}, title={TrackTitle}",
                 firstTrack.TrackCode, firstTrack.Title);
 

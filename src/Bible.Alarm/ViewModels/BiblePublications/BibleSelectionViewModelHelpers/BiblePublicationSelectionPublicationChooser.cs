@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Linq;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -39,7 +38,9 @@ internal sealed class BiblePublicationSelectionPublicationChooser
 
         if (biblePublicationService == null)
         {
-            var firstPub = publications.First();
+            using var pubEnumerator = publications.GetEnumerator();
+            _ = pubEnumerator.MoveNext();
+            var firstPub = pubEnumerator.Current;
             return (firstPub.Key, firstPub.Value, firstPub.Value.LanguageId == null);
         }
 

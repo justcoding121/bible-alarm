@@ -340,7 +340,7 @@ public sealed class DefaultScheduleService(
         var schedules = applicationState.Value.Schedules;
         if (schedules != null && schedules.Count > 0)
         {
-            return schedules.First().Id;
+            return schedules.ElementAt(0).Id;
         }
 
         return null;

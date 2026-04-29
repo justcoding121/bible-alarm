@@ -226,7 +226,9 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         if (sections != null && sections.Count > 0)
         {
             // Sectioned publication - get tracks from first section
-            var firstSection = sections.First();
+            using var sectionEnumerator = sections.GetEnumerator();
+            _ = sectionEnumerator.MoveNext();
+            var firstSection = sectionEnumerator.Current;
             tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, firstSection.Value.SectionCode);
         }
         else

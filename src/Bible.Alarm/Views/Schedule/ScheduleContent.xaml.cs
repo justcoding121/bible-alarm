@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Linq;
 using Bible.Alarm.Common.Helpers;
 
 namespace Bible.Alarm.Views.Schedule;

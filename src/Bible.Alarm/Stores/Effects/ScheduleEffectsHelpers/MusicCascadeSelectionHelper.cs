@@ -22,7 +22,9 @@ internal static class MusicCascadeSelectionHelper
             if (sections != null && sections.Count > 0)
             {
                 // Sectioned publication - get first section and track
-                var firstSection = sections.First();
+                using var sectionEnumerator = sections.GetEnumerator();
+                _ = sectionEnumerator.MoveNext();
+                var firstSection = sectionEnumerator.Current;
                 var sectionCode = firstSection.Value.SectionCode;
                 var sectionName = firstSection.Value.Name;
 
@@ -54,7 +56,9 @@ internal static class MusicCascadeSelectionHelper
         if (sectionsWithLanguage != null && sectionsWithLanguage.Count > 0)
         {
             // Sectioned publication - get first section and track
-            var firstSection = sectionsWithLanguage.First();
+            using var sectionEnumerator = sectionsWithLanguage.GetEnumerator();
+            _ = sectionEnumerator.MoveNext();
+            var firstSection = sectionEnumerator.Current;
             var sectionCode = firstSection.Value.SectionCode;
             var sectionName = firstSection.Value.Name;
 

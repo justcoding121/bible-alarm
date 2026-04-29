@@ -118,7 +118,9 @@ public sealed class CategorySelectionAutoPopulateHandler
                 else if (languages.Count > 0)
                 {
                     // Fallback to first available language if English not found
-                    selectedLanguage = languages.Values.First();
+                    using var langEnumerator = languages.Values.GetEnumerator();
+                    _ = langEnumerator.MoveNext();
+                    selectedLanguage = langEnumerator.Current;
                     logger.Debug("CategorySelectionAutoPopulateHandler: English not found, selected first available language={LanguageCode}",
                         selectedLanguage.LanguageCode);
                 }

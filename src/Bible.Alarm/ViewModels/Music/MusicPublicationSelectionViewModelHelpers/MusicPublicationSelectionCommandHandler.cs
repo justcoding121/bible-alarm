@@ -89,7 +89,9 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     }
 
                     // Prefer preserving current section if same publication; otherwise take first section.
-                    var selectedSection = sections.First();
+                    using var sectionsEnumerator = sections.GetEnumerator();
+                    _ = sectionsEnumerator.MoveNext();
+                    var selectedSection = sectionsEnumerator.Current;
                     var isCurrentMelody = !string.IsNullOrWhiteSpace(currentSchedule?.MusicPublicationCode)
                         && Bible.Alarm.Shared.Helpers.JwSourceHelper.MelodyMusicPublicationCodes.Contains(currentSchedule.MusicPublicationCode);
                     if (isCurrentMelody &&

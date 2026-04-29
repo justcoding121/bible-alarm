@@ -38,7 +38,9 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             SortedDictionary<string, BiblePublicationSection> sections,
             IFetchProgress? progress = null)
     {
-        var firstSectionKvp = sections.First();
+        using var sectionEnumerator = sections.GetEnumerator();
+        _ = sectionEnumerator.MoveNext();
+        var firstSectionKvp = sectionEnumerator.Current;
         var firstSection = firstSectionKvp.Value;
         var firstSectionCode = firstSectionKvp.Key;
         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section codeKey={SectionCodeKey}, sectionCode={SectionCode}, name={SectionName}",
@@ -177,7 +179,9 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             return (null, string.Empty, string.Empty, string.Empty);
         }
 
-        var firstTrack = tracks.Values.First();
+        using var trackEnumerator = tracks.Values.GetEnumerator();
+        _ = trackEnumerator.MoveNext();
+        var firstTrack = trackEnumerator.Current;
         var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First track trackCode={TrackCode}, title={TrackTitle}",
             trackCode, firstTrack.Title);

@@ -110,7 +110,7 @@ public sealed class DatabaseSeedService(
                 return;
             }
 
-            var firstSchedule = schedules.First();
+            var firstSchedule = schedules[0];
 
             // Save basic metadata
             LastPlayedMetadataHelper.SaveLastPlayedMetadata(

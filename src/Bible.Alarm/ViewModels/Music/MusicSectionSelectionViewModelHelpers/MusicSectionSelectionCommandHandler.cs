@@ -79,7 +79,9 @@ internal sealed class MusicSectionSelectionCommandHandler
                 return;
             }
 
-            var firstTrack = tracks.Values.First();
+            using var trackEnumerator = tracks.Values.GetEnumerator();
+            _ = trackEnumerator.MoveNext();
+            var firstTrack = trackEnumerator.Current;
             var trackCodeToSave = firstTrack.TrackCode ?? string.Empty;
 
             // Create MusicStateItem with selected section and track

@@ -39,7 +39,9 @@ public static class BiblePublicationCascadeNoLanguageResolver
 
         if (sections != null && sections.Count > 0)
         {
-            var firstSectionKvp = sections.First();
+            using var sectionEnumerator = sections.GetEnumerator();
+            _ = sectionEnumerator.MoveNext();
+            var firstSectionKvp = sectionEnumerator.Current;
             var firstSection = firstSectionKvp.Value;
             sectionCode = firstSection.SectionCode;
             sectionName = firstSection.Name;

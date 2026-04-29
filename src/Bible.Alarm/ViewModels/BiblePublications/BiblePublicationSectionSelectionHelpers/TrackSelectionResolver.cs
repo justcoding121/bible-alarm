@@ -90,7 +90,9 @@ internal sealed class TrackSelectionResolver
         }
         else
         {
-            var firstTrack = tracks.Values.First();
+            using var trackEnumerator = tracks.Values.GetEnumerator();
+            _ = trackEnumerator.MoveNext();
+            var firstTrack = trackEnumerator.Current;
             trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
             trackTitle = firstTrack.Title;
         }
