@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using Bible.Alarm.Shared.Constants;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -36,20 +37,20 @@ public static class LookUpPathBuilder
 
         // No-language publications (including disc-style sections) always use "E"
         var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleSection;
-        var lc = effectiveIsNoLanguage || string.IsNullOrWhiteSpace(languageCode) ? "E" : languageCode.Trim();
+        var lc = effectiveIsNoLanguage || string.IsNullOrWhiteSpace(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode.Trim();
 
         // Section-level or pub-level only (no track=). Refetch returns all tracks; resolve by trackCode in response.
         if (string.IsNullOrWhiteSpace(sectionCode))
         {
             if (JwSourceHelper.VocalMusicPublicationCodes.Contains(publicationCode))
-                return $"?output=json&pub={publicationCode}&fileformat=MP3&langwritten={lc}";
-            return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={lc}";
+                return $"?output=json&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&langwritten={lc}";
+            return $"?output=json&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&langwritten={lc}";
         }
 
         if (isDiscStyleSection)
-            return $"?output=json&pub={sectionCode}&fileformat=MP3&langwritten={lc}";
+            return $"?output=json&pub={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&langwritten={lc}";
 
-        return $"?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={lc}";
+        return $"?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={lc}";
     }
 
     /// <summary>
@@ -75,9 +76,9 @@ public static class LookUpPathBuilder
             downloadCode.Contains('-') &&
             downloadCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase);
         var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleDownload;
-        var effectiveLanguageCode = effectiveIsNoLanguage ? "E" : languageCode;
-        var langParam = string.IsNullOrEmpty(effectiveLanguageCode) ? "&langwritten=E" : $"&langwritten={effectiveLanguageCode}";
-        return $"?output=json&pub={pubCode}&fileformat=MP3{langParam}";
+        var effectiveLanguageCode = effectiveIsNoLanguage ? AppConstants.Media.DefaultLanguageCode : languageCode;
+        var langParam = string.IsNullOrEmpty(effectiveLanguageCode) ? $"&langwritten={AppConstants.Media.DefaultLanguageCode}" : $"&langwritten={effectiveLanguageCode}";
+        return $"?output=json&pub={pubCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}{langParam}";
     }
 
     /// <summary>

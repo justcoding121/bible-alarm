@@ -52,13 +52,13 @@ internal static class MediaCacheFileNaming
         }
 
         // Query-string style lookup path (GETPUBMEDIALINKS refetch)
-        if (lookUpPath.Contains("fileformat=MP4", StringComparison.OrdinalIgnoreCase))
+        if (lookUpPath.Contains($"fileformat={AppConstants.Media.MediaStreamFormatMp4}", StringComparison.OrdinalIgnoreCase))
             return ".mp4";
-        if (lookUpPath.Contains("fileformat=MP3", StringComparison.OrdinalIgnoreCase))
+        if (lookUpPath.Contains($"fileformat={AppConstants.Media.MediaStreamFormatMp3}", StringComparison.OrdinalIgnoreCase))
             return ".mp3";
-        if (lookUpPath.Contains("fileformat=M4A", StringComparison.OrdinalIgnoreCase))
+        if (lookUpPath.Contains($"fileformat={AppConstants.Media.MediaStreamFormatM4a}", StringComparison.OrdinalIgnoreCase))
             return ".m4a";
-        if (lookUpPath.Contains("fileformat=AAC", StringComparison.OrdinalIgnoreCase))
+        if (lookUpPath.Contains($"fileformat={AppConstants.Media.MediaStreamFormatAac}", StringComparison.OrdinalIgnoreCase))
             return ".aac";
 
         return AppConstants.Media.MediaFileExtension;

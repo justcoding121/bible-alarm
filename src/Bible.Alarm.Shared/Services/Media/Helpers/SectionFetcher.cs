@@ -218,8 +218,8 @@ internal sealed class SectionFetcher
                     
                     if (!string.IsNullOrEmpty(extractedName) && isBible)
                     {
-                        var knownVideoNames = new[] { "The Good News According to Jesus", "Good news according to Jesus" };
-                        var isVideoName = knownVideoNames.Any(vn => extractedName.Contains(vn, StringComparison.OrdinalIgnoreCase));
+                        var isVideoName = AppConstants.Media.ApiMisleadingGoodNewsVideoPublicationNamePhrases.Any(vn =>
+                            extractedName.Contains(vn, StringComparison.OrdinalIgnoreCase));
                         
                         if (isVideoName)
                         {

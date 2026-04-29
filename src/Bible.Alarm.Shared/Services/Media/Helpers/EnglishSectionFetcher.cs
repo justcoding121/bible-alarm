@@ -135,7 +135,7 @@ internal sealed class EnglishSectionFetcher
         }
         else if (publicationWithoutLanguage)
         {
-            queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten=E";
+            queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={AppConstants.Media.DefaultLanguageCode}";
         }
         else
         {
@@ -255,8 +255,8 @@ internal sealed class EnglishSectionFetcher
                 // Validate that the extracted name is not a known video/drama publication name
                 if (!string.IsNullOrEmpty(extractedName) && isBible)
                 {
-                    var knownVideoNames = new[] { "The Good News According to Jesus", "Good news according to Jesus" };
-                    var isVideoName = knownVideoNames.Any(vn => extractedName.Contains(vn, StringComparison.OrdinalIgnoreCase));
+                    var isVideoName = AppConstants.Media.ApiMisleadingGoodNewsVideoPublicationNamePhrases.Any(vn =>
+                        extractedName.Contains(vn, StringComparison.OrdinalIgnoreCase));
                     
                     if (isVideoName)
                     {

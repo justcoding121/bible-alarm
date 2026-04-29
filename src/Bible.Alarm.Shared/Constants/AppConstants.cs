@@ -338,6 +338,12 @@ public static class AppConstants
         /// <summary>Alternate lowercase JSON property sometimes returned for MP4 streams.</summary>
         public const string MediaStreamFormatMp4Lower = "mp4";
 
+        /// <summary>JW GETPUB query/fileformat key for M4A streams.</summary>
+        public const string MediaStreamFormatM4a = "M4A";
+
+        /// <summary>JW GETPUB query/fileformat key for AAC streams.</summary>
+        public const string MediaStreamFormatAac = "AAC";
+
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
         public const string PublicationUiTrackSingular = "Track";
 
@@ -358,6 +364,15 @@ public static class AppConstants
 
         /// <summary>Publication/track picker UI: plural chapters.</summary>
         public const string PublicationUiChapterPlural = "Chapters";
+
+        /// <summary>
+        /// Substrings in JW GETPUB publication names that indicate video drama titles wrongly returned for Bible publications.
+        /// </summary>
+        public static readonly string[] ApiMisleadingGoodNewsVideoPublicationNamePhrases =
+        {
+            "The Good News According to Jesus",
+            "Good news according to Jesus"
+        };
 
         /// <summary>
         /// Bible publication category code for vocal and instrumental music (JW catalog).
