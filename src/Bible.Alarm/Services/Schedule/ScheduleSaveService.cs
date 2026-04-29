@@ -150,7 +150,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         if (model.BiblePublicationSchedule != null && string.IsNullOrWhiteSpace(model.BiblePublicationSchedule.PublicationCode))
         {
             logger.Warning("SaveAsync: BiblePublicationSchedule has empty PublicationCode, defaulting to 'nwt' (2013)");
-            model.BiblePublicationSchedule.PublicationCode = "nwt";
+            model.BiblePublicationSchedule.PublicationCode = AppConstants.Media.BiblePublicationCodeNwt;
         }
     }
 

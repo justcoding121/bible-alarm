@@ -18,8 +18,8 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> BiblePublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "nwt",
-        "bi12"
+        AppConstants.Media.BiblePublicationCodeNwt,
+        AppConstants.Media.BiblePublicationCodeBi12
     };
 
     /// <summary>
@@ -39,7 +39,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> MelodyMusicPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "iam"
+        AppConstants.Media.MelodyMusicPublicationCodeIam
     };
 
     /// <summary>
@@ -388,7 +388,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> SeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "thv",
+        AppConstants.Media.SeriesPublicationCodeThv,
         AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
         AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs,
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,

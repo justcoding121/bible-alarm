@@ -50,7 +50,7 @@ internal sealed class DefaultMusicPopulator
             }
 
             // Get all melody music publications; prefer "iam" (Kingdom Melodies) as default, else first available
-            const string PreferredMelodyPublicationCode = "iam";
+            const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
             var melodyReleases = await melodyMusicService.GetAllAsync();
             if (melodyReleases == null || melodyReleases.Count == 0)
             {

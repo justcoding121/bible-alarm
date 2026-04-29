@@ -1,6 +1,7 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -22,7 +23,7 @@ namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
 /// </summary>
 public sealed class MusicStateChangeHandler
 {
-    private const string PreferredMelodyPublicationCode = "iam";
+    private const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
 
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;

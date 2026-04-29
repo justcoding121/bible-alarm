@@ -40,7 +40,7 @@ public static class PublicationTypeHelper
     /// </summary>
     private static readonly HashSet<string> SeriesVideoPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "thv" // Apply Yourself to Reading and Teaching—Videos
+        AppConstants.Media.SeriesPublicationCodeThv // Apply Yourself to Reading and Teaching—Videos
     };
 
     /// <summary>
@@ -53,7 +53,7 @@ public static class PublicationTypeHelper
         // Default empty to Bible structure; magazines and Kingdom Melodies ("iam") use sections.
         if (string.IsNullOrEmpty(publicationCode)
             || MagazineHelper.IsMagazinePublicationCode(publicationCode)
-            || publicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
+            || publicationCode.Equals(AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

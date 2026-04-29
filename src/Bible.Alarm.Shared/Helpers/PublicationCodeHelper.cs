@@ -18,12 +18,17 @@ public static class PublicationCodeHelper
     /// <summary>
     /// Bible category: preferred publication codes in priority order (lower index = higher priority).
     /// </summary>
-    private static readonly string[] PriorityPublicationCodes = ["nwt", "bi12"];
+    private static readonly string[] PriorityPublicationCodes =
+    [
+        AppConstants.Media.BiblePublicationCodeNwt,
+        AppConstants.Media.BiblePublicationCodeBi12
+    ];
 
     /// <summary>
     /// Music category: preferred publication code first (osg = Original Songs).
     /// </summary>
-    private static readonly string[] MusicPriorityPublicationCodes = ["osg"];
+    private static readonly string[] MusicPriorityPublicationCodes =
+        [AppConstants.Media.MusicPublicationCodeOsg];
 
     /// <summary>
     /// Comparer for Bible publication codes (nwt first, then bi12). Use for Bible category only.

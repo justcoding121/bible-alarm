@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -183,7 +184,7 @@ public sealed class AlarmSchedule : IComparable
         // Optimize: Load publications with sections in one call to get both publication info and sections
         // For new schedules, prefer "nwt" with English "E", then fallback to first available language with a sectioned publication
         const string DefaultLanguageCode = "E";
-        const string PreferredPublicationCode = "nwt";
+        const string PreferredPublicationCode = AppConstants.Media.BiblePublicationCodeNwt;
         string? bibleLanguageCode = null;
         string? biblePublicationCode = null;
         BiblePublication? selectedBible = null;
@@ -287,7 +288,7 @@ public sealed class AlarmSchedule : IComparable
         string? melodyPublicationCode = null;
 
         // Fast path: prefer a known sectioned melody publication if present.
-        const string PreferredMelodyPublicationCode = "iam";
+        const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
         if (melodyReleases.ContainsKey(PreferredMelodyPublicationCode))
         {
             melodyPublicationCode = PreferredMelodyPublicationCode;

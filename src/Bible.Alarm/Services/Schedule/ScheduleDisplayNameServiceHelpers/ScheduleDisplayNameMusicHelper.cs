@@ -206,7 +206,7 @@ public sealed class ScheduleDisplayNameMusicHelper
     {
         if (string.IsNullOrWhiteSpace(publicationCode))
             return null;
-        return string.Equals(publicationCode, "iam", StringComparison.OrdinalIgnoreCase) ? "Kingdom Melodies" : null;
+        return string.Equals(publicationCode, AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase) ? "Kingdom Melodies" : null;
     }
 
     /// <summary>
@@ -216,7 +216,7 @@ public sealed class ScheduleDisplayNameMusicHelper
     {
         if (string.IsNullOrWhiteSpace(publicationCode) || string.IsNullOrWhiteSpace(sectionCode))
             return null;
-        if (!string.Equals(publicationCode, "iam", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(publicationCode, AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase))
             return null;
         if (sectionCode.Length > 4 && sectionCode.StartsWith("iam-", StringComparison.OrdinalIgnoreCase) &&
             int.TryParse(sectionCode.AsSpan(4), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var vol))

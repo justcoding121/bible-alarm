@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -111,7 +112,7 @@ public class MusicEnabledHandler
 
                         var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
 
-                        const string PreferredMelodyPublicationCode = "iam";
+                        const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
                         var melodyReleases = await melodyMusicService.GetAllAsync();
                         if (melodyReleases == null || melodyReleases.Count == 0)
                         {

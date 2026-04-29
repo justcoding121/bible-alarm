@@ -331,10 +331,25 @@ public static class AppConstants
         /// </summary>
         public const string BiblePublicationCategoryMusic = "Music";
 
+        /// <summary>JW catalog publication code for Original Songs (vocal).</summary>
+        public const string MusicPublicationCodeOsg = "osg";
+
+        /// <summary>JW catalog publication code for Kingdom Melodies (instrumental).</summary>
+        public const string MelodyMusicPublicationCodeIam = "iam";
+
+        /// <summary>JW catalog publication code for Apply Yourself to Reading and Teaching—Videos (series).</summary>
+        public const string SeriesPublicationCodeThv = "thv";
+
         /// <summary>
         /// Bible publication category code for scripture (JW catalog).
         /// </summary>
         public const string BiblePublicationCategoryBible = "Bible";
+
+        /// <summary>JW catalog publication code for New World Translation (study edition).</summary>
+        public const string BiblePublicationCodeNwt = "nwt";
+
+        /// <summary>JW catalog publication code for New World Translation (reference edition).</summary>
+        public const string BiblePublicationCodeBi12 = "bi12";
 
         /// <summary>
         /// Bible publication category code for audio/video dramas (JW catalog).
