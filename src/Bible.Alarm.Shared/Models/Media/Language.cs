@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media;
@@ -24,7 +25,7 @@ public sealed class Language : IComparable
     /// </summary>
     [Required]
     [MaxLength(3)]
-    public string Direction { get; set; } = "ltr";
+    public string Direction { get; set; } = AppConstants.Media.TextDirectionLeftToRight;
 
     /// <summary>
     /// Localized names per display language code (e.g. "E" for English).
