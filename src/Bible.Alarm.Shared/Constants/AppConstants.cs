@@ -362,6 +362,36 @@ public static class AppConstants
         public const string BiblePublicationCodeDramasGoodNews = "DramasGoodNews";
 
         /// <summary>
+        /// Mediator publication code: VOD Bible Times videos.
+        /// </summary>
+        public const string BiblePublicationCodeVODMoviesBibleTimes = "VODMoviesBibleTimes";
+
+        /// <summary>
+        /// Mediator publication code: VOD Modern-Day videos.
+        /// </summary>
+        public const string BiblePublicationCodeVODMoviesModernDay = "VODMoviesModernDay";
+
+        /// <summary>
+        /// Mediator publication code: VOD Animated videos.
+        /// </summary>
+        public const string BiblePublicationCodeVODMoviesAnimated = "VODMoviesAnimated";
+
+        /// <summary>
+        /// Mediator publication code: VOD Extras videos.
+        /// </summary>
+        public const string BiblePublicationCodeVODMoviesExtras = "VODMoviesExtras";
+
+        /// <summary>
+        /// Mediator publication code: Dig for Treasures series.
+        /// </summary>
+        public const string BiblePublicationCodeSeriesDigForTreasures = "SeriesDigForTreasures";
+
+        /// <summary>
+        /// Mediator publication code: Become Jehovah's Friend lessons series.
+        /// </summary>
+        public const string BiblePublicationCodeSeriesBJFLessons = "SeriesBJFLessons";
+
+        /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
         public const string TextDirectionLeftToRight = "ltr";

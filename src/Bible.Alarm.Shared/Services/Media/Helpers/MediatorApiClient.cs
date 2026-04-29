@@ -147,9 +147,14 @@ internal sealed class MediatorApiClient
         "2014Convention", "2015Convention", "2016Convention", "2017Convention", "2018Convention",
         "2019Convention", "2020Convention", "2021Convention", "2022Convention", "2023Convention", "2024Convention", "2025Convention",
         "ChildrenMovies", "ChildrenSongs", "FamilyMovies", "FamilyWorship", "TeenMovies", "TeenSocialLife", "TeenGoals", "TeenSpiritualGrowth", "TeenWhatPeersSay",
-        "VODMoviesAnimated", "VODMoviesBibleTimes", "VODMoviesModernDay", "VODMoviesExtras",
+        AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
+        AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+        AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
+        AppConstants.Media.BiblePublicationCodeVODMoviesExtras,
         AppConstants.Media.BiblePublicationCodeDramasGoodNews,
-        "SeriesWhatPeersSay", "SeriesDigForTreasures", "SeriesBJFLessons"
+        "SeriesWhatPeersSay",
+        AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
+        AppConstants.Media.BiblePublicationCodeSeriesBJFLessons
     };
 
     /// <summary>

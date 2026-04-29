@@ -37,12 +37,12 @@ internal sealed class VideoLocalizedNameFetcher
         string? categoryKey = normalizedPublicationCode.ToLowerInvariant() switch
         {
             "dramasgoodnews" => AppConstants.Media.BiblePublicationCodeDramasGoodNews,
-            "vodmoviesbibletimes" => "VODMoviesBibleTimes",
-            "vodmoviesmodernday" => "VODMoviesModernDay",
-            "vodmoviesanimated" => "VODMoviesAnimated",
-            "vodmoviesextras" => "VODMoviesExtras",
-            "seriesdigfortreasures" => "SeriesDigForTreasures",
-            "seriesbjflessons" => "SeriesBJFLessons",
+            "vodmoviesbibletimes" => AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+            "vodmoviesmodernday" => AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
+            "vodmoviesanimated" => AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
+            "vodmoviesextras" => AppConstants.Media.BiblePublicationCodeVODMoviesExtras,
+            "seriesdigfortreasures" => AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
+            "seriesbjflessons" => AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
             _ => null
         };
 

@@ -20,19 +20,19 @@ public static class PublicationTypeHelper
     {
         AppConstants.Media.BiblePublicationCategoryDramas,
         AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
-        "VODMoviesBibleTimes",
-        "VODMoviesModernDay",
-        "VODMoviesAnimated",
-        "VODMoviesExtras"
+        AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+        AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
+        AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
+        AppConstants.Media.BiblePublicationCodeVODMoviesExtras
     };
 
     private static readonly HashSet<string> VideoPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.BiblePublicationCodeDramasGoodNews, // Good News According to Jesus (video, Mediator API)
-        "VODMoviesBibleTimes", // Bible Times (video, Mediator API)
-        "VODMoviesModernDay", // Modern-Day (video, Mediator API)
-        "VODMoviesAnimated", // Animated (video, Mediator API)
-        "VODMoviesExtras" // Extras (video, Mediator API)
+        AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes, // Bible Times (video, Mediator API)
+        AppConstants.Media.BiblePublicationCodeVODMoviesModernDay, // Modern-Day (video, Mediator API)
+        AppConstants.Media.BiblePublicationCodeVODMoviesAnimated, // Animated (video, Mediator API)
+        AppConstants.Media.BiblePublicationCodeVODMoviesExtras // Extras (video, Mediator API)
     };
 
     /// <summary>

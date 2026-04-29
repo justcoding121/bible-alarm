@@ -94,10 +94,10 @@ public static class JwSourceHelper
     public static HashSet<string> VideoPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.BiblePublicationCodeDramasGoodNews,
-        "VODMoviesBibleTimes",
-        "VODMoviesModernDay",
-        "VODMoviesAnimated",
-        "VODMoviesExtras"
+        AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+        AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
+        AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
+        AppConstants.Media.BiblePublicationCodeVODMoviesExtras
     };
 
     /// <summary>
@@ -108,10 +108,10 @@ public static class JwSourceHelper
         AppConstants.Media.BiblePublicationCategoryDramas,
         AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
         AppConstants.Media.BiblePublicationCodeDramasGoodNews,
-        "VODMoviesBibleTimes",
-        "VODMoviesModernDay",
-        "VODMoviesAnimated",
-        "VODMoviesExtras"
+        AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+        AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
+        AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
+        AppConstants.Media.BiblePublicationCodeVODMoviesExtras
     };
 
     /// <summary>
@@ -123,12 +123,12 @@ public static class JwSourceHelper
         AppConstants.Media.BiblePublicationCategoryDramas,
         AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
         AppConstants.Media.BiblePublicationCodeDramasGoodNews,
-        "VODMoviesBibleTimes",
-        "VODMoviesModernDay",
-        "VODMoviesAnimated",
-        "VODMoviesExtras",
-        "SeriesDigForTreasures",
-        "SeriesBJFLessons",
+        AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+        AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
+        AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
+        AppConstants.Media.BiblePublicationCodeVODMoviesExtras,
+        AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
+        AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "StudioMonthlyPrograms",
         "StudioTalks",
         "StudioNewsReports",
@@ -307,7 +307,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> ChildrenPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "SeriesBJFLessons",
+        AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "BJF",
         "ChildrenSongs",
         "ChildrenMovies"
@@ -318,7 +318,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> ChildrenMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "SeriesBJFLessons",
+        AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "BJF",
         "ChildrenSongs",
         "ChildrenMovies"
@@ -389,9 +389,9 @@ public static class JwSourceHelper
     public static HashSet<string> SeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         "thv",
-        "SeriesDigForTreasures",
+        AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
         "SeriesBJFSongs",
-        "SeriesBJFLessons",
+        AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "SeriesBibleTeachings",
         "SeriesHappyMarriage",
         "SeriesImitateFaith",
@@ -422,9 +422,9 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> SeriesMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "SeriesDigForTreasures",
+        AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
         "SeriesBJFSongs",
-        "SeriesBJFLessons",
+        AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "SeriesBibleTeachings",
         "SeriesHappyMarriage",
         "SeriesImitateFaith",
