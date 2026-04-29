@@ -57,7 +57,7 @@ public sealed class ScheduleDisplayNameMusicHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating MusicLanguageName for melody");
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicLanguageNameForMelody);
                 scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? AppConstants.Media.DefaultLanguageDisplayNameEnglish : music.LanguageCode;
                 scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
@@ -80,7 +80,7 @@ public sealed class ScheduleDisplayNameMusicHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating MusicLanguageName");
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicLanguageName);
                 scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
@@ -114,7 +114,7 @@ public sealed class ScheduleDisplayNameMusicHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating MusicPublicationName");
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicPublicationName);
                 if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
                     scheduleStateItem.MusicPublicationName = JwSourceHelper.GetPublicationDisplayNameFallback(music.PublicationCode);
             }
@@ -153,7 +153,7 @@ public sealed class ScheduleDisplayNameMusicHelper
                     }
                     else
                     {
-                        logger.Warning("Music section name not found for publication {PublicationCode}, section {SectionCode}", music.PublicationCode, music.SectionCode);
+                        logger.Warning(AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.MusicSectionNameNotFoundForPublicationSection, music.PublicationCode, music.SectionCode);
                         if (isMelodyMusic)
                             scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
                     }
@@ -161,7 +161,7 @@ public sealed class ScheduleDisplayNameMusicHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating MusicSectionName for publication {PublicationCode}, section {SectionCode}", music.PublicationCode, music.SectionCode);
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicSectionNameForPublicationSection, music.PublicationCode, music.SectionCode);
                 if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicSectionName))
                     scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
             }
@@ -193,7 +193,7 @@ public sealed class ScheduleDisplayNameMusicHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating MusicTrackName");
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicTrackName);
             }
         }
     }

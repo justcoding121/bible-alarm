@@ -59,7 +59,7 @@ internal static class ForegroundNotificationHelper
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error creating notification channel (may already exist)");
+            logger.Warning(ex, AppConstants.Logging.AndroidForegroundNotificationDiagnosticsLog.ErrorCreatingNotificationChannelMayAlreadyExist);
         }
     }
 
@@ -81,7 +81,7 @@ internal static class ForegroundNotificationHelper
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "CreateFallbackNotification: channel creation failed");
+            logger.Warning(ex, AppConstants.Logging.AndroidForegroundNotificationDiagnosticsLog.CreateFallbackNotificationChannelCreationFailed);
         }
 
         var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
@@ -255,7 +255,7 @@ internal static class ForegroundNotificationHelper
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to get app icon for alarm notification");
+            logger.Warning(ex, AppConstants.Logging.AndroidForegroundNotificationDiagnosticsLog.FailedToGetAppIconForAlarmNotification);
         }
         return null;
     }

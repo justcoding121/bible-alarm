@@ -85,7 +85,7 @@ public sealed class DefaultScheduleService(
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "GetNextScheduleTrackMetaDataAsync: Failed to verify last played schedule in DB, falling back to state");
+                    logger.Warning(ex, AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleTrackMetaDataFailedVerifyLastPlayedInDb);
                 }
             }
         }
@@ -236,7 +236,7 @@ public sealed class DefaultScheduleService(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to save default schedule artwork to file");
+                logger.Warning(ex, AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.FailedToSaveDefaultScheduleArtworkToFile);
             }
         }
 
@@ -374,7 +374,7 @@ public sealed class DefaultScheduleService(
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to cleanup old default schedule artwork files");
+            logger.Warning(ex, AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.FailedToCleanupOldDefaultScheduleArtworkFiles);
         }
     }
 }

@@ -621,6 +621,54 @@ public static class AppConstants
                 "Failed to apply last played metadata to MediaSession";
         }
 
+        /// <summary>Schedule listing display names for music (<c>ScheduleDisplayNameMusicHelper</c>).</summary>
+        public static class ScheduleDisplayNameDiagnosticsLog
+        {
+            public const string ErrorPopulatingMusicLanguageNameForMelody =
+                "Error populating MusicLanguageName for melody";
+
+            public const string ErrorPopulatingMusicLanguageName =
+                "Error populating MusicLanguageName";
+
+            public const string ErrorPopulatingMusicPublicationName =
+                "Error populating MusicPublicationName";
+
+            public const string ErrorPopulatingMusicSectionNameForPublicationSection =
+                "Error populating MusicSectionName for publication {PublicationCode}, section {SectionCode}";
+
+            public const string MusicSectionNameNotFoundForPublicationSection =
+                "Music section name not found for publication {PublicationCode}, section {SectionCode}";
+
+            public const string ErrorPopulatingMusicTrackName =
+                "Error populating MusicTrackName";
+        }
+
+        /// <summary>Default schedule / rotation metadata (<c>DefaultScheduleService</c>).</summary>
+        public static class DefaultScheduleServiceDiagnosticsLog
+        {
+            public const string GetNextScheduleTrackMetaDataFailedVerifyLastPlayedInDb =
+                "GetNextScheduleTrackMetaDataAsync: Failed to verify last played schedule in DB, falling back to state";
+
+            public const string FailedToSaveDefaultScheduleArtworkToFile =
+                "Failed to save default schedule artwork to file";
+
+            public const string FailedToCleanupOldDefaultScheduleArtworkFiles =
+                "Failed to cleanup old default schedule artwork files";
+        }
+
+        /// <summary>Foreground service notifications (<c>ForegroundNotificationHelper</c>).</summary>
+        public static class AndroidForegroundNotificationDiagnosticsLog
+        {
+            public const string ErrorCreatingNotificationChannelMayAlreadyExist =
+                "Error creating notification channel (may already exist)";
+
+            public const string CreateFallbackNotificationChannelCreationFailed =
+                "CreateFallbackNotification: channel creation failed";
+
+            public const string FailedToGetAppIconForAlarmNotification =
+                "Failed to get app icon for alarm notification";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {
