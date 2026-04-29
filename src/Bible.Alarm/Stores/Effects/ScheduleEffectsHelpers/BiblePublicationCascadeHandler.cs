@@ -84,7 +84,7 @@ public sealed class BiblePublicationCascadeHandler
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "BiblePublicationCascadeHandler: Error during cascade");
+            logger.Error(ex, AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ErrorDuringCascade);
         }
     }
 
@@ -95,12 +95,12 @@ public sealed class BiblePublicationCascadeHandler
         var existingPublicationCode = currentSchedule.BiblePublicationCode;
         var publicationModalItemCount = await GetBiblePublicationModalItemCountAsync(languageCode, categoryName);
 
-        logger.Information("BiblePublicationCascadeHandler: Language cascade - language={LanguageCode}, category={CategoryName}, existingPublication={ExistingPublication}",
+        logger.Information(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.LanguageCascade,
             languageCode, categoryName ?? "all", existingPublicationCode ?? "none");
 
         if (!string.IsNullOrWhiteSpace(existingPublicationCode))
         {
-            logger.Debug("BiblePublicationCascadeHandler: Using existing publication={PublicationCode} from schedule",
+            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.UsingExistingPublicationFromSchedule,
                 existingPublicationCode);
 
             // EnsurePublicationExistsAsync is idempotent: returns true if already cataloged,
@@ -142,12 +142,12 @@ public sealed class BiblePublicationCascadeHandler
                     return;
                 }
 
-                logger.Warning("BiblePublicationCascadeHandler: No valid track found for existing publication={PublicationCode} after cataloging",
+                logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForExistingPublicationAfterCataloging,
                     existingPublicationCode);
             }
             else
             {
-                logger.Debug("BiblePublicationCascadeHandler: Existing publication={PublicationCode} not available for language={LanguageCode}, selecting new publication",
+                logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ExistingPublicationNotAvailableSelectingNew,
                     existingPublicationCode, languageCode);
             }
         }
@@ -202,7 +202,7 @@ public sealed class BiblePublicationCascadeHandler
             if (!isCataloged)
             {
                 logger.Debug(
-                    "BiblePublicationCascadeHandler: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
+                    AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.FailedToCatalogPublicationTryingNext,
                     pl.PublicationCode,
                     languageCode);
                 continue;
@@ -221,7 +221,7 @@ public sealed class BiblePublicationCascadeHandler
             if (!canQueryWithLanguage)
             {
                 logger.Debug(
-                    "BiblePublicationCascadeHandler: Publication={PublicationCode} cataloged but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
+                    AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCatalogedCannotQueryWithLanguageTryingNext,
                     pl.PublicationCode,
                     languageCode);
                 continue;
@@ -230,7 +230,7 @@ public sealed class BiblePublicationCascadeHandler
             publicationCode = publicationCodeForDb;
             publicationWithoutLanguage = false;
             logger.Debug(
-                "BiblePublicationCascadeHandler: Selected publication={PublicationCode} (cataloged and queryable for language={LanguageCode})",
+                AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationCatalogedQueryableForLanguage,
                 publicationCode,
                 languageCode);
             break;
@@ -251,7 +251,7 @@ public sealed class BiblePublicationCascadeHandler
                 {
                     publicationCode = pubWithoutLanguage.PublicationCode;
                     publicationWithoutLanguage = true;
-                    logger.Debug("BiblePublicationCascadeHandler: Selected publication without LanguageId={PublicationCode}",
+                    logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId,
                         publicationCode);
                 }
             }
@@ -259,7 +259,7 @@ public sealed class BiblePublicationCascadeHandler
         
         if (string.IsNullOrEmpty(publicationCode))
         {
-            logger.Warning("BiblePublicationCascadeHandler: No publication found for language={LanguageCode}, category={CategoryName}",
+            logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoPublicationFoundForLanguageCategory,
                 languageCode, categoryName ?? "all");
             return;
         }
@@ -300,7 +300,7 @@ public sealed class BiblePublicationCascadeHandler
 
             if (string.IsNullOrWhiteSpace(resultTrackCode))
             {
-                logger.Warning("BiblePublicationCascadeHandler: No valid track found for publication={PublicationCode}", publicationCode);
+                logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication, publicationCode);
                 return;
             }
 
@@ -317,7 +317,7 @@ public sealed class BiblePublicationCascadeHandler
 
         if (string.IsNullOrWhiteSpace(trackCode))
         {
-            logger.Warning("BiblePublicationCascadeHandler: No valid track found for publication={PublicationCode}",
+            logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication,
                 publicationCode);
             return;
         }
@@ -348,7 +348,7 @@ public sealed class BiblePublicationCascadeHandler
         var categoryName = currentSchedule.BiblePublicationCategoryName;
         var publicationModalItemCount = await GetBiblePublicationModalItemCountAsync(languageCode, categoryName);
 
-        logger.Information("BiblePublicationCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}",
+        logger.Information(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCascade,
             publicationCode, languageCode);
 
         // Use existing selector logic to get section and track
@@ -372,7 +372,7 @@ public sealed class BiblePublicationCascadeHandler
 
         if (string.IsNullOrWhiteSpace(trackCode))
         {
-            logger.Warning("BiblePublicationCascadeHandler: No valid track found");
+            logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFound);
             return;
         }
 
@@ -404,14 +404,14 @@ public sealed class BiblePublicationCascadeHandler
         var categoryName = currentSchedule.BiblePublicationCategoryName;
         var publicationModalItemCount = await GetBiblePublicationModalItemCountAsync(languageCode, categoryName);
 
-        logger.Information("BiblePublicationCascadeHandler: Section cascade - sectionCode={SectionCode}, publication={PublicationCode}",
+        logger.Information(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SectionCascade,
             sectionCode ?? "(none)", publicationCode);
 
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
         var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, normalizedSectionCode);
         if (tracks == null || tracks.Count == 0)
         {
-            logger.Warning("BiblePublicationCascadeHandler: No tracks found for sectionCode={SectionCode}", sectionCode ?? "(none)");
+            logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoTracksFoundForSectionCode, sectionCode ?? "(none)");
             return;
         }
 
@@ -445,7 +445,7 @@ public sealed class BiblePublicationCascadeHandler
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "BiblePublicationCascadeHandler: Error getting publication modal item count. LanguageCode={LanguageCode}, CategoryName={CategoryName}",
+            logger.Error(ex, AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ErrorGettingPublicationModalItemCount,
                 languageCode, categoryName ?? "all");
             return null;
         }

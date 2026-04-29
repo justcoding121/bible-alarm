@@ -50,7 +50,7 @@ public static class BiblePublicationCascadeScheduleUpdater
             !sectionModalCountChanged &&
             !trackModalCountChanged)
         {
-            logger.Debug("BiblePublicationCascadeHandler: Values unchanged, skipping dispatch. publication={PublicationCode}, sectionCode={SectionCode}, track={TrackCode}",
+            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatch,
                 publicationCode, normalizedSectionCode ?? "(none)", trackCode);
             return;
         }
@@ -99,7 +99,7 @@ public static class BiblePublicationCascadeScheduleUpdater
         {
             updatedSchedule.BiblePublicationCategoryId = currentSchedule.BiblePublicationCategoryId;
             updatedSchedule.BiblePublicationCategoryName = currentSchedule.BiblePublicationCategoryName;
-            logger.Debug("BiblePublicationCascadeHandler: Preserving category={CategoryName}", currentSchedule.BiblePublicationCategoryName);
+            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PreservingCategory, currentSchedule.BiblePublicationCategoryName);
         }
 
         if (publicationWithoutLanguage)
@@ -111,7 +111,7 @@ public static class BiblePublicationCascadeScheduleUpdater
             updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageDirection)
                 ? currentSchedule.BiblePublicationLanguageDirection
                 : AppConstants.Media.TextDirectionLeftToRight;
-            logger.Debug("BiblePublicationCascadeHandler: {Action} language for no-language publication={PublicationCode} (LanguageCode: {LanguageCode})",
+            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ActionLanguageForNoLanguagePublication,
                 string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode) ? "Setting default" : "Preserving",
                 publicationCode,
                 updatedSchedule.BiblePublicationLanguageCode ?? "null");
@@ -121,7 +121,7 @@ public static class BiblePublicationCascadeScheduleUpdater
             updatedSchedule.BiblePublicationLanguageCode = currentSchedule.BiblePublicationLanguageCode;
             updatedSchedule.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
             updatedSchedule.BiblePublicationLanguageDirection = currentSchedule.BiblePublicationLanguageDirection;
-            logger.Debug("BiblePublicationCascadeHandler: Preserving language={LanguageCode}", currentSchedule.BiblePublicationLanguageCode);
+            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PreservingLanguage, currentSchedule.BiblePublicationLanguageCode);
         }
 
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));

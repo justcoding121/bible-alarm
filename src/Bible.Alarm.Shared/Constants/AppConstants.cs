@@ -1045,6 +1045,70 @@ public static class AppConstants
                 "CategorySelectionAutoPopulateHandler: Error checking if publication {PublicationCode} is cataloged";
         }
 
+        /// <summary>Bible publication cascade (<c>BiblePublicationCascadeHandler</c> / <c>BiblePublicationCascadeScheduleUpdater</c>).</summary>
+        public static class BiblePublicationCascadeHandlerDiagnosticsLog
+        {
+            public const string ErrorDuringCascade =
+                "BiblePublicationCascadeHandler: Error during cascade";
+
+            public const string LanguageCascade =
+                "BiblePublicationCascadeHandler: Language cascade - language={LanguageCode}, category={CategoryName}, existingPublication={ExistingPublication}";
+
+            public const string UsingExistingPublicationFromSchedule =
+                "BiblePublicationCascadeHandler: Using existing publication={PublicationCode} from schedule";
+
+            public const string NoValidTrackFoundForExistingPublicationAfterCataloging =
+                "BiblePublicationCascadeHandler: No valid track found for existing publication={PublicationCode} after cataloging";
+
+            public const string ExistingPublicationNotAvailableSelectingNew =
+                "BiblePublicationCascadeHandler: Existing publication={PublicationCode} not available for language={LanguageCode}, selecting new publication";
+
+            public const string FailedToCatalogPublicationTryingNext =
+                "BiblePublicationCascadeHandler: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next";
+
+            public const string PublicationCatalogedCannotQueryWithLanguageTryingNext =
+                "BiblePublicationCascadeHandler: Publication={PublicationCode} cataloged but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next";
+
+            public const string SelectedPublicationCatalogedQueryableForLanguage =
+                "BiblePublicationCascadeHandler: Selected publication={PublicationCode} (cataloged and queryable for language={LanguageCode})";
+
+            public const string SelectedPublicationWithoutLanguageId =
+                "BiblePublicationCascadeHandler: Selected publication without LanguageId={PublicationCode}";
+
+            public const string NoPublicationFoundForLanguageCategory =
+                "BiblePublicationCascadeHandler: No publication found for language={LanguageCode}, category={CategoryName}";
+
+            public const string NoValidTrackFoundForPublication =
+                "BiblePublicationCascadeHandler: No valid track found for publication={PublicationCode}";
+
+            public const string PublicationCascade =
+                "BiblePublicationCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}";
+
+            public const string NoValidTrackFound =
+                "BiblePublicationCascadeHandler: No valid track found";
+
+            public const string SectionCascade =
+                "BiblePublicationCascadeHandler: Section cascade - sectionCode={SectionCode}, publication={PublicationCode}";
+
+            public const string NoTracksFoundForSectionCode =
+                "BiblePublicationCascadeHandler: No tracks found for sectionCode={SectionCode}";
+
+            public const string ErrorGettingPublicationModalItemCount =
+                "BiblePublicationCascadeHandler: Error getting publication modal item count. LanguageCode={LanguageCode}, CategoryName={CategoryName}";
+
+            public const string ValuesUnchangedSkippingDispatch =
+                "BiblePublicationCascadeHandler: Values unchanged, skipping dispatch. publication={PublicationCode}, sectionCode={SectionCode}, track={TrackCode}";
+
+            public const string PreservingCategory =
+                "BiblePublicationCascadeHandler: Preserving category={CategoryName}";
+
+            public const string ActionLanguageForNoLanguagePublication =
+                "BiblePublicationCascadeHandler: {Action} language for no-language publication={PublicationCode} (LanguageCode: {LanguageCode})";
+
+            public const string PreservingLanguage =
+                "BiblePublicationCascadeHandler: Preserving language={LanguageCode}";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {
