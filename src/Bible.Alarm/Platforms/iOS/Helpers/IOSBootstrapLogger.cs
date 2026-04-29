@@ -9,8 +9,6 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 /// </summary>
 internal static class IOsBootstrapLogger
 {
-    private const string LogFileName = "bootstrap.txt";
-
     public static void WriteException(Exception ex)
     {
         try
@@ -18,7 +16,7 @@ internal static class IOsBootstrapLogger
             var basePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var logDir = Path.Combine(basePath, AppConstants.FilePaths.LogsDirectoryName);
             Directory.CreateDirectory(logDir);
-            var path = Path.Combine(logDir, LogFileName);
+            var path = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
             var text = ex.ToString();
             var line = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z Exception: {text}{Environment.NewLine}";
             File.AppendAllText(path, line);
@@ -36,7 +34,7 @@ internal static class IOsBootstrapLogger
             var basePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var logDir = Path.Combine(basePath, AppConstants.FilePaths.LogsDirectoryName);
             Directory.CreateDirectory(logDir);
-            var path = Path.Combine(logDir, LogFileName);
+            var path = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
             var line = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z {message}{Environment.NewLine}";
             File.AppendAllText(path, line);
         }

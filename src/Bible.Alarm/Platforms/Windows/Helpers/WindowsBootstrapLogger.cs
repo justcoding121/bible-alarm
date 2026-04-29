@@ -1,4 +1,5 @@
 using System.IO;
+using Bible.Alarm.Shared.Constants;
 using Windows.Storage;
 
 namespace Bible.Alarm.Platforms.Windows.Helpers;
@@ -9,9 +10,6 @@ namespace Bible.Alarm.Platforms.Windows.Helpers;
 /// </summary>
 internal static class WindowsBootstrapLogger
 {
-    private const string LogFileName = "bootstrap.txt";
-    private const string LogsDirName = "logs";
-
     public static void WriteException(Exception ex)
     {
         if (TryGetLogPath(out var path))
@@ -51,9 +49,9 @@ internal static class WindowsBootstrapLogger
         try
         {
             var basePath = ApplicationData.Current.LocalCacheFolder.Path;
-            var logDir = Path.Combine(basePath, LogsDirName);
+            var logDir = Path.Combine(basePath, AppConstants.FilePaths.LogsDirectoryName);
             Directory.CreateDirectory(logDir);
-            logFilePath = Path.Combine(logDir, LogFileName);
+            logFilePath = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
             return true;
         }
         catch
@@ -62,9 +60,9 @@ internal static class WindowsBootstrapLogger
             try
             {
                 var exeDir = AppContext.BaseDirectory ?? Directory.GetCurrentDirectory();
-                var logDir = Path.Combine(exeDir, LogsDirName);
+                var logDir = Path.Combine(exeDir, AppConstants.FilePaths.LogsDirectoryName);
                 Directory.CreateDirectory(logDir);
-                logFilePath = Path.Combine(logDir, LogFileName);
+                logFilePath = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
                 return true;
             }
             catch

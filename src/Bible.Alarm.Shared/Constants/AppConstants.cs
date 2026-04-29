@@ -140,6 +140,9 @@ public static class AppConstants
         /// </summary>
         public const string LogsDirectoryName = "logs";
 
+        /// <summary>Early bootstrap diagnostic log before Serilog (<c>bootstrap.txt</c>) under <see cref="LogsDirectoryName"/>.</summary>
+        public const string BootstrapDiagnosticLogFileName = "bootstrap.txt";
+
         /// <summary>
         /// Log file name pattern (without extension - Serilog will add date and extension)
         /// </summary>
