@@ -75,7 +75,7 @@ public sealed class MediaCacheService(
     {
         if (alarmScheduleId <= 0)
         {
-            logger.Warning("Skipping cache setup for invalid schedule ID: {ScheduleId}", alarmScheduleId);
+            logger.Warning(AppConstants.Logging.MediaCacheDiagnosticsLog.SkippingCacheSetupInvalidScheduleId, alarmScheduleId);
             return false;
         }
 
@@ -95,7 +95,7 @@ public sealed class MediaCacheService(
             }
             catch (Exception e)
             {
-                logger.Error(e, "An exception happened when downloading media files for caching.");
+                logger.Error(e, AppConstants.Logging.MediaCacheDiagnosticsLog.ExceptionDownloadingMediaFilesForCaching);
             }
         }, 500);
 
@@ -115,7 +115,7 @@ public sealed class MediaCacheService(
             if (await ExistsAsync(lookUpPath, scheduleId))
             {
                 // File exists and lookup path matches - skip download
-                logger.Debug("Skipping download - cached file exists for lookup path: {LookUpPath}, URL: {Url}", 
+                logger.Debug(AppConstants.Logging.MediaCacheDiagnosticsLog.SkippingDownloadCachedFileExists, 
                     lookUpPath, playItem.Url);
                 continue;
             }
@@ -124,7 +124,7 @@ public sealed class MediaCacheService(
 
             if (!await networkStatusService.IsInternetAvailable())
             {
-                logger.Warning("No internet - skipping download for track: LookUpPath={LookUpPath}", lookUpPath);
+                logger.Warning(AppConstants.Logging.MediaCacheDiagnosticsLog.NoInternetSkippingDownloadForTrack, lookUpPath);
                 continue;
             }
 
@@ -135,14 +135,14 @@ public sealed class MediaCacheService(
                 if (cachedUrl == null)
                 {
                     // Download failed - log but continue with next track
-                    logger.Warning("Failed to download track: {Url} (lookup path: {LookUpPath}) for schedule {ScheduleId}. Continuing with next track.", 
+                    logger.Warning(AppConstants.Logging.MediaCacheDiagnosticsLog.FailedToDownloadTrackContinuingNext, 
                         playItem.Url, lookUpPath, scheduleId);
                 }
             }
             catch (Exception ex)
             {
                 // Individual download failure - log but continue processing other tracks
-                logger.Error(ex, "Exception downloading track: {Url} (lookup path: {LookUpPath}) for schedule {ScheduleId}. Continuing with next track.", 
+                logger.Error(ex, AppConstants.Logging.MediaCacheDiagnosticsLog.ExceptionDownloadingTrackContinuingNext, 
                     playItem.Url, lookUpPath, scheduleId);
             }
         }
@@ -157,7 +157,7 @@ public sealed class MediaCacheService(
         var scheduleId = (int)playItem.Metadata.ScheduleId;
         if (scheduleId <= 0)
         {
-            logger.Warning("Invalid schedule ID in PlayItem metadata: {ScheduleId}", scheduleId);
+            logger.Warning(AppConstants.Logging.MediaCacheDiagnosticsLog.InvalidScheduleIdInPlayItemMetadata, scheduleId);
             return null;
         }
 
@@ -167,7 +167,7 @@ public sealed class MediaCacheService(
         if (await ExistsAsync(lookUpPath, scheduleId))
         {
             var cachedFilePath = GetCacheFilePath(lookUpPath, scheduleId);
-            logger.Debug("Using cached file for track: LookUpPath={LookUpPath}, URL={Url}, Path={CachedPath}",
+            logger.Debug(AppConstants.Logging.MediaCacheDiagnosticsLog.UsingCachedFileForTrack,
                 lookUpPath, playItem.Url, cachedFilePath);
             // On iOS, MediaElement needs the file path directly instead of file:// URI
             if (DeviceInfo.Platform == DevicePlatform.iOS)
@@ -180,12 +180,12 @@ public sealed class MediaCacheService(
         // Not cached -- stream from CDN if internet is available
         if (!await networkStatusService.IsInternetAvailable())
         {
-            logger.Warning("Track not cached and no internet. Cannot play track: LookUpPath={LookUpPath}, URL={Url}",
+            logger.Warning(AppConstants.Logging.MediaCacheDiagnosticsLog.TrackNotCachedNoInternetCannotPlay,
                 lookUpPath, playItem.Url);
             return null;
         }
 
-        logger.Information("Streaming track from CDN (not cached): LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
+        logger.Information(AppConstants.Logging.MediaCacheDiagnosticsLog.StreamingTrackFromCdnNotCached, lookUpPath, playItem.Url);
         return playItem.Url;
     }
 
@@ -201,7 +201,7 @@ public sealed class MediaCacheService(
 
         if (!await networkStatusService.IsInternetAvailable())
         {
-            logger.Debug("No internet - skipping background cache for track: LookUpPath={LookUpPath}", lookUpPath);
+            logger.Debug(AppConstants.Logging.MediaCacheDiagnosticsLog.NoInternetSkippingBackgroundCache, lookUpPath);
             return false;
         }
 
@@ -216,7 +216,7 @@ public sealed class MediaCacheService(
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Background cache failed for track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
+            logger.Warning(ex, AppConstants.Logging.MediaCacheDiagnosticsLog.BackgroundCacheFailedForTrack, lookUpPath, playItem.Url);
             return false;
         }
     }
@@ -248,11 +248,11 @@ public sealed class MediaCacheService(
         }
         catch (HttpRequestException ex) when (IsInvalidFileServerError(ex))
         {
-            logger.Information(ex, "CDN returned not found for track; refetching section/pub: LookUpPath={LookUpPath}", playItem.Metadata.LookUpPath);
+            logger.Information(ex, AppConstants.Logging.MediaCacheDiagnosticsLog.CdnReturnedNotFoundRefetchingSectionPub, playItem.Metadata.LookUpPath);
             var newUrl = await RefetchSectionOrPubAndGetNewUrlAsync(playItem.Metadata, cancellationToken);
             if (string.IsNullOrEmpty(newUrl))
             {
-                logger.Warning("Refetch did not yield a new URL; failing so UI can show error");
+                logger.Warning(AppConstants.Logging.MediaCacheDiagnosticsLog.RefetchDidNotYieldNewUrl);
                 throw;
             }
             playItem.Url = newUrl;

@@ -706,6 +706,52 @@ public static class AppConstants
                 "HEAD request failed for URL: {Url}, falling back to GET request";
         }
 
+        /// <summary>Schedule media cache (<c>MediaCacheService</c>).</summary>
+        public static class MediaCacheDiagnosticsLog
+        {
+            public const string SkippingCacheSetupInvalidScheduleId =
+                "Skipping cache setup for invalid schedule ID: {ScheduleId}";
+
+            public const string ExceptionDownloadingMediaFilesForCaching =
+                "An exception happened when downloading media files for caching.";
+
+            public const string SkippingDownloadCachedFileExists =
+                "Skipping download - cached file exists for lookup path: {LookUpPath}, URL: {Url}";
+
+            public const string NoInternetSkippingDownloadForTrack =
+                "No internet - skipping download for track: LookUpPath={LookUpPath}";
+
+            public const string FailedToDownloadTrackContinuingNext =
+                "Failed to download track: {Url} (lookup path: {LookUpPath}) for schedule {ScheduleId}. Continuing with next track.";
+
+            public const string ExceptionDownloadingTrackContinuingNext =
+                "Exception downloading track: {Url} (lookup path: {LookUpPath}) for schedule {ScheduleId}. Continuing with next track.";
+
+            public const string InvalidScheduleIdInPlayItemMetadata =
+                "Invalid schedule ID in PlayItem metadata: {ScheduleId}";
+
+            public const string UsingCachedFileForTrack =
+                "Using cached file for track: LookUpPath={LookUpPath}, URL={Url}, Path={CachedPath}";
+
+            public const string TrackNotCachedNoInternetCannotPlay =
+                "Track not cached and no internet. Cannot play track: LookUpPath={LookUpPath}, URL={Url}";
+
+            public const string StreamingTrackFromCdnNotCached =
+                "Streaming track from CDN (not cached): LookUpPath={LookUpPath}, URL={Url}";
+
+            public const string NoInternetSkippingBackgroundCache =
+                "No internet - skipping background cache for track: LookUpPath={LookUpPath}";
+
+            public const string BackgroundCacheFailedForTrack =
+                "Background cache failed for track: LookUpPath={LookUpPath}, URL={Url}";
+
+            public const string CdnReturnedNotFoundRefetchingSectionPub =
+                "CDN returned not found for track; refetching section/pub: LookUpPath={LookUpPath}";
+
+            public const string RefetchDidNotYieldNewUrl =
+                "Refetch did not yield a new URL; failing so UI can show error";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {
