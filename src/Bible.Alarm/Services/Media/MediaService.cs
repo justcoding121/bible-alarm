@@ -444,7 +444,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+            Log.Logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // Note: DbContext is now created via IServiceScopeFactory and disposed by the scope

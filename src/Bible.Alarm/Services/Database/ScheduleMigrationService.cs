@@ -1,4 +1,5 @@
 using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
@@ -36,7 +37,7 @@ public sealed class ScheduleMigrationService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

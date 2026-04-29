@@ -4,6 +4,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -323,7 +324,7 @@ public sealed class DefaultScheduleService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

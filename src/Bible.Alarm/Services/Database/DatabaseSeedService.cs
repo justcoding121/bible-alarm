@@ -148,7 +148,7 @@ public sealed class DatabaseSeedService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

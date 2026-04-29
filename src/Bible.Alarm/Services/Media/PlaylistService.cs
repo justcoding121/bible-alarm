@@ -709,7 +709,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // Note: DbContext instances are now created via IServiceScopeFactory and disposed by the scope

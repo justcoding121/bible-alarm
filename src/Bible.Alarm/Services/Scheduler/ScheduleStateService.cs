@@ -120,7 +120,7 @@ public sealed class ScheduleStateService(
             var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
             if (!granted)
             {
-                logger.Warning("Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied", scheduleId);
+                logger.Warning(AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableNotificationDeniedTapToPlay, scheduleId);
                 return false;
             }
             logger.Information("Android: Notification permission granted for schedule {ScheduleId}", scheduleId);
@@ -193,13 +193,13 @@ public sealed class ScheduleStateService(
                 else
                 {
                     // Timeout - user didn't respond, assume denied
-                    logger.Warning("Permission request timeout for schedule {ScheduleId}", scheduleId);
+                    logger.Warning(AppConstants.Logging.ScheduleEnableDiagnosticsLog.PermissionRequestTimeoutForSchedule, scheduleId);
                     granted = false;
                 }
                 
                 if (!granted)
                 {
-                    logger.Warning("Cannot enable schedule {ScheduleId} - notification permission denied. iOS requires notification permission for reminders.", scheduleId);
+                    logger.Warning(AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableIosRemindersPermissionDenied, scheduleId);
                     await toastService.ShowMessage(
                         AppConstants.ToastMessages.NotificationPermissionRequiredRemindersIos,
                         7);
@@ -225,7 +225,7 @@ public sealed class ScheduleStateService(
                 return true;
             }
 
-            logger.Warning("Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied", scheduleId);
+            logger.Warning(AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableNotificationDeniedTapToPlay, scheduleId);
             await toastService.ShowMessage(
                 AppConstants.ToastMessages.NotificationPermissionRequiredTapToPlayWinUi,
                 7);
@@ -303,7 +303,7 @@ public sealed class ScheduleStateService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // All injected services are singletons, so don't dispose them

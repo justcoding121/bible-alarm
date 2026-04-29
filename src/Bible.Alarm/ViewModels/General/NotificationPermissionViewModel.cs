@@ -100,13 +100,13 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                         }
                         catch (Exception ex)
                         {
-                            logger.Error(ex, "Failed to open Android app settings");
+                            logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.FailedToOpenAndroidAppSettings);
                         }
                     });
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Failed to open Android app settings");
+                    logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.FailedToOpenAndroidAppSettings);
                 }
             }
 #elif IOS

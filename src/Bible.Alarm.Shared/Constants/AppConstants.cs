@@ -509,6 +509,32 @@ public static class AppConstants
             public const string SecurityExceptionUpdatingSchedule =
                 "SecurityException when updating schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.";
         }
+
+        /// <summary>Linked CTS disposal failures (dispose path).</summary>
+        public static class DisposableLifetimeLog
+        {
+            public const string ErrorDuringCancellationTokenSourceDisposal =
+                "Error during cancellation token source disposal";
+        }
+
+        /// <summary>Schedule enable / notification permission paths.</summary>
+        public static class ScheduleEnableDiagnosticsLog
+        {
+            public const string CannotEnableNotificationDeniedTapToPlay =
+                "Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied";
+
+            public const string CannotEnableIosRemindersPermissionDenied =
+                "Cannot enable schedule {ScheduleId} - notification permission denied. iOS requires notification permission for reminders.";
+
+            public const string PermissionRequestTimeoutForSchedule =
+                "Permission request timeout for schedule {ScheduleId}";
+        }
+
+        /// <summary>Notification permission modal / Android settings helpers.</summary>
+        public static class NotificationPermissionDiagnosticsLog
+        {
+            public const string FailedToOpenAndroidAppSettings = "Failed to open Android app settings";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>

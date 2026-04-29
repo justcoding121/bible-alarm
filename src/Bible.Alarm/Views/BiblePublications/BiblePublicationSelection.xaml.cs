@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
@@ -65,7 +66,7 @@ public partial class BiblePublicationSelection : BaseContentPage, IDisposable
             catch (Exception ex)
             {
                 // Ignore errors during cancellation/disposal
-                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+                Log.Logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
             }
 
             // ViewModel was injected via constructor, so dispose it

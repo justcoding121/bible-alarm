@@ -335,7 +335,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // HttpMessageHandler is registered as a singleton and should not be disposed here

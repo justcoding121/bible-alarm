@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Services.Battery.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
@@ -74,7 +75,7 @@ public sealed class BatteryOptimizationService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // All injected services are singletons, so don't dispose them

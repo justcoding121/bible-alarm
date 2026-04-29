@@ -2,6 +2,7 @@
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.UI.NavigationServiceHelpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
@@ -480,7 +481,7 @@ public sealed class NavigationService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger?.Warning(ex, "Error during cancellation token source disposal");
+            logger?.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // Dispose navigation lock

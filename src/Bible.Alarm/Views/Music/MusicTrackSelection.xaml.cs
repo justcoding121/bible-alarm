@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels.Music;
 using CommunityToolkit.Mvvm.Input;
 using Serilog;
@@ -56,7 +57,7 @@ public partial class MusicTrackSelection : BaseContentPage, IDisposable
             }
             catch (Exception ex)
             {
-                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
+                Log.Logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
             }
 
             if (viewModel is IDisposable disposable)

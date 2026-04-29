@@ -3,6 +3,7 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
@@ -138,7 +139,7 @@ public sealed class SchedulerService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger.Warning(ex, "Error during cancellation token source disposal");
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // Dispose static semaphore
