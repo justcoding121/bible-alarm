@@ -181,7 +181,7 @@ internal class VideoCataloger : BaseCataloger
         string jsonString;
         try
         {
-            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&alllangs=1&langwritten={AppConstants.Media.DefaultLanguageCode}";
+            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&alllangs=1&langwritten={AppConstants.Media.DefaultLanguageCode}";
             jsonString = await DownloadUtility.GetAsync(catalogLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
@@ -367,7 +367,7 @@ internal class VideoCataloger : BaseCataloger
     {
         try
         {
-            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}";
+            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&langwritten={languageCode}";
             var jsonString = await DownloadUtility.GetAsync(catalogLink);
             return ParseAllEpisodes(jsonString, publicationCode, languageCode);
         }
@@ -402,7 +402,7 @@ internal class VideoCataloger : BaseCataloger
         if (!languageFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp4, out var mp4Files) || mp4Files.ValueKind != JsonValueKind.Array)
             return null;
 
-        var lookUpPathBase = $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}";
+        var lookUpPathBase = $"?output=json&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&langwritten={languageCode}";
         var episodes = new List<VideoEpisode>();
 
         foreach (var fileElement in mp4Files.EnumerateArray())
