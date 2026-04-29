@@ -65,7 +65,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
 
         base.OnCreate();
-        logger.Information("LegacyMediaBrowserService.OnCreate() called");
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnCreateCalled);
 
         try
         {
@@ -90,14 +90,14 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             }
             else
             {
-                logger.Debug("LegacyMediaBrowserService.OnCreate: rotation service not available (DI may not be ready)");
+                logger.Debug(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnCreateRotationServiceNotAvailable);
             }
 
             RefreshDefaultMetadataAfterBootstrap();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "LegacyMediaBrowserService.OnCreate: error during initialization (foreground service is already running)");
+            logger.Error(ex, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnCreateErrorDuringInitialization);
         }
     }
 
@@ -108,7 +108,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         // If root is returned (Android Auto is connecting), mark as connected
         if (root != null)
         {
-            logger.Information("Android Auto client validated - marking as connected");
+            logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.AndroidAutoClientValidatedMarkingConnected);
             ForegroundServiceCoordinator.OnAndroidAutoConnected(this);
         }
 
@@ -118,7 +118,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     public override void OnLoadChildren(string parentId, Result result)
     {
-        logger.Information("✅ OnLoadChildren called for parent: {ParentId}", parentId);
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnLoadChildrenCalledForParent, parentId);
 
         try
         {
@@ -126,7 +126,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             // Android requires that OnLoadChildren either calls SendResult() synchronously
             // or calls Detach() before returning if the result will be sent asynchronously
             result.Detach();
-            logger.Debug("Result detached successfully for parent: {ParentId}", parentId);
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.ResultDetachedSuccessfullyForParent, parentId);
 
             // Run work to load schedules and create MediaItems on background thread
             _ = Task.Run(async () => await LoadChildrenAsync(parentId, result));
@@ -134,7 +134,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         catch (Exception ex)
         {
             // If Detach() itself fails, try to send empty result synchronously
-            logger.Error(ex, "Critical error in OnLoadChildren before detaching result for parent: {ParentId}", parentId);
+            logger.Error(ex, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.CriticalErrorOnLoadChildrenBeforeDetach, parentId);
             SendEmptyResultSafely(result, parentId);
         }
     }
@@ -143,24 +143,24 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         try
         {
-            logger.Debug("Starting schedule loading for parent: {ParentId}", parentId);
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.StartingScheduleLoadingForParent, parentId);
 
             var children = await mediaBrowser.LoadChildrenAsync(parentId, this);
             if (children != null && children.Count > 0)
             {
                 var javaList = new JavaList<MediaBrowserCompat.MediaItem>(children);
-                logger.Information("Created {Count} MediaItems for Android Auto", javaList.Size());
+                logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.CreatedMediaItemsForAndroidAuto, javaList.Size());
                 result.SendResult(javaList);
             }
             else
             {
-                logger.Debug("No MediaItems to send for parent: {ParentId}", parentId);
+                logger.Debug(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.NoMediaItemsToSendForParent, parentId);
                 result.SendResult(new ArrayList());
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error loading children in LegacyMediaBrowserService for parent: {ParentId}. Bootstrap may not have completed or services may not be available.", parentId);
+            logger.Error(ex, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.ErrorLoadingChildrenForParent, parentId);
             SendEmptyResultSafely(result, parentId);
         }
     }
@@ -177,7 +177,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 var pState = ServiceProviderManager.GetService<IState<PlaybackState>>();
                 if (pState?.Value?.IsPreparingOrPlaying is true)
                 {
-                    logger.Debug("Playback is active on car connect - skipping default metadata refresh");
+                    logger.Debug(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.PlaybackActiveOnCarConnectSkippingRefresh);
 
                     // MediaElement is handling playback (paused or playing). The minimal
                     // "Starting..." notification (ID 2) from OnCreate is redundant — remove it
@@ -185,7 +185,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                     if (ForegroundServiceCoordinator.CurrentOwner != ForegroundServiceCoordinator.ForegroundServiceOwner.AndroidAuto)
                     {
                         ForegroundServiceOperations.StopForeground(this);
-                        logger.Information("Stopped stuck minimal foreground notification — MediaElement is handling playback");
+                        logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.StoppedStuckMinimalForegroundNotification);
                     }
                     return;
                 }
@@ -194,11 +194,11 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                 dispatcher?.Dispatch(new SetCarPlayScreenAction());
 
                 NotifyChildrenChanged("__ID_ROOT__");
-                logger.Debug("Default metadata refresh and browse tree update dispatched on car connect");
+                logger.Debug(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.DefaultMetadataRefreshDispatchedOnCarConnect);
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to refresh default metadata on car connect");
+                logger.Warning(ex, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.FailedToRefreshDefaultMetadataOnCarConnect);
             }
         });
     }
@@ -210,11 +210,11 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             // Always send a result, even if empty, to satisfy Android's requirement
             // This prevents the IllegalStateException from occurring
             result.SendResult(new ArrayList());
-            logger.Debug("Sent empty result for parent: {ParentId}", parentId);
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.SentEmptyResultForParent, parentId);
         }
         catch (Exception sendEx)
         {
-            logger.Error(sendEx, "Failed to send empty result for parent: {ParentId}. This may cause Android Auto connection issues.", parentId);
+            logger.Error(sendEx, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.FailedToSendEmptyResultForParent, parentId);
         }
     }
 
@@ -243,12 +243,12 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     private static void LogBindIntent(Intent? intent)
     {
-        logger.Information("✅ LegacyMediaBrowserService.OnBind() called with intent: {Action}",
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnBindCalledWithIntent,
             intent?.Action);
 
         if (intent != null)
         {
-            logger.Information("Intent component: {Component}, Package: {Package}, Categories: {Categories}",
+            logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.IntentComponentPackageCategories,
                 intent.Component?.ClassName, intent.Package, string.Join(", ", intent.Categories ?? Array.Empty<string>()));
         }
     }
@@ -259,11 +259,11 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         {
             var startIntent = new Intent(this, typeof(LegacyMediaBrowserService));
             StartService(startIntent);
-            logger.Debug("Service started to keep it alive during Android Auto connection");
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.ServiceStartedToKeepAliveDuringAaConnection);
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to start service in OnBind() - service may be destroyed if Android Auto unbinds");
+            logger.Warning(ex, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.FailedToStartServiceInOnBind);
         }
     }
 
@@ -280,20 +280,20 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
                     if (session?.SessionToken != null)
                     {
                         SessionToken = session.SessionToken;
-                        logger.Information("SessionToken set in OnBind(): {Token}", SessionToken?.ToString() ?? "null");
+                        logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.SessionTokenSetInOnBind, SessionToken?.ToString() ?? "null");
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Could not set SessionToken in OnBind() - bootstrap may still be running");
+                logger.Warning(ex, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.CouldNotSetSessionTokenInOnBind);
             }
         }
     }
 
     public override bool OnUnbind(Intent? intent)
     {
-        logger.Information("⚠️ LegacyMediaBrowserService.OnUnbind() called - Client disconnected");
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnUnbindCalledClientDisconnected);
 
         try
         {
@@ -302,7 +302,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "LegacyMediaBrowserService.OnUnbind: failed to stop rotation service");
+            logger.Warning(ex, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnUnbindFailedToStopRotationService);
         }
 
         // Mark Android Auto as disconnected and stop foreground service
@@ -318,7 +318,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     public override void OnDestroy()
     {
-        logger.Information("✅ LegacyMediaBrowserService destroyed - Clearing local MediaSession reference");
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnDestroyClearingLocalMediaSessionReference);
 
         try
         {
@@ -327,7 +327,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "LegacyMediaBrowserService.OnDestroy: failed to stop rotation service");
+            logger.Warning(ex, AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnDestroyFailedToStopRotationService);
         }
 
         // Fallback: If OnUnbind wasn't called (e.g., when Android Auto emulator is closed),

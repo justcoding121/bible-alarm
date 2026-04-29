@@ -1048,6 +1048,91 @@ public static class AppConstants
                 "Registered iOS audio route change observer";
         }
 
+        /// <summary>Android Auto media browser service (<c>LegacyMediaBrowserService</c>).</summary>
+        public static class LegacyMediaBrowserDiagnosticsLog
+        {
+            public const string OnCreateCalled =
+                "LegacyMediaBrowserService.OnCreate() called";
+
+            public const string OnCreateRotationServiceNotAvailable =
+                "LegacyMediaBrowserService.OnCreate: rotation service not available (DI may not be ready)";
+
+            public const string OnCreateErrorDuringInitialization =
+                "LegacyMediaBrowserService.OnCreate: error during initialization (foreground service is already running)";
+
+            public const string AndroidAutoClientValidatedMarkingConnected =
+                "Android Auto client validated - marking as connected";
+
+            public const string OnLoadChildrenCalledForParent =
+                "✅ OnLoadChildren called for parent: {ParentId}";
+
+            public const string ResultDetachedSuccessfullyForParent =
+                "Result detached successfully for parent: {ParentId}";
+
+            public const string CriticalErrorOnLoadChildrenBeforeDetach =
+                "Critical error in OnLoadChildren before detaching result for parent: {ParentId}";
+
+            public const string StartingScheduleLoadingForParent =
+                "Starting schedule loading for parent: {ParentId}";
+
+            public const string CreatedMediaItemsForAndroidAuto =
+                "Created {Count} MediaItems for Android Auto";
+
+            public const string NoMediaItemsToSendForParent =
+                "No MediaItems to send for parent: {ParentId}";
+
+            public const string ErrorLoadingChildrenForParent =
+                "Error loading children in LegacyMediaBrowserService for parent: {ParentId}. Bootstrap may not have completed or services may not be available.";
+
+            public const string PlaybackActiveOnCarConnectSkippingRefresh =
+                "Playback is active on car connect - skipping default metadata refresh";
+
+            public const string StoppedStuckMinimalForegroundNotification =
+                "Stopped stuck minimal foreground notification — MediaElement is handling playback";
+
+            public const string DefaultMetadataRefreshDispatchedOnCarConnect =
+                "Default metadata refresh and browse tree update dispatched on car connect";
+
+            public const string FailedToRefreshDefaultMetadataOnCarConnect =
+                "Failed to refresh default metadata on car connect";
+
+            public const string SentEmptyResultForParent =
+                "Sent empty result for parent: {ParentId}";
+
+            public const string FailedToSendEmptyResultForParent =
+                "Failed to send empty result for parent: {ParentId}. This may cause Android Auto connection issues.";
+
+            public const string OnBindCalledWithIntent =
+                "✅ LegacyMediaBrowserService.OnBind() called with intent: {Action}";
+
+            public const string IntentComponentPackageCategories =
+                "Intent component: {Component}, Package: {Package}, Categories: {Categories}";
+
+            public const string ServiceStartedToKeepAliveDuringAaConnection =
+                "Service started to keep it alive during Android Auto connection";
+
+            public const string FailedToStartServiceInOnBind =
+                "Failed to start service in OnBind() - service may be destroyed if Android Auto unbinds";
+
+            public const string SessionTokenSetInOnBind =
+                "SessionToken set in OnBind(): {Token}";
+
+            public const string CouldNotSetSessionTokenInOnBind =
+                "Could not set SessionToken in OnBind() - bootstrap may still be running";
+
+            public const string OnUnbindCalledClientDisconnected =
+                "⚠️ LegacyMediaBrowserService.OnUnbind() called - Client disconnected";
+
+            public const string OnUnbindFailedToStopRotationService =
+                "LegacyMediaBrowserService.OnUnbind: failed to stop rotation service";
+
+            public const string OnDestroyClearingLocalMediaSessionReference =
+                "✅ LegacyMediaBrowserService destroyed - Clearing local MediaSession reference";
+
+            public const string OnDestroyFailedToStopRotationService =
+                "LegacyMediaBrowserService.OnDestroy: failed to stop rotation service";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {
