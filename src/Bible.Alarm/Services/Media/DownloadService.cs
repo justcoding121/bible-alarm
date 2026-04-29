@@ -154,7 +154,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 // Try HEAD request first (lightweight)
                 using var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
                 headRequest.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
-                headRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                headRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(AppConstants.Media.HttpAcceptAny));
 
                 var headResponse = await client.SendAsync(headRequest, ct);
                 if (headResponse.IsSuccessStatusCode)
@@ -172,7 +172,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             {
                 using var getRequest = new HttpRequestMessage(HttpMethod.Get, url);
                 getRequest.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
-                getRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                getRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(AppConstants.Media.HttpAcceptAny));
 
                 using var response = await client.SendAsync(getRequest, HttpCompletionOption.ResponseHeadersRead, ct);
                 if (response.IsSuccessStatusCode)
@@ -197,7 +197,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(AppConstants.Media.HttpAcceptAny));
 
         using var client = new HttpClient(handler, false);
         // No total timeout - we use stall detection instead
@@ -280,7 +280,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
-                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(AppConstants.Media.HttpAcceptAny));
 
                 var result = await client.SendAsync(request, ct);
                 var statusCode = result.StatusCode;
@@ -297,7 +297,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             {
                 using var request = new HttpRequestMessage(HttpMethod.Head, url);
                 request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
-                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(AppConstants.Media.HttpAcceptAny));
 
                 var result = await client.SendAsync(request, ct);
                 var statusCode = result.StatusCode;

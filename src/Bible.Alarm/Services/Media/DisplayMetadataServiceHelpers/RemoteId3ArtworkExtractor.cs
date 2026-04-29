@@ -101,7 +101,7 @@ internal sealed class RemoteId3ArtworkExtractor
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(AppConstants.Media.HttpAcceptAny));
         request.Headers.Range = new RangeHeaderValue(from, to);
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);

@@ -479,6 +479,12 @@ public static class AppConstants
         /// <summary>Default User-Agent for media downloads and remote artwork/metadata HTTP requests.</summary>
         public const string MediaHttpUserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
 
+        /// <summary><c>Accept</c> header value meaning any media type.</summary>
+        public const string HttpAcceptAny = "*/*";
+
+        /// <summary>HTTP User-Agent for cataloger tool downloads from JW/CDN.</summary>
+        public const string CatalogerHttpUserAgent = "Mozilla/5.0 (compatible; curl/8.0.1)";
+
         /// <summary>JW GETPUB/Mediator JSON files.* stream format key for MP3 (uppercase).</summary>
         public const string MediaStreamFormatMp3 = "MP3";
 

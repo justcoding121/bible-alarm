@@ -173,7 +173,7 @@ internal class DownloadUtility
             VersionPolicy = versionPolicy
         };
 
-        request.Headers.Add("User-Agent", "Mozilla/5.0 (compatible; curl/8.0.1)");
+        request.Headers.Add("User-Agent", AppConstants.Media.CatalogerHttpUserAgent);
         request.Headers.Add("Accept", "application/json, text/plain, */*");
 
         return request;

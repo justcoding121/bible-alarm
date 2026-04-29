@@ -325,7 +325,7 @@ internal sealed class RemoteMp4ArtworkExtractor
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(AppConstants.Media.HttpAcceptAny));
         request.Headers.Range = new RangeHeaderValue(from, to);
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -419,7 +419,7 @@ internal sealed class RemoteMp4ArtworkExtractor
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(AppConstants.Media.HttpAcceptAny));
         request.Headers.TryAddWithoutValidation("Range", "bytes=-" + suffixLength);
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
