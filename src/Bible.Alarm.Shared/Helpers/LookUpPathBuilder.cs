@@ -91,6 +91,6 @@ public static class LookUpPathBuilder
     /// <returns>The lookup path query string for Mediator API</returns>
     public static string BuildMediatorTrackLookUpPath(string categoryKey, string languageCode, string trackCode, string? naturalKey = null)
     {
-        return $"?category={categoryKey}&lang={languageCode}";
+        return $"?{AppConstants.Media.MediatorQueryParamName.Category}={categoryKey}&{AppConstants.Media.MediatorQueryParamName.Lang}={languageCode}";
     }
 }

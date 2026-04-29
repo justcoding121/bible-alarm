@@ -415,6 +415,26 @@ public static class AppConstants
             public const string Track = "track";
         }
 
+        /// <summary>Mediator lookup-path query parameter names (<c>category</c>, <c>lang</c>).</summary>
+        public static class MediatorQueryParamName
+        {
+            public const string Category = "category";
+            public const string Lang = "lang";
+        }
+
+        /// <summary>JW mediator natural-key and section-code prefixes (<c>docid:</c>, <c>docid-</c>, <c>pub-</c>).</summary>
+        public static class MediatorIdentifiers
+        {
+            /// <summary>Section code prefix when keyed by JW doc id (<c>docid:12345</c>).</summary>
+            public const string DocIdSectionPrefix = "docid:";
+
+            /// <summary>Natural key prefix for doc-id media (<c>docid-...</c>).</summary>
+            public const string DocIdNaturalKeyPrefix = "docid-";
+
+            /// <summary>Natural key prefix for pub-style keys (<c>pub-nwt_E_1_AUDIO</c>).</summary>
+            public const string PubNaturalKeyPrefix = "pub-";
+        }
+
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
         public const string PublicationUiTrackSingular = "Track";
 

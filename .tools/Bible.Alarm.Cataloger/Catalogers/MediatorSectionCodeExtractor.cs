@@ -61,7 +61,7 @@ internal static class MediatorSectionCodeExtractor
             }
 
             var categoryKey = publicationCode;
-            var lookUpPathBase = $"?category={categoryKey}&lang={languageCode}";
+            var lookUpPathBase = $"?{AppConstants.Media.MediatorQueryParamName.Category}={categoryKey}&{AppConstants.Media.MediatorQueryParamName.Lang}={languageCode}";
             var index = 0;
 
             foreach (var mediaItem in mediaArray.EnumerateArray())
@@ -167,7 +167,7 @@ internal static class MediatorSectionCodeExtractor
                 }
 
                 var naturalKey = naturalKeyElement.GetString() ?? "";
-                if (naturalKey.StartsWith("docid-", StringComparison.OrdinalIgnoreCase))
+                if (naturalKey.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdNaturalKeyPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     var parts = naturalKey.Split('_');
                     if (parts.Length < 3)
@@ -175,7 +175,7 @@ internal static class MediatorSectionCodeExtractor
                         continue;
                     }
 
-                    var docidValue = parts[0].Substring(6);
+                    var docidValue = parts[0].Substring(AppConstants.Media.MediatorIdentifiers.DocIdNaturalKeyPrefix.Length);
                     if (string.IsNullOrEmpty(docidValue) || !int.TryParse(docidValue, out _))
                     {
                         continue;
@@ -186,11 +186,11 @@ internal static class MediatorSectionCodeExtractor
                         continue;
                     }
 
-                    mediaItems.Add(($"docid:{docidValue}", docidTrack));
+                    mediaItems.Add(($"{AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix}{docidValue}", docidTrack));
                     continue;
                 }
 
-                if (!naturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
+                if (!naturalKey.StartsWith(AppConstants.Media.MediatorIdentifiers.PubNaturalKeyPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -201,7 +201,7 @@ internal static class MediatorSectionCodeExtractor
                     continue;
                 }
 
-                var sectionCode = pubParts[0].Substring(4);
+                var sectionCode = pubParts[0].Substring(AppConstants.Media.MediatorIdentifiers.PubNaturalKeyPrefix.Length);
                 if (string.IsNullOrEmpty(sectionCode))
                 {
                     continue;
