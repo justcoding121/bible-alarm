@@ -425,7 +425,7 @@ public class Program
             }
             var lines = File.ReadAllLines(path)
                 .Select(l => l.Trim())
-                .Where(l => l.Length > 0 && !l.StartsWith("#", StringComparison.Ordinal))
+                .Where(l => l.Length > 0 && !l.StartsWith('#'))
                 .ToList();
             if (lines.Count == 0)
             {

@@ -39,7 +39,8 @@ internal sealed class LanguageSeeder
         var normalizedCode = code.ToUpperInvariant();
 
         // Case-insensitive lookup by code only
-        var language = await db.Languages.FirstOrDefaultAsync(x => x.LanguageCode.ToUpper() == normalizedCode);
+        var language = await db.Languages.FirstOrDefaultAsync(x =>
+            string.Equals(x.LanguageCode, normalizedCode, StringComparison.OrdinalIgnoreCase));
         if (language == null)
         {
             // Language not found - fetch name and direction from /en/languages API

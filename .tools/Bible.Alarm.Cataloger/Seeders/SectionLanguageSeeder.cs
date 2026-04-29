@@ -61,7 +61,7 @@ internal sealed class SectionLanguageSeeder
 
     public async Task SeedSectionLanguages(MediaDbContext db)
     {
-        if (dataStore.SectionLanguages.Count == 0)
+        if (dataStore.SectionLanguages.IsEmpty)
         {
             return;
         }

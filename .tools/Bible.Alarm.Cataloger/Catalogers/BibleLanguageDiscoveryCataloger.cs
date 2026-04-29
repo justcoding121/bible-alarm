@@ -15,6 +15,8 @@ namespace Bible.Alarm.Cataloger.Catalogers;
 
 internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
 {
+    private static readonly JsonSerializerOptions IndentedJsonSerializerOptions = new() { WriteIndented = true };
+
     private readonly IDataPersister? dataPersister;
     private readonly SignLanguageChecker signLanguageChecker;
 
@@ -219,10 +221,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
             .OrderBy(x => x.Code)
             .ToList();
 
-        var json = JsonSerializer.Serialize(languageList, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
+        var json = JsonSerializer.Serialize(languageList, IndentedJsonSerializerOptions);
 
         await File.WriteAllTextAsync(languageDiscoveryFile, json);
 

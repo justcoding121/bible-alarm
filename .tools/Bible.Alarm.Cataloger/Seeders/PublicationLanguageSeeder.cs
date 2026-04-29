@@ -73,7 +73,7 @@ internal sealed class PublicationLanguageSeeder
         await db.SaveChangesAsync();
 
         // Seed publication languages
-        if (dataStore.PublicationLanguages.Count == 0)
+        if (dataStore.PublicationLanguages.IsEmpty)
         {
             logger.Information("Seeded English (E) for all publications and publications without language");
             return;

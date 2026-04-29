@@ -36,7 +36,7 @@ internal sealed class MelodyMusicSeeder
     /// </summary>
     public async Task SeedMelodyMusic()
     {
-        if (dataStore.MelodyMusic.Count == 0)
+        if (dataStore.MelodyMusic.IsEmpty)
         {
             logger.Information("No MelodyMusic publications to seed");
             return;
