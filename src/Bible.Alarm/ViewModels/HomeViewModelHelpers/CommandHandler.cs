@@ -2,6 +2,7 @@
 
 using System.Windows.Input;
 using Bible.Alarm.Services.Battery.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -75,7 +76,7 @@ public class CommandHandler
 
 #if DEBUG
             var commandStartTime = DateTime.UtcNow;
-            Log.Information("[PERF] ViewScheduleCommand: Tap received at {StartTime}, ScheduleId={ScheduleId}",
+            Log.Information(AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.PerfTapReceivedAtSchedule,
                 commandStartTime, x.Schedule?.Id);
 #endif
 
@@ -104,7 +105,7 @@ public class CommandHandler
 
 #if DEBUG
                         var commandEndTime = DateTime.UtcNow;
-                        Log.Information("[PERF] ViewScheduleCommand: Navigation completed, total time: {ElapsedMs}ms",
+                        Log.Information(AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.PerfNavigationCompletedTotalMs,
                             (commandEndTime - commandStartTime).TotalMilliseconds);
 #endif
                     }
@@ -114,7 +115,7 @@ public class CommandHandler
                     }
                     catch (Exception ex)
                     {
-                        logger.Error(ex, "View schedule failed for ScheduleId={ScheduleId}", x.Schedule?.Id);
+                        logger.Error(ex, AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.ViewScheduleFailedForScheduleId, x.Schedule?.Id);
                         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
                     }
                     finally

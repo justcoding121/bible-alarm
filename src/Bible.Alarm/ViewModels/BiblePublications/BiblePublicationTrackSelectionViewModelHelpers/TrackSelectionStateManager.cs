@@ -2,6 +2,7 @@
 using AutoMapper;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
@@ -53,11 +54,11 @@ public sealed class TrackSelectionStateManager
         // For non-sectioned publications, sectionCode is 0 or null - that's valid
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
-            Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: Missing language or publication code, returning");
+            Log.Debug(AppConstants.Logging.TrackSelectionStateManagerDiagnosticsLog.HandleInitializedMissingLanguageOrPublicationReturning);
             return;
         }
 
-        Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+        Log.Debug(AppConstants.Logging.TrackSelectionStateManagerDiagnosticsLog.HandleInitializedLanguagePublicationSection,
             newLanguageCode, newPublicationCode, newSectionCode ?? "(none)");
 
         // Update tracking variables

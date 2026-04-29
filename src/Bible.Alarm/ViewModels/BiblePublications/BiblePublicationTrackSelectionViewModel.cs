@@ -145,11 +145,11 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         // We only need language and publication codes
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
-            Log.Debug("BiblePublicationTrackSelectionViewModel.RefreshFromState: Missing language or publication code, returning");
+            Log.Debug(AppConstants.Logging.BiblePublicationTrackSelectionViewModelDiagnosticsLog.RefreshFromStateMissingLanguageOrPublicationReturning);
             return;
         }
 
-        Log.Debug("BiblePublicationTrackSelectionViewModel.RefreshFromState: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+        Log.Debug(AppConstants.Logging.BiblePublicationTrackSelectionViewModelDiagnosticsLog.RefreshFromStateLanguagePublicationSection,
             newLanguageCode, newPublicationCode, newSectionCode ?? "(none)");
 
         stateManager.UpdateFromStateForNonSectioned(state);
@@ -229,7 +229,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
 
     private async Task Initialize(string languageCode, string publicationCode, string? sectionCode)
     {
-        Log.Debug("BiblePublicationTrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, current.TrackCode={CurrentTrackCode}",
+        Log.Debug(AppConstants.Logging.BiblePublicationTrackSelectionViewModelDiagnosticsLog.InitializeLanguagePublicationSectionCurrentTrack,
             languageCode, publicationCode, sectionCode ?? "(none)", stateManager.Current?.TrackCode ?? "(none)");
 
         await dataProvider.PopulateTracks(

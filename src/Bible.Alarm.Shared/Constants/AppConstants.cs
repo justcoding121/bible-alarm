@@ -2452,6 +2452,61 @@ public static class AppConstants
                 "[AutoAdvancing] Flag changed: {PreviousValue} -> {NewValue}, Status={Status}, ScheduleId={ScheduleId}";
         }
 
+        /// <summary><c>BiblePublicationSelectionPublicationChooser</c> default publication selection.</summary>
+        public static class BiblePublicationSelectionPublicationChooserDiagnosticsLog
+        {
+            public const string ChooseSelectedPublicationNoLanguageNeeded =
+                "ChooseAsync: Selected publication={PublicationCode} (has LanguageId=null, doesn't need language)";
+
+            public const string ChoosePublicationAlreadyCatalogedWithSectionAndTracks =
+                "ChooseAsync: Publication={PublicationCode} for language={LanguageCode} already cataloged with first section and tracks";
+
+            public const string ChooseFailedToCatalogPublicationTryingNext =
+                "ChooseAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next";
+
+            public const string ChooseSelectedPublicationQueryableWithLanguage =
+                "ChooseAsync: Selected publication={PublicationCode} (can be queried with language={LanguageCode})";
+
+            public const string ChooseSkippingPublicationNotQueryableWithLanguage =
+                "ChooseAsync: Skipping publication={PublicationCode} (cannot be queried with language={LanguageCode})";
+        }
+
+        /// <summary>Bible track modal (<c>BiblePublicationTrackSelectionViewModel</c>).</summary>
+        public static class BiblePublicationTrackSelectionViewModelDiagnosticsLog
+        {
+            public const string RefreshFromStateMissingLanguageOrPublicationReturning =
+                "BiblePublicationTrackSelectionViewModel.RefreshFromState: Missing language or publication code, returning";
+
+            public const string RefreshFromStateLanguagePublicationSection =
+                "BiblePublicationTrackSelectionViewModel.RefreshFromState: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}";
+
+            public const string InitializeLanguagePublicationSectionCurrentTrack =
+                "BiblePublicationTrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, current.TrackCode={CurrentTrackCode}";
+        }
+
+        /// <summary><c>TrackSelectionStateManager</c> initialization from current schedule.</summary>
+        public static class TrackSelectionStateManagerDiagnosticsLog
+        {
+            public const string HandleInitializedMissingLanguageOrPublicationReturning =
+                "TrackSelectionStateManager.HandleBiblePublicationInitialized: Missing language or publication code, returning";
+
+            public const string HandleInitializedLanguagePublicationSection =
+                "TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}";
+        }
+
+        /// <summary>Home tap-to-open schedule perf and errors (<c>CommandHandler.CreateViewScheduleCommand</c>).</summary>
+        public static class ViewScheduleCommandDiagnosticsLog
+        {
+            public const string PerfTapReceivedAtSchedule =
+                "[PERF] ViewScheduleCommand: Tap received at {StartTime}, ScheduleId={ScheduleId}";
+
+            public const string PerfNavigationCompletedTotalMs =
+                "[PERF] ViewScheduleCommand: Navigation completed, total time: {ElapsedMs}ms";
+
+            public const string ViewScheduleFailedForScheduleId =
+                "View schedule failed for ScheduleId={ScheduleId}";
+        }
+
         /// <summary>Single-track play, resume seek, and seek retry (<c>TrackPlaybackHandler</c>).</summary>
         public static class TrackPlaybackHandlerDiagnosticsLog
         {

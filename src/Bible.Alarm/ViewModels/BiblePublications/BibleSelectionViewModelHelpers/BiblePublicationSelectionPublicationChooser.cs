@@ -54,7 +54,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
             // This is data-driven, not hard-coded
             if (pub.LanguageId == null)
             {
-                Log.Debug("ChooseAsync: Selected publication={PublicationCode} (has LanguageId=null, doesn't need language)",
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationNoLanguageNeeded,
                     pubCode);
                 return (pubCode, pub, true);
             }
@@ -78,7 +78,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                     }
                     else
                     {
-                        Log.Debug("ChooseAsync: Publication={PublicationCode} for language={LanguageCode} already cataloged with first section and tracks",
+                        Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChoosePublicationAlreadyCatalogedWithSectionAndTracks,
                             pubCode,
                             language.Code);
                         progress?.UpdateProgress(0.5);
@@ -92,7 +92,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                         throw;
                     }
 
-                    Log.Debug(ex, "ChooseAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
+                    Log.Debug(ex, AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseFailedToCatalogPublicationTryingNext,
                         pubCode,
                         language.Code);
                     continue;
@@ -107,13 +107,13 @@ internal sealed class BiblePublicationSelectionPublicationChooser
 
             if (canQueryWithLanguage && queriedPub != null)
             {
-                Log.Debug("ChooseAsync: Selected publication={PublicationCode} (can be queried with language={LanguageCode})",
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationQueryableWithLanguage,
                     pubCode,
                     language.Code);
                 return (pubCode, queriedPub, false);
             }
 
-            Log.Debug("ChooseAsync: Skipping publication={PublicationCode} (cannot be queried with language={LanguageCode})",
+            Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSkippingPublicationNotQueryableWithLanguage,
                 pubCode,
                 language.Code);
         }
