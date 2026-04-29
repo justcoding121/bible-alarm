@@ -2166,6 +2166,150 @@ public static class AppConstants
                 "GetVocalMusicReleases: Returning {TotalCount} vocal music releases ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}";
         }
 
+        /// <summary>Fluxor schedule reducers (<c>ApplicationReducer</c>, display-name preservation, bible track selection).</summary>
+        public static class ApplicationReducerDiagnosticsLog
+        {
+            public const string OnUpdateScheduleFromViewModelSkippingAddUnsavedScheduleIdZero =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Skipping add to Schedules collection for unsaved schedule (Id=0). Schedule should only exist in CurrentSchedule until saved.";
+
+            public const string OnUpdateScheduleFromViewModelCurrentScheduleValuesUnchangedReturningExisting =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule values unchanged, returning existing reference to prevent cycle. ScheduleId: {ScheduleId}";
+
+            public const string OnUpdateScheduleFromViewModelLoggingStart =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}";
+
+            public const string OnDeleteScheduleReducerCalled =
+                "ApplicationReducer: OnDeleteSchedule REDUCER CALLED - ScheduleId: {ScheduleId}, Action type: {ActionType}";
+
+            public const string OnUpdateScheduleFailure =
+                "ApplicationReducer: OnUpdateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}";
+
+            public const string OnCreateScheduleNameExistingCount =
+                "ApplicationReducer: OnCreateSchedule - Name: {Name}, ExistingSchedulesCount: {ExistingCount}";
+
+            public const string OnCreateScheduleNewSchedulesCount =
+                "ApplicationReducer: OnCreateSchedule - NewSchedulesCount: {NewCount}";
+
+            public const string OnDeleteScheduleScheduleIdCurrentCount =
+                "ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}, Current schedule count: {Count}";
+
+            public const string OnCreateScheduleFailure =
+                "ApplicationReducer: OnCreateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}";
+
+            public const string OnDeleteScheduleFailure =
+                "ApplicationReducer: OnDeleteScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}";
+
+            public const string OnDeleteScheduleFailureRestoringSchedule =
+                "ApplicationReducer: OnDeleteScheduleFailure - Restoring schedule {ScheduleId} to rollback optimistic deletion";
+
+            public const string OnDeleteScheduleFailureScheduleAlreadyExistsSkippingRestoration =
+                "ApplicationReducer: OnDeleteScheduleFailure - Schedule {ScheduleId} already exists in state, skipping restoration";
+
+            public const string OnDeleteScheduleFailureNoScheduleDataForRollback =
+                "ApplicationReducer: OnDeleteScheduleFailure - No schedule data provided for rollback, ScheduleId: {ScheduleId}";
+
+            public const string OnCreateScheduleSuccess =
+                "ApplicationReducer: OnCreateScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}";
+
+            public const string OnAddScheduleSuccessWithExistingCount =
+                "ApplicationReducer: OnAddScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}, ExistingSchedulesCount: {ExistingCount}";
+
+            public const string OnAddScheduleSuccessNewSchedulesCount =
+                "ApplicationReducer: OnAddScheduleSuccess - NewSchedulesCount: {NewCount}";
+
+            public const string OnUpdateScheduleSuccessEntry =
+                "ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}";
+
+            public const string OnUpdateScheduleSuccessExistingItem =
+                "ApplicationReducer: Existing item - BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}";
+
+            public const string OnUpdateScheduleSuccessAfterPreservation =
+                "ApplicationReducer: After preservation - BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}";
+
+            public const string OnUpdateScheduleSuccessUpdatedScheduleItem =
+                "ApplicationReducer: Updated schedule item (new instance) - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'";
+
+            public const string OnUpdateScheduleSuccessAddedNewScheduleItem =
+                "ApplicationReducer: Added new schedule item to state";
+
+            public const string OnBiblePublicationTrackSelectedSetCategoryFromStateItem =
+                "ApplicationReducer.OnBiblePublicationTrackSelected: Set category={CategoryName} from BiblePublicationStateItem (was null)";
+
+            public const string OnBiblePublicationTrackSelectedCategoryNameNullCategoryIdExists =
+                "ApplicationReducer.OnBiblePublicationTrackSelected: CategoryName is null but CategoryId={CategoryId} exists. Category should always be set.";
+
+            public const string OnBiblePublicationTrackSelectedCategoryNullInBoth =
+                "ApplicationReducer.OnBiblePublicationTrackSelected: Category is null in both current schedule and BiblePublicationStateItem. Category must always be selected.";
+
+            public const string OnBiblePublicationTrackSelectedUpdatedCurrentSchedule =
+                "ApplicationReducer.OnBiblePublicationTrackSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, CategoryName={CategoryName}";
+
+            public const string PreserveDisplayNamesFoundExistingSchedule =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Found existing schedule. Existing LanguageName: {ExistingLanguageName}, Action LanguageName: {ActionLanguageName}";
+
+            public const string PreserveDisplayNamesPreservingExistingCategoryName =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BiblePublicationCategoryName: {CategoryName}";
+
+            public const string PreserveDisplayNamesUsingActionCategoryName =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BiblePublicationCategoryName: {CategoryName}";
+
+            public const string PreserveDisplayNamesCategoryNullInBothWarning =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Category is null in both action and existing schedule. This should not happen - category must always be selected.";
+
+            public const string PreserveDisplayNamesPreservingExistingLanguageName =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BiblePublicationLanguageName: {LanguageName}";
+
+            public const string PreserveDisplayNamesUsingActionLanguageName =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BiblePublicationLanguageName: {LanguageName}";
+
+            public const string PreserveDisplayNamesPreservingExistingBibleSectionName =
+                "ApplicationReducer: Preserving existing BiblePublicationSectionName: {SectionName}";
+
+            public const string PreserveDisplayNamesPreservingExistingBibleTrackTitle =
+                "ApplicationReducer: Preserving existing BiblePublicationTrackTitle: {TrackTitle}";
+
+            public const string PreserveDisplayNamesUsingActionBibleTrackTitle =
+                "ApplicationReducer: Using action's BiblePublicationTrackTitle (not preserving): {TrackTitle}";
+
+            public const string PreserveDisplayNamesPublicationTypeChanged =
+                "ApplicationReducer: Publication type changed (sectioned: {ActionSectioned} -> {ExistingSectioned}), not preserving incompatible display names";
+
+            public const string PreserveDisplayNamesPreservingExistingMusicSectionName =
+                "ApplicationReducer: Preserving existing MusicSectionName: {SectionName}";
+        }
+
+        /// <summary><c>ScheduleCrudReducer</c> delete-path diagnostics.</summary>
+        public static class ScheduleCrudReducerDiagnosticsLog
+        {
+            public const string OnDeleteScheduleCalled =
+                "ScheduleCrudReducer: OnDeleteSchedule called - ScheduleId: {ScheduleId}, State.Schedules is null: {IsNull}";
+
+            public const string OnDeleteScheduleSchedulesNullReturningUnchanged =
+                "ScheduleCrudReducer: OnDeleteSchedule - State.Schedules is null, returning state unchanged";
+        }
+
+        /// <summary><c>ScheduleStateSyncHelper</c> current-schedule sync diagnostics.</summary>
+        public static class ScheduleStateSyncHelperDiagnosticsLog
+        {
+            public const string OnUpdateScheduleFromViewModelUpdatingCurrentSchedule =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Updating CurrentSchedule. New LanguageName: {LanguageName}, PublicationName: {PublicationName}";
+
+            public const string OnUpdateScheduleFromViewModelCurrentScheduleIdMismatch =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule ID ({CurrentScheduleId}) doesn't match action Schedule ID ({ActionScheduleId}), not updating CurrentSchedule";
+
+            public const string SyncedCurrentBiblePublicationSchedule =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentBiblePublicationSchedule from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}";
+
+            public const string SyncedCurrentMusic =
+                "ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentMusic from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}";
+
+            public const string PreservingDaysOfWeekFromExisting =
+                "ScheduleStateSyncHelper: Preserving DaysOfWeek from existing schedule. Action had DaysOfWeek=0, existing has {ExistingDaysOfWeek}";
+
+            public const string PreservingTimeFromExisting =
+                "ScheduleStateSyncHelper: Preserving time from existing schedule. Action had Hour={ActionHour}, Minute={ActionMinute}, existing has Hour={ExistingHour}, Minute={ExistingMinute}";
+        }
+
         /// <summary>Single-track play, resume seek, and seek retry (<c>TrackPlaybackHandler</c>).</summary>
         public static class TrackPlaybackHandlerDiagnosticsLog
         {

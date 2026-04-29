@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -20,12 +21,12 @@ public static class ScheduleStateSyncHelper
             // Check if the schedule actually changed to prevent unnecessary state updates
             if (AreSchedulesEquivalent(state.CurrentSchedule, actionSchedule))
             {
-                Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule values unchanged, returning existing reference to prevent cycle. ScheduleId: {ScheduleId}",
+                Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelCurrentScheduleValuesUnchangedReturningExisting,
                     actionSchedule.Id);
                 return state.CurrentSchedule;
             }
 
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Updating CurrentSchedule. New LanguageName: {LanguageName}, PublicationName: {PublicationName}",
+            Log.Debug(AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.OnUpdateScheduleFromViewModelUpdatingCurrentSchedule,
                 actionSchedule.BiblePublicationLanguageName ?? "null",
                 actionSchedule.BiblePublicationName ?? "null");
             
@@ -42,7 +43,7 @@ public static class ScheduleStateSyncHelper
             return clonedSchedule;
         }
 
-        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule ID ({CurrentScheduleId}) doesn't match action Schedule ID ({ActionScheduleId}), not updating CurrentSchedule",
+        Log.Debug(AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.OnUpdateScheduleFromViewModelCurrentScheduleIdMismatch,
             state.CurrentSchedule?.Id ?? 0, actionSchedule.Id);
         return state.CurrentSchedule;
     }
@@ -95,7 +96,7 @@ public static class ScheduleStateSyncHelper
         }
 
         var biblePublicationSchedule = CreateBiblePublicationScheduleFromCurrent(updatedCurrentSchedule);
-        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentBiblePublicationSchedule from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+        Log.Debug(AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.SyncedCurrentBiblePublicationSchedule,
             biblePublicationSchedule.LanguageCode, biblePublicationSchedule.PublicationCode);
         return biblePublicationSchedule;
     }
@@ -171,7 +172,7 @@ public static class ScheduleStateSyncHelper
         }
 
         var music = CreateMusicFromCurrent(updatedCurrentSchedule);
-        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentMusic from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+        Log.Debug(AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.SyncedCurrentMusic,
             music.LanguageCode ?? "(null)", music.PublicationCode);
         return music;
     }
@@ -214,7 +215,7 @@ public static class ScheduleStateSyncHelper
         // Preserve DaysOfWeek if action has it as 0 but existing has a valid value
         if (actionSchedule.DaysOfWeek == 0 && existingSchedule.DaysOfWeek != 0)
         {
-            Log.Warning("ScheduleStateSyncHelper: Preserving DaysOfWeek from existing schedule. Action had DaysOfWeek=0, existing has {ExistingDaysOfWeek}",
+            Log.Warning(AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.PreservingDaysOfWeekFromExisting,
                 existingSchedule.DaysOfWeek);
             actionSchedule.DaysOfWeek = existingSchedule.DaysOfWeek;
         }
@@ -224,7 +225,7 @@ public static class ScheduleStateSyncHelper
             (existingSchedule.Hour != 0 || existingSchedule.Minute != 0))
         {
             // Only preserve when action is midnight and existing has a different time (midnight remains valid elsewhere).
-            Log.Debug("ScheduleStateSyncHelper: Preserving time from existing schedule. Action had Hour={ActionHour}, Minute={ActionMinute}, existing has Hour={ExistingHour}, Minute={ExistingMinute}",
+            Log.Debug(AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.PreservingTimeFromExisting,
                 actionSchedule.Hour, actionSchedule.Minute, existingSchedule.Hour, existingSchedule.Minute);
             actionSchedule.Hour = existingSchedule.Hour;
             actionSchedule.Minute = existingSchedule.Minute;

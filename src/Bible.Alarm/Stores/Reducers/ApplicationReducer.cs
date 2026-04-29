@@ -92,7 +92,7 @@ public static class ApplicationReducer
                 }
                 else
                 {
-                    Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Skipping add to Schedules collection for unsaved schedule (Id=0). Schedule should only exist in CurrentSchedule until saved.");
+                    Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelSkippingAddUnsavedScheduleIdZero);
                 }
             }
         }
@@ -104,7 +104,7 @@ public static class ApplicationReducer
         // If CurrentSchedule wasn't updated (same reference), return existing state
         if (newSchedules == null && ReferenceEquals(updatedCurrentSchedule, state.CurrentSchedule))
         {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule values unchanged, returning existing reference to prevent cycle. ScheduleId: {ScheduleId}", action.Schedule.Id);
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelCurrentScheduleValuesUnchangedReturningExisting, action.Schedule.Id);
             return state;
         }
 
@@ -127,7 +127,7 @@ public static class ApplicationReducer
 
     private static void LogUpdateStart(UpdateScheduleFromViewModelAction action)
     {
-        Log.Information("ApplicationReducer: OnUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}",
+        Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelLoggingStart,
             action.Schedule!.Id, action.Schedule.Name,
             action.Schedule.BiblePublicationLanguageCode ?? "null",
             action.Schedule.BiblePublicationLanguageName ?? "null",
@@ -149,7 +149,7 @@ public static class ApplicationReducer
         {
             return state;
         }
-        Log.Information("ApplicationReducer: OnDeleteSchedule REDUCER CALLED - ScheduleId: {ScheduleId}, Action type: {ActionType}",
+        Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleReducerCalled,
             action.ScheduleId, action.GetType().FullName);
         return ScheduleCrudReducer.OnDeleteSchedule(state, action);
     }
@@ -222,7 +222,7 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnUpdateScheduleFailure(ApplicationState state, UpdateScheduleFailureAction action)
     {
-        Log.Warning("ApplicationReducer: OnUpdateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
+        Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFailure,
             action.Schedule?.Id, action.Error);
 
         // For update failures, we could reload from server or keep the optimistic update
@@ -477,7 +477,7 @@ public static class ApplicationReducer
                 {
                     updatedCurrentSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
                     updatedCurrentSchedule.BiblePublicationCategoryName = biblePub.CategoryName;
-                    Log.Debug("ApplicationReducer.OnBiblePublicationTrackSelected: Set category={CategoryName} from BiblePublicationStateItem (was null)",
+                    Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedSetCategoryFromStateItem,
                         biblePub.CategoryName);
                 }
                 else
@@ -486,12 +486,12 @@ public static class ApplicationReducer
                     // Try to preserve category ID if it exists
                     if (updatedCurrentSchedule.BiblePublicationCategoryId.HasValue)
                     {
-                        Log.Warning("ApplicationReducer.OnBiblePublicationTrackSelected: CategoryName is null but CategoryId={CategoryId} exists. Category should always be set.",
+                        Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedCategoryNameNullCategoryIdExists,
                             updatedCurrentSchedule.BiblePublicationCategoryId.Value);
                     }
                     else
                     {
-                        Log.Error("ApplicationReducer.OnBiblePublicationTrackSelected: Category is null in both current schedule and BiblePublicationStateItem. Category must always be selected.");
+                        Log.Error(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedCategoryNullInBoth);
                     }
                 }
             }
@@ -507,8 +507,7 @@ public static class ApplicationReducer
                 }
             }
 
-            Log.Debug("ApplicationReducer.OnBiblePublicationTrackSelected: Updated CurrentSchedule with " +
-                "LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, CategoryName={CategoryName}",
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedUpdatedCurrentSchedule,
                 updatedCurrentSchedule.BiblePublicationLanguageCode, updatedCurrentSchedule.BiblePublicationCode,
                 updatedCurrentSchedule.BiblePublicationSectionCode ?? "null", biblePub.TrackCode, updatedCurrentSchedule.BiblePublicationCategoryName);
         }

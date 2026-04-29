@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Models;
 using Serilog;
@@ -13,7 +14,7 @@ public static class DisplayNamePreservationHelper
 {
     public static void PreserveDisplayNamesFromExisting(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
     {
-        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Found existing schedule. Existing LanguageName: {ExistingLanguageName}, Action LanguageName: {ActionLanguageName}",
+        Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesFoundExistingSchedule,
             existingScheduleItem.BiblePublicationLanguageName ?? "null",
             actionSchedule.BiblePublicationLanguageName ?? "null");
 
@@ -27,30 +28,30 @@ public static class DisplayNamePreservationHelper
         // If category is null in action schedule, preserve it from existing schedule
         if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCategoryName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationCategoryName))
         {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BiblePublicationCategoryName: {CategoryName}",
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingCategoryName,
                 existingScheduleItem.BiblePublicationCategoryName);
             actionSchedule.BiblePublicationCategoryId = existingScheduleItem.BiblePublicationCategoryId;
             actionSchedule.BiblePublicationCategoryName = existingScheduleItem.BiblePublicationCategoryName;
         }
         else if (!string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCategoryName))
         {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BiblePublicationCategoryName: {CategoryName}",
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionCategoryName,
                 actionSchedule.BiblePublicationCategoryName);
         }
         else
         {
-            Log.Warning("ApplicationReducer: OnUpdateScheduleFromViewModel - Category is null in both action and existing schedule. This should not happen - category must always be selected.");
+            Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesCategoryNullInBothWarning);
         }
 
         if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationLanguageName))
         {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BiblePublicationLanguageName: {LanguageName}",
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingLanguageName,
                 existingScheduleItem.BiblePublicationLanguageName);
             actionSchedule.BiblePublicationLanguageName = existingScheduleItem.BiblePublicationLanguageName;
         }
         else
         {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BiblePublicationLanguageName: {LanguageName}",
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionLanguageName,
                 actionSchedule.BiblePublicationLanguageName ?? "null");
         }
 
@@ -87,7 +88,7 @@ public static class DisplayNamePreservationHelper
         if (actionHasSectionStructure == existingHasSectionStructure && actionHasSectionStructure && sectionCodeUnchanged
             && string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationSectionName))
         {
-            Log.Debug("ApplicationReducer: Preserving existing BiblePublicationSectionName: {SectionName}",
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingBibleSectionName,
                 existingScheduleItem.BiblePublicationSectionName);
             actionSchedule.BiblePublicationSectionName = existingScheduleItem.BiblePublicationSectionName;
         }
@@ -98,19 +99,19 @@ public static class DisplayNamePreservationHelper
         {
             if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationTrackTitle))
             {
-                Log.Debug("ApplicationReducer: Preserving existing BiblePublicationTrackTitle: {TrackTitle}",
+                Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingBibleTrackTitle,
                     existingScheduleItem.BiblePublicationTrackTitle);
                 actionSchedule.BiblePublicationTrackTitle = existingScheduleItem.BiblePublicationTrackTitle;
             }
             else if (!string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationTrackTitle))
             {
-                Log.Debug("ApplicationReducer: Using action's BiblePublicationTrackTitle (not preserving): {TrackTitle}",
+                Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionBibleTrackTitle,
                     actionSchedule.BiblePublicationTrackTitle);
             }
         }
         else
         {
-            Log.Debug("ApplicationReducer: Publication type changed (sectioned: {ActionSectioned} -> {ExistingSectioned}), not preserving incompatible display names",
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPublicationTypeChanged,
                 actionHasSectionStructure, existingHasSectionStructure);
         }
     }
@@ -140,7 +141,7 @@ public static class DisplayNamePreservationHelper
         if (actionMusicSectioned == existingMusicSectioned && actionMusicSectioned
             && string.IsNullOrWhiteSpace(actionSchedule.MusicSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicSectionName))
         {
-            Log.Debug("ApplicationReducer: Preserving existing MusicSectionName: {SectionName}",
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingMusicSectionName,
                 existingScheduleItem.MusicSectionName);
             actionSchedule.MusicSectionName = existingScheduleItem.MusicSectionName;
         }

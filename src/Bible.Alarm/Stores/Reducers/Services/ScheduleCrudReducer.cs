@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -15,7 +16,7 @@ public static class ScheduleCrudReducer
 {
     public static ApplicationState OnCreateSchedule(ApplicationState state, CreateScheduleAction action)
     {
-        Log.Information("ApplicationReducer: OnCreateSchedule - Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
+        Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleNameExistingCount,
             action.Schedule?.Name, state.Schedules?.Count ?? 0);
 
         if (action.Schedule == null)
@@ -36,7 +37,7 @@ public static class ScheduleCrudReducer
         var optimisticSchedule = CreateOptimisticSchedule(action.Schedule);
         newSchedules.Add(optimisticSchedule);
 
-        Log.Information("ApplicationReducer: OnCreateSchedule - NewSchedulesCount: {NewCount}", newSchedules.Count);
+        Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleNewSchedulesCount, newSchedules.Count);
 
         return StateFactory.CreateStateWithSchedules(state, newSchedules, optimisticSchedule);
     }
@@ -81,16 +82,16 @@ public static class ScheduleCrudReducer
 
     public static ApplicationState OnDeleteSchedule(ApplicationState state, DeleteScheduleAction action)
     {
-        Log.Information("ScheduleCrudReducer: OnDeleteSchedule called - ScheduleId: {ScheduleId}, State.Schedules is null: {IsNull}",
+        Log.Information(AppConstants.Logging.ScheduleCrudReducerDiagnosticsLog.OnDeleteScheduleCalled,
             action.ScheduleId, state.Schedules == null);
 
         if (state.Schedules == null)
         {
-            Log.Warning("ScheduleCrudReducer: OnDeleteSchedule - State.Schedules is null, returning state unchanged");
+            Log.Warning(AppConstants.Logging.ScheduleCrudReducerDiagnosticsLog.OnDeleteScheduleSchedulesNullReturningUnchanged);
             return state;
         }
 
-        Log.Information("ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}, Current schedule count: {Count}",
+        Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleScheduleIdCurrentCount,
             action.ScheduleId, state.Schedules.Count);
 
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
@@ -113,7 +114,7 @@ public static class ScheduleCrudReducer
             return state;
         }
 
-        Log.Warning("ApplicationReducer: OnCreateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
+        Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleFailure,
             action.Schedule.Id, action.Error);
 
         // Remove the optimistically added schedule
@@ -133,13 +134,13 @@ public static class ScheduleCrudReducer
 
     public static ApplicationState OnDeleteScheduleFailure(ApplicationState state, DeleteScheduleFailureAction action)
     {
-        Log.Warning("ApplicationReducer: OnDeleteScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
+        Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleFailure,
             action.ScheduleId, action.Error);
 
         // If we have the schedule data, restore it to rollback the optimistic update
         if (action.Schedule != null && state.Schedules != null)
         {
-            Log.Information("ApplicationReducer: OnDeleteScheduleFailure - Restoring schedule {ScheduleId} to rollback optimistic deletion", action.ScheduleId);
+            Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleFailureRestoringSchedule, action.ScheduleId);
 
             // Check if schedule is already in the collection (shouldn't be, but check to avoid duplicates)
             var existingSchedule = state.Schedules.FirstOrDefault(s => s.Id == action.ScheduleId);
@@ -158,12 +159,12 @@ public static class ScheduleCrudReducer
             }
             else
             {
-                Log.Debug("ApplicationReducer: OnDeleteScheduleFailure - Schedule {ScheduleId} already exists in state, skipping restoration", action.ScheduleId);
+                Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleFailureScheduleAlreadyExistsSkippingRestoration, action.ScheduleId);
             }
         }
         else
         {
-            Log.Warning("ApplicationReducer: OnDeleteScheduleFailure - No schedule data provided for rollback, ScheduleId: {ScheduleId}", action.ScheduleId);
+            Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleFailureNoScheduleDataForRollback, action.ScheduleId);
         }
 
         return state;
@@ -171,7 +172,7 @@ public static class ScheduleCrudReducer
 
     public static ApplicationState OnCreateScheduleSuccess(ApplicationState state, CreateScheduleSuccessAction action)
     {
-        Log.Information("ApplicationReducer: OnCreateScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}",
+        Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleSuccess,
             action.Schedule?.Id, action.Schedule?.Name);
 
         if (action.Schedule == null || state.Schedules == null)
@@ -202,7 +203,7 @@ public static class ScheduleCrudReducer
 
     public static ApplicationState OnAddScheduleSuccess(ApplicationState state, AddScheduleSuccessAction action)
     {
-        Log.Information("ApplicationReducer: OnAddScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
+        Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnAddScheduleSuccessWithExistingCount,
             action.Schedule?.Id, action.Schedule?.Name, state.Schedules?.Count ?? 0);
 
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
@@ -219,7 +220,7 @@ public static class ScheduleCrudReducer
             newSchedules.Add(action.Schedule);
         }
 
-        Log.Information("ApplicationReducer: OnAddScheduleSuccess - NewSchedulesCount: {NewCount}", newSchedules.Count);
+        Log.Information(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnAddScheduleSuccessNewSchedulesCount, newSchedules.Count);
 
         // Deep clone to ensure CurrentSchedule is independent from the item in Schedules collection
         ScheduleStateItem? clonedCurrentSchedule = action.Schedule?.DeepClone();
@@ -234,9 +235,9 @@ public static class ScheduleCrudReducer
             return state;
         }
 
-        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}",
-            action.Schedule.Id, 
-            action.Schedule.BiblePublicationLanguageName ?? "null", 
+        Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessEntry,
+            action.Schedule.Id,
+            action.Schedule.BiblePublicationLanguageName ?? "null",
             action.Schedule.BiblePublicationSectionName ?? "null",
             action.Schedule.BiblePublicationTrackTitle ?? "null",
             action.Schedule.BiblePublicationCode ?? "null",
@@ -258,8 +259,8 @@ public static class ScheduleCrudReducer
                     // Use the cloned schedule directly
                     updatedScheduleItem = sourceSchedule;
 
-                    Log.Debug("ApplicationReducer: Existing item - BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}",
-                        scheduleItem.BiblePublicationLanguageName ?? "null", 
+                    Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessExistingItem,
+                        scheduleItem.BiblePublicationLanguageName ?? "null",
                         scheduleItem.BiblePublicationSectionName ?? "null",
                         scheduleItem.BiblePublicationTrackTitle ?? "null",
                         scheduleItem.BiblePublicationCode ?? "null",
@@ -269,12 +270,12 @@ public static class ScheduleCrudReducer
                     // This ensures display names are available immediately after save, before bootstrap service populates them
                     DisplayNamePreservationHelper.PreserveDisplayNamesFromExisting(updatedScheduleItem, scheduleItem);
 
-                    Log.Debug("ApplicationReducer: After preservation - BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}",
+                    Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessAfterPreservation,
                         updatedScheduleItem.BiblePublicationSectionName ?? "null",
                         updatedScheduleItem.BiblePublicationTrackTitle ?? "null",
                         updatedScheduleItem.BiblePublicationCode ?? "null");
 
-                    Log.Debug("ApplicationReducer: Updated schedule item (new instance) - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'",
+                    Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessUpdatedScheduleItem,
                         oldMusicEnabled, updatedScheduleItem.MusicEnabled, updatedScheduleItem.Name, action.Schedule.Name);
 
                     newSchedules.Add(updatedScheduleItem);
@@ -292,7 +293,7 @@ public static class ScheduleCrudReducer
             // Schedule not found, add it (shouldn't happen, but handle gracefully) - deep clone for independence
             updatedScheduleItem = action.Schedule.DeepClone();
             newSchedules.Add(updatedScheduleItem);
-            Log.Debug("ApplicationReducer: Added new schedule item to state");
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessAddedNewScheduleItem);
         }
 
         // Update CurrentSchedule only if it matches the updated schedule (don't set it if it was cleared)
