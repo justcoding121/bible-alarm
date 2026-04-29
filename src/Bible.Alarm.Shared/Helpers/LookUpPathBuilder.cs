@@ -50,7 +50,7 @@ public static class LookUpPathBuilder
         if (isDiscStyleSection)
             return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&langwritten={lc}";
 
-        return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&booknum={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={lc}";
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&booknum={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&langwritten={lc}";
     }
 
     /// <summary>

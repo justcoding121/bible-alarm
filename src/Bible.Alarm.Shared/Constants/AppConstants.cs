@@ -395,6 +395,12 @@ public static class AppConstants
         /// <summary>JW GETPUB/MEDIALINKS query segment for JSON responses (<c>output=json</c>).</summary>
         public const string GetPubQueryOutputJson = "output=json";
 
+        /// <summary>GETPUB query segment: single-language mode (<c>alllangs=0</c>).</summary>
+        public const string GetPubQueryAllLangsOff = "alllangs=0";
+
+        /// <summary>GETPUB query segment: list all languages (<c>alllangs=1</c>).</summary>
+        public const string GetPubQueryAllLangsOn = "alllangs=1";
+
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
         public const string PublicationUiTrackSingular = "Track";
 

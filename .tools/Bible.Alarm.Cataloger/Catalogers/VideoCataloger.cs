@@ -181,7 +181,7 @@ internal class VideoCataloger : BaseCataloger
         string jsonString;
         try
         {
-            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&alllangs=1&langwritten={AppConstants.Media.DefaultLanguageCode}";
+            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryAllLangsOn}&langwritten={AppConstants.Media.DefaultLanguageCode}";
             jsonString = await DownloadUtility.GetAsync(catalogLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))

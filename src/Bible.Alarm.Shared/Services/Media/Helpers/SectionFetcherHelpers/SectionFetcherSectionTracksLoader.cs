@@ -77,15 +77,15 @@ internal sealed class SectionFetcherSectionTracksLoader
         if (isIssueSectioned)
         {
             var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(normalizedSectionCode);
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&langwritten={normalizedLanguageCode}";
         }
         else if (isBible)
         {
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&langwritten={normalizedLanguageCode}";
         }
         else
         {
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&langwritten={normalizedLanguageCode}";
         }
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
