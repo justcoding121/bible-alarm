@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
@@ -22,7 +23,7 @@ public sealed class TrackCdnUrlRefresher(
     {
         if (string.IsNullOrEmpty(metadata.TrackCode))
         {
-            logger.Warning("TrackCdnUrlRefresher: missing TrackCode");
+            logger.Warning(AppConstants.Logging.TrackCdnUrlRefresherDiagnosticsLog.MissingTrackCode);
             return null;
         }
 
@@ -42,7 +43,7 @@ public sealed class TrackCdnUrlRefresher(
             if (!melodyOk)
             {
                 logger.Warning(
-                    "TrackCdnUrlRefresher: melody disc refresh failed pub={PublicationCode} disc={Disc}",
+                    AppConstants.Logging.TrackCdnUrlRefresherDiagnosticsLog.MelodyDiscRefreshFailedPubDisc,
                     metadata.PublicationCode,
                     metadata.DownloadCode);
                 return null;
@@ -60,7 +61,7 @@ public sealed class TrackCdnUrlRefresher(
         var lang = (metadata.LanguageCode ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(lang))
         {
-            logger.Warning("TrackCdnUrlRefresher: missing LanguageCode for non-melody track");
+            logger.Warning(AppConstants.Logging.TrackCdnUrlRefresherDiagnosticsLog.MissingLanguageCodeForNonMelodyTrack);
             return null;
         }
 
@@ -87,7 +88,7 @@ public sealed class TrackCdnUrlRefresher(
         if (!ok)
         {
             logger.Warning(
-                "TrackCdnUrlRefresher: API refresh failed pub={PublicationCode} lang={LanguageCode} section={SectionCode}",
+                AppConstants.Logging.TrackCdnUrlRefresherDiagnosticsLog.ApiRefreshFailedPubLangSection,
                 metadata.PublicationCode,
                 lang,
                 metadata.SectionCode ?? "(flat)");

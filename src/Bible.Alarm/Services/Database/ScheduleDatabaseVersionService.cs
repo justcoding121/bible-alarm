@@ -3,6 +3,7 @@
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Services.Database;
@@ -42,7 +43,7 @@ public sealed class ScheduleDatabaseVersionService(
             if (!isCurrent)
             {
                 logger.Debug(
-                    "Schedule database version mismatch - stored: {StoredVersion}, current: {CurrentVersion}. Migration check needed.",
+                    AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.VersionMismatchStoredVersusCurrent,
                     storedVersion, currentVersion);
             }
 
@@ -52,7 +53,8 @@ public sealed class ScheduleDatabaseVersionService(
         {
             // If version check fails (e.g., versionFinder throws), assume version mismatch
             // This ensures we always check migrations when there's uncertainty
-            logger.Warning(ex, "Failed to check Schedule database version, will perform migration check");
+            logger.Warning(ex,
+                AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.FailedToCheckScheduleDatabaseVersionPerformingMigrationCheck);
             return Task.FromResult(false);
         }
     }
@@ -67,7 +69,8 @@ public sealed class ScheduleDatabaseVersionService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to save Schedule database version to Preferences");
+            logger.Error(ex,
+                AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.FailedToSaveScheduleDatabaseVersionToPreferences);
             throw;
         }
 

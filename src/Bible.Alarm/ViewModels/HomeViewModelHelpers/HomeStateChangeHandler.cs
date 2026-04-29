@@ -286,7 +286,7 @@ public class HomeStateChangeHandler
                 {
                     await fadeOutProgressBarAsync();
                     setIsBusy(false);
-                    logger.Debug("OnStateChanged: Progress bar hidden after list render delay");
+                    logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ProgressBarHiddenAfterListRenderDelay);
                 }
             });
         }

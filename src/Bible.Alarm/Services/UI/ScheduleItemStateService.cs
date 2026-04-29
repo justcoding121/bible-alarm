@@ -1,5 +1,7 @@
 #nullable enable
+
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
 using Serilog;
@@ -30,7 +32,7 @@ public sealed class ScheduleItemStateService(ILogger logger) : IScheduleItemStat
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Could not set IsBusy to false for schedule {ScheduleId}", scheduleId);
+            logger.Warning(ex, AppConstants.Logging.ScheduleItemStateServiceDiagnosticsLog.CouldNotSetIsBusyFalseForSchedule, scheduleId);
         }
     }
 
@@ -84,7 +86,7 @@ public sealed class ScheduleItemStateService(ILogger logger) : IScheduleItemStat
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Could not hide Home page overlay");
+            logger.Warning(ex, AppConstants.Logging.ScheduleItemStateServiceDiagnosticsLog.CouldNotHideHomePageOverlay);
         }
     }
 

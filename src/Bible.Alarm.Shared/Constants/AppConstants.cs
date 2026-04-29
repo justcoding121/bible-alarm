@@ -565,6 +565,12 @@ public static class AppConstants
                 "User-initiated playback for schedule {ScheduleId} - starting playback directly without notifications";
         }
 
+        /// <summary><c>MainActivity</c> background task wiring (Android).</summary>
+        public static class MainActivityBackgroundTaskHelperDiagnosticsLog
+        {
+            public const string ErrorSettingUpBackgroundTasks = "Error setting up background tasks";
+        }
+
         /// <summary>Serialized schedule play (<c>SchedulePlaybackService</c>).</summary>
         public static class SchedulePlaybackServiceDiagnosticsLog
         {
@@ -919,6 +925,29 @@ public static class AppConstants
 
             public const string PrepareScheduleStateItemFinalBeforeDispatch =
                 "PrepareScheduleStateItem: Final scheduleStateItem before dispatch - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicId={MusicId}";
+        }
+
+        /// <summary>SQLite schedule DB version prefs (<c>ScheduleDatabaseVersionService</c>).</summary>
+        public static class ScheduleDatabaseVersionServiceDiagnosticsLog
+        {
+            public const string VersionMismatchStoredVersusCurrent =
+                "Schedule database version mismatch - stored: {StoredVersion}, current: {CurrentVersion}. Migration check needed.";
+
+            public const string FailedToCheckScheduleDatabaseVersionPerformingMigrationCheck =
+                "Failed to check Schedule database version, will perform migration check";
+
+            public const string SavedScheduleDatabaseVersionToPreferences =
+                "Saved Schedule database version {Version} to Preferences";
+
+            public const string FailedToSaveScheduleDatabaseVersionToPreferences =
+                "Failed to save Schedule database version to Preferences";
+        }
+
+        /// <summary><c>ScheduleValidationService</c> days-of-week guard.</summary>
+        public static class ScheduleValidationServiceDiagnosticsLog
+        {
+            public const string ValidationFailedNoDaysOfWeekSelected =
+                "Validation failed: No days of week selected";
         }
 
         /// <summary>Music publication cascade (<c>MusicCascadeHandler</c> / <c>MusicCascadeScheduleUpdater</c>).</summary>
@@ -1915,6 +1944,9 @@ public static class AppConstants
 
             public const string ErrorPopulatingMusicTrackName =
                 "Error populating MusicTrackName";
+
+            public const string PopulatedMusicSectionNameForPublicationSection =
+                "Populated MusicSectionName '{MusicSectionName}' for publication {PublicationCode}, section {SectionCode}";
         }
 
         /// <summary>Bible publication display names on schedule state (<c>ScheduleDisplayNameBibleHelper</c>).</summary>
@@ -2660,6 +2692,21 @@ public static class AppConstants
             public const string ProbeTimedOutForUrl = "CDN probe timed out for URL";
 
             public const string ProbeFailedIndeterminate = "CDN probe failed (indeterminate)";
+        }
+
+        /// <summary>CDN/API refresh paths for stalled track URIs (<c>TrackCdnUrlRefresher</c>).</summary>
+        public static class TrackCdnUrlRefresherDiagnosticsLog
+        {
+            public const string MissingTrackCode = "TrackCdnUrlRefresher: missing TrackCode";
+
+            public const string MelodyDiscRefreshFailedPubDisc =
+                "TrackCdnUrlRefresher: melody disc refresh failed pub={PublicationCode} disc={Disc}";
+
+            public const string MissingLanguageCodeForNonMelodyTrack =
+                "TrackCdnUrlRefresher: missing LanguageCode for non-melody track";
+
+            public const string ApiRefreshFailedPubLangSection =
+                "TrackCdnUrlRefresher: API refresh failed pub={PublicationCode} lang={LanguageCode} section={SectionCode}";
         }
 
         /// <summary>Schedule page performance and WinUI layout diagnostics.</summary>
@@ -3541,6 +3588,15 @@ public static class AppConstants
                 "No items loaded into CollectionView after refresh";
         }
 
+        /// <summary>Home list row busy / overlay cleanup (<c>ScheduleItemStateService</c>).</summary>
+        public static class ScheduleItemStateServiceDiagnosticsLog
+        {
+            public const string CouldNotSetIsBusyFalseForSchedule =
+                "Could not set IsBusy to false for schedule {ScheduleId}";
+
+            public const string CouldNotHideHomePageOverlay = "Could not hide Home page overlay";
+        }
+
         /// <summary>Fetch overlay progress UI (<c>FetchProgressTracker</c>).</summary>
         public static class FetchProgressTrackerDiagnosticsLog
         {
@@ -3624,6 +3680,26 @@ public static class AppConstants
 
             public const string CannotDeleteScheduleLastInDatabase =
                 "Cannot delete schedule {ScheduleId} - it is the last schedule in the database";
+        }
+
+        /// <summary>Per-schedule offline media cache folder setup (<c>ScheduleMediaCacheService</c>).</summary>
+        public static class ScheduleMediaCacheServiceDiagnosticsLog
+        {
+            public const string SkippingMediaCacheSetupInvalidScheduleId =
+                "Skipping media cache setup for invalid schedule ID: {ScheduleId}";
+
+            public const string ErrorDeletingOldCacheAndSettingUpNewCacheForSchedule =
+                "Error deleting old cache and setting up new cache for schedule {ScheduleId}";
+
+            public const string ErrorSettingUpMediaCacheForSchedule =
+                "Error setting up media cache for schedule {ScheduleId}";
+        }
+
+        /// <summary>Schedule page container VMs bootstrap (<c>ScheduleContainerService</c>).</summary>
+        public static class ScheduleContainerServiceDiagnosticsLog
+        {
+            public const string ErrorInitializingContainerViewModels =
+                "Error initializing container view models";
         }
 
         /// <summary>Playback pipeline and modal adapter error paths.</summary>
@@ -3862,6 +3938,16 @@ public static class AppConstants
 
             public const string FallbackErrorHandlingAlsoFailed =
                 "Fallback error handling also failed";
+        }
+
+        /// <summary>Playlist / session fields held by <c>PlaybackService</c> (<c>PlaybackStateManager</c>).</summary>
+        public static class PlaybackStateManagerDiagnosticsLog
+        {
+            public const string ResetClearedPlayedBibleTrackKeys =
+                "[PlaybackStateManager] Reset called - cleared {PlayedTracksCount} played Bible track keys";
+
+            public const string ErrorDisposingPreparationCancellationTokenSource =
+                "Error disposing preparation cancellation token source";
         }
 
         /// <summary><c>PlaybackStopHandler</c> stop/teardown and <c>PlaybackStoppedAction</c> dispatch.</summary>

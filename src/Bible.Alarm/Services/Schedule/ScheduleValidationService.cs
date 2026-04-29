@@ -25,7 +25,7 @@ public sealed class ScheduleValidationService : IScheduleValidationService
             return true;
         }
 
-        logger.Warning("Validation failed: No days of week selected");
+        logger.Warning(AppConstants.Logging.ScheduleValidationServiceDiagnosticsLog.ValidationFailedNoDaysOfWeekSelected);
         await toastService.ShowMessage(AppConstants.ToastMessages.SelectAtLeastOneDay);
         return false;
     }

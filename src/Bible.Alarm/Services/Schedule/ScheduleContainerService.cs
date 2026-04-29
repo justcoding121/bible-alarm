@@ -1,5 +1,7 @@
 #nullable enable
+
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels.Schedule;
 using Serilog;
 
@@ -49,7 +51,7 @@ public sealed class ScheduleContainerService : IScheduleContainerService
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error initializing container view models");
+            logger.Error(ex, AppConstants.Logging.ScheduleContainerServiceDiagnosticsLog.ErrorInitializingContainerViewModels);
         }
     }
 }

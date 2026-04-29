@@ -1,6 +1,8 @@
 #nullable enable
+
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Services.Schedule;
@@ -25,7 +27,8 @@ public sealed class ScheduleMediaCacheService : IScheduleMediaCacheService
     {
         if (scheduleId <= 0)
         {
-            logger.Warning("Skipping media cache setup for invalid schedule ID: {ScheduleId}", scheduleId);
+            logger.Warning(AppConstants.Logging.ScheduleMediaCacheServiceDiagnosticsLog.SkippingMediaCacheSetupInvalidScheduleId,
+                scheduleId);
             return;
         }
 
@@ -47,7 +50,9 @@ public sealed class ScheduleMediaCacheService : IScheduleMediaCacheService
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Error deleting old cache and setting up new cache for schedule {ScheduleId}", scheduleId);
+                    logger.Error(ex,
+                        AppConstants.Logging.ScheduleMediaCacheServiceDiagnosticsLog.ErrorDeletingOldCacheAndSettingUpNewCacheForSchedule,
+                        scheduleId);
                 }
             });
         }
@@ -61,7 +66,8 @@ public sealed class ScheduleMediaCacheService : IScheduleMediaCacheService
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Error setting up media cache for schedule {ScheduleId}", scheduleId);
+                    logger.Error(ex,
+                        AppConstants.Logging.ScheduleMediaCacheServiceDiagnosticsLog.ErrorSettingUpMediaCacheForSchedule, scheduleId);
                 }
             });
         }

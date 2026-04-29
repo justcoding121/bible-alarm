@@ -3,6 +3,7 @@
 using Android.App;
 using Android.Content;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
@@ -38,7 +39,7 @@ public class MainActivityBackgroundTaskHelper
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error setting up background tasks");
+                logger.Error(ex, AppConstants.Logging.MainActivityBackgroundTaskHelperDiagnosticsLog.ErrorSettingUpBackgroundTasks);
             }
         });
     }

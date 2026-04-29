@@ -149,7 +149,10 @@ public sealed class ScheduleDisplayNameMusicHelper
                     if (!string.IsNullOrWhiteSpace(section))
                     {
                         scheduleStateItem.MusicSectionName = section;
-                        logger.Debug("Populated MusicSectionName '{MusicSectionName}' for publication {PublicationCode}, section {SectionCode}", section, music.PublicationCode, music.SectionCode);
+                        logger.Debug(AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.PopulatedMusicSectionNameForPublicationSection,
+                            section,
+                            music.PublicationCode,
+                            music.SectionCode);
                     }
                     else
                     {

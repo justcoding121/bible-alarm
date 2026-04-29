@@ -113,7 +113,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         }
         else
         {
-            logger.Information("PrepareModelForSave: musicUpdated=false, skipping music update");
+            logger.Information(AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareModelForSaveMusicUpdatedFalseSkippingMusicUpdate);
         }
 
         ClearUnchangedMusic(model, isNewSchedule, musicUpdated);
@@ -135,7 +135,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         logger.Information(AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareModelForSaveSetMusicEnabledFromState,
             model.MusicEnabled);
 
-        logger.Information("PrepareModelForSave: Final model - Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, MusicEnabled={MusicEnabled}, TrackCode={TrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+        logger.Information(AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareModelForSaveFinalModel,
             model.Id, model.Name, model.Music != null, model.MusicEnabled,
             model.Music?.TrackCode ?? "null",
             model.Music?.PublicationCode ?? "null",

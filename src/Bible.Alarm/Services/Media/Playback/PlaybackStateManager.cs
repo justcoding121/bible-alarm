@@ -1,6 +1,8 @@
 #nullable enable
+
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;
 
@@ -74,7 +76,7 @@ public sealed class PlaybackStateManager
         ManualNavigationPending = false;
         IsPreparingTrack = false;
         playbackEstablishedTrackIndex = -2;
-        logger.Debug("[PlaybackStateManager] Reset called - cleared {PlayedTracksCount} played Bible track keys", playedTracksCount);
+        logger.Debug(AppConstants.Logging.PlaybackStateManagerDiagnosticsLog.ResetClearedPlayedBibleTrackKeys, playedTracksCount);
 
         // Dispose cancellation token source
         try
@@ -84,7 +86,7 @@ public sealed class PlaybackStateManager
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error disposing preparation cancellation token source");
+            logger.Warning(ex, AppConstants.Logging.PlaybackStateManagerDiagnosticsLog.ErrorDisposingPreparationCancellationTokenSource);
         }
     }
 
