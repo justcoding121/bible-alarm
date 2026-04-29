@@ -11,6 +11,7 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 public static class IosMediaElementHelper
 {
     private const string HttpsUriSchemePrefix = "https://";
+    private const string FileUriSchemePrefix = "file://";
 
     /// <summary>
     /// Processes a URI for iOS MediaElement.
@@ -29,7 +30,7 @@ public static class IosMediaElementHelper
         }
 
         // If it's a file:// URI, convert it back to a plain path
-        if (uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        if (uri.StartsWith(FileUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
             try
             {

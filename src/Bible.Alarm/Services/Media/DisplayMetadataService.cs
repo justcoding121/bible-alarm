@@ -31,6 +31,9 @@ public sealed class DisplayMetadataService(
     private const string HttpsUriSchemePrefix = "https://";
     private const string FallbackUnknownTitle = "Unknown Title";
     private const string FallbackTrackTitlePrefix = "Track ";
+    private const string FileUriSchemePrefix = "file://";
+    private const string ArtworkExtractionContextMelodyDiscFile = "Melody disc file";
+    private const string ArtworkExtractionContextBibleFile = "Bible file";
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
@@ -90,7 +93,7 @@ public sealed class DisplayMetadataService(
         {
             if (!skipRemoteArtwork || !uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
             {
-                await TryExtractArtworkFromFileAsync(meta, uri, "Melody disc file");
+                await TryExtractArtworkFromFileAsync(meta, uri, ArtworkExtractionContextMelodyDiscFile);
             }
             return;
         }
@@ -116,7 +119,7 @@ public sealed class DisplayMetadataService(
 
         if (!skipRemoteArtwork || !uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
-            await TryExtractArtworkFromFileAsync(meta, uri, "Bible file");
+            await TryExtractArtworkFromFileAsync(meta, uri, ArtworkExtractionContextBibleFile);
         }
     }
     
@@ -477,7 +480,7 @@ public sealed class DisplayMetadataService(
     private static string ConvertUriToFilePath(string uri)
     {
         // Convert file:// URI to local path, or use URI as-is if already a file path
-        if (!uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        if (!uri.StartsWith(FileUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
             return uri;
         }
@@ -493,7 +496,7 @@ public sealed class DisplayMetadataService(
         {
             // If URI parsing fails, try to extract path manually
             // Remove "file://" prefix (or "file:///" on Unix)
-            var path = uri.Substring(7);
+            var path = uri.Substring(FileUriSchemePrefix.Length);
             if (path.StartsWith("//"))
             {
                 // UNC path or extra slashes
