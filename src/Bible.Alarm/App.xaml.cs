@@ -66,7 +66,15 @@ public partial class App : Application
     {
         try
         {
-            var stylesDict = Resources.MergedDictionaries.OfType<Styles>().FirstOrDefault();
+            Styles? stylesDict = null;
+            foreach (var d in Resources.MergedDictionaries)
+            {
+                if (d is Styles s)
+                {
+                    stylesDict = s;
+                    break;
+                }
+            }
             if (stylesDict != null)
             {
                 stylesDict["StandardFontSize"] = fontService.StandardFontSize;

@@ -113,7 +113,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
                     if (string.IsNullOrEmpty(firstPublicationCode))
                     {
-                        firstPublicationCode = vocalPublicationCodes.FirstOrDefault();
+                        firstPublicationCode = vocalPublicationCodes.Count > 0 ? vocalPublicationCodes[0] : null;
                     }
                 }
             }

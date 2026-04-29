@@ -220,7 +220,8 @@ public sealed class DisplayMetadataService(
             return false;
         }
 
-        var suffix = trackMetadata.DownloadCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault();
+        var discParts = trackMetadata.DownloadCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var suffix = discParts.Length > 0 ? discParts[^1] : null;
         if (string.IsNullOrWhiteSpace(suffix) || !suffix.All(char.IsDigit))
         {
             return false;

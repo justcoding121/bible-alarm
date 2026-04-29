@@ -385,7 +385,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 string.Join(", ", vms.Take(3).Select(p => p.Code)));
 
             // Determine default publication: after sorting, the first item is the preferred default (nwt first).
-            var preferredDefault = vms.FirstOrDefault();
+            var preferredDefault = vms.Count > 0 ? vms[0] : null;
 
             return (vms, mapping, preferredDefault);
         });

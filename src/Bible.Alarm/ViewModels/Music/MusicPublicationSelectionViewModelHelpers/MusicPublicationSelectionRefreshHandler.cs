@@ -156,7 +156,7 @@ public sealed class MusicPublicationSelectionRefreshHandler
 
             if (languageToSelect == null)
                 languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == AppConstants.Media.DefaultLanguageCode)
-                    ?? propertyManager.Languages.FirstOrDefault();
+                    ?? (propertyManager.Languages.Count > 0 ? propertyManager.Languages[0] : null);
 
             if (languageToSelect != null)
             {

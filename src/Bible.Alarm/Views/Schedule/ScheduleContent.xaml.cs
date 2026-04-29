@@ -183,9 +183,15 @@ public partial class ScheduleContent : ContentView
             return;
         }
 
-        var scheduleDetailsContainer = ScrollContentGrid.Children
-            .OfType<ScheduleDetailsContainer>()
-            .FirstOrDefault();
+        ScheduleDetailsContainer? scheduleDetailsContainer = null;
+        foreach (var child in ScrollContentGrid.Children)
+        {
+            if (child is ScheduleDetailsContainer s)
+            {
+                scheduleDetailsContainer = s;
+                break;
+            }
+        }
 
         var entry = scheduleDetailsContainer?.GetScheduleNameEntry();
         if (entry?.IsFocused is true)
