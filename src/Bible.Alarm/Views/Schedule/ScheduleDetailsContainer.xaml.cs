@@ -42,17 +42,14 @@ public partial class ScheduleDetailsContainer : ContentView
                 {
                     foreach (var flexChild in flexLayout.Children)
                     {
-                        if (flexChild is Border border && border.Content is View borderContent)
+                        if (flexChild is Border border && border.Content is Button button)
                         {
-                            if (borderContent is Button button)
-                            {
-                                button.Clicked -= OnDayButtonClicked; // Remove first to avoid duplicates
-                                button.Clicked += OnDayButtonClicked;
-                            }
-                            else if (borderContent is Layout borderLayout)
-                            {
-                                FindButtonsInLayout(borderLayout);
-                            }
+                            button.Clicked -= OnDayButtonClicked; // Remove first to avoid duplicates
+                            button.Clicked += OnDayButtonClicked;
+                        }
+                        else if (flexChild is Border borderWithLayout && borderWithLayout.Content is Layout borderLayout)
+                        {
+                            FindButtonsInLayout(borderLayout);
                         }
                     }
                 }

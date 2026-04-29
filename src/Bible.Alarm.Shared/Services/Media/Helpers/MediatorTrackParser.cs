@@ -67,18 +67,19 @@ internal static class MediatorTrackParser
             return null;
         }
 
-        string title = "Unknown";
+        static string DecodeTitle(string? rawTitle) =>
+            rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+
+        var title = "Unknown";
         if (trackFile.TryGetProperty("title", out var titleElement))
         {
             if (titleElement.ValueKind == JsonValueKind.String)
             {
-                var rawTitle = titleElement.GetString();
-                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                title = DecodeTitle(titleElement.GetString());
             }
             else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty("text", out var titleTextElement))
             {
-                var rawTitle = titleTextElement.GetString();
-                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                title = DecodeTitle(titleTextElement.GetString());
             }
         }
 
