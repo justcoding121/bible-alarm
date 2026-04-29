@@ -390,7 +390,7 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
         }
     }
 
-    private bool HasValidMetadata(PlaybackMetadataChangedAction action)
+    private static bool HasValidMetadata(PlaybackMetadataChangedAction action)
     {
         return !string.IsNullOrEmpty(action.Title) || !string.IsNullOrEmpty(action.Artist);
     }
