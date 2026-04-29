@@ -123,14 +123,6 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         }
     }
 
-    private void FocusSearchEntry()
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            LanguageSearchEntry?.Focus();
-        });
-    }
-
     private void OnGridTapped(object? sender, TappedEventArgs e)
     {
         UnfocusSearchEntry();

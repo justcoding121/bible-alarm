@@ -21,11 +21,7 @@ public class AnimationManager
         this.collapsibleContent = collapsibleContent;
     }
 
-    public bool IsAnimating
-    {
-        get => isAnimating;
-        private set => isAnimating = value;
-    }
+    public bool IsAnimating => isAnimating;
 
     public double? CachedHeight
     {

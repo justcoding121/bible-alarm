@@ -269,13 +269,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         set => SetProperty(ref isMinimizing, value);
     }
 
-    private async Task ShowDismissProgress()
-    {
-        IsBusy = true;
-        OnPropertyChanged(nameof(IsBusy));
-        await Task.Delay(100);
-    }
-
     private string title;
     public string Title
     {

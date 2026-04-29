@@ -1,35 +1,13 @@
 #nullable enable
-using Bible.Alarm.Common;
 
 namespace Bible.Alarm.Views;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class FontFileResources : ResourceDictionary
 {
-    private static FontFileResources? instance;
-    private static readonly Lock @lock = new();
-
     public FontFileResources()
     {
         InitializeComponent();
-    }
-
-    private static FontFileResources Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                lock (@lock)
-                {
-                    if (instance == null)
-                    {
-                        instance = new FontFileResources();
-                    }
-                }
-            }
-            return instance;
-        }
     }
 
     public static string FontAwesomeSolid
@@ -41,43 +19,6 @@ public partial class FontFileResources : ResourceDictionary
             // The font is registered as "FontAwesomeSolid" in ConfigureFonts
             return "FontAwesomeSolid";
         }
-    }
-
-    private static string? GetStringResourceForPlatform(string resourceKey)
-    {
-        if (!Instance.ContainsKey(resourceKey))
-        {
-            return null;
-        }
-
-        if (Instance[resourceKey] is not OnPlatform<string> resource)
-        {
-            return string.Empty;
-        }
-
-        // Try to match using DeviceInfo first
-        string platformName;
-        if (DeviceInfo.Platform == DevicePlatform.WinUI)
-        {
-            platformName = "WinUI";
-        }
-        else if (DeviceInfo.Platform == DevicePlatform.iOS)
-        {
-            platformName = "iOS";
-        }
-        else if (DeviceInfo.Platform == DevicePlatform.Android)
-        {
-            platformName = "Android";
-        }
-        else
-        {
-            platformName = CurrentDevice.RuntimePlatform ?? "";
-        }
-
-        var retString = resource.Platforms.Where(c => c.Platform.Contains(platformName))
-            .Select<On, object>(c => c.Value).FirstOrDefault() as string;
-
-        return retString ?? "NOFONT";
     }
 }
 

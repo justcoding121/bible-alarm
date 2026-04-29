@@ -386,11 +386,6 @@ public sealed class ScheduleListItemViewModel(
             async (attemptedValue) => await RevertIsEnabledChange(attemptedValue));
     }
 
-    private void NotifyThisPropertyChanged()
-    {
-        OnPropertyChanged(nameof(This));
-    }
-
     private async Task RevertIsEnabledChange(bool attemptedValue)
     {
         await MainThread.InvokeOnMainThreadAsync(() =>

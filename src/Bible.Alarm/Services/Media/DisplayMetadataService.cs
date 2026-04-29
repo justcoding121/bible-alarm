@@ -516,7 +516,7 @@ public sealed class DisplayMetadataService(
         };
     }
 
-    private void ExtractArtworkIfAvailable(TagLib.Tag tag, MetaData meta)
+    private static void ExtractArtworkIfAvailable(TagLib.Tag tag, MetaData meta)
     {
         // Extract artwork if available - find the largest picture
         if (tag.Pictures != null && tag.Pictures.Length > 0)

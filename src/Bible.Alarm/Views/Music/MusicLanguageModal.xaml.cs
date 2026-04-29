@@ -168,14 +168,6 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         }
     }
 
-    private void FocusSearchEntry()
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            LanguageSearchEntry?.Focus();
-        });
-    }
-
     public void Dispose()
     {
         if (!isDisposed)

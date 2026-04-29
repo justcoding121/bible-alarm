@@ -270,9 +270,6 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     public ICommand SaveCommand { get; set; } = null!;
     public ICommand DeleteCommand { get; set; } = null!;
 
-
-    private int ScheduleId => SchedulePropertyHelper.GetScheduleId(state.Value.CurrentSchedule);
-
     public bool IsBusy
     {
         get => propertyManager.IsBusy;
