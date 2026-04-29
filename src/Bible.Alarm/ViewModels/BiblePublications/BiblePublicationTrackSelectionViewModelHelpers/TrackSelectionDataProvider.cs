@@ -88,7 +88,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         });
     }
 
-    public void SetSelectedTrack(
+    public static void SetSelectedTrack(
         BiblePublicationSchedule? current,
         ObservableCollection<BiblePublicationTrackListViewItemModel> tracks,
         BiblePublicationTrackListViewItemModel? currentSelectedTrack,

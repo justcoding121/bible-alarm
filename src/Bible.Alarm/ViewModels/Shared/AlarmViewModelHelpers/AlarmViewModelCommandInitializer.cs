@@ -60,7 +60,7 @@ public class AlarmViewModelCommandInitializer
         }, () => true);
     }
 
-    public ICommand CreateCancelCommand()
+    public static ICommand CreateCancelCommand()
     {
         return new RelayCommand(() =>
         {

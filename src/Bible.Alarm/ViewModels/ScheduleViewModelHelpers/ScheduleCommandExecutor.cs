@@ -307,7 +307,7 @@ public sealed class ScheduleCommandExecutor
     // Helper methods for accessing state
     private int GetScheduleId() => state.Value.CurrentSchedule?.Id ?? -1;
 
-    private int GetScheduleId(ScheduleStateItem? schedule) => schedule?.Id ?? -1;
+    private static int GetScheduleId(ScheduleStateItem? schedule) => schedule?.Id ?? -1;
 
     private bool IsNewSchedule() => GetScheduleId() <= 0;
 

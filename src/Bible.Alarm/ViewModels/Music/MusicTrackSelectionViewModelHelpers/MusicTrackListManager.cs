@@ -117,7 +117,7 @@ public sealed class MusicTrackListManager(
         }
     }
 
-    private void HandleRepeatChanged(MusicTrackListViewItemModel item, ObservableCollection<MusicTrackListViewItemModel> tracks)
+    private static void HandleRepeatChanged(MusicTrackListViewItemModel item, ObservableCollection<MusicTrackListViewItemModel> tracks)
     {
         // Ensure only one track has Repeat = true
         if (item.Repeat)
@@ -168,7 +168,7 @@ public sealed class MusicTrackListManager(
         }
     }
 
-    public void SetSelectedTrack(AlarmMusic? current, ObservableCollection<MusicTrackListViewItemModel> tracks, Action<MusicTrackListViewItemModel?> setSelectedTrack)
+    public static void SetSelectedTrack(AlarmMusic? current, ObservableCollection<MusicTrackListViewItemModel> tracks, Action<MusicTrackListViewItemModel?> setSelectedTrack)
     {
         if (current == null || tracks == null || tracks.Count == 0)
         {

@@ -123,7 +123,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
         // Initialize commands
         DismissCommand = commandInitializer.CreateDismissCommand();
-        CancelCommand = commandInitializer.CreateCancelCommand();
+        CancelCommand = AlarmViewModelCommandInitializer.CreateCancelCommand();
         MinimizeCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(async () =>
         {
             IsMinimizing = true;

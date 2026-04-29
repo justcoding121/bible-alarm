@@ -221,7 +221,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
 
     private void SetSelectedTrack()
     {
-        listManager.SetSelectedTrack(stateManager.Current, propertyManager.Tracks, track => propertyManager.SetSelectedTrack(track));
+        MusicTrackListManager.SetSelectedTrack(stateManager.Current, propertyManager.Tracks, track => propertyManager.SetSelectedTrack(track));
     }
 
     private async Task Initialize(string? languageCode, string publicationCode)

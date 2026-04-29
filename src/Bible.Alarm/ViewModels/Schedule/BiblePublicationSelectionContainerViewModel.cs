@@ -243,7 +243,6 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 return;
             }
 
-            LogStateChange(currentSchedule);
             HandleScheduleIdChange(currentSchedule);
             UpdateBiblePublicationUpdatedFlag(currentSchedule);
 
@@ -311,11 +310,6 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         }
 
         return true;
-    }
-
-    private void LogStateChange(ScheduleStateItem? currentSchedule)
-    {
-        // Logging removed - not needed for normal operation
     }
 
     private void HandleScheduleIdChange(ScheduleStateItem? currentSchedule)

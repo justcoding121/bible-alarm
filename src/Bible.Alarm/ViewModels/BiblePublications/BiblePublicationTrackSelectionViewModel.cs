@@ -243,7 +243,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
 
     private void SetSelectedTrack()
     {
-        dataProvider.SetSelectedTrack(
+        TrackSelectionDataProvider.SetSelectedTrack(
             stateManager.Current,
             propertyManager.Tracks,
             propertyManager.SelectedTrack,
