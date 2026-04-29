@@ -155,7 +155,7 @@ internal static class MediaServiceBiblePublicationList
                 if (PublicationTypeHelper.IsDrama(lowerCode))
                 {
                     codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                        ? "Dramas"
+                        ? AppConstants.Media.BiblePublicationCategoryDramas
                         : "DramaticBibleReadings";
                 }
                 TryAddPlaceholder(plInfo, codeForKey);
@@ -168,7 +168,7 @@ internal static class MediaServiceBiblePublicationList
                 if (PublicationTypeHelper.IsDrama(lowerCode))
                 {
                     codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                        ? "Dramas"
+                        ? AppConstants.Media.BiblePublicationCategoryDramas
                         : "DramaticBibleReadings";
                 }
                 if (!result.ContainsKey(codeForKey))
@@ -194,7 +194,7 @@ internal static class MediaServiceBiblePublicationList
             if (PublicationTypeHelper.IsDrama(lowerCode))
             {
                 codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
+                    ? AppConstants.Media.BiblePublicationCategoryDramas
                     : "DramaticBibleReadings";
             }
 

@@ -178,7 +178,7 @@ public sealed class BiblePublicationDisplayTextProvider
                 ?? JwSourceHelper.GetCategoryName(pubCode)
                 ?? string.Empty;
 
-            var isBible = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+            var isBible = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
             var isMusicPublication = currentSchedule.BiblePublicationIsMusic;
 
             if (isBible && PublicationTypeHelper.HasSectionStructure(pubCode))
@@ -263,8 +263,8 @@ public sealed class BiblePublicationDisplayTextProvider
 
         // Avoid DB calls just to decide if the row is tappable.
         // In practice, Bible/Dramas/Music categories have multiple choices when language selection is applicable.
-        if (string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase) ||
+        if (string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryDramas, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
         {
             return true;
@@ -340,7 +340,7 @@ public sealed class BiblePublicationDisplayTextProvider
                 var lower = code.ToLowerInvariant();
                 if (PublicationTypeHelper.IsDrama(lower))
                 {
-                    unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings");
+                    unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.BiblePublicationCategoryDramas : "DramaticBibleReadings");
                 }
                 else
                 {

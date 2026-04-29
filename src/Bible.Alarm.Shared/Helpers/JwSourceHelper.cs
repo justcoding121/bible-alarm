@@ -105,7 +105,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> DramaCategoryCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "Dramas",
+        AppConstants.Media.BiblePublicationCategoryDramas,
         "DramaticBibleReadings",
         "DramasGoodNews",
         "VODMoviesBibleTimes",
@@ -120,7 +120,7 @@ public static class JwSourceHelper
     /// </summary>
     private static readonly string[] CanonicalMediatorPublicationCodes =
     {
-        "Dramas",
+        AppConstants.Media.BiblePublicationCategoryDramas,
         "DramaticBibleReadings",
         "DramasGoodNews",
         "VODMoviesBibleTimes",
@@ -667,9 +667,9 @@ public static class JwSourceHelper
 
             return new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
             {
-                ["Bible"] = BiblePublicationCodes,
+                [AppConstants.Media.BiblePublicationCategoryBible] = BiblePublicationCodes,
                 [AppConstants.Media.BiblePublicationCategoryMusic] = musicCodes,
-                ["Dramas"] = dramaCodes,
+                [AppConstants.Media.BiblePublicationCategoryDramas] = dramaCodes,
                 ["FaithAndBible"] = FaithAndBiblePublicationCodes,
                 ["Books"] = BooksPublicationCodes,
                 ["Yearbooks"] = YearbooksPublicationCodes,

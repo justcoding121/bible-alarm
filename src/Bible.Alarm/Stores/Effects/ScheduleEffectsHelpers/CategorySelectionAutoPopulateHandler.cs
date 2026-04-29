@@ -171,13 +171,13 @@ public sealed class CategorySelectionAutoPopulateHandler
                 // Try each publication: check if already cataloged, catalog if needed, then verify it can be queried
                 foreach (var pl in publicationLanguages)
                 {
-                    // For dramas, use case-sensitive publication codes in DB ("Dramas"/"DramaticBibleReadings").
+                    // For dramas, use case-sensitive publication codes in DB (Dramas vs DramaticBibleReadings).
                     // For others (e.g. DramasGoodNews), preserve exact case.
                     var lowerCode = pl.PublicationCode.ToLowerInvariant();
                     var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
                     var publicationCodeForDb = isDrama
                         ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                            ? "Dramas"
+                            ? AppConstants.Media.BiblePublicationCategoryDramas
                             : "DramaticBibleReadings")
                         : pl.PublicationCode;
 

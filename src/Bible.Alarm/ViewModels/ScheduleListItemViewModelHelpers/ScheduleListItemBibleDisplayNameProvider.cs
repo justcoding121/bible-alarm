@@ -58,7 +58,7 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
     public bool IsBibleCategory(int scheduleId)
     {
         var categoryCode = GetCategoryCode(scheduleId);
-        return string.Equals(categoryCode, "Bible", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(categoryCode, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
     }
 
     public string GetBiblePublicationName(int scheduleId)

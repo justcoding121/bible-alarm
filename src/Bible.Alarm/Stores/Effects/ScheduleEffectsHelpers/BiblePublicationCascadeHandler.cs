@@ -188,13 +188,13 @@ public sealed class BiblePublicationCascadeHandler
         // - never ensure ALL publications or ALL sections here
         foreach (var pl in publicationLanguages)
         {
-            // For dramas, use case-sensitive publication codes in DB ("Dramas"/"DramaticBibleReadings").
+            // For dramas, use case-sensitive publication codes in DB (Dramas vs DramaticBibleReadings).
             // For others, preserve exact case from discovery (usually lower-case codes).
             var lowerCode = pl.PublicationCode.ToLowerInvariant();
             var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
             var publicationCodeForDb = isDrama
                 ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
+                    ? AppConstants.Media.BiblePublicationCategoryDramas
                     : "DramaticBibleReadings")
                 : pl.PublicationCode;
 

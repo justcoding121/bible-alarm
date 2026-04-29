@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -65,7 +66,7 @@ public sealed class TrackNavigatorNonSectionedHelper
         {
             var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
             if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) &&
-                !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
+                !string.Equals(info.CategoryCode, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
             {
                 var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode);
                 var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
@@ -130,7 +131,7 @@ public sealed class TrackNavigatorNonSectionedHelper
         {
             var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
             if (categoryInfo is { } info && !string.IsNullOrWhiteSpace(info.CategoryCode) &&
-                !string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
+                !string.Equals(info.CategoryCode, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase) && !info.IsMusic)
             {
                 var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode);
                 var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));

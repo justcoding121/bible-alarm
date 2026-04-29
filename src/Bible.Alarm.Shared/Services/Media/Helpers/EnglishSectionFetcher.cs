@@ -55,7 +55,7 @@ internal sealed class EnglishSectionFetcher
         var cancellationToken = request.CancellationToken;
 
         // Data-driven: Check if publication has LanguageId == null (determines API parameter pattern)
-        var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var isBible = categoryName.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
         var fileFormat = isVideo ? "MP4" : "MP3";
         var publicationWithoutLanguage = await db.BiblePublications
             .AsNoTracking()

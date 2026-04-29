@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 
 namespace Bible.Alarm.Shared.Helpers;
@@ -17,7 +18,7 @@ public static class PublicationTypeHelper
 {
     private static readonly HashSet<string> DramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Dramas",
+        AppConstants.Media.BiblePublicationCategoryDramas,
         "DramaticBibleReadings",
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
@@ -99,7 +100,7 @@ public static class PublicationTypeHelper
     /// </summary>
     private static readonly HashSet<string> AudioDramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Dramas",
+        AppConstants.Media.BiblePublicationCategoryDramas,
         "DramaticBibleReadings"
     };
 

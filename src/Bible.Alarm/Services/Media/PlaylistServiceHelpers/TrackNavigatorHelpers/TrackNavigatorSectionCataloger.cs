@@ -4,6 +4,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -300,7 +301,7 @@ public sealed class TrackNavigatorSectionCataloger
         if (isDrama)
         {
             return normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                ? "Dramas"
+                ? AppConstants.Media.BiblePublicationCategoryDramas
                 : "DramaticBibleReadings";
         }
         return normalizedPublicationCode;

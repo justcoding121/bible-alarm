@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +24,7 @@ public static class CategorySelectionAutoPopulateCatalogCheck
             var lowerCode = publicationCode.ToLowerInvariant();
             var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
             var publicationCodeForDb = isDrama
-                ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings")
+                ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.BiblePublicationCategoryDramas : "DramaticBibleReadings")
                 : publicationCode;
 
             var publicationId = await db.BiblePublications

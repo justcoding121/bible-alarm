@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -42,7 +43,7 @@ public sealed class CategoryService(IServiceScopeFactory scopeFactory, ILogger l
 
             var categories = await dbContext.Categories
                 .AsNoTracking()
-                .OrderBy(c => c.CategoryCode == "Bible" ? 0 : 1)
+                .OrderBy(c => c.CategoryCode == AppConstants.Media.BiblePublicationCategoryBible ? 0 : 1)
                 .ThenBy(c => c.CategoryCode)
                 .ToListAsync(cancellationToken);
 

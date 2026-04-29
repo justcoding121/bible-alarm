@@ -133,7 +133,7 @@ public static class ScheduleEffectsModalCountPopulator
             var lower = code.ToLowerInvariant();
             if (PublicationTypeHelper.IsDrama(lower))
             {
-                unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings");
+                unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.BiblePublicationCategoryDramas : "DramaticBibleReadings");
             }
             else
             {

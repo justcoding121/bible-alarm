@@ -332,6 +332,16 @@ public static class AppConstants
         public const string BiblePublicationCategoryMusic = "Music";
 
         /// <summary>
+        /// Bible publication category code for scripture (JW catalog).
+        /// </summary>
+        public const string BiblePublicationCategoryBible = "Bible";
+
+        /// <summary>
+        /// Bible publication category code for audio/video dramas (JW catalog).
+        /// </summary>
+        public const string BiblePublicationCategoryDramas = "Dramas";
+
+        /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
         public const string TextDirectionLeftToRight = "ltr";

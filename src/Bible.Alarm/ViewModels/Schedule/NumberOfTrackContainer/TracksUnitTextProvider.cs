@@ -23,7 +23,7 @@ public static class TracksUnitTextProvider
             return TracksUnit.Track;
         }
 
-        if (string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryDramas, StringComparison.OrdinalIgnoreCase))
         {
             return TracksUnit.Episode;
         }

@@ -42,7 +42,7 @@ public static class ScheduleDisplayMetadataHelper
 
         var categoryName = scheduleItem.BiblePublicationCategoryName
             ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
-        var isBibleCategory = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+        var isBibleCategory = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
 
         string? title = null;
         if (isBibleCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
@@ -135,7 +135,7 @@ public static class ScheduleDisplayMetadataHelper
             subtitleParts.Add(scheduleItem.BiblePublicationName);
         }
 
-        var isBibleCategory = string.Equals(categoryCode, "Bible", StringComparison.OrdinalIgnoreCase);
+        var isBibleCategory = string.Equals(categoryCode, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
         if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName) && !isBibleCategory)
         {

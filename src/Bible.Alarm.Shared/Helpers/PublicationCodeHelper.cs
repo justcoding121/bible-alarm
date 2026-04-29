@@ -40,7 +40,7 @@ public static class PublicationCodeHelper
         var c = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
         if (string.Equals(c, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
             return new CategoryPriorityPublicationCodeComparer(MusicPriorityPublicationCodes);
-        if (string.Equals(c, "Bible", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(c, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase))
             return PublicationCodeComparer;
         if (string.Equals(c, "WatchtowerMagazine", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(c, "AwakeMagazine", StringComparison.OrdinalIgnoreCase))

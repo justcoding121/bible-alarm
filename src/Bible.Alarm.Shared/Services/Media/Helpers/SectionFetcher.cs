@@ -98,7 +98,7 @@ internal sealed class SectionFetcher
             return true;
         }
 
-        var isBible = category.CategoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var isBible = category.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
         var isIssueSectioned = MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
         var determinedCatalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
         string? localizedPubName = null;

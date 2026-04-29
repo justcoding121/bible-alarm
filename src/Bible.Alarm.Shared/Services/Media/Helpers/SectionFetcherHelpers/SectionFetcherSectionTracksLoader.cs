@@ -67,7 +67,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         }
 
         var categoryCode = publication.PrimaryCategory?.CategoryCode ?? "";
-        var isBible = categoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var isBible = categoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
         var isIssueSectioned = publication.CatalogType == CatalogType.IssueSectioned ||
             MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
         var isVideoDrama = !isBible && !isIssueSectioned && publication.IsVideo;

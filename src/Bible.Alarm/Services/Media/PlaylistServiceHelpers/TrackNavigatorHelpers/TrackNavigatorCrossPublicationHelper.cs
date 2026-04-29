@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
@@ -106,7 +107,7 @@ public sealed class TrackNavigatorCrossPublicationHelper
     {
         var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
         if (categoryInfo is not { } info || string.IsNullOrWhiteSpace(info.CategoryCode) ||
-            string.Equals(info.CategoryCode, "Bible", StringComparison.OrdinalIgnoreCase) || info.IsMusic)
+            string.Equals(info.CategoryCode, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase) || info.IsMusic)
         {
             return null;
         }

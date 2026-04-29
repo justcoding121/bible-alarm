@@ -229,7 +229,7 @@ internal sealed class EnglishContentSeeder
                         // Fallback: Use default section codes based on category
                         // For Bible category, use book numbers 1-66
                         // For Music category with sectioned structure, query from database or use discovery
-                        if (categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase))
+                        if (categoryName.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase))
                         {
                             sectionCodes = Enumerable.Range(1, 66).Select(i => i.ToString()).ToList();
                         }
@@ -303,7 +303,7 @@ internal sealed class EnglishContentSeeder
         var sectionCodes = req.SectionCodes;
         var cancellationToken = req.CancellationToken;
 
-        var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var isBible = categoryName.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
         
         // Data-driven: Check if publication has LanguageId == null (determines if it's instrumental music)
         var publicationWithoutLanguage = await db.BiblePublications

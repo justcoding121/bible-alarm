@@ -79,7 +79,7 @@ internal sealed class MediatorApiClient
 
         if (!string.IsNullOrEmpty(categoryName))
         {
-            var pubNameEqualsCategoryName = string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase);
+            var pubNameEqualsCategoryName = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryDramas, StringComparison.OrdinalIgnoreCase);
             if (pubNameEqualsCategoryName && !string.IsNullOrEmpty(parentCategoryName))
                 localizedPubName = $"{parentCategoryName} {categoryName}";
             else
