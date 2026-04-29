@@ -71,8 +71,8 @@ public sealed class TrackCdnUrlRefresher(
                 metadata.PublicationCode,
                 metadata.SectionCode.Trim(),
                 lang,
-                cancellationToken,
-                replaceExistingTracksFromApi: true);
+                replaceExistingTracksFromApi: true,
+                cancellationToken: cancellationToken);
         }
         else
         {

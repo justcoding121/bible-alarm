@@ -82,8 +82,8 @@ internal sealed class ScheduleMediaBootstrapFetcher(
                 var pubOk = await languageContentService.EnsurePublicationExistsAsync(
                     pubCode,
                     langCode,
-                    CancellationToken.None,
-                    progress: null);
+                    progress: null,
+                    cancellationToken: CancellationToken.None);
 
                 if (!pubOk)
                 {
@@ -103,7 +103,7 @@ internal sealed class ScheduleMediaBootstrapFetcher(
                             pubCode,
                             sectionCode,
                             langCode,
-                            CancellationToken.None);
+                            cancellationToken: CancellationToken.None);
 
                         if (!sectionOk)
                         {

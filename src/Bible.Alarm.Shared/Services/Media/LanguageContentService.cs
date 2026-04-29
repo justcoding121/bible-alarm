@@ -84,21 +84,21 @@ public sealed class LanguageContentService : ILanguageContentService
     public async Task<bool> FetchPublicationSectionsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        IFetchProgress? progress = null)
+        IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        return await publicationSectionsFetcher.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken, progress);
+        return await publicationSectionsFetcher.FetchPublicationSectionsAsync(publicationCode, languageCode, progress, cancellationToken);
     }
 
     public async Task<bool> FetchSectionTracksAsync(
         string publicationCode,
         string sectionCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        bool replaceExistingTracksFromApi = false)
+        bool replaceExistingTracksFromApi = false,
+        CancellationToken cancellationToken = default)
     {
         return await sectionTracksFetcher.FetchSectionTracksAsync(
-            publicationCode, sectionCode, languageCode, cancellationToken, replaceExistingTracksFromApi);
+            publicationCode, sectionCode, languageCode, replaceExistingTracksFromApi, cancellationToken);
     }
 
     /// <summary>
@@ -117,10 +117,10 @@ public sealed class LanguageContentService : ILanguageContentService
     public async Task<bool> EnsurePublicationExistsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        return await publicationEnsurer.EnsurePublicationExistsAsync(publicationCode, languageCode, cancellationToken, progress);
+        return await publicationEnsurer.EnsurePublicationExistsAsync(publicationCode, languageCode, progress, cancellationToken);
     }
 
     public async Task<bool> FetchFirstPublicationForLanguageAsync(
@@ -134,19 +134,19 @@ public sealed class LanguageContentService : ILanguageContentService
     public async Task<bool> EnsureAllPublicationsForLanguageAsync(
         string languageCode,
         string? categoryName = null,
-        CancellationToken cancellationToken = default,
-        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        return await publicationEnsurer.EnsureAllPublicationsForLanguageAsync(languageCode, categoryName, cancellationToken, progress);
+        return await publicationEnsurer.EnsureAllPublicationsForLanguageAsync(languageCode, categoryName, progress, cancellationToken);
     }
 
     public async Task<bool> EnsureAllSectionsForPublicationAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        return await publicationEnsurer.EnsureAllSectionsForPublicationAsync(publicationCode, languageCode, cancellationToken, progress);
+        return await publicationEnsurer.EnsureAllSectionsForPublicationAsync(publicationCode, languageCode, progress, cancellationToken);
     }
 
     public async Task<bool> FetchFirstSectionOnlyAsync(

@@ -141,7 +141,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                 // EnsurePublicationExistsAsync downloads the publication with its first section (by ID order) and tracks
                 // It reports progress: 0.5 (pub+section saved), 1.0 (tracks saved)
                 var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
-                    firstPublicationCode, language.Code, default, progress);
+                    firstPublicationCode, language.Code, progress);
 
                 if (!fetchSuccess)
                 {

@@ -240,8 +240,8 @@ internal static class MediaServiceBiblePublicationList
                 await languageContentService.EnsureAllPublicationsForLanguageAsync(
                     languageCode,
                     categoryName,
-                    cancellationToken,
-                    progress);
+                    progress,
+                    cancellationToken);
 
                 // IMPORTANT:
                 // Step 3 created placeholders using PublicationCode as the display name.

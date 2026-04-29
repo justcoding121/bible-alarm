@@ -38,15 +38,15 @@ internal sealed class PublicationEnsurer
         allPublicationsEnsurer = new PublicationEnsurerAllPublicationsEnsurer(
             scopeFactory,
             logger,
-            (pubCode, langCode, ct, prog) => EnsurePublicationExistsAsync(pubCode, langCode, ct, prog));
+            (pubCode, langCode, prog, ct) => EnsurePublicationExistsAsync(pubCode, langCode, prog, ct));
         allSectionsEnsurer = new PublicationEnsurerAllSectionsEnsurer(scopeFactory, logger, languageContentService);
     }
 
     public async Task<bool> EnsurePublicationExistsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -121,7 +121,7 @@ internal sealed class PublicationEnsurer
                 catalogTypeToFetch == Models.Enums.CatalogType.IssueSectioned)
             {
                 progress?.UpdateProgress(0.0);
-                var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken, progress);
+                var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, progress, cancellationToken);
                 if (result)
                 {
                     progress?.UpdateProgress(1.0);
@@ -253,7 +253,7 @@ internal sealed class PublicationEnsurer
                     catalogType == Models.Enums.CatalogType.IssueSectioned)
                 {
                     success = await FetchFirstSectionWithTracksAsync(
-                        publicationCode, languageCode, cancellationToken);
+                        publicationCode, languageCode, null, cancellationToken);
                 }
                 else if (catalogType == Models.Enums.CatalogType.Flat || catalogType == Models.Enums.CatalogType.MediatorSectioned)
                 {
@@ -310,8 +310,8 @@ internal sealed class PublicationEnsurer
     private async Task<bool> FetchFirstSectionWithTracksAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        IFetchProgress? progress = null)
+        IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -391,18 +391,19 @@ internal sealed class PublicationEnsurer
             {
                 case FirstSectionAction.FetchSectionTracksOnly:
                     progress?.UpdateProgress(0.5);
-                    return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
+                    return await languageContentService.FetchSectionTracksAsync(
+                        publicationCode, firstSectionCode, languageCode, cancellationToken: cancellationToken);
                 case FirstSectionAction.FetchAllSectionsThenTracks:
                 {
                     if (!await languageContentService.FetchPublicationSectionsAsync(
-                            publicationCode, languageCode, cancellationToken))
+                            publicationCode, languageCode, cancellationToken: cancellationToken))
                     {
                         return false;
                     }
 
                     progress?.UpdateProgress(0.5);
                     return await languageContentService.FetchSectionTracksAsync(
-                        publicationCode, firstSectionCode, languageCode, cancellationToken);
+                        publicationCode, firstSectionCode, languageCode, cancellationToken: cancellationToken);
                 }
                 case FirstSectionAction.FetchFirstSectionThenTracks:
                 {
@@ -414,7 +415,7 @@ internal sealed class PublicationEnsurer
 
                     progress?.UpdateProgress(0.5);
                     return await languageContentService.FetchSectionTracksAsync(
-                        publicationCode, firstSectionCode, languageCode, cancellationToken);
+                        publicationCode, firstSectionCode, languageCode, cancellationToken: cancellationToken);
                 }
             }
 
@@ -443,19 +444,19 @@ internal sealed class PublicationEnsurer
     public async Task<bool> EnsureAllPublicationsForLanguageAsync(
         string languageCode,
         string? categoryName = null,
-        CancellationToken cancellationToken = default,
-        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        return await allPublicationsEnsurer.EnsureAllPublicationsForLanguageAsync(languageCode, categoryName, cancellationToken, progress);
+        return await allPublicationsEnsurer.EnsureAllPublicationsForLanguageAsync(languageCode, categoryName, progress, cancellationToken);
     }
 
     public async Task<bool> EnsureAllSectionsForPublicationAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        return await allSectionsEnsurer.EnsureAllSectionsForPublicationAsync(publicationCode, languageCode, cancellationToken, progress);
+        return await allSectionsEnsurer.EnsureAllSectionsForPublicationAsync(publicationCode, languageCode, progress, cancellationToken);
     }
 
     /// <summary>

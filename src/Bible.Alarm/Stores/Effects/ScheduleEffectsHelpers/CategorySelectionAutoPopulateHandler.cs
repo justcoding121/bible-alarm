@@ -192,7 +192,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                             action.CategoryId, default);
 
                         var isCataloged = await languageContentService.EnsurePublicationExistsAsync(
-                            pl.PublicationCode, selectedLanguage.LanguageCode, default, catalogProgressReporter);
+                            pl.PublicationCode, selectedLanguage.LanguageCode, catalogProgressReporter);
                         
                         if (!isCataloged)
                         {

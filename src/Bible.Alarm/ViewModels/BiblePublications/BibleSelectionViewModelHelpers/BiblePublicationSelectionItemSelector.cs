@@ -186,7 +186,6 @@ public sealed class BiblePublicationSelectionItemSelector
                         var ensured = await languageContentService.EnsurePublicationExistsAsync(
                             pl.PublicationCode,
                             language.Code,
-                            default,
                             progress);
                         if (!ensured)
                         {
@@ -288,7 +287,7 @@ public sealed class BiblePublicationSelectionItemSelector
             try
             {
                 // Don't pass progress here - this is a safety check, not the main fetch
-                await languageContentService.EnsurePublicationExistsAsync(publicationCode, language.Code, default, null);
+                await languageContentService.EnsurePublicationExistsAsync(publicationCode, language.Code);
             }
             catch (Exception ex)
             {

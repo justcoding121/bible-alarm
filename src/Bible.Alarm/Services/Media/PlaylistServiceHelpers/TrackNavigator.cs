@@ -448,8 +448,8 @@ public sealed class TrackNavigator
             var ensured = await languageContentService.EnsurePublicationExistsAsync(
                 publicationCode,
                 languageCode,
-                CancellationToken.None,
-                sectionFetchProgress);
+                sectionFetchProgress,
+                CancellationToken.None);
             if (ensured)
             {
                 biblePublicationService.InvalidatePublicationCaches(languageCode, publicationCode);
@@ -515,8 +515,8 @@ public sealed class TrackNavigator
             var ensured = await languageContentService.EnsurePublicationExistsAsync(
                 publicationCode,
                 languageCode,
-                CancellationToken.None,
-                sectionFetchProgress);
+                sectionFetchProgress,
+                CancellationToken.None);
             if (ensured)
             {
                 biblePublicationService.InvalidatePublicationCaches(languageCode, publicationCode);

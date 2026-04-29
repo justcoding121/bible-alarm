@@ -233,7 +233,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             if (!string.IsNullOrEmpty(languageCode) && languageContentService != null)
             {
                 progress?.UpdateProgress(0.6);
-                var catalogSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode, default, progress);
+                var catalogSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode, progress);
 
                 if (catalogSuccess)
                 {

@@ -73,7 +73,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                     if (!isAlreadyCataloged)
                     {
                         // Catalog the publication (EnsurePublicationExistsAsync checks if it exists first)
-                        await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, default, progress);
+                        await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, progress);
                     }
                     else
                     {

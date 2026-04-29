@@ -182,8 +182,8 @@ public sealed class TrackNavigatorSectionCataloger
             var publicationExists = await languageContentService.EnsurePublicationExistsAsync(
                 publicationCode,
                 languageCode,
-                CancellationToken.None,
-                publicationProgress);
+                publicationProgress,
+                CancellationToken.None);
 
             if (!publicationExists)
             {
@@ -240,7 +240,7 @@ public sealed class TrackNavigatorSectionCataloger
                 publicationCode,
                 sectionCode,
                 languageCode,
-                CancellationToken.None);
+                cancellationToken: CancellationToken.None);
 
             sectionFetchProgress?.UpdateProgress(1.0);
 

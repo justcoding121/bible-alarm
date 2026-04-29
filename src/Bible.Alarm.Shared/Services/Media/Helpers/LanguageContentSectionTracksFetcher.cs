@@ -35,8 +35,8 @@ internal sealed class LanguageContentSectionTracksFetcher
         string publicationCode,
         string sectionCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        bool replaceExistingTracksFromApi = false)
+        bool replaceExistingTracksFromApi = false,
+        CancellationToken cancellationToken = default)
     {
         try
         {

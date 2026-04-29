@@ -35,8 +35,8 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
     public async Task<bool> EnsureAllSectionsForPublicationAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        IFetchProgress? progress = null)
+        IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -104,7 +104,7 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
             progress?.SetIsVisible(true);
             try
             {
-                var result = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken, progress);
+                var result = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, progress, cancellationToken);
                 return result;
             }
             finally

@@ -19,12 +19,12 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
 {
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger logger;
-    private readonly Func<string, string, CancellationToken, IFetchProgress?, Task<bool>> ensurePublicationExists;
+    private readonly Func<string, string, IFetchProgress?, CancellationToken, Task<bool>> ensurePublicationExists;
 
     public PublicationEnsurerAllPublicationsEnsurer(
         IServiceScopeFactory scopeFactory,
         ILogger logger,
-        Func<string, string, CancellationToken, IFetchProgress?, Task<bool>> ensurePublicationExists)
+        Func<string, string, IFetchProgress?, CancellationToken, Task<bool>> ensurePublicationExists)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -34,8 +34,8 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
     public async Task<bool> EnsureAllPublicationsForLanguageAsync(
         string languageCode,
         string? categoryName = null,
-        CancellationToken cancellationToken = default,
-        IFetchProgress? progress = null)
+        IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -100,7 +100,7 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
 
                 try
                 {
-                    var success = await ensurePublicationExists(publicationCode, languageCode, effectiveToken, null);
+                    var success = await ensurePublicationExists(publicationCode, languageCode, null, effectiveToken);
                     if (success)
                     {
                         successCount++;

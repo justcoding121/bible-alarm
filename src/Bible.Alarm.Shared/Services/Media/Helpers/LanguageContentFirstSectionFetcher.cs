@@ -117,7 +117,8 @@ internal sealed class LanguageContentFirstSectionFetcher
                 logger.Debug("Publication {PublicationCode} exists but first section doesn't, fetching all sections",
                     publicationCode);
                 await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
-                return await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
+                return await languageContentService.FetchPublicationSectionsAsync(
+                    publicationCode, languageCode, cancellationToken: cancellationToken);
             }
 
             await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);

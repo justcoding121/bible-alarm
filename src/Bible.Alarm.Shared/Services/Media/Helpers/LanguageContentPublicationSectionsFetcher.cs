@@ -34,8 +34,8 @@ internal sealed class LanguageContentPublicationSectionsFetcher
     public async Task<bool> FetchPublicationSectionsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default,
-        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {

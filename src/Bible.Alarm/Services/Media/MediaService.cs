@@ -203,7 +203,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
             {
                 // Ensure all sections are downloaded (without tracks - tracks are fetched when section is selected)
                 var fetchSuccess = await languageContentService.EnsureAllSectionsForPublicationAsync(
-                    versionCode, languageCode, cancellationTokenSource.Token, progress);
+                    versionCode, languageCode, progress, cancellationTokenSource.Token);
                 
                 if (fetchSuccess)
                 {
@@ -357,7 +357,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
                 {
                     Log.Information("Background: Ensuring all vocal music releases are downloaded for language {LanguageCode} (publication modal opened)", languageCode);
                     await languageContentService.EnsureAllPublicationsForLanguageAsync(
-                        languageCode, "Music", cancellationTokenSource.Token);
+                        languageCode, "Music", cancellationToken: cancellationTokenSource.Token);
                 }
                 catch (Exception ex)
                 {
