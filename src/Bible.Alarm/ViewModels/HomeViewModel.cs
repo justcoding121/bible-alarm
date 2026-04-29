@@ -194,10 +194,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
     public double ProgressBarOpacity => progressBarManager.ProgressBarOpacity;
     public bool IsProgressBarHidden => progressBarManager.IsProgressBarHidden;
-    public double AnimatedProgressStart => progressBarManager.AnimatedProgressStart;
-    public double AnimatedProgressEnd => progressBarManager.AnimatedProgressEnd;
-    public double AnimatedProgress => progressBarManager.AnimatedProgress;
-    public double AnimatedProgressRangeWidth => progressBarManager.AnimatedProgressRangeWidth;
+    public double AnimatedProgressStart => ProgressBarManager.AnimatedProgressStart;
+    public double AnimatedProgressEnd => ProgressBarManager.AnimatedProgressEnd;
+    public double AnimatedProgress => ProgressBarManager.AnimatedProgress;
+    public double AnimatedProgressRangeWidth => ProgressBarManager.AnimatedProgressRangeWidth;
 
     /// <summary>
     /// Indicates if bootstrap is complete and databases are ready.

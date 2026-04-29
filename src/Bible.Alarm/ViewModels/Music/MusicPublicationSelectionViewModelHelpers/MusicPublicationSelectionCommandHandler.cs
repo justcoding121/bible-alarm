@@ -339,7 +339,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
         await navigationService.PopModalAsync();
     }
 
-    private MusicStateItem CreateMusicStateItemForSongPublication(
+    private static MusicStateItem CreateMusicStateItemForSongPublication(
         PublicationListViewItemModel songPublication,
         string? languageCode,
         string trackCode,
@@ -368,7 +368,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
         };
     }
 
-    private MusicStateItem CreateMusicStateItemForLanguage(
+    private static MusicStateItem CreateMusicStateItemForLanguage(
         LanguageListViewItemModel language,
         string publicationCode,
         string trackCode,

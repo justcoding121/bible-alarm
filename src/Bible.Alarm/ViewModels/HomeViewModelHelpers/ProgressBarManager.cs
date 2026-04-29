@@ -39,10 +39,10 @@ public class ProgressBarManager : IDisposable
 
     // These properties are kept for backwards compatibility but no longer used
     // Animation is now handled natively in AnimatedProgressBar control
-    public double AnimatedProgressStart => 0.0;
-    public double AnimatedProgressEnd => 0.3;
-    public double AnimatedProgress => 0.3;
-    public double AnimatedProgressRangeWidth => 0.3;
+    public static double AnimatedProgressStart => 0.0;
+    public static double AnimatedProgressEnd => 0.3;
+    public static double AnimatedProgress => 0.3;
+    public static double AnimatedProgressRangeWidth => 0.3;
 
     public void UpdateVisibility(bool isBusy, int? schedulesCount)
     {

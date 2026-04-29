@@ -189,7 +189,7 @@ public sealed class MediaBrowser(ILogger logger)
         return sectionDrawable;
     }
 
-    private Bitmap CreateIconBitmap()
+    private static Bitmap CreateIconBitmap()
     {
         var config = Bitmap.Config.Argb8888 ?? throw new InvalidOperationException("Bitmap.Config.Argb8888 is null");
         var bitmap = Bitmap.CreateBitmap(BitmapSize, BitmapSize, config);
@@ -197,7 +197,7 @@ public sealed class MediaBrowser(ILogger logger)
         return bitmap;
     }
 
-    private void DrawSectionIcon(Canvas canvas, Drawable sectionDrawable)
+    private static void DrawSectionIcon(Canvas canvas, Drawable sectionDrawable)
     {
         sectionDrawable.SetBounds(SectionOffset, SectionOffset, SectionOffset + SectionIconSize, SectionOffset + SectionIconSize);
         sectionDrawable.Draw(canvas);
