@@ -48,9 +48,9 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> MusicMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODConvMusic",
-        "MakingMusic",
-        "VODSingToJah"
+        AppConstants.Media.MediatorPublicationCodeVODConvMusic,
+        AppConstants.Media.MediatorPublicationCodeMakingMusic,
+        AppConstants.Media.MediatorPublicationCodeVODSingToJah
     };
 
     /// <summary>
@@ -67,7 +67,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> IsMusicExcludedPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "MakingMusic"
+        AppConstants.Media.MediatorPublicationCodeMakingMusic
     };
 
     /// <summary>
@@ -161,24 +161,24 @@ public static class JwSourceHelper
         AppConstants.Media.MediatorCategoryKey2016Convention,
         AppConstants.Media.MediatorCategoryKey2015Convention,
         AppConstants.Media.MediatorCategoryKey2014Convention,
-        "VODActivitiesTranslation",
-        "VODActivitiesAVProduction",
-        "VODActivitiesPrintingShipping",
-        "VODActivitiesConstruction",
-        "VODActivitiesReliefWork",
-        "VODActivitiesTheoSchools",
-        "VODActivitiesSpecialEvents",
-        "VODMinistryTools",
-        "VODMinistryImproveSkills",
-        "VODMinistryMethods",
-        "MeetingsConventions",
-        "VODSampleConversations",
-        "Reports",
-        "VODOrgBethel",
-        "AccomplishMinistry",
-        "VODOrgHistory",
-        "VODOrgLegal",
-        "VODOrgBloodlessMedicine",
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesTranslation,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesAVProduction,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesPrintingShipping,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesConstruction,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesReliefWork,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesTheoSchools,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesSpecialEvents,
+        AppConstants.Media.MediatorPublicationCodeVODMinistryTools,
+        AppConstants.Media.MediatorPublicationCodeVODMinistryImproveSkills,
+        AppConstants.Media.MediatorPublicationCodeVODMinistryMethods,
+        AppConstants.Media.MediatorPublicationCodeMeetingsConventions,
+        AppConstants.Media.MediatorPublicationCodeVODSampleConversations,
+        AppConstants.Media.MediatorPublicationCodeReports,
+        AppConstants.Media.MediatorPublicationCodeVODOrgBethel,
+        AppConstants.Media.MediatorPublicationCodeAccomplishMinistry,
+        AppConstants.Media.MediatorPublicationCodeVODOrgHistory,
+        AppConstants.Media.MediatorPublicationCodeVODOrgLegal,
+        AppConstants.Media.MediatorPublicationCodeVODOrgBloodlessMedicine,
         AppConstants.Media.MediatorCategoryKeyBibleBooks,
         AppConstants.Media.MediatorPublicationCodeVODBibleReadingStudy,
         AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
@@ -188,38 +188,38 @@ public static class JwSourceHelper
         AppConstants.Media.MediatorPublicationCodeVODBiblePrinciples,
         AppConstants.Media.MediatorPublicationCodeVODBibleCreation,
         AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs,
-        "SeriesBibleTeachings",
-        "SeriesHappyMarriage",
-        "SeriesImitateFaith",
+        AppConstants.Media.MediatorPublicationCodeSeriesBibleTeachings,
+        AppConstants.Media.MediatorPublicationCodeSeriesHappyMarriage,
+        AppConstants.Media.MediatorPublicationCodeSeriesImitateFaith,
         AppConstants.Media.MediatorCategoryKeySeriesBibleBooks,
-        "SeriesIronSharpens",
-        "SeriesJehovahsFriends",
-        "SeriesLearnFromThem",
-        "SeriesWTLessons",
-        "VODLovePeople",
-        "SeriesMyTeenLife",
-        "SeriesNeetaJade",
-        "SeriesOrgAccomplishments",
-        "SeriesOurHistory",
-        "VODPureWorshipIntro",
-        "SeriesBibleChangesLives",
-        "SeriesGoodNews",
-        "SeriesTruthTransforms",
-        "SeriesOriginsLife",
-        "SeriesWCGVideos",
-        "SeriesWasItDesigned",
+        AppConstants.Media.MediatorPublicationCodeSeriesIronSharpens,
+        AppConstants.Media.MediatorPublicationCodeSeriesJehovahsFriends,
+        AppConstants.Media.MediatorPublicationCodeSeriesLearnFromThem,
+        AppConstants.Media.MediatorPublicationCodeSeriesWTLessons,
+        AppConstants.Media.MediatorPublicationCodeVODLovePeople,
+        AppConstants.Media.MediatorPublicationCodeSeriesMyTeenLife,
+        AppConstants.Media.MediatorPublicationCodeSeriesNeetaJade,
+        AppConstants.Media.MediatorPublicationCodeSeriesOrgAccomplishments,
+        AppConstants.Media.MediatorPublicationCodeSeriesOurHistory,
+        AppConstants.Media.MediatorPublicationCodeVODPureWorshipIntro,
+        AppConstants.Media.MediatorPublicationCodeSeriesBibleChangesLives,
+        AppConstants.Media.MediatorPublicationCodeSeriesGoodNews,
+        AppConstants.Media.MediatorPublicationCodeSeriesTruthTransforms,
+        AppConstants.Media.MediatorPublicationCodeSeriesOriginsLife,
+        AppConstants.Media.MediatorPublicationCodeSeriesWCGVideos,
+        AppConstants.Media.MediatorPublicationCodeSeriesWasItDesigned,
         AppConstants.Media.BiblePublicationCodeSeriesWhatPeersSay,
-        "SeriesWhereAreTheyNow",
-        "SeriesWhiteboard",
-        "VODIntExpTransformations",
-        "VODIntExpBlessings",
-        "VODIntExpEndurance",
-        "VODIntExpYouth",
-        "OriginsLife",
-        "VODIntExpArchives",
-        "VODConvMusic",
-        "MakingMusic",
-        "VODSingToJah"
+        AppConstants.Media.MediatorPublicationCodeSeriesWhereAreTheyNow,
+        AppConstants.Media.MediatorPublicationCodeSeriesWhiteboard,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpTransformations,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpBlessings,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpEndurance,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpYouth,
+        AppConstants.Media.MediatorPublicationCodeOriginsLife,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpArchives,
+        AppConstants.Media.MediatorPublicationCodeVODConvMusic,
+        AppConstants.Media.MediatorPublicationCodeMakingMusic,
+        AppConstants.Media.MediatorPublicationCodeVODSingToJah
     };
 
     /// <summary>
@@ -340,12 +340,12 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> InterviewsAndExperiencesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODIntExpTransformations",
-        "VODIntExpBlessings",
-        "VODIntExpEndurance",
-        "VODIntExpYouth",
-        "OriginsLife",
-        "VODIntExpArchives"
+        AppConstants.Media.MediatorPublicationCodeVODIntExpTransformations,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpBlessings,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpEndurance,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpYouth,
+        AppConstants.Media.MediatorPublicationCodeOriginsLife,
+        AppConstants.Media.MediatorPublicationCodeVODIntExpArchives
     };
 
     /// <summary>
@@ -353,11 +353,11 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> MeetingsAndMinistryPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODMinistryTools",
-        "VODMinistryImproveSkills",
-        "VODMinistryMethods",
-        "MeetingsConventions",
-        "VODSampleConversations"
+        AppConstants.Media.MediatorPublicationCodeVODMinistryTools,
+        AppConstants.Media.MediatorPublicationCodeVODMinistryImproveSkills,
+        AppConstants.Media.MediatorPublicationCodeVODMinistryMethods,
+        AppConstants.Media.MediatorPublicationCodeMeetingsConventions,
+        AppConstants.Media.MediatorPublicationCodeVODSampleConversations
     };
 
     /// <summary>
@@ -392,29 +392,29 @@ public static class JwSourceHelper
         AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
         AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs,
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
-        "SeriesBibleTeachings",
-        "SeriesHappyMarriage",
-        "SeriesImitateFaith",
+        AppConstants.Media.MediatorPublicationCodeSeriesBibleTeachings,
+        AppConstants.Media.MediatorPublicationCodeSeriesHappyMarriage,
+        AppConstants.Media.MediatorPublicationCodeSeriesImitateFaith,
         AppConstants.Media.MediatorCategoryKeySeriesBibleBooks,
-        "SeriesIronSharpens",
-        "SeriesJehovahsFriends",
-        "SeriesLearnFromThem",
-        "SeriesWTLessons",
-        "VODLovePeople",
-        "SeriesMyTeenLife",
-        "SeriesNeetaJade",
-        "SeriesOrgAccomplishments",
-        "SeriesOurHistory",
-        "VODPureWorshipIntro",
-        "SeriesBibleChangesLives",
-        "SeriesGoodNews",
-        "SeriesTruthTransforms",
-        "SeriesOriginsLife",
-        "SeriesWCGVideos",
-        "SeriesWasItDesigned",
+        AppConstants.Media.MediatorPublicationCodeSeriesIronSharpens,
+        AppConstants.Media.MediatorPublicationCodeSeriesJehovahsFriends,
+        AppConstants.Media.MediatorPublicationCodeSeriesLearnFromThem,
+        AppConstants.Media.MediatorPublicationCodeSeriesWTLessons,
+        AppConstants.Media.MediatorPublicationCodeVODLovePeople,
+        AppConstants.Media.MediatorPublicationCodeSeriesMyTeenLife,
+        AppConstants.Media.MediatorPublicationCodeSeriesNeetaJade,
+        AppConstants.Media.MediatorPublicationCodeSeriesOrgAccomplishments,
+        AppConstants.Media.MediatorPublicationCodeSeriesOurHistory,
+        AppConstants.Media.MediatorPublicationCodeVODPureWorshipIntro,
+        AppConstants.Media.MediatorPublicationCodeSeriesBibleChangesLives,
+        AppConstants.Media.MediatorPublicationCodeSeriesGoodNews,
+        AppConstants.Media.MediatorPublicationCodeSeriesTruthTransforms,
+        AppConstants.Media.MediatorPublicationCodeSeriesOriginsLife,
+        AppConstants.Media.MediatorPublicationCodeSeriesWCGVideos,
+        AppConstants.Media.MediatorPublicationCodeSeriesWasItDesigned,
         AppConstants.Media.BiblePublicationCodeSeriesWhatPeersSay,
-        "SeriesWhereAreTheyNow",
-        "SeriesWhiteboard"
+        AppConstants.Media.MediatorPublicationCodeSeriesWhereAreTheyNow,
+        AppConstants.Media.MediatorPublicationCodeSeriesWhiteboard
     };
 
     /// <summary>
@@ -425,29 +425,29 @@ public static class JwSourceHelper
         AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
         AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs,
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
-        "SeriesBibleTeachings",
-        "SeriesHappyMarriage",
-        "SeriesImitateFaith",
+        AppConstants.Media.MediatorPublicationCodeSeriesBibleTeachings,
+        AppConstants.Media.MediatorPublicationCodeSeriesHappyMarriage,
+        AppConstants.Media.MediatorPublicationCodeSeriesImitateFaith,
         AppConstants.Media.MediatorCategoryKeySeriesBibleBooks,
-        "SeriesIronSharpens",
-        "SeriesJehovahsFriends",
-        "SeriesLearnFromThem",
-        "SeriesWTLessons",
-        "VODLovePeople",
-        "SeriesMyTeenLife",
-        "SeriesNeetaJade",
-        "SeriesOrgAccomplishments",
-        "SeriesOurHistory",
-        "VODPureWorshipIntro",
-        "SeriesBibleChangesLives",
-        "SeriesGoodNews",
-        "SeriesTruthTransforms",
-        "SeriesOriginsLife",
-        "SeriesWCGVideos",
-        "SeriesWasItDesigned",
+        AppConstants.Media.MediatorPublicationCodeSeriesIronSharpens,
+        AppConstants.Media.MediatorPublicationCodeSeriesJehovahsFriends,
+        AppConstants.Media.MediatorPublicationCodeSeriesLearnFromThem,
+        AppConstants.Media.MediatorPublicationCodeSeriesWTLessons,
+        AppConstants.Media.MediatorPublicationCodeVODLovePeople,
+        AppConstants.Media.MediatorPublicationCodeSeriesMyTeenLife,
+        AppConstants.Media.MediatorPublicationCodeSeriesNeetaJade,
+        AppConstants.Media.MediatorPublicationCodeSeriesOrgAccomplishments,
+        AppConstants.Media.MediatorPublicationCodeSeriesOurHistory,
+        AppConstants.Media.MediatorPublicationCodeVODPureWorshipIntro,
+        AppConstants.Media.MediatorPublicationCodeSeriesBibleChangesLives,
+        AppConstants.Media.MediatorPublicationCodeSeriesGoodNews,
+        AppConstants.Media.MediatorPublicationCodeSeriesTruthTransforms,
+        AppConstants.Media.MediatorPublicationCodeSeriesOriginsLife,
+        AppConstants.Media.MediatorPublicationCodeSeriesWCGVideos,
+        AppConstants.Media.MediatorPublicationCodeSeriesWasItDesigned,
         AppConstants.Media.BiblePublicationCodeSeriesWhatPeersSay,
-        "SeriesWhereAreTheyNow",
-        "SeriesWhiteboard"
+        AppConstants.Media.MediatorPublicationCodeSeriesWhereAreTheyNow,
+        AppConstants.Media.MediatorPublicationCodeSeriesWhiteboard
     };
 
     /// <summary>
@@ -455,13 +455,13 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> ActivitiesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODActivitiesTranslation",
-        "VODActivitiesAVProduction",
-        "VODActivitiesPrintingShipping",
-        "VODActivitiesConstruction",
-        "VODActivitiesReliefWork",
-        "VODActivitiesTheoSchools",
-        "VODActivitiesSpecialEvents"
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesTranslation,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesAVProduction,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesPrintingShipping,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesConstruction,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesReliefWork,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesTheoSchools,
+        AppConstants.Media.MediatorPublicationCodeVODActivitiesSpecialEvents
     };
 
     /// <summary>
@@ -469,12 +469,12 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> OrganizationPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "Reports",
-        "VODOrgBethel",
-        "AccomplishMinistry",
-        "VODOrgHistory",
-        "VODOrgLegal",
-        "VODOrgBloodlessMedicine"
+        AppConstants.Media.MediatorPublicationCodeReports,
+        AppConstants.Media.MediatorPublicationCodeVODOrgBethel,
+        AppConstants.Media.MediatorPublicationCodeAccomplishMinistry,
+        AppConstants.Media.MediatorPublicationCodeVODOrgHistory,
+        AppConstants.Media.MediatorPublicationCodeVODOrgLegal,
+        AppConstants.Media.MediatorPublicationCodeVODOrgBloodlessMedicine
     };
 
     /// <summary>

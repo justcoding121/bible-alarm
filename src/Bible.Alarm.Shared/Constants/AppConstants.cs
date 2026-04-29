@@ -564,6 +564,150 @@ public static class AppConstants
         /// <summary>Mediator publication code (series / music-flag).</summary>
         public const string MediatorPublicationCodeSeriesBJFSongs = "SeriesBJFSongs";
 
+        /// <summary>Mediator publication code (activities).</summary>
+        public const string MediatorPublicationCodeVODActivitiesTranslation = "VODActivitiesTranslation";
+
+        /// <summary>Mediator publication code (activities).</summary>
+        public const string MediatorPublicationCodeVODActivitiesAVProduction = "VODActivitiesAVProduction";
+
+        /// <summary>Mediator publication code (activities).</summary>
+        public const string MediatorPublicationCodeVODActivitiesPrintingShipping = "VODActivitiesPrintingShipping";
+
+        /// <summary>Mediator publication code (activities).</summary>
+        public const string MediatorPublicationCodeVODActivitiesConstruction = "VODActivitiesConstruction";
+
+        /// <summary>Mediator publication code (activities).</summary>
+        public const string MediatorPublicationCodeVODActivitiesReliefWork = "VODActivitiesReliefWork";
+
+        /// <summary>Mediator publication code (activities).</summary>
+        public const string MediatorPublicationCodeVODActivitiesTheoSchools = "VODActivitiesTheoSchools";
+
+        /// <summary>Mediator publication code (activities).</summary>
+        public const string MediatorPublicationCodeVODActivitiesSpecialEvents = "VODActivitiesSpecialEvents";
+
+        /// <summary>Mediator publication code (meetings and ministry).</summary>
+        public const string MediatorPublicationCodeVODMinistryTools = "VODMinistryTools";
+
+        /// <summary>Mediator publication code (meetings and ministry).</summary>
+        public const string MediatorPublicationCodeVODMinistryImproveSkills = "VODMinistryImproveSkills";
+
+        /// <summary>Mediator publication code (meetings and ministry).</summary>
+        public const string MediatorPublicationCodeVODMinistryMethods = "VODMinistryMethods";
+
+        /// <summary>Mediator publication code (meetings and ministry).</summary>
+        public const string MediatorPublicationCodeMeetingsConventions = "MeetingsConventions";
+
+        /// <summary>Mediator publication code (meetings and ministry).</summary>
+        public const string MediatorPublicationCodeVODSampleConversations = "VODSampleConversations";
+
+        /// <summary>Mediator publication code (organization).</summary>
+        public const string MediatorPublicationCodeReports = "Reports";
+
+        /// <summary>Mediator publication code (organization).</summary>
+        public const string MediatorPublicationCodeVODOrgBethel = "VODOrgBethel";
+
+        /// <summary>Mediator publication code (organization).</summary>
+        public const string MediatorPublicationCodeAccomplishMinistry = "AccomplishMinistry";
+
+        /// <summary>Mediator publication code (organization).</summary>
+        public const string MediatorPublicationCodeVODOrgHistory = "VODOrgHistory";
+
+        /// <summary>Mediator publication code (organization).</summary>
+        public const string MediatorPublicationCodeVODOrgLegal = "VODOrgLegal";
+
+        /// <summary>Mediator publication code (organization).</summary>
+        public const string MediatorPublicationCodeVODOrgBloodlessMedicine = "VODOrgBloodlessMedicine";
+
+        /// <summary>Mediator publication code (interviews and experiences).</summary>
+        public const string MediatorPublicationCodeVODIntExpTransformations = "VODIntExpTransformations";
+
+        /// <summary>Mediator publication code (interviews and experiences).</summary>
+        public const string MediatorPublicationCodeVODIntExpBlessings = "VODIntExpBlessings";
+
+        /// <summary>Mediator publication code (interviews and experiences).</summary>
+        public const string MediatorPublicationCodeVODIntExpEndurance = "VODIntExpEndurance";
+
+        /// <summary>Mediator publication code (interviews and experiences).</summary>
+        public const string MediatorPublicationCodeVODIntExpYouth = "VODIntExpYouth";
+
+        /// <summary>Mediator publication code (interviews and experiences).</summary>
+        public const string MediatorPublicationCodeOriginsLife = "OriginsLife";
+
+        /// <summary>Mediator publication code (interviews and experiences).</summary>
+        public const string MediatorPublicationCodeVODIntExpArchives = "VODIntExpArchives";
+
+        /// <summary>Mediator publication code (music).</summary>
+        public const string MediatorPublicationCodeVODConvMusic = "VODConvMusic";
+
+        /// <summary>Mediator publication code (music).</summary>
+        public const string MediatorPublicationCodeMakingMusic = "MakingMusic";
+
+        /// <summary>Mediator publication code (music).</summary>
+        public const string MediatorPublicationCodeVODSingToJah = "VODSingToJah";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesBibleTeachings = "SeriesBibleTeachings";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesHappyMarriage = "SeriesHappyMarriage";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesImitateFaith = "SeriesImitateFaith";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesIronSharpens = "SeriesIronSharpens";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesJehovahsFriends = "SeriesJehovahsFriends";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesLearnFromThem = "SeriesLearnFromThem";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesWTLessons = "SeriesWTLessons";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeVODLovePeople = "VODLovePeople";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesMyTeenLife = "SeriesMyTeenLife";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesNeetaJade = "SeriesNeetaJade";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesOrgAccomplishments = "SeriesOrgAccomplishments";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesOurHistory = "SeriesOurHistory";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeVODPureWorshipIntro = "VODPureWorshipIntro";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesBibleChangesLives = "SeriesBibleChangesLives";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesGoodNews = "SeriesGoodNews";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesTruthTransforms = "SeriesTruthTransforms";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesOriginsLife = "SeriesOriginsLife";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesWCGVideos = "SeriesWCGVideos";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesWasItDesigned = "SeriesWasItDesigned";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesWhereAreTheyNow = "SeriesWhereAreTheyNow";
+
+        /// <summary>Mediator publication code (series).</summary>
+        public const string MediatorPublicationCodeSeriesWhiteboard = "SeriesWhiteboard";
+
         /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
