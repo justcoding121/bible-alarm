@@ -2495,6 +2495,16 @@ public static class AppConstants
 
             public const string HandleInitializedLanguagePublicationSection =
                 "TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}";
+
+            public const string ErrorInHandleBiblePublicationChangedDuringTrackPopulation =
+                "Error in TrackSelectionStateManager.HandleBiblePublicationChanged during track population";
+        }
+
+        /// <summary>Bible publication list/language UI (<c>BiblePublicationSelectionPropertyManager</c>).</summary>
+        public static class BiblePublicationSelectionPropertyManagerDiagnosticsLog
+        {
+            public const string MultipleLanguagesSelectedCount =
+                "[BibleSelectionPropertyManager] Multiple languages selected: {Count} languages";
         }
 
         /// <summary>Bible publication picker modal (<c>BiblePublicationSelectionViewModel</c>).</summary>
@@ -3156,6 +3166,22 @@ public static class AppConstants
 
             public const string ModalCancellationTokenDisposalWarning =
                 "Error during modal cancellation token disposal";
+
+            public const string NoItemsLoadedIntoCollectionViewAfterRefresh =
+                "No items loaded into CollectionView after refresh";
+        }
+
+        /// <summary>Fetch overlay progress UI (<c>FetchProgressTracker</c>).</summary>
+        public static class FetchProgressTrackerDiagnosticsLog
+        {
+            public const string UpdateProgressUiUpdateFailedElementMayBeDisposed =
+                "FetchProgressTracker.UpdateProgress: UI update failed (element may be disposed)";
+
+            public const string UpdateProgressTextUiUpdateFailedElementMayBeDisposed =
+                "FetchProgressTracker.UpdateProgressText: UI update failed (element may be disposed)";
+
+            public const string SetIsVisibleUiUpdateFailedElementMayBeDisposed =
+                "FetchProgressTracker.SetIsVisible: UI update failed (element may be disposed)";
         }
 
         /// <summary>Android MediaSession artwork bitmap loads.</summary>
@@ -3345,6 +3371,18 @@ public static class AppConstants
         public static class CategorySelectionDiagnosticsLog
         {
             public const string ErrorLoadingCategories = "Error loading categories";
+
+            public const string ErrorDuringCategorySelectionCategoryCode =
+                "CategorySelectionViewModel: Error during category selection for category={CategoryCode}";
+
+            public const string ErrorClosingModalAfterFetchErrorCategoryCode =
+                "CategorySelectionViewModel: Error closing modal after fetch error for category={CategoryCode}";
+
+            public const string ErrorClosingModalCategoryCode =
+                "CategorySelectionViewModel: Error closing modal for category={CategoryCode}";
+
+            public const string LoadCategoriesAsyncMarkedCategorySelected =
+                "LoadCategoriesAsync: Marked category {CategoryCode} as selected";
         }
 
         /// <summary>Android notification service secondary errors.</summary>

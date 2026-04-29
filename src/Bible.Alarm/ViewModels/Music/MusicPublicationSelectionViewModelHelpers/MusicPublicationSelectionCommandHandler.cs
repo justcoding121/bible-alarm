@@ -228,7 +228,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {
-            Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during publication selection for {PublicationCode}", songPublication.Code);
+            Log.Warning(ex, AppConstants.Logging.MusicPublicationSelectionCommandHandlerDiagnosticsLog.NetworkErrorPublicationSelectionPublicationCode, songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
             await Task.Delay(500);

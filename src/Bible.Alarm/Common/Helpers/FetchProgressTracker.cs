@@ -1,5 +1,6 @@
 #nullable enable
 using System.Threading;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
 
@@ -46,7 +47,7 @@ public sealed class FetchProgressTracker : IFetchProgress
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "FetchProgressTracker.UpdateProgress: UI update failed (element may be disposed)");
+            Log.Debug(ex, AppConstants.Logging.FetchProgressTrackerDiagnosticsLog.UpdateProgressUiUpdateFailedElementMayBeDisposed);
         }
     }
 
@@ -60,7 +61,7 @@ public sealed class FetchProgressTracker : IFetchProgress
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "FetchProgressTracker.UpdateProgressText: UI update failed (element may be disposed)");
+            Log.Debug(ex, AppConstants.Logging.FetchProgressTrackerDiagnosticsLog.UpdateProgressTextUiUpdateFailedElementMayBeDisposed);
         }
     }
 
@@ -72,7 +73,7 @@ public sealed class FetchProgressTracker : IFetchProgress
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "FetchProgressTracker.SetIsVisible: UI update failed (element may be disposed)");
+            Log.Debug(ex, AppConstants.Logging.FetchProgressTrackerDiagnosticsLog.SetIsVisibleUiUpdateFailedElementMayBeDisposed);
         }
     }
 }

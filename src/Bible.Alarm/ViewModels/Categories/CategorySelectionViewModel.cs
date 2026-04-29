@@ -141,7 +141,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "CategorySelectionViewModel: Error during category selection for category={CategoryCode}", category.CategoryCode);
+            Serilog.Log.Error(ex, AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorDuringCategorySelectionCategoryCode, category.CategoryCode);
         }
         finally
         {
@@ -163,7 +163,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal after fetch error for category={CategoryCode}", category.CategoryCode);
+                Serilog.Log.Error(ex, AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorClosingModalAfterFetchErrorCategoryCode, category.CategoryCode);
             }
         }
         else
@@ -174,7 +174,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal for category={CategoryCode}", category.CategoryCode);
+                Serilog.Log.Error(ex, AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorClosingModalCategoryCode, category.CategoryCode);
             }
         }
     });
@@ -206,7 +206,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
                     {
                         categoryVM.IsSelected = true;
                         SelectedCategory = categoryVM;
-                        Serilog.Log.Debug("LoadCategoriesAsync: Marked category {CategoryCode} as selected", categoryVM.CategoryCode);
+                        Serilog.Log.Debug(AppConstants.Logging.CategorySelectionDiagnosticsLog.LoadCategoriesAsyncMarkedCategorySelected, categoryVM.CategoryCode);
                     }
                     Categories.Add(categoryVM);
                 }

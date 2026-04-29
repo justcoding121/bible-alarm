@@ -142,7 +142,7 @@ public static class ModalScrollHelper
                     }
                     else
                     {
-                        Log.Warning("No items loaded into CollectionView after refresh");
+                        Log.Warning(AppConstants.Logging.ModalUiDiagnosticsLog.NoItemsLoadedIntoCollectionViewAfterRefresh);
                         if (onFetchFailed != null)
                         {
                             await onFetchFailed(DefaultFetchErrorMessage);
@@ -256,7 +256,7 @@ public static class ModalScrollHelper
                 var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken: cancellationToken);
                 if (!hasItems)
                 {
-                    Log.Warning("No items loaded into CollectionView after refresh");
+                    Log.Warning(AppConstants.Logging.ModalUiDiagnosticsLog.NoItemsLoadedIntoCollectionViewAfterRefresh);
                     if (onFetchFailed != null)
                     {
                         await onFetchFailed(DefaultFetchErrorMessage);

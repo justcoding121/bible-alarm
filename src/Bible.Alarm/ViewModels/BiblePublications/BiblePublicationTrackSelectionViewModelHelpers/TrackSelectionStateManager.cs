@@ -183,7 +183,7 @@ public sealed class TrackSelectionStateManager
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Error in TrackSelectionStateManager.HandleBiblePublicationChanged during track population");
+                    Log.Warning(ex, AppConstants.Logging.TrackSelectionStateManagerDiagnosticsLog.ErrorInHandleBiblePublicationChangedDuringTrackPopulation);
                 }
                 finally
                 {

@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -140,7 +141,7 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
 
             if (selectedLanguages.Count > 1)
             {
-                Serilog.Log.Warning("[BibleSelectionPropertyManager] Multiple languages selected: {Count} languages",
+                Serilog.Log.Warning(AppConstants.Logging.BiblePublicationSelectionPropertyManagerDiagnosticsLog.MultipleLanguagesSelectedCount,
                     selectedLanguages.Count);
             }
 
