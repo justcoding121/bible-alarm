@@ -379,7 +379,7 @@ public sealed class AlarmSchedule : IComparable
         
         // Get the first track of the selected section (book)
         // We already verified the section has tracks above
-        var firstTrack = section.Tracks!.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
+        var firstTrack = section.Tracks!.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList()[0];
         sample.BiblePublicationSchedule.TrackCode = firstTrack.TrackCode;
 
         if (sample.Music == null)

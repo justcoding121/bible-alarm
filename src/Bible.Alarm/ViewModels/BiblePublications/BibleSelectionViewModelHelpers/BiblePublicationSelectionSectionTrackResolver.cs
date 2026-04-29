@@ -266,7 +266,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             return (null, string.Empty, string.Empty, string.Empty);
         }
 
-        var firstTrack = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
+        var firstTrack = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList()[0];
         var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
         Log.Information("GetFirstTrackForNonSectionedAsync: Found first track trackCode={TrackCode}, Title={TrackTitle}",
             trackCode, firstTrack.Title);

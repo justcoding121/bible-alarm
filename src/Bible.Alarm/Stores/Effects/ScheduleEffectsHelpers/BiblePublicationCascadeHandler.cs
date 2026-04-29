@@ -415,7 +415,7 @@ public sealed class BiblePublicationCascadeHandler
             return;
         }
 
-        var firstTrack = tracks.Values.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
+        var firstTrack = tracks.Values.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList()[0];
         var trackCodeStr = TrackCodeHelper.GetFromTrack(firstTrack);
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();

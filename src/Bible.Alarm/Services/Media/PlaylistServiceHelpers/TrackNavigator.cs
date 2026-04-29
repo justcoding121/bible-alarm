@@ -183,7 +183,7 @@ public sealed class TrackNavigator
             throw new InvalidOperationException($"No tracks in next section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={nextSection.Key}");
         }
 
-        return new TrackNavigationResult(publicationCode, nextSection.Value, tracks.ElementAt(0).Value);
+        return new TrackNavigationResult(publicationCode, nextSection.Value, FirstSortedDictionaryTrack(tracks));
     }
 
     private static string ResolveTrackCodeToKey(SortedDictionary<string, BiblePublicationTrack> tracks, string trackCode)
@@ -192,7 +192,15 @@ public sealed class TrackNavigator
         {
             return trackCode;
         }
-        return tracks.First(kvp => TrackCodeHelper.GetFromTrack(kvp.Value) == trackCode).Key;
+        foreach (var kvp in tracks)
+        {
+            if (TrackCodeHelper.GetFromTrack(kvp.Value) == trackCode)
+            {
+                return kvp.Key;
+            }
+        }
+
+        throw new InvalidOperationException("Sequence contains no matching element.");
     }
 
     /// <summary>
@@ -264,7 +272,7 @@ public sealed class TrackNavigator
             throw new InvalidOperationException($"No tracks in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={previousSection.Key}");
         }
 
-        return new TrackNavigationResult(publicationCode, previousSection.Value, tracks.Last().Value);
+        return new TrackNavigationResult(publicationCode, previousSection.Value, LastSortedDictionaryTrack(tracks));
     }
 
     /// <summary>
@@ -439,8 +447,8 @@ public sealed class TrackNavigator
         var pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
         if (pubWithTracks?.Tracks != null && pubWithTracks.Tracks.Count > 0)
         {
-            var first = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
-            return (null, first);
+            var orderedTracks = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+            return (null, orderedTracks[0]);
         }
 
         if (languageContentService != null && (pubWithTracks == null || pubWithTracks.Tracks == null || pubWithTracks.Tracks.Count == 0))
@@ -456,8 +464,8 @@ public sealed class TrackNavigator
                 pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
                 if (pubWithTracks?.Tracks != null && pubWithTracks.Tracks.Count > 0)
                 {
-                    var first = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
-                    return (null, first);
+                    var orderedTracks = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+                    return (null, orderedTracks[0]);
                 }
             }
         }
@@ -488,7 +496,7 @@ public sealed class TrackNavigator
             var tracks = await GetTracksCachedAsync(languageCode, publicationCode, candidateSectionCode);
             if (sections.TryGetValue(candidateSectionCode, out var section) && tracks.Count > 0)
             {
-                return (section, tracks.ElementAt(0).Value);
+                return (section, FirstSortedDictionaryTrack(tracks));
             }
 
             logger?.Information("GetFirstTrackOfPublicationAsync: Section {SectionCode} has no tracks after catalog, trying next section",
@@ -506,8 +514,8 @@ public sealed class TrackNavigator
         var pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
         if (pubWithTracks?.Tracks != null && pubWithTracks.Tracks.Count > 0)
         {
-            var last = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).Last();
-            return (null, last);
+            var orderedTracks = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+            return (null, orderedTracks[^1]);
         }
 
         if (languageContentService != null && (pubWithTracks == null || pubWithTracks.Tracks == null || pubWithTracks.Tracks.Count == 0))
@@ -523,8 +531,8 @@ public sealed class TrackNavigator
                 pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
                 if (pubWithTracks?.Tracks != null && pubWithTracks.Tracks.Count > 0)
                 {
-                    var last = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).Last();
-                    return (null, last);
+                    var orderedTracks = pubWithTracks.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+                    return (null, orderedTracks[^1]);
                 }
             }
         }
@@ -557,7 +565,7 @@ public sealed class TrackNavigator
             var tracks = await GetTracksCachedAsync(languageCode, publicationCode, candidateSectionCode);
             if (sections.TryGetValue(candidateSectionCode, out var section) && tracks.Count > 0)
             {
-                return (section, tracks.Last().Value);
+                return (section, LastSortedDictionaryTrack(tracks));
             }
 
             logger?.Information("GetLastTrackOfPublicationAsync: Section {SectionCode} has no tracks after catalog, trying previous section",
@@ -565,6 +573,24 @@ public sealed class TrackNavigator
         }
 
         return null;
+    }
+
+    private static BiblePublicationTrack FirstSortedDictionaryTrack(SortedDictionary<string, BiblePublicationTrack> tracks)
+    {
+        using var e = tracks.GetEnumerator();
+        _ = e.MoveNext();
+        return e.Current.Value;
+    }
+
+    private static BiblePublicationTrack LastSortedDictionaryTrack(SortedDictionary<string, BiblePublicationTrack> tracks)
+    {
+        KeyValuePair<string, BiblePublicationTrack> last = default;
+        foreach (var kvp in tracks)
+        {
+            last = kvp;
+        }
+
+        return last.Value;
     }
 
 }

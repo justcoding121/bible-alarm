@@ -98,7 +98,7 @@ public sealed class TrackNavigatorNonSectionedHelper
             }
         }
 
-        return new TrackNavigationResult(publicationCode, null, orderedTracks.First());
+        return new TrackNavigationResult(publicationCode, null, orderedTracks[0]);
     }
 
     public async System.Threading.Tasks.Task<TrackNavigationResult> GetPreviousAsync(
@@ -163,7 +163,7 @@ public sealed class TrackNavigatorNonSectionedHelper
             }
         }
 
-        return new TrackNavigationResult(publicationCode, null, orderedTracks.Last());
+        return new TrackNavigationResult(publicationCode, null, orderedTracks[^1]);
     }
 
     private static string ResolveTrackCodeToKey(SortedDictionary<string, BiblePublicationTrack> tracks, string trackCode)
@@ -172,6 +172,14 @@ public sealed class TrackNavigatorNonSectionedHelper
         {
             return trackCode;
         }
-        return tracks.First(kvp => TrackCodeHelper.GetFromTrack(kvp.Value) == trackCode).Key;
+        foreach (var kvp in tracks)
+        {
+            if (TrackCodeHelper.GetFromTrack(kvp.Value) == trackCode)
+            {
+                return kvp.Key;
+            }
+        }
+
+        throw new InvalidOperationException("Sequence contains no matching element.");
     }
 }

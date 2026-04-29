@@ -60,7 +60,7 @@ public static class BiblePublicationCascadeNoLanguageResolver
                 var section = pub.Sections.FirstOrDefault(s => s.SectionCode == firstSection.SectionCode);
                 if (section?.Tracks != null && section.Tracks.Count > 0)
                 {
-                    var firstTrack = section.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
+                    var firstTrack = section.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList()[0];
                     trackCode = TrackCodeHelper.GetFromTrack(firstTrack);
                     trackTitle = firstTrack.Title ?? string.Empty;
                 }
@@ -78,7 +78,7 @@ public static class BiblePublicationCascadeNoLanguageResolver
 
             if (pub?.Tracks != null && pub.Tracks.Count > 0)
             {
-                var firstTrack = pub.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
+                var firstTrack = pub.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList()[0];
                 trackCode = TrackCodeHelper.GetFromTrack(firstTrack);
                 trackTitle = firstTrack.Title ?? string.Empty;
             }
