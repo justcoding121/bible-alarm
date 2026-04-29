@@ -424,7 +424,7 @@ public sealed class MusicDisplayTextProvider
 
         try
         {
-            var languages = await mediaService.GetBiblePublicationLanguages("Music", requireIsMusicForMusicCategory: true);
+            var languages = await mediaService.GetBiblePublicationLanguages(AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
             return languages.Count > 1;
         }
         catch
@@ -470,7 +470,7 @@ public sealed class MusicDisplayTextProvider
 
             var query = db.PublicationLanguages
                 .AsNoTracking()
-                .Where(pl => pl.Category != null && pl.Category.CategoryCode == "Music");
+                .Where(pl => pl.Category != null && pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic);
 
             query = query.Where(pl =>
                 (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||

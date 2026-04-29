@@ -1,5 +1,7 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
+
 namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 
 /// <summary>
@@ -16,7 +18,7 @@ public static class TracksUnitTextProvider
 
     public static TracksUnit GetTracksUnit(string? categoryName)
     {
-        if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
         {
             return TracksUnit.Track;
         }

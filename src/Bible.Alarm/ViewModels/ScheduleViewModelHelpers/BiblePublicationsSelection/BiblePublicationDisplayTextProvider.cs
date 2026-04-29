@@ -265,7 +265,7 @@ public sealed class BiblePublicationDisplayTextProvider
         // In practice, Bible/Dramas/Music categories have multiple choices when language selection is applicable.
         if (string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+            string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

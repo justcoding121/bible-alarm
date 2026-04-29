@@ -14,7 +14,7 @@ namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers.MusicCascadeHandlerH
 public static class MusicCascadeModalCountHelper
 {
     /// <summary>
-    /// Category is always "Music"; when MusicLanguageCode is null, effective language is "E".
+    /// Category is always the music publication category; when MusicLanguageCode is null, effective language is "E".
     /// </summary>
     public static async Task<int?> GetMusicPublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
     {
@@ -24,7 +24,7 @@ public static class MusicCascadeModalCountHelper
 
         var query = db.PublicationLanguages
             .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryCode == "Music");
+            .Where(pl => pl.Category != null && pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic);
 
         query = query.Where(pl =>
             (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||

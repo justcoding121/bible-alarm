@@ -83,7 +83,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
 
         var normalizedLanguage = languageCode ?? string.Empty;
         var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
-        var requireIsMusic = requireIsMusicForMusicCategory && string.Equals(normalizedCategory, "Music", StringComparison.OrdinalIgnoreCase);
+        var requireIsMusic = requireIsMusicForMusicCategory && string.Equals(normalizedCategory, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
         var key = new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory, requireIsMusic);
         var now = DateTimeOffset.UtcNow;
 
@@ -139,7 +139,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         var normalizedLanguage = languageCode ?? string.Empty;
         var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
         biblePublicationsCache.TryRemove(new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory, false), out _);
-        if (string.Equals(normalizedCategory, "Music", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(normalizedCategory, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
         {
             biblePublicationsCache.TryRemove(new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory, true), out _);
         }
@@ -323,7 +323,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         // Avoid N+1 queries in VocalMusicService.GetDistinctLanguagesAsync.
         // PublicationLanguages already has the discovery data we need for Music languages.
         // This is cached inside BiblePublicationService, so repeated calls are cheap.
-        var result = await BiblePublicationService.GetDistinctLanguagesAsync("Music", true, cancellationTokenSource.Token);
+        var result = await BiblePublicationService.GetDistinctLanguagesAsync(AppConstants.Media.BiblePublicationCategoryMusic, true, cancellationTokenSource.Token);
         Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: returned {Count} languages", result.Count);
 
         // If no vocal languages found, fall back to basic languages (English)
@@ -357,7 +357,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
                 {
                     Log.Information("Background: Ensuring all vocal music releases are downloaded for language {LanguageCode} (publication modal opened)", languageCode);
                     await languageContentService.EnsureAllPublicationsForLanguageAsync(
-                        languageCode, "Music", cancellationToken: cancellationTokenSource.Token);
+                        languageCode, AppConstants.Media.BiblePublicationCategoryMusic, cancellationToken: cancellationTokenSource.Token);
                 }
                 catch (Exception ex)
                 {

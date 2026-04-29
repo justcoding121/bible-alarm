@@ -327,6 +327,11 @@ public static class AppConstants
         public const string MediaFileExtension = ".mp3";
 
         /// <summary>
+        /// Bible publication category code for vocal and instrumental music (JW catalog).
+        /// </summary>
+        public const string BiblePublicationCategoryMusic = "Music";
+
+        /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
         public const string TextDirectionLeftToRight = "ltr";

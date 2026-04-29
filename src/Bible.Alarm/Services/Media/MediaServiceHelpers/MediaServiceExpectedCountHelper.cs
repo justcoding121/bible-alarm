@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -57,7 +58,7 @@ public static class MediaServiceExpectedCountHelper
             .AsNoTracking()
             .Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
 
-        if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+        if (requireIsMusicForMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
         {
             query = query.Where(pl => pl.IsMusic);
         }

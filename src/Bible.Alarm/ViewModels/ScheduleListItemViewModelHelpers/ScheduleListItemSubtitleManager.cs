@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
@@ -161,7 +162,7 @@ public sealed class ScheduleListItemSubtitleManager(
             // - Bible: show the track number (e.g., "9")
             // - Music (e.g., "iam"): prefer the track title (e.g., "Melody Number(s) 195, 224") when available
             var categoryName = scheduleStateItem.BiblePublicationCategoryName;
-            var isMusicCategory = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
+            var isMusicCategory = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
 
             if (isMusicCategory && !string.IsNullOrWhiteSpace(trackTitleForDisplay))
             {

@@ -50,7 +50,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         if (biblePublicationService != null)
         {
             var availablePublicationCodes =
-                await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music", true);
+                await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, AppConstants.Media.BiblePublicationCategoryMusic, true);
 
             // Get publications without LanguageId from BiblePublications (data-driven)
             if (scopeFactory == null)
@@ -65,7 +65,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
                 var publicationsWithoutLanguage = await db.BiblePublications
                     .AsNoTracking()
-                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
+                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
                                 bp.LanguageId == null)
                     .Select(bp => bp.PublicationCode)
                     .Distinct()
@@ -77,13 +77,13 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
                 if (vocalPublicationCodes.Count > 0)
                 {
-                    var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory("Music");
+                    var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
                     var publicationLanguages = (await db.PublicationLanguages
                         .AsNoTracking()
                         .Where(pl => pl.Language != null &&
                                    pl.Language.LanguageCode == language.Code.ToUpperInvariant() &&
                                    pl.Category != null &&
-                                   pl.Category.CategoryCode == "Music")
+                                   pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                         .ToListAsync())
                         .OrderBy(pl => pl.PublicationCode, musicComparer)
                         .ThenBy(pl => pl.Id)
@@ -152,7 +152,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                 {
                     // Ensure subsequent GetBiblePublications() sees fresh (non-placeholder) data.
                     // Otherwise the cache can keep returning stale placeholder names after a successful catalog.
-                    mediaService.InvalidateBiblePublicationsCache(language.Code, "Music");
+                    mediaService.InvalidateBiblePublicationsCache(language.Code, AppConstants.Media.BiblePublicationCategoryMusic);
                 }
             }
             catch (Exception ex)
@@ -169,7 +169,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         // Step 3: Get the downloaded publication using GetBiblePublications (same API as Bible publication)
         // Data is already saved, just reading from DB - no progress updates needed
-        var songPublications = await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
+        var songPublications = await mediaService.GetBiblePublications(language.Code, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
 
         if (songPublications == null || songPublications.Count == 0)
         {

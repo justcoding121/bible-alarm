@@ -56,7 +56,7 @@ internal static class MediaServiceBiblePublicationList
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
-                if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                if (requireIsMusicForMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
                 {
                     query = query.Where(x => x.IsMusic);
                 }
@@ -105,7 +105,7 @@ internal static class MediaServiceBiblePublicationList
                 .Include(pl => pl.Language)
                 .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
                 .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName));
-            if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+            if (requireIsMusicForMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
             {
                 publicationLanguageInfoQuery = publicationLanguageInfoQuery.Where(pl => pl.IsMusic);
             }
@@ -116,7 +116,7 @@ internal static class MediaServiceBiblePublicationList
                 .Include(pl => pl.Category)
                 .Where(pl => pl.LanguageId == null)
                 .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName));
-            if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+            if (requireIsMusicForMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
             {
                 publicationLanguagesWithoutLanguageQuery = publicationLanguagesWithoutLanguageQuery.Where(pl => pl.IsMusic);
             }
@@ -130,7 +130,7 @@ internal static class MediaServiceBiblePublicationList
                     return;
 
                 seenCodes.Add(codeForKey);
-                var isMusic = plInfo.Category?.CategoryCode?.Equals("Music", StringComparison.OrdinalIgnoreCase) is true;
+                var isMusic = plInfo.Category?.CategoryCode?.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase) is true;
                 var placeholderName = JwSourceHelper.GetPublicationDisplayNameFallback(codeForKey) ?? codeForKey;
                 var placeholder = new BiblePublication
                 {
@@ -181,7 +181,7 @@ internal static class MediaServiceBiblePublicationList
             .Include(pl => pl.Category)
             .Where(pl => pl.LanguageId == null)
             .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName));
-        if (requireIsMusicForMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+        if (requireIsMusicForMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
         {
             publicationLanguagesWithoutLanguageForPlaceholdersQuery = publicationLanguagesWithoutLanguageForPlaceholdersQuery.Where(pl => pl.IsMusic);
         }
@@ -200,7 +200,7 @@ internal static class MediaServiceBiblePublicationList
 
             if (!result.ContainsKey(codeForKey) && plInfo.Category != null)
             {
-                var isMusic = plInfo.Category.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
+                var isMusic = plInfo.Category.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
                 var placeholder = new BiblePublication
                 {
                     Id = 0,

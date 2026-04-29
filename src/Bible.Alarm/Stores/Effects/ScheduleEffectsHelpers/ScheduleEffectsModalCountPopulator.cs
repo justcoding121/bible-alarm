@@ -184,7 +184,7 @@ public static class ScheduleEffectsModalCountPopulator
 
         var query = db.PublicationLanguages
             .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryCode == "Music");
+            .Where(pl => pl.Category != null && pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic);
 
         query = query.Where(pl =>
             (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||

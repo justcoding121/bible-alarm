@@ -143,7 +143,7 @@ public sealed class ScheduleDisplayNameMusicHelper
                     var sectionCodeLower = music.SectionCode.ToLowerInvariant();
                     var section = await dbContext.BiblePublicationSections
                         .AsNoTracking()
-                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode && x.BiblePublication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") && x.BiblePublication.LanguageId == null && x.SectionCode != null && x.SectionCode.ToLower() == sectionCodeLower)
+                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode && x.BiblePublication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) && x.BiblePublication.LanguageId == null && x.SectionCode != null && x.SectionCode.ToLower() == sectionCodeLower)
                         .Select(x => x.Name)
                         .FirstOrDefaultAsync();
                     if (!string.IsNullOrWhiteSpace(section))

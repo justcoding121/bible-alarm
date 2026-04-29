@@ -201,7 +201,7 @@ public sealed class ScheduleDisplayNameBibleHelper
                     if (!string.IsNullOrWhiteSpace(sectionCodeForTracks))
                     {
                         var categoryName = scheduleStateItem.BiblePublicationCategoryName ?? JwSourceHelper.GetCategoryName(publicationCode) ?? string.Empty;
-                        if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
                         {
                             try
                             {
@@ -238,7 +238,7 @@ public sealed class ScheduleDisplayNameBibleHelper
             if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {
                 var categoryName = scheduleStateItem.BiblePublicationCategoryName ?? JwSourceHelper.GetCategoryName(publicationCode) ?? string.Empty;
-                scheduleStateItem.BiblePublicationTrackTitle = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase)
+                scheduleStateItem.BiblePublicationTrackTitle = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)
                     ? $"Track {biblePublicationSchedule.TrackCode}"
                     : PublicationTypeHelper.HasSectionStructure(publicationCode) ? $"Chapter {biblePublicationSchedule.TrackCode}" : $"Track {biblePublicationSchedule.TrackCode}";
             }

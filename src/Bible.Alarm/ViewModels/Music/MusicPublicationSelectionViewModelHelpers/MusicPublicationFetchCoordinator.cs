@@ -12,10 +12,9 @@ namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers
 
 internal sealed class MusicPublicationFetchCoordinator
 {
-    internal const string BiblePublicationCategoryMusic = "Music";
     internal const string LogPrefixPopulateSongPublications = "PopulateSongPublications: ";
     private const string LogDebugAlreadyCatalogedSkippingFetch =
-        LogPrefixPopulateSongPublications + "All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category=Music, skipping fetch";
+        LogPrefixPopulateSongPublications + "All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category={Category}, skipping fetch";
 
     private readonly IMediaService mediaService;
 
@@ -44,8 +43,8 @@ internal sealed class MusicPublicationFetchCoordinator
         if (downloadAll)
         {
             // Always check DB first: if all expected publications are already cataloged, use that and skip fetch/progress (matches Bible).
-            var initialPublications = await mediaService.GetBiblePublications(languageForFetch, BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
-            var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageForFetch, BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
+            var initialPublications = await mediaService.GetBiblePublications(languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
+            var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
             var actualPublicationCount = initialPublications?.Values.Count ?? 0;
             var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
             var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
@@ -54,18 +53,18 @@ internal sealed class MusicPublicationFetchCoordinator
             if (allPublicationsCataloged)
             {
                 Serilog.Log.Debug(LogDebugAlreadyCatalogedSkippingFetch,
-                    expectedPublicationCount, languageForFetch);
+                    expectedPublicationCount, languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic);
                 return initialPublications;
             }
         }
 
         if (isMelodyMusic)
         {
-            publicationsData = await mediaService.GetBiblePublications(AppConstants.Media.DefaultLanguageCode, BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData = await mediaService.GetBiblePublications(AppConstants.Media.DefaultLanguageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
         }
         else if (!string.IsNullOrEmpty(languageCode))
         {
-            publicationsData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
         }
         else
         {
@@ -79,7 +78,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (publicationsData == null && !string.IsNullOrEmpty(languageCode))
         {
-            publicationsData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
         }
 
         return publicationsData;
@@ -92,10 +91,10 @@ internal sealed class MusicPublicationFetchCoordinator
     {
         // First, check if publications are already cataloged (without showing progress)
         // This prevents progress bar from flashing at 0% when data is already available
-        var initialPublications = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
+        var initialPublications = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
         
         // Get expected publication count from PublicationLanguages discovery table
-        var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
+        var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
         var actualPublicationCount = initialPublications?.Values.Count ?? 0;
         
         // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
@@ -109,7 +108,7 @@ internal sealed class MusicPublicationFetchCoordinator
         {
             // All expected publications are already cataloged - use the initial query result, no need to show progress
             Serilog.Log.Debug(LogDebugAlreadyCatalogedSkippingFetch,
-                expectedPublicationCount, languageCode);
+                expectedPublicationCount, languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
             return initialPublications;
         }
 
@@ -125,8 +124,8 @@ internal sealed class MusicPublicationFetchCoordinator
         var attempt = 0;
         var previousCatalogedCount = -1;
 
-        Serilog.Log.Information(LogPrefixPopulateSongPublications + "Starting fetch with retries for language={LanguageCode}, category=Music",
-            languageCode);
+        Serilog.Log.Information(LogPrefixPopulateSongPublications + "Starting fetch with retries for language={LanguageCode}, category={Category}",
+            languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
 
         // Show progress overlay at the start of retry loop and keep it visible throughout all retries
         progress?.SetIsVisible(true);
@@ -147,16 +146,16 @@ internal sealed class MusicPublicationFetchCoordinator
                 {
                     // Fetch publications (this triggers cataloging if needed)
                     // Pass progress to show download percentage during cataloging
-                    publicationsData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll: true, progress, requireIsMusicForMusicCategory: true);
+                    publicationsData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: true, progress, requireIsMusicForMusicCategory: true);
 
                     // Wait a bit for background cataloging to start (with cancellation support)
                     await Task.Delay(500, cancellationToken);
 
                     // Re-query to check if publications are now cataloged (no progress needed for re-query)
-                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
+                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
 
                     // Get expected publication count to verify we have all publications
-                    var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
+                    var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
                     var retryActualCount = reQueriedData?.Values.Count ?? 0;
                     
                     // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
@@ -266,7 +265,7 @@ internal sealed class MusicPublicationFetchCoordinator
                 // Final attempt to get at least some data
                 try
                 {
-                    publicationsData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll: false, progress, requireIsMusicForMusicCategory: true);
+                    publicationsData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, progress, requireIsMusicForMusicCategory: true);
                 }
                 catch (Exception ex)
                 {

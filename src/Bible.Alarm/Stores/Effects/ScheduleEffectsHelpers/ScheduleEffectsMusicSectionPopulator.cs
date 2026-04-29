@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -74,7 +75,7 @@ public static class ScheduleEffectsMusicSectionPopulator
                 .Where(t => t.BiblePublicationSectionId != null
                     && t.TrackCode == trackCode
                     && t.Publication.PublicationCode == scheduleStateItem.MusicPublicationCode
-                    && t.Publication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music")
+                    && t.Publication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && t.Publication.LanguageId == null)
                 .Select(t => new { t.Section!.SectionCode, t.Section.Name })
                 .FirstOrDefaultAsync();

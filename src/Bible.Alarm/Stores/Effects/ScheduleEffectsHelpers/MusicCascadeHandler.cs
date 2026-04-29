@@ -180,7 +180,7 @@ public sealed class MusicCascadeHandler
         var publication = await db.BiblePublications
             .AsNoTracking()
             .Where(bp => bp.PublicationCode == publicationCode &&
-                         bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music"))
+                         bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic))
             .FirstOrDefaultAsync();
 
         if (publication == null)
@@ -206,7 +206,7 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        // Align with Bible cascade: set modal counts so row badges match (category = "Music").
+        // Align with Bible cascade: set modal counts so row badges match (music category).
         var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
         var sectionModalItemCount = 0; // Flat publication has no sections.
 
@@ -244,7 +244,7 @@ public sealed class MusicCascadeHandler
             if (!string.IsNullOrEmpty(languageCode))
             {
                 var normalizedLanguageCode = languageCode.ToUpperInvariant();
-                var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory("Music");
+                var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
                 var publicationLanguage = (await db.PublicationLanguages
                     .AsNoTracking()
                     .Include(pl => pl.Language)
@@ -252,7 +252,7 @@ public sealed class MusicCascadeHandler
                     .Where(pl => pl.Language != null &&
                                pl.Language.LanguageCode == normalizedLanguageCode &&
                                pl.Category != null &&
-                               pl.Category.CategoryCode == "Music")
+                               pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     .ToListAsync())
                     .OrderBy(pl => pl.PublicationCode, musicComparer)
                     .ThenBy(pl => pl.Id)
@@ -281,10 +281,10 @@ public sealed class MusicCascadeHandler
                 }
                 else
                 {
-                    var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory("Music");
+                    var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
                     var noLangPublication = (await db.BiblePublications
                         .AsNoTracking()
-                        .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
+                        .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
                                    bp.LanguageId == null)
                         .ToListAsync())
                         .OrderBy(bp => bp.PublicationCode, noLangMusicComparer)
@@ -302,10 +302,10 @@ public sealed class MusicCascadeHandler
             }
             else
             {
-                var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory("Music");
+                var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
                 var publication = (await db.BiblePublications
                     .AsNoTracking()
-                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
+                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
                                bp.LanguageId == null)
                     .ToListAsync())
                     .OrderBy(bp => bp.PublicationCode, noLangMusicComparer)
@@ -328,7 +328,7 @@ public sealed class MusicCascadeHandler
                 logger.Warning("MusicCascadeHandler: Failed to catalog publication={PublicationCode}", publicationCode);
                 return;
             }
-            mediaService.InvalidateBiblePublicationsCache(languageCode, "Music");
+            mediaService.InvalidateBiblePublicationsCache(languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
             using (var scope2 = scopeFactory.CreateScope())
             {
                 var db2 = scope2.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -418,7 +418,7 @@ public sealed class MusicCascadeHandler
             .AsNoTracking()
             .Include(bp => bp.Sections)
             .Where(bp => bp.PublicationCode == publicationCode &&
-                       bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music"))
+                       bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic))
             .FirstOrDefaultAsync();
 
         if (publication == null)
@@ -443,7 +443,7 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        // Align with Bible cascade: set modal counts (category = "Music").
+        // Align with Bible cascade: set modal counts (music category).
         var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
         var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
@@ -466,7 +466,7 @@ public sealed class MusicCascadeHandler
         var publication = await db.BiblePublications
             .AsNoTracking()
             .Where(bp => bp.PublicationCode == publicationCode &&
-                       bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music"))
+                       bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic))
             .FirstOrDefaultAsync();
 
         if (publication == null)
@@ -498,7 +498,7 @@ public sealed class MusicCascadeHandler
         var sectionName = currentSchedule.MusicSectionName ?? string.Empty;
         var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
 
-        // Align with Bible cascade: set modal counts (category = "Music").
+        // Align with Bible cascade: set modal counts (music category).
         var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
         var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, currentSchedule);
 

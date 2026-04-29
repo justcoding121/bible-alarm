@@ -172,7 +172,7 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
                     ?? JwSourceHelper.GetCategoryName(scheduleStateItem.BiblePublicationCode ?? string.Empty)
                     ?? string.Empty;
 
-                if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase) &&
+                if (string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase) &&
                     !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
                 {
                     return DisplayTextHelper.NormalizeSingleLine($"{scheduleStateItem.BiblePublicationName} {scheduleStateItem.BiblePublicationTrackCode}");

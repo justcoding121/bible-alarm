@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -42,8 +43,8 @@ public sealed class MusicPublicationSelectionDataProvider(
         await ConcurrencyHelper.ExecuteAsync(languagePopulationLock, async () =>
         {
             // Do ALL processing on background thread to avoid blocking spinner animation
-            // Use GetBiblePublicationLanguages with category="Music" (same API as Bible publication)
-            var languagesFromDb = await mediaService.GetBiblePublicationLanguages(MusicPublicationFetchCoordinator.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
+            // Use GetBiblePublicationLanguages with the music publication category (same API as Bible publication)
+            var languagesFromDb = await mediaService.GetBiblePublicationLanguages(AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
             var languageIds = languagesFromDb.Values.Select(l => l.Id).ToList();
@@ -109,7 +110,7 @@ public sealed class MusicPublicationSelectionDataProvider(
         IFetchProgress? progress = null,
         CancellationToken cancellationToken = default)
     {
-        // Use GetBiblePublications with category="Music" - same API as Bible publication container
+        // Use GetBiblePublications with the music publication category — same API as Bible publication container
         // This returns both publications with language AND without language FK (data-driven)
         // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
         // downloadAll=false when language changes (only download first publication in cascade)
@@ -165,7 +166,7 @@ public sealed class MusicPublicationSelectionDataProvider(
             }
 
             // Sort publications by category: Music = osg first, then others by name
-            songPublicationVMs = PublicationSortHelper.SortByPriorityForCategory(songPublicationVMs, p => p.Code, p => p.Name, "Music").ToList();
+            songPublicationVMs = PublicationSortHelper.SortByPriorityForCategory(songPublicationVMs, p => p.Code, p => p.Name, AppConstants.Media.BiblePublicationCategoryMusic).ToList();
         }
 
         // Update mapping

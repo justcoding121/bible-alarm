@@ -1,5 +1,6 @@
 #nullable enable
 using System.Linq;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -23,7 +24,7 @@ public static class MediaServiceVocalMusicHelper
         CancellationToken cancellationToken)
     {
         var availablePublicationCodes = await biblePublicationService.GetAvailablePublicationCodesAsync(
-            languageCode, "Music", true, cancellationToken);
+            languageCode, AppConstants.Media.BiblePublicationCategoryMusic, true, cancellationToken);
 
         Log.Debug("GetVocalMusicReleases: Found {Count} available publication codes for language={LanguageCode}",
             availablePublicationCodes.Count, languageCode);
@@ -38,7 +39,7 @@ public static class MediaServiceVocalMusicHelper
                 .AsNoTracking()
                 .Include(x => x.BiblePublicationCategories)
                 .ThenInclude(x => x.Category)
-                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == "Music") &&
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
                            x.LanguageId == null &&
                            x.IsMusic)
                 .ToListAsync(cancellationToken);
@@ -76,7 +77,7 @@ public static class MediaServiceVocalMusicHelper
                 .Include(pl => pl.Category)
                 .Include(pl => pl.Language)
                 .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode &&
-                             pl.Category != null && pl.Category.CategoryCode == "Music" &&
+                             pl.Category != null && pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic &&
                              missingPublicationCodes.Contains(pl.PublicationCode))
                 .ToListAsync(cancellationToken);
 
