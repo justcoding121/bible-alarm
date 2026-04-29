@@ -145,7 +145,7 @@ public sealed class NavigationService(
 #if WINDOWS
             WindowsBootstrapLogger.WriteException(ex);
 #endif
-            logger.Error(ex, "NavigateToScheduleAsync failed");
+            logger.Error(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.NavigateToScheduleAsyncFailed);
             throw;
         }
     }
@@ -230,7 +230,7 @@ public sealed class NavigationService(
 #if WINDOWS
             WindowsBootstrapLogger.WriteException(ex);
 #endif
-            logger.Error(ex, "NavigateToScheduleAsync(scheduleId, isEnabled) failed");
+            logger.Error(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.NavigateToScheduleAsyncWithScheduleIdFailed);
             throw;
         }
     }
@@ -307,7 +307,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "IsPlaybackModalOnScreen: navigation unavailable, assuming modal not shown");
+            logger.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.IsPlaybackModalOnScreenNavigationUnavailable);
             return false;
         }
     }
@@ -422,7 +422,7 @@ public sealed class NavigationService(
             }
             catch (Exception ex)
             {
-                logger?.Warning(ex, "Error disposing PlaybackModal (non-fatal)");
+                logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorDisposingPlaybackModalNonFatal);
             }
         }
 
@@ -433,7 +433,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, "Error cleaning up iOS native views for PlaybackModal (non-fatal)");
+            logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorCleaningUpIosNativeViewsPlaybackModalNonFatal);
         }
 #endif
     }
@@ -491,7 +491,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, "Error during navigation lock disposal");
+            logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorDuringNavigationLockDisposal);
         }
 
         // Clear the navigation cache
@@ -522,12 +522,12 @@ public sealed class NavigationService(
             DisposePages(modalStack, "modal");
             DisposePages(navigationStack, "page");
 
-            logger?.Information("NavigationService.PopAllModalsAndPages - Finished disposing modals and pages. Modal count: {ModalCount}, Page count: {PageCount}",
+            logger?.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesFinishedDisposing,
                 modalStack.Count, navigationStack.Count);
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error during modal/page cleanup");
+            logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorDuringCleanup);
         }
     }
 
@@ -539,7 +539,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not get navigation, fragments may be destroyed");
+            logger?.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotGetNavigation);
             return null;
         }
     }
@@ -552,7 +552,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access ModalStack, fragments may be destroyed");
+            logger?.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotAccessModalStack);
             return [];
         }
     }
@@ -565,7 +565,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Could not access NavigationStack, fragments may be destroyed");
+            logger?.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotAccessNavigationStack);
             return [];
         }
     }
@@ -579,12 +579,12 @@ public sealed class NavigationService(
                 if (page is IDisposable disposable)
                 {
                     disposable.Dispose();
-                    logger?.Debug("NavigationService.PopAllModalsAndPages - Disposed {PageType}: {PageTypeName}", pageType, page.GetType().Name);
+                    logger?.Debug(AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesDisposedPage, pageType, page.GetType().Name);
                 }
             }
             catch (Exception ex)
             {
-                logger?.Warning(ex, "NavigationService.PopAllModalsAndPages - Error disposing {PageType}: {PageTypeName}", pageType, page.GetType().Name);
+                logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorDisposingPage, pageType, page.GetType().Name);
             }
 
 #if IOS
@@ -594,7 +594,7 @@ public sealed class NavigationService(
             }
             catch (Exception ex)
             {
-                logger?.Debug(ex, "NavigationService.PopAllModalsAndPages - Error cleaning up iOS native views for {PageType}: {PageTypeName} (non-fatal)", pageType, page.GetType().Name);
+                logger?.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorCleaningUpIosNativeViews, pageType, page.GetType().Name);
             }
 #endif
         }

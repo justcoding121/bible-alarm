@@ -688,6 +688,51 @@ public static class AppConstants
             public const string ErrorUpdatingPlaybackPosition =
                 "Error updating MediaSessionCompat playback position";
         }
+
+        /// <summary><c>NavigationService</c> error and teardown diagnostics.</summary>
+        public static class NavigationServiceDiagnosticsLog
+        {
+            public const string NavigateToScheduleAsyncFailed = "NavigateToScheduleAsync failed";
+
+            public const string NavigateToScheduleAsyncWithScheduleIdFailed =
+                "NavigateToScheduleAsync(scheduleId, isEnabled) failed";
+
+            public const string IsPlaybackModalOnScreenNavigationUnavailable =
+                "IsPlaybackModalOnScreen: navigation unavailable, assuming modal not shown";
+
+            public const string ErrorDisposingPlaybackModalNonFatal =
+                "Error disposing PlaybackModal (non-fatal)";
+
+            public const string ErrorCleaningUpIosNativeViewsPlaybackModalNonFatal =
+                "Error cleaning up iOS native views for PlaybackModal (non-fatal)";
+
+            public const string ErrorDuringNavigationLockDisposal =
+                "Error during navigation lock disposal";
+
+            public const string PopAllModalsAndPagesFinishedDisposing =
+                "NavigationService.PopAllModalsAndPages - Finished disposing modals and pages. Modal count: {ModalCount}, Page count: {PageCount}";
+
+            public const string PopAllModalsAndPagesErrorDuringCleanup =
+                "NavigationService.PopAllModalsAndPages - Error during modal/page cleanup";
+
+            public const string PopAllModalsAndPagesCouldNotGetNavigation =
+                "NavigationService.PopAllModalsAndPages - Could not get navigation, fragments may be destroyed";
+
+            public const string PopAllModalsAndPagesCouldNotAccessModalStack =
+                "NavigationService.PopAllModalsAndPages - Could not access ModalStack, fragments may be destroyed";
+
+            public const string PopAllModalsAndPagesCouldNotAccessNavigationStack =
+                "NavigationService.PopAllModalsAndPages - Could not access NavigationStack, fragments may be destroyed";
+
+            public const string PopAllModalsAndPagesDisposedPage =
+                "NavigationService.PopAllModalsAndPages - Disposed {PageType}: {PageTypeName}";
+
+            public const string PopAllModalsAndPagesErrorDisposingPage =
+                "NavigationService.PopAllModalsAndPages - Error disposing {PageType}: {PageTypeName}";
+
+            public const string PopAllModalsAndPagesErrorCleaningUpIosNativeViews =
+                "NavigationService.PopAllModalsAndPages - Error cleaning up iOS native views for {PageType}: {PageTypeName} (non-fatal)";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>
