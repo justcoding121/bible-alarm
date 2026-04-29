@@ -173,7 +173,7 @@ public sealed class ScheduleListItemStateHandler(
         };
     }
 
-    private bool DetectTrackChange(AlarmSchedule updatedSchedule, AlarmSchedule currentSchedule)
+    private static bool DetectTrackChange(AlarmSchedule updatedSchedule, AlarmSchedule currentSchedule)
     {
         if (currentSchedule.BiblePublicationSchedule != null && updatedSchedule.BiblePublicationSchedule != null)
         {

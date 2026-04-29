@@ -64,7 +64,7 @@ public sealed class ScheduleListItemPropertyManager(
     /// <summary>
     /// Gets property values from schedule.
     /// </summary>
-    public (bool isEnabled, string name, string timeText, string hour, string minute, string meridianText, DaysOfWeek daysOfWeek, bool musicEnabled) GetPropertiesFromSchedule(AlarmSchedule? schedule)
+    public static (bool isEnabled, string name, string timeText, string hour, string minute, string meridianText, DaysOfWeek daysOfWeek, bool musicEnabled) GetPropertiesFromSchedule(AlarmSchedule? schedule)
     {
         if (schedule == null)
         {

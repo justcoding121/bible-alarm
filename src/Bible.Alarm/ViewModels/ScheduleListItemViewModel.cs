@@ -122,7 +122,7 @@ public sealed class ScheduleListItemViewModel(
         try
         {
             Schedule = schedule;
-            var (isEnabled, _, _, _, _, _, _, _) = propertyManager.GetPropertiesFromSchedule(schedule);
+            var (isEnabled, _, _, _, _, _, _, _) = ScheduleListItemPropertyManager.GetPropertiesFromSchedule(schedule);
             propertyManager.IsEnabled = isEnabled;
         }
         finally
