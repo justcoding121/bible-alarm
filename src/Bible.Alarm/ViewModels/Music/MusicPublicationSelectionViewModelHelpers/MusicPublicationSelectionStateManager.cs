@@ -1,5 +1,6 @@
 #nullable enable
 using AutoMapper;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -149,7 +150,7 @@ public sealed class MusicPublicationSelectionStateManager
                 }
                 catch (Exception ex)
                 {
-                    Serilog.Log.Warning(ex, "Error in HandleMusicChanged during publication population");
+                    Serilog.Log.Warning(ex, AppConstants.Logging.MusicPublicationSelectionStateManagerDiagnosticsLog.ErrorInHandleMusicChangedDuringPublicationPopulation);
                 }
                 finally
                 {

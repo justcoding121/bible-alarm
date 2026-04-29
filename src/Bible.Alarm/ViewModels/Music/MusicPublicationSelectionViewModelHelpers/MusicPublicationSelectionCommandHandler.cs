@@ -5,6 +5,7 @@ using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -237,7 +238,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "MusicPublicationSelectionCommandHandler: Error during publication selection for {PublicationCode}", songPublication.Code);
+            Log.Error(ex, AppConstants.Logging.MusicPublicationSelectionCommandHandlerDiagnosticsLog.ErrorPublicationSelectionPublicationCode, songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
             await Task.Delay(500);
@@ -284,7 +285,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             }
             catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
             {
-                Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during language selection for {LanguageCode}", language.Code);
+                Log.Warning(ex, AppConstants.Logging.MusicPublicationSelectionCommandHandlerDiagnosticsLog.NetworkErrorLanguageSelectionLanguageCode, language.Code);
                 await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<IToastService>();
                 await Task.Delay(500);

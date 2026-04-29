@@ -211,7 +211,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
         try
         {
-            Serilog.Log.Information("MusicPublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            Serilog.Log.Information(AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.CancelFetchCommandUserCancelledFetch);
             fetchCts?.CancelAsync();
             propertyManager.CanCancelFetch = false;
             propertyManager.ShowProgress = false;

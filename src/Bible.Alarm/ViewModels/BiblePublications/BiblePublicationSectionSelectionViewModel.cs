@@ -186,7 +186,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             t =>
             {
                 if (t.IsFaulted && t.Exception != null)
-                    Log.Warning(t.Exception, "BiblePublicationSectionSelectionViewModel: {Context}", context);
+                    Log.Warning(t.Exception, AppConstants.Logging.BiblePublicationSectionSelectionViewModelDiagnosticsLog.FaultedTaskContextTemplate, context);
             },
             TaskContinuationOptions.OnlyOnFaulted);
     }

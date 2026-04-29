@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -86,7 +87,7 @@ public sealed class MusicTrackStateManager
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error initializing MusicTrackStateManager");
+                Log.Error(ex, AppConstants.Logging.MusicTrackStateManagerDiagnosticsLog.ErrorInitializingMusicTrackStateManager);
                 // Note: Do NOT set IsBusy = false here - the modal controls this
             }
         });
@@ -140,7 +141,7 @@ public sealed class MusicTrackStateManager
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Error in MusicTrackStateManager.HandleMusicChanged during track population");
+                    Log.Warning(ex, AppConstants.Logging.MusicTrackStateManagerDiagnosticsLog.ErrorInHandleMusicChangedDuringTrackPopulation);
                 }
                 finally
                 {

@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -196,7 +197,7 @@ public sealed class BiblePublicationSelectionStateHandler
         }
         catch (Exception ex)
         {
-            Serilog.Log.Warning(ex, "Error in HandleBiblePublicationInitializedAsync");
+            Serilog.Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.ErrorInHandleBiblePublicationInitializedAsync);
             // Note: Do NOT set IsBusy = false here - the modal controls this
         }
     }
@@ -230,7 +231,7 @@ public sealed class BiblePublicationSelectionStateHandler
         // If still null after fallback, this is an error condition
         if (string.IsNullOrWhiteSpace(newCategoryName))
         {
-            Log.Error("HandleBiblePublicationChangedAsync: Category is null or empty. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            Log.Error(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.HandleBiblePublicationChangedCategoryNullOrEmpty,
                 newLanguageCode, currentSchedule.BiblePublicationCode);
             throw new InvalidOperationException($"Category must always be selected. No category found in state. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
         }
@@ -293,7 +294,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 }
                 catch (Exception ex)
                 {
-                    Serilog.Log.Warning(ex, "Error in HandleBiblePublicationChangedAsync during publication population");
+                    Serilog.Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.ErrorInHandleBiblePublicationChangedAsyncDuringPublicationPopulation);
                 }
                 finally
                 {
@@ -376,7 +377,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 if (publication?.PrimaryCategory != null)
                 {
                     newCategoryName = publication.PrimaryCategory.CategoryCode;
-                    Log.Debug("RefreshFromStateAsync: Got category={CategoryName} from BiblePublications for publication={PublicationCode}",
+                    Log.Debug(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateGotCategoryFromBiblePublications,
                         newCategoryName, currentSchedule.BiblePublicationCode);
                 }
                 else
@@ -391,14 +392,14 @@ public sealed class BiblePublicationSelectionStateHandler
                     if (publicationLanguage?.Category != null)
                     {
                         newCategoryName = publicationLanguage.Category.CategoryCode;
-                        Log.Debug("RefreshFromStateAsync: Got category={CategoryName} from PublicationLanguages for publication={PublicationCode}",
+                        Log.Debug(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateGotCategoryFromPublicationLanguages,
                             newCategoryName, currentSchedule.BiblePublicationCode);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "RefreshFromStateAsync: Failed to get category from database for publication={PublicationCode}",
+                Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateFailedToGetCategoryFromDatabase,
                     currentSchedule.BiblePublicationCode);
             }
         }
@@ -407,7 +408,7 @@ public sealed class BiblePublicationSelectionStateHandler
         // A category should always be selected - if it's still null after all fallbacks, this is an error condition
         if (string.IsNullOrWhiteSpace(newCategoryName))
         {
-            Log.Error("RefreshFromStateAsync: Category is null or empty after all fallbacks. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            Log.Error(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateCategoryNullOrEmptyAfterFallbacks,
                 newLanguageCode, currentSchedule.BiblePublicationCode);
             throw new InvalidOperationException($"Category must always be selected. No category found in state or database. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
         }

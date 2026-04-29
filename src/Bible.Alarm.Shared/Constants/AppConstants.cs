@@ -2418,6 +2418,9 @@ public static class AppConstants
 
             public const string FetchFailedDuringRefresh =
                 "MusicPublicationSelectionViewModel: Fetch failed during refresh";
+
+            public const string CancelFetchCommandUserCancelledFetch =
+                "MusicPublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch";
         }
 
         /// <summary>First vocal song publication/track cascade (<c>VocalMusicFirstPublicationTrackSelector</c>).</summary>
@@ -2492,6 +2495,87 @@ public static class AppConstants
 
             public const string HandleInitializedLanguagePublicationSection =
                 "TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}";
+        }
+
+        /// <summary>Bible publication picker modal (<c>BiblePublicationSelectionViewModel</c>).</summary>
+        public static class BiblePublicationSelectionViewModelDiagnosticsLog
+        {
+            public const string CancelFetchCommandUserCancelledFetch =
+                "BiblePublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch";
+
+            public const string ErrorRefreshingLanguages =
+                "BiblePublicationSelectionViewModel: Error refreshing languages";
+
+            public const string FetchCancelledByUser =
+                "BiblePublicationSelectionViewModel: Fetch cancelled by user";
+
+            public const string FetchFailedNetworkError =
+                "BiblePublicationSelectionViewModel: Fetch failed with network error";
+
+            public const string FetchFailedDuringRefresh =
+                "BiblePublicationSelectionViewModel: Fetch failed during refresh";
+        }
+
+        /// <summary>Bible publication selection state/population (<c>BiblePublicationSelectionStateHandler</c>).</summary>
+        public static class BiblePublicationSelectionStateHandlerDiagnosticsLog
+        {
+            public const string ErrorInHandleBiblePublicationInitializedAsync =
+                "Error in HandleBiblePublicationInitializedAsync";
+
+            public const string ErrorInHandleBiblePublicationChangedAsyncDuringPublicationPopulation =
+                "Error in HandleBiblePublicationChangedAsync during publication population";
+
+            public const string HandleBiblePublicationChangedCategoryNullOrEmpty =
+                "HandleBiblePublicationChangedAsync: Category is null or empty. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}";
+
+            public const string RefreshFromStateGotCategoryFromBiblePublications =
+                "RefreshFromStateAsync: Got category={CategoryName} from BiblePublications for publication={PublicationCode}";
+
+            public const string RefreshFromStateGotCategoryFromPublicationLanguages =
+                "RefreshFromStateAsync: Got category={CategoryName} from PublicationLanguages for publication={PublicationCode}";
+
+            public const string RefreshFromStateFailedToGetCategoryFromDatabase =
+                "RefreshFromStateAsync: Failed to get category from database for publication={PublicationCode}";
+
+            public const string RefreshFromStateCategoryNullOrEmptyAfterFallbacks =
+                "RefreshFromStateAsync: Category is null or empty after all fallbacks. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}";
+        }
+
+        /// <summary>Bible section picker modal (<c>BiblePublicationSectionSelectionViewModel</c>).</summary>
+        public static class BiblePublicationSectionSelectionViewModelDiagnosticsLog
+        {
+            public const string FaultedTaskContextTemplate =
+                "BiblePublicationSectionSelectionViewModel: {Context}";
+        }
+
+        /// <summary>Music publication selection commands (<c>MusicPublicationSelectionCommandHandler</c>).</summary>
+        public static class MusicPublicationSelectionCommandHandlerDiagnosticsLog
+        {
+            public const string NetworkErrorPublicationSelectionPublicationCode =
+                "MusicPublicationSelectionCommandHandler: Network error during publication selection for {PublicationCode}";
+
+            public const string ErrorPublicationSelectionPublicationCode =
+                "MusicPublicationSelectionCommandHandler: Error during publication selection for {PublicationCode}";
+
+            public const string NetworkErrorLanguageSelectionLanguageCode =
+                "MusicPublicationSelectionCommandHandler: Network error during language selection for {LanguageCode}";
+        }
+
+        /// <summary>Music publication list modal state (<c>MusicPublicationSelectionStateManager</c>).</summary>
+        public static class MusicPublicationSelectionStateManagerDiagnosticsLog
+        {
+            public const string ErrorInHandleMusicChangedDuringPublicationPopulation =
+                "Error in HandleMusicChanged during publication population";
+        }
+
+        /// <summary>Music track modal (<c>MusicTrackStateManager</c>).</summary>
+        public static class MusicTrackStateManagerDiagnosticsLog
+        {
+            public const string ErrorInitializingMusicTrackStateManager =
+                "Error initializing MusicTrackStateManager";
+
+            public const string ErrorInHandleMusicChangedDuringTrackPopulation =
+                "Error in MusicTrackStateManager.HandleMusicChanged during track population";
         }
 
         /// <summary>Home tap-to-open schedule perf and errors (<c>CommandHandler.CreateViewScheduleCommand</c>).</summary>

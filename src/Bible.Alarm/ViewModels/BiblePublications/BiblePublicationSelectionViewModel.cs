@@ -145,7 +145,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
         try
         {
-            Serilog.Log.Information("BiblePublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            Serilog.Log.Information(AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.CancelFetchCommandUserCancelledFetch);
             fetchCts?.CancelAsync();
             propertyManager.CanCancelFetch = false;
             propertyManager.ShowProgress = false;
@@ -188,7 +188,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         }
         catch (Exception ex)
         {
-            Serilog.Log.Warning(ex, "BiblePublicationSelectionViewModel: Error refreshing languages");
+            Serilog.Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.ErrorRefreshingLanguages);
         }
     }
 
@@ -241,19 +241,19 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         catch (OperationCanceledException)
         {
             // Fetch was cancelled - data saved so far is preserved
-            Serilog.Log.Debug("BiblePublicationSelectionViewModel: Fetch cancelled by user");
+            Serilog.Log.Debug(AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchCancelledByUser);
             // Hide progress overlay when cancelled
             propertyManager.ShowProgress = false;
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
-            Serilog.Log.Warning(ex, "BiblePublicationSelectionViewModel: Fetch failed with network error");
+            Serilog.Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchFailedNetworkError);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
             throw;
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "BiblePublicationSelectionViewModel: Fetch failed during refresh");
+            Serilog.Log.Error(ex, AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchFailedDuringRefresh);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
             throw;
         }
