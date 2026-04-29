@@ -415,14 +415,14 @@ internal class MusicCataloger : BaseCataloger
         {
             // Melodies: no language
             var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-            return $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryMusic}/{AppConstants.ApiEndpoints.MediaIndexFolderMelodies}/{normalizedPublicationCode}";
+            return $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexCatalogRootMediaSegment}/{AppConstants.Media.BiblePublicationCategoryMusic}/{AppConstants.ApiEndpoints.MediaIndexFolderMelodies}/{normalizedPublicationCode}";
         }
         else
         {
             // Vocals: with language
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
             var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-            return $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryMusic}/{AppConstants.ApiEndpoints.MediaIndexFolderVocals}/{normalizedLanguageCode}/{normalizedPublicationCode}";
+            return $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexCatalogRootMediaSegment}/{AppConstants.Media.BiblePublicationCategoryMusic}/{AppConstants.ApiEndpoints.MediaIndexFolderVocals}/{normalizedLanguageCode}/{normalizedPublicationCode}";
         }
     }
 

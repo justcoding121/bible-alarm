@@ -150,6 +150,9 @@ public static class AppConstants
         /// </summary>
         public const string MediaIndexZipFileName = "index.zip";
 
+        /// <summary>Catalog index layout: folder between index root and category folders (<c>media</c>).</summary>
+        public const string MediaIndexCatalogRootMediaSegment = "media";
+
         /// <summary>Cataloger media index output: subdirectory containing SQLite under index root (<c>db</c>).</summary>
         public const string MediaIndexCatalogOutputDbDirectoryName = "db";
 

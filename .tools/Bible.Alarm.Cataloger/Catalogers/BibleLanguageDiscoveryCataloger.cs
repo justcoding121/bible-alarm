@@ -205,7 +205,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
     {
         // Normalize publication code for path consistency
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var englishDir = $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryBible}/{AppConstants.Media.DefaultLanguageCode}/{normalizedPublicationCode}";
+        var englishDir = $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexCatalogRootMediaSegment}/{AppConstants.Media.BiblePublicationCategoryBible}/{AppConstants.Media.DefaultLanguageCode}/{normalizedPublicationCode}";
         DirectoryHelper.Ensure(englishDir);
 
         var languageDiscoveryFile = Path.Combine(englishDir, AppConstants.ApiEndpoints.MediaIndexLanguageDiscoveryFileName);

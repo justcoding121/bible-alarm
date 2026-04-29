@@ -26,7 +26,7 @@ internal static class MediatorFilePersistence
         // and media/Dramas/{languageCode}/{publicationCode}/{sectionCode}/tracks.json
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var publicationDir = $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryDramas}/{normalizedLanguageCode}/{normalizedPublicationCode}";
+        var publicationDir = $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexCatalogRootMediaSegment}/{AppConstants.Media.BiblePublicationCategoryDramas}/{normalizedLanguageCode}/{normalizedPublicationCode}";
 
         if (!Directory.Exists(publicationDir))
         {
