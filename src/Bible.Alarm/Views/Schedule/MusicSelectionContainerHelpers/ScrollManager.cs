@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
@@ -50,11 +51,11 @@ public class ScrollManager
                 var containerName = container.GetType().Name;
                 if (scrollToBottom)
                 {
-                    Serilog.Log.Debug("[{ContainerName}] Found ScrollView, scrolling to bottom", containerName);
+                    Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerFoundScrollViewScrollingToBottom, containerName);
                 }
                 else
                 {
-                    Serilog.Log.Debug("[{ContainerName}] Found ScrollView, scrolling to element", containerName);
+                    Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerFoundScrollViewScrollingToElement, containerName);
                 }
 #endif
 
@@ -75,7 +76,7 @@ public class ScrollManager
                         {
                             await scrollView.ScrollToAsync(0, contentHeight, true);
 #if DEBUG
-                            Serilog.Log.Debug("[{ContainerName}] Scrolled to bottom (height: {Height})", containerName, contentHeight);
+                            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerScrolledToBottomHeight, containerName, contentHeight);
 #endif
                         }
                         else
@@ -88,20 +89,20 @@ public class ScrollManager
                                 {
                                     await scrollView.ScrollToAsync(lastElement, ScrollToPosition.End, true);
 #if DEBUG
-                                    Serilog.Log.Debug("[{ContainerName}] Scrolled to bottom (last child element)", containerName);
+                                    Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerScrolledToBottomLastChildElement, containerName);
 #endif
                                 }
                                 else
                                 {
 #if DEBUG
-                                    Serilog.Log.Debug("[{ContainerName}] Last child is not an Element, cannot scroll", containerName);
+                                    Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerLastChildNotElementCannotScroll, containerName);
 #endif
                                 }
                             }
                             else
                             {
 #if DEBUG
-                                Serilog.Log.Debug("[{ContainerName}] Content height not available and no children found", containerName);
+                                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerContentHeightNotAvailableNoChildren, containerName);
 #endif
                             }
                         }
@@ -111,7 +112,7 @@ public class ScrollManager
                         // Scroll to the specific element
                         await scrollView.ScrollToAsync(element, ScrollToPosition.MakeVisible, true);
 #if DEBUG
-                        Serilog.Log.Debug("[{ContainerName}] Scrolled to element", containerName);
+                        Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerScrolledToElement, containerName);
 #endif
                     }
                 });
@@ -119,13 +120,13 @@ public class ScrollManager
             else
             {
 #if DEBUG
-                Serilog.Log.Debug("[{ContainerName}] ScrollView not found", container.GetType().Name);
+                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerScrollViewNotFound, container.GetType().Name);
 #endif
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "[{ContainerName}] Error scrolling", container.GetType().Name);
+            Log.Warning(ex, AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerErrorScrolling, container.GetType().Name);
         }
     }
 }

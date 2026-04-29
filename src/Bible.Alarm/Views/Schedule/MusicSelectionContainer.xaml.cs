@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.ComponentModel;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
 using Serilog;
@@ -124,7 +125,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         if (viewModel != null && propertyChangeHandler != null)
         {
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] Constructor - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}",
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribingPropertyChanged,
                 viewModel.GetType().Name, propertyChangeHandler != null);
 #endif
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -135,7 +136,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                 propertyChangeHandler.IsInitialLoad = true; // Mark as initial load
             }
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] Constructor - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}",
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribedInitialMusicEnabled,
                 viewModel?.MusicEnabled ?? false, propertyChangeHandler?.LastMusicEnabledState ?? false);
 #endif
 
@@ -150,7 +151,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                     if (currentMusicEnabled != propertyChangeHandler.LastMusicEnabledState)
                     {
 #if DEBUG
-                        Log.Debug("[MusicSelectionContainer] Constructor - Syncing with current MusicEnabled state: {MusicEnabled}", currentMusicEnabled);
+                        Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSyncingMusicEnabledState, currentMusicEnabled);
 #endif
                         propertyChangeHandler.OnViewModelPropertyChanged(viewModel, new System.ComponentModel.PropertyChangedEventArgs(nameof(MusicSelectionContainerViewModel.MusicEnabled)), viewModel);
                     }
@@ -200,7 +201,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         base.OnBindingContextChanged();
 
 #if DEBUG
-        Log.Debug("[MusicSelectionContainer] OnBindingContextChanged called. Old ViewModel: {OldViewModel}, New BindingContext: {NewBindingContext}",
+        Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedCalled,
             viewModel?.GetType().Name ?? "null",
             BindingContext?.GetType().Name ?? "null");
 #endif
@@ -209,7 +210,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         if (viewModel != null)
         {
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Unsubscribing from old ViewModel");
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedUnsubscribingOldViewModel);
 #endif
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
@@ -234,7 +235,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         if (propertyChangeHandler == null && CollapsibleContent != null)
         {
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Initializing helpers (CollapsibleContent is ready)");
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedInitializingHelpers);
 #endif
             InitializeHelpers();
         }
@@ -242,7 +243,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         if (viewModel != null && propertyChangeHandler != null)
         {
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}, IsNewViewModel: {IsNew}",
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedSubscribingPropertyChanged,
                 viewModel.GetType().Name, propertyChangeHandler != null, isNewViewModel);
 #endif
             // Unsubscribe first to prevent duplicate subscriptions
@@ -253,7 +254,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                 propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
             }
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}",
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedSubscribedInitialMusicEnabled,
                 viewModel?.MusicEnabled ?? false, propertyChangeHandler?.LastMusicEnabledState ?? false);
 #endif
 
@@ -268,7 +269,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                     if (currentMusicEnabled != propertyChangeHandler.LastMusicEnabledState)
                     {
 #if DEBUG
-                        Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Syncing with current MusicEnabled state: {MusicEnabled}", currentMusicEnabled);
+                        Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedSyncingMusicEnabledState, currentMusicEnabled);
 #endif
                         propertyChangeHandler.OnViewModelPropertyChanged(viewModel, new System.ComponentModel.PropertyChangedEventArgs(nameof(MusicSelectionContainerViewModel.MusicEnabled)), viewModel);
                     }
@@ -295,7 +296,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         else
         {
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] OnBindingContextChanged - Cannot subscribe. ViewModel: {HasViewModel}, Handler: {HasHandler}",
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedCannotSubscribe,
                 viewModel != null, propertyChangeHandler != null);
 #endif
         }
@@ -304,7 +305,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
 #if DEBUG
-        Log.Debug("[MusicSelectionContainer] OnViewModelPropertyChanged received: Property={PropertyName}, Sender type: {SenderType}, Handler: {HasHandler}, ViewModel: {HasViewModel}",
+        Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnViewModelPropertyChangedReceived,
             e.PropertyName ?? "null",
             sender?.GetType().Name ?? "null",
             propertyChangeHandler != null,
@@ -333,7 +334,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
                 }
                 catch (System.Runtime.InteropServices.COMException ex) when (ex.HResult == unchecked((int)0x8001010E))
                 {
-                    Log.Debug(ex, "[MusicSelectionContainer] Skipping IsVisible update - view disconnected (e.g. during navigation after save)");
+                    Log.Debug(ex, AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.SkippingIsVisibleUpdateViewDisconnected);
                 }
             });
             return; // Don't pass to propertyChangeHandler as this is handled here
@@ -342,7 +343,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         if (e.PropertyName == nameof(MusicSelectionContainerViewModel.MusicEnabled))
         {
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] OnViewModelPropertyChanged: MusicEnabled property changed. Calling handler.");
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnViewModelPropertyChangedMusicEnabledCallingHandler);
 #endif
         }
 
@@ -393,7 +394,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
 #if DEBUG
-            Log.Debug("[MusicSelectionContainer] OnHandlerChanged - Ensured subscription. MusicEnabled: {MusicEnabled}, LastState: {LastState}",
+            Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnHandlerChangedEnsuredSubscription,
                 viewModel.MusicEnabled, propertyChangeHandler.LastMusicEnabledState);
 #endif
 
@@ -412,7 +413,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             if (ready && propertyChangeHandler!.IsInitialLoad)
             {
 #if DEBUG
-                Log.Debug("[MusicSelectionContainer] OnHandlerChanged: Setting initial visibility - MusicEnabled = {MusicEnabled}", viewModel!.MusicEnabled);
+                Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnHandlerChangedSettingInitialVisibility, viewModel!.MusicEnabled);
 #endif
                 visibilityManager?.UpdateCollapsibleContentVisibility(viewModel!.MusicEnabled, animate: false);
             }

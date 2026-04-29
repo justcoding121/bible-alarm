@@ -1730,6 +1730,115 @@ public static class AppConstants
                 "ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}";
         }
 
+        /// <summary><c>MusicSelectionContainer</c> DEBUG/UI diagnostics.</summary>
+        public static class MusicSelectionContainerDiagnosticsLog
+        {
+            public const string ConstructorSubscribingPropertyChanged =
+                "[MusicSelectionContainer] Constructor - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}";
+
+            public const string ConstructorSubscribedInitialMusicEnabled =
+                "[MusicSelectionContainer] Constructor - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}";
+
+            public const string ConstructorSyncingMusicEnabledState =
+                "[MusicSelectionContainer] Constructor - Syncing with current MusicEnabled state: {MusicEnabled}";
+
+            public const string OnBindingContextChangedCalled =
+                "[MusicSelectionContainer] OnBindingContextChanged called. Old ViewModel: {OldViewModel}, New BindingContext: {NewBindingContext}";
+
+            public const string OnBindingContextChangedUnsubscribingOldViewModel =
+                "[MusicSelectionContainer] OnBindingContextChanged - Unsubscribing from old ViewModel";
+
+            public const string OnBindingContextChangedInitializingHelpers =
+                "[MusicSelectionContainer] OnBindingContextChanged - Initializing helpers (CollapsibleContent is ready)";
+
+            public const string OnBindingContextChangedSubscribingPropertyChanged =
+                "[MusicSelectionContainer] OnBindingContextChanged - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}, IsNewViewModel: {IsNew}";
+
+            public const string OnBindingContextChangedSubscribedInitialMusicEnabled =
+                "[MusicSelectionContainer] OnBindingContextChanged - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}";
+
+            public const string OnBindingContextChangedSyncingMusicEnabledState =
+                "[MusicSelectionContainer] OnBindingContextChanged - Syncing with current MusicEnabled state: {MusicEnabled}";
+
+            public const string OnBindingContextChangedCannotSubscribe =
+                "[MusicSelectionContainer] OnBindingContextChanged - Cannot subscribe. ViewModel: {HasViewModel}, Handler: {HasHandler}";
+
+            public const string OnViewModelPropertyChangedReceived =
+                "[MusicSelectionContainer] OnViewModelPropertyChanged received: Property={PropertyName}, Sender type: {SenderType}, Handler: {HasHandler}, ViewModel: {HasViewModel}";
+
+            public const string SkippingIsVisibleUpdateViewDisconnected =
+                "[MusicSelectionContainer] Skipping IsVisible update - view disconnected (e.g. during navigation after save)";
+
+            public const string OnViewModelPropertyChangedMusicEnabledCallingHandler =
+                "[MusicSelectionContainer] OnViewModelPropertyChanged: MusicEnabled property changed. Calling handler.";
+
+            public const string OnHandlerChangedEnsuredSubscription =
+                "[MusicSelectionContainer] OnHandlerChanged - Ensured subscription. MusicEnabled: {MusicEnabled}, LastState: {LastState}";
+
+            public const string OnHandlerChangedSettingInitialVisibility =
+                "[MusicSelectionContainer] OnHandlerChanged: Setting initial visibility - MusicEnabled = {MusicEnabled}";
+
+            public const string PropertyChangedMusicEnabledState =
+                "[MusicSelectionContainer] PropertyChanged: MusicEnabled = {NewState}, LastState = {LastState}, isInitialLoad = {IsInitialLoad}";
+
+            public const string StateUnchangedIgnoring =
+                "[MusicSelectionContainer] State unchanged, ignoring";
+
+            public const string PropertyChangeDuringInitialLoadUpdatingVisibility =
+                "[MusicSelectionContainer] Property change during initial load - updating visibility without animation. NewState={NewState}, LastState={LastState}";
+
+            public const string TriggeringAnimationMusicEnabled =
+                "[MusicSelectionContainer] Triggering animation for MusicEnabled = {NewState}, shouldScrollOnExpand = {ShouldScrollOnExpand}";
+
+            public const string CallingUpdateCollapsibleContentVisibility =
+                "[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate={Animate}, isEnabled={IsEnabled}";
+
+            public const string ShouldScrollToBottomScrolling =
+                "[MusicSelectionContainer] ShouldScrollToBottom property changed, scrolling to bottom";
+
+            public const string UpdateCollapsibleContentVisibility =
+                "[MusicSelectionContainer] UpdateCollapsibleContentVisibility: isEnabled={IsEnabled}, animate={Animate}, CollapsibleContent={HasContent}, isAnimating={IsAnimating}";
+
+            public const string CollapsibleContentNullReturning =
+                "[MusicSelectionContainer] CollapsibleContent is null, returning";
+
+            public const string SameStateAlreadyRequestedAnimating =
+                "[MusicSelectionContainer] Same state already requested and animating, returning";
+
+            public const string StartingAnimation =
+                "[MusicSelectionContainer] Starting animation";
+
+            public const string SettingInitialStateWithoutAnimation =
+                "[MusicSelectionContainer] Setting initial state without animation";
+
+            public const string ScrollContainerFoundScrollViewScrollingToBottom =
+                "[{ContainerName}] Found ScrollView, scrolling to bottom";
+
+            public const string ScrollContainerFoundScrollViewScrollingToElement =
+                "[{ContainerName}] Found ScrollView, scrolling to element";
+
+            public const string ScrollContainerScrolledToBottomHeight =
+                "[{ContainerName}] Scrolled to bottom (height: {Height})";
+
+            public const string ScrollContainerScrolledToBottomLastChildElement =
+                "[{ContainerName}] Scrolled to bottom (last child element)";
+
+            public const string ScrollContainerLastChildNotElementCannotScroll =
+                "[{ContainerName}] Last child is not an Element, cannot scroll";
+
+            public const string ScrollContainerContentHeightNotAvailableNoChildren =
+                "[{ContainerName}] Content height not available and no children found";
+
+            public const string ScrollContainerScrolledToElement =
+                "[{ContainerName}] Scrolled to element";
+
+            public const string ScrollContainerScrollViewNotFound =
+                "[{ContainerName}] ScrollView not found";
+
+            public const string ScrollContainerErrorScrolling =
+                "[{ContainerName}] Error scrolling";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {

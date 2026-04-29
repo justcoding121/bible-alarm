@@ -1,5 +1,7 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
+
 namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
 
 /// <summary>
@@ -24,13 +26,13 @@ public class VisibilityManager
     public void UpdateCollapsibleContentVisibility(bool isEnabled, bool animate)
     {
 #if DEBUG
-        Serilog.Log.Debug("[MusicSelectionContainer] UpdateCollapsibleContentVisibility: isEnabled={IsEnabled}, animate={Animate}, CollapsibleContent={HasContent}, isAnimating={IsAnimating}", isEnabled, animate, collapsibleContent != null, animationManager.IsAnimating);
+        Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.UpdateCollapsibleContentVisibility, isEnabled, animate, collapsibleContent != null, animationManager.IsAnimating);
 #endif
 
         if (collapsibleContent == null)
         {
 #if DEBUG
-            Serilog.Log.Debug("[MusicSelectionContainer] CollapsibleContent is null, returning");
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.CollapsibleContentNullReturning);
 #endif
             return;
         }
@@ -39,7 +41,7 @@ public class VisibilityManager
         if (lastRequestedState == isEnabled && animationManager.IsAnimating)
         {
 #if DEBUG
-            Serilog.Log.Debug("[MusicSelectionContainer] Same state already requested and animating, returning");
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.SameStateAlreadyRequestedAnimating);
 #endif
             return;
         }
@@ -49,7 +51,7 @@ public class VisibilityManager
         if (animate)
         {
 #if DEBUG
-            Serilog.Log.Debug("[MusicSelectionContainer] Starting animation");
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.StartingAnimation);
 #endif
             _ = animationManager.AnimateCollapsibleContent(isEnabled, (enabled, cancelled) =>
             {
@@ -63,7 +65,7 @@ public class VisibilityManager
         {
             // Set initial state without animation
 #if DEBUG
-            Serilog.Log.Debug("[MusicSelectionContainer] Setting initial state without animation");
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.SettingInitialStateWithoutAnimation);
 #endif
             animationManager.SetContentStateDirectly(isEnabled);
 

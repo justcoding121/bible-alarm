@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.ComponentModel;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels.Schedule;
 
 namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
@@ -52,14 +53,14 @@ public class PropertyChangeHandler : IDisposable
             var newState = vm.MusicEnabled;
 
 #if DEBUG
-            Serilog.Log.Debug("[MusicSelectionContainer] PropertyChanged: MusicEnabled = {NewState}, LastState = {LastState}, isInitialLoad = {IsInitialLoad}", newState, lastMusicEnabledState, isInitialLoad);
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangedMusicEnabledState, newState, lastMusicEnabledState, isInitialLoad);
 #endif
 
             // Debounce rapid changes (but not during initial load - always update during initial load)
             if (!isInitialLoad && newState == lastMusicEnabledState)
             {
 #if DEBUG
-                Serilog.Log.Debug("[MusicSelectionContainer] State unchanged, ignoring");
+                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.StateUnchangedIgnoring);
 #endif
                 return; // Ignore if state hasn't actually changed (but only after initial load)
             }
@@ -69,7 +70,7 @@ public class PropertyChangeHandler : IDisposable
             if (isInitialLoad)
             {
 #if DEBUG
-                Serilog.Log.Debug("[MusicSelectionContainer] Property change during initial load - updating visibility without animation. NewState={NewState}, LastState={LastState}", newState, lastMusicEnabledState);
+                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangeDuringInitialLoadUpdatingVisibility, newState, lastMusicEnabledState);
 #endif
                 lastMusicEnabledState = newState; // Update last state
                 // Still update visibility, just without animation
@@ -89,7 +90,7 @@ public class PropertyChangeHandler : IDisposable
             lastMusicEnabledState = newState;
 
 #if DEBUG
-            Serilog.Log.Debug("[MusicSelectionContainer] Triggering animation for MusicEnabled = {NewState}, shouldScrollOnExpand = {ShouldScrollOnExpand}", newState, shouldScrollOnExpand);
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.TriggeringAnimationMusicEnabled, newState, shouldScrollOnExpand);
 #endif
 
             // Cancel and dispose any pending debounce
@@ -108,7 +109,7 @@ public class PropertyChangeHandler : IDisposable
                 if (!token.IsCancellationRequested && container.Handler != null)
                 {
 #if DEBUG
-                    Serilog.Log.Debug("[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate={Animate}, isEnabled={IsEnabled}", shouldAnimate, newState);
+                    Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.CallingUpdateCollapsibleContentVisibility, shouldAnimate, newState);
 #endif
                     updateVisibility(newState, shouldAnimate);
                 }
@@ -118,7 +119,7 @@ public class PropertyChangeHandler : IDisposable
         {
             // Scroll to bottom when ViewModel signals it
 #if DEBUG
-            Serilog.Log.Debug("[MusicSelectionContainer] ShouldScrollToBottom property changed, scrolling to bottom");
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ShouldScrollToBottomScrolling);
 #endif
 
             // Small delay to ensure layout is complete
