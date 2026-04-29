@@ -1534,6 +1534,33 @@ public static class AppConstants
 
             public const string ErrorDeletingSchedule =
                 "Error deleting schedule {ScheduleId}";
+
+            public const string SaveScheduleAsyncSaveCompletedSuccessfully =
+                "SaveScheduleAsync: Save completed successfully. ScheduleId={ScheduleId}";
+
+            public const string SaveScheduleAsyncStarting =
+                "SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBiblePublication={HasBiblePublication}";
+
+            public const string SaveScheduleAsyncSavingNewScheduleToDatabase =
+                "SaveScheduleAsync: Saving new schedule to database";
+
+            public const string SaveScheduleAsyncAddingScheduleToDbContext =
+                "SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}";
+
+            public const string SaveScheduleAsyncSaveChangesAsyncCompletedNewScheduleId =
+                "SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}";
+
+            public const string SaveScheduleAsyncReloadedSchedule =
+                "SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBiblePublication={HasBiblePublication}";
+
+            public const string SaveScheduleAsyncDispatchingAddScheduleAction =
+                "SaveScheduleAsync: Dispatching AddScheduleAction";
+
+            public const string SaveScheduleAsyncAddScheduleActionDispatchedSuccessfully =
+                "SaveScheduleAsync: AddScheduleAction dispatched successfully";
+
+            public const string CannotDeleteScheduleLastInDatabase =
+                "Cannot delete schedule {ScheduleId} - it is the last schedule in the database";
         }
 
         /// <summary>Playback pipeline and modal adapter error paths.</summary>
@@ -1668,6 +1695,33 @@ public static class AppConstants
 
             public const string NavigateToScheduleAsyncWithScheduleIdFailed =
                 "NavigateToScheduleAsync(scheduleId, isEnabled) failed";
+
+            public const string PerfNavigateToScheduleAsyncStartAt =
+                "[PERF] NavigateToScheduleAsync: Start at {StartTime}";
+
+            public const string PerfNavigateToScheduleAsyncLockAcquiredInMs =
+                "[PERF] NavigateToScheduleAsync: Lock acquired in {ElapsedMs}ms";
+
+            public const string PerfNavigateToScheduleAsyncBeforeShellPageResolveAt =
+                "[PERF] NavigateToScheduleAsync: Before shell page resolve at {Time}";
+
+            public const string PerfNavigateToScheduleAsyncShellPageResolvedInMs =
+                "[PERF] NavigateToScheduleAsync: Shell page resolved in {ElapsedMs}ms";
+
+            public const string PerfNavigateToScheduleAsyncBeforePushAt =
+                "[PERF] NavigateToScheduleAsync: Before push at {Time}";
+
+            public const string PerfNavigateToScheduleAsyncPushCompletedTotalSoFarMs =
+                "[PERF] NavigateToScheduleAsync: Push completed in {ElapsedMs}ms, total so far: {TotalMs}ms";
+
+            public const string PerfNavigateToScheduleAsyncResolvingViewModelAt =
+                "[PERF] NavigateToScheduleAsync: Resolving ViewModel at {Time}";
+
+            public const string PerfNavigateToScheduleAsyncViewModelResolvedInMs =
+                "[PERF] NavigateToScheduleAsync: ViewModel resolved in {ElapsedMs}ms";
+
+            public const string PerfNavigateToScheduleAsyncInitializeViewModelCompleteTotalMs =
+                "[PERF] NavigateToScheduleAsync: InitializeViewModelAsync complete, total: {TotalMs}ms";
 
             public const string IsPlaybackModalOnScreenNavigationUnavailable =
                 "IsPlaybackModalOnScreen: navigation unavailable, assuming modal not shown";

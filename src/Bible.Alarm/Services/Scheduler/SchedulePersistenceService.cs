@@ -33,7 +33,7 @@ public sealed class SchedulePersistenceService(
                 ? await SaveNewScheduleAsync(schedule)
                 : await UpdateExistingScheduleAsync(schedule, musicUpdated, biblePublicationUpdated);
 
-            logger.Information("SaveScheduleAsync: Save completed successfully. ScheduleId={ScheduleId}", savedSchedule?.Id ?? schedule?.Id);
+            logger.Information(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncSaveCompletedSuccessfully, savedSchedule?.Id ?? schedule?.Id);
             return true;
         }
         catch (Exception ex)
@@ -46,30 +46,30 @@ public sealed class SchedulePersistenceService(
 
     private void LogSaveStart(AlarmSchedule schedule, bool isNewSchedule)
     {
-        logger.Information("SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBiblePublication={HasBiblePublication}",
+        logger.Information(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncStarting,
             isNewSchedule, schedule?.Id, schedule?.Name, schedule?.Music != null, schedule?.BiblePublicationSchedule != null);
     }
 
     private async Task<AlarmSchedule> SaveNewScheduleAsync(AlarmSchedule schedule)
     {
-        logger.Debug("SaveScheduleAsync: Saving new schedule to database");
-        logger.Debug("SaveScheduleAsync: Adding schedule to DbContext. ScheduleId={ScheduleId}, Name={Name}",
+        logger.Debug(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncSavingNewScheduleToDatabase);
+        logger.Debug(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncAddingScheduleToDbContext,
             schedule.Id, schedule.Name);
 
         var savedSchedule = await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
-        logger.Information("SaveScheduleAsync: SaveChangesAsync completed. New ScheduleId={ScheduleId}", savedSchedule.Id);
+        logger.Information(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncSaveChangesAsyncCompletedNewScheduleId, savedSchedule.Id);
 
         if (savedSchedule.IsEnabled)
         {
             await alarmService.Create(savedSchedule);
         }
 
-        logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBiblePublication={HasBiblePublication}",
+        logger.Information(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncReloadedSchedule,
             savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BiblePublicationSchedule != null);
 
-        logger.Debug("SaveScheduleAsync: Dispatching AddScheduleAction");
+        logger.Debug(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncDispatchingAddScheduleAction);
         dispatcher.Dispatch(new AddScheduleAction(savedSchedule));
-        logger.Information("SaveScheduleAsync: AddScheduleAction dispatched successfully");
+        logger.Information(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncAddScheduleActionDispatchedSuccessfully);
 
         return savedSchedule;
     }
@@ -155,7 +155,7 @@ public sealed class SchedulePersistenceService(
 
             if (allSchedules.Count <= 1)
             {
-                logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule in the database", scheduleId);
+                logger.Warning(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.CannotDeleteScheduleLastInDatabase, scheduleId);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
                 return;
             }

@@ -154,7 +154,7 @@ public sealed class NavigationService(
     {
 #if DEBUG
         var overallStartTime = DateTime.UtcNow;
-        logger.Information("[PERF] NavigateToScheduleAsync: Start at {StartTime}", overallStartTime);
+        logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncStartAt, overallStartTime);
 #endif
 
         Views.Schedule.Schedule? page = null;
@@ -165,7 +165,7 @@ public sealed class NavigationService(
             {
 #if DEBUG
                 var lockAcquiredTime = DateTime.UtcNow;
-                logger.Information("[PERF] NavigateToScheduleAsync: Lock acquired in {ElapsedMs}ms",
+                logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncLockAcquiredInMs,
                     (lockAcquiredTime - overallStartTime).TotalMilliseconds);
 #endif
 
@@ -177,17 +177,17 @@ public sealed class NavigationService(
                 {
 #if DEBUG
                     var beforeResolveTime = DateTime.UtcNow;
-                    logger.Information("[PERF] NavigateToScheduleAsync: Before shell page resolve at {Time}", beforeResolveTime);
+                    logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncBeforeShellPageResolveAt, beforeResolveTime);
 #endif
 
                     page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
 
 #if DEBUG
                     var afterResolveTime = DateTime.UtcNow;
-                    logger.Information("[PERF] NavigateToScheduleAsync: Shell page resolved in {ElapsedMs}ms",
+                    logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncShellPageResolvedInMs,
                         (afterResolveTime - beforeResolveTime).TotalMilliseconds);
                     var beforePushTime = DateTime.UtcNow;
-                    logger.Information("[PERF] NavigateToScheduleAsync: Before push at {Time}", beforePushTime);
+                    logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncBeforePushAt, beforePushTime);
 #endif
 
                     var navigation = GetNavigation();
@@ -197,7 +197,7 @@ public sealed class NavigationService(
 
 #if DEBUG
                     var afterPushTime = DateTime.UtcNow;
-                    logger.Information("[PERF] NavigateToScheduleAsync: Push completed in {ElapsedMs}ms, total so far: {TotalMs}ms",
+                    logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncPushCompletedTotalSoFarMs,
                         (afterPushTime - beforePushTime).TotalMilliseconds,
                         (afterPushTime - overallStartTime).TotalMilliseconds);
 #endif
@@ -211,16 +211,16 @@ public sealed class NavigationService(
             {
 #if DEBUG
                 var beforeVmTime = DateTime.UtcNow;
-                logger.Information("[PERF] NavigateToScheduleAsync: Resolving ViewModel at {Time}", beforeVmTime);
+                logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncResolvingViewModelAt, beforeVmTime);
 #endif
                 var viewModel = await Task.Run(() => serviceProvider.GetRequiredService<ScheduleViewModel>());
 #if DEBUG
-                logger.Information("[PERF] NavigateToScheduleAsync: ViewModel resolved in {ElapsedMs}ms",
+                logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncViewModelResolvedInMs,
                     (DateTime.UtcNow - beforeVmTime).TotalMilliseconds);
 #endif
                 await InvokeOnUiThreadAsync(async () => await page.InitializeViewModelAsync(viewModel));
 #if DEBUG
-                logger.Information("[PERF] NavigateToScheduleAsync: InitializeViewModelAsync complete, total: {TotalMs}ms",
+                logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncInitializeViewModelCompleteTotalMs,
                     (DateTime.UtcNow - overallStartTime).TotalMilliseconds);
 #endif
             }
