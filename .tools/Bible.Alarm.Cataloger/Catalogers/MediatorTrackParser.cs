@@ -53,11 +53,11 @@ internal static class MediatorTrackParser
             if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
             {
                 var docidValue = sectionCode.Substring(6);
-                lookUpPathBase = $"?output=json&docid={docidValue}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+                lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&docid={docidValue}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
             }
             else
             {
-                lookUpPathBase = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+                lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
             }
 
             var numberParam = useIssueParameter ? "issue" : "track";

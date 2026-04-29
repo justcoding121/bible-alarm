@@ -43,14 +43,14 @@ public static class LookUpPathBuilder
         if (string.IsNullOrWhiteSpace(sectionCode))
         {
             if (JwSourceHelper.VocalMusicPublicationCodes.Contains(publicationCode))
-                return $"?output=json&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&langwritten={lc}";
-            return $"?output=json&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&langwritten={lc}";
+                return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&langwritten={lc}";
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&langwritten={lc}";
         }
 
         if (isDiscStyleSection)
-            return $"?output=json&pub={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&langwritten={lc}";
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&langwritten={lc}";
 
-        return $"?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={lc}";
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&booknum={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={lc}";
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public static class LookUpPathBuilder
         var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleDownload;
         var effectiveLanguageCode = effectiveIsNoLanguage ? AppConstants.Media.DefaultLanguageCode : languageCode;
         var langParam = string.IsNullOrEmpty(effectiveLanguageCode) ? $"&langwritten={AppConstants.Media.DefaultLanguageCode}" : $"&langwritten={effectiveLanguageCode}";
-        return $"?output=json&pub={pubCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}{langParam}";
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={pubCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}{langParam}";
     }
 
     /// <summary>

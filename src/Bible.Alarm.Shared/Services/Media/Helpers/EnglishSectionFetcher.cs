@@ -127,19 +127,19 @@ internal sealed class EnglishSectionFetcher
         if (isIssueSectioned)
         {
             var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
-            queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
         else if (isBible)
         {
-            queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
         else if (publicationWithoutLanguage)
         {
-            queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={AppConstants.Media.DefaultLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={AppConstants.Media.DefaultLanguageCode}";
         }
         else
         {
-            queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
@@ -232,8 +232,8 @@ internal sealed class EnglishSectionFetcher
         }
 
         var queryString = isBible
-            ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}"
-            : $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+            ? $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}"
+            : $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
 
         try
         {

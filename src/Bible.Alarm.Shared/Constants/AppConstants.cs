@@ -392,6 +392,9 @@ public static class AppConstants
             public const string IsSignLanguage = "isSignLanguage";
         }
 
+        /// <summary>JW GETPUB/MEDIALINKS query segment for JSON responses (<c>output=json</c>).</summary>
+        public const string GetPubQueryOutputJson = "output=json";
+
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
         public const string PublicationUiTrackSingular = "Track";
 

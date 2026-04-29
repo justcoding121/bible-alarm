@@ -198,7 +198,7 @@ internal sealed class FlatPublicationFetcher
         string fileFormat,
         CancellationToken cancellationToken)
     {
-        var queryString = $"?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        var queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
         try
         {
             var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);

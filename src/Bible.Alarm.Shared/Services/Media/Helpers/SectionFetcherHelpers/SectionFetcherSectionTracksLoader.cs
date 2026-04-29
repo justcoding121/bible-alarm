@@ -77,15 +77,15 @@ internal sealed class SectionFetcherSectionTracksLoader
         if (isIssueSectioned)
         {
             var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(normalizedSectionCode);
-            queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
         else if (isBible)
         {
-            queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
         else
         {
-            queryString = $"?output=json&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
