@@ -757,9 +757,9 @@ public static class JwSourceHelper
 
         return publicationCode.ToLowerInvariant() switch
         {
-            "vodlffvideosad" or "bodlffvideosad" => "Enjoy Life Forever!—Videos",
-            "seriesdigfortreasures" => "Dig for Treasures in God's Word",
-            "seriesbjflessons" => "Bible Stories for Little Ones",
+            AppConstants.Media.NormalizedPublicationCodeVodLffVideosAd or AppConstants.Media.NormalizedPublicationCodeBodLffVideosAd => AppConstants.Media.PublicationDisplayNameEnjoyLifeForeverVideos,
+            AppConstants.Media.NormalizedPublicationCodeSeriesDigForTreasures => AppConstants.Media.PublicationDisplayNameDigForTreasuresInGodsWord,
+            AppConstants.Media.NormalizedPublicationCodeSeriesBJFLessons => AppConstants.Media.PublicationDisplayNameBibleStoriesForLittleOnes,
             _ => null
         };
     }

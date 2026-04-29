@@ -36,13 +36,13 @@ internal sealed class VideoLocalizedNameFetcher
         // Map video publication codes to Mediator API category keys (exact casing for API)
         string? categoryKey = normalizedPublicationCode.ToLowerInvariant() switch
         {
-            "dramasgoodnews" => AppConstants.Media.BiblePublicationCodeDramasGoodNews,
-            "vodmoviesbibletimes" => AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
-            "vodmoviesmodernday" => AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
-            "vodmoviesanimated" => AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
-            "vodmoviesextras" => AppConstants.Media.BiblePublicationCodeVODMoviesExtras,
-            "seriesdigfortreasures" => AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
-            "seriesbjflessons" => AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
+            AppConstants.Media.NormalizedPublicationCodeDramasGoodNews => AppConstants.Media.BiblePublicationCodeDramasGoodNews,
+            AppConstants.Media.NormalizedPublicationCodeVODMoviesBibleTimes => AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+            AppConstants.Media.NormalizedPublicationCodeVODMoviesModernDay => AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
+            AppConstants.Media.NormalizedPublicationCodeVODMoviesAnimated => AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
+            AppConstants.Media.NormalizedPublicationCodeVODMoviesExtras => AppConstants.Media.BiblePublicationCodeVODMoviesExtras,
+            AppConstants.Media.NormalizedPublicationCodeSeriesDigForTreasures => AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
+            AppConstants.Media.NormalizedPublicationCodeSeriesBJFLessons => AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
             _ => null
         };
 

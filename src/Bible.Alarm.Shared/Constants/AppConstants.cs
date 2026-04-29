@@ -723,6 +723,42 @@ public static class AppConstants
         /// <summary>Mediator publication code (series).</summary>
         public const string MediatorPublicationCodeSeriesWhiteboard = "SeriesWhiteboard";
 
+        /// <summary>Normalized (lowercase) publication code token for API/display matching (see ToLowerInvariant on canonical codes).</summary>
+        public const string NormalizedPublicationCodeDramasGoodNews = "dramasgoodnews";
+
+        /// <summary>Normalized (lowercase) publication code token for API/display matching.</summary>
+        public const string NormalizedPublicationCodeVODMoviesBibleTimes = "vodmoviesbibletimes";
+
+        /// <summary>Normalized (lowercase) publication code token for API/display matching.</summary>
+        public const string NormalizedPublicationCodeVODMoviesModernDay = "vodmoviesmodernday";
+
+        /// <summary>Normalized (lowercase) publication code token for API/display matching.</summary>
+        public const string NormalizedPublicationCodeVODMoviesAnimated = "vodmoviesanimated";
+
+        /// <summary>Normalized (lowercase) publication code token for API/display matching.</summary>
+        public const string NormalizedPublicationCodeVODMoviesExtras = "vodmoviesextras";
+
+        /// <summary>Normalized (lowercase) publication code token for API/display matching.</summary>
+        public const string NormalizedPublicationCodeSeriesDigForTreasures = "seriesdigfortreasures";
+
+        /// <summary>Normalized (lowercase) publication code token for API/display matching.</summary>
+        public const string NormalizedPublicationCodeSeriesBJFLessons = "seriesbjflessons";
+
+        /// <summary>Normalized (lowercase) publication code token for Enjoy Life Forever video pubs.</summary>
+        public const string NormalizedPublicationCodeVodLffVideosAd = "vodlffvideosad";
+
+        /// <summary>Normalized (lowercase) publication code token for Enjoy Life Forever video pubs.</summary>
+        public const string NormalizedPublicationCodeBodLffVideosAd = "bodlffvideosad";
+
+        /// <summary>Fallback display label when API has no name (Enjoy Life Forever video publications).</summary>
+        public const string PublicationDisplayNameEnjoyLifeForeverVideos = "Enjoy Life Forever!—Videos";
+
+        /// <summary>Fallback display label when API has no name (Dig for Treasures series).</summary>
+        public const string PublicationDisplayNameDigForTreasuresInGodsWord = "Dig for Treasures in God's Word";
+
+        /// <summary>Fallback display label when API has no name (Become Jehovah's Friend lessons).</summary>
+        public const string PublicationDisplayNameBibleStoriesForLittleOnes = "Bible Stories for Little Ones";
+
         /// <summary>JW GETPUB vocal music publication codes (flat MP3; seeding / catalog).</summary>
         public static readonly string[] VocalMusicCatalogPublicationCodes =
         {
