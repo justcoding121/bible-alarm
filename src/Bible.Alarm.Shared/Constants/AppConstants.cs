@@ -2310,6 +2310,94 @@ public static class AppConstants
                 "ScheduleStateSyncHelper: Preserving time from existing schedule. Action had Hour={ActionHour}, Minute={ActionMinute}, existing has Hour={ExistingHour}, Minute={ExistingMinute}";
         }
 
+        /// <summary>Music publication modal / <c>PopulateSongPublications</c> coordinator and data provider diagnostics.</summary>
+        public static class PopulateSongPublicationsDiagnosticsLog
+        {
+            public const string AllExpectedAlreadyCatalogedSkippingFetch =
+                "PopulateSongPublications: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category={Category}, skipping fetch";
+
+            public const string StartingFetchWithRetries =
+                "PopulateSongPublications: Starting fetch with retries for language={LanguageCode}, category={Category}";
+
+            public const string AllExpectedPublicationsCatalogedOnAttempt =
+                "PopulateSongPublications: All {ExpectedCount} expected publications cataloged on attempt {Attempt} for language={LanguageCode}";
+
+            public const string NoProgressBetweenRetriesStopping =
+                "PopulateSongPublications: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}";
+
+            public const string AttemptStillWaitingForPlaceholders =
+                "PopulateSongPublications: Attempt {Attempt}: Still waiting for {Count} publications to be cataloged: {Placeholders}";
+
+            public const string AttemptPartialPublicationsRetry =
+                "PopulateSongPublications: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} publications found, will retry";
+
+            public const string AttemptNoPublicationsYetRetry =
+                "PopulateSongPublications: Attempt {Attempt}: No publications found yet, will retry";
+
+            public const string FetchCancelledAtAttempt =
+                "PopulateSongPublications: Fetch cancelled at attempt {Attempt} for language={LanguageCode}";
+
+            public const string AttemptFailedWillRetry =
+                "PopulateSongPublications: Attempt {Attempt} failed for language={LanguageCode}, will retry";
+
+            public const string TimeoutAfterAttemptsWaitingForCatalog =
+                "PopulateSongPublications: Timeout after {Attempts} attempts waiting for all publications to be cataloged for language {LanguageCode}. Some may still be placeholders.";
+
+            public const string FinalFetchAttemptFailed =
+                "PopulateSongPublications: Final fetch attempt failed for language={LanguageCode}";
+
+            public const string RemovedUnfetchablePlaceholderPublications =
+                "PopulateSongPublications: Removed {Count} unfetchable placeholder publications: {Codes}";
+        }
+
+        /// <summary>Home page bootstrap and add-schedule button diagnostics.</summary>
+        public static class HomePageDiagnosticsLog
+        {
+            public const string BootstrapHomeFullyLoadedWithData =
+                "[BOOTSTRAP] ✅ Home page fully loaded with data - Total bootstrap time: {TotalMs}ms";
+
+            public const string OnAddScheduleButtonClicked =
+                "OnAddScheduleButtonClicked: Button clicked! IsBootstrapComplete={IsBootstrapComplete}, Command CanExecute={CanExecute}";
+
+            public const string OnAddScheduleManuallyExecutingCommand =
+                "OnAddScheduleButtonClicked: Manually executing command";
+
+            public const string OnAddScheduleCommandCannotExecute =
+                "OnAddScheduleButtonClicked: Command cannot execute. IsBootstrapComplete={IsBootstrapComplete}";
+        }
+
+        /// <summary>Schedule page performance and WinUI layout diagnostics.</summary>
+        public static class SchedulePageDiagnosticsLog
+        {
+            public const string PerfConstructorStartedAt =
+                "[PERF] Schedule page: Constructor started at {StartTime}";
+
+            public const string PerfInitializeComponentTookMs =
+                "[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms";
+
+            public const string PerfConstructorCompletedInMs =
+                "[PERF] Schedule page: Constructor completed in {ElapsedMs}ms";
+
+            public const string PerfStartingContentLoadAt =
+                "[PERF] Schedule page: Starting content load at {StartTime}";
+
+            public const string PerfContentLoadCompletedInMs =
+                "[PERF] Schedule page: Content load completed in {ElapsedMs}ms";
+
+            public const string WinUiUpdateLayoutFailedBestEffort =
+                "Schedule: WinUI UpdateLayout failed (best-effort)";
+        }
+
+        /// <summary><c>ApplicationMusicReducer</c> draft music row updates.</summary>
+        public static class ApplicationMusicReducerDiagnosticsLog
+        {
+            public const string OnMusicTrackSelectedUpdatedCurrentSchedule =
+                "ApplicationMusicReducer.OnMusicTrackSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, TrackCode={TrackCode}, TrackName={TrackName}";
+
+            public const string OnMusicSectionSelectedUpdatedCurrentSchedule =
+                "ApplicationMusicReducer.OnMusicSectionSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, SectionCode={SectionCode}, SectionName={SectionName}, TrackCode={TrackCode}";
+        }
+
         /// <summary>Single-track play, resume seek, and seek retry (<c>TrackPlaybackHandler</c>).</summary>
         public static class TrackPlaybackHandlerDiagnosticsLog
         {

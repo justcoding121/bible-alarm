@@ -1,6 +1,7 @@
 #nullable enable
 using System.ComponentModel;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels;
 using Serilog;
 using Syncfusion.Maui.Buttons;
@@ -88,25 +89,25 @@ public partial class Home : BaseContentPage, IDisposable
 #if DEBUG
         // Log that home page is fully loaded with data
         var totalBootstrapTime = BootstrapTimingHelper.GetElapsedMilliseconds();
-        Log.Information("[BOOTSTRAP] ✅ Home page fully loaded with data - Total bootstrap time: {TotalMs}ms", totalBootstrapTime);
+        Log.Information(AppConstants.Logging.HomePageDiagnosticsLog.BootstrapHomeFullyLoadedWithData, totalBootstrapTime);
 #endif
     }
 
     private void OnAddScheduleButtonClicked(object? sender, EventArgs e)
     {
-        Log.Information("OnAddScheduleButtonClicked: Button clicked! IsBootstrapComplete={IsBootstrapComplete}, Command CanExecute={CanExecute}",
+        Log.Information(AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleButtonClicked,
             viewModel?.IsBootstrapComplete ?? false,
             viewModel?.AddScheduleCommand?.CanExecute(null) ?? false);
 
         // Manually execute the command to test
         if (viewModel?.AddScheduleCommand != null && viewModel.AddScheduleCommand.CanExecute(null))
         {
-            Log.Information("OnAddScheduleButtonClicked: Manually executing command");
+            Log.Information(AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleManuallyExecutingCommand);
             viewModel.AddScheduleCommand.Execute(null);
         }
         else
         {
-            Log.Warning("OnAddScheduleButtonClicked: Command cannot execute. IsBootstrapComplete={IsBootstrapComplete}",
+            Log.Warning(AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleCommandCannotExecute,
                 viewModel?.IsBootstrapComplete ?? false);
         }
     }

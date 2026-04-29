@@ -133,7 +133,7 @@ public sealed class MusicPublicationSelectionDataProvider(
                 {
                     publicationsData.Remove(code);
                 }
-                Serilog.Log.Information(MusicPublicationFetchCoordinator.LogPrefixPopulateSongPublications + "Removed {Count} unfetchable placeholder publications: {Codes}",
+                Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.RemovedUnfetchablePlaceholderPublications,
                     unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
             }
 

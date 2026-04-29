@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels;
 using Serilog;
 
@@ -21,17 +22,17 @@ public partial class Schedule : BaseContentPage, IDisposable
     {
 #if DEBUG
         var constructorStartTime = DateTime.UtcNow;
-        Log.Information("[PERF] Schedule page: Constructor started at {StartTime}", constructorStartTime);
+        Log.Information(AppConstants.Logging.SchedulePageDiagnosticsLog.PerfConstructorStartedAt, constructorStartTime);
 
         var initComponentStartTime = DateTime.UtcNow;
 #endif
         InitializeComponent();
 #if DEBUG
         var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
-        Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
+        Log.Information(AppConstants.Logging.SchedulePageDiagnosticsLog.PerfInitializeComponentTookMs, initComponentElapsed);
 
         var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
-        Log.Information("[PERF] Schedule page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
+        Log.Information(AppConstants.Logging.SchedulePageDiagnosticsLog.PerfConstructorCompletedInMs, constructorElapsed);
 #endif
 
         Loaded += SetupGestureRecognizers;
@@ -173,7 +174,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Schedule: WinUI UpdateLayout failed (best-effort)");
+            Log.Warning(ex, AppConstants.Logging.SchedulePageDiagnosticsLog.WinUiUpdateLayoutFailedBestEffort);
         }
 #else
         InvalidateMeasure();
@@ -184,7 +185,7 @@ public partial class Schedule : BaseContentPage, IDisposable
     {
 #if DEBUG
         var contentLoadStartTime = DateTime.UtcNow;
-        Log.Information("[PERF] Schedule page: Starting content load at {StartTime}", contentLoadStartTime);
+        Log.Information(AppConstants.Logging.SchedulePageDiagnosticsLog.PerfStartingContentLoadAt, contentLoadStartTime);
 #endif
 
         // Give the spinner at least ~5 frames (80ms at 60fps) to visibly animate before
@@ -229,7 +230,7 @@ public partial class Schedule : BaseContentPage, IDisposable
 
 #if DEBUG
         var contentLoadElapsed = (DateTime.UtcNow - contentLoadStartTime).TotalMilliseconds;
-        Log.Information("[PERF] Schedule page: Content load completed in {ElapsedMs}ms", contentLoadElapsed);
+        Log.Information(AppConstants.Logging.SchedulePageDiagnosticsLog.PerfContentLoadCompletedInMs, contentLoadElapsed);
 #endif
     }
 

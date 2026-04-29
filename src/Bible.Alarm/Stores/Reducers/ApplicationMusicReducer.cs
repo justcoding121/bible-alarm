@@ -4,6 +4,7 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Stores.Reducers.Services;
+using Bible.Alarm.Shared.Constants;
 using Fluxor;
 using Serilog;
 
@@ -66,7 +67,7 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicSectionName = music.SectionName; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
-            Log.Debug("ApplicationMusicReducer.OnMusicTrackSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, TrackCode={TrackCode}, TrackName={TrackName}",
+            Log.Debug(AppConstants.Logging.ApplicationMusicReducerDiagnosticsLog.OnMusicTrackSelectedUpdatedCurrentSchedule,
                 updatedCurrentSchedule.MusicLanguageCode ?? "(null)", music.TrackCode, music.TrackName);
         }
 
@@ -102,7 +103,7 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicSectionName = music.SectionName;
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
-            Log.Debug("ApplicationMusicReducer.OnMusicSectionSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, SectionCode={SectionCode}, SectionName={SectionName}, TrackCode={TrackCode}",
+            Log.Debug(AppConstants.Logging.ApplicationMusicReducerDiagnosticsLog.OnMusicSectionSelectedUpdatedCurrentSchedule,
                 updatedCurrentSchedule.MusicLanguageCode ?? "(null)", music.SectionCode, music.SectionName, music.TrackCode);
         }
 

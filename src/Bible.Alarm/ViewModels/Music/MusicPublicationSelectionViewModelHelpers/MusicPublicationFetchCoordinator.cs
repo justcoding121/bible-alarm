@@ -12,10 +12,6 @@ namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers
 
 internal sealed class MusicPublicationFetchCoordinator
 {
-    internal const string LogPrefixPopulateSongPublications = "PopulateSongPublications: ";
-    private const string LogDebugAlreadyCatalogedSkippingFetch =
-        LogPrefixPopulateSongPublications + "All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category={Category}, skipping fetch";
-
     private readonly IMediaService mediaService;
 
     public MusicPublicationFetchCoordinator(IMediaService mediaService)
@@ -52,7 +48,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
             if (allPublicationsCataloged)
             {
-                Serilog.Log.Debug(LogDebugAlreadyCatalogedSkippingFetch,
+                Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedAlreadyCatalogedSkippingFetch,
                     expectedPublicationCount, languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic);
                 return initialPublications;
             }
@@ -107,7 +103,7 @@ internal sealed class MusicPublicationFetchCoordinator
         if (allPublicationsCataloged)
         {
             // All expected publications are already cataloged - use the initial query result, no need to show progress
-            Serilog.Log.Debug(LogDebugAlreadyCatalogedSkippingFetch,
+            Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedAlreadyCatalogedSkippingFetch,
                 expectedPublicationCount, languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
             return initialPublications;
         }
@@ -124,7 +120,7 @@ internal sealed class MusicPublicationFetchCoordinator
         var attempt = 0;
         var previousCatalogedCount = -1;
 
-        Serilog.Log.Information(LogPrefixPopulateSongPublications + "Starting fetch with retries for language={LanguageCode}, category={Category}",
+        Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.StartingFetchWithRetries,
             languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
 
         // Show progress overlay at the start of retry loop and keep it visible throughout all retries
@@ -170,7 +166,7 @@ internal sealed class MusicPublicationFetchCoordinator
                     {
                         publicationsData = reQueriedData;
                         allCataloged = true;
-                        Serilog.Log.Information(LogPrefixPopulateSongPublications + "All {ExpectedCount} expected publications cataloged on attempt {Attempt} for language={LanguageCode}",
+                        Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
                             retryExpectedCount, attempt, languageCode);
                     }
                     else
@@ -180,7 +176,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
                         if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                         {
-                            Serilog.Log.Information(LogPrefixPopulateSongPublications + "No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}",
+                            Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.NoProgressBetweenRetriesStopping,
                                 currentCatalogedCount, retryExpectedCount, languageCode);
                             publicationsData = reQueriedData;
                             break;
@@ -197,18 +193,18 @@ internal sealed class MusicPublicationFetchCoordinator
 
                             if (placeholders.Count > 0)
                             {
-                                Serilog.Log.Debug(LogPrefixPopulateSongPublications + "Attempt {Attempt}: Still waiting for {Count} publications to be cataloged: {Placeholders}",
+                                Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptStillWaitingForPlaceholders,
                                     attempt, placeholders.Count, string.Join(", ", placeholders));
                             }
                             else if (!retryHasAllExpected)
                             {
-                                Serilog.Log.Debug(LogPrefixPopulateSongPublications + "Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} publications found, will retry",
+                                Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptPartialPublicationsRetry,
                                     attempt, retryActualCount, retryExpectedCount);
                             }
                         }
                         else
                         {
-                            Serilog.Log.Debug(LogPrefixPopulateSongPublications + "Attempt {Attempt}: No publications found yet, will retry",
+                            Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptNoPublicationsYetRetry,
                                 attempt);
                         }
 
@@ -220,7 +216,7 @@ internal sealed class MusicPublicationFetchCoordinator
                 catch (OperationCanceledException)
                 {
                     // Re-throw cancellation - data saved so far is preserved
-                    Serilog.Log.Information(LogPrefixPopulateSongPublications + "Fetch cancelled at attempt {Attempt} for language={LanguageCode}",
+                    Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.FetchCancelledAtAttempt,
                         attempt, languageCode);
                     throw;
                 }
@@ -239,7 +235,7 @@ internal sealed class MusicPublicationFetchCoordinator
                         throw;
                     }
 
-                    Serilog.Log.Warning(ex, LogPrefixPopulateSongPublications + "Attempt {Attempt} failed for language={LanguageCode}, will retry",
+                    Serilog.Log.Warning(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry,
                         attempt, languageCode);
 
                     // Wait before retrying on exception (with cancellation support)
@@ -256,7 +252,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (!allCataloged)
         {
-            Serilog.Log.Warning(LogPrefixPopulateSongPublications + "Timeout after {Attempts} attempts waiting for all publications to be cataloged for language {LanguageCode}. Some may still be placeholders.",
+            Serilog.Log.Warning(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.TimeoutAfterAttemptsWaitingForCatalog,
                 attempt, languageCode);
 
             // Use the last fetched data even if not all are cataloged
@@ -269,7 +265,7 @@ internal sealed class MusicPublicationFetchCoordinator
                 }
                 catch (Exception ex)
                 {
-                    Serilog.Log.Error(ex, LogPrefixPopulateSongPublications + "Final fetch attempt failed for language={LanguageCode}",
+                    Serilog.Log.Error(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.FinalFetchAttemptFailed,
                         languageCode);
                 }
             }
@@ -278,4 +274,3 @@ internal sealed class MusicPublicationFetchCoordinator
         return publicationsData;
     }
 }
-
