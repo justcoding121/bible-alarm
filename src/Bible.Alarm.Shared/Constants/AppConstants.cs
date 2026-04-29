@@ -1269,6 +1269,89 @@ public static class AppConstants
                 "Rejecting MediaBrowser client (non-car host): {ClientPackageName}";
         }
 
+        /// <summary>Legacy AA playback stub (<c>PlaybackController</c>).</summary>
+        public static class LegacyMediaBrowserPlaybackControllerDiagnosticsLog
+        {
+            public const string HandlingPlayCommand =
+                "Handling play command";
+
+            public const string HandlingPauseCommand =
+                "Handling pause command";
+
+            public const string HandlingSkipToNextCommand =
+                "Handling skip to next command";
+
+            public const string HandlingSkipToPreviousCommand =
+                "Handling skip to previous command";
+
+            public const string HandlingSeekToPosition =
+                "Handling seek to position: {Position}";
+
+            public const string HandlingPlayFromMediaId =
+                "Handling play from media ID: {MediaId}";
+        }
+
+        /// <summary>Android Auto schedule loading from Fluxor (<c>AndroidAutoScheduleHelper</c>).</summary>
+        public static class AndroidAutoScheduleHelperDiagnosticsLog
+        {
+            public const string LoadingSchedulesFromStateForAa =
+                "Loading schedules from state for Android Auto";
+
+            public const string LoadedSchedulesFromStateForAa =
+                "Loaded {Count} schedules from state for Android Auto";
+
+            public const string NoSchedulesFoundInStateMayNotBeInitialized =
+                "No schedules found in state - state may not be initialized yet";
+
+            public const string ErrorLoadingSchedulesFromStateForAa =
+                "Error loading schedules from state for Android Auto";
+        }
+
+        /// <summary>Android Auto schedule diff tracker (<c>AndroidAutoScheduleChangeTracker</c>).</summary>
+        public static class AndroidAutoScheduleChangeTrackerDiagnosticsLog
+        {
+            public const string InitializedWithScheduleCount =
+                "AndroidAutoScheduleChangeTracker initialized with {Count} schedules";
+
+            public const string GetSpecificChangesNoChangesDetected =
+                "GetSpecificChanges: No changes detected (count: {Count}, signatures equal)";
+
+            public const string GetSpecificChangesChangesDetected =
+                "GetSpecificChanges: Changes detected (count: {OldCount} -> {NewCount})";
+
+            public const string DetectedScheduleUpdatedSignatures =
+                "Detected schedule updated: {ScheduleId} - Old signature: '{OldSignature}', New signature: '{NewSignature}'";
+        }
+
+        /// <summary>Android Auto default schedule rotation (<c>AndroidAutoDefaultScheduleRotationService</c>).</summary>
+        public static class AndroidAutoDefaultScheduleRotationDiagnosticsLog
+        {
+            public const string RotationAlreadyStarted =
+                "Android Auto default schedule rotation already started";
+
+            public const string RotationStartedEveryMinutesWhenCarConnected =
+                "Android Auto default schedule rotation started (every {Minutes} min when car connected and not playing)";
+
+            public const string ErrorStoppingRotation =
+                "Error stopping Android Auto default schedule rotation";
+
+            public const string RotationStopped =
+                "Android Auto default schedule rotation stopped";
+
+            public const string CarDisconnectedBindFlagStaleCleanup =
+                "Car physically disconnected (CarConnection provider) but MediaBrowser bind flag still true — cleaning up stale Android Auto state";
+
+            public const string DispatchingRotateDefaultScheduleActionFiveMinute =
+                "Dispatching RotateDefaultScheduleAction for 5-minute rotation";
+        }
+
+        /// <summary>Android Auto play screen UI helpers (<c>AndroidAutoPlayScreenHelper</c>).</summary>
+        public static class AndroidAutoPlayScreenDiagnosticsLog
+        {
+            public const string ErrorLoadingAppIconFallbackArtwork =
+                "[AndroidAuto] Error loading app icon fallback artwork";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {

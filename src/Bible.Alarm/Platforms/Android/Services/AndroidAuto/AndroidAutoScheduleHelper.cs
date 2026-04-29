@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
@@ -27,7 +28,7 @@ public static class AndroidAutoScheduleHelper
     {
         try
         {
-            logger.Debug("Loading schedules from state for Android Auto");
+            logger.Debug(AppConstants.Logging.AndroidAutoScheduleHelperDiagnosticsLog.LoadingSchedulesFromStateForAa);
 
             // Get state from service provider - schedules are already loaded during bootstrap
             var state = ServiceProviderManager.GetService<IState<ApplicationState>>();
@@ -40,12 +41,12 @@ public static class AndroidAutoScheduleHelper
                 return scheduleItems;
             }
 
-            logger.Warning("No schedules found in state - state may not be initialized yet");
+            logger.Warning(AppConstants.Logging.AndroidAutoScheduleHelperDiagnosticsLog.NoSchedulesFoundInStateMayNotBeInitialized);
             return [];
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error loading schedules from state for Android Auto");
+            logger.Error(ex, AppConstants.Logging.AndroidAutoScheduleHelperDiagnosticsLog.ErrorLoadingSchedulesFromStateForAa);
             return [];
         }
     }

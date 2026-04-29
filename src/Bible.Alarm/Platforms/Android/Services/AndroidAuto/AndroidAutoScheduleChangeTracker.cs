@@ -1,5 +1,6 @@
 #nullable enable
 using System.Linq;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -46,7 +47,7 @@ public class AndroidAutoScheduleChangeTracker
         this.applicationState = applicationState ?? throw new ArgumentNullException(nameof(applicationState));
         lastScheduleCount = applicationState.Value.Schedules?.Count ?? 0;
         lastScheduleSignatures = BuildScheduleSignatures(applicationState.Value.Schedules);
-        logger.Debug("AndroidAutoScheduleChangeTracker initialized with {Count} schedules", lastScheduleCount);
+        logger.Debug(AppConstants.Logging.AndroidAutoScheduleChangeTrackerDiagnosticsLog.InitializedWithScheduleCount, lastScheduleCount);
     }
 
     /// <summary>
@@ -67,11 +68,11 @@ public class AndroidAutoScheduleChangeTracker
         // If count hasn't changed and signatures are equal, no changes
         if (lastScheduleCount == currentScheduleCount && AreSignaturesEqual(lastScheduleSignatures, currentSignatures))
         {
-            logger.Debug("GetSpecificChanges: No changes detected (count: {Count}, signatures equal)", currentScheduleCount);
+            logger.Debug(AppConstants.Logging.AndroidAutoScheduleChangeTrackerDiagnosticsLog.GetSpecificChangesNoChangesDetected, currentScheduleCount);
             return null;
         }
 
-        logger.Debug("GetSpecificChanges: Changes detected (count: {OldCount} -> {NewCount})", lastScheduleCount, currentScheduleCount);
+        logger.Debug(AppConstants.Logging.AndroidAutoScheduleChangeTrackerDiagnosticsLog.GetSpecificChangesChangesDetected, lastScheduleCount, currentScheduleCount);
 
         var changes = new List<ScheduleChange>();
 
@@ -84,7 +85,7 @@ public class AndroidAutoScheduleChangeTracker
                 ScheduleId = schedule.Id,
                 Schedule = schedule
             });
-            logger.Debug("Detected schedule added: {ScheduleId}", schedule.Id);
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleAdded, schedule.Id);
         }
 
         // Find removed schedules (in last but not in current)
@@ -96,7 +97,7 @@ public class AndroidAutoScheduleChangeTracker
                 ScheduleId = kvp.Key,
                 Schedule = null
             });
-            logger.Debug("Detected schedule removed: {ScheduleId}", kvp.Key);
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleRemoved, kvp.Key);
         }
 
         // Find updated schedules (in both but signature changed)
@@ -113,7 +114,7 @@ public class AndroidAutoScheduleChangeTracker
                         ScheduleId = kvp.Key,
                         Schedule = schedule
                     });
-                    logger.Information("Detected schedule updated: {ScheduleId} - Old signature: '{OldSignature}', New signature: '{NewSignature}'",
+                    logger.Information(AppConstants.Logging.AndroidAutoScheduleChangeTrackerDiagnosticsLog.DetectedScheduleUpdatedSignatures,
                         kvp.Key, oldSignature, kvp.Value);
                 }
             }

@@ -289,7 +289,7 @@ public static class AndroidAutoPlayScreenHelper
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "[AndroidAuto] Error loading app icon fallback artwork");
+            logger.Warning(ex, AppConstants.Logging.AndroidAutoPlayScreenDiagnosticsLog.ErrorLoadingAppIconFallbackArtwork);
             return null;
         }
     }

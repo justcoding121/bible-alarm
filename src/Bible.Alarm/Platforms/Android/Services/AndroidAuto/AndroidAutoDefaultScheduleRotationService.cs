@@ -2,6 +2,7 @@
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
 using Fluxor;
@@ -34,14 +35,14 @@ public sealed class AndroidAutoDefaultScheduleRotationService(
         {
             if (cts != null)
             {
-                logger.Debug("Android Auto default schedule rotation already started");
+                logger.Debug(AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.RotationAlreadyStarted);
                 return;
             }
 
             cts = new CancellationTokenSource();
             lastRotationUtc = DateTime.UtcNow;
             _ = RunRotationLoopAsync(cts.Token);
-            logger.Information("Android Auto default schedule rotation started (every {Minutes} min when car connected and not playing)", RotationInterval.TotalMinutes);
+            logger.Information(AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.RotationStartedEveryMinutesWhenCarConnected, RotationInterval.TotalMinutes);
         }
     }
 
@@ -61,7 +62,7 @@ public sealed class AndroidAutoDefaultScheduleRotationService(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error stopping Android Auto default schedule rotation");
+                logger.Warning(ex, AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.ErrorStoppingRotation);
             }
             finally
             {
@@ -69,7 +70,7 @@ public sealed class AndroidAutoDefaultScheduleRotationService(
                 lastRotationUtc = null;
             }
 
-            logger.Information("Android Auto default schedule rotation stopped");
+            logger.Information(AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.RotationStopped);
         }
     }
 
@@ -96,7 +97,7 @@ public sealed class AndroidAutoDefaultScheduleRotationService(
                 if (ForegroundServiceCoordinator.IsAndroidAutoConnected)
                 {
                     logger.Warning(
-                        "Car physically disconnected (CarConnection provider) but MediaBrowser bind flag still true — cleaning up stale Android Auto state");
+                        AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.CarDisconnectedBindFlagStaleCleanup);
                     ForegroundServiceCoordinator.OnAndroidAutoDisconnected();
                     mediaSessionManager.SetActive(false);
                     break;
@@ -117,7 +118,7 @@ public sealed class AndroidAutoDefaultScheduleRotationService(
             }
 
             lastRotationUtc = now;
-            logger.Debug("Dispatching RotateDefaultScheduleAction for 5-minute rotation");
+            logger.Debug(AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.DispatchingRotateDefaultScheduleActionFiveMinute);
             dispatcher.Dispatch(new RotateDefaultScheduleAction());
         }
     }

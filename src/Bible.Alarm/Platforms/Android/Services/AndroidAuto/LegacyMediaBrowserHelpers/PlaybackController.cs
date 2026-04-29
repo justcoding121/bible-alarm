@@ -1,5 +1,6 @@
 #nullable enable
 using Android.OS;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
@@ -14,7 +15,7 @@ public sealed class PlaybackController(ILogger logger)
     /// </summary>
     public void HandlePlay()
     {
-        logger.Debug("Handling play command");
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserPlaybackControllerDiagnosticsLog.HandlingPlayCommand);
         // Implementation would dispatch play action
     }
 
@@ -23,7 +24,7 @@ public sealed class PlaybackController(ILogger logger)
     /// </summary>
     public void HandlePause()
     {
-        logger.Debug("Handling pause command");
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserPlaybackControllerDiagnosticsLog.HandlingPauseCommand);
         // Implementation would dispatch pause action
     }
 
@@ -41,7 +42,7 @@ public sealed class PlaybackController(ILogger logger)
     /// </summary>
     public void HandleSkipToPrevious()
     {
-        logger.Debug("Handling skip to previous command");
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserPlaybackControllerDiagnosticsLog.HandlingSkipToPreviousCommand);
         // Implementation would dispatch previous action
     }
 
@@ -50,7 +51,7 @@ public sealed class PlaybackController(ILogger logger)
     /// </summary>
     public void HandleSeekTo(long position)
     {
-        logger.Debug("Handling seek to position: {Position}", position);
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserPlaybackControllerDiagnosticsLog.HandlingSeekToPosition, position);
         // Implementation would dispatch seek action
     }
 
@@ -59,7 +60,7 @@ public sealed class PlaybackController(ILogger logger)
     /// </summary>
     public void HandlePlayFromMediaId(string mediaId, Bundle? extras)
     {
-        logger.Debug("Handling play from media ID: {MediaId}", mediaId);
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserPlaybackControllerDiagnosticsLog.HandlingPlayFromMediaId, mediaId);
         // Implementation would handle playing specific media item
     }
 }
