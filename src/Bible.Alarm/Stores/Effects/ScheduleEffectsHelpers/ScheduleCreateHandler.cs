@@ -3,6 +3,7 @@
 using AutoMapper;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -38,11 +39,11 @@ public class ScheduleCreateHandler
     {
         try
         {
-            Log.Information("ScheduleEffects: HandleCreateSchedule - Name: {Name}", action.Schedule?.Name);
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleName, action.Schedule?.Name);
 
             if (action.Schedule == null || alarmScheduleService == null)
             {
-                Log.Warning("ScheduleEffects: HandleCreateSchedule - Schedule is null or service unavailable, skipping");
+                Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleScheduleNullOrServiceUnavailable);
                 if (action.Schedule != null)
                 {
                     dispatcher.Dispatch(new CreateScheduleFailureAction(action.Schedule, "Service unavailable"));
@@ -53,7 +54,7 @@ public class ScheduleCreateHandler
             // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule) on background thread
             var dbSchedule = await Task.Run(() => mapper.Map<AlarmSchedule>(action.Schedule));
 
-            Log.Debug("ScheduleEffects: HandleCreateSchedule - Before save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleBeforeSavePublicationLanguage,
                 dbSchedule.BiblePublicationSchedule?.PublicationCode ?? "null",
                 dbSchedule.BiblePublicationSchedule?.LanguageCode ?? "null");
 
@@ -64,11 +65,11 @@ public class ScheduleCreateHandler
             var savedSchedule = await Task.Run(async () =>
                 await alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None));
 
-            Log.Debug("ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleAfterSavePublicationLanguage,
                 savedSchedule.BiblePublicationSchedule?.PublicationCode ?? "null",
                 savedSchedule.BiblePublicationSchedule?.LanguageCode ?? "null");
 
-            Log.Information("ScheduleEffects: HandleCreateSchedule - Saved to DB. ScheduleId: {ScheduleId}", savedSchedule.Id);
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleSavedToDb, savedSchedule.Id);
 
             // Create alarm if enabled (on background thread)
             if (savedSchedule.IsEnabled && alarmService != null)
@@ -88,12 +89,12 @@ public class ScheduleCreateHandler
             // Dispatch success action with DTO (display names preserved from state)
             dispatcher.Dispatch(new CreateScheduleSuccessAction(scheduleStateItem));
 
-            Log.Information("ScheduleEffects: HandleCreateSchedule - Dispatched CreateScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleDispatchedCreateScheduleSuccessAction,
                 scheduleStateItem.Id);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleCreateSchedule");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleCreateSchedule);
             if (action.Schedule != null)
             {
                 dispatcher.Dispatch(new CreateScheduleFailureAction(action.Schedule, ex.Message));

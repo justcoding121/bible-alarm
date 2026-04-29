@@ -3,6 +3,7 @@ using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -41,7 +42,7 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public static void LogUpdateStart(UpdateScheduleFromViewModelAction action)
     {
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, ShouldSave: {ShouldSave}",
+        Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelScheduleIdNameShouldSave,
             action.Schedule?.Id, action.Schedule?.Name, action.ShouldSave);
     }
 
@@ -50,7 +51,7 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public static void HandleServiceUnavailable(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
     {
-        Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - Service unavailable, skipping");
+        Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelServiceUnavailableSkipping);
         dispatcher.Dispatch(new UpdateScheduleFailureAction(action.Schedule!, "Service unavailable"));
     }
 
@@ -62,7 +63,7 @@ public sealed class ScheduleUpdateProcessor
         // Map and run database update on background thread to avoid blocking UI
         var savedSchedule = await Task.Run(async () =>
         {
-            Log.Information("UpdateScheduleInDatabaseAsync: action.Schedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, action.Schedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdateScheduleInDatabaseAsyncActionScheduleTracksAndAlwaysPlay,
                 action.Schedule!.NumberOfTracksToPlay, action.Schedule.AlwaysPlayFromStart);
             
             var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule!);
@@ -70,7 +71,7 @@ public sealed class ScheduleUpdateProcessor
             // Keep the selected language code (e.g. E, MY) for no-language publications so the UI
             // shows the correct language name when the schedule is viewed again.
             
-            Log.Information("UpdateScheduleInDatabaseAsync: After mapping - dbSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, dbSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdateScheduleInDatabaseAsyncAfterMappingTracksAndAlwaysPlay,
                 dbSchedule.NumberOfTracksToPlay, dbSchedule.AlwaysPlayFromStart);
             
             return await alarmScheduleService!.UpdateScheduleByIdAsync(
@@ -80,7 +81,7 @@ public sealed class ScheduleUpdateProcessor
         });
 
         LogScheduleUpdateResult(savedSchedule);
-        Log.Information("UpdateScheduleInDatabaseAsync: After save - savedSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, savedSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+        Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdateScheduleInDatabaseAsyncAfterSaveTracksAndAlwaysPlay,
             savedSchedule.NumberOfTracksToPlay, savedSchedule.AlwaysPlayFromStart);
         return savedSchedule;
     }
@@ -90,7 +91,7 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public static void LogScheduleUpdateResult(AlarmSchedule savedSchedule)
     {
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.TrackCode={TrackCode}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
+        Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatedInDbMusicFields,
             savedSchedule.Id,
             savedSchedule.Music != null ? "not null" : "null",
             savedSchedule.Music?.TrackCode.ToString() ?? "null",
@@ -146,7 +147,7 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public static void LogMappingResult(ScheduleStateItem scheduleStateItem)
     {
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}, scheduleStateItem.MusicTrackCode={TrackCode}",
+        Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelAfterMappingScheduleStateItemMusicFields,
             scheduleStateItem.MusicPublicationCode ?? "null",
             scheduleStateItem.MusicLanguageCode ?? "null",
             scheduleStateItem.MusicTrackCode?.ToString() ?? "null");
@@ -162,7 +163,7 @@ public sealed class ScheduleUpdateProcessor
         if (!string.IsNullOrEmpty(actionSchedule.MusicPublicationCode) &&
             scheduleStateItem.MusicPublicationCode != actionSchedule.MusicPublicationCode)
         {
-            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - Music publication mismatch! savedSchedule.Music.PublicationCode={SavedPublicationCode}, action.Schedule.MusicPublicationCode={ActionPublicationCode}. Using action.Schedule properties.",
+            Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicPublicationMismatch,
                 scheduleStateItem.MusicPublicationCode ?? "null",
                 actionSchedule.MusicPublicationCode ?? "null");
 

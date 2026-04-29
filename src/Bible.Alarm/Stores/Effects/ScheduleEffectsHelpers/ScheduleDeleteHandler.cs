@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -43,26 +44,26 @@ public class ScheduleDeleteHandler
     {
         try
         {
-            Log.Information("ScheduleDeleteHandler: HandleAsync called - ScheduleId: {ScheduleId}, Action null: {IsNull}, Dispatcher null: {DispatcherNull}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncCalled,
                 action?.ScheduleId ?? -1, action == null, dispatcher == null);
 
             if (action == null)
             {
-                Log.Error("ScheduleDeleteHandler: HandleAsync - Action is null!");
+                Log.Error(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncActionIsNull);
                 return;
             }
 
             if (dispatcher == null)
             {
-                Log.Error("ScheduleDeleteHandler: HandleAsync - Dispatcher is null!");
+                Log.Error(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncDispatcherIsNull);
                 return;
             }
 
-            Log.Information("ScheduleEffects: HandleDeleteSchedule - ScheduleId: {ScheduleId}", action.ScheduleId);
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleScheduleId, action.ScheduleId);
 
             if (alarmScheduleService == null)
             {
-                Log.Warning("ScheduleEffects: HandleDeleteSchedule - Service unavailable, skipping");
+                Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleServiceUnavailableSkipping);
                 dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, "Service unavailable"));
                 return;
             }
@@ -76,7 +77,7 @@ public class ScheduleDeleteHandler
 
             if (allSchedules.Count <= 1)
             {
-                Log.Warning("ScheduleEffects: HandleDeleteSchedule - Cannot delete schedule {ScheduleId} - it is the last schedule", action.ScheduleId);
+                Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleCannotDeleteLastSchedule, action.ScheduleId);
                 // Show toast message to user
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
 
@@ -103,7 +104,7 @@ public class ScheduleDeleteHandler
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "ScheduleEffects: HandleDeleteSchedule - Failed to load schedule for rollback, ScheduleId: {ScheduleId}", action.ScheduleId);
+                    Log.Warning(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleFailedToLoadScheduleForRollback, action.ScheduleId);
                 }
 
                 dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, "Cannot delete last schedule", scheduleToRestore));
@@ -126,19 +127,19 @@ public class ScheduleDeleteHandler
             await Task.Run(async () =>
                 await alarmScheduleService.DeleteScheduleAsync(action.ScheduleId, CancellationToken.None));
 
-            Log.Information("ScheduleEffects: HandleDeleteSchedule - Deleted from DB. ScheduleId: {ScheduleId}", action.ScheduleId);
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleDeletedFromDb, action.ScheduleId);
 
             WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule removed"));
 
             // Dispatch success action with schedule ID
             dispatcher.Dispatch(new RemoveScheduleSuccessAction(action.ScheduleId));
 
-            Log.Information("ScheduleEffects: HandleDeleteSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleDispatchedRemoveScheduleSuccessAction,
                 action.ScheduleId);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleDeleteSchedule");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleDeleteSchedule);
             dispatcher.Dispatch(new DeleteScheduleFailureAction(action.ScheduleId, ex.Message));
         }
     }

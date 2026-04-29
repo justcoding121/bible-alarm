@@ -53,7 +53,7 @@ public sealed class TrackSelectionSyncHandler
 
             if (languageCodeChanged)
             {
-                Log.Information("ScheduleEffects: HandleTrackSelected - Music language changed from {OldLang} to {NewLang}. Syncing.",
+                Log.Information(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedMusicLanguageChangedSyncing,
                     currentSchedule.MusicLanguageCode, action.CurrentMusic.LanguageCode);
             }
 
@@ -62,7 +62,7 @@ public sealed class TrackSelectionSyncHandler
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "ScheduleEffects: Error syncing CurrentMusic to CurrentSchedule");
+            Log.Warning(ex, AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.ErrorSyncingCurrentMusicToCurrentSchedule);
         }
     }
 
@@ -76,9 +76,7 @@ public sealed class TrackSelectionSyncHandler
         try
         {
             var actionPub = action.CurrentBiblePublicationSchedule;
-            Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Received action. " +
-                "CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}, TrackCode={TrackCode}, TrackTitle={TrackTitle}, " +
-                "SectionCode={SectionCode}, PublicationCode={PublicationCode}",
+            Log.Information(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationReceivedAction,
                 actionPub != null ? "not null" : "null",
                 actionPub?.TrackCode ?? "(null)",
                 actionPub?.TrackTitle ?? "(null)",
@@ -88,7 +86,7 @@ public sealed class TrackSelectionSyncHandler
             var currentState = state?.Value;
             if (currentState?.CurrentSchedule == null || action.CurrentBiblePublicationSchedule == null)
             {
-                Log.Warning("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - CurrentSchedule or CurrentBiblePublicationSchedule is null.");
+                Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationCurrentScheduleOrPubNull);
                 return;
             }
 
@@ -108,7 +106,7 @@ public sealed class TrackSelectionSyncHandler
             
             if (alreadyInSync)
             {
-                Log.Debug("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - CurrentSchedule already in sync with action, skipping dispatch.");
+                Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationAlreadyInSync);
                 return;
             }
 
@@ -141,13 +139,13 @@ public sealed class TrackSelectionSyncHandler
                 {
                     updatedSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
                     updatedSchedule.BiblePublicationCategoryName = biblePub.CategoryName;
-                    Log.Debug("TrackSelectionSyncHandler: Set category={CategoryName} from BiblePublicationStateItem (was null)",
+                    Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SetCategoryFromBiblePublicationStateItemWasNull,
                         biblePub.CategoryName);
                 }
                 else
                 {
                     // Category is null in both - this should not happen, but preserve what we can
-                    Log.Error("TrackSelectionSyncHandler: Category is null in both current schedule and BiblePublicationStateItem. Category must always be selected.");
+                    Log.Error(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.CategoryNullInBothScheduleAndBiblePublicationStateItem);
                 }
             }
             else
@@ -226,14 +224,12 @@ public sealed class TrackSelectionSyncHandler
                 // Warn if section/track names are empty for a publication change - this may cause empty UI rows
                 if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(actionSectionCode))
                 {
-                    Log.Warning("TrackSelectionSyncHandler: SectionName is empty after publication change but SectionCode={SectionCode} is set. " +
-                        "Publication={PublicationCode}. This may cause empty section row in UI.",
+                    Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SectionNameEmptyAfterPublicationChangeSectionCodeSet,
                         actionSectionCode, biblePub.PublicationCode);
                 }
                 if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(biblePub.TrackCode))
                 {
-                    Log.Warning("TrackSelectionSyncHandler: TrackTitle is empty after publication change but TrackCode={TrackCode} is valid. " +
-                        "Publication={PublicationCode}. This may cause empty track row in UI.",
+                    Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.TrackTitleEmptyAfterPublicationChangeTrackCodeValid,
                         biblePub.TrackCode, biblePub.PublicationCode);
                 }
             }
@@ -257,21 +253,20 @@ public sealed class TrackSelectionSyncHandler
                     : currentSchedule.BiblePublicationTrackTitle;
             }
 
-            Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. " +
-                "ScheduleId: {ScheduleId}, TrackCode={TrackCode}, TrackTitle={TrackTitle}, SectionCode={SectionCode}",
+            Log.Information(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationDispatchingUpdate,
                 updatedSchedule.Id, updatedSchedule.BiblePublicationTrackCode, updatedSchedule.BiblePublicationTrackTitle, updatedSchedule.BiblePublicationSectionCode);
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "TrackSelectionSyncHandler: Error syncing CurrentBiblePublicationSchedule to CurrentSchedule");
+            Log.Warning(ex, AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.ErrorSyncingCurrentBiblePublicationScheduleToCurrentSchedule);
         }
     }
 
     private static void LogTrackSelectedStart(MusicTrackSelectedAction action)
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
-        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackCode: {TrackCode}",
+        Log.Information(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedReceivedActionMusic,
             action.CurrentMusic != null ? "not null" : "null",
             action.CurrentMusic?.LanguageCode ?? "null (melody)",
             action.CurrentMusic?.PublicationCode ?? "null",
@@ -282,7 +277,7 @@ public sealed class TrackSelectionSyncHandler
     {
         if (currentState?.CurrentSchedule == null || action.CurrentMusic == null)
         {
-            Log.Warning("ScheduleEffects: HandleTrackSelected - CurrentSchedule or CurrentMusic is null. CurrentSchedule: {CurrentSchedule}, CurrentMusic: {CurrentMusic}",
+            Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCurrentScheduleOrCurrentMusicNull,
                 currentState?.CurrentSchedule != null ? "not null" : "null",
                 action.CurrentMusic != null ? "not null" : "null");
             return false;
@@ -300,7 +295,7 @@ public sealed class TrackSelectionSyncHandler
 
     private static bool ShouldSyncMusic(ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool languageCodeChanged)
     {
-        Log.Debug("ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, MusicId: {MusicId}, Action Music Id: {ActionMusicId}",
+        Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCurrentScheduleIdsDebug,
             currentSchedule.Id, currentSchedule.MusicId, actionMusic.Id);
 
         // Allow syncing if:
@@ -313,12 +308,12 @@ public sealed class TrackSelectionSyncHandler
             actionMusic.Id != currentSchedule.MusicId.Value &&
             !languageCodeChanged)
         {
-            Log.Warning("ScheduleEffects: HandleTrackSelected - Different Music ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
+            Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedDifferentMusicId,
                 currentSchedule.MusicId.Value, actionMusic.Id);
             return false;
         }
 
-        Log.Debug("ScheduleEffects: HandleTrackSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current MusicId: {CurrentId}",
+        Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedSyncingAllowed,
             actionMusic.Id, currentSchedule.MusicId);
         return true;
     }
@@ -435,13 +430,13 @@ public sealed class TrackSelectionSyncHandler
             }
             catch (Exception ex)
             {
-                Log.Debug(ex, "ScheduleEffects: HandleTrackSelected - Could not resolve vocal language display name for {LanguageCode}", actionMusic.LanguageCode);
+                Log.Debug(ex, AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCouldNotResolveVocalLanguageDisplayName, actionMusic.LanguageCode);
                 updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
                 updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
 
-        Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}, TrackName: {TrackName}",
+        Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedUsingDisplayNamesFromAction,
             updatedSchedule.MusicLanguageName ?? "null",
             updatedSchedule.MusicPublicationName ?? "null",
             updatedSchedule.MusicSectionName ?? "null",
@@ -451,7 +446,7 @@ public sealed class TrackSelectionSyncHandler
     private static void DispatchTrackUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
-        Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackCode: {TrackCode}, TrackName: {TrackName}",
+        Log.Information(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedDispatchingUpdateScheduleFromViewModelMusic,
             updatedSchedule.Id,
             updatedSchedule.MusicLanguageCode ?? "null (melody)",
             updatedSchedule.MusicLanguageName ?? "null",
@@ -461,7 +456,7 @@ public sealed class TrackSelectionSyncHandler
             updatedSchedule.MusicTrackName ?? "null");
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
 
-        Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}",
+        Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedSyncedCurrentMusicToSchedule,
             scheduleId);
     }
 }

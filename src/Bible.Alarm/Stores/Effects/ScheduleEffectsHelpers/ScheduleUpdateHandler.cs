@@ -2,6 +2,7 @@
 
 using AutoMapper;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Serilog;
@@ -27,12 +28,12 @@ public class ScheduleUpdateHandler
     {
         try
         {
-            Log.Information("ScheduleEffects: HandleUpdateSchedule - ScheduleId: {ScheduleId}, Name: {Name}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleScheduleIdName,
                 action.Schedule?.Id, action.Schedule?.Name);
 
             if (action.Schedule == null)
             {
-                Log.Warning("ScheduleEffects: HandleUpdateSchedule - Schedule is null, skipping");
+                Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleScheduleNullSkipping);
                 return;
             }
 
@@ -45,12 +46,12 @@ public class ScheduleUpdateHandler
             // Dispatch success action with DTO (reducer will handle this)
             dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleStateItem));
 
-            Log.Information("ScheduleEffects: HandleUpdateSchedule - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleDispatchedUpdateScheduleSuccessForScheduleId,
                 scheduleStateItem.Id);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "ScheduleEffects: Error in HandleUpdateSchedule");
+            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleUpdateSchedule);
         }
     }
 }

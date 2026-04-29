@@ -1494,6 +1494,240 @@ public static class AppConstants
 
             public const string ErrorHandlingMusicCascade =
                 "ScheduleEffects: Error handling Music cascade";
+
+            public const string HandleUpdateScheduleScheduleIdName =
+                "ScheduleEffects: HandleUpdateSchedule - ScheduleId: {ScheduleId}, Name: {Name}";
+
+            public const string HandleUpdateScheduleScheduleNullSkipping =
+                "ScheduleEffects: HandleUpdateSchedule - Schedule is null, skipping";
+
+            public const string HandleUpdateScheduleDispatchedUpdateScheduleSuccessForScheduleId =
+                "ScheduleEffects: HandleUpdateSchedule - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}";
+
+            public const string ErrorInHandleUpdateSchedule =
+                "ScheduleEffects: Error in HandleUpdateSchedule";
+
+            public const string HandleUpdateScheduleSuccessInvalidScheduleId =
+                "ScheduleEffects: HandleUpdateScheduleSuccess - Invalid schedule ID";
+
+            public const string HandleUpdateScheduleSuccessDispatchedSetCarPlayScreenForSchedule =
+                "ScheduleEffects: HandleUpdateScheduleSuccess - Dispatched SetCarPlayScreenAction for schedule {ScheduleId}";
+
+            public const string ErrorInHandleUpdateScheduleSuccess =
+                "ScheduleEffects: Error in HandleUpdateScheduleSuccess";
+
+            public const string HandleRemoveScheduleSuccessScheduleDeletedPostDeleteActions =
+                "ScheduleEffects: HandleRemoveScheduleSuccess - Schedule deleted from DB, handling post-delete actions for schedule {ScheduleId}";
+
+            public const string HandleRemoveScheduleSuccessDeletedWasLastPlayedRefreshingMetadata =
+                "ScheduleEffects: HandleRemoveScheduleSuccess - Deleted schedule {ScheduleId} was the last played item, refreshing metadata";
+
+            public const string HandleRemoveScheduleSuccessRefreshedLastPlayedMetadataAfterDeletion =
+                "ScheduleEffects: HandleRemoveScheduleSuccess - Refreshed last played metadata after schedule deletion";
+
+            public const string HandleRemoveScheduleSuccessDefaultScheduleServiceUnavailable =
+                "ScheduleEffects: HandleRemoveScheduleSuccess - IDefaultScheduleService not available, cannot refresh metadata";
+
+            public const string HandleRemoveScheduleSuccessDeletedWasNotLastPlayedNoRefreshNeeded =
+                "ScheduleEffects: HandleRemoveScheduleSuccess - Deleted schedule {ScheduleId} was not the last played item (LastPlayedScheduleId: {LastPlayedScheduleId}), no refresh needed";
+
+            public const string HandleRemoveScheduleSuccessInvalidatedCacheDispatchedSetCarPlayScreen =
+                "ScheduleEffects: HandleRemoveScheduleSuccess - Invalidated cache and dispatched SetCarPlayScreenAction for deleted schedule {ScheduleId}";
+
+            public const string ErrorInHandleRemoveScheduleSuccess =
+                "ScheduleEffects: Error in HandleRemoveScheduleSuccess";
+
+            public const string ScheduleDeleteHandlerHandleAsyncCalled =
+                "ScheduleDeleteHandler: HandleAsync called - ScheduleId: {ScheduleId}, Action null: {IsNull}, Dispatcher null: {DispatcherNull}";
+
+            public const string ScheduleDeleteHandlerHandleAsyncActionIsNull =
+                "ScheduleDeleteHandler: HandleAsync - Action is null!";
+
+            public const string ScheduleDeleteHandlerHandleAsyncDispatcherIsNull =
+                "ScheduleDeleteHandler: HandleAsync - Dispatcher is null!";
+
+            public const string HandleDeleteScheduleScheduleId =
+                "ScheduleEffects: HandleDeleteSchedule - ScheduleId: {ScheduleId}";
+
+            public const string HandleDeleteScheduleServiceUnavailableSkipping =
+                "ScheduleEffects: HandleDeleteSchedule - Service unavailable, skipping";
+
+            public const string HandleDeleteScheduleCannotDeleteLastSchedule =
+                "ScheduleEffects: HandleDeleteSchedule - Cannot delete schedule {ScheduleId} - it is the last schedule";
+
+            public const string HandleDeleteScheduleFailedToLoadScheduleForRollback =
+                "ScheduleEffects: HandleDeleteSchedule - Failed to load schedule for rollback, ScheduleId: {ScheduleId}";
+
+            public const string HandleDeleteScheduleDeletedFromDb =
+                "ScheduleEffects: HandleDeleteSchedule - Deleted from DB. ScheduleId: {ScheduleId}";
+
+            public const string HandleDeleteScheduleDispatchedRemoveScheduleSuccessAction =
+                "ScheduleEffects: HandleDeleteSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}";
+
+            public const string ErrorInHandleDeleteSchedule =
+                "ScheduleEffects: Error in HandleDeleteSchedule";
+
+            public const string HandleAddScheduleScheduleIdName =
+                "ScheduleEffects: HandleAddSchedule - ScheduleId: {ScheduleId}, Name: {Name}";
+
+            public const string HandleAddScheduleScheduleNullSkipping =
+                "ScheduleEffects: HandleAddSchedule - Schedule is null, skipping";
+
+            public const string HandleAddScheduleDispatchedAddScheduleSuccessAction =
+                "ScheduleEffects: HandleAddSchedule - Dispatched AddScheduleSuccessAction for ScheduleId: {ScheduleId}";
+
+            public const string ErrorInHandleAddSchedule =
+                "ScheduleEffects: Error in HandleAddSchedule";
+
+            public const string HandleCreateScheduleName =
+                "ScheduleEffects: HandleCreateSchedule - Name: {Name}";
+
+            public const string HandleCreateScheduleScheduleNullOrServiceUnavailable =
+                "ScheduleEffects: HandleCreateSchedule - Schedule is null or service unavailable, skipping";
+
+            public const string HandleCreateScheduleBeforeSavePublicationLanguage =
+                "ScheduleEffects: HandleCreateSchedule - Before save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+
+            public const string HandleCreateScheduleAfterSavePublicationLanguage =
+                "ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+
+            public const string HandleCreateScheduleSavedToDb =
+                "ScheduleEffects: HandleCreateSchedule - Saved to DB. ScheduleId: {ScheduleId}";
+
+            public const string HandleCreateScheduleDispatchedCreateScheduleSuccessAction =
+                "ScheduleEffects: HandleCreateSchedule - Dispatched CreateScheduleSuccessAction for ScheduleId: {ScheduleId}";
+
+            public const string ErrorInHandleCreateSchedule =
+                "ScheduleEffects: Error in HandleCreateSchedule";
+
+            public const string HandleUpdateScheduleFromViewModelScheduleIdNameShouldSave =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, ShouldSave: {ShouldSave}";
+
+            public const string HandleUpdateScheduleFromViewModelServiceUnavailableSkipping =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Service unavailable, skipping";
+
+            public const string UpdateScheduleInDatabaseAsyncActionScheduleTracksAndAlwaysPlay =
+                "UpdateScheduleInDatabaseAsync: action.Schedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, action.Schedule.AlwaysPlayFromStart={AlwaysPlayFromStart}";
+
+            public const string UpdateScheduleInDatabaseAsyncAfterMappingTracksAndAlwaysPlay =
+                "UpdateScheduleInDatabaseAsync: After mapping - dbSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, dbSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}";
+
+            public const string UpdateScheduleInDatabaseAsyncAfterSaveTracksAndAlwaysPlay =
+                "UpdateScheduleInDatabaseAsync: After save - savedSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, savedSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}";
+
+            public const string HandleUpdateScheduleFromViewModelUpdatedInDbMusicFields =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.TrackCode={TrackCode}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}";
+
+            public const string HandleUpdateScheduleFromViewModelAfterMappingScheduleStateItemMusicFields =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}, scheduleStateItem.MusicTrackCode={TrackCode}";
+
+            public const string HandleUpdateScheduleFromViewModelMusicPublicationMismatch =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Music publication mismatch! savedSchedule.Music.PublicationCode={SavedPublicationCode}, action.Schedule.MusicPublicationCode={ActionPublicationCode}. Using action.Schedule properties.";
+
+            public const string HandleUpdateScheduleFromViewModelMusicPublicationRemovingAlarmMusic =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Music publication schedule, removing existing AlarmMusic (begin-with-music) for ScheduleId={ScheduleId}";
+
+            public const string HandleUpdateScheduleFromViewModelMusicUpdatedFalseSkippingMusicUpdate =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=false, skipping music update";
+
+            public const string HandleUpdateScheduleFromViewModelMusicUpdatedButDbMusicNullNoValidProps =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null and action.Schedule has no valid music properties";
+
+            public const string HandleUpdateScheduleFromViewModelDbMusicNullSkippingMusicUpdate =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - dbSchedule.Music is null, skipping music update";
+
+            public const string HandleUpdateScheduleFromViewModelUpdatingMusicDbFields =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating music. dbSchedule.Music.TrackCode={TrackCode}, dbSchedule.Music.PublicationCode={PublicationCode}, dbSchedule.Music.LanguageCode={LanguageCode}";
+
+            public const string HandleUpdateScheduleFromViewModelCreatingNewMusicEntity =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Creating new Music entity";
+
+            public const string HandleUpdateScheduleFromViewModelUpdatingExistingMusicOldTrack =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music. Old TrackCode={OldTrackCode}";
+
+            public const string HandleUpdateScheduleFromViewModelUpdatedMusicNewTrackPubLang =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music. New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+
+            public const string HandleUpdateScheduleFromViewModelMusicUpdatedDbMusicNullCreatingFromAction =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null. Creating Music from action.Schedule. TrackCode={TrackCode}";
+
+            public const string HandleUpdateScheduleFromViewModelCreatedNewMusicEntityFromActionSchedule =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Created new Music entity from action.Schedule";
+
+            public const string HandleUpdateScheduleFromViewModelUpdatingExistingMusicFromActionOldTrack =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music from action.Schedule. Old TrackCode={OldTrackCode}";
+
+            public const string HandleUpdateScheduleFromViewModelUpdatedMusicFromActionNewTrackPubLang =
+                "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music from action.Schedule. New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+        }
+
+        /// <summary><c>TrackSelectionSyncHandler</c> schedule/music/Bible track sync diagnostics.</summary>
+        public static class TrackSelectionSyncHandlerDiagnosticsLog
+        {
+            public const string HandleTrackSelectedMusicLanguageChangedSyncing =
+                "ScheduleEffects: HandleTrackSelected - Music language changed from {OldLang} to {NewLang}. Syncing.";
+
+            public const string ErrorSyncingCurrentMusicToCurrentSchedule =
+                "ScheduleEffects: Error syncing CurrentMusic to CurrentSchedule";
+
+            public const string HandleTrackSelectedBiblePublicationReceivedAction =
+                "TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Received action. " +
+                "CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}, TrackCode={TrackCode}, TrackTitle={TrackTitle}, " +
+                "SectionCode={SectionCode}, PublicationCode={PublicationCode}";
+
+            public const string HandleTrackSelectedBiblePublicationCurrentScheduleOrPubNull =
+                "TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - CurrentSchedule or CurrentBiblePublicationSchedule is null.";
+
+            public const string HandleTrackSelectedBiblePublicationAlreadyInSync =
+                "TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - CurrentSchedule already in sync with action, skipping dispatch.";
+
+            public const string SetCategoryFromBiblePublicationStateItemWasNull =
+                "TrackSelectionSyncHandler: Set category={CategoryName} from BiblePublicationStateItem (was null)";
+
+            public const string CategoryNullInBothScheduleAndBiblePublicationStateItem =
+                "TrackSelectionSyncHandler: Category is null in both current schedule and BiblePublicationStateItem. Category must always be selected.";
+
+            public const string SectionNameEmptyAfterPublicationChangeSectionCodeSet =
+                "TrackSelectionSyncHandler: SectionName is empty after publication change but SectionCode={SectionCode} is set. " +
+                "Publication={PublicationCode}. This may cause empty section row in UI.";
+
+            public const string TrackTitleEmptyAfterPublicationChangeTrackCodeValid =
+                "TrackSelectionSyncHandler: TrackTitle is empty after publication change but TrackCode={TrackCode} is valid. " +
+                "Publication={PublicationCode}. This may cause empty track row in UI.";
+
+            public const string HandleTrackSelectedBiblePublicationDispatchingUpdate =
+                "TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. " +
+                "ScheduleId: {ScheduleId}, TrackCode={TrackCode}, TrackTitle={TrackTitle}, SectionCode={SectionCode}";
+
+            public const string ErrorSyncingCurrentBiblePublicationScheduleToCurrentSchedule =
+                "TrackSelectionSyncHandler: Error syncing CurrentBiblePublicationSchedule to CurrentSchedule";
+
+            public const string HandleTrackSelectedReceivedActionMusic =
+                "ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackCode: {TrackCode}";
+
+            public const string HandleTrackSelectedCurrentScheduleOrCurrentMusicNull =
+                "ScheduleEffects: HandleTrackSelected - CurrentSchedule or CurrentMusic is null. CurrentSchedule: {CurrentSchedule}, CurrentMusic: {CurrentMusic}";
+
+            public const string HandleTrackSelectedCurrentScheduleIdsDebug =
+                "ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, MusicId: {MusicId}, Action Music Id: {ActionMusicId}";
+
+            public const string HandleTrackSelectedDifferentMusicId =
+                "ScheduleEffects: HandleTrackSelected - Different Music ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.";
+
+            public const string HandleTrackSelectedSyncingAllowed =
+                "ScheduleEffects: HandleTrackSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current MusicId: {CurrentId}";
+
+            public const string HandleTrackSelectedCouldNotResolveVocalLanguageDisplayName =
+                "ScheduleEffects: HandleTrackSelected - Could not resolve vocal language display name for {LanguageCode}";
+
+            public const string HandleTrackSelectedUsingDisplayNamesFromAction =
+                "ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}, TrackName: {TrackName}";
+
+            public const string HandleTrackSelectedDispatchingUpdateScheduleFromViewModelMusic =
+                "ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackCode: {TrackCode}, TrackName: {TrackName}";
+
+            public const string HandleTrackSelectedSyncedCurrentMusicToSchedule =
+                "ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}";
         }
 
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>

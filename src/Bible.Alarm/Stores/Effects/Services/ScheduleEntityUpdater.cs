@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -27,7 +28,7 @@ public static class ScheduleEntityUpdater
         {
             if (existing.Music != null)
             {
-                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Music publication schedule, removing existing AlarmMusic (begin-with-music) for ScheduleId={ScheduleId}",
+                Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicPublicationRemovingAlarmMusic,
                     existing.Id);
                 existing.Music = null;
             }
@@ -38,7 +39,7 @@ public static class ScheduleEntityUpdater
         }
         else
         {
-            Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=false, skipping music update");
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicUpdatedFalseSkippingMusicUpdate);
         }
 
         UpdateBiblePublicationEntity(existing, dbSchedule, action);
@@ -88,7 +89,7 @@ public static class ScheduleEntityUpdater
         }
         else
         {
-            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null and action.Schedule has no valid music properties");
+            Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicUpdatedButDbMusicNullNoValidProps);
         }
     }
 
@@ -109,15 +110,15 @@ public static class ScheduleEntityUpdater
     {
         if (dbSchedule.Music == null)
         {
-            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - dbSchedule.Music is null, skipping music update");
+            Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelDbMusicNullSkippingMusicUpdate);
             return;
         }
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating music. dbSchedule.Music.TrackCode={TrackCode}, dbSchedule.Music.PublicationCode={PublicationCode}, dbSchedule.Music.LanguageCode={LanguageCode}",
+        Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatingMusicDbFields,
             dbSchedule.Music.TrackCode, dbSchedule.Music.PublicationCode, dbSchedule.Music.LanguageCode);
 
         if (existing.Music == null)
         {
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Creating new Music entity");
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelCreatingNewMusicEntity);
             // Create a new tracked entity instead of using the AutoMapper-created one
             existing.Music = new AlarmMusic
             {
@@ -133,7 +134,7 @@ public static class ScheduleEntityUpdater
         else
         {
             var oldTrackCode = existing.Music.TrackCode;
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music. Old TrackCode={OldTrackCode}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatingExistingMusicOldTrack,
                 oldTrackCode);
 
             // Always update all properties
@@ -149,7 +150,7 @@ public static class ScheduleEntityUpdater
                 existing.Music.Id = dbSchedule.Music.Id;
             }
 
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music. New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatedMusicNewTrackPubLang,
                 existing.Music.TrackCode, existing.Music.PublicationCode, existing.Music.LanguageCode);
         }
     }
@@ -159,13 +160,13 @@ public static class ScheduleEntityUpdater
     /// </summary>
     public static void UpdateMusicFromActionSchedule(AlarmSchedule existing, UpdateScheduleFromViewModelAction action)
     {
-        Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null. Creating Music from action.Schedule. TrackCode={TrackCode}",
+        Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicUpdatedDbMusicNullCreatingFromAction,
             action.Schedule!.MusicTrackCode);
 
         if (existing.Music == null)
         {
             existing.Music = CreateMusicFromActionSchedule(action.Schedule, existing.Id);
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Created new Music entity from action.Schedule");
+            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelCreatedNewMusicEntityFromActionSchedule);
         }
         else
         {
@@ -196,7 +197,7 @@ public static class ScheduleEntityUpdater
     public static void UpdateExistingMusicFromActionSchedule(AlarmSchedule existing, ScheduleStateItem schedule)
     {
         var oldTrackCode = existing.Music!.TrackCode;
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music from action.Schedule. Old TrackCode={OldTrackCode}",
+        Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatingExistingMusicFromActionOldTrack,
             oldTrackCode);
 
         existing.Music.PublicationCode = schedule.MusicPublicationCode ?? string.Empty;
@@ -211,7 +212,7 @@ public static class ScheduleEntityUpdater
             existing.Music.Id = schedule.MusicId.Value;
         }
 
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music from action.Schedule. New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+        Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatedMusicFromActionNewTrackPubLang,
             existing.Music.TrackCode, existing.Music.PublicationCode, existing.Music.LanguageCode);
     }
 
