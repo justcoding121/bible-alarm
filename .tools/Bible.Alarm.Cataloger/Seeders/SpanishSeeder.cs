@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Media;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -58,7 +57,7 @@ internal sealed class SpanishSeeder
     private static async Task SeedAllSectionsForSpanishAsync(
         IServiceScopeFactory scopeFactory,
         ILogger logger,
-        ILanguageContentService languageContentService)
+        LanguageContentService languageContentService)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();

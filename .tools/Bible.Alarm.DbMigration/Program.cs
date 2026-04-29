@@ -18,6 +18,8 @@ namespace Bible.Alarm.DbMigration;
 /// </summary>
 class Program
 {
+    private static readonly string[] GenerateEmptyScheduleDbArgs = ["generate-empty-schedule-db"];
+
     private static void TryDeleteFileBestEffort(string path)
     {
         if (!File.Exists(path))
@@ -496,7 +498,7 @@ class Program
         if (string.IsNullOrEmpty(contextName) || contextName.Equals("Schedule", StringComparison.OrdinalIgnoreCase))
         {
             Console.WriteLine("Applying migrations and updating Resources database for Schedule...");
-            await GenerateEmptyScheduleDatabase(new[] { "generate-empty-schedule-db" });
+            await GenerateEmptyScheduleDatabase(GenerateEmptyScheduleDbArgs);
         }
         else if (contextName.Equals("Media", StringComparison.OrdinalIgnoreCase))
         {
