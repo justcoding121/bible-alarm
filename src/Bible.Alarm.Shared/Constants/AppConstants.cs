@@ -508,6 +508,9 @@ public static class AppConstants
         /// <summary>Publication/track picker UI: plural chapters.</summary>
         public const string PublicationUiChapterPlural = "Chapters";
 
+        /// <summary>Melody disc fallback UI: prefix before volume index (e.g. <c>Volume 1</c>).</summary>
+        public const string PublicationUiMelodyVolumePrefix = "Volume ";
+
         /// <summary>
         /// Substrings in JW GETPUB publication names that indicate video drama titles wrongly returned for Bible publications.
         /// </summary>

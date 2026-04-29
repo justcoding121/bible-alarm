@@ -109,14 +109,14 @@ public sealed class ScheduleDisplayNameMusicHelper
                     if (set && melodyRelease != null)
                         scheduleStateItem.MusicPublicationName = melodyRelease.Name;
                     if (string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
-                        scheduleStateItem.MusicPublicationName = GetMelodyPublicationDisplayNameFallback(music.PublicationCode);
+                        scheduleStateItem.MusicPublicationName = JwSourceHelper.GetPublicationDisplayNameFallback(music.PublicationCode);
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicPublicationName");
                 if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
-                    scheduleStateItem.MusicPublicationName = GetMelodyPublicationDisplayNameFallback(music.PublicationCode);
+                    scheduleStateItem.MusicPublicationName = JwSourceHelper.GetPublicationDisplayNameFallback(music.PublicationCode);
             }
         }
 
@@ -199,17 +199,6 @@ public sealed class ScheduleDisplayNameMusicHelper
     }
 
     /// <summary>
-    /// Fallback display name for known melody publication codes when media lookup fails.
-    /// Ensures the schedule view never shows raw codes (e.g. "iam") for common melody releases.
-    /// </summary>
-    private static string? GetMelodyPublicationDisplayNameFallback(string? publicationCode)
-    {
-        if (string.IsNullOrWhiteSpace(publicationCode))
-            return null;
-        return string.Equals(publicationCode, AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.PublicationDisplayNameKingdomMelodies : null;
-    }
-
-    /// <summary>
     /// Fallback section display name for melody (e.g. "iam-1" -> "Volume 1") when DB lookup fails.
     /// </summary>
     private static string? GetMelodySectionDisplayNameFallback(string? publicationCode, string? sectionCode)
@@ -218,9 +207,10 @@ public sealed class ScheduleDisplayNameMusicHelper
             return null;
         if (!string.Equals(publicationCode, AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase))
             return null;
-        if (sectionCode.Length > 4 && sectionCode.StartsWith("iam-", StringComparison.OrdinalIgnoreCase) &&
-            int.TryParse(sectionCode.AsSpan(4), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var vol))
-            return "Volume " + vol.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var discPrefix = $"{AppConstants.Media.MelodyMusicPublicationCodeIam}-";
+        if (sectionCode.Length > discPrefix.Length && sectionCode.StartsWith(discPrefix, StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(sectionCode.AsSpan(discPrefix.Length), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var vol))
+            return AppConstants.Media.PublicationUiMelodyVolumePrefix + vol.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return null;
     }
 }

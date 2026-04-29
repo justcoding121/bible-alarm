@@ -756,6 +756,7 @@ public static class JwSourceHelper
 
         return publicationCode.ToLowerInvariant() switch
         {
+            AppConstants.Media.MelodyMusicPublicationCodeIam => AppConstants.Media.PublicationDisplayNameKingdomMelodies,
             AppConstants.Media.NormalizedPublicationCodeVodLffVideosAd or AppConstants.Media.NormalizedPublicationCodeBodLffVideosAd => AppConstants.Media.PublicationDisplayNameEnjoyLifeForeverVideos,
             AppConstants.Media.NormalizedPublicationCodeSeriesDigForTreasures => AppConstants.Media.PublicationDisplayNameDigForTreasuresInGodsWord,
             AppConstants.Media.NormalizedPublicationCodeSeriesBJFLessons => AppConstants.Media.PublicationDisplayNameBibleStoriesForLittleOnes,
