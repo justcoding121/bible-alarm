@@ -260,7 +260,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                 var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
 
                 var progressReporter = new Bible.Alarm.Common.Helpers.ListItemFetchProgressReporter(
-                    "BibleLanguage", x.Code, default, () => fetchOccurred = true);
+                    "BibleLanguage", x.Code, () => fetchOccurred = true);
 
                 (string? publicationCode, string? sectionCode, string trackCode, string sectionName, string publicationName, string trackTitle) result;
                 try

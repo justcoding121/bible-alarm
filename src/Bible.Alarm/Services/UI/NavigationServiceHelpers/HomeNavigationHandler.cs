@@ -56,8 +56,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
 
     private static bool IsAlreadyOnHomePage(INavigation navigation)
     {
-        return navigation.NavigationStack.Count > 0 &&
-               navigation.NavigationStack.LastOrDefault() is Home;
+        return navigation.NavigationStack is { Count: > 0 } stack && stack[^1] is Home;
     }
 
     private static Home? FindExistingHomeInStack(INavigation navigation)
@@ -92,7 +91,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         {
             // Verify the page is still on top of the stack before popping
             // This handles the edge case where another navigation already happened
-            if (navigation.NavigationStack.LastOrDefault() == page)
+            if (navigation.NavigationStack is { Count: > 0 } stackTop && stackTop[^1] == page)
             {
                 try
                 {
@@ -164,7 +163,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         {
             // Verify the page is still on top of the stack before popping
             // This handles the edge case where another navigation already happened
-            if (navigation.NavigationStack.LastOrDefault() == page)
+            if (navigation.NavigationStack is { Count: > 0 } stackTop && stackTop[^1] == page)
             {
                 try
                 {
@@ -197,7 +196,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
     {
         try
         {
-            return navigation.NavigationStack.LastOrDefault() as Home;
+            return navigation.NavigationStack is { Count: > 0 } stack ? stack[^1] as Home : null;
         }
         catch (Exception ex)
         {

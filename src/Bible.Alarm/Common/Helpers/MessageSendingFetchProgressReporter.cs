@@ -18,7 +18,7 @@ public sealed class ListItemFetchProgressReporter : IFetchProgress
 
     public CancellationToken CancellationToken { get; }
 
-    public ListItemFetchProgressReporter(string context, string itemId, CancellationToken cancellationToken = default, Action? onProgressReported = null)
+    public ListItemFetchProgressReporter(string context, string itemId, Action? onProgressReported = null, CancellationToken cancellationToken = default)
     {
         this.context = context;
         this.itemId = itemId;

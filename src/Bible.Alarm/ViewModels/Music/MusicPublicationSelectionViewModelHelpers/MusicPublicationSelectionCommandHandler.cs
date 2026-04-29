@@ -273,7 +273,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             var currentSchedule = state.Value.CurrentSchedule;
 
             var progressReporter = new Bible.Alarm.Common.Helpers.ListItemFetchProgressReporter(
-                "MusicLanguage", language.Code, default, () => fetchOccurred = true);
+                "MusicLanguage", language.Code, () => fetchOccurred = true);
 
             (string? publicationCode, string trackCode, string trackName, string publicationName) result;
             try

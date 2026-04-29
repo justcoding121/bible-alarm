@@ -193,7 +193,9 @@ public class CommandHandler
             try
             {
                 var modal = new Views.General.FocusSettingsModal(onDismissed);
-                var navigation = Application.Current?.Windows.FirstOrDefault()?.Page?.Navigation;
+                var navigation = Application.Current?.Windows is { Count: > 0 } wins
+                    ? wins[0].Page?.Navigation
+                    : null;
                 if (navigation != null)
                 {
                     await navigation.PushModalAsync(modal);

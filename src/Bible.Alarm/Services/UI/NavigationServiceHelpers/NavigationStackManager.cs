@@ -31,7 +31,7 @@ public static class NavigationStackManager
             return;
         }
 
-        var modal = navigation.ModalStack.LastOrDefault();
+        var modal = navigation.ModalStack[^1];
 
         async Task TryPopAsync()
         {
@@ -109,7 +109,7 @@ public static class NavigationStackManager
                 return;
             }
 
-            var page = navigation.NavigationStack.LastOrDefault();
+            var page = navigation.NavigationStack[^1];
             if (page != null)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -177,7 +177,7 @@ public static class NavigationStackManager
             return;
         }
 
-        var page = navigation.NavigationStack.LastOrDefault();
+        var page = navigation.NavigationStack[^1];
 
         if (page is Views.Home)
         {

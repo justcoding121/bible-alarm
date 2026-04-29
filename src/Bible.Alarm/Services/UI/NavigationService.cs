@@ -388,7 +388,7 @@ public sealed class NavigationService(
 
     private static async Task PopOrRemovePlaybackPageAsync(INavigation navigation, Page playbackPage)
     {
-        var isTopPage = navigation.NavigationStack.LastOrDefault() == playbackPage;
+        var isTopPage = navigation.NavigationStack is { Count: > 0 } stack && stack[^1] == playbackPage;
         if (isTopPage)
         {
             await navigation.PopAsync(animated: false);

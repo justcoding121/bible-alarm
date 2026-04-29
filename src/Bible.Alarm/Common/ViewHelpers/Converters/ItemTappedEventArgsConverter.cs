@@ -9,8 +9,9 @@ public sealed class ItemTappedEventArgsConverter : IValueConverter
         return value switch
         {
             // Handle SelectionChangedEventArgs from CollectionView
-            SelectionChangedEventArgs selectionChangedEventArgs => selectionChangedEventArgs.CurrentSelection
-                ?.FirstOrDefault(),
+            SelectionChangedEventArgs selectionChangedEventArgs => selectionChangedEventArgs.CurrentSelection is { Count: > 0 } cur
+                ? cur[0]
+                : null,
             // Handle ItemTappedEventArgs from ListView (for backward compatibility)
             ItemTappedEventArgs itemTappedEventArgs => itemTappedEventArgs.Item,
             _ => throw new ArgumentException(
