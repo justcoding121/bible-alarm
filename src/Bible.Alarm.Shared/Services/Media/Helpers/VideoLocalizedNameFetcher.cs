@@ -36,7 +36,7 @@ internal sealed class VideoLocalizedNameFetcher
         // Map video publication codes to Mediator API category keys (exact casing for API)
         string? categoryKey = normalizedPublicationCode.ToLowerInvariant() switch
         {
-            "dramasgoodnews" => "DramasGoodNews",
+            "dramasgoodnews" => AppConstants.Media.BiblePublicationCodeDramasGoodNews,
             "vodmoviesbibletimes" => "VODMoviesBibleTimes",
             "vodmoviesmodernday" => "VODMoviesModernDay",
             "vodmoviesanimated" => "VODMoviesAnimated",

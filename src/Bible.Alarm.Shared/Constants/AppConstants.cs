@@ -357,6 +357,11 @@ public static class AppConstants
         public const string BiblePublicationCategoryAwakeMagazine = "AwakeMagazine";
 
         /// <summary>
+        /// Canonical JW publication code for Good News According to Jesus (video; Mediator API).
+        /// </summary>
+        public const string BiblePublicationCodeDramasGoodNews = "DramasGoodNews";
+
+        /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
         public const string TextDirectionLeftToRight = "ltr";

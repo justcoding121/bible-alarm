@@ -28,7 +28,7 @@ public static class PublicationTypeHelper
 
     private static readonly HashSet<string> VideoPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "DramasGoodNews", // Good News According to Jesus (video, Mediator API)
+        AppConstants.Media.BiblePublicationCodeDramasGoodNews, // Good News According to Jesus (video, Mediator API)
         "VODMoviesBibleTimes", // Bible Times (video, Mediator API)
         "VODMoviesModernDay", // Modern-Day (video, Mediator API)
         "VODMoviesAnimated", // Animated (video, Mediator API)

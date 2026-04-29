@@ -93,7 +93,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> VideoPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "DramasGoodNews",
+        AppConstants.Media.BiblePublicationCodeDramasGoodNews,
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
         "VODMoviesAnimated",
@@ -107,7 +107,7 @@ public static class JwSourceHelper
     {
         AppConstants.Media.BiblePublicationCategoryDramas,
         AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
-        "DramasGoodNews",
+        AppConstants.Media.BiblePublicationCodeDramasGoodNews,
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
         "VODMoviesAnimated",
@@ -122,7 +122,7 @@ public static class JwSourceHelper
     {
         AppConstants.Media.BiblePublicationCategoryDramas,
         AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
-        "DramasGoodNews",
+        AppConstants.Media.BiblePublicationCodeDramasGoodNews,
         "VODMoviesBibleTimes",
         "VODMoviesModernDay",
         "VODMoviesAnimated",
