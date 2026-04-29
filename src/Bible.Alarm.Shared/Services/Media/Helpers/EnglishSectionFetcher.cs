@@ -56,7 +56,7 @@ internal sealed class EnglishSectionFetcher
 
         // Data-driven: Check if publication has LanguageId == null (determines API parameter pattern)
         var isBible = categoryName.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
-        var fileFormat = isVideo ? "MP4" : "MP3";
+        var fileFormat = isVideo ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
         var publicationWithoutLanguage = await db.BiblePublications
             .AsNoTracking()
             .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode && bp.LanguageId == null, cancellationToken);
@@ -127,7 +127,7 @@ internal sealed class EnglishSectionFetcher
         if (isIssueSectioned)
         {
             var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
-            queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
         else if (isBible)
         {
@@ -183,7 +183,7 @@ internal sealed class EnglishSectionFetcher
         if (isIssueSectioned)
         {
             var tracks = EnglishTrackParser.ParseGenericTracks(
-                filesElement, normalizedLanguageCode, "MP3");
+                filesElement, normalizedLanguageCode, AppConstants.Media.MediaStreamFormatMp3);
             section.Tracks.AddRange(tracks);
         }
         else if (publicationWithoutLanguage)

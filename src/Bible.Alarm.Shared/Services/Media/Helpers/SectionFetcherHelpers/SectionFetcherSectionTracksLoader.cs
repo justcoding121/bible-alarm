@@ -71,17 +71,17 @@ internal sealed class SectionFetcherSectionTracksLoader
         var isIssueSectioned = publication.CatalogType == CatalogType.IssueSectioned ||
             MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
         var isVideoDrama = !isBible && !isIssueSectioned && publication.IsVideo;
-        var dramaFileFormat = isVideoDrama ? "MP4" : "MP3";
+        var dramaFileFormat = isVideoDrama ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
 
         string queryString;
         if (isIssueSectioned)
         {
             var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(normalizedSectionCode);
-            queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
         else if (isBible)
         {
-            queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+            queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
         }
         else
         {
@@ -148,7 +148,7 @@ internal sealed class SectionFetcherSectionTracksLoader
             logger.Warning("pubName not found in API response for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. Available properties: {Properties}",
                 normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode, string.Join(", ", root.EnumerateObject().Select(p => p.Name)));
 
-        var formatKey = isVideoDrama ? "MP4" : "MP3";
+        var formatKey = isVideoDrama ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
         if (!filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) || !languageFiles.TryGetProperty(formatKey, out var formatFiles))
         {
             logger.Warning("No {Format} files found for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",

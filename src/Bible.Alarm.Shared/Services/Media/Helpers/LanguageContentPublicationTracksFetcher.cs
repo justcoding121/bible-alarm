@@ -112,7 +112,7 @@ internal sealed class LanguageContentPublicationTracksFetcher
 
                 case Models.Enums.CatalogType.Flat:
                     var isMusic = categoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
-                    var fileFormat = isVideo ? "MP4" : "MP3";
+                    var fileFormat = isVideo ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
                     return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(new FetchFlatPublicationTracksRequest(
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication,
                         isVideo, isMusic, fileFormat, Language: null, cancellationToken));

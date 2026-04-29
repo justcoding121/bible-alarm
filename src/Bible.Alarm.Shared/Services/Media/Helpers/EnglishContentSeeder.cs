@@ -355,7 +355,7 @@ internal sealed class EnglishContentSeeder
         // Unified flat-track fetching for Music and Video (both use same GETPUBMEDIALINKS pattern)
         // Both are flat-track publications (no sections), only differ by file format (MP3 vs MP4)
         var isMusic = categoryName.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
-        var fileFormat = isVideo ? "MP4" : "MP3";
+        var fileFormat = isVideo ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
         var tempEnglishPublication = new BiblePublication
         {
             PublicationCode = normalizedPublicationCode,

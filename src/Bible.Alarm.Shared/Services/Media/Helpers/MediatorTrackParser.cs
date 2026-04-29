@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -18,7 +19,7 @@ internal static class MediatorTrackParser
         MediatorTrackParseContext context)
     {
         var tracks = new List<BiblePublicationTrack>();
-        var formatKey = context.IsVideo ? "MP4" : "MP3";
+        var formatKey = context.IsVideo ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
 
         if (!TryGetLanguageFormatArray(sectionFilesElement, context.NormalizedLanguageCode, formatKey, out var formatFiles))
         {
@@ -127,7 +128,9 @@ internal static class MediatorTrackParser
             return true;
         }
 
-        var formatAlt = formatKey == "MP3" ? "mp3" : "mp4";
+        var formatAlt = formatKey == AppConstants.Media.MediaStreamFormatMp3
+            ? AppConstants.Media.MediaStreamFormatMp3Lower
+            : AppConstants.Media.MediaStreamFormatMp4Lower;
         return languageFiles.TryGetProperty(formatAlt, out formatFiles);
     }
 }

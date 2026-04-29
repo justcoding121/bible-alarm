@@ -326,6 +326,18 @@ public static class AppConstants
         /// </summary>
         public const string MediaFileExtension = ".mp3";
 
+        /// <summary>JW GETPUB/Mediator JSON files.* stream format key for MP3 (uppercase).</summary>
+        public const string MediaStreamFormatMp3 = "MP3";
+
+        /// <summary>JW GETPUB/Mediator JSON files.* stream format key for MP4 (uppercase).</summary>
+        public const string MediaStreamFormatMp4 = "MP4";
+
+        /// <summary>Alternate lowercase JSON property sometimes returned for MP3 streams.</summary>
+        public const string MediaStreamFormatMp3Lower = "mp3";
+
+        /// <summary>Alternate lowercase JSON property sometimes returned for MP4 streams.</summary>
+        public const string MediaStreamFormatMp4Lower = "mp4";
+
         /// <summary>
         /// Bible publication category code for vocal and instrumental music (JW catalog).
         /// </summary>

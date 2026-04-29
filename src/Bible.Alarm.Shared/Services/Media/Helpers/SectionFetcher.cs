@@ -149,16 +149,16 @@ internal sealed class SectionFetcher
 
             try
             {
-                var dramaFileFormat = !isBible && !isIssueSectioned && PublicationTypeHelper.IsVideo(normalizedPublicationCode) ? "MP4" : "MP3";
+                var dramaFileFormat = !isBible && !isIssueSectioned && PublicationTypeHelper.IsVideo(normalizedPublicationCode) ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
                 string queryString;
                 if (isIssueSectioned)
                 {
                     var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
-                    queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+                    queryString = $"?output=json&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
                 }
                 else if (isBible)
                 {
-                    queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+                    queryString = $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&alllangs=0&langwritten={normalizedLanguageCode}";
                 }
                 else
                 {
@@ -241,7 +241,7 @@ internal sealed class SectionFetcher
                 if (isIssueSectioned)
                 {
                     tracks = EnglishTrackParser.ParseGenericTracks(
-                        filesElement, normalizedLanguageCode, "MP3");
+                        filesElement, normalizedLanguageCode, AppConstants.Media.MediaStreamFormatMp3);
                 }
                 else if (isBible)
                 {

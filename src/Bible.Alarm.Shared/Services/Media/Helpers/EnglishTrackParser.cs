@@ -23,7 +23,7 @@ internal static class EnglishTrackParser
         
         // Parse tracks from files.E.MP3
         if (filesElement.TryGetProperty(AppConstants.Media.DefaultLanguageCode, out var englishFiles) &&
-            englishFiles.TryGetProperty("MP3", out var mp3Files))
+            englishFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp3, out var mp3Files))
         {
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
@@ -49,7 +49,7 @@ internal static class EnglishTrackParser
         
         // Parse tracks from files.{languageCode}.MP3
         if (filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) &&
-            languageFiles.TryGetProperty("MP3", out var mp3Files))
+            languageFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp3, out var mp3Files))
         {
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
