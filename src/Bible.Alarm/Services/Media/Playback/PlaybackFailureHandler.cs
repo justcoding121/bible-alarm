@@ -17,6 +17,10 @@ namespace Bible.Alarm.Services.Media.Playback;
 /// </summary>
 public sealed class PlaybackFailureHandler
 {
+    private const string ErrorMessagePlaybackRetry = "Playback failed, check your connection then tap Retry";
+    private const string ErrorMessageDownloadFailedCheckInternet = "Download failed, check your internet connection";
+    private const string ErrorMessageMediaDownloadFailedCheckInternet = "Media download failed, check your internet connection";
+
     private readonly IFallbackAlarmSoundService fallbackAlarmSoundService;
     private readonly INotificationService notificationService;
     private readonly IDispatcher dispatcher;
@@ -74,10 +78,10 @@ public sealed class PlaybackFailureHandler
         {
             dispatcher.Dispatch(new PlaybackErrorAction
             {
-                ErrorMessage = "Playback failed, check your connection then tap Retry"
+                ErrorMessage = ErrorMessagePlaybackRetry
             });
 
-            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Playback failed, check your connection then tap Retry"));
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage(ErrorMessagePlaybackRetry));
         }
     }
 
@@ -101,7 +105,7 @@ public sealed class PlaybackFailureHandler
                 logger.Warning("Failed to get fallback alarm track");
                 dispatcher.Dispatch(new PlaybackErrorAction
                 {
-                    ErrorMessage = "Download failed, check your internet connection"
+                    ErrorMessage = ErrorMessageDownloadFailedCheckInternet
                 });
                 return;
             }
@@ -123,7 +127,7 @@ public sealed class PlaybackFailureHandler
             logger.Error(ex, "Error playing fallback alarm sound");
             dispatcher.Dispatch(new PlaybackErrorAction
             {
-                ErrorMessage = "Download failed, check your internet connection"
+                ErrorMessage = ErrorMessageDownloadFailedCheckInternet
             });
         }
     }
@@ -142,9 +146,9 @@ public sealed class PlaybackFailureHandler
                 // Even for alarms, if fallback fails, show error but keep modal open
                 dispatcher.Dispatch(new PlaybackErrorAction
                 {
-                    ErrorMessage = "Media download failed, check your internet connection"
+                    ErrorMessage = ErrorMessageMediaDownloadFailedCheckInternet
                 });
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media download failed, check your internet connection"));
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage(ErrorMessageMediaDownloadFailedCheckInternet));
                 // Don't reset - keep modal open so user can see the error
                 return;
             }
@@ -162,9 +166,9 @@ public sealed class PlaybackFailureHandler
             // Even for alarms, if fallback fails, show error but keep modal open
             dispatcher.Dispatch(new PlaybackErrorAction
             {
-                ErrorMessage = "Media download failed, check your internet connection"
+                ErrorMessage = ErrorMessageMediaDownloadFailedCheckInternet
             });
-            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media download failed, check your internet connection"));
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage(ErrorMessageMediaDownloadFailedCheckInternet));
             // Don't reset - keep modal open so user can see the error
         }
     }

@@ -13,6 +13,8 @@ namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers
 internal sealed class MusicPublicationFetchCoordinator
 {
     private const string BiblePublicationCategoryMusic = "Music";
+    private const string LogDebugAlreadyCatalogedSkippingFetch =
+        "PopulateSongPublications: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category=Music, skipping fetch";
 
     private readonly IMediaService mediaService;
 
@@ -50,7 +52,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
             if (allPublicationsCataloged)
             {
-                Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category=Music, skipping fetch",
+                Serilog.Log.Debug(LogDebugAlreadyCatalogedSkippingFetch,
                     expectedPublicationCount, languageForFetch);
                 return initialPublications;
             }
@@ -105,7 +107,7 @@ internal sealed class MusicPublicationFetchCoordinator
         if (allPublicationsCataloged)
         {
             // All expected publications are already cataloged - use the initial query result, no need to show progress
-            Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category=Music, skipping fetch",
+            Serilog.Log.Debug(LogDebugAlreadyCatalogedSkippingFetch,
                 expectedPublicationCount, languageCode);
             return initialPublications;
         }
