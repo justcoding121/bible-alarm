@@ -1,8 +1,8 @@
 #nullable enable
 using System;
 using System.Linq;
-using System.Net;
 using System.Text.Json;
+using Bible.Alarm.Shared.Helpers;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Utility;
 using Bible.Alarm.Shared.Database;
@@ -180,7 +180,7 @@ internal sealed class LanguageSeeder
                     var rawName = nameElement.GetString();
                     if (!string.IsNullOrWhiteSpace(rawName))
                     {
-                        name = WebUtility.HtmlDecode(rawName);
+                        name = MediaTrackTitleHelper.DecodeHtmlTitle(rawName);
                         // Truncate if too long (max 100 characters)
                         if (name.Length > 100)
                         {
@@ -320,7 +320,7 @@ internal sealed class LanguageSeeder
                     var rawName = nameElement.GetString();
                     if (!string.IsNullOrWhiteSpace(rawName))
                     {
-                        name = WebUtility.HtmlDecode(rawName);
+                        name = MediaTrackTitleHelper.DecodeHtmlTitle(rawName);
                         // Truncate if too long (max 100 characters)
                         if (name.Length > 100)
                         {

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -198,7 +197,7 @@ internal sealed class SectionFetcher
                 else if (root.TryGetProperty("pubName", out var pubNameElement))
                 {
                     var rawName = pubNameElement.GetString();
-                    sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                    sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
                 }
                 if (sectionName == null)
                 {
@@ -215,7 +214,7 @@ internal sealed class SectionFetcher
                 else if (localizedPubName == null && root.TryGetProperty("parentPubName", out var parentPubNameElement))
                 {
                     var rawName = parentPubNameElement.GetString();
-                    var extractedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                    var extractedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
                     
                     if (!string.IsNullOrEmpty(extractedName) && isBible)
                     {

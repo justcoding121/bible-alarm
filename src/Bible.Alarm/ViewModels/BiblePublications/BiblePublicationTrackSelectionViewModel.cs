@@ -298,7 +298,7 @@ public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, I
     /// <summary>
     /// Gets the track title with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
-    public string Title => System.Net.WebUtility.HtmlDecode(track.Title).Replace('\u00A0', ' ');
+    public string Title => MediaTrackTitleHelper.DecodeHtmlTitle(track.Title);
     // URLs are now computed on-demand, not stored
     public string Url => string.Empty;
 

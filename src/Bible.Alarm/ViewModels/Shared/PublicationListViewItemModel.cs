@@ -1,5 +1,4 @@
 #nullable enable
-using System.Net;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -75,7 +74,7 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
                                string.Equals(rawName.Trim(), publication.PublicationCode, StringComparison.OrdinalIgnoreCase)
                 ? (JwSourceHelper.GetPublicationDisplayNameFallback(publication.PublicationCode) ?? rawName ?? publication.PublicationCode)
                 : rawName;
-            return WebUtility.HtmlDecode(effectiveName).Replace('\u00A0', ' ');
+            return MediaTrackTitleHelper.DecodeHtmlTitle(effectiveName);
         }
     }
     public string Code => publication.PublicationCode;

@@ -1,5 +1,4 @@
 #nullable enable
-using System.Net;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Helpers;
@@ -191,7 +190,7 @@ public sealed class MusicStateChangeHandler
             clonedSchedule.MusicSectionName = chosenSection?.Name;
             clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
             clonedSchedule.MusicRepeat = false;
-            clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');
+            clonedSchedule.MusicTrackName = MediaTrackTitleHelper.DecodeHtmlTitle(chosenTrack.Title);
 
             stateTracker.RecordDefaultMusicTriggered(scheduleId);
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));

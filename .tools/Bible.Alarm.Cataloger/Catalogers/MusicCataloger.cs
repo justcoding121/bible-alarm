@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -473,7 +472,7 @@ internal class MusicCataloger : BaseCataloger
         {
             var rawName = pubNameElement.GetString();
             // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-            var decodedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            var decodedName = SharedHelpers.MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
             
             // For iam (Kingdom Melodies), pubName is the disc name (e.g., "Kingdom Melodies, Volume 1")
             if (publicationCode == "iam" && languageCode == null)

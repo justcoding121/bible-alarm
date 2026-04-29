@@ -69,7 +69,7 @@ internal sealed class VideoLocalizedNameFetcher
                 category.TryGetProperty("name", out var nameElement))
             {
                 var rawName = nameElement.GetString();
-                var localizedName = rawName != null ? System.Net.WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                var localizedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
                 
                 if (!string.IsNullOrEmpty(localizedName))
                 {

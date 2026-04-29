@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -85,12 +84,8 @@ public static class MagazineHelper
     /// </summary>
     public static string BuildSectionName(string? pubName, string? formattedDate)
     {
-        var decodedPubName = !string.IsNullOrEmpty(pubName)
-            ? WebUtility.HtmlDecode(pubName).Replace('\u00A0', ' ')
-            : "";
-        var decodedDate = !string.IsNullOrEmpty(formattedDate)
-            ? WebUtility.HtmlDecode(formattedDate).Replace('\u00A0', ' ')
-            : "";
+        var decodedPubName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(pubName) ?? "";
+        var decodedDate = MediaTrackTitleHelper.DecodeHtmlTitleNullable(formattedDate) ?? "";
 
         if (string.IsNullOrEmpty(decodedDate))
             return decodedPubName;

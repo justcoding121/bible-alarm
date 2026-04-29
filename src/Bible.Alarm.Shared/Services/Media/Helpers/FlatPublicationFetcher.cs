@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -222,7 +221,7 @@ internal sealed class FlatPublicationFetcher
             if (root.TryGetProperty("pubName", out var pubNameElement))
             {
                 var rawName = pubNameElement.GetString();
-                fetchedPubName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                fetchedPubName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
             }
 
             var byTrack = new Dictionary<int, JsonElement>();

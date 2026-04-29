@@ -3,8 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text.Json;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Cataloger.Models;
 using Serilog;
 
@@ -88,7 +88,7 @@ internal static class MediatorCategoryLanguageExtractor
                 if (languageElement.TryGetProperty("name", out var nameElement))
                 {
                     var rawName = nameElement.GetString();
-                    name = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                    name = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
                 }
 
                 // This is for English, add it

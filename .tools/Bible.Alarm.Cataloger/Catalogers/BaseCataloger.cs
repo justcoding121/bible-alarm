@@ -4,10 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Net;
 using System.Text.Json;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.Cataloger.Catalogers;
@@ -88,7 +88,7 @@ internal abstract class BaseCataloger
                 }
 
                 var rawLanguage = nameElement.GetString();
-                var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
+                var language = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawLanguage);
                 if (string.IsNullOrEmpty(language))
                 {
                     continue;
@@ -115,7 +115,7 @@ internal abstract class BaseCataloger
                 }
 
                 var rawLanguage = nameElement.GetString();
-                var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
+                var language = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawLanguage);
                 if (string.IsNullOrEmpty(language))
                 {
                     continue;

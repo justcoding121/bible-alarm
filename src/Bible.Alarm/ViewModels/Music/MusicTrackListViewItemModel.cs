@@ -1,6 +1,5 @@
 #nullable enable
 using System.Globalization;
-using System.Net;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.Music;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -44,7 +43,7 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
     /// <summary>
     /// Gets the track title with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
-    public string Title => WebUtility.HtmlDecode(track.Title).Replace('\u00A0', ' ');
+    public string Title => MediaTrackTitleHelper.DecodeHtmlTitle(track.Title);
     // URLs are now computed on-demand, not stored
     public string Url => string.Empty;
 

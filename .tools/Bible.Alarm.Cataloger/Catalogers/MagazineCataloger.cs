@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -194,7 +193,7 @@ internal sealed class MagazineCataloger : BaseCataloger
                     continue;
 
                 var rawName = nameElement.GetString();
-                var name = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                var name = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
                 if (string.IsNullOrEmpty(name))
                     continue;
 
@@ -220,7 +219,7 @@ internal sealed class MagazineCataloger : BaseCataloger
                     continue;
 
                 var rawName = nameElement.GetString();
-                var name = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                var name = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
                 if (string.IsNullOrEmpty(name))
                     continue;
 

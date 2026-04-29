@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -171,7 +170,7 @@ internal sealed class EnglishSectionFetcher
         else if (root.TryGetProperty("pubName", out var pubNameElement))
         {
             var rawName = pubNameElement.GetString();
-            sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
         }
 
         var section = new BiblePublicationSection
@@ -251,7 +250,7 @@ internal sealed class EnglishSectionFetcher
             if (root.TryGetProperty("parentPubName", out var parentPubNameElement))
             {
                 var rawName = parentPubNameElement.GetString();
-                var extractedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                var extractedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
                 
                 // Validate that the extracted name is not a known video/drama publication name
                 if (!string.IsNullOrEmpty(extractedName) && isBible)
@@ -275,7 +274,7 @@ internal sealed class EnglishSectionFetcher
                 categoryElement.TryGetProperty("name", out var categoryNameElement))
             {
                 var rawName = categoryNameElement.GetString();
-                return rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                return MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
             }
         }
         catch (Exception ex)

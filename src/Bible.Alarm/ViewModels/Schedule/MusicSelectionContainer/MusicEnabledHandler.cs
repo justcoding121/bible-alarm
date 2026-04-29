@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Net;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -184,7 +183,7 @@ public class MusicEnabledHandler
                             clonedSchedule.MusicSectionName = chosenSection?.Name;
                             clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
                             clonedSchedule.MusicRepeat = false;
-                            clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');
+                            clonedSchedule.MusicTrackName = MediaTrackTitleHelper.DecodeHtmlTitle(chosenTrack.Title);
 
                             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
                         }

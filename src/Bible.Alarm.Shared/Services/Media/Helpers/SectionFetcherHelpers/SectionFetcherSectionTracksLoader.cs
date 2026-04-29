@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -131,7 +130,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         {
             var rawName = pubNameElement.GetString();
             logger.Debug("Found pubName in API response for section {SectionCode}: rawName={RawName}", normalizedSectionCode, rawName);
-            var sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            var sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
             if (!string.IsNullOrEmpty(sectionName))
             {
                 var oldName = section.Name;

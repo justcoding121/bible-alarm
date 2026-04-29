@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
@@ -177,7 +176,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
 
             var rawLanguage = nameElement.GetString();
             // Decode HTML entities like &nbsp; to proper characters
-            var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
+            var language = Bible.Alarm.Shared.Helpers.MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawLanguage);
             if (string.IsNullOrEmpty(language))
             {
                 continue;
