@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -144,7 +145,7 @@ internal sealed class MelodyMusicSeeder
                     var trackCode = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
                     var trackTitle = musicTrack.Title;
-                    if (publicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
+                    if (publicationCode.Equals(AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase))
                     {
                         trackTitle = $"Melody Number(s) {trackTitle}";
                     }

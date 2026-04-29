@@ -185,7 +185,7 @@ internal sealed class PublicationLanguageSeeder
         var englishPublicationLanguages = await db.PublicationLanguages
             .Include(pl => pl.Language)
             .Include(pl => pl.Category)
-            .Where(pl => pl.Language != null && pl.Language.LanguageCode == "E")
+            .Where(pl => pl.Language != null && pl.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)
             .ToListAsync();
 
         var added = 0;
@@ -223,7 +223,7 @@ internal sealed class PublicationLanguageSeeder
         // Get all English publications
         var englishPublications = await db.BiblePublications
             .Include(bp => bp.Language)
-            .Where(bp => bp.Language != null && bp.Language.LanguageCode == "E")
+            .Where(bp => bp.Language != null && bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)
             .Select(bp => bp.PublicationCode)
             .Distinct()
             .ToListAsync();

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -67,7 +68,7 @@ internal sealed class EnglishSeeder
                 .Include(bp => bp.Language)
                 .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
                                bp.Language != null &&
-                               bp.Language.LanguageCode == "E");
+                               bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
 
             if (!hasEnglish)
             {

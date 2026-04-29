@@ -275,7 +275,7 @@ internal class MusicCataloger : BaseCataloger
             Logger.Information("Starting catalog for Instrumental Music publication: {PublicationCode}", publicationCode);
             
             downloadCodes.Clear();
-            if (publicationCode == "iam")
+            if (publicationCode == AppConstants.Media.MelodyMusicPublicationCodeIam)
             {
                 for (var i = 1; i <= 9; i++)
                 {
@@ -302,7 +302,7 @@ internal class MusicCataloger : BaseCataloger
         var dir = GetMusicDirectory(publicationCode, languageCode);
 
         // For iam (Kingdom Melodies), save tracks grouped by disc
-        if (publicationCode == "iam" && languageCode == null)
+        if (publicationCode == AppConstants.Media.MelodyMusicPublicationCodeIam && languageCode == null)
         {
             var discTracksMap = new Dictionary<string, List<MusicTrack>>();
             var discNamesMap = new Dictionary<string, string>();
@@ -475,7 +475,7 @@ internal class MusicCataloger : BaseCataloger
             var decodedName = SharedHelpers.MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
             
             // For iam (Kingdom Melodies), pubName is the disc name (e.g., "Kingdom Melodies, Volume 1")
-            if (publicationCode == "iam" && languageCode == null)
+            if (publicationCode == AppConstants.Media.MelodyMusicPublicationCodeIam && languageCode == null)
             {
                 discName = decodedName;
             }

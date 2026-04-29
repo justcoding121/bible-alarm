@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Media;
 using Microsoft.EntityFrameworkCore;
@@ -67,7 +68,7 @@ internal sealed class SpanishSeeder
             .Include(bp => bp.Language)
             .Include(bp => bp.Sections)
             .Where(bp => bp.Language != null
-                && bp.Language.LanguageCode == "E"
+                && bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode
                 && bp.Sections != null
                 && bp.Sections.Count > 0)
             .Select(bp => bp.PublicationCode)

@@ -525,6 +525,9 @@ public static class AppConstants
         /// <summary>JW catalog publication code for Original Songs (vocal).</summary>
         public const string MusicPublicationCodeOsg = "osg";
 
+        /// <summary>JW catalog vocal music publication code Sing Joyfully—Convention Songs.</summary>
+        public const string MusicPublicationCodeSjjc = "sjjc";
+
         /// <summary>JW catalog publication code for Kingdom Melodies (instrumental).</summary>
         public const string MelodyMusicPublicationCodeIam = "iam";
 
@@ -954,7 +957,7 @@ public static class AppConstants
         public static readonly string[] VocalMusicCatalogPublicationCodes =
         {
             MusicPublicationCodeOsg,
-            "sjjc",
+            MusicPublicationCodeSjjc,
             "sjji",
             "snv",
             "pksjj"

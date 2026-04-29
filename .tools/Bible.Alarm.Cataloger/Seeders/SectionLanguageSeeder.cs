@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -82,7 +83,7 @@ internal sealed class SectionLanguageSeeder
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Sections)
-                .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.Language != null && bp.Language.LanguageCode == "E");
+                .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.Language != null && bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
 
             // Try to find section in English publication for reference (but don't require it)
             // Note: englishPublication.Sections returns Shared.Models.Media.BiblePublications.BiblePublicationSection, not the cataloger model
@@ -142,7 +143,7 @@ internal sealed class SectionLanguageSeeder
         var sectionLanguagesE = await db.SectionLanguages
             .Include(sl => sl.Language)
             .Include(sl => sl.PublicationLanguage)
-            .Where(sl => sl.Language != null && sl.Language.LanguageCode == "E")
+            .Where(sl => sl.Language != null && sl.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)
             .ToListAsync();
 
         var publicationLanguagesS = await db.PublicationLanguages

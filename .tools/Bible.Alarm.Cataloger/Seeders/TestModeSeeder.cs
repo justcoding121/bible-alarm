@@ -150,7 +150,7 @@ internal sealed class TestModeSeeder
                 .ThenInclude(bpc => bpc.Category)
                 .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb &&
                                           bp.Language != null &&
-                                          bp.Language.LanguageCode == "E");
+                                          bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
 
             if (englishPublication == null)
             {
@@ -202,7 +202,7 @@ internal sealed class TestModeSeeder
                         .Include(sl => sl.Language)
                         .AnyAsync(sl => sl.PublicationCode == normalizedPublicationCode &&
                                       sl.Language != null &&
-                                      sl.Language.LanguageCode == "E");
+                                      sl.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
 
                     bool success;
                     if (hasSections)
@@ -227,7 +227,7 @@ internal sealed class TestModeSeeder
                                 .Include(sl => sl.Language)
                                 .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
                                            sl.Language != null &&
-                                           sl.Language.LanguageCode == "E")
+                                           sl.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)
                                 .Select(sl => sl.SectionCode)
                                 .Distinct()
                                 .OrderBy(sc => sc)

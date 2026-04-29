@@ -22,11 +22,14 @@ internal static class CatalogValidator
     private static bool IsSectionedOrMediatorPublication(string publicationCode)
     {
         var c = publicationCode.ToLowerInvariant();
-        return c == "nwt" || c == "bi12" || c == "iam"
+        return c == AppConstants.Media.BiblePublicationCodeNwt.ToLowerInvariant()
+               || c == AppConstants.Media.BiblePublicationCodeBi12.ToLowerInvariant()
+               || c == AppConstants.Media.MelodyMusicPublicationCodeIam.ToLowerInvariant()
                || c == AppConstants.Media.BiblePublicationCategoryDramas.ToLowerInvariant()
                || c == AppConstants.Media.BiblePublicationCodeDramaticBibleReadings.ToLowerInvariant()
-               ||
-               c.StartsWith("vod", StringComparison.Ordinal) || c == "seriesdigfortreasures" || c == "seriesbjflessons";
+               || c.StartsWith("vod", StringComparison.Ordinal)
+               || c == AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures.ToLowerInvariant()
+               || c == AppConstants.Media.BiblePublicationCodeSeriesBJFLessons.ToLowerInvariant();
     }
 
     public static async Task ValidateAsync(MediaDbContext db, HttpClient httpClient, ILogger logger)
@@ -165,16 +168,16 @@ internal static class CatalogValidator
             }
         }
 
-        TryAdd("nwt", "1", "1");
-        TryAdd("bi12", "1", "1");
-        TryAdd("sjjc", null, "1");
-        TryAdd("osg", null, "1");
-        TryAdd("iam", "iam-1", "1");
-        TryAdd("DramasGoodNews", null, "1");
-        TryAdd("thv", null, "1");
+        TryAdd(AppConstants.Media.BiblePublicationCodeNwt, "1", "1");
+        TryAdd(AppConstants.Media.BiblePublicationCodeBi12, "1", "1");
+        TryAdd(AppConstants.Media.MusicPublicationCodeSjjc, null, "1");
+        TryAdd(AppConstants.Media.MusicPublicationCodeOsg, null, "1");
+        TryAdd(AppConstants.Media.MelodyMusicPublicationCodeIam, $"{AppConstants.Media.MelodyMusicPublicationCodeIam}-1", "1");
+        TryAdd(AppConstants.Media.BiblePublicationCodeDramasGoodNews, null, "1");
+        TryAdd(AppConstants.Media.SeriesPublicationCodeThv, null, "1");
         TryAdd(AppConstants.Media.BiblePublicationCategoryDramas, null, null);
-        TryAdd("SeriesDigForTreasures", null, null);
-        TryAdd("VODMoviesBibleTimes", null, null);
+        TryAdd(AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures, null, null);
+        TryAdd(AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes, null, null);
 
         if (samples.Count == 0)
         {
@@ -201,7 +204,12 @@ internal static class CatalogValidator
         logger.Information("=== Validating E seed content: each pub must have >0 tracks; if sectioned, >0 sections ===");
 
         var failed = new List<string>();
-        var sectionedCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nwt", "bi12", "iam" };
+        var sectionedCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppConstants.Media.BiblePublicationCodeNwt,
+            AppConstants.Media.BiblePublicationCodeBi12,
+            AppConstants.Media.MelodyMusicPublicationCodeIam
+        };
         var codesToValidate = publicationFilter != null
             ? publicationFilter
             : (IEnumerable<string>)JwSourceHelper.AllPublicationCodesForEnglishSeeding;
@@ -257,19 +265,20 @@ internal static class CatalogValidator
             }
         }
 
-        var checkIam = publicationFilter == null || publicationFilter.Contains("iam");
+        var checkIam = publicationFilter == null || publicationFilter.Contains(AppConstants.Media.MelodyMusicPublicationCodeIam);
         if (checkIam)
         {
+            var iamCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
             var iamPub = await db.BiblePublications
                 .AsNoTracking()
                 .Include(bp => bp.Sections)
                 .Include(bp => bp.Tracks)
-                .FirstOrDefaultAsync(bp => bp.PublicationCode == "iam" && bp.LanguageId == null);
+                .FirstOrDefaultAsync(bp => bp.PublicationCode == iamCode && bp.LanguageId == null);
 
             if (iamPub == null)
             {
-                logger.Warning("CatalogValidator E-seed: Publication iam (no-language) has no row");
-                failed.Add("iam (missing)");
+                logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} (no-language) has no row", iamCode);
+                failed.Add($"{iamCode} (missing)");
             }
             else
             {
@@ -277,13 +286,13 @@ internal static class CatalogValidator
                 var iamSections = iamPub.Sections?.Count ?? 0;
                 if (iamTracks == 0)
                 {
-                    logger.Warning("CatalogValidator E-seed: Publication iam has 0 tracks");
-                    failed.Add("iam (0 tracks)");
+                    logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} has 0 tracks", iamCode);
+                    failed.Add($"{iamCode} (0 tracks)");
                 }
                 else if (iamSections == 0)
                 {
-                    logger.Warning("CatalogValidator E-seed: Publication iam is sectioned but has 0 sections");
-                    failed.Add("iam (0 sections)");
+                    logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} is sectioned but has 0 sections", iamCode);
+                    failed.Add($"{iamCode} (0 sections)");
                 }
             }
         }
