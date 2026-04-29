@@ -3790,6 +3790,49 @@ public static class AppConstants
                 "Fallback error handling also failed";
         }
 
+        /// <summary><c>PlaybackStopHandler</c> stop/teardown and <c>PlaybackStoppedAction</c> dispatch.</summary>
+        public static class PlaybackStopHandlerDiagnosticsLog
+        {
+            public const string StopAsyncCalledStoppingAlarmCompletely =
+                "StopAsync called - stopping alarm completely";
+
+            public const string CancelledPreparationCancellationToken =
+                "Cancelled preparation cancellation token";
+
+            public const string ErrorCancellingPreparationToken =
+                "Error cancelling preparation token";
+
+            public const string ErrorStoppingProgressTimer =
+                "Error stopping progress timer";
+
+            public const string ErrorResettingPlaybackState =
+                "Error resetting playback state";
+
+            public const string ErrorStoppingPlayerWillContinueWithReset =
+                "Error stopping player, will continue with reset";
+
+            public const string ErrorMarkingCurrentTrackAsPlayedOrFinished =
+                "Error marking current track as played/finished";
+
+            public const string ErrorSavingLastPlayed =
+                "Error saving last played";
+
+            public const string ErrorInAudioPlayerResetAttemptingMinimalCleanup =
+                "Error in audioPlayer.ResetAsync, attempting minimal cleanup";
+
+            public const string ErrorResettingPlayerInFallback =
+                "Error resetting player in fallback";
+
+            public const string SetCarPlayScreenActionDispatchedAfterPlaybackReset =
+                "SetCarPlayScreenAction dispatched after playback reset";
+
+            public const string PlaybackStoppedActionNotDispatchedDispatchingInFinally =
+                "PlaybackStoppedAction was not dispatched during normal flow — dispatching in finally";
+
+            public const string FailedToDispatchPlaybackStoppedActionInFinallyBlock =
+                "Failed to dispatch PlaybackStoppedAction in finally block";
+        }
+
         /// <summary><c>PlaylistBiblePublicationTrackBuilder</c> bible playlist construction.</summary>
         public static class PlaylistBiblePublicationTrackBuilderDiagnosticsLog
         {

@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -45,7 +46,7 @@ public sealed class PlaybackStopHandler
         var stopProgressTimer = request.StopProgressTimer;
         var skipDispatchStopped = request.SkipDispatchStopped;
 
-        logger.Information("StopAsync called - stopping alarm completely");
+        logger.Information(AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.StopAsyncCalledStoppingAlarmCompletely);
 
         var dispatched = false;
 
@@ -55,11 +56,11 @@ public sealed class PlaybackStopHandler
             try
             {
                 preparationCancellationTokenSource?.CancelAsync();
-                logger.Debug("Cancelled preparation cancellation token");
+                logger.Debug(AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.CancelledPreparationCancellationToken);
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error cancelling preparation token");
+                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorCancellingPreparationToken);
             }
 
             // Stop progress timer FIRST to prevent in-flight timer callbacks from racing with state reset.
@@ -70,7 +71,7 @@ public sealed class PlaybackStopHandler
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error stopping progress timer");
+                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorStoppingProgressTimer);
             }
 
             // Reset state to ensure PlayCurrentTrackAsync checks detect stop immediately.
@@ -81,7 +82,7 @@ public sealed class PlaybackStopHandler
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error resetting playback state");
+                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorResettingPlaybackState);
             }
 
             // Stop player immediately for responsive user experience
@@ -91,7 +92,7 @@ public sealed class PlaybackStopHandler
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error stopping player, will continue with reset");
+                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorStoppingPlayerWillContinueWithReset);
             }
 
             // Skip marking as played if track was already marked as finished (e.g., when last track ends naturally)
@@ -110,7 +111,7 @@ public sealed class PlaybackStopHandler
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Error marking current track as played/finished");
+                    logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorMarkingCurrentTrackAsPlayedOrFinished);
                 }
             }
 
@@ -122,7 +123,7 @@ public sealed class PlaybackStopHandler
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Error saving last played");
+                    logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorSavingLastPlayed);
                 }
             }
 
@@ -134,14 +135,14 @@ public sealed class PlaybackStopHandler
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in audioPlayer.ResetAsync, attempting minimal cleanup");
+                logger.Error(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorInAudioPlayerResetAttemptingMinimalCleanup);
                 try
                 {
                     await audioPlayer.ResetAsync();
                 }
                 catch (Exception resetEx)
                 {
-                    logger.Warning(resetEx, "Error resetting player in fallback");
+                    logger.Warning(resetEx, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorResettingPlayerInFallback);
                 }
             }
 
@@ -151,7 +152,7 @@ public sealed class PlaybackStopHandler
                 dispatcher.Dispatch(new PlaybackStoppedAction());
 #if ANDROID || IOS
                 dispatcher.Dispatch(new SetCarPlayScreenAction());
-                logger.Debug("SetCarPlayScreenAction dispatched after playback reset");
+                logger.Debug(AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.SetCarPlayScreenActionDispatchedAfterPlaybackReset);
 #endif
             }
         }
@@ -159,7 +160,7 @@ public sealed class PlaybackStopHandler
         {
             if (!skipDispatchStopped && !dispatched)
             {
-                logger.Warning("PlaybackStoppedAction was not dispatched during normal flow — dispatching in finally");
+                logger.Warning(AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.PlaybackStoppedActionNotDispatchedDispatchingInFinally);
                 try
                 {
                     dispatcher.Dispatch(new PlaybackStoppedAction());
@@ -169,7 +170,7 @@ public sealed class PlaybackStopHandler
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Failed to dispatch PlaybackStoppedAction in finally block");
+                    logger.Error(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.FailedToDispatchPlaybackStoppedActionInFinallyBlock);
                 }
             }
         }
