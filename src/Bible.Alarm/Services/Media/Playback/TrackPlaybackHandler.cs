@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;
@@ -45,7 +46,7 @@ public sealed class TrackPlaybackHandler
         {
             logger.Error("Cannot play track at index {TrackIndex}: URI is null or empty. URL: {TrackUrl}",
                 currentTrackIndex,
-                track.PlayItem?.Url ?? "Unknown");
+                track.PlayItem?.Url ?? MediaTrackTitleHelper.UnknownTitle);
             return false;
         }
 

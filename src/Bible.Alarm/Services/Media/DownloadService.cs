@@ -59,7 +59,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 {
                     // Log retry attempts
                     var exception = outcome?.Exception;
-                    var exceptionMessage = exception?.Message ?? "Unknown error";
+                    var exceptionMessage = exception?.Message ?? AppConstants.Logging.UnknownErrorFallback;
                     logger.Warning(exception, "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}",
                         retryCount,
                         AppConstants.CacheSettings.DownloadRetryAttempts,

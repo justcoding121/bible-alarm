@@ -1,6 +1,7 @@
 #nullable enable
 using AVFoundation;
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Shared.Constants;
 using CommunityToolkit.Mvvm.Messaging;
 using Foundation;
 using Serilog;
@@ -33,7 +34,7 @@ public static class IOsAudioSessionHelper
             {
                 logger.Warning("Failed to set AVAudioSession category for {Context}: {Error}",
                     context,
-                    error?.LocalizedDescription ?? "Unknown error");
+                    error?.LocalizedDescription ?? AppConstants.Logging.UnknownErrorFallback);
             }
             else
             {
@@ -45,7 +46,7 @@ public static class IOsAudioSessionHelper
             {
                 logger.Warning("Failed to activate AVAudioSession for {Context}: {Error}",
                     context,
-                    error?.LocalizedDescription ?? "Unknown error");
+                    error?.LocalizedDescription ?? AppConstants.Logging.UnknownErrorFallback);
             }
             else
             {

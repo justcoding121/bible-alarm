@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -190,7 +191,7 @@ public sealed class PlaybackEventHandler
                     ? playlist[currentTrackIndex]
                     : null;
             var failedPlayItem = currentPlayerTrack?.PlayItem;
-            var playbackUriUsedByPlayer = !string.IsNullOrEmpty(trackUri) && !string.Equals(trackUri, "Unknown", StringComparison.Ordinal)
+            var playbackUriUsedByPlayer = !string.IsNullOrEmpty(trackUri) && !string.Equals(trackUri, MediaTrackTitleHelper.UnknownTitle, StringComparison.Ordinal)
                 ? trackUri
                 : currentPlayerTrack?.Uri ?? string.Empty;
             var playedFromCdnStream = playbackUriUsedByPlayer.StartsWith("http", StringComparison.OrdinalIgnoreCase);

@@ -3,6 +3,7 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
@@ -59,7 +60,7 @@ public sealed class TrackOnDemandPreparer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to resolve track URI on-demand: {Url}", track.PlayItem?.Url ?? "Unknown");
+            logger.Error(ex, "Failed to resolve track URI on-demand: {Url}", track.PlayItem?.Url ?? MediaTrackTitleHelper.UnknownTitle);
             return false;
         }
     }

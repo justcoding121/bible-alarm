@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Services.Media.Audio;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Primitives;
@@ -130,7 +131,7 @@ public class EventHandlerManager
             getMediaOpenedCompletionSource()?.TrySetResult(false);
 
             var currentTrack = getCurrentTrack();
-            var trackUri = currentTrack?.Uri ?? "Unknown";
+            var trackUri = currentTrack?.Uri ?? MediaTrackTitleHelper.UnknownTitle;
             logger.Error("MediaElement failed to play track. URI: {TrackUri}, Source: {Source}",
                 trackUri,
                 (sender as MediaElement)?.Source?.ToString() ?? "null");

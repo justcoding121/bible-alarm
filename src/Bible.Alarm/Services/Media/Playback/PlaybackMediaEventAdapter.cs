@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
@@ -80,11 +81,11 @@ public sealed class PlaybackMediaEventAdapter
             var playlist = callbacks.GetPlaylist();
             var index = callbacks.GetCurrentTrackIndex();
             var trackUri = playlist != null && index >= 0 && index < playlist.Count
-                ? playlist[index].Uri ?? "Unknown"
-                : "Unknown";
+                ? playlist[index].Uri ?? MediaTrackTitleHelper.UnknownTitle
+                : MediaTrackTitleHelper.UnknownTitle;
             var trackUrl = playlist != null && index >= 0 && index < playlist.Count
-                ? playlist[index].PlayItem?.Url ?? "Unknown"
-                : "Unknown";
+                ? playlist[index].PlayItem?.Url ?? MediaTrackTitleHelper.UnknownTitle
+                : MediaTrackTitleHelper.UnknownTitle;
 
             await eventHandler.HandleMediaFailedAsync(new PlaybackMediaFailedRequest(
                 playlist,

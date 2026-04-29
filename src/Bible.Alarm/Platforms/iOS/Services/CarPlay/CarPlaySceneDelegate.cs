@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.iOS.Services.CarPlay.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using CarPlay;
 using Foundation;
 using Serilog;
@@ -186,7 +187,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
                 }
                 else
                 {
-                    logger.Warning("[CarPlay] Failed to set root template: {Error}", error?.LocalizedDescription ?? "Unknown error");
+                    logger.Warning("[CarPlay] Failed to set root template: {Error}", error?.LocalizedDescription ?? AppConstants.Logging.UnknownErrorFallback);
                 }
             });
         }

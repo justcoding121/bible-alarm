@@ -437,6 +437,9 @@ public static class AppConstants
 
         /// <summary>Placeholder when assembly informational version cannot be resolved.</summary>
         public const string AssemblyVersionFallback = "AssemblyVersionNotFound";
+
+        /// <summary>Fallback when an exception or native error message is unavailable.</summary>
+        public const string UnknownErrorFallback = "Unknown error";
     }
 
     /// <summary>
