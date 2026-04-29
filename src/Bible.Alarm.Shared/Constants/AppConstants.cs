@@ -338,6 +338,27 @@ public static class AppConstants
         /// <summary>Alternate lowercase JSON property sometimes returned for MP4 streams.</summary>
         public const string MediaStreamFormatMp4Lower = "mp4";
 
+        /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
+        public const string PublicationUiTrackSingular = "Track";
+
+        /// <summary>Publication/track picker UI: plural tracks.</summary>
+        public const string PublicationUiTrackPlural = "Tracks";
+
+        /// <summary>Publication/track picker UI: singular part (flat media unit).</summary>
+        public const string PublicationUiPartSingular = "Part";
+
+        /// <summary>Publication/track picker UI: singular episode.</summary>
+        public const string PublicationUiEpisodeSingular = "Episode";
+
+        /// <summary>Publication/track picker UI: plural episodes.</summary>
+        public const string PublicationUiEpisodePlural = "Episodes";
+
+        /// <summary>Publication/track picker UI: singular chapter.</summary>
+        public const string PublicationUiChapterSingular = "Chapter";
+
+        /// <summary>Publication/track picker UI: plural chapters.</summary>
+        public const string PublicationUiChapterPlural = "Chapters";
+
         /// <summary>
         /// Bible publication category code for vocal and instrumental music (JW catalog).
         /// </summary>

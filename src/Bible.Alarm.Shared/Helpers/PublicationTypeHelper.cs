@@ -134,7 +134,7 @@ public static class PublicationTypeHelper
     /// </summary>
     public static string GetTrackLabel(string? publicationCode)
     {
-        return HasSectionStructure(publicationCode) ? "Track" : "Part";
+        return HasSectionStructure(publicationCode) ? AppConstants.Media.PublicationUiTrackSingular : AppConstants.Media.PublicationUiPartSingular;
     }
 
     /// <summary>

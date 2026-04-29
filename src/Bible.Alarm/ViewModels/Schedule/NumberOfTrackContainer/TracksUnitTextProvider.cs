@@ -35,20 +35,16 @@ public static class TracksUnitTextProvider
     {
         return GetTracksUnit(categoryName) switch
         {
-            TracksUnit.Track => ("Track", "Tracks"),
-            TracksUnit.Episode => ("Episode", "Episodes"),
-            _ => ("Chapter", "Chapters")
+            TracksUnit.Track => (AppConstants.Media.PublicationUiTrackSingular, AppConstants.Media.PublicationUiTrackPlural),
+            TracksUnit.Episode => (AppConstants.Media.PublicationUiEpisodeSingular, AppConstants.Media.PublicationUiEpisodePlural),
+            _ => (AppConstants.Media.PublicationUiChapterSingular, AppConstants.Media.PublicationUiChapterPlural)
         };
     }
 
     public static (string Singular, string Plural) GetUnitTextLowerCase(string? categoryName)
     {
-        return GetTracksUnit(categoryName) switch
-        {
-            TracksUnit.Track => ("track", "tracks"),
-            TracksUnit.Episode => ("episode", "episodes"),
-            _ => ("chapter", "chapters")
-        };
+        var (singular, plural) = GetUnitTextTitleCase(categoryName);
+        return (singular.ToLowerInvariant(), plural.ToLowerInvariant());
     }
 
     public static string GetTrackLabelText(string? categoryName)
