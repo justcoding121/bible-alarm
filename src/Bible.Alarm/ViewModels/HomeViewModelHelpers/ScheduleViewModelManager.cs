@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -61,18 +62,18 @@ public class ScheduleViewModelManager
             else
             {
                 // New schedule - create new view model
-                logger.Debug("PrepareScheduleViewModels: Creating new ScheduleListItem for schedule {ScheduleId}", scheduleId);
+                logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsCreatingNewListItem, scheduleId);
 
                 var viewModel = serviceProvider.GetRequiredService<ScheduleListItemViewModel>();
                 viewModel.InitializeFromSchedule(schedule, scheduleStateItem);
 
                 if (viewModel.Schedule == null)
                 {
-                    logger.Warning("PrepareScheduleViewModels: ScheduleListItem for schedule {ScheduleId} was not initialized properly (Schedule is null)", scheduleId);
+                    logger.Warning(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsScheduleListItemNotInitialized, scheduleId);
                 }
                 else
                 {
-                    logger.Debug("PrepareScheduleViewModels: ScheduleListItem for schedule {ScheduleId} initialized successfully with name '{Name}'",
+                    logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsScheduleListItemInitializedWithName,
                         scheduleId, viewModel.Schedule.Name);
                 }
 
@@ -121,20 +122,20 @@ public class ScheduleViewModelManager
     public void UpdateScheduleViewModels(ObservableHashSet<ScheduleStateItem> scheduleItems)
     {
         var scheduleItemsSnapshot = scheduleItems.ToList();
-        logger.Debug("ScheduleViewModelManager: UpdateScheduleViewModels called with {Count} schedule items from state.", scheduleItemsSnapshot.Count);
+        logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.UpdateScheduleViewModelsCalledWithCount, scheduleItemsSnapshot.Count);
 
         foreach (var scheduleItem in scheduleItemsSnapshot)
         {
             var scheduleId = scheduleItem.Id;
             if (scheduleId <= 0)
             {
-                logger.Warning("ScheduleViewModelManager: Skipping update for invalid schedule ID {ScheduleId}", scheduleId);
+                logger.Warning(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.SkippingUpdateInvalidScheduleId, scheduleId);
                 continue;
             }
 
             if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
             {
-                logger.Debug("ScheduleViewModelManager: Updating existing ViewModel for schedule {ScheduleId}. DaysOfWeek: {DaysOfWeek}",
+                logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.UpdatingExistingViewModelDaysOfWeek,
                     scheduleId, scheduleItem.DaysOfWeek);
                 // Update the view model with latest state
                 // Note: SetScheduleId may fail if schedule is not in state yet (timing issue),
@@ -142,18 +143,18 @@ public class ScheduleViewModelManager
                 try
                 {
                     existingViewModel.SetScheduleId(scheduleId);
-                    logger.Debug("ScheduleViewModelManager: Successfully updated ViewModel for schedule {ScheduleId}", scheduleId);
+                    logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.SuccessfullyUpdatedViewModel, scheduleId);
                 }
                 catch (Exception ex)
                 {
                     // Schedule not found in state yet - OnApplicationStateChanged will handle it
                     // This can happen due to async state updates
-                    logger.Warning(ex, "ScheduleViewModelManager: Failed to update ViewModel for schedule {ScheduleId}. OnApplicationStateChanged will handle it when state is ready.", scheduleId);
+                    logger.Warning(ex, AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.FailedToUpdateViewModelStateNotReady, scheduleId);
                 }
             }
             else
             {
-                logger.Warning("ScheduleViewModelManager: ViewModel for schedule {ScheduleId} not found in dictionary, cannot update.", scheduleId);
+                logger.Warning(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.ViewModelNotFoundCannotUpdate, scheduleId);
             }
         }
     }

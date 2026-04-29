@@ -3506,6 +3506,66 @@ public static class AppConstants
                 "SetScheduleId: Invalid schedule ID {ScheduleId}";
         }
 
+        /// <summary><c>ScheduleViewModelManager</c> — home schedule list VMs.</summary>
+        public static class ScheduleViewModelManagerDiagnosticsLog
+        {
+            public const string PrepareScheduleViewModelsCreatingNewListItem =
+                "PrepareScheduleViewModels: Creating new ScheduleListItem for schedule {ScheduleId}";
+
+            public const string PrepareScheduleViewModelsScheduleListItemNotInitialized =
+                "PrepareScheduleViewModels: ScheduleListItem for schedule {ScheduleId} was not initialized properly (Schedule is null)";
+
+            public const string PrepareScheduleViewModelsScheduleListItemInitializedWithName =
+                "PrepareScheduleViewModels: ScheduleListItem for schedule {ScheduleId} initialized successfully with name '{Name}'";
+
+            public const string UpdateScheduleViewModelsCalledWithCount =
+                "ScheduleViewModelManager: UpdateScheduleViewModels called with {Count} schedule items from state.";
+
+            public const string SkippingUpdateInvalidScheduleId =
+                "ScheduleViewModelManager: Skipping update for invalid schedule ID {ScheduleId}";
+
+            public const string UpdatingExistingViewModelDaysOfWeek =
+                "ScheduleViewModelManager: Updating existing ViewModel for schedule {ScheduleId}. DaysOfWeek: {DaysOfWeek}";
+
+            public const string SuccessfullyUpdatedViewModel =
+                "ScheduleViewModelManager: Successfully updated ViewModel for schedule {ScheduleId}";
+
+            public const string FailedToUpdateViewModelStateNotReady =
+                "ScheduleViewModelManager: Failed to update ViewModel for schedule {ScheduleId}. OnApplicationStateChanged will handle it when state is ready.";
+
+            public const string ViewModelNotFoundCannotUpdate =
+                "ScheduleViewModelManager: ViewModel for schedule {ScheduleId} not found in dictionary, cannot update.";
+        }
+
+        /// <summary><c>PreparePlaybackService</c> track list and URI resolution.</summary>
+        public static class PreparePlaybackServiceDiagnosticsLog
+        {
+            public const string FailedToGetTrackUrlsMediaLookupFailed =
+                "Failed to get track URLs (media lookup failed) for schedule {ScheduleId}";
+
+            public const string NoPlayItemsForSchedule =
+                "[Playback] No play items for schedule {ScheduleId}";
+
+            public const string PreparingFirstTrackForSchedule =
+                "[Playback] Preparing first track for schedule {ScheduleId}: PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, LookUpPath={LookUpPath}";
+
+            public const string FailedToResolveFirstTrackUriForSchedule =
+                "Failed to resolve first track URI for schedule {ScheduleId}";
+
+            public const string FailedToResolveTrackUri = "Failed to resolve track URI: {Url}";
+        }
+
+        /// <summary><c>PlaybackFailureHandler</c> alarm fallback paths.</summary>
+        public static class PlaybackFailureHandlerDiagnosticsLog
+        {
+            public const string ErrorShowingAlarmNotificationOrPlayingFallback =
+                "Error showing alarm notification or playing fallback alarm sound";
+
+            public const string FailedToGetFallbackAlarmTrack = "Failed to get fallback alarm track";
+
+            public const string ErrorPlayingFallbackAlarmSound = "Error playing fallback alarm sound";
+        }
+
         /// <summary>Category selection / browsing.</summary>
         public static class CategorySelectionDiagnosticsLog
         {

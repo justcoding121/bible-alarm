@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.Messaging;
@@ -24,7 +25,7 @@ public sealed class PreparePlaybackService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to get track URLs (media lookup failed) for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.PreparePlaybackServiceDiagnosticsLog.FailedToGetTrackUrlsMediaLookupFailed, scheduleId);
             return null;
         }
 
@@ -37,7 +38,7 @@ public sealed class PreparePlaybackService(
 
         if (playItems[0].Metadata is { } firstMeta)
         {
-            logger.Information("[Playback] Preparing first track for schedule {ScheduleId}: PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, LookUpPath={LookUpPath}",
+            logger.Information(AppConstants.Logging.PreparePlaybackServiceDiagnosticsLog.PreparingFirstTrackForSchedule,
                 scheduleId, firstMeta.PublicationCode, firstMeta.SectionCode ?? "(null)", firstMeta.TrackCode, firstMeta.LookUpPath);
         }
 
@@ -85,7 +86,7 @@ public sealed class PreparePlaybackService(
 
         if (uri == null)
         {
-            logger.Warning("Failed to resolve track URI: {Url}", playItem.Url);
+            logger.Warning(AppConstants.Logging.PreparePlaybackServiceDiagnosticsLog.FailedToResolveTrackUri, playItem.Url);
             return null;
         }
 
@@ -108,7 +109,7 @@ public sealed class PreparePlaybackService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to resolve track URI: {Url}", playItem.Url);
+            logger.Error(ex, AppConstants.Logging.PreparePlaybackServiceDiagnosticsLog.FailedToResolveTrackUri, playItem.Url);
             return null;
         }
     }

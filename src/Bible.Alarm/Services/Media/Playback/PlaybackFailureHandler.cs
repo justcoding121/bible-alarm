@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
@@ -62,7 +63,7 @@ public sealed class PlaybackFailureHandler
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error showing alarm notification or playing fallback alarm sound");
+                logger.Error(ex, AppConstants.Logging.PlaybackFailureHandlerDiagnosticsLog.ErrorShowingAlarmNotificationOrPlayingFallback);
                 // Update error message if fallback also fails
                 dispatcher.Dispatch(new PlaybackErrorAction
                 {
@@ -98,7 +99,7 @@ public sealed class PlaybackFailureHandler
             var fallbackTrack = await fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
             if (fallbackTrack is null)
             {
-                logger.Warning("Failed to get fallback alarm track");
+                logger.Warning(AppConstants.Logging.PlaybackFailureHandlerDiagnosticsLog.FailedToGetFallbackAlarmTrack);
                 dispatcher.Dispatch(new PlaybackErrorAction
                 {
                     ErrorMessage = PlaybackUserFacingStrings.DownloadFailedCheckInternet
@@ -120,7 +121,7 @@ public sealed class PlaybackFailureHandler
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error playing fallback alarm sound");
+            logger.Error(ex, AppConstants.Logging.PlaybackFailureHandlerDiagnosticsLog.ErrorPlayingFallbackAlarmSound);
             dispatcher.Dispatch(new PlaybackErrorAction
             {
                 ErrorMessage = PlaybackUserFacingStrings.DownloadFailedCheckInternet
@@ -138,7 +139,7 @@ public sealed class PlaybackFailureHandler
             var fallbackTrack = await fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
             if (fallbackTrack is null)
             {
-                logger.Error("Failed to get fallback alarm track");
+                logger.Error(AppConstants.Logging.PlaybackFailureHandlerDiagnosticsLog.FailedToGetFallbackAlarmTrack);
                 // Even for alarms, if fallback fails, show error but keep modal open
                 dispatcher.Dispatch(new PlaybackErrorAction
                 {
@@ -158,7 +159,7 @@ public sealed class PlaybackFailureHandler
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error playing fallback alarm sound");
+            logger.Error(ex, AppConstants.Logging.PlaybackFailureHandlerDiagnosticsLog.ErrorPlayingFallbackAlarmSound);
             // Even for alarms, if fallback fails, show error but keep modal open
             dispatcher.Dispatch(new PlaybackErrorAction
             {
