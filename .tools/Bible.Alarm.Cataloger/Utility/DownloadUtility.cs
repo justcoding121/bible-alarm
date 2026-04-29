@@ -108,15 +108,15 @@ internal class DownloadUtility
 
     private static bool TryGetAlternateJwCdnUrl(string url, out string alternateUrl)
     {
-        if (url.Contains("b.jw-cdn.org"))
+        if (url.Contains(AppConstants.ApiEndpoints.JwCdnHostB))
         {
-            alternateUrl = url.Replace("https://b.jw-cdn.org", "https://app.jw-cdn.org");
+            alternateUrl = url.Replace(AppConstants.ApiEndpoints.JwCdnOriginHttpsB, AppConstants.ApiEndpoints.JwCdnOriginHttpsApp);
             return true;
         }
 
-        if (url.Contains("app.jw-cdn.org"))
+        if (url.Contains(AppConstants.ApiEndpoints.JwCdnHostApp))
         {
-            alternateUrl = url.Replace("https://app.jw-cdn.org", "https://b.jw-cdn.org");
+            alternateUrl = url.Replace(AppConstants.ApiEndpoints.JwCdnOriginHttpsApp, AppConstants.ApiEndpoints.JwCdnOriginHttpsB);
             return true;
         }
 

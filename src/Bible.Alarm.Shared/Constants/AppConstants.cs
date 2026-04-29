@@ -12,32 +12,49 @@ public static class AppConstants
     /// </summary>
     public static class ApiEndpoints
     {
+        /// <summary>JW CDN mirror hostnames (<c>b.</c> vs <c>app.</c>).</summary>
+        public const string JwCdnHostB = "b.jw-cdn.org";
+        public const string JwCdnHostApp = "app.jw-cdn.org";
+
+        /// <summary>HTTPS scheme + host for JW CDN mirrors (no trailing slash).</summary>
+        public const string JwCdnOriginHttpsB = "https://b.jw-cdn.org";
+        public const string JwCdnOriginHttpsApp = "https://app.jw-cdn.org";
+
+        /// <summary>GETPUBMEDIALINKS path under JW CDN (<c>/apis/pub-media/GETPUBMEDIALINKS</c>).</summary>
+        public const string PubMediaApisGetPubMedialinksPath = "/apis/pub-media/GETPUBMEDIALINKS";
+
+        /// <summary>Mediator API path after origin (<c>/apis/mediator/v1</c>).</summary>
+        public const string MediatorApisV1Path = "/apis/mediator/v1";
+
+        /// <summary>Mediator REST path prefix for category JSON (<c>/categories/{lang}/{categoryKey}</c>).</summary>
+        public const string MediatorApiCategoriesPathPrefix = "/categories";
+
         /// <summary>
         /// Primary JW.org index service base URL for GETPUBMEDIALINKS (flat video/music, drama track lookup).
         /// </summary>
-        public const string JwOrgIndexServiceBaseUrl = "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS";
+        public const string JwOrgIndexServiceBaseUrl = JwCdnOriginHttpsB + PubMediaApisGetPubMedialinksPath;
 
         /// <summary>
         /// Redundant base URLs for GETPUBMEDIALINKS (app. and b. are equivalent). Use for retry when a fetch fails.
         /// </summary>
         public static readonly string[] JwOrgIndexServiceBaseUrls =
         {
-            "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS",
-            "https://app.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS"
+            JwCdnOriginHttpsB + PubMediaApisGetPubMedialinksPath,
+            JwCdnOriginHttpsApp + PubMediaApisGetPubMedialinksPath
         };
 
         /// <summary>
         /// Primary JW.org Mediator API base URL for category-based content (dramas, etc.).
         /// </summary>
-        public const string JwOrgMediatorApiBaseUrl = "https://app.jw-cdn.org/apis/mediator/v1";
+        public const string JwOrgMediatorApiBaseUrl = JwCdnOriginHttpsApp + MediatorApisV1Path;
 
         /// <summary>
         /// Redundant base URLs for Mediator API (b. and app. are equivalent). Use for random pick or retry.
         /// </summary>
         public static readonly string[] JwOrgMediatorApiBaseUrls =
         {
-            "https://b.jw-cdn.org/apis/mediator/v1",
-            "https://app.jw-cdn.org/apis/mediator/v1"
+            JwCdnOriginHttpsB + MediatorApisV1Path,
+            JwCdnOriginHttpsApp + MediatorApisV1Path
         };
 
         /// <summary>

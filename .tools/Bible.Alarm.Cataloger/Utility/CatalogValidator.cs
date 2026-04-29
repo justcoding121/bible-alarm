@@ -310,7 +310,7 @@ internal static class CatalogValidator
         foreach (var publicationCode in codesToValidate)
         {
             var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
-            var pathAndQuery = $"/categories/{AppConstants.Media.DefaultLanguageCode}/{categoryKey}";
+            var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{AppConstants.Media.DefaultLanguageCode}/{categoryKey}";
             string? jsonString;
             try
             {

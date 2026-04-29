@@ -65,7 +65,7 @@ internal class MediatorCataloger : BaseCataloger
         bool isTestRun)
     {
         var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
-        var pathAndQuery = $"/categories/{AppConstants.Media.DefaultLanguageCode}/{categoryKey}";
+        var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{AppConstants.Media.DefaultLanguageCode}/{categoryKey}";
         string? jsonString;
         try
         {
@@ -144,7 +144,7 @@ internal class MediatorCataloger : BaseCataloger
         Logger.Information("Cataloging {PublicationName} for language {LanguageCode}", publicationName, normalizedLanguageCode);
 
         var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
-        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}";
+        var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{normalizedLanguageCode}/{categoryKey}";
         string? jsonString;
         try
         {

@@ -286,7 +286,7 @@ internal class VideoCataloger : BaseCataloger
 
         try
         {
-            var pathAndQuery = $"/categories/{languageCode}/{categoryKey}";
+            var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{languageCode}/{categoryKey}";
             var jsonString = await DownloadUtilityType.GetMediatorAsync(pathAndQuery);
             if (string.IsNullOrEmpty(jsonString))
             {

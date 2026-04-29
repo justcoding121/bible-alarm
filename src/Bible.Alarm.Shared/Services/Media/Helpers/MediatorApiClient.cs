@@ -42,7 +42,7 @@ internal sealed class MediatorApiClient
         }
 
         var categoryKey = JwSourceHelper.GetMediatorCategoryKey(canonicalCode);
-        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}";
+        var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{normalizedLanguageCode}/{categoryKey}";
         var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery, cancellationToken);
         if (jsonString == null)
