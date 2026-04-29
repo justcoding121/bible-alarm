@@ -29,7 +29,7 @@ public sealed class ScheduleContainerManager
         await scheduleContainerService.InitializeContainersAsync(serviceProvider, setContainers);
     }
 
-    public void DisposeContainers(SchedulePropertyManager propertyManager)
+    public static void DisposeContainers(SchedulePropertyManager propertyManager)
     {
         if (propertyManager.BibleSelectionContainerViewModel is IDisposable bibleDisposable)
         {

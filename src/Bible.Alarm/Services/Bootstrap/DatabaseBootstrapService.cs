@@ -322,7 +322,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
     /// <summary>
     /// Deletes old database file and its auxiliary files (WAL, SHM) if they exist.
     /// </summary>
-    private async Task DeleteOldDatabaseFilesAsync(string dbPath, string description)
+    private static async Task DeleteOldDatabaseFilesAsync(string dbPath, string description)
     {
         if (!System.IO.File.Exists(dbPath))
         {

@@ -413,7 +413,7 @@ public class ScheduleEffects(
         }
     }
 
-    private async Task TryDispatchModalCountsUpdateAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher, string reason)
+    private static async Task TryDispatchModalCountsUpdateAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher, string reason)
     {
         try
         {

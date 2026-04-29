@@ -182,7 +182,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         {
             // Dispose any existing containers first to ensure clean state
             // This is important when page/ViewModel is reused on device
-            containerManager.DisposeContainers(propertyManager);
+            ScheduleContainerManager.DisposeContainers(propertyManager);
 
             await containerManager.InitializeContainerViewModelsAsync((bible, music, tracks, details, alarmSettings) =>
             {
@@ -500,7 +500,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         propertyManager.PropertyChanged -= OnPropertyManagerPropertyChanged;
         state.StateChanged -= OnStateChanged;
         overlayTimeoutController.Dispose();
-        containerManager.DisposeContainers(propertyManager);
+        ScheduleContainerManager.DisposeContainers(propertyManager);
         overlayManager.Dispose();
     }
 }
