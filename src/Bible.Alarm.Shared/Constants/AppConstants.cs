@@ -1252,6 +1252,70 @@ public static class AppConstants
                 "BibleSelectionDataProvider: Error dispatching default publication selection for language={LanguageCode}, publication={PublicationCode}";
         }
 
+        /// <summary>Section/track resolution (<c>BiblePublicationSelectionSectionTrackResolver</c>).</summary>
+        public static class BiblePublicationSelectionSectionTrackResolverDiagnosticsLog
+        {
+            public const string GetFirstSectionFirstSectionCodeKey =
+                "GetFirstSectionAndTrackFromSectionsAsync: First section codeKey={SectionCodeKey}, sectionCode={SectionCode}, name={SectionName}";
+
+            public const string FoundTracksForSectionUsingDirectQuery =
+                "GetFirstSectionAndTrackFromSectionsAsync: Found {TrackCount} tracks for section={SectionCode} using direct query";
+
+            public const string SectionFoundButNoTracks =
+                "GetFirstSectionAndTrackFromSectionsAsync: Section found but no tracks. SectionCode={SectionCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+
+            public const string PublicationNotFoundOrHasNoSections =
+                "GetFirstSectionAndTrackFromSectionsAsync: Publication not found or has no sections. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+
+            public const string NoTracksInDatabaseFetchingFirstSection =
+                "GetFirstSectionAndTrackFromSectionsAsync: No tracks found in database, fetching tracks for first section...";
+
+            public const string TracksFetchedSuccessfullyRequeryingFromDatabase =
+                "GetFirstSectionAndTrackFromSectionsAsync: Tracks fetched successfully, re-querying from database";
+
+            public const string FailedToFetchTracksForSection =
+                "GetFirstSectionAndTrackFromSectionsAsync: Failed to fetch tracks for section={SectionCode}, publication={PublicationCode}, language={LanguageCode}";
+
+            public const string FallingBackToMediaServiceGetBiblePublicationTracks =
+                "GetFirstSectionAndTrackFromSectionsAsync: Falling back to mediaService.GetBiblePublicationTracks";
+
+            public const string NoTracksFoundForLanguagePublicationSection =
+                "GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, sectionCode={SectionCode}";
+
+            public const string GetFirstSectionFirstTrackCodeAndTitle =
+                "GetFirstSectionAndTrackFromSectionsAsync: First track trackCode={TrackCode}, title={TrackTitle}";
+
+            public const string GetFirstTrackNonSectionedStarting =
+                "GetFirstTrackForNonSectionedAsync: Starting for language={LanguageCode}, publication={PublicationCode}, biblePublicationService={HasService}";
+
+            public const string BiblePublicationServiceNullReturningEmpty =
+                "GetFirstTrackForNonSectionedAsync: biblePublicationService is null, returning empty result";
+
+            public const string LoadedPublicationNameAndTracksCount =
+                "GetFirstTrackForNonSectionedAsync: Loaded publication={PublicationName}, TracksCount={TracksCount}";
+
+            public const string NoTracksEnsuringPublicationExistsFetchNonSectioned =
+                "GetFirstTrackForNonSectionedAsync: No tracks found in database, ensuring publication exists (will fetch tracks for non-sectioned publications)...";
+
+            public const string PublicationCatalogedSuccessfullyRequeryingTracks =
+                "GetFirstTrackForNonSectionedAsync: Publication cataloged successfully, re-querying tracks";
+
+            public const string FailedToCatalogPublicationForLanguage =
+                "GetFirstTrackForNonSectionedAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}";
+
+            public const string NoTracksFoundPublicationWithoutLanguage =
+                "GetFirstTrackForNonSectionedAsync: No tracks found for publication without language={PublicationCode}";
+
+            public const string NoTracksFoundForLanguageAndPublication =
+                "GetFirstTrackForNonSectionedAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}";
+
+            public const string FoundFirstTrackCodeAndTitle =
+                "GetFirstTrackForNonSectionedAsync: Found first track trackCode={TrackCode}, Title={TrackTitle}";
+
+            public const string ErrorCheckingPublicationCataloged =
+                "CheckIfPublicationWithFirstSectionCatalogedAsync: Error checking if publication {PublicationCode} is cataloged";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {
