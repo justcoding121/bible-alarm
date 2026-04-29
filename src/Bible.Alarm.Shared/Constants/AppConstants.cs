@@ -3646,6 +3646,45 @@ public static class AppConstants
             public const string ErrorPlayingFallbackAlarmSound = "Error playing fallback alarm sound";
         }
 
+        /// <summary><c>PlaylistBiblePublicationTrackBuilder</c> bible playlist construction.</summary>
+        public static class PlaylistBiblePublicationTrackBuilderDiagnosticsLog
+        {
+            public const string SectionedSchedulePublicationSectionTrackCodes =
+                "[PlaylistBuild] Sectioned schedule: PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}";
+
+            public const string TrackNotInLookupSectioned =
+                "Track: {TrackCode}, sectionCode: {SectionCode}, language: {LanguageCode}, pub code: {PublicationCode} not in lookup.";
+
+            public const string NonSectionedSchedulePublicationSectionTrackCodes =
+                "[PlaylistBuild] Non-sectioned schedule: PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}";
+
+            public const string TrackNotFoundNonSectionedPublication =
+                "Track: {TrackCode}, language: {LanguageCode}, pub code: {PublicationCode} not found in non-sectioned publication.";
+
+            public const string ResolvedNonSectionedTrack =
+                "[PlaylistBuild] Resolved non-sectioned track: Schedule TrackCode={ScheduleTrackCode}, Resolved TrackCode={ResolvedTrackCode}, Title={Title}, LookUpPath={LookUpPath}";
+
+            public const string ShouldSetFinishedDurationDetails =
+                "[PlaylistBuild] ShouldSetFinishedDuration={ShouldSet}: markedSeekTrack={MarkedSeekTrack}, AlwaysPlayFromStart={AlwaysPlayFromStart}, DB_FinishedDuration={ScheduleFinishedDuration}, ScheduleId={ScheduleId}, TrackCode={TrackCode}, SectionCode={SectionCode}";
+
+            public const string SetTrackFinishedDurationForSchedule =
+                "[PlaylistBuild] Set track FinishedDuration={Duration} for ScheduleId={ScheduleId}";
+
+            public const string FinishedDurationInDbButShouldSetFalse =
+                "[PlaylistBuild] FinishedDuration={Duration} in DB but ShouldSetFinishedDuration returned false for ScheduleId={ScheduleId}. AlwaysPlayFromStart={AlwaysPlayFromStart}";
+        }
+
+        /// <summary><c>FallbackAlarmSoundService</c> platform default / packaged fallback.</summary>
+        public static class FallbackAlarmSoundServiceDiagnosticsLog
+        {
+            public const string FailedToGetFallbackAlarmSoundUri = "Failed to get fallback alarm sound URI";
+
+            public const string ErrorCreatingFallbackAlarmTrack = "Error creating fallback alarm track";
+
+            public const string ReturningNullUsingPlatformDefault =
+                "Fallback alarm sound service returning null - using platform default";
+        }
+
         /// <summary>Category selection / browsing.</summary>
         public static class CategorySelectionDiagnosticsLog
         {

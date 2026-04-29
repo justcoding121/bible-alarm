@@ -96,7 +96,7 @@ public class PlaylistBiblePublicationTrackBuilder
             return await GetInitialTrackInfoForNonSectionedPublication(biblePublicationSchedule);
         }
 
-        logger.Debug("[PlaylistBuild] Sectioned schedule: PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}",
+        logger.Debug(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.SectionedSchedulePublicationSectionTrackCodes,
             biblePublicationSchedule.PublicationCode, biblePublicationSchedule.SectionCode, biblePublicationSchedule.TrackCode);
 
         var languageCode = biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
@@ -118,7 +118,7 @@ public class PlaylistBiblePublicationTrackBuilder
         if (trackDetail == null)
         {
             logger.Error(
-                "Track: {TrackCode}, sectionCode: {SectionCode}, language: {LanguageCode}, pub code: {PublicationCode} not in lookup.",
+                AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.TrackNotInLookupSectioned,
                 biblePublicationSchedule.TrackCode, biblePublicationSchedule.SectionCode, biblePublicationSchedule.LanguageCode, biblePublicationSchedule.PublicationCode);
             throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackCode} not found in section {biblePublicationSchedule.SectionCode}");
         }
@@ -217,14 +217,14 @@ public class PlaylistBiblePublicationTrackBuilder
             throw new InvalidOperationException($"No tracks found for non-sectioned publication: {biblePublicationSchedule.LanguageCode}/{biblePublicationSchedule.PublicationCode}");
         }
 
-        logger.Debug("[PlaylistBuild] Non-sectioned schedule: PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}",
+        logger.Debug(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.NonSectionedSchedulePublicationSectionTrackCodes,
             biblePublicationSchedule.PublicationCode, biblePublicationSchedule.SectionCode ?? "(null)", biblePublicationSchedule.TrackCode);
 
         var scheduleTrackCode = biblePublicationSchedule.TrackCode ?? string.Empty;
         var track = publication.Tracks.FirstOrDefault(t => TrackCodeHelper.GetFromTrack(t) == scheduleTrackCode);
         if (track == null)
         {
-            logger.Error("Track: {TrackCode}, language: {LanguageCode}, pub code: {PublicationCode} not found in non-sectioned publication.",
+            logger.Error(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.TrackNotFoundNonSectionedPublication,
                 biblePublicationSchedule.TrackCode, biblePublicationSchedule.LanguageCode, biblePublicationSchedule.PublicationCode);
             throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackCode} not found in non-sectioned publication");
         }
@@ -259,7 +259,7 @@ public class PlaylistBiblePublicationTrackBuilder
             throw new InvalidOperationException($"Failed to get URL for track {biblePublicationSchedule.TrackCode} in non-sectioned publication");
         }
 
-        logger.Information("[PlaylistBuild] Resolved non-sectioned track: Schedule TrackCode={ScheduleTrackCode}, Resolved TrackCode={ResolvedTrackCode}, Title={Title}, LookUpPath={LookUpPath}",
+        logger.Information(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.ResolvedNonSectionedTrack,
             biblePublicationSchedule.TrackCode, track.TrackCode, track.Title, lookUpPath);
 
         return new TrackInfo(biblePublicationSchedule.PublicationCode, null, track, url);
@@ -311,7 +311,7 @@ public class PlaylistBiblePublicationTrackBuilder
         ApplyDiscStyleDisplayMetadata(trackMetadata, sectionCode, trackCode);
 
         var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata, sectionCode, isNoLanguagePublication);
-        logger.Information("[PlaylistBuild] ShouldSetFinishedDuration={ShouldSet}: markedSeekTrack={MarkedSeekTrack}, AlwaysPlayFromStart={AlwaysPlayFromStart}, DB_FinishedDuration={ScheduleFinishedDuration}, ScheduleId={ScheduleId}, TrackCode={TrackCode}, SectionCode={SectionCode}",
+        logger.Information(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.ShouldSetFinishedDurationDetails,
             shouldSet,
             markedSeekTrack,
             schedule.AlwaysPlayFromStart,
@@ -324,11 +324,11 @@ public class PlaylistBiblePublicationTrackBuilder
         {
             trackMetadata.FinishedDuration = biblePublicationSchedule.FinishedDuration;
             markedSeekTrack = true;
-            logger.Information("[PlaylistBuild] Set track FinishedDuration={Duration} for ScheduleId={ScheduleId}", trackMetadata.FinishedDuration, scheduleId);
+            logger.Information(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.SetTrackFinishedDurationForSchedule, trackMetadata.FinishedDuration, scheduleId);
         }
         else if (!markedSeekTrack && biblePublicationSchedule.FinishedDuration > TimeSpan.Zero)
         {
-            logger.Warning("[PlaylistBuild] FinishedDuration={Duration} in DB but ShouldSetFinishedDuration returned false for ScheduleId={ScheduleId}. AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            logger.Warning(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.FinishedDurationInDbButShouldSetFalse,
                 biblePublicationSchedule.FinishedDuration, scheduleId, schedule.AlwaysPlayFromStart);
         }
 

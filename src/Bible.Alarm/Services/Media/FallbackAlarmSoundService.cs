@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;
 
@@ -15,7 +16,7 @@ public sealed class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSo
             var fallbackUri = await GetFallbackAlarmSoundUriAsync();
             if (fallbackUri == null)
             {
-                logger.Error("Failed to get fallback alarm sound URI");
+                logger.Error(AppConstants.Logging.FallbackAlarmSoundServiceDiagnosticsLog.FailedToGetFallbackAlarmSoundUri);
                 return null;
             }
 
@@ -35,7 +36,7 @@ public sealed class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSo
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error creating fallback alarm track");
+            logger.Error(ex, AppConstants.Logging.FallbackAlarmSoundServiceDiagnosticsLog.ErrorCreatingFallbackAlarmTrack);
             return null;
         }
     }
@@ -44,7 +45,7 @@ public sealed class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSo
     {
         // No longer using custom alarm sound file - return null to use platform default
         // The error handling in PlaybackService will display an appropriate message
-        logger.Debug("Fallback alarm sound service returning null - using platform default");
+        logger.Debug(AppConstants.Logging.FallbackAlarmSoundServiceDiagnosticsLog.ReturningNullUsingPlatformDefault);
         await Task.CompletedTask;
         return null;
     }
