@@ -170,12 +170,14 @@ public static class PublicationCodeHelper
 
         private int GetPriorityForCodes(string code)
         {
-            var lower = code.ToLowerInvariant();
             for (var i = 0; i < _priorityCodes.Length; i++)
             {
-                if (lower == _priorityCodes[i].ToLowerInvariant())
+                if (string.Equals(code, _priorityCodes[i], StringComparison.OrdinalIgnoreCase))
+                {
                     return i;
+                }
             }
+
             return _priorityCodes.Length;
         }
     }

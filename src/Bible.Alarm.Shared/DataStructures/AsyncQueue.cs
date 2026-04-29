@@ -69,10 +69,7 @@ public sealed class AsyncQueue<T> : IDisposable
 
         try
         {
-            if (disposed)
-            {
-                throw new ObjectDisposedException(nameof(AsyncQueue<T>));
-            }
+            ObjectDisposedException.ThrowIf(disposed, this);
 
             if (queue.Count > 0)
             {
@@ -100,12 +97,8 @@ public sealed class AsyncQueue<T> : IDisposable
 
         try
         {
-            if (!disposed)
-            {
-                return queue.Count == 0 ? default : queue.Peek();
-            }
-
-            throw new ObjectDisposedException(nameof(AsyncQueue<T>));
+            ObjectDisposedException.ThrowIf(disposed, this);
+            return queue.Count == 0 ? default : queue.Peek();
         }
         finally
         {
@@ -115,12 +108,7 @@ public sealed class AsyncQueue<T> : IDisposable
 
     private void ThrowIfDisposed()
     {
-        if (!disposed)
-        {
-            return;
-        }
-
-        throw new ObjectDisposedException(nameof(AsyncQueue<T>));
+        ObjectDisposedException.ThrowIf(disposed, this);
     }
 
     public void Dispose()

@@ -37,7 +37,7 @@ public static class AudioDescriptionTitlePhrases
                 continue;
             }
 
-            if (title.IndexOf(phrase, StringComparison.OrdinalIgnoreCase) >= 0)
+            if (title.Contains(phrase, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -65,7 +65,7 @@ public static class AudioDescriptionTitlePhrases
         return Array.Empty<string>();
     }
 
-    private static IReadOnlyDictionary<string, IReadOnlyList<string>> LoadPhrases()
+    private static Dictionary<string, IReadOnlyList<string>> LoadPhrases()
     {
         var assembly = typeof(AudioDescriptionTitlePhrases).Assembly;
         using var stream = assembly.GetManifestResourceStream(ResourceName);

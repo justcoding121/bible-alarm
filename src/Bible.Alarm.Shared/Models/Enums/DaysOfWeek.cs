@@ -23,14 +23,14 @@ public static class DaysOfWeekExtensions
         var result = new List<int>();
 
         var day = 1;
-        foreach (var item in Enum.GetValues(typeof(DaysOfWeek)))
+        foreach (var item in Enum.GetValues<DaysOfWeek>())
         {
-            if ((DaysOfWeek)item == DaysOfWeek.All)
+            if (item == DaysOfWeek.All)
             {
                 continue;
             }
 
-            if ((daysOfWeek & (DaysOfWeek)item) == (DaysOfWeek)item)
+            if ((daysOfWeek & item) == item)
             {
                 result.Add(day);
             }

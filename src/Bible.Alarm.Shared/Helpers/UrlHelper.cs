@@ -4,5 +4,5 @@ namespace Bible.Alarm.Shared.Helpers;
 
 public class UrlHelper
 {
-    public static string JwOrgIndexServiceBaseUrl = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl;
+    public static readonly string JwOrgIndexServiceBaseUrl = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl;
 }
