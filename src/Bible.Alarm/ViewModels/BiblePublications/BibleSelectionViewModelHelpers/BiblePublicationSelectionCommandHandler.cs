@@ -356,7 +356,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         });
     }
 
-    private BiblePublicationStateItem CreateBiblePublicationItemFromSelection(
+    private static BiblePublicationStateItem CreateBiblePublicationItemFromSelection(
         PublicationListViewItemModel publication,
         string? sectionCode,
         string trackCode,
@@ -396,7 +396,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         };
     }
 
-    private BiblePublicationStateItem CreateBiblePublicationItemForLanguageSelection(
+    private static BiblePublicationStateItem CreateBiblePublicationItemForLanguageSelection(
         LanguageListViewItemModel language,
         string publicationCode,
         string? sectionCode,

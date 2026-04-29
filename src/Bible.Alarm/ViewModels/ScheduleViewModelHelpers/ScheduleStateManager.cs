@@ -168,7 +168,7 @@ public sealed class ScheduleStateManager
     /// Called on state changes. Updates overlay visibility and notifies property changes.
     /// The overlay is hidden when ContainerReadiness.AllReady is true (handled in ScheduleViewModel).
     /// </summary>
-    public void HandleStateChanged(
+    public static void HandleStateChanged(
         IState<ApplicationState> state,
         Action<bool> setOverlayVisible,
         Action notifySchedulePropertiesChanged,
@@ -187,7 +187,7 @@ public sealed class ScheduleStateManager
     /// Unused - kept for interface compatibility. 
     /// Schedule changes are handled via state subscriptions in containers.
     /// </summary>
-    public void HandleCurrentScheduleChanged(IState<ApplicationState> state)
+    public static void HandleCurrentScheduleChanged(IState<ApplicationState> state)
     {
         // Containers handle their own initialization from state.
         // This method is no longer needed in the simplified flow.

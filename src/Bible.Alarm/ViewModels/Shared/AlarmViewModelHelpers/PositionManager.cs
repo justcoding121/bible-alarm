@@ -123,7 +123,7 @@ public sealed class PositionManager()
     /// <summary>
     /// Checks if a position update should be ignored based on current progress.
     /// </summary>
-    public bool ShouldIgnorePositionUpdate(double newProgress, double currentProgress, TimeSpan currentDuration)
+    public static bool ShouldIgnorePositionUpdate(double newProgress, double currentProgress, TimeSpan currentDuration)
     {
         if (currentDuration.TotalSeconds <= 0)
         {
@@ -138,7 +138,7 @@ public sealed class PositionManager()
     /// <summary>
     /// Gets the current progress value (this would need to be passed in from the main class).
     /// </summary>
-    private double GetCurrentProgress()
+    private static double GetCurrentProgress()
     {
         // This would need to be passed in or accessed differently
         // For now, returning 0 as a placeholder
@@ -158,7 +158,7 @@ public sealed class PositionManager()
     /// <summary>
     /// Calculates progress from position and duration.
     /// </summary>
-    public double CalculateProgress(TimeSpan position, TimeSpan duration)
+    public static double CalculateProgress(TimeSpan position, TimeSpan duration)
     {
         return duration.TotalSeconds > 0 ? position.TotalSeconds / duration.TotalSeconds : 0.0;
     }
