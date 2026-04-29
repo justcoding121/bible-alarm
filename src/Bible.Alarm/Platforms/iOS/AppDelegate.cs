@@ -85,7 +85,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Log.CloseAndFlush failed during crash path");
+            logger.Warning(ex, AppConstants.Logging.IosAppDelegateDiagnosticsLog.LogCloseAndFlushFailedCrashPath);
         }
 
         Thread.Sleep(CrashFlushDelayMs);
@@ -99,7 +99,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception e)
         {
-            logger.Fatal(e, "iOS MAUI app creation failed.");
+            logger.Fatal(e, AppConstants.Logging.IosAppDelegateDiagnosticsLog.IosMauiAppCreationFailed);
             throw;
         }
     }
@@ -115,7 +115,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         // CarPlay scene: return a config with our CarPlaySceneDelegate
         if (connectingSceneSession.Role.ToString().Contains("CPTemplate"))
         {
-            logger.Information("[AppDelegate] Returning CarPlay scene configuration");
+            logger.Information(AppConstants.Logging.IosAppDelegateDiagnosticsLog.ReturningCarPlaySceneConfiguration);
             var carPlayConfig = new UISceneConfiguration("CarPlayConfiguration", connectingSceneSession.Role);
             carPlayConfig.DelegateClass = new ObjCRuntime.Class(typeof(Services.CarPlay.CarPlaySceneDelegate));
             return carPlayConfig;
@@ -137,7 +137,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception ex)
         {
-            logger.Fatal(ex, "base.FinishedLaunching threw exception.");
+            logger.Fatal(ex, AppConstants.Logging.IosAppDelegateDiagnosticsLog.BaseFinishedLaunchingThrewException);
             throw;
         }
 
@@ -149,7 +149,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception e)
         {
-            logger.Error(e, "iOS application custom initialization failed.");
+            logger.Error(e, AppConstants.Logging.IosAppDelegateDiagnosticsLog.IosApplicationCustomInitializationFailed);
         }
 
         return result;
@@ -165,7 +165,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to set up iOS background tasks (BGTaskScheduler)");
+            logger.Error(ex, AppConstants.Logging.IosAppDelegateDiagnosticsLog.FailedToSetupIosBackgroundTasks);
         }
     }
 
@@ -185,7 +185,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error when showing notification on iOS activation.");
+            logger.Error(e, AppConstants.Logging.IosAppDelegateDiagnosticsLog.ErrorWhenShowingNotificationOnIosActivation);
         }
 
         base.OnActivated(uiApplication);
@@ -210,7 +210,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         {
             if (error != null)
             {
-                logger.Error("Failed to reset badge count: {Error}", error.LocalizedDescription);
+                logger.Error(AppConstants.Logging.IosAppDelegateDiagnosticsLog.FailedToResetBadgeCount, error.LocalizedDescription);
             }
         });
     }
@@ -227,7 +227,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error handling iOS notification response.");
+            logger.Error(e, AppConstants.Logging.IosAppDelegateDiagnosticsLog.ErrorHandlingIosNotificationResponse);
         }
         finally
         {
@@ -253,7 +253,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             {
                 if (error != null)
                 {
-                    logger.Error("Failed to reset badge count: {Error}", error.LocalizedDescription);
+                    logger.Error(AppConstants.Logging.IosAppDelegateDiagnosticsLog.FailedToResetBadgeCount, error.LocalizedDescription);
                 }
             });
 
@@ -263,14 +263,14 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                 var scheduleIdString = scheduleIdValue?.ToString();
                 if (!string.IsNullOrEmpty(scheduleIdString) && int.TryParse(scheduleIdString, out var scheduleId) && scheduleId > 0)
                 {
-                    logger.Information("Notification tapped for schedule {ScheduleId}, starting playback", scheduleId);
+                    logger.Information(AppConstants.Logging.IosAppDelegateDiagnosticsLog.NotificationTappedStartingPlayback, scheduleId);
                     StartPlaybackFromNotification(scheduleId);
                 }
             }
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error handling iOS notification.");
+            logger.Error(e, AppConstants.Logging.IosAppDelegateDiagnosticsLog.ErrorHandlingIosNotification);
         }
     }
 
@@ -292,16 +292,16 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                 {
                     WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = scheduleId });
                     await playbackService.PlayScheduleAsync(scheduleId);
-                    logger.Information("Started playback for schedule {ScheduleId} from notification tap", scheduleId);
+                    logger.Information(AppConstants.Logging.IosAppDelegateDiagnosticsLog.StartedPlaybackFromNotificationTap, scheduleId);
                 }
                 else
                 {
-                    logger.Warning("ISchedulePlaybackService not available for notification playback");
+                    logger.Warning(AppConstants.Logging.IosAppDelegateDiagnosticsLog.ISchedulePlaybackServiceNotAvailableNotificationPlayback);
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error starting playback from notification for schedule {ScheduleId}", scheduleId);
+                logger.Error(ex, AppConstants.Logging.IosAppDelegateDiagnosticsLog.ErrorStartingPlaybackFromNotificationForSchedule, scheduleId);
             }
         });
     }
@@ -331,7 +331,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error occurred in doing perform fetch task.");
+            logger.Error(e, AppConstants.Logging.IosAppDelegateDiagnosticsLog.ErrorPerformFetchTask);
         }
 
         return downloaded;

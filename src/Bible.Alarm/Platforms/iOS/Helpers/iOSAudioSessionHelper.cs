@@ -24,7 +24,7 @@ public static class IOsAudioSessionHelper
     {
         try
         {
-            logger.Debug("Attempting to configure iOS audio session for {Context}.", context);
+            logger.Debug(AppConstants.Logging.IosAudioSessionDiagnosticsLog.AttemptingToConfigureAudioSessionForContext, context);
             var audioSession = AVAudioSession.SharedInstance();
 
             var categoryName = new NSString("AVAudioSessionCategoryPlayback");
@@ -32,32 +32,32 @@ public static class IOsAudioSessionHelper
 
             if (!categoryResult || error != null)
             {
-                logger.Warning("Failed to set AVAudioSession category for {Context}: {Error}",
+                logger.Warning(AppConstants.Logging.IosAudioSessionDiagnosticsLog.FailedToSetAvAudioSessionCategoryForContext,
                     context,
                     error?.LocalizedDescription ?? AppConstants.Logging.UnknownErrorFallback);
             }
             else
             {
-                logger.Debug("Successfully set AVAudioSession category to Playback for {Context}", context);
+                logger.Debug(AppConstants.Logging.IosAudioSessionDiagnosticsLog.SuccessfullySetAvAudioSessionCategoryPlaybackForContext, context);
             }
 
             var activateResult = audioSession.SetActive(true, out error);
             if (!activateResult || error != null)
             {
-                logger.Warning("Failed to activate AVAudioSession for {Context}: {Error}",
+                logger.Warning(AppConstants.Logging.IosAudioSessionDiagnosticsLog.FailedToActivateAvAudioSessionForContext,
                     context,
                     error?.LocalizedDescription ?? AppConstants.Logging.UnknownErrorFallback);
             }
             else
             {
-                logger.Debug("Successfully activated AVAudioSession for {Context}", context);
+                logger.Debug(AppConstants.Logging.IosAudioSessionDiagnosticsLog.SuccessfullyActivatedAvAudioSessionForContext, context);
             }
 
             RegisterRouteChangeObserver(logger);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error configuring iOS audio session for {Context}", context);
+            logger.Error(ex, AppConstants.Logging.IosAudioSessionDiagnosticsLog.ErrorConfiguringIosAudioSessionForContext, context);
         }
     }
 
@@ -79,18 +79,17 @@ public static class IOsAudioSessionHelper
             {
                 if (args.Reason == AVAudioSessionRouteChangeReason.OldDeviceUnavailable)
                 {
-                    logger.Information(
-                        "Audio route changed (old device unavailable, e.g. Bluetooth disconnected) — pausing playback");
+                    logger.Information(AppConstants.Logging.IosAudioSessionDiagnosticsLog.AudioRouteChangedOldDeviceUnavailablePausingPlayback);
                     WeakReferenceMessenger.Default.Send(new PauseButtonPressedMessage());
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error handling audio route change notification");
+                logger.Warning(ex, AppConstants.Logging.IosAudioSessionDiagnosticsLog.ErrorHandlingAudioRouteChangeNotification);
             }
         });
 
-        logger.Debug("Registered iOS audio route change observer");
+        logger.Debug(AppConstants.Logging.IosAudioSessionDiagnosticsLog.RegisteredIosAudioRouteChangeObserver);
     }
 }
 

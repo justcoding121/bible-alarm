@@ -968,6 +968,86 @@ public static class AppConstants
                 "[CarPlay] SuppressOldSectionFinalizers: unexpected (non-fatal)";
         }
 
+        /// <summary><c>AppDelegate</c> lifecycle, notifications, and background fetch.</summary>
+        public static class IosAppDelegateDiagnosticsLog
+        {
+            public const string LogCloseAndFlushFailedCrashPath =
+                "Log.CloseAndFlush failed during crash path";
+
+            public const string IosMauiAppCreationFailed =
+                "iOS MAUI app creation failed.";
+
+            public const string ReturningCarPlaySceneConfiguration =
+                "[AppDelegate] Returning CarPlay scene configuration";
+
+            public const string BaseFinishedLaunchingThrewException =
+                "base.FinishedLaunching threw exception.";
+
+            public const string IosApplicationCustomInitializationFailed =
+                "iOS application custom initialization failed.";
+
+            public const string FailedToSetupIosBackgroundTasks =
+                "Failed to set up iOS background tasks (BGTaskScheduler)";
+
+            public const string ErrorWhenShowingNotificationOnIosActivation =
+                "Error when showing notification on iOS activation.";
+
+            public const string FailedToResetBadgeCount =
+                "Failed to reset badge count: {Error}";
+
+            public const string ErrorHandlingIosNotificationResponse =
+                "Error handling iOS notification response.";
+
+            public const string ErrorHandlingIosNotification =
+                "Error handling iOS notification.";
+
+            public const string NotificationTappedStartingPlayback =
+                "Notification tapped for schedule {ScheduleId}, starting playback";
+
+            public const string StartedPlaybackFromNotificationTap =
+                "Started playback for schedule {ScheduleId} from notification tap";
+
+            public const string ISchedulePlaybackServiceNotAvailableNotificationPlayback =
+                "ISchedulePlaybackService not available for notification playback";
+
+            public const string ErrorStartingPlaybackFromNotificationForSchedule =
+                "Error starting playback from notification for schedule {ScheduleId}";
+
+            public const string ErrorPerformFetchTask =
+                "An error occurred in doing perform fetch task.";
+        }
+
+        /// <summary>iOS AVAudioSession setup (<c>IOsAudioSessionHelper</c>).</summary>
+        public static class IosAudioSessionDiagnosticsLog
+        {
+            public const string AttemptingToConfigureAudioSessionForContext =
+                "Attempting to configure iOS audio session for {Context}.";
+
+            public const string FailedToSetAvAudioSessionCategoryForContext =
+                "Failed to set AVAudioSession category for {Context}: {Error}";
+
+            public const string SuccessfullySetAvAudioSessionCategoryPlaybackForContext =
+                "Successfully set AVAudioSession category to Playback for {Context}";
+
+            public const string FailedToActivateAvAudioSessionForContext =
+                "Failed to activate AVAudioSession for {Context}: {Error}";
+
+            public const string SuccessfullyActivatedAvAudioSessionForContext =
+                "Successfully activated AVAudioSession for {Context}";
+
+            public const string ErrorConfiguringIosAudioSessionForContext =
+                "Error configuring iOS audio session for {Context}";
+
+            public const string AudioRouteChangedOldDeviceUnavailablePausingPlayback =
+                "Audio route changed (old device unavailable, e.g. Bluetooth disconnected) — pausing playback";
+
+            public const string ErrorHandlingAudioRouteChangeNotification =
+                "Error handling audio route change notification";
+
+            public const string RegisteredIosAudioRouteChangeObserver =
+                "Registered iOS audio route change observer";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {
