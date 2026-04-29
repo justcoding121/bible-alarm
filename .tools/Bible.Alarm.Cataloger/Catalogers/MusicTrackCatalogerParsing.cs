@@ -15,7 +15,7 @@ internal static class MusicTrackCatalogParsing
 {
     internal static string BuildMusicCatalogLink(string publicationDownloadCode, string? languageCode)
     {
-        var langParam = languageCode == null ? $"&langwritten={AppConstants.Media.DefaultLanguageCode}" : $"&langwritten={languageCode}";
+        var langParam = languageCode == null ? $"&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}" : $"&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
         return $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationDownloadCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}{langParam}";
     }
 

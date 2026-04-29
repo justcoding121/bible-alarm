@@ -181,7 +181,7 @@ internal class VideoCataloger : BaseCataloger
         string jsonString;
         try
         {
-            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryAllLangsOn}&langwritten={AppConstants.Media.DefaultLanguageCode}";
+            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryAllLangsOn}&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}";
             jsonString = await DownloadUtility.GetAsync(catalogLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
@@ -367,7 +367,7 @@ internal class VideoCataloger : BaseCataloger
     {
         try
         {
-            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&langwritten={languageCode}";
+            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
             var jsonString = await DownloadUtility.GetAsync(catalogLink);
             return ParseAllEpisodes(jsonString, publicationCode, languageCode);
         }
@@ -402,7 +402,7 @@ internal class VideoCataloger : BaseCataloger
         if (!languageFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp4, out var mp4Files) || mp4Files.ValueKind != JsonValueKind.Array)
             return null;
 
-        var lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&langwritten={languageCode}";
+        var lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
         var episodes = new List<VideoEpisode>();
 
         foreach (var fileElement in mp4Files.EnumerateArray())

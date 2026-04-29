@@ -401,6 +401,9 @@ public static class AppConstants
         /// <summary>GETPUB query segment: list all languages (<c>alllangs=1</c>).</summary>
         public const string GetPubQueryAllLangsOn = "alllangs=1";
 
+        /// <summary>GETPUB query parameter name for written language (<c>langwritten</c>).</summary>
+        public const string GetPubQueryParamLangWritten = "langwritten";
+
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
         public const string PublicationUiTrackSingular = "Track";
 
