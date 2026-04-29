@@ -12,7 +12,7 @@ public partial class MediaElementHandler
     /// <summary>
     /// The default property mapper for this handler.
     /// </summary>
-    public static IPropertyMapper<MediaElement, MediaElementHandler> PropertyMapper = new PropertyMapper<MediaElement, MediaElementHandler>()
+    public static readonly IPropertyMapper<MediaElement, MediaElementHandler> PropertyMapper = new PropertyMapper<MediaElement, MediaElementHandler>()
     {
         [nameof(IMediaElement.Aspect)] = MapAspect,
         [nameof(IMediaElement.ShouldShowPlaybackControls)] = MapShouldShowPlaybackControls,
@@ -29,7 +29,7 @@ public partial class MediaElementHandler
     /// <summary>
     /// The default command mapper for this handler.
     /// </summary>
-    public static CommandMapper<MediaElement, MediaElementHandler> CommandMapper = new()
+    public static readonly CommandMapper<MediaElement, MediaElementHandler> CommandMapper = new()
     {
         [nameof(MediaElement.StatusUpdated)] = MapStatusUpdated,
         [nameof(MediaElement.PlayRequested)] = MapPlayRequested,
@@ -93,7 +93,10 @@ public partial class MediaElementHandler
     /// <param name="mediaElement">The associated <see cref="MediaElement"/> instance.</param>
     public static void MapSource(MediaElementHandler handler, MediaElement mediaElement)
     {
-        handler.MediaManager?.UpdateSource();
+        if (handler.MediaManager is { } manager)
+        {
+            _ = manager.UpdateSource().AsTask();
+        }
     }
 
     /// <summary>

@@ -6,9 +6,10 @@ static class PageExtensions
 {
     internal static Page GetCurrentPage(this Page currentPage)
     {
-        if (currentPage.NavigationProxy.ModalStack.LastOrDefault() is Page modal)
+        var modalStack = currentPage.NavigationProxy.ModalStack;
+        if (modalStack.Count > 0)
         {
-            return modal;
+            return modalStack[modalStack.Count - 1];
         }
 
         return currentPage switch
