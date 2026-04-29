@@ -153,7 +153,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Exception occurred while closing popup in Clear()");
+                logger.Warning(ex, AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.ExceptionClosingPopupInClear);
             }
         }
 

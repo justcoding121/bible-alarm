@@ -83,7 +83,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Failed to schedule notification for schedule {ScheduleId} at {FireDate}. Error: {ErrorMessage}",
+                    logger.Warning(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.FailedToScheduleNotificationAtFireDate,
                         scheduleId, fireDate, ex.Message);
                     // Continue with next occurrence
                 }
@@ -93,21 +93,21 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
             if (scheduledCount > 0)
             {
-                logger.Debug("Successfully scheduled {Count} notifications for schedule {ScheduleId} (next {Days} days)", scheduledCount, scheduleId, daysToSchedule);
+                logger.Debug(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.SuccessfullyScheduledCountForScheduleDays, scheduledCount, scheduleId, daysToSchedule);
             }
             else
             {
-                logger.Warning("No notifications were scheduled for schedule {ScheduleId}. Check alarm schedule configuration.", scheduleId);
+                logger.Warning(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.NoNotificationsScheduledCheckConfiguration, scheduleId);
 
                 // Log additional diagnostic information
                 var scheduledToasts = notifier.GetScheduledToastNotifications();
-                logger.Warning("Total scheduled toasts in system: {TotalCount}. Next fire date was: {NextFireDate}",
+                logger.Warning(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.TotalScheduledToastsNextFireDate,
                     scheduledToasts.Count, schedule.NextFireDate(DateTimeOffset.Now));
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error scheduling notifications for schedule {ScheduleId}", schedule.Id);
+            logger.Error(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ErrorSchedulingNotificationsForSchedule, schedule.Id);
         }
 
         return Task.CompletedTask;
@@ -127,12 +127,12 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             var removedCount = WindowsScheduledToastManager.RemoveAllNotificationsForSchedule(notifier, scheduleId);
             if (removedCount > 0)
             {
-                logger.Information("Removed {Count} scheduled notifications for schedule {ScheduleId}", removedCount, scheduleId);
+                logger.Information(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.RemovedCountScheduledNotificationsForSchedule, removedCount, scheduleId);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error removing notifications for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ErrorRemovingNotificationsForSchedule, scheduleId);
         }
 
         return Task.CompletedTask;
@@ -152,7 +152,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking if notification is scheduled for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ErrorCheckingIfNotificationScheduledForSchedule, scheduleId);
             return Task.FromResult(false);
         }
     }
@@ -163,12 +163,12 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         {
             var tag = scheduleId.ToString();
             ToastNotificationManager.History.Remove(tag, AlarmToastGroup);
-            logger.Debug("Cleared delivered alarm notification for schedule {ScheduleId} from Action Center", scheduleId);
+            logger.Debug(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ClearedDeliveredAlarmFromActionCenter, scheduleId);
         }
         catch (Exception ex)
         {
             // Toast may not be in history (e.g. already dismissed or never shown)
-            logger.Debug(ex, "No delivered alarm toast in history for schedule {ScheduleId} (may already be dismissed)", scheduleId);
+            logger.Debug(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.NoDeliveredAlarmToastInHistory, scheduleId);
         }
 
         return Task.CompletedTask;
@@ -186,7 +186,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             var notifier = GetToastNotifier();
             if (notifier == null)
             {
-                logger.Debug("Cannot dismiss media toast - toast notifier unavailable");
+                logger.Debug(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.CannotDismissMediaToastNotifierUnavailable);
                 return;
             }
 
@@ -195,18 +195,18 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             try
             {
                 ToastNotificationManager.History.Remove("MediaPlayback", "MediaPlayback");
-                logger.Debug("Media toast dismissed and removed from screen");
+                logger.Debug(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.MediaToastDismissedRemovedFromScreen);
             }
             catch (Exception ex)
             {
                 // Toast might not exist in history (e.g., already dismissed or never shown)
                 // This is normal and not an error
-                logger.Debug(ex, "Toast not found in history (may already be dismissed)");
+                logger.Debug(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ToastNotFoundInHistoryMayBeDismissed);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error dismissing media toast notification");
+            logger.Error(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ErrorDismissingMediaToastNotification);
         }
     }
 
@@ -222,7 +222,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             var notifier = GetToastNotifier();
             if (notifier == null)
             {
-                logger.Debug("Cannot show media toast - toast notifier unavailable");
+                logger.Debug(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.CannotShowMediaToastNotifierUnavailable);
                 return;
             }
 
@@ -239,12 +239,12 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
             // Show the toast - Windows will automatically replace any existing toast with the same tag/group
             notifier.Show(toast);
-            logger.Debug("Media toast shown/updated: Title={Title}, Subtitle={Subtitle}, ArtworkUrl={ArtworkUrl}. Clicking toast will activate existing app instance.",
+            logger.Debug(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.MediaToastShownUpdatedClickActivatesApp,
                 title, subtitle, artworkUrl);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error showing media toast notification");
+            logger.Error(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ErrorShowingMediaToastNotification);
         }
     }
 

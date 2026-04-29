@@ -3660,6 +3660,9 @@ public static class AppConstants
 
             public const string FailedRemovingScheduledNotificationForSchedule =
                 "Failed to remove scheduled notification {NotificationId} for schedule {ScheduleId}";
+
+            public const string ExceptionClosingPopupInClear =
+                "Exception occurred while closing popup in Clear()";
         }
 
         /// <summary>Cross-platform chrome toasts/views (iOS/Android/Windows UI helpers).</summary>
@@ -3724,6 +3727,61 @@ public static class AppConstants
         {
             public const string SpinnerCancellationTokenSourceAlreadyDisposed =
                 "ScheduleListItemViewModel: Spinner cancellation token source already disposed";
+        }
+
+        /// <summary>WinUI Action Center + rich media toasts (<c>WindowsNotificationService</c>).</summary>
+        public static class WindowsNotificationServiceDiagnosticsLog
+        {
+            public const string FailedToScheduleNotificationAtFireDate =
+                "Failed to schedule notification for schedule {ScheduleId} at {FireDate}. Error: {ErrorMessage}";
+
+            public const string SuccessfullyScheduledCountForScheduleDays =
+                "Successfully scheduled {Count} notifications for schedule {ScheduleId} (next {Days} days)";
+
+            public const string NoNotificationsScheduledCheckConfiguration =
+                "No notifications were scheduled for schedule {ScheduleId}. Check alarm schedule configuration.";
+
+            public const string TotalScheduledToastsNextFireDate =
+                "Total scheduled toasts in system: {TotalCount}. Next fire date was: {NextFireDate}";
+
+            public const string ErrorSchedulingNotificationsForSchedule =
+                "Error scheduling notifications for schedule {ScheduleId}";
+
+            public const string RemovedCountScheduledNotificationsForSchedule =
+                "Removed {Count} scheduled notifications for schedule {ScheduleId}";
+
+            public const string ErrorRemovingNotificationsForSchedule =
+                "Error removing notifications for schedule {ScheduleId}";
+
+            public const string ErrorCheckingIfNotificationScheduledForSchedule =
+                "Error checking if notification is scheduled for schedule {ScheduleId}";
+
+            public const string ClearedDeliveredAlarmFromActionCenter =
+                "Cleared delivered alarm notification for schedule {ScheduleId} from Action Center";
+
+            public const string NoDeliveredAlarmToastInHistory =
+                "No delivered alarm toast in history for schedule {ScheduleId} (may already be dismissed)";
+
+            public const string CannotDismissMediaToastNotifierUnavailable =
+                "Cannot dismiss media toast - toast notifier unavailable";
+
+            public const string MediaToastDismissedRemovedFromScreen =
+                "Media toast dismissed and removed from screen";
+
+            public const string ToastNotFoundInHistoryMayBeDismissed =
+                "Toast not found in history (may already be dismissed)";
+
+            public const string ErrorDismissingMediaToastNotification =
+                "Error dismissing media toast notification";
+
+            public const string CannotShowMediaToastNotifierUnavailable =
+                "Cannot show media toast - toast notifier unavailable";
+
+            public const string MediaToastShownUpdatedClickActivatesApp =
+                "Media toast shown/updated: Title={Title}, Subtitle={Subtitle}, ArtworkUrl={ArtworkUrl}. Clicking toast will activate existing app instance.";
+
+            public const string ErrorShowingMediaToastNotification =
+                "Error showing media toast notification";
         }
     }
 
