@@ -197,10 +197,10 @@ internal sealed class MagazineCataloger : BaseCataloger
                 if (string.IsNullOrEmpty(name))
                     continue;
 
-                var direction = "ltr";
+                var direction = AppConstants.Media.TextDirectionLeftToRight;
                 if (item.Value.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var dirElement))
                 {
-                    direction = dirElement.GetString() ?? "ltr";
+                    direction = dirElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
                 }
 
                 result[languageCode] = new LanguageInfo(name, direction);
@@ -223,10 +223,10 @@ internal sealed class MagazineCataloger : BaseCataloger
                 if (string.IsNullOrEmpty(name))
                     continue;
 
-                var direction = "ltr";
+                var direction = AppConstants.Media.TextDirectionLeftToRight;
                 if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var dirElement))
                 {
-                    direction = dirElement.GetString() ?? "ltr";
+                    direction = dirElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
                 }
 
                 result[languageCode] = new LanguageInfo(name, direction);

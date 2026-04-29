@@ -95,10 +95,10 @@ internal abstract class BaseCataloger
                     continue;
                 }
 
-                var direction = "ltr";
+                var direction = AppConstants.Media.TextDirectionLeftToRight;
                 if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
                 {
-                    direction = directionElement.GetString() ?? "ltr";
+                    direction = directionElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
                 }
 
                 languageEntries.Add((languageCode, language, direction));
@@ -122,10 +122,10 @@ internal abstract class BaseCataloger
                     continue;
                 }
 
-                var direction = "ltr";
+                var direction = AppConstants.Media.TextDirectionLeftToRight;
                 if (item.Value.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
                 {
-                    direction = directionElement.GetString() ?? "ltr";
+                    direction = directionElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
                 }
 
                 languageEntries.Add((languageCode, language, direction));

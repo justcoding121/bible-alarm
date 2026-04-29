@@ -1,3 +1,5 @@
+using Bible.Alarm.Shared.Constants;
+
 namespace Bible.Alarm.Cataloger.Models;
 
 public class Language
@@ -8,10 +10,10 @@ public class Language
     /// <summary>
     /// Text direction: "ltr" (left-to-right) or "rtl" (right-to-left)
     /// </summary>
-    public string Direction { get; set; } = "ltr";
+    public string Direction { get; set; } = AppConstants.Media.TextDirectionLeftToRight;
 }
 
 /// <summary>
 /// Holds language information during cataloging
 /// </summary>
-public record LanguageInfo(string Name, string Direction = "ltr");
+public record LanguageInfo(string Name, string Direction = AppConstants.Media.TextDirectionLeftToRight);

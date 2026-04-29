@@ -184,11 +184,11 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
                 continue;
             }
 
-            // Extract direction (defaults to "ltr" if not present)
-            var direction = "ltr";
+            // Extract direction (defaults to ltr if not present)
+            var direction = AppConstants.Media.TextDirectionLeftToRight;
             if (item.Value.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
             {
-                direction = directionElement.GetString() ?? "ltr";
+                direction = directionElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
             }
 
             discoveredLanguages[languageCode] = new LanguageInfo(language, direction);

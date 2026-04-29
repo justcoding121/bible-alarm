@@ -151,13 +151,13 @@ internal sealed class LanguageSeeder
                     // Log available properties for debugging
                     var properties = root.EnumerateObject().Select(p => p.Name).ToList();
                     logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint. Got object with properties: {Properties}", string.Join(", ", properties));
-                    return (null, "ltr");
+                    return (null, AppConstants.Media.TextDirectionLeftToRight);
                 }
             }
             else
             {
                 logger.Warning("Expected JSON array or object from /en/languages endpoint, got {ValueKind}", root.ValueKind);
-                return (null, "ltr");
+                return (null, AppConstants.Media.TextDirectionLeftToRight);
             }
 
             // Search for the language by langcode
@@ -191,7 +191,7 @@ internal sealed class LanguageSeeder
                     }
                 }
 
-                var direction = "ltr";
+                var direction = AppConstants.Media.TextDirectionLeftToRight;
                 if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
                 {
                     var dirValue = directionElement.GetString();
@@ -206,12 +206,12 @@ internal sealed class LanguageSeeder
 
             // Language not found in the API response
             logger.Debug("Language {LanguageCode} not found in /en/languages API response", languageCode);
-            return (null, "ltr");
+            return (null, AppConstants.Media.TextDirectionLeftToRight);
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "Failed to fetch language info for {LanguageCode} from /en/languages API, using default ltr", languageCode);
-            return (null, "ltr");
+            return (null, AppConstants.Media.TextDirectionLeftToRight);
         }
     }
 
@@ -331,7 +331,7 @@ internal sealed class LanguageSeeder
                     }
                 }
 
-                var direction = "ltr";
+                var direction = AppConstants.Media.TextDirectionLeftToRight;
                 if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
                 {
                     var dirValue = directionElement.GetString();

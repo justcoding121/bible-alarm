@@ -79,10 +79,10 @@ internal static class MediatorCategoryLanguageExtractor
             // Try to get language info from category.language if available
             if (category.TryGetProperty(AppConstants.Media.PubMediaJson.Language, out var languageElement))
             {
-                var direction = "ltr";
+                var direction = AppConstants.Media.TextDirectionLeftToRight;
                 if (languageElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var dirElement))
                 {
-                    direction = dirElement.GetString() ?? "ltr";
+                    direction = dirElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
                 }
 
                 string? name = null;
@@ -103,7 +103,7 @@ internal static class MediatorCategoryLanguageExtractor
             // They can be updated when fetched on-demand
             foreach (var langCode in languageCodes.Where(c => !languageInfoMap.ContainsKey(c)))
             {
-                languageInfoMap[langCode] = new LanguageInfo(langCode, "ltr");
+                languageInfoMap[langCode] = new LanguageInfo(langCode, AppConstants.Media.TextDirectionLeftToRight);
             }
         }
         catch (Exception ex)
