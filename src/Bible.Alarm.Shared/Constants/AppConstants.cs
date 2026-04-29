@@ -476,6 +476,9 @@ public static class AppConstants
         /// <summary>AAC audio file extension.</summary>
         public const string MediaAacFileExtension = ".aac";
 
+        /// <summary>Default User-Agent for media downloads and remote artwork/metadata HTTP requests.</summary>
+        public const string MediaHttpUserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
+
         /// <summary>JW GETPUB/Mediator JSON files.* stream format key for MP3 (uppercase).</summary>
         public const string MediaStreamFormatMp3 = "MP3";
 

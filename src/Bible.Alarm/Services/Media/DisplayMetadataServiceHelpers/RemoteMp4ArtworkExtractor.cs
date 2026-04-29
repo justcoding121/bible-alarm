@@ -19,7 +19,6 @@ internal sealed class RemoteMp4ArtworkExtractor
     private readonly HttpMessageHandler httpHandler;
     private readonly ILogger logger;
 
-    private const string UserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
     private const int ConnectionTimeoutSeconds = 15;
     private const int HeadChunkSize = 4 * 1024 * 1024;
     private const int TailChunkSize = 2 * 1024 * 1024;
@@ -124,7 +123,7 @@ internal sealed class RemoteMp4ArtworkExtractor
     private static async Task<long?> GetContentLengthAsync(HttpClient client, string url, CancellationToken cancellationToken)
     {
         using var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
-        headRequest.Headers.UserAgent.ParseAdd(UserAgent);
+        headRequest.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
 
         using var headResponse = await client.SendAsync(headRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (headResponse.IsSuccessStatusCode && headResponse.Content.Headers.ContentLength.HasValue)
@@ -139,7 +138,7 @@ internal sealed class RemoteMp4ArtworkExtractor
     private static async Task<long?> GetContentLengthFromRangeRequestAsync(HttpClient client, string url, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd(UserAgent);
+        request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
         request.Headers.Range = new RangeHeaderValue(0, 0);
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -325,7 +324,7 @@ internal sealed class RemoteMp4ArtworkExtractor
     private static async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd(UserAgent);
+        request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
         request.Headers.Range = new RangeHeaderValue(from, to);
 
@@ -419,7 +418,7 @@ internal sealed class RemoteMp4ArtworkExtractor
     private static async Task<byte[]?> FetchSuffixRangeAsync(HttpClient client, string url, int suffixLength, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd(UserAgent);
+        request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
         request.Headers.TryAddWithoutValidation("Range", "bytes=-" + suffixLength);
 

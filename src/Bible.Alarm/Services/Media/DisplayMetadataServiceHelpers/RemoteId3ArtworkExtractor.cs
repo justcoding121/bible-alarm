@@ -21,8 +21,6 @@ internal sealed class RemoteId3ArtworkExtractor
     private readonly HttpMessageHandler httpHandler;
     private readonly ILogger logger;
 
-    // User-Agent string consistent with DownloadService.
-    private const string UserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
     private const int ConnectionTimeoutSeconds = 15;
 
     // ID3v2 header is exactly 10 bytes: "ID3" (3) + version (2) + flags (1) + size (4).
@@ -102,7 +100,7 @@ internal sealed class RemoteId3ArtworkExtractor
     private static async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd(UserAgent);
+        request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
         request.Headers.Range = new RangeHeaderValue(from, to);
 

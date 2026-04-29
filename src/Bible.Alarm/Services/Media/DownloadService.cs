@@ -16,9 +16,6 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
     private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
     private bool isDisposed;
 
-    // User-Agent string to identify the app and prevent 403 errors from servers that block requests without proper User-Agent
-    private const string UserAgent = "BibleAlarm/1.0 (compatible; iOS; MAUI)";
-
     private readonly AsyncRetryPolicy<byte[]> downloadRetryPolicy = Policy<byte[]>
             .Handle<Exception>(ex =>
             {
@@ -156,7 +153,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             {
                 // Try HEAD request first (lightweight)
                 using var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
-                headRequest.Headers.UserAgent.ParseAdd(UserAgent);
+                headRequest.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
                 headRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
                 var headResponse = await client.SendAsync(headRequest, ct);
@@ -174,7 +171,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             try
             {
                 using var getRequest = new HttpRequestMessage(HttpMethod.Get, url);
-                getRequest.Headers.UserAgent.ParseAdd(UserAgent);
+                getRequest.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
                 getRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
                 using var response = await client.SendAsync(getRequest, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -199,7 +196,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
     private async Task<byte[]> DownloadWithStallTimeoutAsync(string url, CancellationToken cancellationToken, Action<long, long?>? progressCallback = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd(UserAgent);
+        request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
         using var client = new HttpClient(handler, false);
@@ -282,7 +279,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             var getRequest = async () =>
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
-                request.Headers.UserAgent.ParseAdd(UserAgent);
+                request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
                 var result = await client.SendAsync(request, ct);
@@ -299,7 +296,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Head, url);
-                request.Headers.UserAgent.ParseAdd(UserAgent);
+                request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
                 var result = await client.SendAsync(request, ct);
