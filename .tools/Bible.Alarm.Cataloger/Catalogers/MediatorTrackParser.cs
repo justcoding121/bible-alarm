@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Text.Json;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Shared.Helpers;
@@ -39,7 +38,7 @@ internal static class MediatorTrackParser
             if (root.TryGetProperty("pubName", out var pubNameElement))
             {
                 var rawName = pubNameElement.GetString();
-                sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
             }
 
             if (!filesElement.TryGetProperty(languageCode, out var languageFiles) ||
@@ -84,18 +83,16 @@ internal static class MediatorTrackParser
                     continue;
                 }
 
-                string title = "Unknown";
+                var title = MediaTrackTitleHelper.UnknownTitle;
                 if (trackFile.TryGetProperty("title", out var titleElement))
                 {
                     if (titleElement.ValueKind == JsonValueKind.String)
                     {
-                        var rawTitle = titleElement.GetString();
-                        title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                        title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
                     }
                     else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty("text", out var titleTextElement))
                     {
-                        var rawTitle = titleTextElement.GetString();
-                        title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                        title = MediaTrackTitleHelper.DecodeHtmlTitle(titleTextElement.GetString());
                     }
                 }
 

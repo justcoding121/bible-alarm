@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Net;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Helpers;
@@ -97,6 +96,6 @@ internal sealed class DisplayMetadataServiceMusicHelper
     {
         if (string.IsNullOrWhiteSpace(rawTitle))
             return null;
-        return WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ').Trim();
+        return MediaTrackTitleHelper.DecodeHtmlTitle(rawTitle).Trim();
     }
 }

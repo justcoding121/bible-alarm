@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -303,7 +302,7 @@ internal class VideoCataloger : BaseCataloger
             {
                 var rawName = nameElement.GetString();
                 // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-                var localizedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                var localizedName = SharedHelpers.MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
                 if (!string.IsNullOrEmpty(localizedName))
                 {
                     lock (localizedNamesLock)
@@ -423,11 +422,10 @@ internal class VideoCataloger : BaseCataloger
             if (string.IsNullOrEmpty(url))
                 continue;
 
-            var title = "Unknown";
+            var title = SharedHelpers.MediaTrackTitleHelper.UnknownTitle;
             if (fileElement.TryGetProperty("title", out var titleElement))
             {
-                var rawTitle = titleElement.GetString();
-                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                title = SharedHelpers.MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
             }
 
             double duration = 0;

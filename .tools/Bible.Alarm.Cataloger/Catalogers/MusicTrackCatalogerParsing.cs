@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text.Json;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Shared.Constants;
@@ -87,7 +86,7 @@ internal static class MusicTrackCatalogParsing
         {
             var rawTitle = titleElement.ValueKind != JsonValueKind.Undefined ? titleElement.GetString() : null;
             // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+            title = MediaTrackTitleHelper.DecodeHtmlTitle(rawTitle);
         }
 
         return true;

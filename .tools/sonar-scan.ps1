@@ -63,12 +63,18 @@ try {
     }
 
     Write-Host "Building solution..." -ForegroundColor Cyan
-    $buildArgs = @("build", $SolutionPath, "--configuration", "Release", "--verbosity", "minimal")
+    # Single-node MSBuild reduces flaky CS2012 (file locked) on Windows when the same library
+    # is built from overlapping graph paths (e.g. multi-target CommunityToolkit).
+    # Use ":1" form and keep switches before the solution so "1" is not parsed as a second project.
+    $buildArgs = @("build", "--configuration", "Release", "--verbosity", "minimal", "--maxcpucount:1", $SolutionPath)
     if (-not $UseSonarCloud) {
         $sarifOut = [System.IO.Path]::GetFullPath((Join-Path $ReportsDir "issues-roslyn.sarif"))
         $buildArgs += "/p:ErrorLog=$sarifOut"
     }
     & dotnet @buildArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet build failed with exit code $LASTEXITCODE"
+    }
 
     if (-not $UseSonarCloud) {
         $sarifFiles = Get-ChildItem -Path $RepoRoot -Recurse -Filter "*.sarif" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notlike "*\obj\*" -and $_.FullName -notlike "*\bin\*" }
@@ -89,6 +95,9 @@ try {
     Write-Host "Running tests with coverage (OpenCover + Cobertura)..." -ForegroundColor Cyan
     dotnet test $TestProjectPath --configuration Release --no-build `
         --collect:"XPlat Code Coverage;Format=opencover,cobertura"
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet test failed with exit code $LASTEXITCODE"
+    }
 
     if ($UseSonarCloud) {
         Write-Host "SonarScanner: end (uploading to SonarCloud)" -ForegroundColor Cyan

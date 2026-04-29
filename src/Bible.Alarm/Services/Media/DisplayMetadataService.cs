@@ -1,5 +1,4 @@
 #nullable enable
-using System.Net;
 using Bible.Alarm.Services.Media.DisplayMetadataServiceHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -291,7 +290,7 @@ public sealed class DisplayMetadataService(
     {
         if (string.IsNullOrWhiteSpace(rawTitle))
             return null;
-        return WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ').Trim();
+        return MediaTrackTitleHelper.DecodeHtmlTitle(rawTitle).Trim();
     }
 
     private async Task TryExtractFileMetadataAsync(MetaData meta, string uri)

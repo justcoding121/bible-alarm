@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -68,14 +67,14 @@ internal sealed class MediatorApiClient
         if (categoryElement.TryGetProperty("name", out var nameElement))
         {
             var rawName = nameElement.GetString();
-            categoryName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            categoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
         }
 
         if (categoryElement.TryGetProperty("parentCategory", out var parentCategoryElement) &&
             parentCategoryElement.TryGetProperty("name", out var parentNameElement))
         {
             var rawParentName = parentNameElement.GetString();
-            parentCategoryName = rawParentName != null ? WebUtility.HtmlDecode(rawParentName).Replace('\u00A0', ' ') : null;
+            parentCategoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawParentName);
         }
 
         if (!string.IsNullOrEmpty(categoryName))
@@ -123,11 +122,10 @@ internal sealed class MediatorApiClient
             if (string.IsNullOrEmpty(url))
                 continue;
 
-            var title = "Unknown";
+            var title = MediaTrackTitleHelper.UnknownTitle;
             if (mediaItem.TryGetProperty("title", out var titleElement))
             {
-                var rawTitle = titleElement.GetString();
-                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
             }
 
             index++;

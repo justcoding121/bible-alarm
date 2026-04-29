@@ -1,6 +1,6 @@
 #nullable enable
 
-using System.Net;
+using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Services.Schedule.ScheduleDisplayNameServiceHelpers;
 
@@ -11,7 +11,7 @@ public static class DisplayNameNormalizer
         if (string.IsNullOrWhiteSpace(rawTitle))
             return null;
 
-        var decoded = WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ').Trim();
+        var decoded = MediaTrackTitleHelper.DecodeHtmlTitle(rawTitle).Trim();
         if (decoded.Length == 0)
             return null;
 
