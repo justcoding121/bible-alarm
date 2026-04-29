@@ -29,7 +29,7 @@ public class WindowsMediaToastEffect(
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var window = Application.Current?.Windows?.FirstOrDefault();
+            var window = Application.Current?.Windows is { Count: > 0 } wins ? wins[0] : null;
             if (window == null)
             {
                 isLifecycleSubscribed = false;
@@ -148,7 +148,7 @@ public class WindowsMediaToastEffect(
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var window = Application.Current?.Windows?.FirstOrDefault();
+            var window = Application.Current?.Windows is { Count: > 0 } wins ? wins[0] : null;
             if (window == null) return;
 
             window.Activated -= OnWindowActivated;

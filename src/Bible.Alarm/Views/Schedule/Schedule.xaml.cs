@@ -163,8 +163,9 @@ public partial class Schedule : BaseContentPage, IDisposable
 #if WINDOWS
         try
         {
-            var nativeWindow = Application.Current?.Windows?.FirstOrDefault()
-                ?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+            var nativeWindow = Application.Current?.Windows is { Count: > 0 } wins
+                ? wins[0].Handler?.PlatformView as Microsoft.UI.Xaml.Window
+                : null;
             if (nativeWindow?.Content is Microsoft.UI.Xaml.FrameworkElement rootElement)
             {
                 rootElement.UpdateLayout();

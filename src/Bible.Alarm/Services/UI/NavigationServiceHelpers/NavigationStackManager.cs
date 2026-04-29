@@ -139,8 +139,9 @@ public static class NavigationStackManager
 #if WINDOWS
         try
         {
-            var nativeWindow = Application.Current?.Windows?.FirstOrDefault()
-                ?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+            var nativeWindow = Application.Current?.Windows is { Count: > 0 } wins
+                ? wins[0].Handler?.PlatformView as Microsoft.UI.Xaml.Window
+                : null;
             if (nativeWindow?.Content is Microsoft.UI.Xaml.UIElement rootElement)
             {
                 rootElement.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;

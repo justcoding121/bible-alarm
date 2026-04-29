@@ -515,7 +515,7 @@ public sealed class PlaybackModalService :
 
         while (elapsed < maxWaitMs)
         {
-            var window = Application.Current?.Windows.FirstOrDefault();
+            var window = Application.Current?.Windows is { Count: > 0 } wins ? wins[0] : null;
             var page = window?.Page;
             if (page?.Handler?.PlatformView != null)
             {

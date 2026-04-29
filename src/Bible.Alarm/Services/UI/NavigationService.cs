@@ -372,8 +372,20 @@ public sealed class NavigationService(
         });
     }
 
-    private static Page? FindPlaybackModalInStack(INavigation navigation) =>
-        navigation.NavigationStack.LastOrDefault(p => p?.GetType() == typeof(Views.General.PlaybackModal));
+    private static Page? FindPlaybackModalInStack(INavigation navigation)
+    {
+        var stack = navigation.NavigationStack;
+        for (var i = stack.Count - 1; i >= 0; i--)
+        {
+            var p = stack[i];
+            if (p?.GetType() == typeof(Views.General.PlaybackModal))
+            {
+                return p;
+            }
+        }
+
+        return null;
+    }
 
     private static async Task AnimatePlaybackModalExitIfNeededAsync(Page playbackPage, bool animated)
     {
