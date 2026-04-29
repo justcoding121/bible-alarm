@@ -6,6 +6,7 @@ using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Support.V4.Media;
 using AndroidX.Core.Content;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 using Color = Android.Graphics.Color;
@@ -26,17 +27,17 @@ public sealed class MediaBrowser(ILogger logger)
     /// </summary>
     public async Task<IList<MediaBrowserCompat.MediaItem>?> LoadChildrenAsync(string parentId, Context? context)
     {
-        logger.Debug("Loading children for parent ID: {ParentId}", parentId);
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.LoadingChildrenForParentId, parentId);
 
         try
         {
             // Wait for bootstrap to complete
             await MauiProgram.WaitForBootstrapAsync();
-            logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.BootstrapCompletedLoadingSchedulesFromStateForParent, parentId);
         }
         catch (Exception bootstrapEx)
         {
-            logger.Warning(bootstrapEx, "Bootstrap not ready or timed out for parent: {ParentId} - returning empty list", parentId);
+            logger.Warning(bootstrapEx, AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.BootstrapNotReadyOrTimedOutForParentReturningEmptyList, parentId);
             return new List<MediaBrowserCompat.MediaItem>();
         }
 
@@ -48,7 +49,7 @@ public sealed class MediaBrowser(ILogger logger)
         }
 
         var mediaItems = CreateMediaItemsFromSchedules(scheduleItems, context);
-        logger.Information("Created {Count} MediaItems for Android Auto", mediaItems.Count);
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.CreatedMediaItemsForAndroidAuto, mediaItems.Count);
         return mediaItems;
     }
 
@@ -59,7 +60,7 @@ public sealed class MediaBrowser(ILogger logger)
     {
         // This method is kept for compatibility but should not be used
         // The async version LoadChildrenAsync should be used instead
-        logger.Debug("LoadChildren called synchronously for parent ID: {ParentId} - returning empty list", parentId);
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.LoadChildrenCalledSynchronouslyForParentReturningEmptyList, parentId);
         return new List<MediaBrowserCompat.MediaItem>();
     }
 
@@ -75,13 +76,13 @@ public sealed class MediaBrowser(ILogger logger)
                 if (mediaItem != null)
                 {
                     mediaItems.Add(mediaItem);
-                    logger.Debug("Added MediaItem for schedule: {ScheduleId} - Title: {Title}",
+                    logger.Debug(AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.AddedMediaItemForScheduleTitle,
                         scheduleItem.Id, AndroidAutoScheduleHelper.BuildScheduleTitle(scheduleItem));
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to create MediaItem for schedule {ScheduleId}", scheduleItem.Id);
+                logger.Warning(ex, AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.FailedToCreateMediaItemForSchedule, scheduleItem.Id);
             }
         }
 
@@ -147,7 +148,7 @@ public sealed class MediaBrowser(ILogger logger)
             }
             else
             {
-                logger.Warning("Failed to create section icon bitmap for schedule {ScheduleId}", scheduleItem.Id);
+                logger.Warning(AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.FailedToCreateSectionIconBitmapForSchedule, scheduleItem.Id);
             }
         }
 
@@ -174,7 +175,7 @@ public sealed class MediaBrowser(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to create section icon bitmap - MediaItems will display without icon");
+            logger.Warning(ex, AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.FailedToCreateSectionIconBitmapItemsWillDisplayWithoutIcon);
             return null;
         }
     }
@@ -184,7 +185,7 @@ public sealed class MediaBrowser(ILogger logger)
         var sectionDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_book_open);
         if (sectionDrawable == null)
         {
-            logger.Warning("Could not get app drawable for section icon");
+            logger.Warning(AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.CouldNotGetAppDrawableForSectionIcon);
         }
         return sectionDrawable;
     }
@@ -209,7 +210,7 @@ public sealed class MediaBrowser(ILogger logger)
     public MediaBrowserCompat.MediaItem? GetMediaItem(string mediaId)
     {
         // This would implement logic to get a specific media item
-        logger.Debug("Getting media item for ID: {MediaId}", mediaId);
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.GettingMediaItemForId, mediaId);
         return null;
     }
 
@@ -219,6 +220,6 @@ public sealed class MediaBrowser(ILogger logger)
     public void Search(string query, Bundle? extras)
     {
         // This would implement search functionality
-        logger.Debug("Searching for: {Query}", query);
+        logger.Debug(AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.SearchingForQuery, query);
     }
 }

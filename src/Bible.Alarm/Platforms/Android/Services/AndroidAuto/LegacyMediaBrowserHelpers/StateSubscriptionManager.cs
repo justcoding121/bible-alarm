@@ -65,7 +65,7 @@ public sealed class StateSubscriptionManager(ILogger logger)
         {
             if (scheduleChangeTracker == null)
             {
-                logger.Debug("OnApplicationStateChanged: scheduleChangeTracker is null, skipping");
+                logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.OnApplicationStateChangedScheduleChangeTrackerNullSkipping);
                 return;
             }
 

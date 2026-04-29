@@ -1213,6 +1213,62 @@ public static class AppConstants
                 "Error initializing bootstrap in LegacyMediaBrowserService";
         }
 
+        /// <summary>Legacy AA browse tree (<c>MediaBrowser</c> helper).</summary>
+        public static class LegacyMediaBrowserBrowseOperationsDiagnosticsLog
+        {
+            public const string LoadingChildrenForParentId =
+                "Loading children for parent ID: {ParentId}";
+
+            public const string BootstrapCompletedLoadingSchedulesFromStateForParent =
+                "Bootstrap completed, loading schedules from state for parent: {ParentId}";
+
+            public const string BootstrapNotReadyOrTimedOutForParentReturningEmptyList =
+                "Bootstrap not ready or timed out for parent: {ParentId} - returning empty list";
+
+            public const string NoSchedulesFoundInStateForParentMayNotBeInitialized =
+                "No schedules found in state for parent: {ParentId} - state may not be initialized yet";
+
+            public const string LoadChildrenCalledSynchronouslyForParentReturningEmptyList =
+                "LoadChildren called synchronously for parent ID: {ParentId} - returning empty list";
+
+            public const string AddedMediaItemForScheduleTitle =
+                "Added MediaItem for schedule: {ScheduleId} - Title: {Title}";
+
+            public const string FailedToCreateMediaItemForSchedule =
+                "Failed to create MediaItem for schedule {ScheduleId}";
+
+            public const string SetSectionIconBitmapForScheduleSize =
+                "Set section icon bitmap for schedule {ScheduleId} - Size: {Width}x{Height}";
+
+            public const string FailedToCreateSectionIconBitmapForSchedule =
+                "Failed to create section icon bitmap for schedule {ScheduleId}";
+
+            public const string CreatedSectionIconBitmapSize =
+                "Created section icon bitmap - Size: {WidthPx}x{HeightPx}";
+
+            public const string FailedToCreateSectionIconBitmapItemsWillDisplayWithoutIcon =
+                "Failed to create section icon bitmap - MediaItems will display without icon";
+
+            public const string CouldNotGetAppDrawableForSectionIcon =
+                "Could not get app drawable for section icon";
+
+            public const string GettingMediaItemForId =
+                "Getting media item for ID: {MediaId}";
+
+            public const string SearchingForQuery =
+                "Searching for: {Query}";
+        }
+
+        /// <summary>Legacy AA MediaBrowser client validation (<c>ClientValidator</c>).</summary>
+        public static class LegacyMediaBrowserClientValidatorDiagnosticsLog
+        {
+            public const string OnGetRootCalledForClient =
+                "✅ OnGetRoot called for client: {ClientPackageName} (UID: {ClientUid})";
+
+            public const string RejectingMediaBrowserClientNonCarHost =
+                "Rejecting MediaBrowser client (non-car host): {ClientPackageName}";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {

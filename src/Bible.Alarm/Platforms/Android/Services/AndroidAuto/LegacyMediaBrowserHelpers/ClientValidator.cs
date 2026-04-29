@@ -1,6 +1,7 @@
 #nullable enable
 using Android.OS;
 using AndroidX.Media;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
@@ -17,13 +18,13 @@ public sealed class ClientValidator(ILogger logger)
     /// </summary>
     public MediaBrowserServiceCompat.BrowserRoot? ValidateClientAndGetRoot(string clientPackageName, int clientUid, Bundle? rootHints)
     {
-        logger.Information("✅ OnGetRoot called for client: {ClientPackageName} (UID: {ClientUid})",
+        logger.Information(AppConstants.Logging.LegacyMediaBrowserClientValidatorDiagnosticsLog.OnGetRootCalledForClient,
             clientPackageName, clientUid);
 
         // Block non-car clients (e.g., Samsung SystemUI) from binding and generating a phone media card.
         if (!IsCarHostPackage(clientPackageName))
         {
-            logger.Information("Rejecting MediaBrowser client (non-car host): {ClientPackageName}", clientPackageName);
+            logger.Information(AppConstants.Logging.LegacyMediaBrowserClientValidatorDiagnosticsLog.RejectingMediaBrowserClientNonCarHost, clientPackageName);
             return null;
         }
 
