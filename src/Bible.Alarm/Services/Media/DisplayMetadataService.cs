@@ -528,7 +528,7 @@ public sealed class DisplayMetadataService(
         }
     }
 
-    private IPicture? FindLargestPicture(IPicture[] pictures)
+    private static IPicture? FindLargestPicture(IPicture[] pictures)
     {
         IPicture? largestPicture = null;
         int largestSize = 0;

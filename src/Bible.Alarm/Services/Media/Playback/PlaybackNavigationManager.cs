@@ -21,13 +21,13 @@ public sealed class PlaybackNavigationManager
         this.logger = logger;
     }
 
-    public bool CanPlayNext(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
+    private static bool CanPlayNext(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
     {
         // Next is always enabled during playback sessions.
         return playlist is not null && playlist.Count > 0;
     }
 
-    public bool CanPlayPrevious(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
+    private static bool CanPlayPrevious(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
     {
         // Previous is always enabled during playback sessions.
         return playlist is not null && playlist.Count > 0;

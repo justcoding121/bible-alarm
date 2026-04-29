@@ -57,7 +57,7 @@ public sealed class SilentMp3Provider(ILogger logger)
     /// <summary>
     /// Gets the file path for the silent MP3 file.
     /// </summary>
-    private string GetSilentMp3FilePath(IStorageService storageService)
+    private static string GetSilentMp3FilePath(IStorageService storageService)
     {
         var resourceFileName = AppConstants.FilePaths.SilentMp3FileName;
         // Use StorageRoot (same directory as schedule database) instead of CacheRoot
