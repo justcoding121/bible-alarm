@@ -972,6 +972,79 @@ public static class AppConstants
                 "MusicCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, section={SectionCode}, track={TrackCode}";
         }
 
+        /// <summary>Category change auto-fill (<c>CategorySelectionAutoPopulateHandler</c>).</summary>
+        public static class CategorySelectionAutoPopulateHandlerDiagnosticsLog
+        {
+            public const string StartingAutoPopulation =
+                "CategorySelectionAutoPopulateHandler: Starting auto-population for category={CategoryName}";
+
+            public const string CurrentScheduleNullSkippingAutoPopulation =
+                "CategorySelectionAutoPopulateHandler: CurrentSchedule is null, skipping auto-population";
+
+            public const string PreservingPreviousLanguageHasPublicationsInCategory =
+                "CategorySelectionAutoPopulateHandler: Preserving previous language={LanguageCode} (has publications in new category={CategoryName})";
+
+            public const string SelectedEnglishLanguageDefaultFallback =
+                "CategorySelectionAutoPopulateHandler: Selected English language (default/fallback)";
+
+            public const string EnglishNotFoundSelectedFirstAvailableLanguage =
+                "CategorySelectionAutoPopulateHandler: English not found, selected first available language={LanguageCode}";
+
+            public const string NoLanguagesFoundForCategory =
+                "CategorySelectionAutoPopulateHandler: No languages found for category={CategoryName}";
+
+            public const string FailedToCatalogPublicationTryingNext =
+                "CategorySelectionAutoPopulateHandler: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next";
+
+            public const string PublicationAlreadyCatalogedWithFirstSectionAndTracks =
+                "CategorySelectionAutoPopulateHandler: Publication={PublicationCode} for language={LanguageCode} already cataloged with first section and tracks";
+
+            public const string SelectedPublicationCatalogedCanQueryWithLanguage =
+                "CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode} (cataloged and can be queried with language={LanguageCode})";
+
+            public const string PublicationCatalogedCannotQueryWithLanguageTryingNext =
+                "CategorySelectionAutoPopulateHandler: Publication={PublicationCode} cataloged but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next";
+
+            public const string SelectedPublicationWithoutLanguageId =
+                "CategorySelectionAutoPopulateHandler: Selected publication without LanguageId={PublicationCode}";
+
+            public const string NoPublicationFoundOrCatalogedForLanguageCategory =
+                "CategorySelectionAutoPopulateHandler: No publication found or cataloged for language={LanguageCode}, category={CategoryName}";
+
+            public const string SelectedPublicationWithoutLanguageFlag =
+                "CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode}, withoutLanguage={WithoutLanguage}";
+
+            public const string SelectedLanguageNullButPublicationRequiresLanguage =
+                "CategorySelectionAutoPopulateHandler: selectedLanguage is null but publication requires language";
+
+            public const string NoValidTrackFoundForPublicationAndLanguage =
+                "CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}, language={LanguageCode}";
+
+            public const string NoValidTrackFoundForPublication =
+                "CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}";
+
+            public const string AutoPopulatedSummary =
+                "CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionCode}, Track={TrackCode}, WithoutLanguage={WithoutLanguage}";
+
+            public const string SettingLanguageEnglishDefaultForPublicationWithoutLanguageId =
+                "CategorySelectionAutoPopulateHandler: Setting language to English default for publication without LanguageId={PublicationCode}";
+
+            public const string NetworkErrorDuringAutoPopulation =
+                "CategorySelectionAutoPopulateHandler: Network error during auto-population for category={CategoryName}";
+
+            public const string ErrorDuringAutoPopulation =
+                "CategorySelectionAutoPopulateHandler: Error during auto-population for category={CategoryName}";
+
+            public const string RevertingToPreviousScheduleStateAfterNetworkError =
+                "CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after network error";
+
+            public const string RevertingToPreviousScheduleStateAfterError =
+                "CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after error";
+
+            public const string ErrorCheckingIfPublicationCataloged =
+                "CategorySelectionAutoPopulateHandler: Error checking if publication {PublicationCode} is cataloged";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {

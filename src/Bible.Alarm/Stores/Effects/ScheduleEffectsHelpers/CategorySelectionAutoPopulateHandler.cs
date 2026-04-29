@@ -75,14 +75,14 @@ public sealed class CategorySelectionAutoPopulateHandler
 
         try
         {
-            logger.Information("CategorySelectionAutoPopulateHandler: Starting auto-population for category={CategoryName}",
+            logger.Information(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.StartingAutoPopulation,
                 action.CategoryName);
 
             // Progress will only be reported when fetches actually happen (via progress tracker)
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
-                logger.Warning("CategorySelectionAutoPopulateHandler: CurrentSchedule is null, skipping auto-population");
+                logger.Warning(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.CurrentScheduleNullSkippingAutoPopulation);
                 return;
             }
 
@@ -102,7 +102,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                     // If the language is present here, it has at least one publication in the category.
                     // Avoid an extra DB query in this hot path.
                     selectedLanguage = previousLanguage;
-                    logger.Debug("CategorySelectionAutoPopulateHandler: Preserving previous language={LanguageCode} (has publications in new category={CategoryName})",
+                    logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.PreservingPreviousLanguageHasPublicationsInCategory,
                         previousLanguageCode, action.CategoryName);
                 }
             }
@@ -113,7 +113,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 if (languages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
                 {
                     selectedLanguage = englishLanguage;
-                    logger.Debug("CategorySelectionAutoPopulateHandler: Selected English language (default/fallback)");
+                    logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedEnglishLanguageDefaultFallback);
                 }
                 else if (languages.Count > 0)
                 {
@@ -121,12 +121,12 @@ public sealed class CategorySelectionAutoPopulateHandler
                     using var langEnumerator = languages.Values.GetEnumerator();
                     _ = langEnumerator.MoveNext();
                     selectedLanguage = langEnumerator.Current;
-                    logger.Debug("CategorySelectionAutoPopulateHandler: English not found, selected first available language={LanguageCode}",
+                    logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.EnglishNotFoundSelectedFirstAvailableLanguage,
                         selectedLanguage.LanguageCode);
                 }
                 else
                 {
-                    logger.Warning("CategorySelectionAutoPopulateHandler: No languages found for category={CategoryName}",
+                    logger.Warning(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NoLanguagesFoundForCategory,
                         action.CategoryName);
                     // Continue anyway - we'll check for publications without LanguageId
                 }
@@ -198,7 +198,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                         
                         if (!isCataloged)
                         {
-                            logger.Debug("CategorySelectionAutoPopulateHandler: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
+                            logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.FailedToCatalogPublicationTryingNext,
                                 pl.PublicationCode, selectedLanguage.LanguageCode);
                             continue;
                         }
@@ -206,7 +206,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                     else
                     {
                         // Publication already cataloged - no fetch needed, so no progress update
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Publication={PublicationCode} for language={LanguageCode} already cataloged with first section and tracks",
+                        logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.PublicationAlreadyCatalogedWithFirstSectionAndTracks,
                             pl.PublicationCode, selectedLanguage.LanguageCode);
                     }
                     
@@ -223,13 +223,13 @@ public sealed class CategorySelectionAutoPopulateHandler
                     {
                         publicationCode = publicationCodeForDb;
                         publicationWithoutLanguage = false;
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode} (cataloged and can be queried with language={LanguageCode})",
+                        logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedPublicationCatalogedCanQueryWithLanguage,
                             publicationCode, selectedLanguage.LanguageCode);
                         break;
                     }
                     else
                     {
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Publication={PublicationCode} cataloged but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
+                        logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.PublicationCatalogedCannotQueryWithLanguageTryingNext,
                             pl.PublicationCode, selectedLanguage.LanguageCode);
                     }
                 }
@@ -254,7 +254,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                     {
                         publicationCode = pubWithoutLanguage.PublicationCode;
                         publicationWithoutLanguage = true;
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Selected publication without LanguageId={PublicationCode}",
+                        logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId,
                             publicationCode);
                     }
                 }
@@ -263,12 +263,12 @@ public sealed class CategorySelectionAutoPopulateHandler
             if (string.IsNullOrEmpty(publicationCode))
             {
                 var languageCodeForWarning = selectedLanguage?.LanguageCode ?? "N/A";
-                logger.Warning("CategorySelectionAutoPopulateHandler: No publication found or cataloged for language={LanguageCode}, category={CategoryName}",
+                logger.Warning(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NoPublicationFoundOrCatalogedForLanguageCategory,
                     languageCodeForWarning, action.CategoryName);
                 return;
             }
 
-            logger.Debug("CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode}, withoutLanguage={WithoutLanguage}",
+            logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageFlag,
                 publicationCode, publicationWithoutLanguage);
 
             // Step 4: Get first section and track for the publication
@@ -293,7 +293,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 // For publications with LanguageId, use the language-based flow
                 if (selectedLanguage == null)
                 {
-                    logger.Warning("CategorySelectionAutoPopulateHandler: selectedLanguage is null but publication requires language");
+                    logger.Warning(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedLanguageNullButPublicationRequiresLanguage);
                     return;
                 }
 
@@ -307,7 +307,7 @@ public sealed class CategorySelectionAutoPopulateHandler
 
                 if (string.IsNullOrEmpty(resultPublicationCode) || string.IsNullOrWhiteSpace(resultTrackCode))
                 {
-                    logger.Warning("CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}, language={LanguageCode}",
+                    logger.Warning(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NoValidTrackFoundForPublicationAndLanguage,
                         publicationCode, selectedLanguage.LanguageCode);
                     return;
                 }
@@ -323,13 +323,13 @@ public sealed class CategorySelectionAutoPopulateHandler
 
             if (string.IsNullOrWhiteSpace(trackCode))
             {
-                logger.Warning("CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}",
+                logger.Warning(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NoValidTrackFoundForPublication,
                     publicationCode);
                 return;
             }
 
             var languageCodeForLog = publicationWithoutLanguage ? "N/A" : (selectedLanguage?.LanguageCode ?? "N/A");
-            logger.Information("CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionCode}, Track={TrackCode}, WithoutLanguage={WithoutLanguage}",
+            logger.Information(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.AutoPopulatedSummary,
                 languageCodeForLog, publicationCode, sectionCode, trackCode, publicationWithoutLanguage);
 
             // Step 6: Update schedule with selected values
@@ -350,7 +350,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 updatedSchedule.BiblePublicationLanguageCode = AppConstants.Media.DefaultLanguageCode;
                 updatedSchedule.BiblePublicationLanguageName = null;
                 updatedSchedule.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
-                logger.Debug("CategorySelectionAutoPopulateHandler: Setting language to English default for publication without LanguageId={PublicationCode}",
+                logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SettingLanguageEnglishDefaultForPublicationWithoutLanguageId,
                     publicationCode);
             }
             else if (selectedLanguage != null)
@@ -385,27 +385,27 @@ public sealed class CategorySelectionAutoPopulateHandler
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
-            logger.Warning(ex, "CategorySelectionAutoPopulateHandler: Network error during auto-population for category={CategoryName}",
+            logger.Warning(ex, AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NetworkErrorDuringAutoPopulation,
                 action.CategoryName);
             WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
                 new CategoryFetchProgress { CategoryId = action.CategoryId, Progress = 0, IsComplete = true, HasError = true }));
 
             if (action.PreviousScheduleSnapshot != null)
             {
-                logger.Information("CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after network error");
+                logger.Information(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.RevertingToPreviousScheduleStateAfterNetworkError);
                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(action.PreviousScheduleSnapshot, true, true, shouldSave: false));
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "CategorySelectionAutoPopulateHandler: Error during auto-population for category={CategoryName}",
+            logger.Error(ex, AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.ErrorDuringAutoPopulation,
                 action.CategoryName);
             WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
                 new CategoryFetchProgress { CategoryId = action.CategoryId, Progress = 0, IsComplete = true, HasError = true }));
 
             if (action.PreviousScheduleSnapshot != null)
             {
-                logger.Information("CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after error");
+                logger.Information(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.RevertingToPreviousScheduleStateAfterError);
                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(action.PreviousScheduleSnapshot, true, true, shouldSave: false));
             }
         }

@@ -77,7 +77,7 @@ public static class CategorySelectionAutoPopulateCatalogCheck
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "CategorySelectionAutoPopulateHandler: Error checking if publication {PublicationCode} is cataloged", publicationCode);
+            logger.Warning(ex, AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.ErrorCheckingIfPublicationCataloged, publicationCode);
             return false;
         }
     }
