@@ -820,6 +820,85 @@ public static class AppConstants
                 "SaveCommand: Save failed, hiding overlay. ScheduleId={ScheduleId}";
         }
 
+        /// <summary>Schedule save prep (<c>ScheduleSaveService</c>).</summary>
+        public static class ScheduleSaveServiceDiagnosticsLog
+        {
+            public const string PrepareModelForSaveStarting =
+                "PrepareModelForSave: Starting. musicUpdated={MusicUpdated}, IsNewSchedule={IsNewSchedule}";
+
+            public const string PrepareModelForSaveCurrentScheduleState =
+                "PrepareModelForSave: CurrentSchedule state - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicId={MusicId}, NumberOfTracksToPlay={NumberOfTracksToPlay}, AlwaysPlayFromStart={AlwaysPlayFromStart}";
+
+            public const string PrepareModelForSaveAfterMapping =
+                "PrepareModelForSave: After mapping - model.NumberOfTracksToPlay={NumberOfTracksToPlay}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}";
+
+            public const string PrepareModelForSaveAfterGetModel =
+                "PrepareModelForSave: After GetModel() - model.Music={HasMusic}, model.Music?.TrackCode={TrackCode}, model.Music?.PublicationCode={PublicationCode}, model.Music?.LanguageCode={LanguageCode}";
+
+            public const string PrepareModelForSaveMusicUpdatedUpdatingFromState =
+                "PrepareModelForSave: musicUpdated=true, updating model.Music from state";
+
+            public const string PrepareModelForSaveModelMusicNullCreatingNew =
+                "PrepareModelForSave: model.Music is null, creating new AlarmMusic from state";
+
+            public const string PrepareModelForSaveCreatedModelMusicFromState =
+                "PrepareModelForSave: Created model.Music from state. TrackCode={TrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+
+            public const string PrepareModelForSaveUpdatedModelMusicFromState =
+                "PrepareModelForSave: Updated model.Music from state. Old TrackCode={OldTrackCode} -> New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+
+            public const string PrepareModelForSaveMusicUpdatedInvalidMusicProperties =
+                "PrepareModelForSave: musicUpdated=true but CurrentSchedule music properties are invalid. MusicPublicationCode={PublicationCode}, MusicTrackCode={TrackCode}";
+
+            public const string PrepareModelForSaveMusicUpdatedFalseSkippingMusicUpdate =
+                "PrepareModelForSave: musicUpdated=false, skipping music update";
+
+            public const string PrepareModelForSaveMusicPublicationDisabledMusic =
+                "PrepareModelForSave: Music publication selected - disabled music and cleared music data";
+
+            public const string PrepareModelForSaveSetMusicEnabledFromState =
+                "PrepareModelForSave: Set model.MusicEnabled={MusicEnabled} from CurrentSchedule state";
+
+            public const string PrepareModelForSaveFinalModel =
+                "PrepareModelForSave: Final model - Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, MusicEnabled={MusicEnabled}, TrackCode={TrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}";
+
+            public const string SaveAsyncBiblePublicationEmptyPublicationCodeDefaultingNwt =
+                "SaveAsync: BiblePublicationSchedule has empty PublicationCode, defaulting to 'nwt' (2013)";
+
+            public const string SaveAsyncMusicNullExistingScheduleNotUpdated =
+                "SaveAsync: Music set to null for existing schedule (not updated)";
+
+            public const string PrepareScheduleStateItemStarting =
+                "PrepareScheduleStateItem: Starting. IsNewSchedule={IsNewSchedule}, MusicUpdated={MusicUpdated}";
+
+            public const string PrepareScheduleStateItemMusicPublicationDisabledMusic =
+                "PrepareScheduleStateItem: Music publication selected - disabled music and cleared music data";
+
+            public const string PrepareScheduleStateItemSetMusicEnabledTracksAlwaysPlayFromStart =
+                "PrepareScheduleStateItem: Set scheduleStateItem.MusicEnabled={MusicEnabled}, NumberOfTracksToPlay={NumberOfTracksToPlay}, and AlwaysPlayFromStart={AlwaysPlayFromStart} from CurrentSchedule state";
+
+            public const string PrepareScheduleStateItemPreservedDisplayNames =
+                "PrepareScheduleStateItem: Preserved display names from CurrentSchedule state. BiblePublicationLanguageName={LanguageName}, BiblePublicationName={PublicationName}, MusicTrackName={MusicTrackName}";
+
+            public const string PrepareScheduleStateItemMusicUpdatedOverridingWithCurrentSchedule =
+                "PrepareScheduleStateItem: musicUpdated=true, overriding with CurrentSchedule state";
+
+            public const string PrepareScheduleStateItemOverrodeMusicPropertiesFromCurrentSchedule =
+                "PrepareScheduleStateItem: Overrode music properties from CurrentSchedule state. TrackCode={TrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}, Repeat={Repeat}";
+
+            public const string PrepareScheduleStateItemMusicUpdatedInvalidMusicProperties =
+                "PrepareScheduleStateItem: musicUpdated=true but CurrentSchedule music properties are invalid. MusicPublicationCode={PublicationCode}, MusicTrackCode={TrackCode}";
+
+            public const string PrepareScheduleStateItemUsingMusicPropertiesNoDbQuery =
+                "PrepareScheduleStateItem: Using music properties from CurrentSchedule state (no DB query)";
+
+            public const string PrepareScheduleStateItemPreservedMusicPropertiesFromCurrentScheduleState =
+                "PrepareScheduleStateItem: Preserved music properties from current schedule state. PublicationCode={PublicationCode}, TrackCode={TrackCode}";
+
+            public const string PrepareScheduleStateItemFinalBeforeDispatch =
+                "PrepareScheduleStateItem: Final scheduleStateItem before dispatch - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicId={MusicId}";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {
