@@ -96,7 +96,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                             intent.SetData(uri);
                             intent.SetFlags(ActivityFlags.NewTask);
                             AndroidApplication.Context.StartActivity(intent);
-                            logger.Information("Successfully opened Android app settings");
+                            logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.SuccessfullyOpenedAndroidAppSettings);
                         }
                         catch (Exception ex)
                         {
@@ -123,7 +123,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             // Prevent double-dismiss (race between timer polling and OnPermissionGranted event)
             if (isDismissing)
             {
-                logger.Debug("DismissCommand: Already dismissing, skipping duplicate call");
+                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.DismissCommandAlreadyDismissingSkippingDuplicate);
                 return;
             }
             isDismissing = true;
@@ -169,7 +169,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
     {
         try
         {
-            logger.Debug("Checking notification permission status...");
+            logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.CheckingNotificationPermissionStatus);
             var wasGranted = IsNotificationPermissionGranted;
 
 #if ANDROID
@@ -186,7 +186,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             }
 #endif
 
-            logger.Debug("Permission check completed - Granted: {IsGranted} (was {WasGranted})",
+            logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckCompletedGrantedWasGranted,
                 IsNotificationPermissionGranted, wasGranted);
         }
         catch (Exception ex)
@@ -200,7 +200,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         // Stop any existing timer before starting a new one
         StopPermissionCheckTimer();
 
-        logger.Debug("Starting permission check timer for notification permission modal");
+        logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.StartingPermissionCheckTimerForModal);
 
 #if ANDROID
         if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
@@ -226,7 +226,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #if IOS
         _ = RefreshCanShowSystemPromptAsync();
 #endif
-        logger.Debug("Permission check timer started successfully");
+        logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckTimerStartedSuccessfully);
     }
 
 #if IOS
@@ -273,7 +273,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                     {
                         IsNotificationPermissionGranted = result;
                         CanShowSystemPrompt = canShow;
-                        logger.Debug("Permission check (async) completed - Granted: {IsGranted}, CanShowPrompt: {CanShow} (was {WasGranted})",
+                        logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckAsyncCompletedGrantedCanShowWasGranted,
                             IsNotificationPermissionGranted, canShow, wasGranted);
                         if (!wasGranted && IsNotificationPermissionGranted)
                         {
@@ -320,7 +320,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             return;
         }
 
-        logger.Information("Permission granted detected by polling - scheduling auto-dismiss");
+        logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionGrantedDetectedByPollingSchedulingAutoDismiss);
         
         // Use MainThread.InvokeOnMainThreadAsync to ensure dismiss runs on main thread
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
@@ -342,7 +342,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 
     private void OnPermissionGranted(object? sender, EventArgs e)
     {
-        logger.Information("Notification permission granted event received");
+        logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.NotificationPermissionGrantedEventReceived);
         MainThread.BeginInvokeOnMainThread(async () =>
         {
             // Update permission status immediately
@@ -351,7 +351,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             // If permission is now granted, auto-dismiss the modal after a short delay
             if (IsNotificationPermissionGranted)
             {
-                logger.Information("Permission granted - auto-dismissing modal in 1 second");
+                logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionGrantedAutoDismissingModalInOneSecond);
                 await Task.Delay(1000);
                 
                 // Double-check permission status and dismissing flag before dismissing
@@ -367,7 +367,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 
     private void OnPermissionDenied(object? sender, EventArgs e)
     {
-        logger.Information("Notification permission denied event received");
+        logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.NotificationPermissionDeniedEventReceived);
         MainThread.BeginInvokeOnMainThread(() =>
         {
             CheckPermissionStatus();

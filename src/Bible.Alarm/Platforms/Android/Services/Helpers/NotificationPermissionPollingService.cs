@@ -49,7 +49,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
     {
         if (isRunning)
         {
-            logger.Debug("Permission polling already running - stopping existing task");
+            logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionPollingAlreadyRunningStoppingExistingTask);
             Stop();
         }
 
@@ -65,7 +65,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
             {
                 justRequestedPermission = true;
                 await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
-                logger.Debug("Permission request completed");
+                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionRequestCompleted);
             }
             catch (Exception ex)
             {
@@ -92,7 +92,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
                     var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
                     var currentValue = GetCurrentValue?.Invoke() ?? false;
 
-                    logger.Debug("Permission check: granted={Granted}, currentNotificationEnabled={Current}", granted, currentValue);
+                    logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckGrantedCurrentNotificationEnabled, granted, currentValue);
 
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
@@ -106,14 +106,14 @@ public sealed class NotificationPermissionPollingService : IDisposable
                             // Permission granted - toggle ON (internal update, not user action)
                             if (!currentValue)
                             {
-                                logger.Information("Notification permission granted - updating toggle to ON. Current value: {Current}", currentValue);
+                                logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.NotificationPermissionGrantedUpdatingToggleOnCurrentValue, currentValue);
                                 OnPermissionGranted?.Invoke(currentValue);
                                 SetValue?.Invoke(true);
                             }
                             else
                             {
                                 // Permission granted and toggle already ON - task is no longer needed
-                                logger.Debug("Permission granted and NotificationEnabled already true - stopping task");
+                                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionGrantedNotificationEnabledAlreadyTrueStoppingTask);
                                 cancellationTokenSource?.Cancel();
                                 return;
                             }
@@ -127,11 +127,11 @@ public sealed class NotificationPermissionPollingService : IDisposable
                                 // Give the user time to respond to the permission dialog
                                 if (justRequestedPermission)
                                 {
-                                    logger.Debug("Permission denied but we just requested permission - waiting for user response before flipping toggle");
+                                    logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionDeniedJustRequestedWaitingBeforeFlipToggle);
                                 }
                                 else
                                 {
-                                    logger.Information("Notification permission denied - updating toggle to OFF. Current value: {Current}", currentValue);
+                                    logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.NotificationPermissionDeniedUpdatingToggleOffCurrentValue, currentValue);
                                     OnPermissionDenied?.Invoke(currentValue);
                                     
                                     // Only show toast when we actually flip the toggle back to OFF
@@ -147,7 +147,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
                             }
                             else
                             {
-                                logger.Debug("Permission denied but NotificationEnabled already false - no update needed");
+                                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionDeniedNotificationEnabledAlreadyFalseNoUpdateNeeded);
                             }
                         }
                     });
@@ -158,7 +158,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
             }
             catch (OperationCanceledException)
             {
-                logger.Debug("Permission check task cancelled");
+                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckTaskCancelled);
             }
             catch (Exception ex)
             {
@@ -185,7 +185,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
             cancellationTokenSource.Dispose();
             cancellationTokenSource = null;
             isRunning = false;
-            logger.Debug("Stopped permission check task");
+            logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.StoppedPermissionCheckTask);
         }
     }
 

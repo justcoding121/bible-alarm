@@ -561,6 +561,69 @@ public static class AppConstants
 
             public const string ErrorInPermissionCheckTask =
                 "Error in permission check task";
+
+            public const string PermissionPollingAlreadyRunningStoppingExistingTask =
+                "Permission polling already running - stopping existing task";
+
+            public const string PermissionRequestCompleted =
+                "Permission request completed";
+
+            public const string PermissionCheckGrantedCurrentNotificationEnabled =
+                "Permission check: granted={Granted}, currentNotificationEnabled={Current}";
+
+            public const string NotificationPermissionGrantedUpdatingToggleOnCurrentValue =
+                "Notification permission granted - updating toggle to ON. Current value: {Current}";
+
+            public const string PermissionGrantedNotificationEnabledAlreadyTrueStoppingTask =
+                "Permission granted and NotificationEnabled already true - stopping task";
+
+            public const string PermissionDeniedJustRequestedWaitingBeforeFlipToggle =
+                "Permission denied but we just requested permission - waiting for user response before flipping toggle";
+
+            public const string NotificationPermissionDeniedUpdatingToggleOffCurrentValue =
+                "Notification permission denied - updating toggle to OFF. Current value: {Current}";
+
+            public const string PermissionDeniedNotificationEnabledAlreadyFalseNoUpdateNeeded =
+                "Permission denied but NotificationEnabled already false - no update needed";
+
+            public const string PermissionCheckTaskCancelled =
+                "Permission check task cancelled";
+
+            public const string StoppedPermissionCheckTask =
+                "Stopped permission check task";
+
+            public const string SuccessfullyOpenedAndroidAppSettings =
+                "Successfully opened Android app settings";
+
+            public const string DismissCommandAlreadyDismissingSkippingDuplicate =
+                "DismissCommand: Already dismissing, skipping duplicate call";
+
+            public const string CheckingNotificationPermissionStatus =
+                "Checking notification permission status...";
+
+            public const string PermissionCheckCompletedGrantedWasGranted =
+                "Permission check completed - Granted: {IsGranted} (was {WasGranted})";
+
+            public const string StartingPermissionCheckTimerForModal =
+                "Starting permission check timer for notification permission modal";
+
+            public const string PermissionCheckTimerStartedSuccessfully =
+                "Permission check timer started successfully";
+
+            public const string PermissionCheckAsyncCompletedGrantedCanShowWasGranted =
+                "Permission check (async) completed - Granted: {IsGranted}, CanShowPrompt: {CanShow} (was {WasGranted})";
+
+            public const string PermissionGrantedDetectedByPollingSchedulingAutoDismiss =
+                "Permission granted detected by polling - scheduling auto-dismiss";
+
+            public const string NotificationPermissionGrantedEventReceived =
+                "Notification permission granted event received";
+
+            public const string PermissionGrantedAutoDismissingModalInOneSecond =
+                "Permission granted - auto-dismissing modal in 1 second";
+
+            public const string NotificationPermissionDeniedEventReceived =
+                "Notification permission denied event received";
         }
 
         /// <summary>Battery optimization modal persistence checks.</summary>
