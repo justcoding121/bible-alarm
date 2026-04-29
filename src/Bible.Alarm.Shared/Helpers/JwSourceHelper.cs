@@ -58,7 +58,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> MusicFlagPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "ChildrenSongs",
+        AppConstants.Media.MediatorCategoryKeyChildrenSongs,
         "SeriesBJFSongs"
     };
 
@@ -133,34 +133,34 @@ public static class JwSourceHelper
         "StudioTalks",
         "StudioNewsReports",
         "BJF",
-        "ChildrenSongs",
-        "ChildrenMovies",
-        "TeenSpiritualGrowth",
-        "TeenSocialLife",
-        "TeenGoals",
-        "TeenWhatPeersSay",
+        AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+        AppConstants.Media.MediatorCategoryKeyChildrenMovies,
+        AppConstants.Media.MediatorCategoryKeyTeenSpiritualGrowth,
+        AppConstants.Media.MediatorCategoryKeyTeenSocialLife,
+        AppConstants.Media.MediatorCategoryKeyTeenGoals,
+        AppConstants.Media.MediatorCategoryKeyTeenWhatPeersSay,
         AppConstants.Media.BiblePublicationCodeSeriesWhatPeersSay,
-        "TeenMovies",
+        AppConstants.Media.MediatorCategoryKeyTeenMovies,
         "FamilyChallenges",
         "FamilyDatingMarriage",
-        "FamilyWorship",
-        "FamilyMovies",
+        AppConstants.Media.MediatorCategoryKeyFamilyWorship,
+        AppConstants.Media.MediatorCategoryKeyFamilyMovies,
         "VODPgmEvtMorningWorship",
         "VODPgmEvtSpecial",
         "VODPgmEvtGilead",
         "VODPgmEvtAnnMtg",
-        "2025Convention",
-        "2024Convention",
-        "2023Convention",
-        "2022Convention",
-        "2021Convention",
-        "2020Convention",
-        "2019Convention",
-        "2018Convention",
-        "2017Convention",
-        "2016Convention",
-        "2015Convention",
-        "2014Convention",
+        AppConstants.Media.MediatorCategoryKey2025Convention,
+        AppConstants.Media.MediatorCategoryKey2024Convention,
+        AppConstants.Media.MediatorCategoryKey2023Convention,
+        AppConstants.Media.MediatorCategoryKey2022Convention,
+        AppConstants.Media.MediatorCategoryKey2021Convention,
+        AppConstants.Media.MediatorCategoryKey2020Convention,
+        AppConstants.Media.MediatorCategoryKey2019Convention,
+        AppConstants.Media.MediatorCategoryKey2018Convention,
+        AppConstants.Media.MediatorCategoryKey2017Convention,
+        AppConstants.Media.MediatorCategoryKey2016Convention,
+        AppConstants.Media.MediatorCategoryKey2015Convention,
+        AppConstants.Media.MediatorCategoryKey2014Convention,
         "VODActivitiesTranslation",
         "VODActivitiesAVProduction",
         "VODActivitiesPrintingShipping",
@@ -179,7 +179,7 @@ public static class JwSourceHelper
         "VODOrgHistory",
         "VODOrgLegal",
         "VODOrgBloodlessMedicine",
-        "BibleBooks",
+        AppConstants.Media.MediatorCategoryKeyBibleBooks,
         "VODBibleReadingStudy",
         "VODBibleTeachings",
         "VODBibleAccounts",
@@ -191,7 +191,7 @@ public static class JwSourceHelper
         "SeriesBibleTeachings",
         "SeriesHappyMarriage",
         "SeriesImitateFaith",
-        "SeriesBibleBooks",
+        AppConstants.Media.MediatorCategoryKeySeriesBibleBooks,
         "SeriesIronSharpens",
         "SeriesJehovahsFriends",
         "SeriesLearnFromThem",
@@ -258,7 +258,7 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> FaithAndBiblePublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "BibleBooks",
+        AppConstants.Media.MediatorCategoryKeyBibleBooks,
         "VODBibleReadingStudy",
         "VODBibleTeachings",
         "VODBibleAccounts",
@@ -309,8 +309,8 @@ public static class JwSourceHelper
     {
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "BJF",
-        "ChildrenSongs",
-        "ChildrenMovies"
+        AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+        AppConstants.Media.MediatorCategoryKeyChildrenMovies
     };
 
     /// <summary>
@@ -320,8 +320,8 @@ public static class JwSourceHelper
     {
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "BJF",
-        "ChildrenSongs",
-        "ChildrenMovies"
+        AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+        AppConstants.Media.MediatorCategoryKeyChildrenMovies
     };
 
     /// <summary>
@@ -331,8 +331,8 @@ public static class JwSourceHelper
     {
         "FamilyChallenges",
         "FamilyDatingMarriage",
-        "FamilyWorship",
-        "FamilyMovies"
+        AppConstants.Media.MediatorCategoryKeyFamilyWorship,
+        AppConstants.Media.MediatorCategoryKeyFamilyMovies
     };
 
     /// <summary>
@@ -369,18 +369,18 @@ public static class JwSourceHelper
         "VODPgmEvtSpecial",
         "VODPgmEvtGilead",
         "VODPgmEvtAnnMtg",
-        "2025Convention",
-        "2024Convention",
-        "2023Convention",
-        "2022Convention",
-        "2021Convention",
-        "2020Convention",
-        "2019Convention",
-        "2018Convention",
-        "2017Convention",
-        "2016Convention",
-        "2015Convention",
-        "2014Convention"
+        AppConstants.Media.MediatorCategoryKey2025Convention,
+        AppConstants.Media.MediatorCategoryKey2024Convention,
+        AppConstants.Media.MediatorCategoryKey2023Convention,
+        AppConstants.Media.MediatorCategoryKey2022Convention,
+        AppConstants.Media.MediatorCategoryKey2021Convention,
+        AppConstants.Media.MediatorCategoryKey2020Convention,
+        AppConstants.Media.MediatorCategoryKey2019Convention,
+        AppConstants.Media.MediatorCategoryKey2018Convention,
+        AppConstants.Media.MediatorCategoryKey2017Convention,
+        AppConstants.Media.MediatorCategoryKey2016Convention,
+        AppConstants.Media.MediatorCategoryKey2015Convention,
+        AppConstants.Media.MediatorCategoryKey2014Convention
     };
 
     /// <summary>
@@ -395,7 +395,7 @@ public static class JwSourceHelper
         "SeriesBibleTeachings",
         "SeriesHappyMarriage",
         "SeriesImitateFaith",
-        "SeriesBibleBooks",
+        AppConstants.Media.MediatorCategoryKeySeriesBibleBooks,
         "SeriesIronSharpens",
         "SeriesJehovahsFriends",
         "SeriesLearnFromThem",
@@ -428,7 +428,7 @@ public static class JwSourceHelper
         "SeriesBibleTeachings",
         "SeriesHappyMarriage",
         "SeriesImitateFaith",
-        "SeriesBibleBooks",
+        AppConstants.Media.MediatorCategoryKeySeriesBibleBooks,
         "SeriesIronSharpens",
         "SeriesJehovahsFriends",
         "SeriesLearnFromThem",
@@ -588,11 +588,11 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> TeenagersPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "TeenSpiritualGrowth",
-        "TeenSocialLife",
-        "TeenGoals",
-        "TeenWhatPeersSay",
-        "TeenMovies"
+        AppConstants.Media.MediatorCategoryKeyTeenSpiritualGrowth,
+        AppConstants.Media.MediatorCategoryKeyTeenSocialLife,
+        AppConstants.Media.MediatorCategoryKeyTeenGoals,
+        AppConstants.Media.MediatorCategoryKeyTeenWhatPeersSay,
+        AppConstants.Media.MediatorCategoryKeyTeenMovies
     };
 
     /// <summary>

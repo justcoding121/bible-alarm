@@ -144,9 +144,27 @@ internal sealed class MediatorApiClient
     /// </summary>
     private static readonly HashSet<string> AggregatorCategoryKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "2014Convention", "2015Convention", "2016Convention", "2017Convention", "2018Convention",
-        "2019Convention", "2020Convention", "2021Convention", "2022Convention", "2023Convention", "2024Convention", "2025Convention",
-        "ChildrenMovies", "ChildrenSongs", "FamilyMovies", "FamilyWorship", "TeenMovies", "TeenSocialLife", "TeenGoals", "TeenSpiritualGrowth", "TeenWhatPeersSay",
+        AppConstants.Media.MediatorCategoryKey2014Convention,
+        AppConstants.Media.MediatorCategoryKey2015Convention,
+        AppConstants.Media.MediatorCategoryKey2016Convention,
+        AppConstants.Media.MediatorCategoryKey2017Convention,
+        AppConstants.Media.MediatorCategoryKey2018Convention,
+        AppConstants.Media.MediatorCategoryKey2019Convention,
+        AppConstants.Media.MediatorCategoryKey2020Convention,
+        AppConstants.Media.MediatorCategoryKey2021Convention,
+        AppConstants.Media.MediatorCategoryKey2022Convention,
+        AppConstants.Media.MediatorCategoryKey2023Convention,
+        AppConstants.Media.MediatorCategoryKey2024Convention,
+        AppConstants.Media.MediatorCategoryKey2025Convention,
+        AppConstants.Media.MediatorCategoryKeyChildrenMovies,
+        AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+        AppConstants.Media.MediatorCategoryKeyFamilyMovies,
+        AppConstants.Media.MediatorCategoryKeyFamilyWorship,
+        AppConstants.Media.MediatorCategoryKeyTeenMovies,
+        AppConstants.Media.MediatorCategoryKeyTeenSocialLife,
+        AppConstants.Media.MediatorCategoryKeyTeenGoals,
+        AppConstants.Media.MediatorCategoryKeyTeenSpiritualGrowth,
+        AppConstants.Media.MediatorCategoryKeyTeenWhatPeersSay,
         AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
         AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
         AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
@@ -178,8 +196,8 @@ internal sealed class MediatorApiClient
             return true;
         }
 
-        if (string.Equals(categoryKey, "BibleBooks", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(primaryCat, "SeriesBibleBooks", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(categoryKey, AppConstants.Media.MediatorCategoryKeyBibleBooks, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(primaryCat, AppConstants.Media.MediatorCategoryKeySeriesBibleBooks, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

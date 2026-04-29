@@ -441,6 +441,75 @@ public static class AppConstants
         /// <summary>JW catalog category code: Article series.</summary>
         public const string BiblePublicationCategoryArticleSeries = "ArticleSeries";
 
+        /// <summary>Mediator API category key (2014 regional convention).</summary>
+        public const string MediatorCategoryKey2014Convention = "2014Convention";
+
+        /// <summary>Mediator API category key (2015 regional convention).</summary>
+        public const string MediatorCategoryKey2015Convention = "2015Convention";
+
+        /// <summary>Mediator API category key (2016 regional convention).</summary>
+        public const string MediatorCategoryKey2016Convention = "2016Convention";
+
+        /// <summary>Mediator API category key (2017 regional convention).</summary>
+        public const string MediatorCategoryKey2017Convention = "2017Convention";
+
+        /// <summary>Mediator API category key (2018 regional convention).</summary>
+        public const string MediatorCategoryKey2018Convention = "2018Convention";
+
+        /// <summary>Mediator API category key (2019 regional convention).</summary>
+        public const string MediatorCategoryKey2019Convention = "2019Convention";
+
+        /// <summary>Mediator API category key (2020 regional convention).</summary>
+        public const string MediatorCategoryKey2020Convention = "2020Convention";
+
+        /// <summary>Mediator API category key (2021 regional convention).</summary>
+        public const string MediatorCategoryKey2021Convention = "2021Convention";
+
+        /// <summary>Mediator API category key (2022 regional convention).</summary>
+        public const string MediatorCategoryKey2022Convention = "2022Convention";
+
+        /// <summary>Mediator API category key (2023 regional convention).</summary>
+        public const string MediatorCategoryKey2023Convention = "2023Convention";
+
+        /// <summary>Mediator API category key (2024 regional convention).</summary>
+        public const string MediatorCategoryKey2024Convention = "2024Convention";
+
+        /// <summary>Mediator API category key (2025 regional convention).</summary>
+        public const string MediatorCategoryKey2025Convention = "2025Convention";
+
+        /// <summary>Mediator API aggregator category key (children).</summary>
+        public const string MediatorCategoryKeyChildrenMovies = "ChildrenMovies";
+
+        /// <summary>Mediator API aggregator category key (children).</summary>
+        public const string MediatorCategoryKeyChildrenSongs = "ChildrenSongs";
+
+        /// <summary>Mediator API aggregator category key (family).</summary>
+        public const string MediatorCategoryKeyFamilyMovies = "FamilyMovies";
+
+        /// <summary>Mediator API aggregator category key (family).</summary>
+        public const string MediatorCategoryKeyFamilyWorship = "FamilyWorship";
+
+        /// <summary>Mediator API aggregator category key (teen).</summary>
+        public const string MediatorCategoryKeyTeenMovies = "TeenMovies";
+
+        /// <summary>Mediator API aggregator category key (teen).</summary>
+        public const string MediatorCategoryKeyTeenSocialLife = "TeenSocialLife";
+
+        /// <summary>Mediator API aggregator category key (teen).</summary>
+        public const string MediatorCategoryKeyTeenGoals = "TeenGoals";
+
+        /// <summary>Mediator API aggregator category key (teen).</summary>
+        public const string MediatorCategoryKeyTeenSpiritualGrowth = "TeenSpiritualGrowth";
+
+        /// <summary>Mediator API aggregator category key (teen).</summary>
+        public const string MediatorCategoryKeyTeenWhatPeersSay = "TeenWhatPeersSay";
+
+        /// <summary>Mediator API category key (Bible books).</summary>
+        public const string MediatorCategoryKeyBibleBooks = "BibleBooks";
+
+        /// <summary>Mediator API primary category key (series Bible books).</summary>
+        public const string MediatorCategoryKeySeriesBibleBooks = "SeriesBibleBooks";
+
         /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
