@@ -153,7 +153,7 @@ public class AudioPlayerMetadataHandler
     /// <summary>
     /// Cleans up old media element artwork files.
     /// </summary>
-    private void CleanupOldMediaElementArtworkFiles(string artworkDir)
+    private static void CleanupOldMediaElementArtworkFiles(string artworkDir)
     {
         try
         {

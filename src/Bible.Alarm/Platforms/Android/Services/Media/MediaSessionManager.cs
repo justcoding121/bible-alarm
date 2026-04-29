@@ -157,7 +157,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
             return;
         }
 
-        var builder = metadataManager.CreateMetadataBuilder(title, artist, album);
+        var builder = MetadataManager.CreateMetadataBuilder(title, artist, album);
         if (builder == null)
         {
             logger.Warning("Failed to create MediaMetadataCompat.Builder");

@@ -448,7 +448,7 @@ public sealed class TrackSelectionSyncHandler
             updatedSchedule.MusicTrackName ?? "null");
     }
 
-    private void DispatchTrackUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
+    private static void DispatchTrackUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
         Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackCode: {TrackCode}, TrackName: {TrackName}",

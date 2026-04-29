@@ -24,7 +24,7 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
     /// <summary>
     /// Creates a metadata builder with title, artist, and album.
     /// </summary>
-    public MediaMetadataCompat.Builder? CreateMetadataBuilder(string title, string artist, string? album)
+    public static MediaMetadataCompat.Builder? CreateMetadataBuilder(string title, string artist, string? album)
     {
         // Handle empty strings with fallback values (consistent with AndroidAutoPlayScreenHelper)
         // This ensures we never show empty text in Android Auto UI
