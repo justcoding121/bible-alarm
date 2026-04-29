@@ -85,6 +85,15 @@ public static class AppConstants
 
         /// <summary>Video episode index filename (<c>episodes.json</c>).</summary>
         public const string MediaIndexVideoEpisodesFileName = "episodes.json";
+
+        /// <summary>Media index segment for scripture bundle (<c>Audio/Bible/...</c> on device).</summary>
+        public const string MediaIndexFolderAudio = "Audio";
+
+        /// <summary>Instrumental melody subtree (<c>Music/Melodies</c>).</summary>
+        public const string MediaIndexFolderMelodies = "Melodies";
+
+        /// <summary>Vocal song subtree (<c>Music/Vocals</c>).</summary>
+        public const string MediaIndexFolderVocals = "Vocals";
     }
 
     /// <summary>

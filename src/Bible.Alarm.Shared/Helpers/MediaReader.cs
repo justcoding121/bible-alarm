@@ -17,7 +17,7 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Language>> GetBiblePublicationLanguages()
     {
         var root = indexRoot;
-        var languageIndex = Path.Combine(root, "Audio", "Bible", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
+        var languageIndex = Path.Combine(root, AppConstants.ApiEndpoints.MediaIndexFolderAudio, AppConstants.Media.BiblePublicationCategoryBible, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.LanguageCode, x => x);
     }
@@ -25,7 +25,7 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Publication>> GetBiblePublications(string languageCode)
     {
         var root = indexRoot;
-        var biblePublicationIndex = Path.Combine(root, "Audio", "Bible", languageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
+        var biblePublicationIndex = Path.Combine(root, AppConstants.ApiEndpoints.MediaIndexFolderAudio, AppConstants.Media.BiblePublicationCategoryBible, languageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var biblePublications = await File.ReadAllTextAsync(biblePublicationIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(biblePublications)!
             .ToDictionary(x => x.PublicationCode, x => x);
@@ -34,7 +34,7 @@ public class MediaReader(string indexRoot)
     public async Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode)
     {
         var root = indexRoot;
-        var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, AppConstants.ApiEndpoints.MediaIndexSectionsFileName);
+        var sectionsIndex = Path.Combine(root, AppConstants.ApiEndpoints.MediaIndexFolderAudio, AppConstants.Media.BiblePublicationCategoryBible, languageCode, versionCode, AppConstants.ApiEndpoints.MediaIndexSectionsFileName);
         var biblePublicationSections = await File.ReadAllTextAsync(sectionsIndex);
         var sections = JsonSerializer.Deserialize<IEnumerable<BiblePublicationSection>>(biblePublicationSections)!;
         // Keep SectionCode as string end-to-end; only parse for ordering.
@@ -59,7 +59,7 @@ public class MediaReader(string indexRoot)
         string sectionCode)
     {
         var root = indexRoot;
-        var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, sectionCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
+        var sectionsIndex = Path.Combine(root, AppConstants.ApiEndpoints.MediaIndexFolderAudio, AppConstants.Media.BiblePublicationCategoryBible, languageCode, versionCode, sectionCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
         // Parse TrackCode as int for dictionary key (for backward compatibility)
         var tracks = JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!;
@@ -74,7 +74,7 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Publication>> GetMelodyMusicReleases()
     {
         var root = indexRoot;
-        var releaseIndex = Path.Combine(root, "Music", "Melodies", AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
+        var releaseIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderMelodies, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var fileContent = await File.ReadAllTextAsync(releaseIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(fileContent)!.ToDictionary(x => x.PublicationCode, x => x);
     }
@@ -82,7 +82,7 @@ public class MediaReader(string indexRoot)
     public async Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
     {
         var root = indexRoot;
-        var trackIndex = Path.Combine(root, "Music", "Melodies", publicationCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
+        var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderMelodies, publicationCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var fileContent = await File.ReadAllTextAsync(trackIndex);
         var list = JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(fileContent)!.ToList();
         list.Sort((a, b) => a.CompareTo(b));
@@ -95,7 +95,7 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Language>> GetVocalMusicLanguages()
     {
         var root = indexRoot;
-        var languageIndex = Path.Combine(root, "Music", "Vocals", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
+        var languageIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.LanguageCode, x => x);
     }
@@ -103,7 +103,7 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Publication>> GetVocalMusicReleases(string languageCode)
     {
         var root = indexRoot;
-        var releaseIndex = Path.Combine(root, "Music", "Vocals", languageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
+        var releaseIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, languageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var vocalReleases = await File.ReadAllTextAsync(releaseIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(vocalReleases)!.ToDictionary(x => x.PublicationCode, x => x);
     }
@@ -112,7 +112,7 @@ public class MediaReader(string indexRoot)
         string publicationCode)
     {
         var root = indexRoot;
-        var trackIndex = Path.Combine(root, "Music", "Vocals", languageCode, publicationCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
+        var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, languageCode, publicationCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var melodyTracks = await File.ReadAllTextAsync(trackIndex);
         var list = JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(melodyTracks)!.ToList();
         list.Sort((a, b) => a.CompareTo(b));
