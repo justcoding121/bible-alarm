@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 
@@ -28,7 +29,7 @@ public class AlarmViewModelReviewHandler
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened when review was requested.");
+            logger.Error(e, AppConstants.Logging.AlarmDiagnostics.ReviewRequestedFailed);
         }
     }
 }

@@ -83,7 +83,7 @@ public sealed class AndroidAlarmHandler(
         logger.Information("Showing local notification for schedule {ScheduleId} - Title={Title}", schedule.Id, notificationTitle);
         AndroidNotificationService.ShowLocalNotification(schedule.Id,
             notificationTitle,
-            "Press to start listening now.");
+            AppConstants.Notifications.TapAlarmToListenBody);
 
         logger.Information("Local notification shown for schedule {ScheduleId} - waiting for user tap", schedule.Id);
     }
@@ -93,12 +93,14 @@ public sealed class AndroidAlarmHandler(
         AndroidNotificationService.RemoveLocalNotification(schedule.Id);
         logger.Information("User-initiated playback for schedule {ScheduleId} - starting playback directly without notifications", schedule.Id);
 
-        await StartPrepareAndPlayInBackgroundAsync(schedule.Id, isAlarm: false, errorLog: "An error happened when starting user-initiated playback.");
+        await StartPrepareAndPlayInBackgroundAsync(schedule.Id, isAlarm: false,
+            errorLog: AppConstants.Logging.AlarmDiagnostics.StartingUserInitiatedPlaybackFailed);
     }
 
     private async Task StartAlarmPlaybackAsync(int scheduleId)
     {
-        await StartPrepareAndPlayInBackgroundAsync(scheduleId, isAlarm: true, errorLog: "An error happened when ringing the alarm.");
+        await StartPrepareAndPlayInBackgroundAsync(scheduleId, isAlarm: true,
+            errorLog: AppConstants.Logging.AlarmDiagnostics.RingingAlarmFailed);
     }
 
     private async Task StartPrepareAndPlayInBackgroundAsync(int scheduleId, bool isAlarm, string errorLog)

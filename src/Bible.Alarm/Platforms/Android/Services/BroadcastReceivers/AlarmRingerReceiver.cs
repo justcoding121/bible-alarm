@@ -113,7 +113,7 @@ public class AlarmRingerReceiver : BroadcastReceiver
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            logger.Error(e, AppConstants.Logging.AlarmDiagnostics.CreatingAlarmRingTaskFailed);
             Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
         }
         finally

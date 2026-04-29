@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Serilog;
 #if ANDROID
@@ -193,11 +194,11 @@ public sealed class AlarmService(
 
         await notificationService.ScheduleNotificationAsync(scheduleToUse,
             title,
-            "Press to start listening now.");
+            AppConstants.Notifications.TapAlarmToListenBody);
 #else
         await notificationService.ScheduleNotificationAsync(schedule,
             title,
-            "Press to start listening now.");
+            AppConstants.Notifications.TapAlarmToListenBody);
 #endif
     }
 

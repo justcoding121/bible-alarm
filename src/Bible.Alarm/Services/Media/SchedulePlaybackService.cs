@@ -1,3 +1,4 @@
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -86,7 +87,7 @@ public sealed class SchedulePlaybackService(
         }
         catch (Exception e)
         {
-            logger.Information(e, "An error happened when playing alarm.");
+            logger.Information(e, AppConstants.Logging.AlarmDiagnostics.PlayingAlarmFailed);
             dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
             await toastService.ShowMessage("Network may not be available, please try again", 5);
         }

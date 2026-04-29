@@ -230,7 +230,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         }
 
         // Create a section with all schedules
-        var section = new CPListSection(listItems.ToArray(), "Schedules", null);
+        var section = new CPListSection(listItems.ToArray(), AppConstants.CarPlayScheduleList.SectionTitleSchedules, null);
 
         // Create the list template with title and sections array
         var sections = new CPListSection[] { section };
@@ -247,7 +247,9 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// </summary>
     private static CPListTemplate CreateEmptyStateTemplate()
     {
-        var emptyItem = new CPListItem("Loading schedules…", "Schedules will appear once the app is ready");
+        var emptyItem = new CPListItem(
+            AppConstants.CarPlayScheduleList.LoadingPrimaryText,
+            AppConstants.CarPlayScheduleList.LoadingSecondaryText);
         emptyItem.Handler = (item, completion) =>
         {
             // Do nothing on tap - just complete the handler
@@ -295,7 +297,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
                     listItems.Add(listItem);
                 }
 
-                var section = new CPListSection(listItems.ToArray(), "Schedules", null);
+                var section = new CPListSection(listItems.ToArray(), AppConstants.CarPlayScheduleList.SectionTitleSchedules, null);
                 var sections = new CPListSection[] { section };
                 scheduleListTemplate.UpdateSections(sections);
 

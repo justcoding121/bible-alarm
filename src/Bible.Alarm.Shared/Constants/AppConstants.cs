@@ -443,6 +443,30 @@ public static class AppConstants
 
         /// <summary>Fallback when an exception or native error message is unavailable.</summary>
         public const string UnknownErrorFallback = "Unknown error";
+
+        /// <summary>Serilog message templates for alarm ring/prepare and related flows.</summary>
+        public static class AlarmDiagnostics
+        {
+            public const string RingingAlarmFailed = "An error happened when ringing the alarm.";
+            public const string CreatingAlarmRingTaskFailed = "An error happened when creating the task to ring the alarm.";
+            public const string PlayingAlarmFailed = "An error happened when playing alarm.";
+            public const string StartingUserInitiatedPlaybackFailed = "An error happened when starting user-initiated playback.";
+            public const string ReviewRequestedFailed = "An error happened when review was requested.";
+        }
+    }
+
+    /// <summary>Notification body copy shared across platforms.</summary>
+    public static class Notifications
+    {
+        public const string TapAlarmToListenBody = "Press to start listening now.";
+    }
+
+    /// <summary>CarPlay schedule browse template strings.</summary>
+    public static class CarPlayScheduleList
+    {
+        public const string SectionTitleSchedules = "Schedules";
+        public const string LoadingPrimaryText = "Loading schedules…";
+        public const string LoadingSecondaryText = "Schedules will appear once the app is ready";
     }
 
     /// <summary>

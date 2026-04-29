@@ -1,3 +1,4 @@
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -43,7 +44,7 @@ public sealed class WindowsAlarmHandler(
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, "An error happened when ringing the alarm.");
+                        logger.Error(e, AppConstants.Logging.AlarmDiagnostics.RingingAlarmFailed);
                         throw;
                     }
                 });
@@ -51,7 +52,7 @@ public sealed class WindowsAlarmHandler(
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            logger.Error(e, AppConstants.Logging.AlarmDiagnostics.CreatingAlarmRingTaskFailed);
         }
     }
 }

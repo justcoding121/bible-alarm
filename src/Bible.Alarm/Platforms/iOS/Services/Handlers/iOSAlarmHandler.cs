@@ -1,3 +1,4 @@
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
@@ -60,7 +61,7 @@ public sealed class IOsAlarmHandler(
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, "An error happened when ringing the alarm.");
+                        logger.Error(e, AppConstants.Logging.AlarmDiagnostics.RingingAlarmFailed);
                         throw;
                     }
                 });
@@ -68,7 +69,7 @@ public sealed class IOsAlarmHandler(
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened when creating the task to ring the alarm.");
+            logger.Error(e, AppConstants.Logging.AlarmDiagnostics.CreatingAlarmRingTaskFailed);
         }
     }
 }
