@@ -199,7 +199,7 @@ public static class ModalScrollHelper
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error in ModalScrollHelper.HandleModalAppearingAsync");
+            Log.Warning(ex, AppConstants.Logging.ModalUiDiagnosticsLog.HandleModalAppearingAsyncError);
             await CleanupOnCancelOrError(viewModel, collectionView);
             return ModalAppearingResult.Success; // Don't close modal for non-fetch errors
         }
@@ -314,7 +314,7 @@ public static class ModalScrollHelper
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error in ModalScrollHelper.HandleModalAppearingAsync");
+            Log.Warning(ex, AppConstants.Logging.ModalUiDiagnosticsLog.HandleModalAppearingAsyncError);
             ForceHideBusyOverlay(busyOverlay);
             RevealCollectionView(collectionView);
             return ModalAppearingResult.Success; // Don't close modal for non-fetch errors
@@ -541,7 +541,7 @@ public static class ModalScrollHelper
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error during modal cancellation token disposal");
+            Log.Warning(ex, AppConstants.Logging.ModalUiDiagnosticsLog.ModalCancellationTokenDisposalWarning);
         }
 
         if (viewModel is IListViewModel listViewModel)

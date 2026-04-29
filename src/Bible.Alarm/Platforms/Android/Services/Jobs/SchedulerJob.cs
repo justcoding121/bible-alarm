@@ -76,7 +76,7 @@ public class SchedulerJob : JobService
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error processing scheduled tasks");
+                logger.Error(e, AppConstants.Logging.AndroidAlarmBootstrapLog.SchedulerJobProcessingFailed);
             }
             finally
             {

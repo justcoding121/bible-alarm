@@ -131,7 +131,7 @@ public class AlarmSetupService : Service, IDisposable
                         }
                         catch (Exception e)
                         {
-                            logger.Error(e, "An error happened in handling scheduler task.");
+                            logger.Error(e, AppConstants.Logging.AndroidAlarmBootstrapLog.SchedulerTaskHandlingFailed);
                         }
                     });
                     break;
@@ -145,7 +145,7 @@ public class AlarmSetupService : Service, IDisposable
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened in alarm setup task.");
+            logger.Error(e, AppConstants.Logging.AndroidAlarmBootstrapLog.AlarmSetupTaskFailed);
             throw;
         }
     }

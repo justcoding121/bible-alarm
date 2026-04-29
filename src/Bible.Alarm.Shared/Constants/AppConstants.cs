@@ -535,6 +535,52 @@ public static class AppConstants
         {
             public const string FailedToOpenAndroidAppSettings = "Failed to open Android app settings";
         }
+
+        /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
+        public static class ModalUiDiagnosticsLog
+        {
+            public const string HandleModalAppearingAsyncError =
+                "Error in ModalScrollHelper.HandleModalAppearingAsync";
+
+            public const string ModalCancellationTokenDisposalWarning =
+                "Error during modal cancellation token disposal";
+        }
+
+        /// <summary>Android MediaSession artwork bitmap loads.</summary>
+        public static class AndroidMediaArtworkLog
+        {
+            public const string ErrorLoadingBitmapFromArtworkUrl =
+                "Error loading artwork bitmap from: {ArtworkUrl}";
+
+            public const string ErrorLoadingBitmapFromArtworkUrlOmittingArtwork =
+                "Error loading artwork bitmap from: {ArtworkUrl} — omitting artwork";
+        }
+
+        /// <summary>Android alarm foreground bootstrap (<c>AlarmSetupService</c>, <c>SchedulerJob</c>).</summary>
+        public static class AndroidAlarmBootstrapLog
+        {
+            public const string SchedulerTaskHandlingFailed =
+                "An error happened in handling scheduler task.";
+
+            public const string AlarmSetupTaskFailed =
+                "An error happened in alarm setup task.";
+
+            public const string SchedulerJobProcessingFailed =
+                "Error processing scheduled tasks";
+        }
+
+        /// <summary>Schedule persistence / load flows.</summary>
+        public static class SchedulePersistenceDiagnosticsLog
+        {
+            public const string SaveScheduleAsyncErrorSaving =
+                "SaveScheduleAsync: Error saving schedule. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}, Name={Name}";
+
+            public const string LoadExistingScheduleAsyncErrorLoadingTemplate =
+                "LoadExistingScheduleAsync: Error loading schedule {ScheduleId}";
+
+            public const string ErrorDeletingSchedule =
+                "Error deleting schedule {ScheduleId}";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>

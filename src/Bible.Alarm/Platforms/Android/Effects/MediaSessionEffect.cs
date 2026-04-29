@@ -3,6 +3,7 @@ using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
@@ -462,7 +463,7 @@ public class MediaSessionEffect(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", action.ArtworkUrl);
+                logger.Warning(ex, AppConstants.Logging.AndroidMediaArtworkLog.ErrorLoadingBitmapFromArtworkUrl, action.ArtworkUrl);
             }
         }
 

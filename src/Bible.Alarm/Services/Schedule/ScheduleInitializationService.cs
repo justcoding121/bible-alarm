@@ -131,7 +131,7 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "LoadExistingScheduleAsync: Error loading schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.SchedulePersistenceDiagnosticsLog.LoadExistingScheduleAsyncErrorLoadingTemplate, scheduleId);
             return null;
         }
     }

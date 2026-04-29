@@ -38,7 +38,7 @@ public sealed class SchedulePersistenceService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "SaveScheduleAsync: Error saving schedule. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}, Name={Name}",
+            logger.Error(ex, AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncErrorSaving,
                 schedule?.Id, isNewSchedule, schedule?.Name);
             return false;
         }
@@ -182,7 +182,7 @@ public sealed class SchedulePersistenceService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error deleting schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.SchedulePersistenceDiagnosticsLog.ErrorDeletingSchedule, scheduleId);
         }
     }
 

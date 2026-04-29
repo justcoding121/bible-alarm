@@ -67,7 +67,7 @@ public class AndroidArtworkService : IAndroidArtworkService
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl}", artworkUrl);
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaArtworkLog.ErrorLoadingBitmapFromArtworkUrl, artworkUrl);
             return null;
         }
     }

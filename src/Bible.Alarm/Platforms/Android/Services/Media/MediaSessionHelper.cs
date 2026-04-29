@@ -185,7 +185,7 @@ public static class MediaSessionHelper
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error loading artwork bitmap from: {ArtworkUrl} — omitting artwork", artworkUrl);
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaArtworkLog.ErrorLoadingBitmapFromArtworkUrlOmittingArtwork, artworkUrl);
         }
     }
 }
