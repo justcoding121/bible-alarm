@@ -4,6 +4,7 @@ using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;
@@ -21,17 +22,15 @@ public sealed class MediaIndexVersionService(
     IThreadSafePreferencesService preferencesService)
     : IMediaIndexVersionService
 {
-    private const string VersionPreferenceKey = "MediaIndexVersion";
-    private const string VersionFileName = "version.dat";
     private readonly Lazy<string> indexRoot = new(() => storageService.StorageRoot);
 
     private string IndexRoot => indexRoot.Value;
-    private string VersionFilePath => Path.Combine(IndexRoot, VersionFileName);
+    private string VersionFilePath => Path.Combine(IndexRoot, AppConstants.FilePaths.MediaIndexVersionLegacyFileName);
 
     public async Task<bool> VersionFileExistsAsync()
     {
         // Check Preferences first (new method)
-        if (preferencesService.ContainsKey(VersionPreferenceKey))
+        if (preferencesService.ContainsKey(AppConstants.GeneralSettingsKeys.MediaIndexVersion))
         {
             return true;
         }
@@ -43,9 +42,9 @@ public sealed class MediaIndexVersionService(
     public async Task<string?> ReadVersionAsync()
     {
         // Try Preferences first (new method)
-        if (preferencesService.ContainsKey(VersionPreferenceKey))
+        if (preferencesService.ContainsKey(AppConstants.GeneralSettingsKeys.MediaIndexVersion))
         {
-            var version = await preferencesService.GetAsync(VersionPreferenceKey, "");
+            var version = await preferencesService.GetAsync(AppConstants.GeneralSettingsKeys.MediaIndexVersion, "");
             if (!string.IsNullOrEmpty(version))
             {
                 return version;
@@ -93,14 +92,14 @@ public sealed class MediaIndexVersionService(
             var currentVersion = versionFinder.GetVersionName();
 
             // Save to Preferences (new method)
-            await preferencesService.SetAsync(VersionPreferenceKey, currentVersion);
+            await preferencesService.SetAsync(AppConstants.GeneralSettingsKeys.MediaIndexVersion, currentVersion);
             logger.Debug("Saved current version {Version} to Preferences", currentVersion);
 
             // Also save to version.dat for backward compatibility during transition
             // This ensures older app versions or code paths that still check version.dat will work
             try
             {
-                await storageService.SaveFile(IndexRoot, VersionFileName, currentVersion);
+                await storageService.SaveFile(IndexRoot, AppConstants.FilePaths.MediaIndexVersionLegacyFileName, currentVersion);
                 logger.Debug("Saved current version {Version} to {VersionFilePath} for backward compatibility", currentVersion, VersionFilePath);
             }
             catch (Exception ex)
@@ -124,9 +123,9 @@ public sealed class MediaIndexVersionService(
     {
         try
         {
-            if (!preferencesService.ContainsKey(VersionPreferenceKey))
+            if (!preferencesService.ContainsKey(AppConstants.GeneralSettingsKeys.MediaIndexVersion))
             {
-                await preferencesService.SetAsync(VersionPreferenceKey, version);
+                await preferencesService.SetAsync(AppConstants.GeneralSettingsKeys.MediaIndexVersion, version);
                 logger.Debug("Migrated version {Version} from version.dat to Preferences", version);
             }
         }

@@ -120,6 +120,9 @@ public static class AppConstants
         /// </summary>
         public const string MediaIndexDatabaseFileName = "mediaIndex.db";
 
+        /// <summary>Suffix inserted before the extension when renaming the prior media index DB during upgrade (<c>_old</c> → <c>mediaIndex_old.db</c>).</summary>
+        public const string MediaIndexDatabaseRenamedSuffix = "_old";
+
         /// <summary>
         /// SQLite connection string format for schedule database
         /// </summary>
@@ -148,6 +151,9 @@ public static class AppConstants
 
         /// <summary>Early bootstrap diagnostic log before Serilog (<c>bootstrap.txt</c>) under <see cref="LogsDirectoryName"/>.</summary>
         public const string BootstrapDiagnosticLogFileName = "bootstrap.txt";
+
+        /// <summary>Legacy media index version stamp file in storage root (<c>version.dat</c>); Preferences hold the primary value.</summary>
+        public const string MediaIndexVersionLegacyFileName = "version.dat";
 
         /// <summary>
         /// Log file name pattern (without extension - Serilog will add date and extension)
@@ -352,6 +358,9 @@ public static class AppConstants
         /// Key indicating legacy review settings were migrated to the new format.
         /// </summary>
         public const string ReviewStateMigrated = "ReviewStateMigrated";
+
+        /// <summary>Preferences key for bundled media index freshness (pairs with legacy <c>version.dat</c>).</summary>
+        public const string MediaIndexVersion = "MediaIndexVersion";
 
         /// <summary>
         /// Key for Android battery optimization exclusion prompt shown flag

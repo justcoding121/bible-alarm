@@ -23,8 +23,6 @@ public sealed class MediaIndexService(
     ILanguageContentService languageContentService)
     : IMediaIndexService
 {
-    private const string OldMediaIndexSuffix = "_old";
-
     private readonly Lazy<string> indexRoot = new(() => storageService.StorageRoot);
 
     public string IndexRoot => indexRoot.Value;
@@ -213,7 +211,7 @@ public sealed class MediaIndexService(
     {
         return Path.Combine(IndexRoot,
             Path.GetFileNameWithoutExtension(AppConstants.Database.MediaIndexDatabaseFileName)
-            + OldMediaIndexSuffix
+            + AppConstants.Database.MediaIndexDatabaseRenamedSuffix
             + Path.GetExtension(AppConstants.Database.MediaIndexDatabaseFileName));
     }
 
