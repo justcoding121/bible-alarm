@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
@@ -101,7 +102,7 @@ public class HomeStateChangeHandler
 
             if (!schedulesCountChanged && !scheduleIdsChanged && !schedulePropertiesChanged && lastProcessedScheduleIds != null)
             {
-                logger.Debug("OnStateChanged: Skipping processing - Schedules collection unchanged. Count: {Count}", stateValue.Schedules.Count);
+                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.SkippingProcessingSchedulesUnchangedCount, stateValue.Schedules.Count);
 
                 // Even if skipping processing, ensure progress bar is hidden if we have schedules
                 if (stateValue.Schedules.Count > 0 && getIsBusy())
@@ -114,7 +115,7 @@ public class HomeStateChangeHandler
                 return;
             }
 
-            logger.Debug("OnStateChanged: Processing {Count} schedules from state. Current Schedules count: {CurrentCount}",
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ProcessingSchedulesFromStateCurrentCollectionCount,
                 stateValue.Schedules.Count, getSchedules()?.Count ?? 0);
 
             var hadSchedules = getSchedules() != null && getSchedules()!.Count > 0;
@@ -157,12 +158,12 @@ public class HomeStateChangeHandler
             // Show progress bar when delete is detected
             if (schedulesToRemove.Count > 0 && previousScheduleCount > currentScheduleCount)
             {
-                logger.Debug("OnStateChanged: Delete detected - showing progress bar. Removing {Count} schedules", schedulesToRemove.Count);
+                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.DeleteDetectedShowingProgressRemovingCount, schedulesToRemove.Count);
                 setIsBusy(true);
                 updateProgressBarVisibility();
             }
 
-            logger.Debug("OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedules}",
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PreparedAddRemoveTotalsHasSchedulesNow,
                 schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
 
             var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
@@ -170,25 +171,25 @@ public class HomeStateChangeHandler
 
             if (isInitialLoad && hasSchedulesNow && newSchedules != null)
             {
-                logger.Debug("OnStateChanged: Initial load - setting {Count} schedules", newSchedules.Count);
+                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.InitialLoadSettingSchedulesCount, newSchedules.Count);
 
                 SyncCollectionToNewSchedules(newSchedules);
                 notifySchedulesChanged?.Invoke();
-                logger.Debug("OnStateChanged: Initial load complete ({Count} items). Deferring progress bar hide until list items render", newSchedules.Count);
+                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.InitialLoadCompleteDeferringProgressBarHideUntilItemsRender, newSchedules.Count);
 
                 fadeDeferredForInitialLoad = true;
                 _ = DeferProgressBarHideUntilListRenderedAsync();
             }
             else if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
             {
-                logger.Debug("OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}",
+                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.UpdatingCollectionAddingRemoving,
                     schedulesToAdd.Count, schedulesToRemove.Count);
 
                 if (newSchedules != null)
                 {
                     SyncCollectionToNewSchedules(newSchedules);
                     notifySchedulesChanged?.Invoke();
-                    logger.Debug("OnStateChanged: Collection updated. Now has {Count} items", getSchedules()?.Count ?? 0);
+                    logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.CollectionUpdatedNowHasCount, getSchedules()?.Count ?? 0);
                 }
 
                 if (schedulesToRemove.Count > 0)
@@ -207,7 +208,7 @@ public class HomeStateChangeHandler
                     {
                         // Items moved positions (e.g. a different schedule became most-recently-played).
                         // Replace the collection so the CollectionView reflects the new sort order.
-                        logger.Debug("OnStateChanged: Properties changed and sort order changed — syncing collection to reorder");
+                        logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedSortOrderChangedSyncingCollectionToReorder);
                         SyncCollectionToNewSchedules(newSchedules);
                         notifySchedulesChanged?.Invoke();
                     }
@@ -220,12 +221,12 @@ public class HomeStateChangeHandler
                         // without a collection change event, so no ItemsSource replacement is needed.
                         // Replacing ItemsSource on WinUI causes a full re-render of the entire list,
                         // which is the bug this branch avoids.
-                        logger.Debug("OnStateChanged: Properties changed but sort order unchanged — skipping collection sync (VMs updated in place)");
+                        logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedSortOrderUnchangedSkippingCollectionSync);
                     }
                 }
                 else if (deferReorder)
                 {
-                    logger.Debug("OnStateChanged: Properties changed but playback modal visible — deferring list reorder until modal opens");
+                    logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedPlaybackModalVisibleDeferringListReorder);
                     deferredNewSchedules = newSchedules;
                     deferredScheduleProperties = currentScheduleProperties;
                 }
@@ -236,7 +237,7 @@ public class HomeStateChangeHandler
 
                 if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
                 {
-                    logger.Debug("OnStateChanged: Delete rollback detected - hiding progress bar");
+                    logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.DeleteRollbackDetectedHidingProgressBar);
                     // Fade out first, then set IsBusy to false
                     await fadeOutProgressBarAsync();
                     setIsBusy(false);
@@ -264,7 +265,7 @@ public class HomeStateChangeHandler
         }
         else
         {
-            logger.Debug("OnStateChanged: State.Schedules is null, showing loading state");
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.StateSchedulesNullShowingLoading);
             updateProgressBarVisibility();
             lastProcessedSchedulesCount = null;
             lastProcessedScheduleIds = null;
@@ -318,7 +319,7 @@ public class HomeStateChangeHandler
 
         return MainThread.InvokeOnMainThreadAsync(() =>
         {
-            logger.Debug("ApplyDeferredReorderAsync: Applying deferred list reorder ({Count} items)", schedulesToApply.Count);
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ApplyDeferredReorderApplyingCount, schedulesToApply.Count);
             SyncCollectionToNewSchedules(schedulesToApply);
             notifySchedulesChanged?.Invoke();
 
@@ -343,7 +344,7 @@ public class HomeStateChangeHandler
             var newCollection = new ObservableHashSet<ScheduleListItemViewModel>();
             foreach (var item in newSchedules)
             {
-                logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
+                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.AddingScheduleToCollectionScheduleIdAndName,
                     item.ScheduleId, item.Name);
                 newCollection.Add(item);
             }
@@ -355,7 +356,7 @@ public class HomeStateChangeHandler
         collection.Clear();
         foreach (var item in newSchedules)
         {
-            logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.AddingScheduleToCollectionScheduleIdAndName,
                 item.ScheduleId, item.Name);
             collection.Add(item);
         }

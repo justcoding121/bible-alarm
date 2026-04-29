@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.DataStructures;
 using Serilog;
 
@@ -36,7 +37,7 @@ public class BootstrapReadyManager : IDisposable
             {
                 isBootstrapReady = value;
                 BootstrapReadyChanged?.Invoke(value);
-                logger.Debug("IsBootstrapReady changed to {Value}", value);
+                logger.Debug(AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.IsBootstrapReadyChangedTo, value);
             }
         }
     }
@@ -51,7 +52,7 @@ public class BootstrapReadyManager : IDisposable
         if (BootstrapHelper.IsBootstrapCompleted())
         {
             IsBootstrapReady = true;
-            logger.Debug("Bootstrap already complete, no waiting needed");
+            logger.Debug(AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.BootstrapAlreadyCompleteNoWaitingNeeded);
             return;
         }
 
@@ -70,7 +71,7 @@ public class BootstrapReadyManager : IDisposable
                     if (!IsBootstrapReady)
                     {
                         IsBootstrapReady = true;
-                        logger.Information("Bootstrap ready - Add button enabled");
+                        logger.Information(AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.BootstrapReadyAddButtonEnabled);
                     }
                 });
             }
@@ -80,7 +81,7 @@ public class BootstrapReadyManager : IDisposable
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error waiting for bootstrap completion");
+                logger.Error(ex, AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.ErrorWaitingForBootstrapCompletion);
                 // Enable button anyway on error
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -102,19 +103,19 @@ public class BootstrapReadyManager : IDisposable
         try
         {
             var isComplete = BootstrapHelper.IsBootstrapCompleted();
-            logger.Debug("UpdateBootstrapReadyState: IsBootstrapCompleted={IsComplete}, IsBootstrapReady={IsReady}", isComplete, IsBootstrapReady);
+            logger.Debug(AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.UpdateBootstrapReadyStateBootstrapCompletedAndReady, isComplete, IsBootstrapReady);
 
             if (isComplete && !IsBootstrapReady)
             {
                 IsBootstrapReady = true;
                 // Stop waiting once bootstrap is complete
                 waitCancellation?.Cancel();
-                logger.Information("Bootstrap ready - Add button enabled");
+                logger.Information(AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.BootstrapReadyAddButtonEnabled);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking bootstrap status");
+            logger.Error(ex, AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.ErrorCheckingBootstrapStatus);
         }
     }
 
@@ -129,7 +130,7 @@ public class BootstrapReadyManager : IDisposable
         {
             IsBootstrapReady = true;
             waitCancellation?.Cancel();
-            logger.Information("Schedules loaded - Bootstrap ready, Add button enabled");
+            logger.Information(AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.SchedulesLoadedBootstrapReadyAddButtonEnabled);
         }
 
         // Also check bootstrap status

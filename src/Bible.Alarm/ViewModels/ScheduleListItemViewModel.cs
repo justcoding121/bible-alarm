@@ -754,7 +754,7 @@ public sealed class ScheduleListItemViewModel(
                             && state.CurrentScheduleId == Schedule.Id)
                         {
                             logger.Warning(
-                                "Spinner timed out but playback active for schedule {ScheduleId} — re-requesting modal as last resort",
+                                AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.SpinnerTimedOutPlaybackActiveReRequestingModalLastResort,
                                 ScheduleId);
                             WeakReferenceMessenger.Default.Send(
                                 new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule.Id });

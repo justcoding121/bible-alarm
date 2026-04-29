@@ -684,6 +684,28 @@ public static class AppConstants
                 "Error checking if battery optimization modal should be shown";
         }
 
+        /// <summary><c>BootstrapReadyManager</c> — add-schedule readiness and async wait diagnostics.</summary>
+        public static class BootstrapReadyManagerDiagnosticsLog
+        {
+            public const string IsBootstrapReadyChangedTo = "IsBootstrapReady changed to {Value}";
+
+            public const string BootstrapAlreadyCompleteNoWaitingNeeded =
+                "Bootstrap already complete, no waiting needed";
+
+            public const string BootstrapReadyAddButtonEnabled = "Bootstrap ready - Add button enabled";
+
+            public const string ErrorWaitingForBootstrapCompletion =
+                "Error waiting for bootstrap completion";
+
+            public const string UpdateBootstrapReadyStateBootstrapCompletedAndReady =
+                "UpdateBootstrapReadyState: IsBootstrapCompleted={IsComplete}, IsBootstrapReady={IsReady}";
+
+            public const string ErrorCheckingBootstrapStatus = "Error checking bootstrap status";
+
+            public const string SchedulesLoadedBootstrapReadyAddButtonEnabled =
+                "Schedules loaded - Bootstrap ready, Add button enabled";
+        }
+
         /// <summary>Periodic scheduler / alarm reconciliation (<c>SchedulerService</c>).</summary>
         public static class SchedulerDiagnosticsLog
         {
@@ -2477,6 +2499,58 @@ public static class AppConstants
                 "OnAddScheduleButtonClicked: Command cannot execute. IsBootstrapComplete={IsBootstrapComplete}";
         }
 
+        /// <summary><c>HomeStateChangeHandler</c> Fluxor → home list VM collection sync diagnostics.</summary>
+        public static class HomeStateChangeHandlerDiagnosticsLog
+        {
+            public const string SkippingProcessingSchedulesUnchangedCount =
+                "OnStateChanged: Skipping processing - Schedules collection unchanged. Count: {Count}";
+
+            public const string ProcessingSchedulesFromStateCurrentCollectionCount =
+                "OnStateChanged: Processing {Count} schedules from state. Current Schedules count: {CurrentCount}";
+
+            public const string DeleteDetectedShowingProgressRemovingCount =
+                "OnStateChanged: Delete detected - showing progress bar. Removing {Count} schedules";
+
+            public const string PreparedAddRemoveTotalsHasSchedulesNow =
+                "OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedulesNow}";
+
+            public const string InitialLoadSettingSchedulesCount =
+                "OnStateChanged: Initial load - setting {Count} schedules";
+
+            public const string InitialLoadCompleteDeferringProgressBarHideUntilItemsRender =
+                "OnStateChanged: Initial load complete ({Count} items). Deferring progress bar hide until list items render";
+
+            public const string UpdatingCollectionAddingRemoving =
+                "OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}";
+
+            public const string CollectionUpdatedNowHasCount =
+                "OnStateChanged: Collection updated. Now has {Count} items";
+
+            public const string PropertiesChangedSortOrderChangedSyncingCollectionToReorder =
+                "OnStateChanged: Properties changed and sort order changed — syncing collection to reorder";
+
+            public const string PropertiesChangedSortOrderUnchangedSkippingCollectionSync =
+                "OnStateChanged: Properties changed but sort order unchanged — skipping collection sync (VMs updated in place)";
+
+            public const string PropertiesChangedPlaybackModalVisibleDeferringListReorder =
+                "OnStateChanged: Properties changed but playback modal visible — deferring list reorder until modal opens";
+
+            public const string DeleteRollbackDetectedHidingProgressBar =
+                "OnStateChanged: Delete rollback detected - hiding progress bar";
+
+            public const string StateSchedulesNullShowingLoading =
+                "OnStateChanged: State.Schedules is null, showing loading state";
+
+            public const string ProgressBarHiddenAfterListRenderDelay =
+                "OnStateChanged: Progress bar hidden after list render delay";
+
+            public const string ApplyDeferredReorderApplyingCount =
+                "ApplyDeferredReorderAsync: Applying deferred list reorder ({Count} items)";
+
+            public const string AddingScheduleToCollectionScheduleIdAndName =
+                "OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection";
+        }
+
         /// <summary>Shared busy overlay visibility, dispatcher, and spinner diagnostics (<c>BusyOverlay</c>).</summary>
         public static class BusyOverlayDiagnosticsLog
         {
@@ -4244,6 +4318,9 @@ public static class AppConstants
 
             public const string ErrorCheckingPlaybackStateSpinnerTimeoutFallback =
                 "Error checking playback state during spinner timeout fallback";
+
+            public const string SpinnerTimedOutPlaybackActiveReRequestingModalLastResort =
+                "Spinner timed out but playback active for schedule {ScheduleId} — re-requesting modal as last resort";
         }
 
         /// <summary>Home list subtitle assembly (<c>ScheduleListItemSubtitleManager</c>).</summary>
