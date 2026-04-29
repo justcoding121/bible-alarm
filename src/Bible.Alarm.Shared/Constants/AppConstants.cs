@@ -4194,6 +4194,46 @@ public static class AppConstants
                 "An error happened while refreshing subtitle from state for schedule {ScheduleId}";
         }
 
+        /// <summary>Prev/Next bible track commands on schedule rows (<c>ScheduleListItemCommandHandler</c>).</summary>
+        public static class ScheduleListItemCommandHandlerDiagnosticsLog
+        {
+            public const string PreviousCommandScheduleNullOrInvalidId =
+                "PreviousCommand: Schedule is null or has invalid ID";
+
+            public const string PreviousCommandNoBibleReadingConfigured =
+                "PreviousCommand: Schedule {ScheduleId} does not have Bible reading configured";
+
+            public const string PreviousCommandCannotMoveTrackInProgress =
+                "PreviousCommand: Cannot move track for schedule {ScheduleId} - schedule may be in progress";
+
+            public const string PreviousCommandMovingToPreviousTrack =
+                "PreviousCommand: Moving to previous track for schedule {ScheduleId}";
+
+            public const string PreviousCommandSuccessfullyMoved =
+                "PreviousCommand: Successfully moved to previous track for schedule {ScheduleId}";
+
+            public const string PreviousCommandErrorMoving =
+                "PreviousCommand: Error moving to previous track for schedule {ScheduleId}";
+
+            public const string NextCommandScheduleNullOrInvalidId =
+                "NextCommand: Schedule is null or has invalid ID";
+
+            public const string NextCommandNoBibleReadingConfigured =
+                "NextCommand: Schedule {ScheduleId} does not have Bible reading configured";
+
+            public const string NextCommandCannotMoveTrackInProgress =
+                "NextCommand: Cannot move track for schedule {ScheduleId} - schedule may be in progress";
+
+            public const string NextCommandMovingToNextTrack =
+                "NextCommand: Moving to next track for schedule {ScheduleId}";
+
+            public const string NextCommandSuccessfullyMoved =
+                "NextCommand: Successfully moved to next track for schedule {ScheduleId}";
+
+            public const string NextCommandErrorMoving =
+                "NextCommand: Error moving to next track for schedule {ScheduleId}";
+        }
+
         /// <summary>Remote ID3/MP4 artwork extraction (<c>RemoteId3ArtworkExtractor</c>, <c>RemoteMp4ArtworkExtractor</c>).</summary>
         public static class RemoteArtworkExtractorDiagnosticsLog
         {

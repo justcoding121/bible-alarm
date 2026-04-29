@@ -2,6 +2,7 @@
 using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -44,7 +45,7 @@ public sealed class ScheduleListItemCommandHandler(
         {
             if (schedule?.Id <= 0)
             {
-                logger.Warning("PreviousCommand: Schedule is null or has invalid ID");
+                logger.Warning(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandScheduleNullOrInvalidId);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule not found"));
                 return;
             }
@@ -57,7 +58,7 @@ public sealed class ScheduleListItemCommandHandler(
             // Check if schedule has Bible reading configured
             if (schedule.BiblePublicationSchedule == null)
             {
-                logger.Debug("PreviousCommand: Schedule {ScheduleId} does not have Bible reading configured", schedule.Id);
+                logger.Debug(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandNoBibleReadingConfigured, schedule.Id);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Please configure Bible reading for this schedule"));
                 return;
             }
@@ -65,11 +66,11 @@ public sealed class ScheduleListItemCommandHandler(
             var canMove = await playbackService.CanMoveTrackAsync(schedule.Id);
             if (!canMove)
             {
-                logger.Debug("PreviousCommand: Cannot move track for schedule {ScheduleId} - schedule may be in progress", schedule.Id);
+                logger.Debug(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandCannotMoveTrackInProgress, schedule.Id);
                 return;
             }
 
-            logger.Information("PreviousCommand: Moving to previous track for schedule {ScheduleId}", schedule.Id);
+            logger.Information(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandMovingToPreviousTrack, schedule.Id);
             
             // Show progress bar to indicate background activity
             WeakReferenceMessenger.Default.Send(new ShowProgressBarMessage());
@@ -81,13 +82,13 @@ public sealed class ScheduleListItemCommandHandler(
                 {
                     await playlistService.MoveToPreviousBiblePublicationTrack(schedule.Id);
                 });
-                logger.Information("PreviousCommand: Successfully moved to previous track for schedule {ScheduleId}", schedule.Id);
+                logger.Information(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandSuccessfullyMoved, schedule.Id);
                 // Don't refresh here - OnApplicationStateChanged will handle it when state updates
                 // This prevents showing stale data before the state is updated
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "PreviousCommand: Error moving to previous track for schedule {ScheduleId}", schedule.Id);
+                logger.Error(ex, AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandErrorMoving, schedule.Id);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Error moving to previous track"));
             }
         });
@@ -102,7 +103,7 @@ public sealed class ScheduleListItemCommandHandler(
         {
             if (schedule?.Id <= 0)
             {
-                logger.Warning("NextCommand: Schedule is null or has invalid ID");
+                logger.Warning(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.NextCommandScheduleNullOrInvalidId);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule not found"));
                 return;
             }
@@ -115,7 +116,7 @@ public sealed class ScheduleListItemCommandHandler(
             // Check if schedule has Bible reading configured
             if (schedule.BiblePublicationSchedule == null)
             {
-                logger.Debug("NextCommand: Schedule {ScheduleId} does not have Bible reading configured", schedule.Id);
+                logger.Debug(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.NextCommandNoBibleReadingConfigured, schedule.Id);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Please configure Bible reading for this schedule"));
                 return;
             }
@@ -123,11 +124,11 @@ public sealed class ScheduleListItemCommandHandler(
             var canMove = await playbackService.CanMoveTrackAsync(schedule.Id);
             if (!canMove)
             {
-                logger.Debug("NextCommand: Cannot move track for schedule {ScheduleId} - schedule may be in progress", schedule.Id);
+                logger.Debug(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.NextCommandCannotMoveTrackInProgress, schedule.Id);
                 return;
             }
 
-            logger.Information("NextCommand: Moving to next track for schedule {ScheduleId}", schedule.Id);
+            logger.Information(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.NextCommandMovingToNextTrack, schedule.Id);
             
             // Show progress bar to indicate background activity
             WeakReferenceMessenger.Default.Send(new ShowProgressBarMessage());
@@ -139,13 +140,13 @@ public sealed class ScheduleListItemCommandHandler(
                 {
                     await playlistService.MoveToNextBiblePublicationTrack(schedule.Id);
                 });
-                logger.Information("NextCommand: Successfully moved to next track for schedule {ScheduleId}", schedule.Id);
+                logger.Information(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.NextCommandSuccessfullyMoved, schedule.Id);
                 // Don't refresh here - OnApplicationStateChanged will handle it when state updates
                 // This prevents showing stale data before the state is updated
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "NextCommand: Error moving to next track for schedule {ScheduleId}", schedule.Id);
+                logger.Error(ex, AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.NextCommandErrorMoving, schedule.Id);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Error moving to next track"));
             }
         });
