@@ -110,7 +110,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             // Fallback to English "E" if previous language couldn't be preserved
             if (selectedLanguage == null)
             {
-                if (languages.TryGetValue("E", out var englishLanguage))
+                if (languages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
                 {
                     selectedLanguage = englishLanguage;
                     logger.Debug("CategorySelectionAutoPopulateHandler: Selected English language (default/fallback)");

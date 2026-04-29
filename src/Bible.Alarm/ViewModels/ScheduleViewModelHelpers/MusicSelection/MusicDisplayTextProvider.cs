@@ -182,7 +182,7 @@ public sealed class MusicDisplayTextProvider
         try
         {
             cachedDefaultLanguageName = languageNameService != null
-                ? await languageNameService.GetNameByLanguageCodeAsync("E", AppConstants.Media.DefaultLanguageCode)
+                ? await languageNameService.GetNameByLanguageCodeAsync(AppConstants.Media.DefaultLanguageCode, AppConstants.Media.DefaultLanguageCode)
                 : null;
             cachedDefaultLanguageName ??= "English";
 

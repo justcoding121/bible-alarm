@@ -80,7 +80,7 @@ public sealed class MusicPublicationSelectionInitHandler
     {
         var currentSchedule = state.Value.CurrentSchedule;
         var currentLanguageCode = currentSchedule?.MusicLanguageCode;
-        var effectiveLanguageCode = !string.IsNullOrEmpty(currentLanguageCode) ? currentLanguageCode : "E";
+        var effectiveLanguageCode = !string.IsNullOrEmpty(currentLanguageCode) ? currentLanguageCode : AppConstants.Media.DefaultLanguageCode;
         var effectiveCurrent = new AlarmMusic { LanguageCode = effectiveLanguageCode };
 
         await dataProvider.PopulateLanguages(

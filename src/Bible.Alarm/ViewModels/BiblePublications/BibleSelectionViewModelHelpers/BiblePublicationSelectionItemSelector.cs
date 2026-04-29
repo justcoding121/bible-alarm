@@ -280,7 +280,7 @@ public sealed class BiblePublicationSelectionItemSelector
         // Ensure publication is cataloged before getting sections
         // For publications with LanguageId, EnsurePublicationExistsAsync should have been called above,
         // but we ensure it here as well to handle edge cases (no progress passed - just a safety check)
-        if (!publicationWithoutLanguage && languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+        if (!publicationWithoutLanguage && languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Ensuring publication {PublicationCode} exists for language {LanguageCode} before getting sections",
                 publicationCode, language.Code);
