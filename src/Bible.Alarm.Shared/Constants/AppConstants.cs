@@ -2465,6 +2465,52 @@ public static class AppConstants
                 "BusyOverlay: Loaded and visible, starting spinner immediately";
         }
 
+        /// <summary><c>MiniPlaybackBarViewModel</c> transport and artwork errors.</summary>
+        public static class MiniPlaybackBarDiagnosticsLog
+        {
+            public const string ErrorSyncingFromPlaybackState =
+                "MiniPlaybackBarViewModel: Error syncing from playback state";
+
+            public const string ErrorLoadingArtworkFromUrl =
+                "MiniPlaybackBar: Error loading artwork from {ArtworkUrl}";
+
+            public const string ErrorStoppingPlayback = "MiniPlaybackBar: Error stopping playback";
+
+            public const string ErrorPlayingPrevious = "MiniPlaybackBar: Error playing previous";
+
+            public const string ErrorTogglingPlayPause = "MiniPlaybackBar: Error toggling play/pause";
+
+            public const string ErrorPlayingNext = "MiniPlaybackBar: Error playing next";
+
+            public const string ErrorMaximizingPlayback = "MiniPlaybackBar: Error maximizing playback";
+        }
+
+        /// <summary>Alarm modal <c>ArtworkManager</c> load paths.</summary>
+        public static class ArtworkManagerDiagnosticsLog
+        {
+            public const string ErrorUpdatingArtworkFromUrl = "Error updating artwork from URL: {ArtworkUrl}";
+
+            public const string FallbackArtworkFailed = "Fallback artwork failed: {FallbackUrl}";
+
+            public const string FailedToConvertFileUriToLocalPath =
+                "Failed to convert file:// URI to local path: {ArtworkUrl}";
+
+            public const string ArtworkFileNotFound = "Artwork file not found: {FilePath}";
+
+            public const string FailedToLoadArtworkFromFile = "Failed to load artwork from file: {FilePath}";
+        }
+
+        /// <summary>HEAD probe for CDN streaming URLs (<c>CdnPlaybackUrlProbe</c>).</summary>
+        public static class CdnPlaybackUrlProbeDiagnosticsLog
+        {
+            public const string HeadReturnedStatusTreatingAsIndeterminate =
+                "CDN probe HEAD returned {StatusCode} for URL (treating as indeterminate)";
+
+            public const string ProbeTimedOutForUrl = "CDN probe timed out for URL";
+
+            public const string ProbeFailedIndeterminate = "CDN probe failed (indeterminate)";
+        }
+
         /// <summary>Schedule page performance and WinUI layout diagnostics.</summary>
         public static class SchedulePageDiagnosticsLog
         {

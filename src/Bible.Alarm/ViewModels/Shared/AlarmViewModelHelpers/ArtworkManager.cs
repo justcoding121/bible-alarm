@@ -75,7 +75,7 @@ public sealed class ArtworkManager(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Error updating artwork from URL: {ArtworkUrl}", artworkUrl);
+            logger.Debug(ex, AppConstants.Logging.ArtworkManagerDiagnosticsLog.ErrorUpdatingArtworkFromUrl, artworkUrl);
             TryFallbackArtwork(fallbackUrl, setArtworkSource, setIsArtworkLoading);
         }
     }
@@ -101,7 +101,7 @@ public sealed class ArtworkManager(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Fallback artwork failed: {FallbackUrl}", fallbackUrl);
+            logger.Debug(ex, AppConstants.Logging.ArtworkManagerDiagnosticsLog.FallbackArtworkFailed, fallbackUrl);
         }
         ClearArtwork(setArtworkSource, setIsArtworkLoading);
     }
@@ -153,7 +153,7 @@ public sealed class ArtworkManager(ILogger logger)
             }
             catch (Exception ex)
             {
-                logger.Debug(ex, "Failed to convert file:// URI to local path: {ArtworkUrl}", artworkUrl);
+                logger.Debug(ex, AppConstants.Logging.ArtworkManagerDiagnosticsLog.FailedToConvertFileUriToLocalPath, artworkUrl);
                 return null;
             }
         }
@@ -176,7 +176,7 @@ public sealed class ArtworkManager(ILogger logger)
     {
         if (!File.Exists(filePath))
         {
-            logger.Debug("Artwork file not found: {FilePath}", filePath);
+            logger.Debug(AppConstants.Logging.ArtworkManagerDiagnosticsLog.ArtworkFileNotFound, filePath);
             return false;
         }
 
@@ -194,7 +194,7 @@ public sealed class ArtworkManager(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to load artwork from file: {FilePath}", filePath);
+            logger.Debug(ex, AppConstants.Logging.ArtworkManagerDiagnosticsLog.FailedToLoadArtworkFromFile, filePath);
             artworkSource = null;
         }
 

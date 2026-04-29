@@ -310,7 +310,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "MiniPlaybackBarViewModel: Error syncing from playback state");
+            logger.Debug(ex, AppConstants.Logging.MiniPlaybackBarDiagnosticsLog.ErrorSyncingFromPlaybackState);
         }
     }
 
@@ -451,7 +451,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "MiniPlaybackBar: Error loading artwork from {ArtworkUrl}", artworkUrl);
+            logger.Debug(ex, AppConstants.Logging.MiniPlaybackBarDiagnosticsLog.ErrorLoadingArtworkFromUrl, artworkUrl);
             ArtworkSource = null;
         }
     }
@@ -467,7 +467,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "MiniPlaybackBar: Error stopping playback");
+            logger.Warning(ex, AppConstants.Logging.MiniPlaybackBarDiagnosticsLog.ErrorStoppingPlayback);
             IsStopping = false;
         }
     }
@@ -485,7 +485,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "MiniPlaybackBar: Error playing previous");
+            logger.Warning(ex, AppConstants.Logging.MiniPlaybackBarDiagnosticsLog.ErrorPlayingPrevious);
             isTrackChangeBusy = false;
             hasSeenTrackTransition = false;
             IsPreviousBusy = false;
@@ -507,7 +507,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "MiniPlaybackBar: Error toggling play/pause");
+            logger.Warning(ex, AppConstants.Logging.MiniPlaybackBarDiagnosticsLog.ErrorTogglingPlayPause);
         }
     }
 
@@ -524,7 +524,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "MiniPlaybackBar: Error playing next");
+            logger.Warning(ex, AppConstants.Logging.MiniPlaybackBarDiagnosticsLog.ErrorPlayingNext);
             isTrackChangeBusy = false;
             hasSeenTrackTransition = false;
             IsNextBusy = false;
@@ -543,7 +543,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "MiniPlaybackBar: Error maximizing playback");
+            logger.Warning(ex, AppConstants.Logging.MiniPlaybackBarDiagnosticsLog.ErrorMaximizingPlayback);
             IsMaximizeBusy = false;
         }
     }

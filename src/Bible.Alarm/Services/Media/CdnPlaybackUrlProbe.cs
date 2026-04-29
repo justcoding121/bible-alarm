@@ -57,7 +57,7 @@ public sealed class CdnPlaybackUrlProbe(HttpClient httpClient, ILogger logger) :
 
                 if (code is >= 500 and < 600)
                 {
-                    logger.Debug("CDN probe HEAD returned {StatusCode} for URL (treating as indeterminate)", code);
+                    logger.Debug(AppConstants.Logging.CdnPlaybackUrlProbeDiagnosticsLog.HeadReturnedStatusTreatingAsIndeterminate, code);
                     return CdnUrlProbeOutcome.Indeterminate;
                 }
 
@@ -66,12 +66,12 @@ public sealed class CdnPlaybackUrlProbe(HttpClient httpClient, ILogger logger) :
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.Debug("CDN probe timed out for URL");
+            logger.Debug(AppConstants.Logging.CdnPlaybackUrlProbeDiagnosticsLog.ProbeTimedOutForUrl);
             return CdnUrlProbeOutcome.Indeterminate;
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "CDN probe failed (indeterminate)");
+            logger.Debug(ex, AppConstants.Logging.CdnPlaybackUrlProbeDiagnosticsLog.ProbeFailedIndeterminate);
             return CdnUrlProbeOutcome.Indeterminate;
         }
     }
