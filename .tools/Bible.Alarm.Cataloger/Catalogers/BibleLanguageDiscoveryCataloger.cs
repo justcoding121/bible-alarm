@@ -208,7 +208,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
         var englishDir = $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryBible}/{AppConstants.Media.DefaultLanguageCode}/{normalizedPublicationCode}";
         DirectoryHelper.Ensure(englishDir);
 
-        var languageDiscoveryFile = Path.Combine(englishDir, "language-discovery.json");
+        var languageDiscoveryFile = Path.Combine(englishDir, AppConstants.ApiEndpoints.MediaIndexLanguageDiscoveryFileName);
 
         // Create a list of languages with Code, Name, and Direction
         var languageList = discoveredLanguages

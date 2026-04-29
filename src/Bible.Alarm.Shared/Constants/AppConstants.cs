@@ -86,6 +86,9 @@ public static class AppConstants
         /// <summary>Video episode index filename (<c>episodes.json</c>).</summary>
         public const string MediaIndexVideoEpisodesFileName = "episodes.json";
 
+        /// <summary>Bible English language-discovery artifact (<c>language-discovery.json</c>) under media/Bible/E.</summary>
+        public const string MediaIndexLanguageDiscoveryFileName = "language-discovery.json";
+
         /// <summary>Media index segment for scripture bundle (<c>Audio/Bible/...</c> on device).</summary>
         public const string MediaIndexFolderAudio = "Audio";
 

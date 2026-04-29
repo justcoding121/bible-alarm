@@ -22,7 +22,10 @@ internal static class CatalogValidator
     private static bool IsSectionedOrMediatorPublication(string publicationCode)
     {
         var c = publicationCode.ToLowerInvariant();
-        return c == "nwt" || c == "bi12" || c == "iam" || c == "dramas" || c == "dramaticbiblereadings" ||
+        return c == "nwt" || c == "bi12" || c == "iam"
+               || c == AppConstants.Media.BiblePublicationCategoryDramas.ToLowerInvariant()
+               || c == AppConstants.Media.BiblePublicationCodeDramaticBibleReadings.ToLowerInvariant()
+               ||
                c.StartsWith("vod", StringComparison.Ordinal) || c == "seriesdigfortreasures" || c == "seriesbjflessons";
     }
 
@@ -169,7 +172,7 @@ internal static class CatalogValidator
         TryAdd("iam", "iam-1", "1");
         TryAdd("DramasGoodNews", null, "1");
         TryAdd("thv", null, "1");
-        TryAdd("Dramas", null, null);
+        TryAdd(AppConstants.Media.BiblePublicationCategoryDramas, null, null);
         TryAdd("SeriesDigForTreasures", null, null);
         TryAdd("VODMoviesBibleTimes", null, null);
 

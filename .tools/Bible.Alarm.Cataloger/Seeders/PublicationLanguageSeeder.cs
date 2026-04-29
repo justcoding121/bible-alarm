@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -300,7 +301,7 @@ internal sealed class PublicationLanguageSeeder
         List<string> englishPublicationCodes,
         Bible.Alarm.Shared.Models.Media.Language englishLanguage)
     {
-        var dramasCategory = await db.Categories.FirstOrDefaultAsync(c => c.CategoryCode == "Dramas");
+        var dramasCategory = await db.Categories.FirstOrDefaultAsync(c => c.CategoryCode == AppConstants.Media.BiblePublicationCategoryDramas);
         if (dramasCategory == null)
         {
             return;
@@ -386,8 +387,8 @@ internal sealed class PublicationLanguageSeeder
             if (isDrama)
             {
                 publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
+                    ? AppConstants.Media.BiblePublicationCategoryDramas
+                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
             }
             else
             {

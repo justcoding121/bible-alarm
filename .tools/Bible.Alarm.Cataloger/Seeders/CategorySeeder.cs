@@ -1,6 +1,7 @@
 #nullable enable
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Microsoft.EntityFrameworkCore;
@@ -24,9 +25,9 @@ internal sealed class CategorySeeder
     {
         var categoryCodes = new[]
         {
-            "Bible",
-            "Dramas",
-            "Music",
+            AppConstants.Media.BiblePublicationCategoryBible,
+            AppConstants.Media.BiblePublicationCategoryDramas,
+            AppConstants.Media.BiblePublicationCategoryMusic,
             "FaithAndBible",
             "Books",
             "Yearbooks",

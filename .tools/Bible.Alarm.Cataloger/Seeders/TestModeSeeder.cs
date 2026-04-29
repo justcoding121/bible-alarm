@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media;
@@ -134,8 +135,8 @@ internal sealed class TestModeSeeder
             if (isDrama)
             {
                 publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
+                    ? AppConstants.Media.BiblePublicationCategoryDramas
+                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
             }
             else
             {
