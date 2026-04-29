@@ -22,11 +22,11 @@ public class ScheduleDbContext : DbContext
     public DbSet<BiblePublicationSchedule> BiblePublicationSchedules { get; set; }
     public DbSet<GeneralSettings> GeneralSettings { get; set; }
 
+#if DEBUG
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
 
-#if DEBUG
         // Design-time configuration: Only configure if no options were provided
         // This allows EF Core tools (migrations, etc.) to work without requiring the full MAUI runtime
         // The design-time factory (ScheduleDbContextFactory) is preferred, but this provides a fallback
@@ -43,8 +43,8 @@ public class ScheduleDbContext : DbContext
 
             optionsBuilder.UseSqlite(connectionString);
         }
-#endif
     }
+#endif
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

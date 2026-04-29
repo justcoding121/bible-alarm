@@ -27,13 +27,7 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// </summary>
 public sealed class LanguageContentService : ILanguageContentService
 {
-    private readonly IServiceScopeFactory scopeFactory;
-    private readonly ILogger logger;
-    private readonly HttpClient httpClient;
-    private readonly MediatorFetcher mediatorFetcher;
     private readonly VideoLocalizedNameFetcher videoLocalizedNameFetcher;
-    private readonly FlatPublicationFetcher flatPublicationFetcher;
-    private readonly SectionFetcher sectionFetcher;
     private readonly EnglishContentSeeder englishContentSeeder;
     private readonly PublicationEnsurer publicationEnsurer;
     private readonly LanguageContentPublicationTracksFetcher publicationTracksFetcher;
@@ -47,19 +41,20 @@ public sealed class LanguageContentService : ILanguageContentService
         HttpClient httpClient,
         IInternetConnectivityChecker? internetConnectivityChecker = null)
     {
-        this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        this.videoLocalizedNameFetcher = new VideoLocalizedNameFetcher(httpClient, logger);
-        this.mediatorFetcher = new MediatorFetcher(httpClient, logger);
-        this.flatPublicationFetcher = new FlatPublicationFetcher(httpClient, logger, videoLocalizedNameFetcher);
-        this.sectionFetcher = new SectionFetcher(httpClient, logger);
-        this.englishContentSeeder = new EnglishContentSeeder(scopeFactory, httpClient, logger, mediatorFetcher, flatPublicationFetcher);
-        this.publicationEnsurer = new PublicationEnsurer(scopeFactory, logger, this);
-        this.publicationTracksFetcher = new LanguageContentPublicationTracksFetcher(scopeFactory, logger, mediatorFetcher, flatPublicationFetcher, internetConnectivityChecker);
-        this.publicationSectionsFetcher = new LanguageContentPublicationSectionsFetcher(scopeFactory, logger, sectionFetcher, internetConnectivityChecker);
-        this.sectionTracksFetcher = new LanguageContentSectionTracksFetcher(scopeFactory, logger, sectionFetcher, internetConnectivityChecker);
-        this.firstSectionFetcher = new LanguageContentFirstSectionFetcher(scopeFactory, logger, this, sectionFetcher, internetConnectivityChecker);
+        ArgumentNullException.ThrowIfNull(scopeFactory);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(httpClient);
+
+        videoLocalizedNameFetcher = new VideoLocalizedNameFetcher(httpClient, logger);
+        var mediatorFetcher = new MediatorFetcher(httpClient, logger);
+        var flatPublicationFetcher = new FlatPublicationFetcher(httpClient, logger, videoLocalizedNameFetcher);
+        var sectionFetcher = new SectionFetcher(httpClient, logger);
+        englishContentSeeder = new EnglishContentSeeder(scopeFactory, httpClient, logger, mediatorFetcher, flatPublicationFetcher);
+        publicationEnsurer = new PublicationEnsurer(scopeFactory, logger, this);
+        publicationTracksFetcher = new LanguageContentPublicationTracksFetcher(scopeFactory, logger, mediatorFetcher, flatPublicationFetcher, internetConnectivityChecker);
+        publicationSectionsFetcher = new LanguageContentPublicationSectionsFetcher(scopeFactory, logger, sectionFetcher, internetConnectivityChecker);
+        sectionTracksFetcher = new LanguageContentSectionTracksFetcher(scopeFactory, logger, sectionFetcher, internetConnectivityChecker);
+        firstSectionFetcher = new LanguageContentFirstSectionFetcher(scopeFactory, logger, this, sectionFetcher, internetConnectivityChecker);
     }
 
     public Task<string?> GetVideoPublicationDisplayNameAsync(

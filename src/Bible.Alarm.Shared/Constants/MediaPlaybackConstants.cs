@@ -10,7 +10,7 @@ public static class MediaUriSchemeConstants
     public const string FilePrefix = "file://";
 
     /// <summary><c>file:///</c> variant used on some Unix-style absolute URIs.</summary>
-    public const string FileUriTripleSlashPrefix = "file:///";
+    public const string FileUriTripleSlashPrefix = FilePrefix + "/";
 
     public const string HttpsPrefix = "https://";
     public const string HttpPrefix = "http://";

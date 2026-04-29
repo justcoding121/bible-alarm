@@ -25,12 +25,13 @@ public static class JwSourceHelper
     /// <summary>
     /// Vocal music publication codes used for seeding.
     /// </summary>
-    public static HashSet<string> VocalMusicPublicationCodes => new(AppConstants.Media.VocalMusicCatalogPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> VocalMusicPublicationCodes = new(AppConstants.Media.VocalMusicCatalogPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Melody music publication codes used for seeding.
     /// </summary>
-    public static HashSet<string> MelodyMusicPublicationCodes => new(
+    public static readonly HashSet<string> MelodyMusicPublicationCodes =
+        new(
         new[] { AppConstants.Media.MelodyMusicPublicationCodeIam },
         StringComparer.OrdinalIgnoreCase);
 
@@ -263,7 +264,7 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Books category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> BooksPublicationCodes => new(AppConstants.Media.FlatMp3BooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> BooksPublicationCodes = new(AppConstants.Media.FlatMp3BooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Broadcasting category (Mediator API).
@@ -278,12 +279,12 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Yearbooks category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> YearbooksPublicationCodes => new(AppConstants.Media.FlatMp3YearbooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> YearbooksPublicationCodes = new(AppConstants.Media.FlatMp3YearbooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Brochures and Booklets category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> BrochuresAndBookletsPublicationCodes => new(AppConstants.Media.FlatMp3BrochuresPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> BrochuresAndBookletsPublicationCodes = new(AppConstants.Media.FlatMp3BrochuresPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Children category.
@@ -463,13 +464,14 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Article Series category (flat audio via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> ArticleSeriesPublicationCodes => new(AppConstants.Media.FlatMp3ArticleSeriesPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> ArticleSeriesPublicationCodes =
+        new(AppConstants.Media.FlatMp3ArticleSeriesPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for The Watchtower (Magazine) category (IssueSectioned, MP3 via GETPUBMEDIALINKS with issue=).
     /// Dynamically generated: w2008..w{MagazineEndYear}.
     /// </summary>
-    public static HashSet<string> WatchtowerMagazinePublicationCodes =>
+    public static readonly HashSet<string> WatchtowerMagazinePublicationCodes =
         new(Enumerable.Range(MagazineHelper.MagazineStartYear, MagazineHelper.MagazineEndYear - MagazineHelper.MagazineStartYear + 1)
             .Select(y => $"w{y}"), StringComparer.OrdinalIgnoreCase);
 
@@ -477,7 +479,7 @@ public static class JwSourceHelper
     /// Publication codes for Awake! (Magazine) category (IssueSectioned, MP3 via GETPUBMEDIALINKS with issue=).
     /// Dynamically generated: g2008..g{MagazineEndYear}.
     /// </summary>
-    public static HashSet<string> AwakeMagazinePublicationCodes =>
+    public static readonly HashSet<string> AwakeMagazinePublicationCodes =
         new(Enumerable.Range(MagazineHelper.MagazineStartYear, MagazineHelper.MagazineEndYear - MagazineHelper.MagazineStartYear + 1)
             .Select(y => $"g{y}"), StringComparer.OrdinalIgnoreCase);
 
@@ -526,7 +528,8 @@ public static class JwSourceHelper
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that use issue= rather than track= for the numeric identifier (e.g. mwbv, jwb, jwbls use YYYYMM issue ids).
     /// </summary>
-    public static HashSet<string> SectionCodesUsingIssueParameter => new(AppConstants.Media.GetPubIssueParameterPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> SectionCodesUsingIssueParameter =
+        new(AppConstants.Media.GetPubIssueParameterPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Returns true if the numeric value looks like a YYYYMM issue id (e.g. 201512).
@@ -545,12 +548,14 @@ public static class JwSourceHelper
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when no track param is sent.
     /// </summary>
-    public static HashSet<string> SectionCodesSingleTrackNoParam => new(AppConstants.Media.GetPubSingleTrackNoParamPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> SectionCodesSingleTrackNoParam =
+        new(AppConstants.Media.GetPubSingleTrackNoParamPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when track=0 is sent.
     /// </summary>
-    public static HashSet<string> SectionCodesSingleTrackZero => new(AppConstants.Media.GetPubSingleTrackZeroPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static readonly HashSet<string> SectionCodesSingleTrackZero =
+        new(AppConstants.Media.GetPubSingleTrackZeroPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Teenagers category (Mediator API).

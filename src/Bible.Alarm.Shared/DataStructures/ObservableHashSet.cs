@@ -8,7 +8,6 @@ namespace Bible.Alarm.Shared.DataStructures;
 
 public sealed class ObservableHashSet<T> : INotifyCollectionChanged,
     ICollection<T>,
-    IEnumerable,
     ICollection where T : IComparable
 {
     private readonly SortedSet<T> sortedSet = [];

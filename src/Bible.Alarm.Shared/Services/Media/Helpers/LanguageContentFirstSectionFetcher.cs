@@ -112,9 +112,8 @@ internal sealed class LanguageContentFirstSectionFetcher
                     return true;
                 }
 
-                // Publication exists but first section doesn't - we need to add it
-                // For now, we'll fetch all sections (this is a rare case)
-                // TODO: Optimize to add only the first section to existing publication
+                // Publication exists but first section doesn't - we need to add it.
+                // For now, fetch all sections (rare path); narrowing to the single section remains a future optimization.
                 logger.Debug("Publication {PublicationCode} exists but first section doesn't, fetching all sections",
                     publicationCode);
                 await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);

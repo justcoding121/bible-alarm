@@ -24,7 +24,6 @@ namespace Bible.Alarm.Shared.Services.Media.Helpers;
 internal sealed class EnglishContentSeeder
 {
     private readonly IServiceScopeFactory scopeFactory;
-    private readonly HttpClient httpClient;
     private readonly ILogger logger;
     private readonly MediatorFetcher mediatorFetcher;
     private readonly FlatPublicationFetcher flatPublicationFetcher;
@@ -39,12 +38,11 @@ internal sealed class EnglishContentSeeder
         FlatPublicationFetcher flatPublicationFetcher)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-        this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.mediatorFetcher = mediatorFetcher ?? throw new ArgumentNullException(nameof(mediatorFetcher));
         this.flatPublicationFetcher = flatPublicationFetcher ?? throw new ArgumentNullException(nameof(flatPublicationFetcher));
-        
-        this.sectionFetcher = new EnglishSectionFetcher(httpClient, logger);
+
+        sectionFetcher = new EnglishSectionFetcher(httpClient, logger);
         this.publicationBuilder = new EnglishPublicationBuilder(logger);
     }
 

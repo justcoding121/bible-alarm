@@ -31,7 +31,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.SubviewsWalkHitDisposedViewNonFatal);
+            Log.Debug(ex, AppConstants.Logging.IosNativeViewCleanupDiagnosticsLog.SubviewsWalkHitDisposedViewNonFatal);
         }
 
         try
@@ -47,7 +47,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.GestureRecognizersAccessDisposedNonFatal);
+            Log.Debug(ex, AppConstants.Logging.IosNativeViewCleanupDiagnosticsLog.GestureRecognizersAccessDisposedNonFatal);
         }
 
         try
@@ -59,7 +59,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.LayerAccessDisposedNonFatal);
+            Log.Debug(ex, AppConstants.Logging.IosNativeViewCleanupDiagnosticsLog.LayerAccessDisposedNonFatal);
         }
 
         SuppressViewPropertyFinalizers(view);
@@ -88,7 +88,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.PropertyFinalizerWalkDisposedNonFatal);
+            Log.Debug(ex, AppConstants.Logging.IosNativeViewCleanupDiagnosticsLog.PropertyFinalizerWalkDisposedNonFatal);
         }
     }
 
@@ -107,7 +107,7 @@ public static class IOSNativeViewCleanupHelper
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, AppConstants.Logging.IOSNativeViewCleanupDiagnosticsLog.SublayersWalkDisposedNonFatal);
+            Log.Debug(ex, AppConstants.Logging.IosNativeViewCleanupDiagnosticsLog.SublayersWalkDisposedNonFatal);
         }
 
         GC.SuppressFinalize(layer);

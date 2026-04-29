@@ -60,7 +60,7 @@ public static class AppConstants
         /// <summary>
         /// JW.org public languages list JSON (<c>/en/languages</c>). Catalog seeding and sign-language detection.
         /// </summary>
-        public const string JwOrgLanguagesListUrl = "https://www.jw.org/en/languages";
+        public const string JwOrgLanguagesListUrl = "https://www.jw.org/en/languages"; // NOSONAR S1075 - centralized JW.org catalog URI
 
         /// <summary>
         /// Media index file name prefix for new format (v2+)
@@ -4220,7 +4220,7 @@ public static class AppConstants
         }
 
         /// <summary>iOS UIView/CALayer finalizer suppression (<c>IOSNativeViewCleanupHelper</c>).</summary>
-        public static class IOSNativeViewCleanupDiagnosticsLog
+        public static class IosNativeViewCleanupDiagnosticsLog
         {
             public const string SubviewsWalkHitDisposedViewNonFatal =
                 "IOSNativeViewCleanupHelper: Subviews walk hit disposed view (non-fatal)";
@@ -4508,7 +4508,7 @@ public static class AppConstants
             public const string NoNotificationsScheduledCheckConfiguration =
                 "No notifications were scheduled for schedule {ScheduleId}. Check alarm schedule configuration.";
 
-            public const string TotalScheduledToastsNextFireDate =
+            public const string ScheduledToastTotalsWithPriorNextFireDate =
                 "Total scheduled toasts in system: {TotalCount}. Next fire date was: {NextFireDate}";
 
             public const string ErrorSchedulingNotificationsForSchedule =

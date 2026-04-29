@@ -101,7 +101,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
                 // Log additional diagnostic information
                 var scheduledToasts = notifier.GetScheduledToastNotifications();
-                logger.Warning(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.TotalScheduledToastsNextFireDate,
+                logger.Warning(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ScheduledToastTotalsWithPriorNextFireDate,
                     scheduledToasts.Count, schedule.NextFireDate(DateTimeOffset.Now));
             }
         }

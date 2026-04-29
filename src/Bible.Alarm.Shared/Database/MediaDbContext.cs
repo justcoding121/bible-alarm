@@ -34,10 +34,6 @@ public class MediaDbContext : DbContext
         // The app is packaged with the latest database schema, so pending changes are expected during migration
         optionsBuilder.ConfigureWarnings(warnings =>
             warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
-
-        //#if DEBUG
-        //            optionsBuilder.UseSqlite("DataSource=media_migration.db");
-        //#endif
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
