@@ -523,13 +523,16 @@ public static class AppConstants
         /// <summary>English title for Good News According to Jesus (<see cref="BiblePublicationCodeDramasGoodNews"/>).</summary>
         public const string PublicationDisplayNameGoodNewsAccordingToJesus = "The Good News According to Jesus";
 
+        /// <summary>Sentence-case variant for misleading Good News titles in Bible GETPUB responses.</summary>
+        public const string ApiMisleadingGoodNewsPublicationPhraseAlternate = "Good news according to Jesus";
+
         /// <summary>
         /// Substrings in JW GETPUB publication names that indicate video drama titles wrongly returned for Bible publications.
         /// </summary>
         public static readonly string[] ApiMisleadingGoodNewsVideoPublicationNamePhrases =
         {
             PublicationDisplayNameGoodNewsAccordingToJesus,
-            "Good news according to Jesus"
+            ApiMisleadingGoodNewsPublicationPhraseAlternate
         };
 
         /// <summary>

@@ -80,8 +80,8 @@ public sealed class MediaIndexService(
     /// </summary>
     private async Task<bool> IndexDoNotExistOrIsOutdated()
     {
-        var tmpIndexFilePath = Path.Combine(IndexRoot, "index.zip");
-        var mediaIndexDbPath = Path.Combine(IndexRoot, "mediaIndex.db");
+        var tmpIndexFilePath = Path.Combine(IndexRoot, AppConstants.FilePaths.MediaIndexZipFileName);
+        var mediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
 
         var mediaIndexDbExists = await storageService.FileExists(mediaIndexDbPath)
                                  && !await storageService.FileExists(tmpIndexFilePath);
@@ -101,21 +101,21 @@ public sealed class MediaIndexService(
 
     private async Task ClearCopyIndexFromResource()
     {
-        const string IndexResourceFile = "index.zip";
+        var indexZipFileName = AppConstants.FilePaths.MediaIndexZipFileName;
 
         if (!Directory.Exists(IndexRoot))
         {
             Directory.CreateDirectory(IndexRoot);
         }
 
-        var tmpIndexFilePath = Path.Combine(IndexRoot, IndexResourceFile);
+        var tmpIndexFilePath = Path.Combine(IndexRoot, indexZipFileName);
 
         if (await storageService.FileExists(tmpIndexFilePath))
         {
             await storageService.DeleteFile(tmpIndexFilePath);
         }
 
-        await storageService.CopyResourceFile(IndexResourceFile, IndexRoot, IndexResourceFile);
+        await storageService.CopyResourceFile(indexZipFileName, IndexRoot, indexZipFileName);
 
         var mediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
         var oldMediaIndexDbPath = GetOldMediaIndexPath();

@@ -543,7 +543,7 @@ class Program
             dbPath = Path.Combine(searchDir, AppConstants.Database.MediaIndexDatabaseFileName);
             if (!File.Exists(dbPath))
             {
-                var zipPath = Path.Combine(searchDir, "index.zip");
+                var zipPath = Path.Combine(searchDir, AppConstants.FilePaths.MediaIndexZipFileName);
                 if (File.Exists(zipPath))
                 {
                     path = zipPath;

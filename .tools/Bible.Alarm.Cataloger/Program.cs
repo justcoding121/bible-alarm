@@ -130,7 +130,7 @@ public class Program
 
         try
         {
-            var indexZipPath = $"{DirectoryHelper.IndexDirectory}/index.zip";
+            var indexZipPath = $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexZipFileName}";
             var indexZipFile = new FileInfo(indexZipPath);
             var originalIndexFileSize = indexZipFile.Exists ? indexZipFile.Length : 0;
 
@@ -281,7 +281,7 @@ public class Program
             ZipFiles();
 
             var newIndexFileSize =
-                (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
+                (new FileInfo($"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexZipFileName}")).Length;
 
             logger.Information("Old size: {OldSize}kb", originalIndexFileSize / 1024);
             logger.Information("New size: {NewSize}kb", newIndexFileSize / 1024);
@@ -316,7 +316,7 @@ public class Program
             await Log.CloseAndFlushAsync();
         }
 
-        var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
+        var zipIndex = $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexZipFileName}";
         if (!File.Exists(zipIndex))
         {
             logger.Error("Cataloging failed to create zip file.");
@@ -330,7 +330,7 @@ public class Program
 
     private static void ZipFiles()
     {
-        var zipIndex = $"{DirectoryHelper.IndexDirectory}/index.zip";
+        var zipIndex = $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexZipFileName}";
         if (File.Exists(zipIndex))
         {
             File.Delete(zipIndex);
@@ -355,7 +355,7 @@ public class Program
 
         foreach (var file in files)
         {
-            if (file.EndsWith("index.zip"))
+            if (file.EndsWith(AppConstants.FilePaths.MediaIndexZipFileName, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
