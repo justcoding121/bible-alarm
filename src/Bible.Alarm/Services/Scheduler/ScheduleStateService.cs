@@ -114,7 +114,7 @@ public sealed class ScheduleStateService(
         // we need to check/request notification permission because tap-to-play requires it
         if (schedule != null && schedule.NotificationEnabled)
         {
-            logger.Information("Android: Schedule {ScheduleId} has NotificationEnabled=true, checking notification permission before enabling reminder", scheduleId);
+            logger.Information(AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationEnabledCheckingPermissionBeforeReminder, scheduleId);
             // Check permission status without waiting (non-blocking)
             // Permission requests are handled by ViewModels via the modal
             var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
@@ -123,11 +123,11 @@ public sealed class ScheduleStateService(
                 logger.Warning(AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableNotificationDeniedTapToPlay, scheduleId);
                 return false;
             }
-            logger.Information("Android: Notification permission granted for schedule {ScheduleId}", scheduleId);
+            logger.Information(AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidNotificationPermissionGrantedForSchedule, scheduleId);
         }
         else if (schedule != null)
         {
-            logger.Debug("Android: Schedule {ScheduleId} has NotificationEnabled=false, no permission check needed", scheduleId);
+            logger.Debug(AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationDisabledNoPermissionCheckNeeded, scheduleId);
         }
         return true; // Android permission check passed or not needed
 #elif IOS
@@ -139,7 +139,7 @@ public sealed class ScheduleStateService(
         if (!permissionService.IsGranted)
         {
             // Request permission - this will show the iOS permission dialog
-            logger.Information("Requesting iOS notification permission for schedule {ScheduleId}", scheduleId);
+            logger.Information(AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.RequestingIosNotificationPermissionForSchedule, scheduleId);
             
             // Use TaskCompletionSource to wait for permission response
             var tcs = new TaskCompletionSource<bool>();

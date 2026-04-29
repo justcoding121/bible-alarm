@@ -530,6 +530,54 @@ public static class AppConstants
                 "Permission request timeout for schedule {ScheduleId}";
         }
 
+        /// <summary>Enable + notification permission (<c>ScheduleStateService</c>).</summary>
+        public static class ScheduleStateServiceDiagnosticsLog
+        {
+            public const string AndroidScheduleNotificationEnabledCheckingPermissionBeforeReminder =
+                "Android: Schedule {ScheduleId} has NotificationEnabled=true, checking notification permission before enabling reminder";
+
+            public const string AndroidNotificationPermissionGrantedForSchedule =
+                "Android: Notification permission granted for schedule {ScheduleId}";
+
+            public const string AndroidScheduleNotificationDisabledNoPermissionCheckNeeded =
+                "Android: Schedule {ScheduleId} has NotificationEnabled=false, no permission check needed";
+
+            public const string RequestingIosNotificationPermissionForSchedule =
+                "Requesting iOS notification permission for schedule {ScheduleId}";
+        }
+
+        /// <summary>Android alarm tap notification / user playback (<c>AndroidAlarmHandler</c>).</summary>
+        public static class AndroidAlarmHandlerDiagnosticsLog
+        {
+            public const string AlarmTriggeredNotificationEnabledStoppingForegroundShowingTapNotification =
+                "Alarm triggered with NotificationEnabled=true for schedule {ScheduleId} - stopping foreground service and showing tap notification";
+
+            public const string RemovingExistingLocalNotificationForSchedule =
+                "Removing any existing local notification for schedule {ScheduleId}";
+
+            public const string ShowingLocalNotificationForScheduleTitle =
+                "Showing local notification for schedule {ScheduleId} - Title={Title}";
+
+            public const string LocalNotificationShownWaitingForUserTap =
+                "Local notification shown for schedule {ScheduleId} - waiting for user tap";
+
+            public const string UserInitiatedPlaybackStartingDirectlyWithoutNotifications =
+                "User-initiated playback for schedule {ScheduleId} - starting playback directly without notifications";
+        }
+
+        /// <summary>Serialized schedule play (<c>SchedulePlaybackService</c>).</summary>
+        public static class SchedulePlaybackServiceDiagnosticsLog
+        {
+            public const string PlayScheduleAsyncPlayLockAlreadyHeldSkipping =
+                "PlayScheduleAsync: PlayLock already held — skipping (schedule {ScheduleId})";
+
+            public const string PlayScheduleAsyncOverallTimeoutReleasingPlayLockBackgroundContinues =
+                "PlayScheduleAsync: overall timeout ({Timeout}s) for schedule {ScheduleId}. Releasing PlayLock — background task continues.";
+
+            public const string PlaybackCancelledForSchedule =
+                "Playback cancelled for schedule {ScheduleId}";
+        }
+
         /// <summary>Notification permission modal / Android settings helpers.</summary>
         public static class NotificationPermissionDiagnosticsLog
         {

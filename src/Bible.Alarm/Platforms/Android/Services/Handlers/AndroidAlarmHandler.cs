@@ -73,25 +73,25 @@ public sealed class AndroidAlarmHandler(
 
     private void PresentTapNotificationAndReturn(AlarmSchedule schedule, int scheduleId)
     {
-        logger.Information("Alarm triggered with NotificationEnabled=true for schedule {ScheduleId} - stopping foreground service and showing tap notification", scheduleId);
+        logger.Information(AppConstants.Logging.AndroidAlarmHandlerDiagnosticsLog.AlarmTriggeredNotificationEnabledStoppingForegroundShowingTapNotification, scheduleId);
         Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
 
-        logger.Debug("Removing any existing local notification for schedule {ScheduleId}", schedule.Id);
+        logger.Debug(AppConstants.Logging.AndroidAlarmHandlerDiagnosticsLog.RemovingExistingLocalNotificationForSchedule, schedule.Id);
         AndroidNotificationService.RemoveLocalNotification(schedule.Id);
 
         var notificationTitle = string.IsNullOrEmpty(schedule.Name) ? AppConstants.AppSettings.ApplicationDisplayName : schedule.Name;
-        logger.Information("Showing local notification for schedule {ScheduleId} - Title={Title}", schedule.Id, notificationTitle);
+        logger.Information(AppConstants.Logging.AndroidAlarmHandlerDiagnosticsLog.ShowingLocalNotificationForScheduleTitle, schedule.Id, notificationTitle);
         AndroidNotificationService.ShowLocalNotification(schedule.Id,
             notificationTitle,
             AppConstants.Notifications.TapAlarmToListenBody);
 
-        logger.Information("Local notification shown for schedule {ScheduleId} - waiting for user tap", schedule.Id);
+        logger.Information(AppConstants.Logging.AndroidAlarmHandlerDiagnosticsLog.LocalNotificationShownWaitingForUserTap, schedule.Id);
     }
 
     private async Task StartUserInitiatedPlaybackAsync(AlarmSchedule schedule)
     {
         AndroidNotificationService.RemoveLocalNotification(schedule.Id);
-        logger.Information("User-initiated playback for schedule {ScheduleId} - starting playback directly without notifications", schedule.Id);
+        logger.Information(AppConstants.Logging.AndroidAlarmHandlerDiagnosticsLog.UserInitiatedPlaybackStartingDirectlyWithoutNotifications, schedule.Id);
 
         await StartPrepareAndPlayInBackgroundAsync(schedule.Id, isAlarm: false,
             errorLog: AppConstants.Logging.AlarmDiagnostics.StartingUserInitiatedPlaybackFailed);

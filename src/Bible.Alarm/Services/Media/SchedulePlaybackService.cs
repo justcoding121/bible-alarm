@@ -34,7 +34,7 @@ public sealed class SchedulePlaybackService(
         // PlayLock for minutes (each play attempt can take 10-30s).
         if (!await PlayLock.WaitAsync(0))
         {
-            logger.Warning("PlayScheduleAsync: PlayLock already held — skipping (schedule {ScheduleId})", scheduleId);
+            logger.Warning(AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlayScheduleAsyncPlayLockAlreadyHeldSkipping, scheduleId);
             return;
         }
 
@@ -48,7 +48,7 @@ public sealed class SchedulePlaybackService(
 
             if (completedTask != playTask)
             {
-                logger.Error("PlayScheduleAsync: overall timeout ({Timeout}s) for schedule {ScheduleId}. Releasing PlayLock — background task continues.",
+                logger.Error(AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlayScheduleAsyncOverallTimeoutReleasingPlayLockBackgroundContinues,
                     PlayLockOverallTimeout.TotalSeconds, scheduleId);
                 return;
             }
@@ -83,7 +83,7 @@ public sealed class SchedulePlaybackService(
         }
         catch (OperationCanceledException)
         {
-            logger.Debug("Playback cancelled for schedule {ScheduleId}", scheduleId);
+            logger.Debug(AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlaybackCancelledForSchedule, scheduleId);
         }
         catch (Exception e)
         {
