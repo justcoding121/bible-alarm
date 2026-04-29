@@ -711,6 +711,67 @@ public static class AppConstants
                 "LoadExistingScheduleAsync: Loaded schedule {ScheduleId} with display names";
         }
 
+        /// <summary>Schedule page cancel/save/delete (<c>ScheduleCommandService</c>).</summary>
+        public static class ScheduleCommandDiagnosticsLog
+        {
+            public const string CancelCommandCancelButtonClicked =
+                "CancelCommand: Cancel button clicked. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}";
+
+            public const string CancelCommandNewScheduleRemovingFromStateNavigatingHome =
+                "CancelCommand: New schedule, removing from state and navigating to home";
+
+            public const string CancelCommandRemovingUnsavedScheduleFromState =
+                "CancelCommand: Removing unsaved schedule with ID {ScheduleId} from state";
+
+            public const string CancelCommandExistingScheduleDiscardingDraftNoDbReload =
+                "CancelCommand: Existing schedule, discarding draft changes (no DB reload). ScheduleId={ScheduleId}";
+
+            public const string SaveCommandSaveButtonClicked =
+                "SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}";
+
+            public const string SaveAsyncModelNotInitializedCannotSave =
+                "SaveAsync: Model not initialized. Cannot save.";
+
+            public const string SaveAsyncInvalidScheduleIdForExistingSchedule =
+                "SaveAsync: Invalid ScheduleId for existing schedule. ScheduleId={ScheduleId}";
+
+            public const string SaveCommandCannotSaveDaysOfWeekEmpty =
+                "SaveCommand: Cannot save schedule - DaysOfWeek is empty (0)";
+
+            public const string CannotSaveScheduleNotificationEnabledPermissionDenied =
+                "Cannot save schedule with NotificationEnabled=true - notification permission denied";
+
+            public const string ExecuteSaveAsyncBeforePrepareModelForSaveTracksAndAlwaysPlayFromStart =
+                "ExecuteSaveAsync: Before PrepareModelForSave - currentSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, currentSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}";
+
+            public const string ExecuteSaveAsyncAfterPrepareScheduleStateItemTracksAndAlwaysPlayFromStart =
+                "ExecuteSaveAsync: After PrepareScheduleStateItem - scheduleStateItem.NumberOfTracksToPlay={NumberOfTracksToPlay}, scheduleStateItem.AlwaysPlayFromStart={AlwaysPlayFromStart}";
+
+            public const string DispatchSaveActionDispatchingCreateScheduleAction =
+                "DispatchSaveActionAsync: Dispatching CreateScheduleAction";
+
+            public const string DispatchSaveActionDispatchingUpdateScheduleFromViewModelShouldSaveTrue =
+                "DispatchSaveActionAsync: Dispatching UpdateScheduleFromViewModelAction with shouldSave: true. scheduleStateItem.NumberOfTracksToPlay={NumberOfTracksToPlay}, scheduleStateItem.AlwaysPlayFromStart={AlwaysPlayFromStart}";
+
+            public const string WaitForNewScheduleInStateTimedOut =
+                "WaitForNewScheduleInStateAsync: Timed out waiting for new schedule to appear in state";
+
+            public const string ExecuteDeleteAsyncInvalidScheduleIdHidingOverlay =
+                "ExecuteDeleteAsync: Invalid ScheduleId {ScheduleId}, hiding overlay";
+
+            public const string CannotDeleteScheduleLastRemaining =
+                "Cannot delete schedule {ScheduleId} - it is the last schedule";
+
+            public const string DeleteAsyncDispatchingDeleteScheduleAction =
+                "DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}";
+
+            public const string SaveCommandSaveSuccessfulNavigatingHome =
+                "SaveCommand: Save successful, navigating to home. ScheduleId={ScheduleId}";
+
+            public const string SaveCommandSaveFailedHidingOverlay =
+                "SaveCommand: Save failed, hiding overlay. ScheduleId={ScheduleId}";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {

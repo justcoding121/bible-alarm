@@ -72,12 +72,12 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         int scheduleId,
         ScheduleStateItem? currentSchedule)
     {
-        logger.Information("CancelCommand: Cancel button clicked. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}", scheduleId, isNewSchedule);
+        logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandCancelButtonClicked, scheduleId, isNewSchedule);
 
         // If it's a new schedule, remove it from state and navigate home
         if (isNewSchedule)
         {
-            logger.Debug("CancelCommand: New schedule, removing from state and navigating to home");
+            logger.Debug(AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandNewScheduleRemovingFromStateNavigatingHome);
 
             // Remove any unsaved schedule (ID <= 0) from the Schedules collection
             var currentState = state.Value;
@@ -85,7 +85,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             {
                 foreach (var unsavedSchedule in currentState.Schedules.Where(s => s.Id <= 0))
                 {
-                    logger.Debug("CancelCommand: Removing unsaved schedule with ID {ScheduleId} from state", unsavedSchedule.Id);
+                    logger.Debug(AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandRemovingUnsavedScheduleFromState, unsavedSchedule.Id);
                     dispatcher.Dispatch(new RemoveScheduleSuccessAction(unsavedSchedule.Id));
                 }
             }
@@ -103,7 +103,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         // Existing schedule cancel:
         // Unsaved edits are applied only to CurrentSchedule (ShouldSave=false), not to the persisted Schedules list.
         // So we can safely discard the draft by resetting state and navigating home without any DB calls.
-        logger.Debug("CancelCommand: Existing schedule, discarding draft changes (no DB reload). ScheduleId={ScheduleId}", scheduleId);
+        logger.Debug(AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandExistingScheduleDiscardingDraftNoDbReload, scheduleId);
 
         // Clear CurrentSchedule after cancel (discard draft changes)
         dispatcher.Dispatch(new ResetScheduleStateAction());
@@ -123,19 +123,19 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         bool biblePublicationUpdated,
         bool modelInitialized)
     {
-        logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
+        logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveCommandSaveButtonClicked,
             isNewSchedule, scheduleId, currentSchedule.Name);
 
         if (!modelInitialized)
         {
-            logger.Error("SaveAsync: Model not initialized. Cannot save.");
+            logger.Error(AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveAsyncModelNotInitializedCannotSave);
             await toastService.ShowMessage(AppConstants.ToastMessages.ScheduleDataNotReadyTryAgain);
             return false;
         }
 
         if (!isNewSchedule && scheduleId <= 0)
         {
-            logger.Error("SaveAsync: Invalid ScheduleId for existing schedule. ScheduleId={ScheduleId}", scheduleId);
+            logger.Error(AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveAsyncInvalidScheduleIdForExistingSchedule, scheduleId);
             await toastService.ShowMessage(AppConstants.ToastMessages.InvalidScheduleIdTryAgain);
             return false;
         }
@@ -143,7 +143,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         // Validate DaysOfWeek before saving
         if (currentSchedule.DaysOfWeek == 0)
         {
-            logger.Warning("SaveCommand: Cannot save schedule - DaysOfWeek is empty (0)");
+            logger.Warning(AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveCommandCannotSaveDaysOfWeekEmpty);
             await toastService.ShowMessage(AppConstants.ToastMessages.SelectAtLeastOneDay, 5);
             return false;
         }
@@ -157,7 +157,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
             if (!granted)
             {
-                logger.Warning("Cannot save schedule with NotificationEnabled=true - notification permission denied");
+                logger.Warning(AppConstants.Logging.ScheduleCommandDiagnosticsLog.CannotSaveScheduleNotificationEnabledPermissionDenied);
                 return false;
             }
 #endif
@@ -172,7 +172,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             await Task.Delay(50);
         }
 
-        logger.Information("ExecuteSaveAsync: Before PrepareModelForSave - currentSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, currentSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+        logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.ExecuteSaveAsyncBeforePrepareModelForSaveTracksAndAlwaysPlayFromStart,
             currentSchedule.NumberOfTracksToPlay, currentSchedule.AlwaysPlayFromStart);
         
         var model = await scheduleSaveService.PrepareModelForSaveAsync(currentSchedule, isNewSchedule, musicUpdated);
@@ -184,12 +184,12 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             scheduleStateItem.BiblePublicationFinishedDuration = TimeSpan.Zero;
         }
 
-        logger.Information("ExecuteSaveAsync: After PrepareScheduleStateItem - scheduleStateItem.NumberOfTracksToPlay={NumberOfTracksToPlay}, scheduleStateItem.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+        logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.ExecuteSaveAsyncAfterPrepareScheduleStateItemTracksAndAlwaysPlayFromStart,
             scheduleStateItem.NumberOfTracksToPlay, scheduleStateItem.AlwaysPlayFromStart);
 
         if (isNewSchedule)
         {
-            logger.Information("DispatchSaveActionAsync: Dispatching CreateScheduleAction");
+            logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.DispatchSaveActionDispatchingCreateScheduleAction);
 
             // Capture the current saved schedule count before dispatching
             var previousSavedCount = state.Value.Schedules?.Count(s => s.Id > 0) ?? 0;
@@ -203,7 +203,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         }
         else
         {
-            logger.Information("DispatchSaveActionAsync: Dispatching UpdateScheduleFromViewModelAction with shouldSave: true. scheduleStateItem.NumberOfTracksToPlay={NumberOfTracksToPlay}, scheduleStateItem.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.DispatchSaveActionDispatchingUpdateScheduleFromViewModelShouldSaveTrue,
                 scheduleStateItem.NumberOfTracksToPlay, scheduleStateItem.AlwaysPlayFromStart);
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, musicUpdated, biblePublicationUpdated, shouldSave: true));
         }
@@ -242,7 +242,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
 
             if (completed != tcs.Task)
             {
-                logger.Warning("WaitForNewScheduleInStateAsync: Timed out waiting for new schedule to appear in state");
+                logger.Warning(AppConstants.Logging.ScheduleCommandDiagnosticsLog.WaitForNewScheduleInStateTimedOut);
             }
         }
         finally
@@ -268,7 +268,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (scheduleId <= 0)
         {
             // Hide overlay on invalid schedule ID to prevent infinite spinner
-            logger.Warning("ExecuteDeleteAsync: Invalid ScheduleId {ScheduleId}, hiding overlay", scheduleId);
+            logger.Warning(AppConstants.Logging.ScheduleCommandDiagnosticsLog.ExecuteDeleteAsyncInvalidScheduleIdHidingOverlay, scheduleId);
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             return false;
         }
@@ -276,14 +276,14 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         // Check if this is the last schedule - prevent deletion if it is
         if (scheduleCount <= 1)
         {
-            logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", scheduleId);
+            logger.Warning(AppConstants.Logging.ScheduleCommandDiagnosticsLog.CannotDeleteScheduleLastRemaining, scheduleId);
             // Hide overlay BEFORE showing toast (toast is awaited and blocks until dismissed)
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             await toastService.ShowMessage(AppConstants.ToastMessages.CannotDeleteLastSchedule);
             return false;
         }
 
-        logger.Information("DeleteAsync: Dispatching DeleteScheduleAction for ScheduleId={ScheduleId}", scheduleId);
+        logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.DeleteAsyncDispatchingDeleteScheduleAction, scheduleId);
         dispatcher.Dispatch(new DeleteScheduleAction(scheduleId));
 
         // Clear CurrentSchedule after delete operation
@@ -333,7 +333,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
     {
         if (saved)
         {
-            logger.Information("SaveCommand: Save successful, navigating to home. ScheduleId={ScheduleId}", scheduleId);
+            logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveCommandSaveSuccessfulNavigatingHome, scheduleId);
 
             // Clear CurrentSchedule after successful save
             dispatcher.Dispatch(new ResetScheduleStateAction());
@@ -347,7 +347,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         }
         else
         {
-            logger.Error("SaveCommand: Save failed, hiding overlay. ScheduleId={ScheduleId}", scheduleId);
+            logger.Error(AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveCommandSaveFailedHidingOverlay, scheduleId);
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
         }
 
