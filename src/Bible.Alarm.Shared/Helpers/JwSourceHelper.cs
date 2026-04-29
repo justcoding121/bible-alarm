@@ -59,7 +59,7 @@ public static class JwSourceHelper
     public static HashSet<string> MusicFlagPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.MediatorCategoryKeyChildrenSongs,
-        "SeriesBJFSongs"
+        AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs
     };
 
     /// <summary>
@@ -129,10 +129,10 @@ public static class JwSourceHelper
         AppConstants.Media.BiblePublicationCodeVODMoviesExtras,
         AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
-        "StudioMonthlyPrograms",
-        "StudioTalks",
-        "StudioNewsReports",
-        "BJF",
+        AppConstants.Media.MediatorPublicationCodeStudioMonthlyPrograms,
+        AppConstants.Media.MediatorPublicationCodeStudioTalks,
+        AppConstants.Media.MediatorPublicationCodeStudioNewsReports,
+        AppConstants.Media.MediatorPublicationCodeBJF,
         AppConstants.Media.MediatorCategoryKeyChildrenSongs,
         AppConstants.Media.MediatorCategoryKeyChildrenMovies,
         AppConstants.Media.MediatorCategoryKeyTeenSpiritualGrowth,
@@ -141,14 +141,14 @@ public static class JwSourceHelper
         AppConstants.Media.MediatorCategoryKeyTeenWhatPeersSay,
         AppConstants.Media.BiblePublicationCodeSeriesWhatPeersSay,
         AppConstants.Media.MediatorCategoryKeyTeenMovies,
-        "FamilyChallenges",
-        "FamilyDatingMarriage",
+        AppConstants.Media.MediatorPublicationCodeFamilyChallenges,
+        AppConstants.Media.MediatorPublicationCodeFamilyDatingMarriage,
         AppConstants.Media.MediatorCategoryKeyFamilyWorship,
         AppConstants.Media.MediatorCategoryKeyFamilyMovies,
-        "VODPgmEvtMorningWorship",
-        "VODPgmEvtSpecial",
-        "VODPgmEvtGilead",
-        "VODPgmEvtAnnMtg",
+        AppConstants.Media.MediatorPublicationCodeVODPgmEvtMorningWorship,
+        AppConstants.Media.MediatorPublicationCodeVODPgmEvtSpecial,
+        AppConstants.Media.MediatorPublicationCodeVODPgmEvtGilead,
+        AppConstants.Media.MediatorPublicationCodeVODPgmEvtAnnMtg,
         AppConstants.Media.MediatorCategoryKey2025Convention,
         AppConstants.Media.MediatorCategoryKey2024Convention,
         AppConstants.Media.MediatorCategoryKey2023Convention,
@@ -180,14 +180,14 @@ public static class JwSourceHelper
         "VODOrgLegal",
         "VODOrgBloodlessMedicine",
         AppConstants.Media.MediatorCategoryKeyBibleBooks,
-        "VODBibleReadingStudy",
-        "VODBibleTeachings",
-        "VODBibleAccounts",
-        "VODBibleMedia",
-        "VODBibleTranslations",
-        "VODBiblePrinciples",
-        "VODBibleCreation",
-        "SeriesBJFSongs",
+        AppConstants.Media.MediatorPublicationCodeVODBibleReadingStudy,
+        AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+        AppConstants.Media.MediatorPublicationCodeVODBibleAccounts,
+        AppConstants.Media.MediatorPublicationCodeVODBibleMedia,
+        AppConstants.Media.MediatorPublicationCodeVODBibleTranslations,
+        AppConstants.Media.MediatorPublicationCodeVODBiblePrinciples,
+        AppConstants.Media.MediatorPublicationCodeVODBibleCreation,
+        AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs,
         "SeriesBibleTeachings",
         "SeriesHappyMarriage",
         "SeriesImitateFaith",
@@ -259,13 +259,13 @@ public static class JwSourceHelper
     public static HashSet<string> FaithAndBiblePublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.MediatorCategoryKeyBibleBooks,
-        "VODBibleReadingStudy",
-        "VODBibleTeachings",
-        "VODBibleAccounts",
-        "VODBibleMedia",
-        "VODBibleTranslations",
-        "VODBiblePrinciples",
-        "VODBibleCreation"
+        AppConstants.Media.MediatorPublicationCodeVODBibleReadingStudy,
+        AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+        AppConstants.Media.MediatorPublicationCodeVODBibleAccounts,
+        AppConstants.Media.MediatorPublicationCodeVODBibleMedia,
+        AppConstants.Media.MediatorPublicationCodeVODBibleTranslations,
+        AppConstants.Media.MediatorPublicationCodeVODBiblePrinciples,
+        AppConstants.Media.MediatorPublicationCodeVODBibleCreation
     };
 
     /// <summary>
@@ -281,9 +281,9 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> BroadcastingPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "StudioMonthlyPrograms",
-        "StudioTalks",
-        "StudioNewsReports"
+        AppConstants.Media.MediatorPublicationCodeStudioMonthlyPrograms,
+        AppConstants.Media.MediatorPublicationCodeStudioTalks,
+        AppConstants.Media.MediatorPublicationCodeStudioNewsReports
     };
 
     /// <summary>
@@ -308,7 +308,7 @@ public static class JwSourceHelper
     public static HashSet<string> ChildrenPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
-        "BJF",
+        AppConstants.Media.MediatorPublicationCodeBJF,
         AppConstants.Media.MediatorCategoryKeyChildrenSongs,
         AppConstants.Media.MediatorCategoryKeyChildrenMovies
     };
@@ -319,7 +319,7 @@ public static class JwSourceHelper
     public static HashSet<string> ChildrenMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
-        "BJF",
+        AppConstants.Media.MediatorPublicationCodeBJF,
         AppConstants.Media.MediatorCategoryKeyChildrenSongs,
         AppConstants.Media.MediatorCategoryKeyChildrenMovies
     };
@@ -329,8 +329,8 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> FamilyPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "FamilyChallenges",
-        "FamilyDatingMarriage",
+        AppConstants.Media.MediatorPublicationCodeFamilyChallenges,
+        AppConstants.Media.MediatorPublicationCodeFamilyDatingMarriage,
         AppConstants.Media.MediatorCategoryKeyFamilyWorship,
         AppConstants.Media.MediatorCategoryKeyFamilyMovies
     };
@@ -365,10 +365,10 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> ProgramsAndEventsPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "VODPgmEvtMorningWorship",
-        "VODPgmEvtSpecial",
-        "VODPgmEvtGilead",
-        "VODPgmEvtAnnMtg",
+        AppConstants.Media.MediatorPublicationCodeVODPgmEvtMorningWorship,
+        AppConstants.Media.MediatorPublicationCodeVODPgmEvtSpecial,
+        AppConstants.Media.MediatorPublicationCodeVODPgmEvtGilead,
+        AppConstants.Media.MediatorPublicationCodeVODPgmEvtAnnMtg,
         AppConstants.Media.MediatorCategoryKey2025Convention,
         AppConstants.Media.MediatorCategoryKey2024Convention,
         AppConstants.Media.MediatorCategoryKey2023Convention,
@@ -390,7 +390,7 @@ public static class JwSourceHelper
     {
         "thv",
         AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
-        "SeriesBJFSongs",
+        AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs,
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "SeriesBibleTeachings",
         "SeriesHappyMarriage",
@@ -423,7 +423,7 @@ public static class JwSourceHelper
     public static HashSet<string> SeriesMediatorPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
-        "SeriesBJFSongs",
+        AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs,
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
         "SeriesBibleTeachings",
         "SeriesHappyMarriage",

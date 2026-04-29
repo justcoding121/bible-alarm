@@ -510,6 +510,60 @@ public static class AppConstants
         /// <summary>Mediator API primary category key (series Bible books).</summary>
         public const string MediatorCategoryKeySeriesBibleBooks = "SeriesBibleBooks";
 
+        /// <summary>Mediator publication code (broadcasting studio).</summary>
+        public const string MediatorPublicationCodeStudioMonthlyPrograms = "StudioMonthlyPrograms";
+
+        /// <summary>Mediator publication code (broadcasting studio).</summary>
+        public const string MediatorPublicationCodeStudioTalks = "StudioTalks";
+
+        /// <summary>Mediator publication code (broadcasting studio).</summary>
+        public const string MediatorPublicationCodeStudioNewsReports = "StudioNewsReports";
+
+        /// <summary>Mediator publication code (programs and events).</summary>
+        public const string MediatorPublicationCodeVODPgmEvtMorningWorship = "VODPgmEvtMorningWorship";
+
+        /// <summary>Mediator publication code (programs and events).</summary>
+        public const string MediatorPublicationCodeVODPgmEvtSpecial = "VODPgmEvtSpecial";
+
+        /// <summary>Mediator publication code (programs and events).</summary>
+        public const string MediatorPublicationCodeVODPgmEvtGilead = "VODPgmEvtGilead";
+
+        /// <summary>Mediator publication code (programs and events).</summary>
+        public const string MediatorPublicationCodeVODPgmEvtAnnMtg = "VODPgmEvtAnnMtg";
+
+        /// <summary>Mediator publication code (faith and Bible).</summary>
+        public const string MediatorPublicationCodeVODBibleReadingStudy = "VODBibleReadingStudy";
+
+        /// <summary>Mediator publication code (faith and Bible).</summary>
+        public const string MediatorPublicationCodeVODBibleTeachings = "VODBibleTeachings";
+
+        /// <summary>Mediator publication code (faith and Bible).</summary>
+        public const string MediatorPublicationCodeVODBibleAccounts = "VODBibleAccounts";
+
+        /// <summary>Mediator publication code (faith and Bible).</summary>
+        public const string MediatorPublicationCodeVODBibleMedia = "VODBibleMedia";
+
+        /// <summary>Mediator publication code (faith and Bible).</summary>
+        public const string MediatorPublicationCodeVODBibleTranslations = "VODBibleTranslations";
+
+        /// <summary>Mediator publication code (faith and Bible).</summary>
+        public const string MediatorPublicationCodeVODBiblePrinciples = "VODBiblePrinciples";
+
+        /// <summary>Mediator publication code (faith and Bible).</summary>
+        public const string MediatorPublicationCodeVODBibleCreation = "VODBibleCreation";
+
+        /// <summary>Mediator publication code (family).</summary>
+        public const string MediatorPublicationCodeFamilyChallenges = "FamilyChallenges";
+
+        /// <summary>Mediator publication code (family).</summary>
+        public const string MediatorPublicationCodeFamilyDatingMarriage = "FamilyDatingMarriage";
+
+        /// <summary>Mediator publication code (children).</summary>
+        public const string MediatorPublicationCodeBJF = "BJF";
+
+        /// <summary>Mediator publication code (series / music-flag).</summary>
+        public const string MediatorPublicationCodeSeriesBJFSongs = "SeriesBJFSongs";
+
         /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
