@@ -2,6 +2,7 @@
 
 using System.Linq;
 using System.Net.Http.Headers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Models;
 using Serilog;
 using File = TagLib.File;
@@ -454,7 +455,7 @@ internal sealed class RemoteMp4ArtworkExtractor
             File? tagFile = null;
             try
             {
-                tagFile = File.Create(tempFilePath, "video/mp4", ReadStyle.None);
+                tagFile = File.Create(tempFilePath, TagLibMimeConstants.VideoMp4, ReadStyle.None);
             }
             catch (Exception ex)
             {

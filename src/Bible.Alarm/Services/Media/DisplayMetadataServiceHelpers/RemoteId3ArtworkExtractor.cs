@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Net.Http.Headers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Models;
 using Serilog;
 using File = TagLib.File;
@@ -136,7 +137,7 @@ internal sealed class RemoteId3ArtworkExtractor
             try
             {
                 // Try default detection first.
-                tagFile = File.Create(tempFilePath, "audio/mpeg", ReadStyle.None);
+                tagFile = File.Create(tempFilePath, TagLibMimeConstants.AudioMpeg, ReadStyle.None);
             }
             catch (Exception ex)
             {

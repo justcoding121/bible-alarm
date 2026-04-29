@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Models;
 using CoreGraphics;
 using Foundation;
@@ -409,7 +410,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         {
             // Handle file:// URLs
             string? filePath = null;
-            if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            if (artworkUrl.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
@@ -418,7 +419,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                 }
                 catch
                 {
-                    filePath = artworkUrl.Replace("file://", "").Replace("file:///", "/");
+                    filePath = artworkUrl.Replace(MediaUriSchemeConstants.FilePrefix, "").Replace(MediaUriSchemeConstants.FileUriTripleSlashPrefix, "/");
                 }
             }
             else if (System.IO.Path.IsPathRooted(artworkUrl))
@@ -518,7 +519,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         try
         {
             // Skip if it's a file path (should have been handled by sync method)
-            if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase) ||
+            if (artworkUrl.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase) ||
                 System.IO.Path.IsPathRooted(artworkUrl))
             {
                 return null;

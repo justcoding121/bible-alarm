@@ -2,6 +2,7 @@
 using Bible.Alarm.Services.Media.DisplayMetadataServiceHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -28,10 +29,8 @@ public sealed class DisplayMetadataService(
     private readonly RemoteMp4ArtworkExtractor remoteMp4ArtworkExtractor = new(httpHandler, logger);
     private readonly SemaphoreSlim metadataFetchLock = new(1, 1);
 
-    private const string HttpsUriSchemePrefix = "https://";
     private const string FallbackUnknownTitle = "Unknown Title";
     private const string FallbackTrackTitlePrefix = "Track ";
-    private const string FileUriSchemePrefix = "file://";
     private const string ArtworkExtractionContextMelodyDiscFile = "Melody disc file";
     private const string ArtworkExtractionContextBibleFile = "Bible file";
 
@@ -91,7 +90,7 @@ public sealed class DisplayMetadataService(
         // Ensure the alarm modal / now-playing metadata is still populated correctly from the melody catalog.
         if (await TrySetDiscStyleMelodyMetadataAsync(trackMetadata, meta))
         {
-            if (!skipRemoteArtwork || !uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+            if (!skipRemoteArtwork || !uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 await TryExtractArtworkFromFileAsync(meta, uri, ArtworkExtractionContextMelodyDiscFile);
             }
@@ -117,7 +116,7 @@ public sealed class DisplayMetadataService(
             await SetBiblePublicationTrackMetadataAsync(trackMetadata, meta);
         }
 
-        if (!skipRemoteArtwork || !uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+        if (!skipRemoteArtwork || !uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
         {
             await TryExtractArtworkFromFileAsync(meta, uri, ArtworkExtractionContextBibleFile);
         }
@@ -207,7 +206,7 @@ public sealed class DisplayMetadataService(
 
     private Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri, bool skipRemoteArtwork = false)
     {
-        Func<Task> extractFileMetadata = (skipRemoteArtwork && uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+        Func<Task> extractFileMetadata = (skipRemoteArtwork && uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
             ? () => Task.CompletedTask
             : () => TryExtractFileMetadataAsync(meta, uri);
         return musicHelper.SetMusicMetadataAsync(trackMetadata, meta, uri, extractFileMetadata);
@@ -350,7 +349,7 @@ public sealed class DisplayMetadataService(
             return Task.CompletedTask;
         }
 
-        if (skipRemoteArtwork && uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+        if (skipRemoteArtwork && uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
         {
             meta.Title = FallbackUnknownTitle;
             meta.Artist ??= DisplayMetadataPublisherStrings.JwOrgLabel;
@@ -393,7 +392,7 @@ public sealed class DisplayMetadataService(
 
         // Fallback: for HTTPS streaming URLs with no local file, use HTTP Range requests
         // to fetch tag/metadata (ID3v2 for MP3, moov for MP4) without downloading the full file.
-        if (uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+        if (uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
         {
             var remoteMeta = await remoteId3ArtworkExtractor.TryExtractMetadataAsync(uri);
             if (remoteMeta == null)
@@ -413,7 +412,7 @@ public sealed class DisplayMetadataService(
     private async Task<MetaData?> TryExtractFromLocalFileAsync(string uri)
     {
         // HTTPS URLs are not local files -- skip the file system check entirely.
-        if (uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+        if (uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -438,13 +437,13 @@ public sealed class DisplayMetadataService(
                 {
                     try
                     {
-                        file = File.Create(filePath, "video/mp4", ReadStyle.None);
+                        file = File.Create(filePath, TagLibMimeConstants.VideoMp4, ReadStyle.None);
                     }
                     catch (Exception ex2)
                     {
                         try
                         {
-                            file = File.Create(filePath, "audio/mpeg", ReadStyle.None);
+                            file = File.Create(filePath, TagLibMimeConstants.AudioMpeg, ReadStyle.None);
                         }
                         catch (Exception ex3)
                         {
@@ -480,7 +479,7 @@ public sealed class DisplayMetadataService(
     private static string ConvertUriToFilePath(string uri)
     {
         // Convert file:// URI to local path, or use URI as-is if already a file path
-        if (!uri.StartsWith(FileUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+        if (!uri.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase))
         {
             return uri;
         }
@@ -496,7 +495,7 @@ public sealed class DisplayMetadataService(
         {
             // If URI parsing fails, try to extract path manually
             // Remove "file://" prefix (or "file:///" on Unix)
-            var path = uri.Substring(FileUriSchemePrefix.Length);
+            var path = uri.Substring(MediaUriSchemeConstants.FilePrefix.Length);
             if (path.StartsWith("//"))
             {
                 // UNC path or extra slashes

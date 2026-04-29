@@ -1,5 +1,6 @@
 #nullable enable
 using Android.Graphics;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Serilog;
 
@@ -24,7 +25,7 @@ public class AndroidArtworkService : IAndroidArtworkService
         {
             // Handle file:// URIs
             string filePath = artworkUrl;
-            if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            if (artworkUrl.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {

@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using CommunityToolkit.Maui;
 using Serilog;
 
@@ -10,9 +11,6 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 /// </summary>
 public static class IosMediaElementHelper
 {
-    private const string HttpsUriSchemePrefix = "https://";
-    private const string FileUriSchemePrefix = "file://";
-
     /// <summary>
     /// Processes a URI for iOS MediaElement.
     /// HTTPS URLs (CDN streaming) are passed through unchanged.
@@ -23,14 +21,14 @@ public static class IosMediaElementHelper
         logger.Debug("Original track URI: {Uri}", uri);
 
         // HTTPS URLs are CDN streaming links -- pass through unchanged
-        if (uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+        if (uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
         {
             logger.Debug("HTTPS URL detected, passing through for streaming: {Uri}", uri);
             return uri;
         }
 
         // If it's a file:// URI, convert it back to a plain path
-        if (uri.StartsWith(FileUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
+        if (uri.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase))
         {
             try
             {

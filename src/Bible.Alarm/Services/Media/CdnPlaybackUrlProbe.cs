@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Interfaces;
 using Serilog;
 
@@ -14,15 +15,13 @@ namespace Bible.Alarm.Services.Media;
 public sealed class CdnPlaybackUrlProbe(HttpClient httpClient, ILogger logger) : ICdnPlaybackUrlProbe
 {
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(12);
-    private const string HttpsSchemePrefix = "https://";
-    private const string HttpSchemePrefix = "http://";
 
     /// <inheritdoc />
     public async Task<CdnUrlProbeOutcome> ProbeStreamingUrlAsync(string url, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(url) ||
-            (!url.StartsWith(HttpsSchemePrefix, StringComparison.OrdinalIgnoreCase) &&
-             !url.StartsWith(HttpSchemePrefix, StringComparison.OrdinalIgnoreCase)))
+            (!url.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase) &&
+             !url.StartsWith(MediaUriSchemeConstants.HttpPrefix, StringComparison.OrdinalIgnoreCase)))
         {
             return CdnUrlProbeOutcome.Indeterminate;
         }

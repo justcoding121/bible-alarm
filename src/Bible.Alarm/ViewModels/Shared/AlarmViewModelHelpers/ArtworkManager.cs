@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
@@ -144,7 +145,7 @@ public sealed class ArtworkManager(ILogger logger)
     private string? ResolveFilePath(string artworkUrl)
     {
         // Handle file:// URIs
-        if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        if (artworkUrl.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase))
         {
             try
             {

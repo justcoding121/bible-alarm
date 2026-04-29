@@ -2,6 +2,7 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -430,7 +431,7 @@ public sealed class MiniPlaybackBarViewModel : ObservableObject,
                 return;
             }
 
-            if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            if (artworkUrl.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 var localPath = new Uri(artworkUrl).LocalPath;
                 if (File.Exists(localPath))

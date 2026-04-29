@@ -3,6 +3,7 @@ using Android.Content;
 using Android.Graphics;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Serilog;
@@ -164,9 +165,9 @@ public static class MediaSessionHelper
             {
                 artworkBitmap = BitmapFactory.DecodeFile(artworkUrl);
             }
-            else if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            else if (artworkUrl.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase))
             {
-                var filePath = artworkUrl.Replace("file://", "");
+                var filePath = artworkUrl.Replace(MediaUriSchemeConstants.FilePrefix, "");
                 if (System.IO.File.Exists(filePath))
                 {
                     artworkBitmap = BitmapFactory.DecodeFile(filePath);
