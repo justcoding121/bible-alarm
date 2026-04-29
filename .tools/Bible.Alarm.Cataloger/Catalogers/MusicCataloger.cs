@@ -340,13 +340,13 @@ internal class MusicCataloger : BaseCataloger
                 foreach (var disc in discTracksMap)
                 {
                     var discDir = $"{dir}/{disc.Key}";
-                    var discFile = $"{discDir}/tracks.json";
+                    var discFile = $"{discDir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}";
                     MusicTrackCatalogParsing.SaveMusicTracks(discDir, discFile, disc.Value);
                     
                     // Save disc info (name) if available
                     if (discNamesMap.TryGetValue(disc.Key, out var discName))
                     {
-                        var discInfoFile = $"{discDir}/disc.json";
+                        var discInfoFile = $"{discDir}/{AppConstants.ApiEndpoints.MediaIndexMelodyDiscInfoFileName}";
                         var discInfo = new { Code = disc.Key, Name = discName };
                         await File.WriteAllTextAsync(discInfoFile, JsonSerializer.Serialize(discInfo));
                     }
@@ -354,7 +354,7 @@ internal class MusicCataloger : BaseCataloger
 
                 // Also save a main tracks.json with all tracks for backward compatibility
                 var allTracks = discTracksMap.Values.SelectMany(t => t).OrderBy(t => t.Number).ToList();
-                MusicTrackCatalogParsing.SaveMusicTracks(dir, $"{dir}/tracks.json", allTracks);
+                MusicTrackCatalogParsing.SaveMusicTracks(dir, $"{dir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}", allTracks);
             }
             
             return true;
@@ -362,7 +362,7 @@ internal class MusicCataloger : BaseCataloger
         else
         {
             // Original logic for other publications
-            var file = $"{dir}/tracks.json";
+            var file = $"{dir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}";
             var trackCode = 1;
             var musicTracks = new List<MusicTrack>();
             string? localizedPubName = null;
@@ -415,14 +415,14 @@ internal class MusicCataloger : BaseCataloger
         {
             // Melodies: no language
             var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-            return $"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/{normalizedPublicationCode}";
+            return $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryMusic}/{AppConstants.ApiEndpoints.MediaIndexFolderMelodies}/{normalizedPublicationCode}";
         }
         else
         {
             // Vocals: with language
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
             var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-            return $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{normalizedLanguageCode}/{normalizedPublicationCode}";
+            return $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryMusic}/{AppConstants.ApiEndpoints.MediaIndexFolderVocals}/{normalizedLanguageCode}/{normalizedPublicationCode}";
         }
     }
 

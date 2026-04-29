@@ -343,8 +343,8 @@ internal class VideoCataloger : BaseCataloger
     {
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var dir = $"{DirectoryHelper.IndexDirectory}/media/Dramas/{normalizedLanguageCode}/{normalizedPublicationCode}";
-        var file = $"{dir}/episodes.json";
+        var dir = $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryDramas}/{normalizedLanguageCode}/{normalizedPublicationCode}";
+        var file = $"{dir}/{AppConstants.ApiEndpoints.MediaIndexVideoEpisodesFileName}";
 
         var episodes = await FetchAllEpisodes(publicationCode, languageCode);
         if (episodes == null || episodes.Count == 0)

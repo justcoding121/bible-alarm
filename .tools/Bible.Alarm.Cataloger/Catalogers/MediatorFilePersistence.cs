@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Bible.Alarm.Cataloger.Models;
+using Bible.Alarm.Shared.Constants;
 using DirectoryHelper = Bible.Alarm.Cataloger.Utility.DirectoryHelper;
 
 namespace Bible.Alarm.Cataloger.Catalogers;
@@ -25,7 +26,7 @@ internal static class MediatorFilePersistence
         // and media/Dramas/{languageCode}/{publicationCode}/{sectionCode}/tracks.json
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var publicationDir = $"{DirectoryHelper.IndexDirectory}/media/Dramas/{normalizedLanguageCode}/{normalizedPublicationCode}";
+        var publicationDir = $"{DirectoryHelper.IndexDirectory}/media/{AppConstants.Media.BiblePublicationCategoryDramas}/{normalizedLanguageCode}/{normalizedPublicationCode}";
 
         if (!Directory.Exists(publicationDir))
         {
@@ -47,7 +48,7 @@ internal static class MediatorFilePersistence
             Name = s.Name,
             Number = s.Number
         }));
-        File.WriteAllText($"{publicationDir}/sections.json", sectionsJson);
+        File.WriteAllText($"{publicationDir}/{AppConstants.ApiEndpoints.MediaIndexSectionsFileName}", sectionsJson);
 
         // Save tracks for each section
         foreach (var sectionEntry in tracksBySection)
@@ -63,7 +64,7 @@ internal static class MediatorFilePersistence
             }
 
             var tracksJson = JsonSerializer.Serialize(tracks.OrderBy(x => x.TrackCode));
-            File.WriteAllText($"{sectionDir}/tracks.json", tracksJson);
+            File.WriteAllText($"{sectionDir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}", tracksJson);
         }
     }
 }
