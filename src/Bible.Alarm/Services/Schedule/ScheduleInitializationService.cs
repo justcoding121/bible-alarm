@@ -47,16 +47,16 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(sampleSchedule);
 
         // Log the music settings (type is inferred from LanguageCode: NULL/empty = melody, otherwise = vocal)
-        logger.Information("InitializeNewScheduleAsync: Mapped sample schedule. MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicPublicationCode={PublicationCode}, MusicSectionCode={SectionCode}",
+        logger.Information(AppConstants.Logging.ScheduleInitializationDiagnosticsLog.InitializeNewScheduleMappedSampleMusicCodes,
             scheduleStateItem.MusicLanguageCode ?? "null",
             scheduleStateItem.MusicTrackCode?.ToString() ?? "null",
             scheduleStateItem.MusicPublicationCode ?? "null",
             scheduleStateItem.MusicSectionCode ?? "null");
 
         // Populate display names before dispatching action
-        logger.Debug("InitializeNewScheduleAsync: Populating display names for new schedule");
+        logger.Debug(AppConstants.Logging.ScheduleInitializationDiagnosticsLog.InitializeNewSchedulePopulatingDisplayNames);
         await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, sampleSchedule);
-        logger.Debug("InitializeNewScheduleAsync: Display names populated. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}, MusicPublicationName: {MusicPublicationName}, MusicSectionName: {MusicSectionName}",
+        logger.Debug(AppConstants.Logging.ScheduleInitializationDiagnosticsLog.InitializeNewScheduleDisplayNamesPopulated,
             scheduleStateItem.BiblePublicationLanguageName ?? "null",
             scheduleStateItem.BiblePublicationName ?? "null",
             scheduleStateItem.BiblePublicationSectionName ?? "null",
@@ -70,13 +70,13 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
     {
         if (alarmScheduleService == null)
         {
-            logger.Warning("LoadExistingScheduleAsync: AlarmScheduleService not available");
+            logger.Warning(AppConstants.Logging.ScheduleInitializationDiagnosticsLog.LoadExistingScheduleAlarmScheduleServiceNotAvailable);
             return null;
         }
 
         try
         {
-            logger.Debug("LoadExistingScheduleAsync: Loading schedule {ScheduleId} from database", scheduleId);
+            logger.Debug(AppConstants.Logging.ScheduleInitializationDiagnosticsLog.LoadExistingScheduleLoadingFromDatabase, scheduleId);
 
             // Load schedule from database with all includes
             var schedule = await alarmScheduleService.GetScheduleByIdAsync(
@@ -108,7 +108,7 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
             {
                 scheduleStateItem.BiblePublicationLanguageCode = existingFromState.BiblePublicationLanguageCode;
                 scheduleStateItem.BiblePublicationLanguageName = existingFromState.BiblePublicationLanguageName;
-                logger.Debug("LoadExistingScheduleAsync: Preferring no-language pub display language from state for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                logger.Debug(AppConstants.Logging.ScheduleInitializationDiagnosticsLog.LoadExistingSchedulePreferringNoLanguagePubLanguageFromState,
                     scheduleId, scheduleStateItem.BiblePublicationLanguageCode);
             }
 
@@ -126,7 +126,7 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
                     scheduleStateItem.MusicTrackName = existingFromState.MusicTrackName;
             }
 
-            logger.Debug("LoadExistingScheduleAsync: Loaded schedule {ScheduleId} with display names", scheduleId);
+            logger.Debug(AppConstants.Logging.ScheduleInitializationDiagnosticsLog.LoadExistingScheduleLoadedWithDisplayNames, scheduleId);
             return scheduleStateItem;
         }
         catch (Exception ex)

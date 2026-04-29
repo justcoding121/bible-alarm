@@ -672,6 +672,43 @@ public static class AppConstants
 
             public const string FailedToEnsurePreferencesHasMetadata =
                 "Failed to ensure Preferences has metadata";
+
+            public const string SeededDefaultAlarmSchedule =
+                "Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}";
+
+            public const string CannotSeedDefaultAlarmPublicationsNotYetAvailable =
+                "Cannot seed default alarm schedule yet - Bible publications not available. This is normal during early bootstrap or when using test data. Schedule will be created when publications are loaded.";
+
+            public const string SavedSeededScheduleMetadataToPreferencesForAa =
+                "Saved seeded schedule metadata to Preferences for Android Auto. ScheduleId={ScheduleId}, Title={Title}";
+
+            public const string SavedExistingScheduleMetadataToPreferencesForAa =
+                "Saved existing schedule metadata to Preferences for Android Auto. ScheduleId={ScheduleId}, Title={Title}";
+        }
+
+        /// <summary>New/existing schedule VM load (<c>ScheduleInitializationService</c>).</summary>
+        public static class ScheduleInitializationDiagnosticsLog
+        {
+            public const string InitializeNewScheduleMappedSampleMusicCodes =
+                "InitializeNewScheduleAsync: Mapped sample schedule. MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicPublicationCode={PublicationCode}, MusicSectionCode={SectionCode}";
+
+            public const string InitializeNewSchedulePopulatingDisplayNames =
+                "InitializeNewScheduleAsync: Populating display names for new schedule";
+
+            public const string InitializeNewScheduleDisplayNamesPopulated =
+                "InitializeNewScheduleAsync: Display names populated. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}, MusicPublicationName: {MusicPublicationName}, MusicSectionName: {MusicSectionName}";
+
+            public const string LoadExistingScheduleAlarmScheduleServiceNotAvailable =
+                "LoadExistingScheduleAsync: AlarmScheduleService not available";
+
+            public const string LoadExistingScheduleLoadingFromDatabase =
+                "LoadExistingScheduleAsync: Loading schedule {ScheduleId} from database";
+
+            public const string LoadExistingSchedulePreferringNoLanguagePubLanguageFromState =
+                "LoadExistingScheduleAsync: Preferring no-language pub display language from state for schedule {ScheduleId} (LanguageCode: {LanguageCode})";
+
+            public const string LoadExistingScheduleLoadedWithDisplayNames =
+                "LoadExistingScheduleAsync: Loaded schedule {ScheduleId} with display names";
         }
 
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>

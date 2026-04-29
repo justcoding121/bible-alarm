@@ -30,7 +30,7 @@ public sealed class DatabaseSeedService(
 
                 await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
 
-                logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
+                logger.Information(AppConstants.Logging.DatabaseSeedDiagnosticsLog.SeededDefaultAlarmSchedule,
                     schedule.Id, schedule.Name);
 
                 // Save basic metadata to Preferences for early MediaSession setup
@@ -46,8 +46,7 @@ public sealed class DatabaseSeedService(
                 // Bible publications not yet available (Media database may still be initializing)
                 // This is expected during early bootstrap or when test data doesn't include sectioned publications
                 // The schedule will be seeded later when publications are available
-                logger.Warning("Cannot seed default alarm schedule yet - Bible publications not available. " +
-                    "This is normal during early bootstrap or when using test data. Schedule will be created when publications are loaded.");
+                logger.Warning(AppConstants.Logging.DatabaseSeedDiagnosticsLog.CannotSeedDefaultAlarmPublicationsNotYetAvailable);
                 return false; // No seeding occurred, will retry later
             }
         }
@@ -76,7 +75,7 @@ public sealed class DatabaseSeedService(
                 artworkUrl: null,
                 scheduleId: schedule.Id);
 
-            logger.Debug("Saved seeded schedule metadata to Preferences for Android Auto. ScheduleId={ScheduleId}, Title={Title}",
+            logger.Debug(AppConstants.Logging.DatabaseSeedDiagnosticsLog.SavedSeededScheduleMetadataToPreferencesForAa,
                 schedule.Id, schedule.Name);
         }
         catch (Exception ex)
@@ -121,7 +120,7 @@ public sealed class DatabaseSeedService(
                 artworkUrl: null,
                 scheduleId: firstSchedule.Id);
 
-            logger.Debug("Saved existing schedule metadata to Preferences for Android Auto. ScheduleId={ScheduleId}, Title={Title}",
+            logger.Debug(AppConstants.Logging.DatabaseSeedDiagnosticsLog.SavedExistingScheduleMetadataToPreferencesForAa,
                 firstSchedule.Id, firstSchedule.Name);
         }
         catch (Exception ex)
