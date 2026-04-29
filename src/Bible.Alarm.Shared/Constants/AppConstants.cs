@@ -1316,6 +1316,58 @@ public static class AppConstants
                 "CheckIfPublicationWithFirstSectionCatalogedAsync: Error checking if publication {PublicationCode} is cataloged";
         }
 
+        /// <summary>Bible selection commands (<c>BiblePublicationSelectionCommandHandler</c>).</summary>
+        public static class BiblePublicationSelectionCommandHandlerDiagnosticsLog
+        {
+            public const string CreateSectionSelectionStarting =
+                "CreateSectionSelectionCommand: Starting for publication={PublicationCode}, biblePublicationService={HasService}";
+
+            public const string CreateSectionSelectionPublicationNullReturning =
+                "CreateSectionSelectionCommand: Publication is null, returning";
+
+            public const string CreateSectionSelectionCurrentScheduleNullReturning =
+                "CreateSectionSelectionCommand: CurrentSchedule is null, returning";
+
+            public const string CreateSectionSelectionCallingGetSectionAndTrack =
+                "CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}";
+
+            public const string CreateSectionSelectionNetworkErrorForPublication =
+                "CreateSectionSelectionCommand: Network error for publication={PublicationCode}";
+
+            public const string CreateSectionSelectionResult =
+                "CreateSectionSelectionCommand: Result sectionCode={SectionCode}, trackCode={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}";
+
+            public const string CreateSectionSelectionInvalidTrackCodeReturning =
+                "CreateSectionSelectionCommand: Invalid trackCode={TrackCode}, returning";
+
+            public const string CreateSectionSelectionSectionNameEmptyMayCauseEmptySectionRow =
+                "CreateSectionSelectionCommand: SectionName is empty for sectionCode={SectionCode}, publication={PublicationCode}. This may cause empty section row in UI.";
+
+            public const string CreateSectionSelectionTrackTitleEmptyMayCauseEmptyTrackRow =
+                "CreateSectionSelectionCommand: TrackTitle is empty for trackCode={TrackCode}, publication={PublicationCode}. This may cause empty track row in UI.";
+
+            public const string CreateSectionSelectionDispatchingSelection =
+                "CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionCode}, track={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}";
+
+            public const string SelectLanguageNetworkErrorDuringSelection =
+                "BibleSelectionCommandHandler: Network error during language selection for {LanguageCode}";
+
+            public const string SelectLanguageNoPublicationsFoundForLanguage =
+                "BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - No publications found for language {LanguageCode}";
+
+            public const string SelectLanguageInvalidTrackForLanguage =
+                "BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackCode}) for language {LanguageCode}";
+
+            public const string SelectLanguageCurrentScheduleNull =
+                "BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - CurrentSchedule is null";
+
+            public const string SelectLanguageCreatingItem =
+                "BibleSelectionCommandHandler: SelectLanguageCommand - Creating item for language {LanguageCode}, publication {PublicationCode}, section {SectionCode}, track {TrackCode}";
+
+            public const string CreateBiblePublicationItemCategoryNullBug =
+                "CreateBiblePublicationItemFromSelection: Category is null in current schedule. This is a bug - category must always be selected. Publication={PublicationCode}, ScheduleId={ScheduleId}";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {
