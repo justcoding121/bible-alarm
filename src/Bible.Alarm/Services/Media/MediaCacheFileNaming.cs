@@ -46,7 +46,7 @@ internal static class MediaCacheFileNaming
         {
             var path = uri.AbsolutePath;
             if (path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)) return ".mp4";
-            if (path.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase)) return ".mp3";
+            if (path.EndsWith(AppConstants.Media.MediaFileExtension, StringComparison.OrdinalIgnoreCase)) return AppConstants.Media.MediaFileExtension;
             if (path.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase)) return ".m4a";
             if (path.EndsWith(".aac", StringComparison.OrdinalIgnoreCase)) return ".aac";
         }
@@ -55,7 +55,7 @@ internal static class MediaCacheFileNaming
         if (lookUpPath.Contains($"{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp4}", StringComparison.OrdinalIgnoreCase))
             return ".mp4";
         if (lookUpPath.Contains($"{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}", StringComparison.OrdinalIgnoreCase))
-            return ".mp3";
+            return AppConstants.Media.MediaFileExtension;
         if (lookUpPath.Contains($"{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatM4a}", StringComparison.OrdinalIgnoreCase))
             return ".m4a";
         if (lookUpPath.Contains($"{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatAac}", StringComparison.OrdinalIgnoreCase))

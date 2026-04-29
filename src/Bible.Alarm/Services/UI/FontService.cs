@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
@@ -294,7 +295,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * alarmBellIconProgressiveScale, 100.0 * maxScaleFactor);
 
         Log.Logger.Warning("Invalid display info detected on {Platform} platform, using fallback font sizes (Body: {Body}pt, Header: {Header}pt) with device size multiplier {DeviceSizeMultiplier:F2} and progressive accessibility scale {AccessibilityScale:F2}",
-            isAndroid ? "Android" : "iOS", BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
+            isAndroid ? AppConstants.Platform.Android : AppConstants.Platform.IOs, BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
     }
 
     private void SetScaledFontSizes(DisplayInfo mainDisplayInfo, bool isAndroid)

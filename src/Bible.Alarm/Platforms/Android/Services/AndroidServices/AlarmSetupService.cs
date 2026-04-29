@@ -6,6 +6,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Java.Lang;
 using Serilog;
 using static Android.App.AlarmManager;
@@ -24,7 +25,7 @@ public class AlarmSetupService : Service, IDisposable
     public AlarmSetupService()
     {
         LogSetup.Initialize(new AssemblyAppVersionFinder(),
-            [$"AndroidSdk {Build.VERSION.SdkInt}"], DevicePlatform.Android.ToString());
+            [$"AndroidSdk {Build.VERSION.SdkInt}"], AppConstants.Platform.Android);
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

@@ -4,6 +4,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
@@ -18,7 +19,7 @@ public class AlarmRingerReceiver : BroadcastReceiver
     public AlarmRingerReceiver()
     {
         LogSetup.Initialize(new AssemblyAppVersionFinder(),
-            [$"AndroidSdk {Build.VERSION.SdkInt}"], "Android");
+            [$"AndroidSdk {Build.VERSION.SdkInt}"], AppConstants.Platform.Android);
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

@@ -246,13 +246,13 @@ public class SerilogSetup
                 cacheBasePath = Path.Combine(localAppData, "Bible.Alarm", "Cache");
 #endif
             }
-            else if (CurrentDevice.RuntimePlatform == "Android")
+            else if (CurrentDevice.RuntimePlatform == AppConstants.Platform.Android)
             {
                 // Android: LocalApplicationData maps to the app's cache directory
                 // This is automatically cleared by the OS when storage is low or app is uninstalled
                 cacheBasePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || CurrentDevice.RuntimePlatform == "iOS")
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || CurrentDevice.RuntimePlatform == AppConstants.Platform.IOs)
             {
                 // iOS: Use Documents directory for file sharing access (UIFileSharingEnabled in Info.plist)
                 // This allows accessing logs via Finder when device is connected

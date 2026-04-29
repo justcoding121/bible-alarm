@@ -4,6 +4,7 @@ using Android.OS;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
@@ -28,7 +29,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
     {
         this.logger = logger;
         LogSetup.Initialize(new AssemblyAppVersionFinder(),
-            [$"AndroidSdk {Build.VERSION.SdkInt}"], DevicePlatform.Android.ToString());
+            [$"AndroidSdk {Build.VERSION.SdkInt}"], AppConstants.Platform.Android);
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;

@@ -34,13 +34,13 @@ public static class MauiProgram
 
 #if WINDOWS
         // Initialize Serilog before registering services (version from Bible.Alarm assembly / csproj)
-        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], "Windows", isLoggingEnabled: true);
+        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], AppConstants.Platform.Windows, isLoggingEnabled: true);
         Log.Logger.Information("CreateMauiApp called!");
 #elif ANDROID
-        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], "Android", isLoggingEnabled: true);
+        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], AppConstants.Platform.Android, isLoggingEnabled: true);
         Log.Logger.Information("CreateMauiApp called!");
 #elif IOS
-        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], "iOS", isLoggingEnabled: true);
+        SerilogSetup.Initialize(new AssemblyAppVersionFinder(), [], AppConstants.Platform.IOs, isLoggingEnabled: true);
         Log.Logger.Information("CreateMauiApp called!");
 #endif
 
