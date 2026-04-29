@@ -363,6 +363,9 @@ public static class AppConstants
         /// </summary>
         public const string DefaultLanguageCode = "E";
 
+        /// <summary>English language display name for UI when resolving <see cref="DefaultLanguageCode"/>.</summary>
+        public const string DefaultLanguageDisplayNameEnglish = "English";
+
         /// <summary>
         /// Language code patch for bad data (LAH -> LAHU)
         /// </summary>

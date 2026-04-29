@@ -184,7 +184,7 @@ public sealed class MusicDisplayTextProvider
             cachedDefaultLanguageName = languageNameService != null
                 ? await languageNameService.GetNameByLanguageCodeAsync(AppConstants.Media.DefaultLanguageCode, AppConstants.Media.DefaultLanguageCode)
                 : null;
-            cachedDefaultLanguageName ??= "English";
+            cachedDefaultLanguageName ??= AppConstants.Media.DefaultLanguageDisplayNameEnglish;
 
             // Notify UI to update if callback provided
             if (onPropertyChanged != null)
@@ -198,7 +198,7 @@ public sealed class MusicDisplayTextProvider
         catch
         {
             // Fallback on error
-            cachedDefaultLanguageName = "English";
+            cachedDefaultLanguageName = AppConstants.Media.DefaultLanguageDisplayNameEnglish;
         }
         finally
         {

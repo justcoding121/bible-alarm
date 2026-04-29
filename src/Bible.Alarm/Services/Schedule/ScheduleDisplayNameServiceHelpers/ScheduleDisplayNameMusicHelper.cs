@@ -51,14 +51,14 @@ public sealed class ScheduleDisplayNameMusicHelper
                 }
                 else
                 {
-                    scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? "English" : music.LanguageCode;
+                    scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? AppConstants.Media.DefaultLanguageDisplayNameEnglish : music.LanguageCode;
                     scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicLanguageName for melody");
-                scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? "English" : music.LanguageCode;
+                scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? AppConstants.Media.DefaultLanguageDisplayNameEnglish : music.LanguageCode;
                 scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
