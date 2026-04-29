@@ -31,7 +31,7 @@ public sealed class PreparePlaybackService(
 
         if (playItems.Count == 0)
         {
-            logger.Debug("[Playback] No play items for schedule {ScheduleId}", scheduleId);
+            logger.Debug(AppConstants.Logging.PreparePlaybackServiceDiagnosticsLog.NoPlayItemsForSchedule, scheduleId);
             SendProgressMessage(1, 1);
             return new List<AudioPlayerTrack>();
         }
@@ -53,7 +53,7 @@ public sealed class PreparePlaybackService(
         // The first track must have a valid URI to start playback.
         if (string.IsNullOrEmpty(tracks[0].Uri))
         {
-            logger.Warning("Failed to resolve first track URI for schedule {ScheduleId}", scheduleId);
+            logger.Warning(AppConstants.Logging.PreparePlaybackServiceDiagnosticsLog.FailedToResolveFirstTrackUriForSchedule, scheduleId);
             return null;
         }
 

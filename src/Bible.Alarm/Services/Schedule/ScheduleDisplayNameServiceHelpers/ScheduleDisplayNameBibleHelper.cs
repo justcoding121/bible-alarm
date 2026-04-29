@@ -58,7 +58,7 @@ public sealed class ScheduleDisplayNameBibleHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BiblePublicationLanguageName");
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationLanguageName);
                 scheduleStateItem.BiblePublicationLanguageName = scheduleLanguageCode;
                 scheduleStateItem.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
@@ -94,11 +94,11 @@ public sealed class ScheduleDisplayNameBibleHelper
                             .FirstOrDefaultAsync();
                         publicationWithoutLanguage = publication != null;
                         if (publicationWithoutLanguage)
-                            logger.Debug("No-language publication {PublicationCode}; keeping BiblePublicationLanguageName for display (LanguageCode: {LanguageCode})", publicationCode, scheduleLanguageCode ?? "null");
+                            logger.Debug(AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.NoLanguagePublicationKeepingLanguageNameForDisplay, publicationCode, scheduleLanguageCode ?? "null");
                     }
                     catch (Exception ex)
                     {
-                        logger.Warning(ex, "Error loading publication without language FK from media index (PublicationCode={PublicationCode})", publicationCode);
+                        logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorLoadingPublicationWithoutLanguageFkFromMediaIndex, publicationCode);
                     }
                 }
 
@@ -112,7 +112,7 @@ public sealed class ScheduleDisplayNameBibleHelper
                     {
                         scheduleStateItem.BiblePublicationCategoryId = publication.PrimaryCategoryId;
                         scheduleStateItem.BiblePublicationCategoryName = publication.PrimaryCategory.CategoryCode;
-                        logger.Debug("Populated BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName={CategoryName} for schedule {ScheduleId}", publication.PrimaryCategoryId, publication.PrimaryCategory.CategoryCode, scheduleStateItem.Id);
+                        logger.Debug(AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.PopulatedBiblePublicationCategoryIdAndCategoryName, publication.PrimaryCategoryId, publication.PrimaryCategory.CategoryCode, scheduleStateItem.Id);
                     }
                     else
                     {
@@ -120,7 +120,7 @@ public sealed class ScheduleDisplayNameBibleHelper
                         if (!string.IsNullOrWhiteSpace(categoryCode))
                         {
                             scheduleStateItem.BiblePublicationCategoryName = categoryCode;
-                            logger.Debug("Populated BiblePublicationCategoryName={CategoryName} from publication code for schedule {ScheduleId}", categoryCode, scheduleStateItem.Id);
+                            logger.Debug(AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.PopulatedBiblePublicationCategoryNameFromPublicationCode, categoryCode, scheduleStateItem.Id);
                         }
                     }
                     if (!hasSections && !string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) && publication.Tracks != null && publication.Tracks.Count > 0)
@@ -139,7 +139,7 @@ public sealed class ScheduleDisplayNameBibleHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BiblePublicationName and Category");
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationNameAndCategory);
             }
 
             if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
@@ -175,7 +175,7 @@ public sealed class ScheduleDisplayNameBibleHelper
                 }
                 catch (Exception ex)
                 {
-                    logger.Debug(ex, "No-language section lookup failed (PublicationCode={PublicationCode}, SectionCode={SectionCode})", publicationCode, normalizedSectionCode);
+                    logger.Debug(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.NoLanguageSectionLookupFailed, publicationCode, normalizedSectionCode);
                 }
                 if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(scheduleLanguageCode))
                 {
@@ -187,7 +187,7 @@ public sealed class ScheduleDisplayNameBibleHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BiblePublicationSectionName");
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationSectionName);
             }
         }
 
@@ -219,7 +219,7 @@ public sealed class ScheduleDisplayNameBibleHelper
                             }
                             catch (Exception ex)
                             {
-                                logger.Debug(ex, "Failed to resolve melody track title (PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode})", publicationCode, sectionCodeForTracks, biblePublicationSchedule.TrackCode);
+                                logger.Debug(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.FailedToResolveMelodyTrackTitle, publicationCode, sectionCodeForTracks, biblePublicationSchedule.TrackCode);
                             }
                         }
                         var languageForTracks = scheduleLanguageCode ?? string.Empty;
@@ -233,7 +233,7 @@ public sealed class ScheduleDisplayNameBibleHelper
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BiblePublicationTrackTitle");
+                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationTrackTitle);
             }
             if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {

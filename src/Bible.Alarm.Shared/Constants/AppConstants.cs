@@ -1895,6 +1895,40 @@ public static class AppConstants
                 "Error populating MusicTrackName";
         }
 
+        /// <summary>Bible publication display names on schedule state (<c>ScheduleDisplayNameBibleHelper</c>).</summary>
+        public static class ScheduleDisplayNameBibleHelperDiagnosticsLog
+        {
+            public const string ErrorPopulatingBiblePublicationLanguageName =
+                "Error populating BiblePublicationLanguageName";
+
+            public const string NoLanguagePublicationKeepingLanguageNameForDisplay =
+                "No-language publication {PublicationCode}; keeping BiblePublicationLanguageName for display (LanguageCode: {LanguageCode})";
+
+            public const string ErrorLoadingPublicationWithoutLanguageFkFromMediaIndex =
+                "Error loading publication without language FK from media index (PublicationCode={PublicationCode})";
+
+            public const string PopulatedBiblePublicationCategoryIdAndCategoryName =
+                "Populated BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName={CategoryName} for schedule {ScheduleId}";
+
+            public const string PopulatedBiblePublicationCategoryNameFromPublicationCode =
+                "Populated BiblePublicationCategoryName={CategoryName} from publication code for schedule {ScheduleId}";
+
+            public const string ErrorPopulatingBiblePublicationNameAndCategory =
+                "Error populating BiblePublicationName and Category";
+
+            public const string NoLanguageSectionLookupFailed =
+                "No-language section lookup failed (PublicationCode={PublicationCode}, SectionCode={SectionCode})";
+
+            public const string ErrorPopulatingBiblePublicationSectionName =
+                "Error populating BiblePublicationSectionName";
+
+            public const string FailedToResolveMelodyTrackTitle =
+                "Failed to resolve melody track title (PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode})";
+
+            public const string ErrorPopulatingBiblePublicationTrackTitle =
+                "Error populating BiblePublicationTrackTitle";
+        }
+
         /// <summary>Default schedule / rotation metadata (<c>DefaultScheduleService</c>).</summary>
         public static class DefaultScheduleServiceDiagnosticsLog
         {
