@@ -573,6 +573,54 @@ public static class AppConstants
                 "Error checking if battery optimization modal should be shown";
         }
 
+        /// <summary>Periodic scheduler / alarm reconciliation (<c>SchedulerService</c>).</summary>
+        public static class SchedulerDiagnosticsLog
+        {
+            public const string BootstrapNotCompletedWaitingForBootstrap =
+                "Bootstrap not completed yet, waiting for bootstrap before running scheduler";
+
+            public const string FailedToWaitForBootstrapProceedingAnyway =
+                "Failed to wait for bootstrap completion, proceeding with scheduler anyway";
+
+            public const string ErrorInsideCleanupTask =
+                "An error happenned inside cleanup task.";
+
+            public const string SchedulerRunSkippedPreviousRunStillInProgress =
+                "Scheduler run skipped (previous run still in progress)";
+
+            public const string FailedToProcessSchedulerTaskDbDirectory =
+                "Failed to process scheduler task. Db directory: {CacheRoot}";
+
+            public const string RescheduledNextOccurrenceForSchedule =
+                "Rescheduled next occurrence for schedule {ScheduleId}";
+
+            public const string ErrorReschedulingNextOccurrenceForSchedule =
+                "Error rescheduling next occurrence for schedule {ScheduleId}";
+
+            public const string ErrorDisposingSemaphoreMayAlreadyBeDisposed =
+                "Error disposing semaphore, may already be disposed";
+        }
+
+        /// <summary>Default DB seed / Preferences metadata bootstrap.</summary>
+        public static class DatabaseSeedDiagnosticsLog
+        {
+            public const string FailedToSaveSeededScheduleMetadataToPreferences =
+                "Failed to save seeded schedule metadata to Preferences";
+
+            public const string FailedToEnsurePreferencesHasMetadata =
+                "Failed to ensure Preferences has metadata";
+        }
+
+        /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
+        public static class AndroidMediaSessionHelperDiagnosticsLog
+        {
+            public const string FailedToApplyAndroidAutoBufferingState =
+                "Failed to apply Android Auto buffering state";
+
+            public const string FailedToApplyLastPlayedMetadataToMediaSession =
+                "Failed to apply last played metadata to MediaSession";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {

@@ -88,7 +88,7 @@ public static class MediaSessionHelper
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to apply Android Auto buffering state");
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.FailedToApplyAndroidAutoBufferingState);
         }
     }
 
@@ -147,7 +147,7 @@ public static class MediaSessionHelper
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to apply last played metadata to MediaSession");
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.FailedToApplyLastPlayedMetadataToMediaSession);
         }
     }
 

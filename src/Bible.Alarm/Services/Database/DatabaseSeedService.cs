@@ -81,7 +81,7 @@ public sealed class DatabaseSeedService(
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to save seeded schedule metadata to Preferences");
+            logger.Warning(ex, AppConstants.Logging.DatabaseSeedDiagnosticsLog.FailedToSaveSeededScheduleMetadataToPreferences);
         }
     }
 
@@ -126,7 +126,7 @@ public sealed class DatabaseSeedService(
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to ensure Preferences has metadata");
+            logger.Warning(ex, AppConstants.Logging.DatabaseSeedDiagnosticsLog.FailedToEnsurePreferencesHasMetadata);
         }
     }
 

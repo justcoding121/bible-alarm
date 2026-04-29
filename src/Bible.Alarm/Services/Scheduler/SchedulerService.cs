@@ -35,14 +35,14 @@ public sealed class SchedulerService(
             // This prevents lock timeouts when bootstrap is still running database operations
             if (!BootstrapHelper.IsBootstrapCompleted())
             {
-                logger.Debug("Bootstrap not completed yet, waiting for bootstrap before running scheduler");
+                logger.Debug(AppConstants.Logging.SchedulerDiagnosticsLog.BootstrapNotCompletedWaitingForBootstrap);
                 try
                 {
                     await BootstrapHelper.WaitForBootstrapAsync();
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Failed to wait for bootstrap completion, proceeding with scheduler anyway");
+                    logger.Warning(ex, AppConstants.Logging.SchedulerDiagnosticsLog.FailedToWaitForBootstrapProceedingAnyway);
                 }
             }
 
@@ -54,7 +54,7 @@ public sealed class SchedulerService(
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "An error happenned inside cleanup task.");
+                    logger.Error(e, AppConstants.Logging.SchedulerDiagnosticsLog.ErrorInsideCleanupTask);
                 }
 
                 var downloaded = false;
@@ -77,7 +77,7 @@ public sealed class SchedulerService(
 
             if (result is null)
             {
-                logger.Debug("Scheduler run skipped (previous run still in progress)");
+                logger.Debug(AppConstants.Logging.SchedulerDiagnosticsLog.SchedulerRunSkippedPreviousRunStillInProgress);
                 return false;
             }
 
@@ -85,7 +85,7 @@ public sealed class SchedulerService(
         }
         catch (Exception e)
         {
-            logger.Error(e, "Failed to process scheduler task. Db directory: {CacheRoot}", storageService.CacheRoot);
+            logger.Error(e, AppConstants.Logging.SchedulerDiagnosticsLog.FailedToProcessSchedulerTaskDbDirectory, storageService.CacheRoot);
             return false;
         }
     }
@@ -109,13 +109,13 @@ public sealed class SchedulerService(
                 {
                     // Reschedule the next occurrence
                     await alarmService.Create(schedule);
-                    logger.Information("Rescheduled next occurrence for schedule {ScheduleId}", scheduleId);
+                    logger.Information(AppConstants.Logging.SchedulerDiagnosticsLog.RescheduledNextOccurrenceForSchedule, scheduleId);
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error rescheduling next occurrence for schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.SchedulerDiagnosticsLog.ErrorReschedulingNextOccurrenceForSchedule, scheduleId);
         }
     }
 
@@ -150,7 +150,7 @@ public sealed class SchedulerService(
         catch (Exception ex)
         {
             // Ignore if already disposed
-            logger.Warning(ex, "Error disposing semaphore, may already be disposed");
+            logger.Warning(ex, AppConstants.Logging.SchedulerDiagnosticsLog.ErrorDisposingSemaphoreMayAlreadyBeDisposed);
         }
 
         // Note: alarmScheduleService, mediaCacheService, alarmService, notificationService, and storageService are singletons
