@@ -234,11 +234,7 @@ public sealed class BiblePublicationDisplayTextProvider
     /// Language row is always visible. When LanguageCode is null (non-language publications like "iam"),
     /// it defaults to "E" (English) for display purposes.
     /// </summary>
-    public bool GetIsLanguageVisible()
-    {
-        // Language row is always visible
-        return true;
-    }
+    public static bool GetIsLanguageVisible() => true;
 
     /// <summary>
     /// Checks if there are multiple languages available for the current category.

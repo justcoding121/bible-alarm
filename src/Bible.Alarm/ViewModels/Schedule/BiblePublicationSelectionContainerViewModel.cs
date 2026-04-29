@@ -357,7 +357,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     public ICommand SelectTrackCommand { get; private set; } = null!;
 
     public bool IsSectionVisible => displayTextProvider.GetIsSectionVisible();
-    public bool IsLanguageVisible => displayTextProvider.GetIsLanguageVisible();
+    public bool IsLanguageVisible => BiblePublicationDisplayTextProvider.GetIsLanguageVisible();
     public FlowDirection ContentFlowDirection => displayTextProvider.GetFlowDirection();
     public string CategoryDisplayText => displayTextProvider.GetCategoryDisplayText();
     public string LanguageDisplayText => displayTextProvider.GetLanguageDisplayText();

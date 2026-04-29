@@ -54,7 +54,7 @@ public sealed class BiblePublicationPropertyChangeDetector
         lastSectionDisplayText = displayTextProvider.GetSectionDisplayText();
         lastTrackDisplayText = displayTextProvider.GetTrackDisplayText();
         lastIsSectionVisible = displayTextProvider.GetIsSectionVisible();
-        lastIsLanguageVisible = displayTextProvider.GetIsLanguageVisible();
+        lastIsLanguageVisible = BiblePublicationDisplayTextProvider.GetIsLanguageVisible();
     }
 
     public PropertyChangeInfo DetectPropertyChanges(ScheduleStateItem? currentSchedule)
@@ -84,7 +84,7 @@ public sealed class BiblePublicationPropertyChangeDetector
         var newSectionDisplayText = displayTextProvider.GetSectionDisplayText();
         var newTrackDisplayText = displayTextProvider.GetTrackDisplayText();
         var newIsSectionVisible = displayTextProvider.GetIsSectionVisible();
-        var newIsLanguageVisible = displayTextProvider.GetIsLanguageVisible();
+        var newIsLanguageVisible = BiblePublicationDisplayTextProvider.GetIsLanguageVisible();
 
         var categoryDisplayChanged = newCategoryDisplayText != lastCategoryDisplayText;
         var languageDisplayChanged = newLanguageDisplayText != lastLanguageDisplayText;
