@@ -29,7 +29,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 // Retrying won't help and causes UI to hang during delays (2s, 4s, etc.)
                 if (NetworkExceptionHelper.IsNetworkFailure(ex))
                 {
-                    logger.Debug("Skipping retry for network connectivity failure: {Message}", ex.Message);
+                    logger.Debug(AppConstants.Logging.DownloadDiagnosticsLog.SkippingRetryNetworkConnectivityFailure, ex.Message);
                     return false;
                 }
 
@@ -49,7 +49,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                     return true;
                 }
 
-                logger.Debug("Skipping retry for permanent HTTP error: {Message}", message);
+                logger.Debug(AppConstants.Logging.DownloadDiagnosticsLog.SkippingRetryPermanentHttpError, message);
                 return false;
             })
             .WaitAndRetryAsync(
@@ -60,7 +60,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                     // Log retry attempts
                     var exception = outcome?.Exception;
                     var exceptionMessage = exception?.Message ?? AppConstants.Logging.UnknownErrorFallback;
-                    logger.Warning(exception, "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}",
+                    logger.Warning(exception, AppConstants.Logging.DownloadDiagnosticsLog.RetryingDownloadAttemptAfterDelay,
                         retryCount,
                         AppConstants.CacheSettings.DownloadRetryAttempts,
                         timespan.TotalSeconds,
@@ -104,7 +104,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             }
             catch (OperationCanceledException)
             {
-                logger.Information("Download cancelled for URL: {Url}", url);
+                logger.Information(AppConstants.Logging.DownloadDiagnosticsLog.DownloadCancelledForUrl, url);
                 throw; // Re-throw cancellation immediately - Polly won't retry due to Handle condition
             }
             catch (Exception ex)
@@ -115,22 +115,22 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 // If alternative URL is provided, try it before giving up
                 if (!string.IsNullOrEmpty(alternativeUrl) && alternativeUrl != url)
                 {
-                    logger.Warning(ex, "Failed to download from primary URL: {Url}, trying alternative URL: {AlternativeUrl}", url, alternativeUrl);
+                    logger.Warning(ex, AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadPrimaryTryingAlternative, url, alternativeUrl);
                     try
                     {
                         return await DownloadWithStallTimeoutAsync(alternativeUrl, combinedCts.Token, progressCallback);
                     }
                     catch (Exception altEx)
                     {
-                        logger.Error(altEx, "Failed to download from alternative URL: {AlternativeUrl}", alternativeUrl);
+                        logger.Error(altEx, AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadAlternativeUrl, alternativeUrl);
                         throw; // Throw the alternative URL exception
                     }
                 }
 
-                logger.Warning(ex, "Failed to download from primary URL: {Url}", url);
+                logger.Warning(ex, AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadPrimaryUrl, url);
                 if (string.IsNullOrEmpty(alternativeUrl))
                 {
-                    logger.Error("No alternative URL provided for failed download: {Url}", url);
+                    logger.Error(AppConstants.Logging.DownloadDiagnosticsLog.NoAlternativeUrlForFailedDownload, url);
                 }
                 throw;
             }
@@ -164,7 +164,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             }
             catch (Exception ex)
             {
-                logger.Debug(ex, "HEAD request failed for URL: {Url}, trying GET with headers only", url);
+                logger.Debug(ex, AppConstants.Logging.DownloadDiagnosticsLog.HeadRequestFailedTryingGetHeadersOnly, url);
             }
 
             // Fallback: GET request but only read headers (no body download)
@@ -182,7 +182,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to get Content-Length for URL: {Url}", url);
+                logger.Warning(ex, AppConstants.Logging.DownloadDiagnosticsLog.FailedToGetContentLengthForUrl, url);
             }
 
             return null;
@@ -311,7 +311,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "HEAD request failed for URL: {Url}, falling back to GET request", url);
+                logger.Warning(ex, AppConstants.Logging.DownloadDiagnosticsLog.HeadRequestFailedFallingBackToGet, url);
                 return await getRequest();
             }
         }, cancellationTokenSource.Token);

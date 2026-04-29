@@ -669,6 +669,43 @@ public static class AppConstants
                 "Failed to get app icon for alarm notification";
         }
 
+        /// <summary>HTTP download retries and HEAD/GET probes (<c>DownloadService</c>).</summary>
+        public static class DownloadDiagnosticsLog
+        {
+            public const string SkippingRetryNetworkConnectivityFailure =
+                "Skipping retry for network connectivity failure: {Message}";
+
+            public const string SkippingRetryPermanentHttpError =
+                "Skipping retry for permanent HTTP error: {Message}";
+
+            public const string RetryingDownloadAttemptAfterDelay =
+                "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}";
+
+            public const string DownloadCancelledForUrl =
+                "Download cancelled for URL: {Url}";
+
+            public const string FailedToDownloadPrimaryTryingAlternative =
+                "Failed to download from primary URL: {Url}, trying alternative URL: {AlternativeUrl}";
+
+            public const string FailedToDownloadAlternativeUrl =
+                "Failed to download from alternative URL: {AlternativeUrl}";
+
+            public const string FailedToDownloadPrimaryUrl =
+                "Failed to download from primary URL: {Url}";
+
+            public const string NoAlternativeUrlForFailedDownload =
+                "No alternative URL provided for failed download: {Url}";
+
+            public const string HeadRequestFailedTryingGetHeadersOnly =
+                "HEAD request failed for URL: {Url}, trying GET with headers only";
+
+            public const string FailedToGetContentLengthForUrl =
+                "Failed to get Content-Length for URL: {Url}";
+
+            public const string HeadRequestFailedFallingBackToGet =
+                "HEAD request failed for URL: {Url}, falling back to GET request";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {
