@@ -453,12 +453,36 @@ public static class AppConstants
             public const string StartingUserInitiatedPlaybackFailed = "An error happened when starting user-initiated playback.";
             public const string ReviewRequestedFailed = "An error happened when review was requested.";
         }
+
+        /// <summary>Serilog templates shared by platform bootstrap / global exception handlers.</summary>
+        public static class ProcessDiagnosticsLog
+        {
+            public const string UnobservedTaskException = "Unobserved task exception.";
+            public const string UnobservedTaskExceptionInSchedulerJob = "Unobserved task exception in SchedulerJob";
+            public const string ErrorStoppingPlaybackBeforeAlarmForSchedule = "Error stopping current playback before handling alarm for schedule {ScheduleId}";
+            public const string UnhandledExceptionIsTerminating = "Unhandled exception. IsTerminating: {IsTerminating}";
+            public const string UnhandledNonExceptionObjectIsTerminating =
+                "Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}";
+            public const string UnhandledExceptionInSchedulerJob = "Unhandled exception in SchedulerJob";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>
     public static class Notifications
     {
         public const string TapAlarmToListenBody = "Press to start listening now.";
+    }
+
+    /// <summary>Cross-platform toast message strings.</summary>
+    public static class ToastMessages
+    {
+        public const string NetworkMayNotBeAvailableTryAgain = "Network may not be available, please try again";
+        public const string CannotUpdateTrackScheduleInProgress = "Cannot update the track when schedule is in progress";
+        public const string SelectAtLeastOneDay = "Select at least one day";
+        public const string ScheduleDataNotReadyTryAgain = "Schedule data is not ready, please try again";
+        public const string InvalidScheduleIdTryAgain = "Invalid schedule ID, please try again";
+        public const string CannotDeleteLastSchedule = "Cannot delete last schedule";
+        public const string ScheduleSaved = "Schedule saved";
     }
 
     /// <summary>CarPlay schedule browse template strings.</summary>

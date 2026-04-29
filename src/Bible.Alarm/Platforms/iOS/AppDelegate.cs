@@ -43,7 +43,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         IOsBootstrapLogger.WriteException(e.Exception);
-        logger.Error(e.Exception, "Unobserved task exception.");
+        logger.Error(e.Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskException);
         FlushAndDelay();
     }
 
@@ -53,12 +53,12 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         if (exception != null)
         {
             IOsBootstrapLogger.WriteException(exception);
-            logger.Error(exception, "Unhandled exception. IsTerminating: {IsTerminating}", e.IsTerminating);
+            logger.Error(exception, AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionIsTerminating, e.IsTerminating);
         }
         else
         {
             IOsBootstrapLogger.WriteLine($"Unhandled non-Exception: {e.ExceptionObject}. IsTerminating: {e.IsTerminating}");
-            logger.Error("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
+            logger.Error(AppConstants.Logging.ProcessDiagnosticsLog.UnhandledNonExceptionObjectIsTerminating,
                 e.ExceptionObject, e.IsTerminating);
         }
 

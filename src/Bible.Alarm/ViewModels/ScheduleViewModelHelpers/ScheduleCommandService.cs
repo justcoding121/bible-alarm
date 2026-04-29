@@ -12,6 +12,7 @@ using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 
 #if ANDROID
@@ -128,14 +129,14 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (!modelInitialized)
         {
             logger.Error("SaveAsync: Model not initialized. Cannot save.");
-            await toastService.ShowMessage("Schedule data is not ready, please try again");
+            await toastService.ShowMessage(AppConstants.ToastMessages.ScheduleDataNotReadyTryAgain);
             return false;
         }
 
         if (!isNewSchedule && scheduleId <= 0)
         {
             logger.Error("SaveAsync: Invalid ScheduleId for existing schedule. ScheduleId={ScheduleId}", scheduleId);
-            await toastService.ShowMessage("Invalid schedule ID, please try again");
+            await toastService.ShowMessage(AppConstants.ToastMessages.InvalidScheduleIdTryAgain);
             return false;
         }
 
@@ -143,7 +144,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (currentSchedule.DaysOfWeek == 0)
         {
             logger.Warning("SaveCommand: Cannot save schedule - DaysOfWeek is empty (0)");
-            await toastService.ShowMessage("Select at least one day", 5);
+            await toastService.ShowMessage(AppConstants.ToastMessages.SelectAtLeastOneDay, 5);
             return false;
         }
 
@@ -278,7 +279,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", scheduleId);
             // Hide overlay BEFORE showing toast (toast is awaited and blocks until dismissed)
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-            await toastService.ShowMessage("Cannot delete last schedule");
+            await toastService.ShowMessage(AppConstants.ToastMessages.CannotDeleteLastSchedule);
             return false;
         }
 
@@ -356,7 +357,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         }
         else if (saved && !isEnabled)
         {
-            await toastService.ShowMessage("Schedule saved");
+            await toastService.ShowMessage(AppConstants.ToastMessages.ScheduleSaved);
         }
     }
 }

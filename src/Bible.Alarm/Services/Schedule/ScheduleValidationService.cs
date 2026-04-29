@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Serilog;
 
@@ -25,7 +26,7 @@ public sealed class ScheduleValidationService : IScheduleValidationService
         }
 
         logger.Warning("Validation failed: No days of week selected");
-        await toastService.ShowMessage("Select at least one day");
+        await toastService.ShowMessage(AppConstants.ToastMessages.SelectAtLeastOneDay);
         return false;
     }
 }

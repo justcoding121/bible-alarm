@@ -33,13 +33,13 @@ public class SchedulerJob : JobService
 
     private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
-        logger.Error(e.Exception, "Unobserved task exception in SchedulerJob");
+        logger.Error(e.Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskExceptionInSchedulerJob);
         FlushAndDelay();
     }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        logger.Fatal(e.ExceptionObject as Exception, "Unhandled exception in SchedulerJob");
+        logger.Fatal(e.ExceptionObject as Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionInSchedulerJob);
         FlushAndDelay();
     }
 

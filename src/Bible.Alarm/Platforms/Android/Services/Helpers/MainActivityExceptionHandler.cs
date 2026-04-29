@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
@@ -25,7 +26,7 @@ public static class MainActivityExceptionHandler
     private static void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         AndroidBootstrapLogger.WriteException(e.Exception);
-        logger.Error(e.Exception, "Unobserved task exception.");
+        logger.Error(e.Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskException);
         FlushAndDelay();
     }
 
@@ -35,12 +36,12 @@ public static class MainActivityExceptionHandler
         if (exception != null)
         {
             AndroidBootstrapLogger.WriteException(exception);
-            logger.Error(exception, "Unhandled exception. IsTerminating: {IsTerminating}", e.IsTerminating);
+            logger.Error(exception, AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionIsTerminating, e.IsTerminating);
         }
         else
         {
             AndroidBootstrapLogger.WriteLine($"Unhandled non-Exception: {e.ExceptionObject}. IsTerminating: {e.IsTerminating}");
-            logger.Error("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
+            logger.Error(AppConstants.Logging.ProcessDiagnosticsLog.UnhandledNonExceptionObjectIsTerminating,
                 e.ExceptionObject, e.IsTerminating);
         }
 

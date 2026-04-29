@@ -41,7 +41,7 @@ public partial class App : MauiWinUIApplication
     private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         WindowsBootstrapLogger.WriteException(e.Exception);
-        Logger.Error(e.Exception, "Unobserved task exception.");
+        Logger.Error(e.Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskException);
         FlushAndDelay();
     }
 
@@ -51,12 +51,12 @@ public partial class App : MauiWinUIApplication
         if (exception != null)
         {
             WindowsBootstrapLogger.WriteException(exception);
-            Logger.Fatal(exception, "Unhandled exception occurred. IsTerminating: {IsTerminating}", e.IsTerminating);
+            Logger.Fatal(exception, AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionIsTerminating, e.IsTerminating);
         }
         else
         {
             WindowsBootstrapLogger.WriteLine($"Unhandled non-Exception: {e.ExceptionObject}. IsTerminating: {e.IsTerminating}");
-            Logger.Fatal("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
+            Logger.Fatal(AppConstants.Logging.ProcessDiagnosticsLog.UnhandledNonExceptionObjectIsTerminating,
                 e.ExceptionObject, e.IsTerminating);
         }
 

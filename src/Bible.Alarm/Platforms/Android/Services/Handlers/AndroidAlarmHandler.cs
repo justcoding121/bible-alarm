@@ -67,7 +67,7 @@ public sealed class AndroidAlarmHandler(
         }
         catch (Exception e)
         {
-            logger.Warning(e, "Error stopping current playback before handling alarm for schedule {ScheduleId}", scheduleId);
+            logger.Warning(e, AppConstants.Logging.ProcessDiagnosticsLog.ErrorStoppingPlaybackBeforeAlarmForSchedule, scheduleId);
         }
     }
 

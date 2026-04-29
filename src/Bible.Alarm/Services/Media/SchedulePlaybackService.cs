@@ -89,7 +89,7 @@ public sealed class SchedulePlaybackService(
         {
             logger.Information(e, AppConstants.Logging.AlarmDiagnostics.PlayingAlarmFailed);
             dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
-            await toastService.ShowMessage("Network may not be available, please try again", 5);
+            await toastService.ShowMessage(AppConstants.ToastMessages.NetworkMayNotBeAvailableTryAgain, 5);
         }
     }
 
@@ -103,7 +103,7 @@ public sealed class SchedulePlaybackService(
         }
 
         var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
-        await toastService.ShowMessage("Cannot update the track when schedule is in progress");
+        await toastService.ShowMessage(AppConstants.ToastMessages.CannotUpdateTrackScheduleInProgress);
 
         return false;
     }
