@@ -70,6 +70,21 @@ public static class AppConstants
 
         /// <summary>Standard language index filename under category folders (<c>languages.json</c>).</summary>
         public const string MediaIndexLanguagesFileName = "languages.json";
+
+        /// <summary>Publication index filename (<c>publications.json</c>).</summary>
+        public const string MediaIndexPublicationsFileName = "publications.json";
+
+        /// <summary>Section index filename (<c>sections.json</c>).</summary>
+        public const string MediaIndexSectionsFileName = "sections.json";
+
+        /// <summary>Track list filename (<c>tracks.json</c>).</summary>
+        public const string MediaIndexTracksFileName = "tracks.json";
+
+        /// <summary>Melody disc metadata filename (<c>disc.json</c>).</summary>
+        public const string MediaIndexMelodyDiscInfoFileName = "disc.json";
+
+        /// <summary>Video episode index filename (<c>episodes.json</c>).</summary>
+        public const string MediaIndexVideoEpisodesFileName = "episodes.json";
     }
 
     /// <summary>

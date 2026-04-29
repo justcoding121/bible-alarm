@@ -25,7 +25,7 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         // Normalize language code for file path lookup (cross-platform safety)
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        var bibleIndex = Path.Combine(root, "Bible", normalizedLanguageCode, "publications.json");
+        var bibleIndex = Path.Combine(root, "Bible", normalizedLanguageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var biblePublications = await File.ReadAllTextAsync(bibleIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(biblePublications)!.ToDictionary(x => x.Code, x => x);
     }
@@ -36,7 +36,7 @@ public class MediaReader(string indexRoot)
         // Normalize language code and publication code for file path lookup (cross-platform safety)
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = versionCode.ToUpperInvariant();
-        var sectionsIndex = Path.Combine(root, "Bible", normalizedLanguageCode, normalizedPublicationCode, "sections.json");
+        var sectionsIndex = Path.Combine(root, "Bible", normalizedLanguageCode, normalizedPublicationCode, AppConstants.ApiEndpoints.MediaIndexSectionsFileName);
         var biblePublicationSections = await File.ReadAllTextAsync(sectionsIndex);
         return new SortedDictionary<int, BiblePublicationSection>(JsonSerializer.Deserialize<IEnumerable<BiblePublicationSection>>(biblePublicationSections)!
                                                 .ToDictionary(x => x.Number, x => x));
@@ -48,7 +48,7 @@ public class MediaReader(string indexRoot)
         // Normalize language code and publication code for file path lookup (cross-platform safety)
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = versionCode.ToUpperInvariant();
-        var sectionsIndex = Path.Combine(root, "Bible", normalizedLanguageCode, normalizedPublicationCode, sectionCode, "tracks.json");
+        var sectionsIndex = Path.Combine(root, "Bible", normalizedLanguageCode, normalizedPublicationCode, sectionCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
         return new SortedDictionary<string, BiblePublicationTrack>(JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!
                                                    .ToDictionary(x => x.TrackCode, x => x));
@@ -58,7 +58,7 @@ public class MediaReader(string indexRoot)
     {
         var root = indexRoot;
         // Unified structure: Music/Melodies/publications.json
-        var releaseIndex = Path.Combine(root, "Music", "Melodies", "publications.json");
+        var releaseIndex = Path.Combine(root, "Music", "Melodies", AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var fileContent = await File.ReadAllTextAsync(releaseIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(fileContent)!.ToDictionary(x => x.Code, x => x);
     }
@@ -69,7 +69,7 @@ public class MediaReader(string indexRoot)
         // Unified structure: Music/Melodies/{publicationCode}/tracks.json
         // Normalize publication code for path consistency
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var trackIndex = Path.Combine(root, "Music", "Melodies", normalizedPublicationCode, "tracks.json");
+        var trackIndex = Path.Combine(root, "Music", "Melodies", normalizedPublicationCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var fileContent = await File.ReadAllTextAsync(trackIndex);
         return new SortedDictionary<int, MusicTrack>(JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(fileContent)!
                                                 .ToDictionary(x => x.Number, x => x));
@@ -96,8 +96,8 @@ public class MediaReader(string indexRoot)
         foreach (var discDir in discDirs)
         {
             var discCode = Path.GetFileName(discDir);
-            var trackFile = Path.Combine(discDir, "tracks.json");
-            var discInfoFile = Path.Combine(discDir, "disc.json");
+            var trackFile = Path.Combine(discDir, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
+            var discInfoFile = Path.Combine(discDir, AppConstants.ApiEndpoints.MediaIndexMelodyDiscInfoFileName);
             
             if (File.Exists(trackFile))
             {
@@ -147,7 +147,7 @@ public class MediaReader(string indexRoot)
         // Unified structure: Music/Vocals/{languageCode}/publications.json
         // Normalize language code for path consistency
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        var releaseIndex = Path.Combine(root, "Music", "Vocals", normalizedLanguageCode, "publications.json");
+        var releaseIndex = Path.Combine(root, "Music", "Vocals", normalizedLanguageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var vocalReleases = await File.ReadAllTextAsync(releaseIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(vocalReleases)!.ToDictionary(x => x.Code, x => x);
     }
@@ -159,7 +159,7 @@ public class MediaReader(string indexRoot)
         // Normalize language and publication codes for path consistency
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var trackIndex = Path.Combine(root, "Music", "Vocals", normalizedLanguageCode, normalizedPublicationCode, "tracks.json");
+        var trackIndex = Path.Combine(root, "Music", "Vocals", normalizedLanguageCode, normalizedPublicationCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var melodyTracks = await File.ReadAllTextAsync(trackIndex);
         return new SortedDictionary<int, MusicTrack>(JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(melodyTracks)!
                                                 .ToDictionary(x => x.Number, x => x));
@@ -181,7 +181,7 @@ public class MediaReader(string indexRoot)
         // Unified structure: Dramas/{languageCode}/publications.json (no Audio/Video prefix)
         // Normalize language code for file path lookup
         var normalizedCode = languageCode.ToUpperInvariant();
-        var publicationsIndex = Path.Combine(root, "Dramas", normalizedCode, "publications.json");
+        var publicationsIndex = Path.Combine(root, "Dramas", normalizedCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var publications = await File.ReadAllTextAsync(publicationsIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(publications)!
             .ToDictionary(x => x.Code, x => x);
@@ -194,7 +194,7 @@ public class MediaReader(string indexRoot)
         // Normalize language code and category key for file path lookup
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedCategoryKey = categoryKey.ToUpperInvariant();
-        var trackIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedCategoryKey, "tracks.json");
+        var trackIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedCategoryKey, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
         return new SortedDictionary<string, MediatorTrack>(JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
             .ToDictionary(x => x.TrackCode, x => x));
@@ -206,7 +206,7 @@ public class MediaReader(string indexRoot)
         // Unified structure: Dramas/{languageCode}/{publicationCode}/sections.json
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var sectionsIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedPublicationCode, "sections.json");
+        var sectionsIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedPublicationCode, AppConstants.ApiEndpoints.MediaIndexSectionsFileName);
         var sectionsJson = await File.ReadAllTextAsync(sectionsIndex);
         var sections = JsonSerializer.Deserialize<IEnumerable<BiblePublicationSection>>(sectionsJson)!;
         return new SortedDictionary<int, BiblePublicationSection>(sections.ToDictionary(x => x.Number, x => x));
@@ -219,7 +219,7 @@ public class MediaReader(string indexRoot)
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
         var normalizedSectionCode = sectionCode.ToUpperInvariant();
-        var trackIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedPublicationCode, normalizedSectionCode, "tracks.json");
+        var trackIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedPublicationCode, normalizedSectionCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
         return new SortedDictionary<string, MediatorTrack>(JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
             .ToDictionary(x => x.TrackCode, x => x));
@@ -243,7 +243,7 @@ public class MediaReader(string indexRoot)
         // Videos are also stored under Dramas category, IsVideo flag determines media type
         // Normalize language code for file path lookup
         var normalizedCode = languageCode.ToUpperInvariant();
-        var publicationsIndex = Path.Combine(root, "Dramas", normalizedCode, "publications.json");
+        var publicationsIndex = Path.Combine(root, "Dramas", normalizedCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var publications = await File.ReadAllTextAsync(publicationsIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(publications)!
             .ToDictionary(x => x.Code, x => x);
@@ -257,7 +257,7 @@ public class MediaReader(string indexRoot)
         // Normalize language code and publication code for file path lookup
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var episodeIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedPublicationCode, "episodes.json");
+        var episodeIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedPublicationCode, AppConstants.ApiEndpoints.MediaIndexVideoEpisodesFileName);
         var videoEpisodes = await File.ReadAllTextAsync(episodeIndex);
         return new SortedDictionary<int, VideoEpisode>(JsonSerializer.Deserialize<IEnumerable<VideoEpisode>>(videoEpisodes)!
             .ToDictionary(x => x.Number, x => x));
