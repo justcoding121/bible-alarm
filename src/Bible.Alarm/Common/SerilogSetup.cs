@@ -243,7 +243,7 @@ public class SerilogSetup
                 cacheBasePath = ApplicationData.Current.LocalCacheFolder.Path;
 #else
                 var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                cacheBasePath = Path.Combine(localAppData, "Bible.Alarm", "Cache");
+                cacheBasePath = Path.Combine(localAppData, AppConstants.FilePaths.WindowsAppDataFolderName, AppConstants.FilePaths.WindowsAppDataCacheFolderName);
 #endif
             }
             else if (CurrentDevice.RuntimePlatform == AppConstants.Platform.Android)

@@ -7,6 +7,7 @@ using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.UI.Windowing;
 using Microsoft.Windows.AppLifecycle;
@@ -94,7 +95,7 @@ public partial class App : MauiWinUIApplication
         // Unless the "main" instance is no longer running (stale key from a crash) - then we become main
         if (!instance.IsCurrent)
         {
-            var others = Process.GetProcessesByName("Bible.Alarm")
+            var others = Process.GetProcessesByName(AppConstants.FilePaths.WindowsAppDataFolderName)
                 .Where(p => p.Id != Environment.ProcessId)
                 .ToList();
             if (others.Count == 0)

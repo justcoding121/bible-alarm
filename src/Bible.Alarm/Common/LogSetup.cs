@@ -38,7 +38,7 @@ public class LogSetup
             .Enrich.WithProperty("Platform", CurrentDevice.RuntimePlatform);
 
 #if DEBUG
-        loggerConfig.Enrich.WithProperty("Environment", "DEBUG");
+        loggerConfig.Enrich.WithProperty("Environment", AppConstants.Logging.DebugEnvironment);
 #endif
 
         // Add custom tags if provided

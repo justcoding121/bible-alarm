@@ -166,6 +166,12 @@ public static class AppConstants
         /// </summary>
         public const string LogsDirectoryName = "logs";
 
+        /// <summary>Windows identity folder under local app data (<c>Bible.Alarm</c>); Serilog fallback and WinUI exe name for <c>Process.GetProcessesByName</c>.</summary>
+        public const string WindowsAppDataFolderName = "Bible.Alarm";
+
+        /// <summary>Cache subdirectory under <see cref="WindowsAppDataFolderName"/> for Serilog when WinRT storage is unavailable.</summary>
+        public const string WindowsAppDataCacheFolderName = "Cache";
+
         /// <summary>Early bootstrap diagnostic log before Serilog (<c>bootstrap.txt</c>) under <see cref="LogsDirectoryName"/>.</summary>
         public const string BootstrapDiagnosticLogFileName = "bootstrap.txt";
 
