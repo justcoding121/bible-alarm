@@ -54,7 +54,7 @@ internal sealed class PublicationLanguageSeeder
         }
 
         // Always include English (E) since we seed it
-        allDiscoveredLanguageCodes.Add("E");
+        allDiscoveredLanguageCodes.Add(AppConstants.Media.DefaultLanguageCode);
 
         // Get or create all discovered languages
         foreach (var languageCode in allDiscoveredLanguageCodes)

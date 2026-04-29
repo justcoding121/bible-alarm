@@ -108,7 +108,7 @@ internal sealed class TestModeSeeder
         // Get all publication codes from PublicationLanguages (these are the ones available for non-English)
         var publicationCodes = await db.PublicationLanguages
             .Include(pl => pl.Language)
-                .Where(pl => pl.Language != null && pl.Language.LanguageCode != "E") // Exclude English
+            .Where(pl => pl.Language != null && pl.Language.LanguageCode != AppConstants.Media.DefaultLanguageCode) // Exclude English
             .Select(pl => pl.PublicationCode)
             .Distinct()
             .ToListAsync();

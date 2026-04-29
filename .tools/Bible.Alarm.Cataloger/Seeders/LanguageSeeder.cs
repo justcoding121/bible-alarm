@@ -59,7 +59,7 @@ internal sealed class LanguageSeeder
             db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
             {
                 LanguageId = language.Id,
-                DisplayLanguageCode = "E",
+                DisplayLanguageCode = AppConstants.Media.DefaultLanguageCode,
                 Name = displayName
             });
             await db.SaveChangesAsync();
@@ -353,7 +353,7 @@ internal sealed class LanguageSeeder
                 db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
                 {
                     LanguageId = language.Id,
-                    DisplayLanguageCode = "E",
+                    DisplayLanguageCode = AppConstants.Media.DefaultLanguageCode,
                     Name = name
                 });
                 languagesSeeded++;

@@ -26,7 +26,7 @@ internal abstract class BaseCataloger
     /// <summary>
     /// Language codes to process during test runs (English, Malayalam, Arabic).
     /// </summary>
-    protected static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY", "A"]; // A = Arabic, not AR (Bambara)
+    protected static readonly HashSet<string> TestRunLanguageCodes = [AppConstants.Media.DefaultLanguageCode, "MY", "A"]; // A = Arabic, not AR (Bambara)
 
     /// <summary>
     /// Logger instance for logging operations.
