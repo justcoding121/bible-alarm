@@ -240,7 +240,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         return base.OnBind(intent);
     }
 
-    private void LogBindIntent(Intent? intent)
+    private static void LogBindIntent(Intent? intent)
     {
         logger.Information("✅ LegacyMediaBrowserService.OnBind() called with intent: {Action}",
             intent?.Action);

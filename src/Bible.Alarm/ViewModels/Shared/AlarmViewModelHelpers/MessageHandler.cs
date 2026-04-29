@@ -65,7 +65,7 @@ public sealed class MessageHandler
     /// <summary>
     /// Registers message handlers.
     /// </summary>
-    public void RegisterHandlers(
+    public static void RegisterHandlers(
         IRecipient<PlaybackPositionChangedMessage> positionRecipient,
         IRecipient<PlaybackPreparationProgressMessage> preparationRecipient)
     {
@@ -76,7 +76,7 @@ public sealed class MessageHandler
     /// <summary>
     /// Unregisters message handlers.
     /// </summary>
-    public void UnregisterHandlers(
+    public static void UnregisterHandlers(
         IRecipient<PlaybackPositionChangedMessage> positionRecipient,
         IRecipient<PlaybackPreparationProgressMessage> preparationRecipient)
     {

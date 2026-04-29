@@ -65,7 +65,7 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
         }
     }
 
-    private DefaultDataSource.Factory CreateDataSourceFactory()
+    private static DefaultDataSource.Factory CreateDataSourceFactory()
     {
         var context = Application.Context;
         return new DefaultDataSource.Factory(context);

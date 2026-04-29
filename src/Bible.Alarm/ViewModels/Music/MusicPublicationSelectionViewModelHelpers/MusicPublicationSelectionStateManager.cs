@@ -183,7 +183,7 @@ public sealed class MusicPublicationSelectionStateManager
         }
     }
 
-    public AlarmMusic? GetCurrentFromState(IState<ApplicationState> state, IMapper mapper)
+    public static AlarmMusic? GetCurrentFromState(IState<ApplicationState> state)
     {
         var stateValue = state.Value;
         if (stateValue.CurrentSchedule == null || string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))

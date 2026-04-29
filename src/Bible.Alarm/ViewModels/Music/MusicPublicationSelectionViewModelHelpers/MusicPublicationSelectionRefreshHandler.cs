@@ -81,7 +81,7 @@ public sealed class MusicPublicationSelectionRefreshHandler
             if (finalStateValue.CurrentSchedule == null)
                 return;
 
-            var current = stateManager.GetCurrentFromState(state, mapper);
+            var current = MusicPublicationSelectionStateManager.GetCurrentFromState(state);
             if (current != null)
                 stateManager.EnsureCurrentIsSet(state, mapper);
 

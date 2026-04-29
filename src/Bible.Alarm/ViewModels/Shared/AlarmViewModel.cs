@@ -118,7 +118,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         playbackState.StateChanged += OnPlaybackStateChanged;
 
         // Subscribe to position and preparation progress messages (high-frequency updates)
-        messageHandler.RegisterHandlers(this, this);
+        MessageHandler.RegisterHandlers(this, this);
         WeakReferenceMessenger.Default.Register<BeginStoppingPlaybackMessage>(this);
 
         // Initialize commands
@@ -811,7 +811,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         {
             landscapeHandler.CancelAutoHide();
             playbackState.StateChanged -= OnPlaybackStateChanged;
-            messageHandler.UnregisterHandlers(this, this);
+            MessageHandler.UnregisterHandlers(this, this);
             WeakReferenceMessenger.Default.Unregister<BeginStoppingPlaybackMessage>(this);
 
             isDisposed = true;

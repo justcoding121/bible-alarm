@@ -140,7 +140,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         viewModel?.OnContentLoaded();
     }
 
-    private void SyncOverlayWithState()
+    private static void SyncOverlayWithState()
     {
         // Binding handles overlay visibility automatically.
     }

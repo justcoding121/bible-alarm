@@ -16,7 +16,7 @@ public class SwitchHandler : Microsoft.Maui.Handlers.SwitchHandler
         ApplySwitchStyling(platformView);
     }
 
-    private void ApplySwitchStyling(SwitchCompat switchCompat)
+    private static void ApplySwitchStyling(SwitchCompat switchCompat)
     {
         if (switchCompat?.Context == null)
         {
