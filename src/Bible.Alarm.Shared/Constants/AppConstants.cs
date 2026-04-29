@@ -511,15 +511,24 @@ public static class AppConstants
         /// <summary>Publication/track picker UI: plural chapters.</summary>
         public const string PublicationUiChapterPlural = "Chapters";
 
+        /// <summary>Sample schedule default name when creating new (<c>AlarmSchedule.GetSampleSchedule</c>).</summary>
+        public const string ScheduleUiSampleNameNew = "New schedule";
+
+        /// <summary>Sample schedule placeholder name for templates.</summary>
+        public const string ScheduleUiSampleNamePlaceholder = "Schedule Name";
+
         /// <summary>Melody disc fallback UI: prefix before volume index (e.g. <c>Volume 1</c>).</summary>
         public const string PublicationUiMelodyVolumePrefix = "Volume ";
+
+        /// <summary>English title for Good News According to Jesus (<see cref="BiblePublicationCodeDramasGoodNews"/>).</summary>
+        public const string PublicationDisplayNameGoodNewsAccordingToJesus = "The Good News According to Jesus";
 
         /// <summary>
         /// Substrings in JW GETPUB publication names that indicate video drama titles wrongly returned for Bible publications.
         /// </summary>
         public static readonly string[] ApiMisleadingGoodNewsVideoPublicationNamePhrases =
         {
-            "The Good News According to Jesus",
+            PublicationDisplayNameGoodNewsAccordingToJesus,
             "Good news according to Jesus"
         };
 

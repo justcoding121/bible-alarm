@@ -34,14 +34,14 @@ internal class VideoCataloger : BaseCataloger
     /// Codes come from centralized JwSourceHelper.VideoPublicationCodes.
     /// </summary>
     private static readonly Dictionary<string, string> VideoPublicationCodeToNameMappings = new([
-        new KeyValuePair<string, string>("DramasGoodNews", "The Good News According to Jesus")
+        new KeyValuePair<string, string>(AppConstants.Media.BiblePublicationCodeDramasGoodNews, AppConstants.Media.PublicationDisplayNameGoodNewsAccordingToJesus)
     ]);
 
     /// <summary>
     /// Maps publication codes to Mediator API category keys for fetching localized names (pub code = category key for video).
     /// </summary>
     private static readonly Dictionary<string, string> PublicationCodeToCategoryKey = new([
-        new KeyValuePair<string, string>("DramasGoodNews", "DramasGoodNews")
+        new KeyValuePair<string, string>(AppConstants.Media.BiblePublicationCodeDramasGoodNews, AppConstants.Media.BiblePublicationCodeDramasGoodNews)
     ]);
 
     /// <summary>
