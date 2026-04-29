@@ -159,7 +159,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
         var info = new MPNowPlayingInfo
         {
-            Title = string.IsNullOrEmpty(displayTitle) ? "Bible Alarm" : displayTitle,
+            Title = string.IsNullOrEmpty(displayTitle) ? AppConstants.AppSettings.ApplicationDisplayName : displayTitle,
             Artist = displayArtist,
             AlbumTitle = displayAlbum,
             PlaybackDuration = duration.TotalSeconds,

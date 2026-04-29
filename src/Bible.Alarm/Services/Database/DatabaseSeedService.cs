@@ -1,5 +1,6 @@
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -70,7 +71,7 @@ public sealed class DatabaseSeedService(
             // Save basic metadata - Android Auto will show this until full bootstrap completes
             LastPlayedMetadataHelper.SaveLastPlayedMetadata(
                 title: schedule.Name,
-                artist: "Ready to play",
+                artist: AppConstants.Media.NowPlayingPlaceholder.ArtistReadyToPlay,
                 album: null,
                 artworkUrl: null,
                 scheduleId: schedule.Id);
@@ -115,7 +116,7 @@ public sealed class DatabaseSeedService(
             // Save basic metadata
             LastPlayedMetadataHelper.SaveLastPlayedMetadata(
                 title: firstSchedule.Name,
-                artist: "Ready to play",
+                artist: AppConstants.Media.NowPlayingPlaceholder.ArtistReadyToPlay,
                 album: null,
                 artworkUrl: null,
                 scheduleId: firstSchedule.Id);

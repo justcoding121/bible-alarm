@@ -5,6 +5,7 @@ using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using AndroidX.Core.Content;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -179,9 +180,9 @@ public static class AndroidAutoPlayScreenHelper
     public static MediaMetadataCompat.Builder CreateMetadataBuilder(string? title, string? artist, string? album = null)
     {
         var builder = new MediaMetadataCompat.Builder();
-        builder.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? "Bible Alarm" : title);
-        builder.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? "Tap to play" : artist);
-        builder.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? "..." : album);
+        builder.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? AppConstants.AppSettings.ApplicationDisplayName : title);
+        builder.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? AppConstants.Media.NowPlayingPlaceholder.ArtistTapToPlay : artist);
+        builder.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? AppConstants.Media.NowPlayingPlaceholder.AlbumEllipsis : album);
         // Always include duration key so the time area is always allocated on the Now Playing screen.
         // Prevents layout bounce (title/subtitle shifting) when time appears/disappears during transitions.
         builder.PutLong(MediaMetadataCompat.MetadataKeyDuration, 0);
@@ -205,15 +206,15 @@ public static class AndroidAutoPlayScreenHelper
 
             if (string.IsNullOrEmpty(title))
             {
-                builder.PutString(MediaMetadataCompat.MetadataKeyTitle, "Bible Alarm");
+                builder.PutString(MediaMetadataCompat.MetadataKeyTitle, AppConstants.AppSettings.ApplicationDisplayName);
             }
             if (string.IsNullOrEmpty(artist))
             {
-                builder.PutString(MediaMetadataCompat.MetadataKeyArtist, "Tap to play");
+                builder.PutString(MediaMetadataCompat.MetadataKeyArtist, AppConstants.Media.NowPlayingPlaceholder.ArtistTapToPlay);
             }
             if (string.IsNullOrEmpty(album))
             {
-                builder.PutString(MediaMetadataCompat.MetadataKeyAlbum, "...");
+                builder.PutString(MediaMetadataCompat.MetadataKeyAlbum, AppConstants.Media.NowPlayingPlaceholder.AlbumEllipsis);
             }
 
             // Explicitly preserve artwork bitmap to ensure it's not lost

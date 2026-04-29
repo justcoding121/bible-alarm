@@ -2,6 +2,7 @@
 using Android.Graphics;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Serilog;
@@ -29,9 +30,9 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         // Handle empty strings with fallback values (consistent with AndroidAutoPlayScreenHelper)
         // This ensures we never show empty text in Android Auto UI
         var builder = new MediaMetadataCompat.Builder()
-            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? "Bible Alarm" : title)
-            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? "Tap to play" : artist)
-            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? "..." : album);
+            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? AppConstants.AppSettings.ApplicationDisplayName : title)
+            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? AppConstants.Media.NowPlayingPlaceholder.ArtistTapToPlay : artist)
+            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? AppConstants.Media.NowPlayingPlaceholder.AlbumEllipsis : album);
         // Always include duration key so the time area is always allocated on the Now Playing screen.
         // Prevents layout bounce (title/subtitle shifting) when time appears/disappears during transitions.
         builder?.PutLong(MediaMetadataCompat.MetadataKeyDuration, 0);

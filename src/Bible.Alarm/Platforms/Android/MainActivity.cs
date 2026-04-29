@@ -7,13 +7,14 @@ using Android.OS;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android;
 
-[Activity(Label = "Bible Alarm", Theme = "@style/MainTheme", LaunchMode = LaunchMode.SingleTop, MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+[Activity(Label = AppConstants.AppSettings.ApplicationDisplayName, Theme = "@style/MainTheme", LaunchMode = LaunchMode.SingleTop, MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
     // Lazy logger initialization to ensure Serilog is configured first

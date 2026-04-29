@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -119,7 +120,7 @@ public sealed class PlaybackEventHandler
                 "HandleMediaEndedAsync: indefinite append failed; schedule left on finished track; showing error modal - ScheduleId={ScheduleId}",
                 currentScheduleId);
             await showPlaybackErrorInModalKeepSessionAsync(
-                "Could not load the next part. Check your connection, then tap Retry.",
+                AppConstants.Media.PlaybackModalMessages.CouldNotLoadNextPartCheckConnectionTapRetry,
                 getIsAlarm());
             return;
         }
@@ -260,7 +261,9 @@ public sealed class PlaybackEventHandler
             logger.Error(ex, "Error in HandleMediaFailedAsync");
             try
             {
-                await showPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", getIsAlarm());
+                await showPlaybackErrorInModalKeepSessionAsync(
+                    AppConstants.Media.PlaybackModalMessages.PlaybackFailedTapRetry,
+                    getIsAlarm());
             }
             catch (Exception innerEx)
             {
@@ -277,17 +280,17 @@ public sealed class PlaybackEventHandler
     {
         if (!playedFromCdnStream)
         {
-            return "Playback failed. Tap Retry.";
+            return AppConstants.Media.PlaybackModalMessages.PlaybackFailedTapRetry;
         }
 
         if (playbackHadStartedForThisTrack)
         {
-            return "Playback stopped (connection lost or interrupted). Tap Retry.";
+            return AppConstants.Media.PlaybackModalMessages.PlaybackStoppedConnectionLostTapRetry;
         }
 
         if (probeOutcome == CdnUrlProbeOutcome.ResourceReachable)
         {
-            return "Could not start playback (network or server busy). Tap Retry.";
+            return AppConstants.Media.PlaybackModalMessages.CouldNotStartPlaybackNetworkBusyTapRetry;
         }
 
         if (failedPlayItem != null &&
@@ -295,15 +298,15 @@ public sealed class PlaybackEventHandler
             failedPlayItem.CdnStaleUrlRecoveryConsumed &&
             !failedPlayItem.CdnStaleUrlRefetchReplayIssued)
         {
-            return "Could not update playback links. Tap Retry.";
+            return AppConstants.Media.PlaybackModalMessages.CouldNotUpdatePlaybackLinksTapRetry;
         }
 
         if (failedPlayItem != null && failedPlayItem.CdnStaleUrlRefetchReplayIssued)
         {
-            return "Still could not play after updating links. Tap Retry.";
+            return AppConstants.Media.PlaybackModalMessages.StillCouldNotPlayAfterUpdatingLinksTapRetry;
         }
 
-        return "Could not start playback. Check your connection, then tap Retry.";
+        return AppConstants.Media.PlaybackModalMessages.CouldNotStartPlaybackCheckConnectionTapRetry;
     }
 
     private async Task MarkCurrentTrackAsFinishedAsync(List<AudioPlayerTrack>? playlist, int currentTrackIndex)

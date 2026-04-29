@@ -9,6 +9,7 @@ using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using AndroidX.Core.Content;
 using AndroidX.Core.Graphics.Drawable;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 using Application = Android.App.Application;
 using MediaStyle = AndroidX.Media.App.NotificationCompat.MediaStyle;
@@ -26,8 +27,6 @@ internal static class ForegroundNotificationHelper
     private const int ForegroundNotificationId = 2; // MediaElement uses 1, so we use 2
     private const string ForegroundChannelId = "foreground_service_channel";
     private const string ForegroundChannelName = "Media Playback";
-    private const string NotificationTitleAppDisplayName = "Bible Alarm";
-
     public static int NotificationId => ForegroundNotificationId;
 
     public static void CreateNotificationChannel(Service service)
@@ -87,7 +86,7 @@ internal static class ForegroundNotificationHelper
 
         var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
         builder.SetSmallIcon(ResourceConstant.Drawable.ic_launcher_round);
-        builder.SetContentTitle(NotificationTitleAppDisplayName);
+        builder.SetContentTitle(AppConstants.AppSettings.ApplicationDisplayName);
         builder.SetContentText("Loading...");
         builder.SetOngoing(true);
         builder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
@@ -109,7 +108,7 @@ internal static class ForegroundNotificationHelper
 
         var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
         builder.SetSmallIcon(ResourceConstant.Drawable.ic_launcher_round);
-        builder.SetContentTitle(NotificationTitleAppDisplayName);
+        builder.SetContentTitle(AppConstants.AppSettings.ApplicationDisplayName);
         builder.SetContentText("Starting...");
         builder.SetOngoing(true);
         builder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
@@ -148,7 +147,7 @@ internal static class ForegroundNotificationHelper
         {
             // Alarm notification: Show app icon and "preparing" message
             // Alarm automatically starts playback, so we show a preparing state
-            title = NotificationTitleAppDisplayName;
+            title = AppConstants.AppSettings.ApplicationDisplayName;
             artist = "Preparing playback...";
             artwork = null; // Don't use artwork, use app icon instead
         }
@@ -164,11 +163,11 @@ internal static class ForegroundNotificationHelper
             // Fallback values for early bootstrap scenarios (before metadata is set)
             if (string.IsNullOrEmpty(title))
             {
-                title = NotificationTitleAppDisplayName;
+                title = AppConstants.AppSettings.ApplicationDisplayName;
             }
             if (string.IsNullOrEmpty(artist))
             {
-                artist = "Ready to play";
+                artist = AppConstants.Media.NowPlayingPlaceholder.ArtistReadyToPlay;
             }
         }
 

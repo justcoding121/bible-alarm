@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
@@ -103,7 +104,9 @@ public sealed class PlaybackMediaEventAdapter
             logger.Error(ex, "Error handling media failed event");
             try
             {
-                await callbacks.ShowPlaybackErrorInModalKeepSessionAsync("Playback failed. Tap Retry.", callbacks.GetIsAlarm());
+                await callbacks.ShowPlaybackErrorInModalKeepSessionAsync(
+                    AppConstants.Media.PlaybackModalMessages.PlaybackFailedTapRetry,
+                    callbacks.GetIsAlarm());
             }
             catch (Exception innerEx)
             {

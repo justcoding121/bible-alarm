@@ -234,7 +234,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
         // Create the list template with title and sections array
         var sections = new CPListSection[] { section };
-        var template = new CPListTemplate("Bible Alarm", sections);
+        var template = new CPListTemplate(AppConstants.AppSettings.ApplicationDisplayName, sections);
 
         logger.Information("[CarPlay] Created schedule list template with {Count} schedules", schedules.Count);
 
@@ -257,7 +257,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         var items = new ICPListTemplateItem[] { emptyItem };
         var section = new CPListSection(items, null, null);
         var sections = new CPListSection[] { section };
-        return new CPListTemplate("Bible Alarm", sections);
+        return new CPListTemplate(AppConstants.AppSettings.ApplicationDisplayName, sections);
     }
 
     /// <summary>

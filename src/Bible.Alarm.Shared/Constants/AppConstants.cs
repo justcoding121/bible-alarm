@@ -251,6 +251,9 @@ public static class AppConstants
         /// Application name for logging
         /// </summary>
         public const string ApplicationName = "Bible-Alarm";
+
+        /// <summary>Human-readable app title (lock screen, CarPlay, notifications, MAUI Android <c>Label</c>).</summary>
+        public const string ApplicationDisplayName = "Bible Alarm";
     }
 
     /// <summary>
@@ -638,6 +641,26 @@ public static class AppConstants
 
         /// <summary>Bound property name <c>MusicLanguageDisplayText</c> on schedule music selection UI.</summary>
         public const string ScheduleMusicLanguageDisplayTextPropertyName = "MusicLanguageDisplayText";
+
+        /// <summary>User-facing playback modal strings for CDN/stream failures (tap Retry).</summary>
+        public static class PlaybackModalMessages
+        {
+            public const string PlaybackFailedTapRetry = "Playback failed. Tap Retry.";
+            public const string CouldNotLoadNextPartCheckConnectionTapRetry = "Could not load the next part. Check your connection, then tap Retry.";
+            public const string PlaybackStoppedConnectionLostTapRetry = "Playback stopped (connection lost or interrupted). Tap Retry.";
+            public const string CouldNotStartPlaybackNetworkBusyTapRetry = "Could not start playback (network or server busy). Tap Retry.";
+            public const string CouldNotUpdatePlaybackLinksTapRetry = "Could not update playback links. Tap Retry.";
+            public const string StillCouldNotPlayAfterUpdatingLinksTapRetry = "Still could not play after updating links. Tap Retry.";
+            public const string CouldNotStartPlaybackCheckConnectionTapRetry = "Could not start playback. Check your connection, then tap Retry.";
+        }
+
+        /// <summary>Fallback strings for Now Playing–style surfaces (Android Auto, notifications, seed metadata).</summary>
+        public static class NowPlayingPlaceholder
+        {
+            public const string ArtistReadyToPlay = "Ready to play";
+            public const string ArtistTapToPlay = "Tap to play";
+            public const string AlbumEllipsis = "...";
+        }
 
         /// <summary>Melody disc fallback UI: prefix before volume index (e.g. <c>Volume 1</c>).</summary>
         public const string PublicationUiMelodyVolumePrefix = "Volume ";

@@ -2,6 +2,7 @@ using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
@@ -78,7 +79,7 @@ public sealed class AndroidAlarmHandler(
         logger.Debug("Removing any existing local notification for schedule {ScheduleId}", schedule.Id);
         AndroidNotificationService.RemoveLocalNotification(schedule.Id);
 
-        var notificationTitle = string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name;
+        var notificationTitle = string.IsNullOrEmpty(schedule.Name) ? AppConstants.AppSettings.ApplicationDisplayName : schedule.Name;
         logger.Information("Showing local notification for schedule {ScheduleId} - Title={Title}", schedule.Id, notificationTitle);
         AndroidNotificationService.ShowLocalNotification(schedule.Id,
             notificationTitle,
