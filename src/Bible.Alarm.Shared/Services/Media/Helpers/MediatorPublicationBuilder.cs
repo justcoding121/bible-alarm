@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
@@ -77,7 +78,7 @@ internal sealed class MediatorPublicationBuilder
             existingPublication.Name = finalPublicationName;
             existingPublication.IsVideo = isVideo;
             existingPublication.IsMusic = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCodeForDb) &&
-                (categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
+                (categories.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
                  JwSourceHelper.MusicFlagPublicationCodes.Contains(publicationCodeForDb));
 
             SyncPublicationCategories(existingPublication, categories);
@@ -97,7 +98,7 @@ internal sealed class MediatorPublicationBuilder
         }
 
         var isMusicPub = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCodeForDb) &&
-            (categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
+            (categories.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
              JwSourceHelper.MusicFlagPublicationCodes.Contains(publicationCodeForDb));
         var publication = new BiblePublication
         {

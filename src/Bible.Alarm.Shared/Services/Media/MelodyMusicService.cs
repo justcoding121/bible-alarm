@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
@@ -25,7 +26,6 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
-    private const string MusicCategoryCode = "Music";
 
     public async Task<MelodyMusic?> GetByCodeWithTracksAsync(string publicationCode, CancellationToken cancellationToken = default)
     {
@@ -43,7 +43,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -105,7 +105,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .AsNoTracking()
                 .Include(x => x.BiblePublicationCategories)
                 .ThenInclude(x => x.Category)
-                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode) && x.LanguageId == null)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) && x.LanguageId == null)
                 .ToListAsync(cancellationToken);
 
             // Handle potential duplicates gracefully - use first occurrence
@@ -147,7 +147,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                     .ThenInclude(s => s.Tracks)
                     .ThenInclude(t => t.TrackUrl)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -209,7 +209,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
                     .ThenInclude(t => t.TrackUrl)
-                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);

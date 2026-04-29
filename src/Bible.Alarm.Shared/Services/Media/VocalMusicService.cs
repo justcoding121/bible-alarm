@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -24,7 +25,6 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
-    private const string MusicCategoryCode = "Music";
 
     public async Task<VocalMusic?> GetByLanguageAndCodeAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
@@ -38,7 +38,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .Include(x => x.BiblePublicationCategories)
                 .ThenInclude(x => x.Category)
                 .Include(x => x.Language)
-                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId != null
                     && x.Language!.LanguageCode == languageCode
                     && x.PublicationCode == publicationCode)
@@ -68,7 +68,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .Include(x => x.BiblePublicationCategories)
                 .ThenInclude(x => x.Category)
                 .Include(x => x.Language)
-                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId != null
                     && x.Language!.LanguageCode == languageCode)
                 .ToListAsync(cancellationToken);
@@ -109,7 +109,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .AsNoTracking()
                 .Include(x => x.Language)
                 .Include(x => x.Category)
-                .Where(x => x.Category != null && x.Category.CategoryCode == MusicCategoryCode && x.Language != null);
+                .Where(x => x.Category != null && x.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic && x.Language != null);
 
             // For vocal music, we need to check if the publication has LanguageId in BiblePublications
             // But since we're querying PublicationLanguages, we can't directly filter by LanguageId
@@ -131,7 +131,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                     .Include(x => x.BiblePublicationCategories)
                     .ThenInclude(x => x.Category)
                     .Include(x => x.Language)
-                    .AnyAsync(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                    .AnyAsync(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                         && x.LanguageId != null
                         && x.Language!.LanguageCode == lang.LanguageCode, cancellationToken);
                 
@@ -166,7 +166,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .ThenInclude(x => x.Category)
                 .Include(x => x.Language)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == MusicCategoryCode)
+                .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId != null
                     && x.Language!.LanguageCode == languageCode
                     && x.PublicationCode == publicationCode)

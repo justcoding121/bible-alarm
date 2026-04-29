@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using Bible.Alarm.Shared.Constants;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -37,7 +38,7 @@ public static class PublicationCodeHelper
     public static IComparer<string?> GetPublicationCodeComparerForCategory(string? categoryName)
     {
         var c = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
-        if (string.Equals(c, "Music", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(c, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
             return new CategoryPriorityPublicationCodeComparer(MusicPriorityPublicationCodes);
         if (string.Equals(c, "Bible", StringComparison.OrdinalIgnoreCase))
             return PublicationCodeComparer;

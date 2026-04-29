@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Bible.Alarm.Shared.Constants;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -667,7 +668,7 @@ public static class JwSourceHelper
             return new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Bible"] = BiblePublicationCodes,
-                ["Music"] = musicCodes,
+                [AppConstants.Media.BiblePublicationCategoryMusic] = musicCodes,
                 ["Dramas"] = dramaCodes,
                 ["FaithAndBible"] = FaithAndBiblePublicationCodes,
                 ["Books"] = BooksPublicationCodes,
@@ -715,7 +716,7 @@ public static class JwSourceHelper
     }
 
     /// <summary>
-    /// Gets the CategoryCode (DB) for a given publication code, e.g. "Bible", "Music", "Dramas".
+    /// Gets the CategoryCode (DB) for a given publication code (e.g. Bible, Music, Dramas).
     /// Returns null if the publication code is not recognized.
     /// </summary>
     public static string? GetCategoryCode(string publicationCode)

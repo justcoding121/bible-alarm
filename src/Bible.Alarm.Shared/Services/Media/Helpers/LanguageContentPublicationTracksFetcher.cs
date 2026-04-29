@@ -4,6 +4,7 @@ using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -110,7 +111,7 @@ internal sealed class LanguageContentPublicationTracksFetcher
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication, cancellationToken);
 
                 case Models.Enums.CatalogType.Flat:
-                    var isMusic = categoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
+                    var isMusic = categoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
                     var fileFormat = isVideo ? "MP4" : "MP3";
                     return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(new FetchFlatPublicationTracksRequest(
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication,

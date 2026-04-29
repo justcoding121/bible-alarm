@@ -100,7 +100,7 @@ public interface ILanguageContentService
     /// or all tracks (for flat publications). Used when language is first selected.
     /// </summary>
     /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
-    /// <param name="categoryName">Optional category name to filter publications (e.g., "Bible", "Music")</param>
+    /// <param name="categoryName">Optional category name to filter publications (e.g. Bible or Music).</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if first publication was successfully fetched, false otherwise</returns>
     Task<bool> FetchFirstPublicationForLanguageAsync(
@@ -113,7 +113,7 @@ public interface ILanguageContentService
     /// Used when publication list modal opens.
     /// </summary>
     /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
-    /// <param name="categoryName">Optional category name to filter publications (e.g., "Bible", "Music")</param>
+    /// <param name="categoryName">Optional category name to filter publications (e.g. Bible or Music).</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if all publications are now available, false otherwise</returns>
     Task<bool> EnsureAllPublicationsForLanguageAsync(

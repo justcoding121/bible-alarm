@@ -103,7 +103,7 @@ internal sealed class SectionFetcher
         var determinedCatalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
         string? localizedPubName = null;
 
-        var isMusicPub = categoriesForPub.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase)) ||
+        var isMusicPub = categoriesForPub.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
             JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
         BiblePublication publication;
         if (existingPublication != null)

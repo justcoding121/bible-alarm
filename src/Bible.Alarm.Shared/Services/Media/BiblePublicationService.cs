@@ -220,7 +220,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
-                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
                 {
                     query = query.Where(x => x.IsMusic);
                 }
@@ -261,7 +261,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         {
             // Fast path: return cached result if available (cache key includes filter for Music so music container vs Bible container don't share)
             var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
-            var cacheKey = normalizedCategory == null ? null : (filterIsMusicWhenMusicCategory && string.Equals(normalizedCategory, "Music", StringComparison.OrdinalIgnoreCase) ? "Music~IsMusicOnly" : normalizedCategory);
+            var cacheKey = normalizedCategory == null ? null : (filterIsMusicWhenMusicCategory && string.Equals(normalizedCategory, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase) ? $"{AppConstants.Media.BiblePublicationCategoryMusic}~IsMusicOnly" : normalizedCategory);
             lock (distinctLanguagesCacheLock)
             {
                 if (cacheKey == null && cachedDistinctLanguagesAll != null)
@@ -288,11 +288,11 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Include(x => x.Category)
                 .Where(x => x.Language != null);
 
-            // Filter by category if provided (categoryName is CategoryCode, e.g. "Bible", "Music")
+            // Filter by category if provided (categoryName is CategoryCode, e.g. Bible vs Music)
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
-                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
                 {
                     query = query.Where(x => x.IsMusic);
                 }
@@ -351,7 +351,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
-                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
                 {
                     query = query.Where(x => x.IsMusic);
                 }
@@ -404,7 +404,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
-                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
                 {
                     query = query.Where(x => x.IsMusic);
                 }
@@ -491,7 +491,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var categoryCodeFromDiscovery = pl.Category.CategoryCode;
             var isMusicInferred = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCode) &&
-                (string.Equals(categoryCodeFromDiscovery, "Music", StringComparison.OrdinalIgnoreCase) ||
+                (string.Equals(categoryCodeFromDiscovery, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase) ||
                  JwSourceHelper.IsMusicPublicationCode(publicationCode));
             return (categoryCodeFromDiscovery, isMusicInferred);
         }
