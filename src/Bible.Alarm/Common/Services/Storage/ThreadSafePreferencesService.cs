@@ -16,6 +16,10 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
     private static readonly ILogger logger = Log.ForContext(typeof(ThreadSafePreferencesService));
 
     private const string LogMessageErrorReadingPreferencesForKey = "Error reading from Preferences for key: {Key}";
+    private const string LogMessageErrorWritingPreferencesRetry =
+        "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}";
+    private const string LogMessageErrorWritingPreferencesForKey = "Error writing to Preferences for key: {Key}";
+    private const string LogMessageErrorRemovingPreferencesKey = "Error removing key from Preferences: {Key}";
 
     // SemaphoreSlim for async/await support and thread-safe access
     // Initial count of 1 ensures only one operation at a time
@@ -198,7 +202,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                 catch (IOException ioEx) when (attempt < maxRetries)
                 {
                     var delayMs = 100 * (int)Math.Pow(2, attempt - 1);
-                    logger.Warning(ioEx, "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}",
+                    logger.Warning(ioEx, LogMessageErrorWritingPreferencesRetry,
                         attempt, maxRetries, delayMs, key);
                     Thread.Sleep(delayMs);
                 }
@@ -206,7 +210,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error writing to Preferences for key: {Key}", key);
+            logger.Warning(ex, LogMessageErrorWritingPreferencesForKey, key);
             throw;
         }
         finally
@@ -254,7 +258,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error removing key from Preferences: {Key}", key);
+            logger.Warning(ex, LogMessageErrorRemovingPreferencesKey, key);
             throw;
         }
         finally
@@ -461,7 +465,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                 catch (IOException ioEx) when (attempt < maxRetries)
                 {
                     var delayMs = 100 * (int)Math.Pow(2, attempt - 1);
-                    logger.Warning(ioEx, "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}",
+                    logger.Warning(ioEx, LogMessageErrorWritingPreferencesRetry,
                         attempt, maxRetries, delayMs, key);
                     await Task.Delay(delayMs, cancellationToken);
                 }
@@ -479,7 +483,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error removing key from Preferences: {Key}", key);
+                logger.Warning(ex, LogMessageErrorRemovingPreferencesKey, key);
                 throw;
             }
         }, cancellationToken);

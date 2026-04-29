@@ -30,6 +30,7 @@ public sealed class DisplayMetadataService(
 
     private const string HttpsUriSchemePrefix = "https://";
     private const string FallbackUnknownTitle = "Unknown Title";
+    private const string FallbackTrackTitlePrefix = "Track ";
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
@@ -139,7 +140,7 @@ public sealed class DisplayMetadataService(
                 }
                 else
                 {
-                    meta.Title = $"Track {trackMetadata.TrackCode}";
+                    meta.Title = $"{FallbackTrackTitlePrefix}{trackMetadata.TrackCode}";
                 }
                 
                 // Artist: Publication name + JW.org qualifier
@@ -150,7 +151,7 @@ public sealed class DisplayMetadataService(
         }
         
         // Fallback if no publication found
-        meta.Title = $"Track {trackMetadata.TrackCode}";
+        meta.Title = $"{FallbackTrackTitlePrefix}{trackMetadata.TrackCode}";
     }
 
     private async Task SetBiblePublicationSectionMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BiblePublicationSection section)
