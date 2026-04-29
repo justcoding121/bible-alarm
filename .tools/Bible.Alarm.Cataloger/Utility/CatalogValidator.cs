@@ -19,8 +19,6 @@ namespace Bible.Alarm.Cataloger.Utility;
 /// </summary>
 internal static class CatalogValidator
 {
-    private const string LanguageE = "E";
-
     private static bool IsSectionedOrMediatorPublication(string publicationCode)
     {
         var c = publicationCode.ToLowerInvariant();
@@ -138,7 +136,7 @@ internal static class CatalogValidator
 
         var byPub = tracksWithParams
             .Where(t => t.Publication != null &&
-                        (t.Publication.Language?.LanguageCode == LanguageE || t.Publication.LanguageId == null))
+                        (t.Publication.Language?.LanguageCode == AppConstants.Media.DefaultLanguageCode || t.Publication.LanguageId == null))
             .GroupBy(t => t.Publication!.PublicationCode)
             .ToDictionary(g => g.Key, g => g.ToList());
 
@@ -230,7 +228,7 @@ internal static class CatalogValidator
                 .FirstOrDefaultAsync(bp => bp.PublicationCode == codeForDb &&
                     bp.LanguageId != null &&
                     bp.Language != null &&
-                    bp.Language.LanguageCode == LanguageE);
+                    bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
 
             if (pub == null)
             {
@@ -312,7 +310,7 @@ internal static class CatalogValidator
         foreach (var publicationCode in codesToValidate)
         {
             var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
-            var pathAndQuery = $"/categories/E/{categoryKey}";
+            var pathAndQuery = $"/categories/{AppConstants.Media.DefaultLanguageCode}/{categoryKey}";
             string? jsonString;
             try
             {

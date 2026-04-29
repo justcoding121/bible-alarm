@@ -150,7 +150,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
         var discoveredLanguages = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
 
         // Use alllangs=1 and langwritten=E for discovery
-        var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNum}&fileformat=MP3&alllangs=1&langwritten=E";
+        var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNum}&fileformat=MP3&alllangs=1&langwritten={AppConstants.Media.DefaultLanguageCode}";
 
         var jsonString = await DownloadUtility.GetAsync(catalogLink);
         using var doc = JsonDocument.Parse(jsonString);

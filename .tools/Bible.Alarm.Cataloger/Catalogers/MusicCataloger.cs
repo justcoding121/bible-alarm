@@ -69,7 +69,7 @@ internal class MusicCataloger : BaseCataloger
             await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
             // Verify English (E) is available (it will be seeded separately after discovery)
-            var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase));
+            var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
             if (englishEntry == default)
             {
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
@@ -77,8 +77,8 @@ internal class MusicCataloger : BaseCataloger
             }
 
             // Add English to language mappings (for reference, but don't process it here)
-            languageCodeToInfo.TryAdd("E", new LanguageInfo(englishEntry.Name, englishEntry.Direction));
-            AddPublicationToLanguage("E", publicationCode, languageCodeToPublications);
+            languageCodeToInfo.TryAdd(AppConstants.Media.DefaultLanguageCode, new LanguageInfo(englishEntry.Name, englishEntry.Direction));
+            AddPublicationToLanguage(AppConstants.Media.DefaultLanguageCode, publicationCode, languageCodeToPublications);
         }
     }
 
@@ -132,7 +132,7 @@ internal class MusicCataloger : BaseCataloger
 
             await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
-            var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase));
+            var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
             if (englishEntry == default)
             {
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
@@ -151,7 +151,7 @@ internal class MusicCataloger : BaseCataloger
         }
 
         var discoveredLanguages = languageEntries
-            .Where(e => !e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+            .Where(e => !e.LanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
             .ToDictionary(
                 e => e.LanguageCode,
                 e => new LanguageInfo(e.Name, e.Direction));
@@ -167,7 +167,7 @@ internal class MusicCataloger : BaseCataloger
         string jsonString;
         try
         {
-            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E";
+            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten={AppConstants.Media.DefaultLanguageCode}";
             jsonString = await DownloadUtility.GetAsync(catalogLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))

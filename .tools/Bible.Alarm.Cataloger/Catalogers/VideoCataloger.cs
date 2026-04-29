@@ -93,7 +93,7 @@ internal class VideoCataloger : BaseCataloger
             await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
             // Verify English (E) is available (it will be seeded separately after discovery)
-            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
+            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
             if (englishEntry == default)
             {
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
@@ -137,7 +137,7 @@ internal class VideoCataloger : BaseCataloger
 
             await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
-            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
+            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
             if (englishEntry == default)
             {
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
@@ -159,7 +159,7 @@ internal class VideoCataloger : BaseCataloger
         }
 
         var discoveredLanguages = languageEntries
-            .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+            .Where(e => !e.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
             .ToDictionary(
                 e => e.Code,
                 e => new LanguageInfo(e.Name, e.Direction));
@@ -181,7 +181,7 @@ internal class VideoCataloger : BaseCataloger
         string jsonString;
         try
         {
-            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&alllangs=1&langwritten=E";
+            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&alllangs=1&langwritten={AppConstants.Media.DefaultLanguageCode}";
             jsonString = await DownloadUtility.GetAsync(catalogLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))

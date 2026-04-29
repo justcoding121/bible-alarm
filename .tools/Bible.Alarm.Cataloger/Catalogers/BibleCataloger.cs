@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Cataloger.Catalogers;
@@ -97,17 +98,17 @@ internal class BibleCataloger : BaseCataloger
             }
 
             // Verify English (E) is available (it will be seeded separately after discovery)
-            if (!allDiscoveredLanguages.TryGetValue("E", out var englishLanguageInfo))
+            if (!allDiscoveredLanguages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguageInfo))
             {
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
                 continue;
             }
 
             // Add English to language mappings (for reference, but don't process it here)
-            languageCodeToInfoMappings.TryAdd("E", englishLanguageInfo);
-            if (!languageCodeToEditionsMapping.TryAdd("E", [publicationCode]))
+            languageCodeToInfoMappings.TryAdd(AppConstants.Media.DefaultLanguageCode, englishLanguageInfo);
+            if (!languageCodeToEditionsMapping.TryAdd(AppConstants.Media.DefaultLanguageCode, [publicationCode]))
             {
-                languageCodeToEditionsMapping["E"].Add(publicationCode);
+                languageCodeToEditionsMapping[AppConstants.Media.DefaultLanguageCode].Add(publicationCode);
             }
         }
     }

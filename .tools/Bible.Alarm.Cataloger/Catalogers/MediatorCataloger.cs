@@ -65,7 +65,7 @@ internal class MediatorCataloger : BaseCataloger
         bool isTestRun)
     {
         var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
-        var pathAndQuery = $"/categories/E/{categoryKey}";
+        var pathAndQuery = $"/categories/{AppConstants.Media.DefaultLanguageCode}/{categoryKey}";
         string? jsonString;
         try
         {
@@ -112,7 +112,7 @@ internal class MediatorCataloger : BaseCataloger
         {
             // Remove English from discovered languages since we're processing it
             var languagesToSave = discoveredLanguages
-                .Where(kvp => !kvp.Key.Equals("E", StringComparison.OrdinalIgnoreCase))
+                .Where(kvp => !kvp.Key.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             
             if (languagesToSave.Count > 0)
@@ -122,7 +122,7 @@ internal class MediatorCataloger : BaseCataloger
         }
 
         // Verify English (E) is available (it will be seeded separately after discovery)
-        if (!languagesFromCategory.Contains("E", StringComparer.OrdinalIgnoreCase))
+        if (!languagesFromCategory.Contains(AppConstants.Media.DefaultLanguageCode, StringComparer.OrdinalIgnoreCase))
         {
             Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
             return;

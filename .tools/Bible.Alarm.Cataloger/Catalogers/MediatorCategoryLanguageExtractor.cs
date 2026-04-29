@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Cataloger.Models;
 using Serilog;
@@ -94,7 +95,7 @@ internal static class MediatorCategoryLanguageExtractor
                 // This is for English, add it
                 if (!string.IsNullOrEmpty(name))
                 {
-                    languageInfoMap["E"] = new LanguageInfo(name, direction);
+                    languageInfoMap[AppConstants.Media.DefaultLanguageCode] = new LanguageInfo(name, direction);
                 }
             }
 
