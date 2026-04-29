@@ -2200,6 +2200,46 @@ public static class AppConstants
                 "GetVocalMusicReleases: Returning {TotalCount} vocal music releases ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}";
         }
 
+        /// <summary>Alarm modal / now-playing metadata (<c>DisplayMetadataService</c> and music helper).</summary>
+        public static class DisplayMetadataServiceDiagnosticsLog
+        {
+            public const string FailedToGetDisplayMetadataForTrack = "Failed to get display metadata for track";
+
+            public const string FailedToGetMelodyTrackTitleFromMediaService =
+                "Failed to get melody track title from media service";
+
+            public const string FailedToGetMelodyReleaseNameFromMediaService =
+                "Failed to get melody release name from media service";
+
+            public const string FailedToGetMelodySectionNameFromMediaService =
+                "Failed to get melody section name from media service";
+
+            public const string FailedToExtractFileMetadataForArtworkArtistAlbum =
+                "Failed to extract file metadata for artwork/artist/album {Uri}";
+
+            public const string FailedToExtractArtworkFromFileWithContext =
+                "Failed to extract artwork from file {Uri} ({Context})";
+
+            public const string FailedToExtractMetadataFromFile =
+                "Failed to extract metadata from file {Uri}";
+
+            public const string FailedToExtractMetadataDefaultCreateFailedForUri =
+                "Failed to extract metadata from {Uri} (default create failed)";
+
+            public const string VideoMp4CreateAlsoFailedForUri = "Video/mp4 create also failed for {Uri}";
+
+            public const string AudioMpegCreateAlsoFailedForUri = "Audio/mpeg create also failed for {Uri}";
+
+            public const string FailedToExtractMetadataFromLocalFile =
+                "Failed to extract metadata from local file {Uri}";
+
+            public const string FailedToResolveMelodyReleaseNameForPublication =
+                "Failed to resolve melody release name for {PublicationCode}";
+
+            public const string FailedToResolveMelodyDiscNameForPublicationDisc =
+                "Failed to resolve melody disc name for {PublicationCode}/{DiscCode}";
+        }
+
         /// <summary>Fluxor schedule reducers (<c>ApplicationReducer</c>, display-name preservation, bible track selection).</summary>
         public static class ApplicationReducerDiagnosticsLog
         {

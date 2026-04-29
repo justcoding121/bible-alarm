@@ -73,7 +73,7 @@ public sealed class DisplayMetadataService(
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to get display metadata for track");
+            logger.Warning(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetDisplayMetadataForTrack);
         }
 
         await ApplyFallbackMetadataIfNeededAsync(meta, track.Uri, skipRemoteArtwork);
@@ -246,7 +246,7 @@ public sealed class DisplayMetadataService(
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to get melody track title from media service");
+            logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodyTrackTitleFromMediaService);
         }
 
         string? releaseName = null;
@@ -261,7 +261,7 @@ public sealed class DisplayMetadataService(
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to get melody release name from media service");
+            logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodyReleaseNameFromMediaService);
         }
 
         string? sectionName = null;
@@ -276,7 +276,7 @@ public sealed class DisplayMetadataService(
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to get melody section name from media service");
+            logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodySectionNameFromMediaService);
         }
 
         // CarPlay/lock screen: put short text in Title so it does not overlap the two-line subtitle.
@@ -322,7 +322,7 @@ public sealed class DisplayMetadataService(
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to extract file metadata for artwork/artist/album {Uri}", uri);
+            logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractFileMetadataForArtworkArtistAlbum, uri);
         }
     }
 
@@ -338,7 +338,7 @@ public sealed class DisplayMetadataService(
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to extract artwork from file {Uri} ({Context})", uri, context);
+            logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractArtworkFromFileWithContext, uri, context);
         }
     }
 
@@ -376,7 +376,7 @@ public sealed class DisplayMetadataService(
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to extract metadata from file {Uri}", uri);
+            logger.Warning(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataFromFile, uri);
             meta.Title = FallbackUnknownTitle;
         }
     }
@@ -447,9 +447,9 @@ public sealed class DisplayMetadataService(
                         }
                         catch (Exception ex3)
                         {
-                            logger.Warning(ex, "Failed to extract metadata from {Uri} (default create failed)", uri);
-                            logger.Debug(ex2, "Video/mp4 create also failed for {Uri}", uri);
-                            logger.Debug(ex3, "Audio/mpeg create also failed for {Uri}", uri);
+                            logger.Warning(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataDefaultCreateFailedForUri, uri);
+                            logger.Debug(ex2, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.VideoMp4CreateAlsoFailedForUri, uri);
+                            logger.Debug(ex3, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.AudioMpegCreateAlsoFailedForUri, uri);
                             return null;
                         }
                     }
@@ -470,7 +470,7 @@ public sealed class DisplayMetadataService(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to extract metadata from local file {Uri}", uri);
+                logger.Warning(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataFromLocalFile, uri);
                 return null;
             }
         });

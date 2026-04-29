@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -53,7 +54,7 @@ internal sealed class DisplayMetadataServiceMusicHelper
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to resolve melody release name for {PublicationCode}", trackMetadata.PublicationCode);
+            logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToResolveMelodyReleaseNameForPublication, trackMetadata.PublicationCode);
         }
 
         if (PublicationTypeHelper.HasSectionStructure(trackMetadata.PublicationCode) && !string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
@@ -66,7 +67,7 @@ internal sealed class DisplayMetadataServiceMusicHelper
             }
             catch (Exception ex)
             {
-                logger.Debug(ex, "Failed to resolve melody disc name for {PublicationCode}/{DiscCode}", trackMetadata.PublicationCode, trackMetadata.DownloadCode);
+                logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToResolveMelodyDiscNameForPublicationDisc, trackMetadata.PublicationCode, trackMetadata.DownloadCode);
             }
         }
     }
