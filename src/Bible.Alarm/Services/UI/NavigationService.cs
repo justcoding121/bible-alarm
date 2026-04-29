@@ -40,7 +40,7 @@ public sealed class NavigationService(
     /// Runs the given async work on the UI thread. On Windows use the current window's root page Dispatcher so WinUI uses the correct thread; otherwise MainThread.
     /// When already on the UI thread we run work directly to avoid deadlock (dispatch-then-await would wait for our own queued work).
     /// </summary>
-    private async Task InvokeOnUiThreadAsync(Func<Task> work)
+    private static async Task InvokeOnUiThreadAsync(Func<Task> work)
     {
 #if WINDOWS
         var app = Application.Current;

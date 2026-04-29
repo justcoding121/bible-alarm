@@ -34,7 +34,7 @@ public class AudioPlayerPositionTracker
     /// Sends an immediate position reset so the UI progress bar moves to the start of the new track
     /// instead of staying at the end of the previous track until the platform reports new position (e.g. Windows delay).
     /// </summary>
-    public void SendPositionResetForNewTrack()
+    public static void SendPositionResetForNewTrack()
     {
         WeakReferenceMessenger.Default.Send(new PlaybackPositionChangedMessage
         {
