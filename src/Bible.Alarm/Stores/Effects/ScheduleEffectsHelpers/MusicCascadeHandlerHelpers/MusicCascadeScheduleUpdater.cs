@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -44,7 +45,7 @@ public static class MusicCascadeScheduleUpdater
             !publicationModalCountChanged &&
             !sectionModalCountChanged)
         {
-            logger.Debug("MusicCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, section={SectionCode}, track={TrackCode}",
+            logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatchCycle,
                 publicationCode, sectionCode ?? "null", trackCode);
             return;
         }

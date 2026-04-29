@@ -899,6 +899,79 @@ public static class AppConstants
                 "PrepareScheduleStateItem: Final scheduleStateItem before dispatch - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicId={MusicId}";
         }
 
+        /// <summary>Music publication cascade (<c>MusicCascadeHandler</c> / <c>MusicCascadeScheduleUpdater</c>).</summary>
+        public static class MusicCascadeHandlerDiagnosticsLog
+        {
+            public const string HandleAsyncCurrentScheduleNullExiting =
+                "MusicCascadeHandler: HandleAsync - CurrentSchedule is null, exiting";
+
+            public const string HandleAsyncPublicationSectionTrackMusicEnabled =
+                "MusicCascadeHandler: HandleAsync - PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, MusicEnabled={MusicEnabled}";
+
+            public const string HandleAsyncNoPublicationCodeCallingLanguageCascade =
+                "MusicCascadeHandler: HandleAsync - No publication code, calling HandleLanguageCascadeAsync";
+
+            public const string HandleAsyncSectionedNoSectionCodeCallingPublicationCascade =
+                "MusicCascadeHandler: HandleAsync - Sectioned publication but no section code, calling HandlePublicationCascadeAsync";
+
+            public const string HandleAsyncSectionedNoTrackCodeCallingSectionCascade =
+                "MusicCascadeHandler: HandleAsync - Sectioned publication but no track code, calling HandleSectionCascadeAsync";
+
+            public const string HandleAsyncFlatNoTrackCodeCallingFlatCascade =
+                "MusicCascadeHandler: HandleAsync - Flat publication but no track code, calling HandleFlatPublicationCascadeAsync";
+
+            public const string HandleAsyncEverythingSetCallingRefreshModalCounts =
+                "MusicCascadeHandler: HandleAsync - Everything is set, calling RefreshModalCountsIfNeededAsync";
+
+            public const string ErrorDuringCascade =
+                "MusicCascadeHandler: Error during cascade";
+
+            public const string RefreshModalCountsIfNeededCurrentVsNew =
+                "MusicCascadeHandler: RefreshModalCountsIfNeeded - Current: PublicationCount={CurrentPubCount}, SectionCount={CurrentSectionCount}, New: PublicationCount={NewPubCount}, SectionCount={NewSectionCount}";
+
+            public const string RefreshingModalCounts =
+                "MusicCascadeHandler: Refreshing modal counts. PublicationCount={PublicationCount}, SectionCount={SectionCount}, PublicationCode={PublicationCode}";
+
+            public const string ModalCountsUnchangedSkippingDispatch =
+                "MusicCascadeHandler: Modal counts unchanged, skipping dispatch";
+
+            public const string ErrorRefreshingModalCounts =
+                "MusicCascadeHandler: Error refreshing modal counts";
+
+            public const string FlatPublicationCascade =
+                "MusicCascadeHandler: Flat publication cascade - publication={PublicationCode}, language={LanguageCode}";
+
+            public const string PublicationNotFoundInDatabase =
+                "MusicCascadeHandler: Publication not found in database: {PublicationCode}";
+
+            public const string NoValidTrackFoundForPublication =
+                "MusicCascadeHandler: No valid track found for publication={PublicationCode}";
+
+            public const string LanguageCascade =
+                "MusicCascadeHandler: Language cascade - language={LanguageCode}";
+
+            public const string FailedToCatalogPublication =
+                "MusicCascadeHandler: Failed to catalog publication={PublicationCode}";
+
+            public const string NoPublicationFoundForLanguage =
+                "MusicCascadeHandler: No publication found for language={LanguageCode}";
+
+            public const string PublicationCascade =
+                "MusicCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}";
+
+            public const string PublicationNotFound =
+                "MusicCascadeHandler: Publication not found: {PublicationCode}";
+
+            public const string SectionCascade =
+                "MusicCascadeHandler: Section cascade - section={SectionCode}, publication={PublicationCode}";
+
+            public const string NoTracksFoundForSection =
+                "MusicCascadeHandler: No tracks found for sectionCode={SectionCode}";
+
+            public const string ValuesUnchangedSkippingDispatchCycle =
+                "MusicCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, section={SectionCode}, track={TrackCode}";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {

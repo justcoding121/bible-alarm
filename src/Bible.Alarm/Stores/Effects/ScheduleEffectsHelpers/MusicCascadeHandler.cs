@@ -54,7 +54,7 @@ public sealed class MusicCascadeHandler
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
-                logger.Debug("MusicCascadeHandler: HandleAsync - CurrentSchedule is null, exiting");
+                logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncCurrentScheduleNullExiting);
                 return;
             }
 
@@ -62,7 +62,7 @@ public sealed class MusicCascadeHandler
             var sectionCode = currentSchedule.MusicSectionCode;
             var trackCode = currentSchedule.MusicTrackCode;
 
-            logger.Debug("MusicCascadeHandler: HandleAsync - PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, MusicEnabled={MusicEnabled}",
+            logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncPublicationSectionTrackMusicEnabled,
                 publicationCode ?? "null", sectionCode ?? "null", trackCode ?? "null", currentSchedule.MusicEnabled);
 
             var publicationHasSections =
@@ -72,7 +72,7 @@ public sealed class MusicCascadeHandler
             // Cascade 1: Publication not selected → populate publication, section, track
             if (string.IsNullOrWhiteSpace(publicationCode))
             {
-                logger.Debug("MusicCascadeHandler: HandleAsync - No publication code, calling HandleLanguageCascadeAsync");
+                logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncNoPublicationCodeCallingLanguageCascade);
                 await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
                 return;
             }
@@ -91,14 +91,14 @@ public sealed class MusicCascadeHandler
                 {
                     if (string.IsNullOrWhiteSpace(sectionCode))
                     {
-                        logger.Debug("MusicCascadeHandler: HandleAsync - Sectioned publication but no section code, calling HandlePublicationCascadeAsync");
+                        logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncSectionedNoSectionCodeCallingPublicationCascade);
                         await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
                         return;
                     }
 
                     if (trackMissing)
                     {
-                        logger.Debug("MusicCascadeHandler: HandleAsync - Sectioned publication but no track code, calling HandleSectionCascadeAsync");
+                        logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncSectionedNoTrackCodeCallingSectionCascade);
                         await HandleSectionCascadeAsync(currentSchedule, dispatcher);
                         return;
                     }
@@ -108,7 +108,7 @@ public sealed class MusicCascadeHandler
                     // Flat publications: only cascade when track is missing.
                     if (trackMissing)
                     {
-                        logger.Debug("MusicCascadeHandler: HandleAsync - Flat publication but no track code, calling HandleFlatPublicationCascadeAsync");
+                        logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncFlatNoTrackCodeCallingFlatCascade);
                         await HandleFlatPublicationCascadeAsync(currentSchedule, dispatcher);
                         return;
                     }
@@ -116,13 +116,13 @@ public sealed class MusicCascadeHandler
 
                 // Everything is already set - ensure modal counts are refreshed (e.g., when music is enabled on existing schedule)
                 // This ensures the section row arrow shows correctly when music is enabled
-                logger.Debug("MusicCascadeHandler: HandleAsync - Everything is set, calling RefreshModalCountsIfNeededAsync");
+                logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncEverythingSetCallingRefreshModalCounts);
                 await RefreshModalCountsIfNeededAsync(currentSchedule, dispatcher);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "MusicCascadeHandler: Error during cascade");
+            logger.Error(ex, AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ErrorDuringCascade);
         }
     }
 
@@ -136,7 +136,7 @@ public sealed class MusicCascadeHandler
             var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
             var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
-            logger.Debug("MusicCascadeHandler: RefreshModalCountsIfNeeded - Current: PublicationCount={CurrentPubCount}, SectionCount={CurrentSectionCount}, New: PublicationCount={NewPubCount}, SectionCount={NewSectionCount}",
+            logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.RefreshModalCountsIfNeededCurrentVsNew,
                 currentSchedule.MusicPublicationModalItemCount, currentSchedule.MusicSectionModalItemCount,
                 publicationModalItemCount, sectionModalItemCount);
 
@@ -148,7 +148,7 @@ public sealed class MusicCascadeHandler
                 updatedSchedule.MusicPublicationModalItemCount = publicationModalItemCount;
                 updatedSchedule.MusicSectionModalItemCount = sectionModalItemCount;
 
-                logger.Information("MusicCascadeHandler: Refreshing modal counts. PublicationCount={PublicationCount}, SectionCount={SectionCount}, PublicationCode={PublicationCode}",
+                logger.Information(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.RefreshingModalCounts,
                     publicationModalItemCount, sectionModalItemCount, currentSchedule.MusicPublicationCode);
 
                 // Use musicUpdated: true to trigger modal counts effect. Cascade handler will exit early since everything is already set.
@@ -156,12 +156,12 @@ public sealed class MusicCascadeHandler
             }
             else
             {
-                logger.Debug("MusicCascadeHandler: Modal counts unchanged, skipping dispatch");
+                logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ModalCountsUnchangedSkippingDispatch);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "MusicCascadeHandler: Error refreshing modal counts");
+            logger.Error(ex, AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ErrorRefreshingModalCounts);
         }
     }
 
@@ -170,7 +170,7 @@ public sealed class MusicCascadeHandler
         var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
         var publicationCode = currentSchedule.MusicPublicationCode!;
 
-        logger.Information("MusicCascadeHandler: Flat publication cascade - publication={PublicationCode}, language={LanguageCode}",
+        logger.Information(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.FlatPublicationCascade,
             publicationCode, languageCode);
 
         using var scope = scopeFactory.CreateScope();
@@ -185,7 +185,7 @@ public sealed class MusicCascadeHandler
 
         if (publication == null)
         {
-            logger.Warning("MusicCascadeHandler: Publication not found in database: {PublicationCode}", publicationCode);
+            logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationNotFoundInDatabase, publicationCode);
             return;
         }
 
@@ -202,7 +202,7 @@ public sealed class MusicCascadeHandler
 
         if (string.IsNullOrWhiteSpace(trackCode))
         {
-            logger.Warning("MusicCascadeHandler: No valid track found for publication={PublicationCode}", publicationCode);
+            logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication, publicationCode);
             return;
         }
 
@@ -228,7 +228,7 @@ public sealed class MusicCascadeHandler
     {
         var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
 
-        logger.Information("MusicCascadeHandler: Language cascade - language={LanguageCode}",
+        logger.Information(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.LanguageCascade,
             languageCode);
 
         string? publicationCode = null;
@@ -325,7 +325,7 @@ public sealed class MusicCascadeHandler
         {
             if (!await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode))
             {
-                logger.Warning("MusicCascadeHandler: Failed to catalog publication={PublicationCode}", publicationCode);
+                logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.FailedToCatalogPublication, publicationCode);
                 return;
             }
             mediaService.InvalidateBiblePublicationsCache(languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
@@ -346,7 +346,7 @@ public sealed class MusicCascadeHandler
 
         if (string.IsNullOrEmpty(publicationCode))
         {
-            logger.Warning("MusicCascadeHandler: No publication found for language={LanguageCode}",
+            logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.NoPublicationFoundForLanguage,
                 languageCode);
             return;
         }
@@ -360,7 +360,7 @@ public sealed class MusicCascadeHandler
 
         if (string.IsNullOrWhiteSpace(trackCode))
         {
-            logger.Warning("MusicCascadeHandler: No valid track found for publication={PublicationCode}",
+            logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication,
                 publicationCode);
             return;
         }
@@ -407,7 +407,7 @@ public sealed class MusicCascadeHandler
         var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
         var publicationCode = currentSchedule.MusicPublicationCode!;
 
-        logger.Information("MusicCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}",
+        logger.Information(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationCascade,
             publicationCode, languageCode);
 
         using var scope = scopeFactory.CreateScope();
@@ -423,7 +423,7 @@ public sealed class MusicCascadeHandler
 
         if (publication == null)
         {
-            logger.Warning("MusicCascadeHandler: Publication not found in database: {PublicationCode}", publicationCode);
+            logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationNotFoundInDatabase, publicationCode);
             return;
         }
 
@@ -438,7 +438,7 @@ public sealed class MusicCascadeHandler
 
         if (string.IsNullOrWhiteSpace(trackCode))
         {
-            logger.Warning("MusicCascadeHandler: No valid track found for publication={PublicationCode}",
+            logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication,
                 publicationCode);
             return;
         }
@@ -456,7 +456,7 @@ public sealed class MusicCascadeHandler
         var publicationCode = currentSchedule.MusicPublicationCode!;
         var sectionCode = currentSchedule.MusicSectionCode!;
 
-        logger.Information("MusicCascadeHandler: Section cascade - section={SectionCode}, publication={PublicationCode}",
+        logger.Information(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.SectionCascade,
             sectionCode, publicationCode);
 
         // Check if publication has LanguageId
@@ -471,7 +471,7 @@ public sealed class MusicCascadeHandler
 
         if (publication == null)
         {
-            logger.Warning("MusicCascadeHandler: Publication not found: {PublicationCode}", publicationCode);
+            logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationNotFound, publicationCode);
             return;
         }
 
@@ -490,7 +490,7 @@ public sealed class MusicCascadeHandler
 
         if (tracks == null || tracks.Count == 0)
         {
-            logger.Warning("MusicCascadeHandler: No tracks found for sectionCode={SectionCode}", sectionCode);
+            logger.Warning(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.NoTracksFoundForSection, sectionCode);
             return;
         }
 
