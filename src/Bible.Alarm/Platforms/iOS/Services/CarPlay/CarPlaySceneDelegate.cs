@@ -52,7 +52,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     {
         try
         {
-            logger.Information("[CarPlay] Connected to CarPlay interface controller");
+            logger.Information(AppConstants.Logging.CarPlayDiagnosticsLog.ConnectedToInterfaceController);
             interfaceController = controller;
             IsCarPlayConnected = true;
             IsRecentlyConnected = true;
@@ -62,7 +62,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             {
                 await Task.Delay(1500);
                 IsRecentlyConnected = false;
-                logger.Debug("[CarPlay] Cleared IsRecentlyConnected flag (auto-play suppression window ended)");
+                logger.Debug(AppConstants.Logging.CarPlayDiagnosticsLog.ClearedIsRecentlyConnectedFlag);
             });
 
             // Create and set the schedule list template
@@ -75,12 +75,12 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             }
             else
             {
-                logger.Debug("[CarPlay] Rotation service not available (DI may not be ready)");
+                logger.Debug(AppConstants.Logging.CarPlayDiagnosticsLog.RotationServiceNotAvailable);
             }
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "[CarPlay] Error during CarPlay connection");
+            logger.Warning(ex, AppConstants.Logging.CarPlayDiagnosticsLog.ErrorDuringCarPlayConnection);
         }
     }
 
@@ -92,7 +92,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     {
         try
         {
-            logger.Information("[CarPlay] Disconnected from CarPlay interface controller");
+            logger.Information(AppConstants.Logging.CarPlayDiagnosticsLog.DisconnectedFromInterfaceController);
             IsCarPlayConnected = false;
             Current = null;
 
@@ -110,12 +110,12 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             }
             catch (Exception rotationEx)
             {
-                logger.Warning(rotationEx, "[CarPlay] Failed to stop rotation service");
+                logger.Warning(rotationEx, AppConstants.Logging.CarPlayDiagnosticsLog.FailedToStopRotationService);
             }
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "[CarPlay] Error during CarPlay disconnection");
+            logger.Warning(ex, AppConstants.Logging.CarPlayDiagnosticsLog.ErrorDuringCarPlayDisconnection);
         }
     }
 
@@ -147,11 +147,11 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         }
         catch (ObjectDisposedException ex)
         {
-            logger.Debug(ex, "[CarPlay] SuppressCarPlayFinalizers: disposed during teardown (non-fatal)");
+            logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressCarPlayFinalizersDisposedDuringTeardown);
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "[CarPlay] SuppressCarPlayFinalizers: unexpected (non-fatal)");
+            logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressCarPlayFinalizersUnexpected);
         }
     }
 
@@ -171,7 +171,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     {
         if (interfaceController == null)
         {
-            logger.Warning("[CarPlay] Cannot set root template - interface controller is null");
+            logger.Warning(AppConstants.Logging.CarPlayDiagnosticsLog.CannotSetRootTemplateInterfaceControllerNull);
             return;
         }
 
@@ -183,17 +183,17 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             {
                 if (success)
                 {
-                    logger.Information("[CarPlay] Successfully set schedule list as root template");
+                    logger.Information(AppConstants.Logging.CarPlayDiagnosticsLog.SuccessfullySetScheduleListAsRootTemplate);
                 }
                 else
                 {
-                    logger.Warning("[CarPlay] Failed to set root template: {Error}", error?.LocalizedDescription ?? AppConstants.Logging.UnknownErrorFallback);
+                    logger.Warning(AppConstants.Logging.CarPlayDiagnosticsLog.FailedToSetRootTemplateWithError, error?.LocalizedDescription ?? AppConstants.Logging.UnknownErrorFallback);
                 }
             });
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[CarPlay] Error setting root template");
+            logger.Error(ex, AppConstants.Logging.CarPlayDiagnosticsLog.ErrorSettingRootTemplate);
         }
     }
 
@@ -206,7 +206,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
         if (schedules.Count == 0)
         {
-            logger.Warning("[CarPlay] No schedules in state - showing loading/empty state");
+            logger.Warning(AppConstants.Logging.CarPlayDiagnosticsLog.NoSchedulesInStateShowingEmpty);
             return CreateEmptyStateTemplate();
         }
 
@@ -222,7 +222,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
             listItem.Handler = (item, completion) =>
             {
-                logger.Information("[CarPlay] User tapped schedule: {Title} (ID: {ScheduleId})", title, scheduleId);
+                logger.Information(AppConstants.Logging.CarPlayDiagnosticsLog.UserTappedSchedule, title, scheduleId);
                 CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId, completion);
             };
 
@@ -236,7 +236,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         var sections = new CPListSection[] { section };
         var template = new CPListTemplate(AppConstants.AppSettings.ApplicationDisplayName, sections);
 
-        logger.Information("[CarPlay] Created schedule list template with {Count} schedules", schedules.Count);
+        logger.Information(AppConstants.Logging.CarPlayDiagnosticsLog.CreatedScheduleListTemplateWithCount, schedules.Count);
 
         return template;
     }
@@ -306,7 +306,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[CarPlay] Error refreshing schedule list");
+            logger.Error(ex, AppConstants.Logging.CarPlayDiagnosticsLog.ErrorRefreshingScheduleList);
         }
     }
 
@@ -326,11 +326,11 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         }
         catch (ObjectDisposedException ex)
         {
-            logger.Debug(ex, "[CarPlay] SuppressOldSectionFinalizers: disposed during teardown (non-fatal)");
+            logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressOldSectionFinalizersDisposedDuringTeardown);
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "[CarPlay] SuppressOldSectionFinalizers: unexpected (non-fatal)");
+            logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressOldSectionFinalizersUnexpected);
         }
     }
 }

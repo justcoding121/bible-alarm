@@ -907,6 +907,67 @@ public static class AppConstants
                 "[iOS NowPlaying] Failed to download artwork from {Url}";
         }
 
+        /// <summary>CarPlay scene delegate (<c>CarPlaySceneDelegate</c>).</summary>
+        public static class CarPlayDiagnosticsLog
+        {
+            public const string ConnectedToInterfaceController =
+                "[CarPlay] Connected to CarPlay interface controller";
+
+            public const string ClearedIsRecentlyConnectedFlag =
+                "[CarPlay] Cleared IsRecentlyConnected flag (auto-play suppression window ended)";
+
+            public const string RotationServiceNotAvailable =
+                "[CarPlay] Rotation service not available (DI may not be ready)";
+
+            public const string ErrorDuringCarPlayConnection =
+                "[CarPlay] Error during CarPlay connection";
+
+            public const string DisconnectedFromInterfaceController =
+                "[CarPlay] Disconnected from CarPlay interface controller";
+
+            public const string FailedToStopRotationService =
+                "[CarPlay] Failed to stop rotation service";
+
+            public const string ErrorDuringCarPlayDisconnection =
+                "[CarPlay] Error during CarPlay disconnection";
+
+            public const string SuppressCarPlayFinalizersDisposedDuringTeardown =
+                "[CarPlay] SuppressCarPlayFinalizers: disposed during teardown (non-fatal)";
+
+            public const string SuppressCarPlayFinalizersUnexpected =
+                "[CarPlay] SuppressCarPlayFinalizers: unexpected (non-fatal)";
+
+            public const string CannotSetRootTemplateInterfaceControllerNull =
+                "[CarPlay] Cannot set root template - interface controller is null";
+
+            public const string SuccessfullySetScheduleListAsRootTemplate =
+                "[CarPlay] Successfully set schedule list as root template";
+
+            public const string FailedToSetRootTemplateWithError =
+                "[CarPlay] Failed to set root template: {Error}";
+
+            public const string ErrorSettingRootTemplate =
+                "[CarPlay] Error setting root template";
+
+            public const string NoSchedulesInStateShowingEmpty =
+                "[CarPlay] No schedules in state - showing loading/empty state";
+
+            public const string UserTappedSchedule =
+                "[CarPlay] User tapped schedule: {Title} (ID: {ScheduleId})";
+
+            public const string CreatedScheduleListTemplateWithCount =
+                "[CarPlay] Created schedule list template with {Count} schedules";
+
+            public const string ErrorRefreshingScheduleList =
+                "[CarPlay] Error refreshing schedule list";
+
+            public const string SuppressOldSectionFinalizersDisposedDuringTeardown =
+                "[CarPlay] SuppressOldSectionFinalizers: disposed during teardown (non-fatal)";
+
+            public const string SuppressOldSectionFinalizersUnexpected =
+                "[CarPlay] SuppressOldSectionFinalizers: unexpected (non-fatal)";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {
