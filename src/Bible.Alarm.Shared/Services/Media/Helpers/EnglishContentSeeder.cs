@@ -58,8 +58,7 @@ internal sealed class EnglishContentSeeder
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-            const string EnglishCode = "E";
-            var normalizedLanguageCode = EnglishCode.ToUpperInvariant();
+            var normalizedLanguageCode = AppConstants.Media.DefaultLanguageCode.ToUpperInvariant();
 
             var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 

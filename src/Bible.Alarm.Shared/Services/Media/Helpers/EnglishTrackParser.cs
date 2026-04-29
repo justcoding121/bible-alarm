@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -21,12 +22,12 @@ internal static class EnglishTrackParser
         var tracks = new List<BiblePublicationTrack>();
         
         // Parse tracks from files.E.MP3
-        if (filesElement.TryGetProperty("E", out var englishFiles) &&
+        if (filesElement.TryGetProperty(AppConstants.Media.DefaultLanguageCode, out var englishFiles) &&
             englishFiles.TryGetProperty("MP3", out var mp3Files))
         {
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
-                var track = ParseTrackFromJson(trackFile, "E");
+                var track = ParseTrackFromJson(trackFile, AppConstants.Media.DefaultLanguageCode);
                 if (track != null)
                 {
                     tracks.Add(track);

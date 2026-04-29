@@ -333,7 +333,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
             Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: No vocal languages found, falling back to English");
             result = new Dictionary<string, Language>
             {
-                ["E"] = new Language { LanguageCode = "E" }
+                [AppConstants.Media.DefaultLanguageCode] = new Language { LanguageCode = AppConstants.Media.DefaultLanguageCode }
             };
         }
 

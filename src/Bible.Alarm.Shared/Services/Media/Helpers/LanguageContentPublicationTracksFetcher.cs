@@ -86,7 +86,7 @@ internal sealed class LanguageContentPublicationTracksFetcher
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == publicationCodeForDb &&
                           bp.Language != null &&
-                          bp.Language.LanguageCode == "E",
+                          bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode,
                     cancellationToken);
 
             if (englishPublication == null)

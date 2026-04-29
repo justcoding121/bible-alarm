@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -79,7 +80,7 @@ internal sealed class LanguageContentFirstSectionFetcher
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == publicationCodeForDb &&
                           bp.Language != null &&
-                          bp.Language.LanguageCode == "E",
+                          bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode,
                     cancellationToken);
 
             if (englishPublication == null)

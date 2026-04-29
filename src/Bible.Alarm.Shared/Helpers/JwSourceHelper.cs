@@ -30,10 +30,9 @@ public static class JwSourceHelper
     /// <summary>
     /// Melody music publication codes used for seeding.
     /// </summary>
-    public static HashSet<string> MelodyMusicPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
-    {
-        AppConstants.Media.MelodyMusicPublicationCodeIam
-    };
+    public static HashSet<string> MelodyMusicPublicationCodes => new(
+        new[] { AppConstants.Media.MelodyMusicPublicationCodeIam },
+        StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Music category publications that use Mediator API for discovery (MediatorSectioned, video).

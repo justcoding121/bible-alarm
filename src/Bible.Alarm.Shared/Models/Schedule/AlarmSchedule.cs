@@ -183,7 +183,7 @@ public sealed class AlarmSchedule : IComparable
 
         // Optimize: Load publications with sections in one call to get both publication info and sections
         // For new schedules, prefer "nwt" with English "E", then fallback to first available language with a sectioned publication
-        const string DefaultLanguageCode = "E";
+        const string DefaultLanguageCode = AppConstants.Media.DefaultLanguageCode;
         const string PreferredPublicationCode = AppConstants.Media.BiblePublicationCodeNwt;
         string? bibleLanguageCode = null;
         string? biblePublicationCode = null;
