@@ -142,8 +142,8 @@ public sealed class DisplayMetadataService(
                     meta.Title = $"Track {trackMetadata.TrackCode}";
                 }
                 
-                // Artist: Publication name + (jw.org)
-                meta.Artist = $"{publication.Name} (jw.org)";
+                // Artist: Publication name + JW.org qualifier
+                meta.Artist = $"{publication.Name}{DisplayMetadataPublisherStrings.JwOrgArtistQualifier}";
 
                 return;
             }
@@ -172,12 +172,12 @@ public sealed class DisplayMetadataService(
 
             if (publication != null)
             {
-                meta.Artist = $"{publication.Name} (jw.org)";
+                meta.Artist = $"{publication.Name}{DisplayMetadataPublisherStrings.JwOrgArtistQualifier}";
                 return;
             }
         }
 
-        meta.Artist = "jw.org";
+        meta.Artist = DisplayMetadataPublisherStrings.JwOrgLabel;
     }
 
     private async Task SetMagazineSectionMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BiblePublicationSection section)
@@ -198,7 +198,7 @@ public sealed class DisplayMetadataService(
         }
 
         meta.Title = !string.IsNullOrWhiteSpace(trackTitle) ? trackTitle : section.Name;
-        meta.Artist = $"{section.Name} (jw.org)";
+        meta.Artist = $"{section.Name}{DisplayMetadataPublisherStrings.JwOrgArtistQualifier}";
     }
 
     private Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri, bool skipRemoteArtwork = false)
@@ -283,7 +283,7 @@ public sealed class DisplayMetadataService(
         meta.Artist = trackTitle;
         meta.Album = sectionName;
         if (string.IsNullOrWhiteSpace(meta.Artist))
-            meta.Artist = "jw.org";
+            meta.Artist = DisplayMetadataPublisherStrings.JwOrgLabel;
         if (string.IsNullOrWhiteSpace(meta.Title))
             meta.Title = "Melody";
 
@@ -349,7 +349,7 @@ public sealed class DisplayMetadataService(
         if (skipRemoteArtwork && uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
             meta.Title = FallbackUnknownTitle;
-            meta.Artist ??= "jw.org";
+            meta.Artist ??= DisplayMetadataPublisherStrings.JwOrgLabel;
             return Task.CompletedTask;
         }
 

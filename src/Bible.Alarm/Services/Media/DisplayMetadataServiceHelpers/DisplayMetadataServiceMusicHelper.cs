@@ -49,7 +49,7 @@ internal sealed class DisplayMetadataServiceMusicHelper
         {
             var releases = await mediaService.GetMelodyMusicReleases();
             if (releases.TryGetValue(trackMetadata.PublicationCode, out var release) && !string.IsNullOrWhiteSpace(release?.Name))
-                meta.Artist = $"{release.Name} (jw.org)";
+                meta.Artist = $"{release.Name}{DisplayMetadataPublisherStrings.JwOrgArtistQualifier}";
         }
         catch (Exception ex)
         {
