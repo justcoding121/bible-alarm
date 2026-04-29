@@ -75,7 +75,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
             }
             catch (Exception toastEx)
             {
-                logger.Warning(toastEx, "Failed to show toast message for exact alarm permission error");
+                logger.Warning(toastEx, AppConstants.Logging.AndroidNotificationServiceDiagnosticsLog.FailedToShowToastExactAlarmPermissionError);
             }
 
             // Re-throw to be handled by caller

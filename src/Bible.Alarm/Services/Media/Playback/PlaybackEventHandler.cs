@@ -258,7 +258,7 @@ public sealed class PlaybackEventHandler
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in HandleMediaFailedAsync");
+            logger.Error(ex, AppConstants.Logging.PlaybackDiagnosticsLog.ErrorInHandleMediaFailedAsync);
             try
             {
                 await showPlaybackErrorInModalKeepSessionAsync(
@@ -267,7 +267,7 @@ public sealed class PlaybackEventHandler
             }
             catch (Exception innerEx)
             {
-                logger.Error(innerEx, "Failure recovery in HandleMediaFailedAsync catch");
+                logger.Error(innerEx, AppConstants.Logging.PlaybackDiagnosticsLog.FailureRecoveryInHandleMediaFailedCatch);
             }
         }
     }
@@ -329,7 +329,7 @@ public sealed class PlaybackEventHandler
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error marking track as finished");
+            logger.Error(ex, AppConstants.Logging.PlaybackDiagnosticsLog.ErrorMarkingTrackAsFinished);
         }
     }
 }

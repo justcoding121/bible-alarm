@@ -214,7 +214,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         }
         catch (Exception ex)
         {
-            Serilog.Log.Warning(ex, "Error loading categories");
+            Serilog.Log.Warning(ex, AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorLoadingCategories);
         }
         // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
     }

@@ -71,7 +71,7 @@ public sealed class PlaybackMediaEventAdapter
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error handling media ended event");
+            logger.Error(ex, AppConstants.Logging.PlaybackDiagnosticsLog.ErrorHandlingMediaEndedEvent);
         }
     }
 
@@ -110,7 +110,7 @@ public sealed class PlaybackMediaEventAdapter
             }
             catch (Exception innerEx)
             {
-                logger.Error(innerEx, "Failure recovery after media failed handler error");
+                logger.Error(innerEx, AppConstants.Logging.PlaybackDiagnosticsLog.FailureRecoveryAfterMediaFailedHandlerError);
             }
         }
     }

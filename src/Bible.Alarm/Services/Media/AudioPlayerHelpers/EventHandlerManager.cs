@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Services.Media.Audio;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Maui;
@@ -119,7 +120,7 @@ public class EventHandlerManager
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error in OnMediaEnded handler (MediaElement may have been disposed)");
+            logger.Warning(ex, AppConstants.Logging.MediaElementHandlerDiagnosticsLog.OnMediaEndedMayBeDisposed);
         }
     }
 
@@ -147,7 +148,7 @@ public class EventHandlerManager
             }
             catch (Exception innerEx)
             {
-                logger.Error(innerEx, "Failure callback also threw - app may show inconsistent state");
+                logger.Error(innerEx, AppConstants.Logging.MediaElementHandlerDiagnosticsLog.OnMediaFailedFailureCallbackThrew);
             }
         }
     }
@@ -170,7 +171,7 @@ public class EventHandlerManager
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error in OnStateChanged handler (MediaElement may have been disposed)");
+            logger.Warning(ex, AppConstants.Logging.MediaElementHandlerDiagnosticsLog.OnStateChangedMayBeDisposed);
         }
     }
 
@@ -187,7 +188,7 @@ public class EventHandlerManager
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error in OnPositionChanged handler (MediaElement may have been disposed)");
+            logger.Warning(ex, AppConstants.Logging.MediaElementHandlerDiagnosticsLog.OnPositionChangedMayBeDisposed);
         }
     }
 
@@ -212,7 +213,7 @@ public class EventHandlerManager
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error in OnSeekCompleted handler (MediaElement may have been disposed)");
+            logger.Warning(ex, AppConstants.Logging.MediaElementHandlerDiagnosticsLog.OnSeekCompletedMayBeDisposed);
         }
     }
 }

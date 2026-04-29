@@ -581,6 +581,72 @@ public static class AppConstants
             public const string ErrorDeletingSchedule =
                 "Error deleting schedule {ScheduleId}";
         }
+
+        /// <summary>Playback pipeline and modal adapter error paths.</summary>
+        public static class PlaybackDiagnosticsLog
+        {
+            public const string ErrorInHandleMediaFailedAsync = "Error in HandleMediaFailedAsync";
+
+            public const string FailureRecoveryInHandleMediaFailedCatch =
+                "Failure recovery in HandleMediaFailedAsync catch";
+
+            public const string ErrorMarkingTrackAsFinished = "Error marking track as finished";
+
+            public const string ErrorHandlingMediaEndedEvent = "Error handling media ended event";
+
+            public const string ErrorHandlingMediaFailedEvent = "Error handling media failed event";
+
+            public const string FailureRecoveryAfterMediaFailedHandlerError =
+                "Failure recovery after media failed handler error";
+        }
+
+        /// <summary><c>MediaElement</c> event handler diagnostics (<c>EventHandlerManager</c>).</summary>
+        public static class MediaElementHandlerDiagnosticsLog
+        {
+            public const string OnMediaOpenedMayBeDisposed =
+                "Error in OnMediaOpened handler (MediaElement may have been disposed)";
+
+            public const string OnMediaEndedMayBeDisposed =
+                "Error in OnMediaEnded handler (MediaElement may have been disposed)";
+
+            public const string OnMediaFailedInvokingFailureCallback =
+                "Error in OnMediaFailed handler - invoking failure callback to ensure graceful recovery";
+
+            public const string OnMediaFailedFailureCallbackThrew =
+                "Failure callback also threw - app may show inconsistent state";
+
+            public const string OnStateChangedMayBeDisposed =
+                "Error in OnStateChanged handler (MediaElement may have been disposed)";
+
+            public const string OnPositionChangedMayBeDisposed =
+                "Error in OnPositionChanged handler (MediaElement may have been disposed)";
+
+            public const string OnSeekCompletedMayBeDisposed =
+                "Error in OnSeekCompleted handler (MediaElement may have been disposed)";
+        }
+
+        /// <summary>Schedule list item VM initialization.</summary>
+        public static class ScheduleListItemDiagnosticsLog
+        {
+            public const string InitializeFromScheduleInvalidScheduleOrId =
+                "InitializeFromSchedule: Invalid schedule or schedule ID {ScheduleId}";
+
+            public const string SetScheduleIdInvalidScheduleId =
+                "SetScheduleId: Invalid schedule ID {ScheduleId}";
+        }
+
+        /// <summary>Category selection / browsing.</summary>
+        public static class CategorySelectionDiagnosticsLog
+        {
+            public const string ErrorLoadingCategories = "Error loading categories";
+        }
+
+        /// <summary>Android notification service secondary errors.</summary>
+        public static class AndroidNotificationServiceDiagnosticsLog
+        {
+            public const string FailedToShowToastExactAlarmPermissionError =
+                "Failed to show toast message for exact alarm permission error";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>

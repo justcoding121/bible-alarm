@@ -24,7 +24,7 @@ public sealed class ScheduleListItemInitializer(
     {
         if (schedule == null || schedule.Id <= 0)
         {
-            logger.Warning("InitializeFromSchedule: Invalid schedule or schedule ID {ScheduleId}", schedule?.Id ?? 0);
+            logger.Warning(AppConstants.Logging.ScheduleListItemDiagnosticsLog.InitializeFromScheduleInvalidScheduleOrId, schedule?.Id ?? 0);
             return (null!, null);
         }
 
@@ -41,7 +41,7 @@ public sealed class ScheduleListItemInitializer(
     {
         if (scheduleId <= 0)
         {
-            logger.Warning("SetScheduleId: Invalid schedule ID {ScheduleId}", scheduleId);
+            logger.Warning(AppConstants.Logging.ScheduleListItemDiagnosticsLog.SetScheduleIdInvalidScheduleId, scheduleId);
             return (null!, null);
         }
 
