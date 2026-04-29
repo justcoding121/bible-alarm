@@ -795,6 +795,84 @@ public static class AppConstants
                 "Failed to migrate version to Preferences (non-critical)";
         }
 
+        /// <summary>Single-track play, resume seek, and seek retry (<c>TrackPlaybackHandler</c>).</summary>
+        public static class TrackPlaybackHandlerDiagnosticsLog
+        {
+            public const string CannotPlayTrackUriEmpty =
+                "Cannot play track at index {TrackIndex}: URI is null or empty. URL: {TrackUrl}";
+
+            public const string PlaybackStoppedDuringPrepareAborting =
+                "Playback was stopped during PrepareAsync/WaitForMediaReadyAsync - aborting PlayCurrentTrackAsync";
+
+            public const string PlaybackStoppedDuringWaitAborting =
+                "Playback was stopped during WaitForMediaReadyAsync - aborting PlayCurrentTrackAsync";
+
+            public const string ResumeSeekFromInMemoryFinishedDuration =
+                "[Resume] Seek from in-memory FinishedDuration={Duration}, ScheduleId={ScheduleId}";
+
+            public const string ResumeFallbackDbFinishedDuration =
+                "[Resume] Fallback: in-memory FinishedDuration was zero but DB has {Duration} for ScheduleId={ScheduleId}. Using DB value.";
+
+            public const string ResumeNoSeekBothZero =
+                "[Resume] No seek: in-memory FinishedDuration=Zero, DB FinishedDuration=Zero, ScheduleId={ScheduleId}";
+
+            public const string ResumeSeekExceedsDurationStartingBeginning =
+                "[Resume] Seek position {SeekPosition} exceeds track duration {Duration} - starting from beginning. FinishedDuration may not have been reset after a publication/track change.";
+
+            public const string PlaybackStoppedBeforePlayAborting =
+                "Playback was stopped before PlayAsync - aborting PlayCurrentTrackAsync";
+
+            public const string ResumePostPlaySeekExceedsDurationSkippingSeek =
+                "[Resume] Post-play validation: seek position {SeekPosition} exceeds track duration {Duration} - skipping seek";
+
+            public const string SeekTotalBudgetExceeded =
+                "[Seek] Total time budget of {Budget}s exceeded after {Attempts} attempts — giving up, will play from current position";
+
+            public const string SeekFailedPlayerNotReadySeekableRanges =
+                "Seek failed because player isn't ready yet (seekable ranges not available)";
+
+            public const string UnexpectedErrorDuringSeekResumeWillStartBeginning =
+                "Unexpected error during seek to resume position, will start from beginning";
+
+            public const string SeekAttemptWasNoOpWillRetry =
+                "[Seek] Attempt {Attempt} was NO-OP - Target: {Target}, Current: {Current}, will retry";
+
+            public const string SeekAllAttemptsNoOpStartingBeginning =
+                "[Seek] All {MaxRetries} attempts were no-ops, will start from beginning";
+
+            public const string SeekAttemptFailedInvalidOperation =
+                "[Seek] Attempt {Attempt} FAILED (InvalidOperationException): {Message}";
+
+            public const string SeekAllAttemptsFailedStartingBeginning =
+                "[Seek] All {MaxRetries} attempts FAILED, will start from beginning";
+
+            public const string SeekAttemptFailedUnexpectedError =
+                "[Seek] Attempt {Attempt} FAILED with unexpected error: {Message}";
+        }
+
+        /// <summary>On-demand URI prep and next-track pre-download (<c>TrackOnDemandPreparer</c>).</summary>
+        public static class TrackOnDemandPreparerDiagnosticsLog
+        {
+            public const string FailedToResolveTrackUriOnDemand =
+                "Failed to resolve track URI on-demand: {Url}";
+
+            public const string PreDownloadingNextTrackBackground =
+                "Pre-downloading next track in background: LookUpPath={LookUpPath}, URL={Url}";
+
+            public const string PreDownloadCompleteUriResolved =
+                "Pre-download complete, URI resolved for next track: {Uri}";
+
+            public const string PreDownloadNextTrackFailedNonCritical =
+                "Pre-download of next track failed (non-critical)";
+        }
+
+        /// <summary>Schedule listing title/subtitle helpers (<c>ScheduleDisplayMetadataHelper</c>).</summary>
+        public static class ScheduleDisplayMetadataDiagnosticsLog
+        {
+            public const string FailedToResolveCategoryDisplayName =
+                "Failed to resolve category display name for code {CategoryCode}";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {

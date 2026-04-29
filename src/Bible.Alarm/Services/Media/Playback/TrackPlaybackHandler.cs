@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -44,7 +45,7 @@ public sealed class TrackPlaybackHandler
 
         if (string.IsNullOrEmpty(track.Uri))
         {
-            logger.Error("Cannot play track at index {TrackIndex}: URI is null or empty. URL: {TrackUrl}",
+            logger.Error(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.CannotPlayTrackUriEmpty,
                 currentTrackIndex,
                 track.PlayItem?.Url ?? MediaTrackTitleHelper.UnknownTitle);
             return false;
@@ -82,7 +83,7 @@ public sealed class TrackPlaybackHandler
             var playlist = getPlaylist();
             if (!isPreparingOrPlaying() || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
             {
-                logger.Information("Playback was stopped during PrepareAsync/WaitForMediaReadyAsync - aborting PlayCurrentTrackAsync");
+                logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.PlaybackStoppedDuringPrepareAborting);
                 return false;
             }
         }
@@ -100,7 +101,7 @@ public sealed class TrackPlaybackHandler
         var playlistAfterWait = getPlaylist();
         if (playlistAfterWait == null || currentTrackIndex < 0 || currentTrackIndex >= playlistAfterWait.Count)
         {
-            logger.Information("Playback was stopped during WaitForMediaReadyAsync - aborting PlayCurrentTrackAsync");
+            logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.PlaybackStoppedDuringWaitAborting);
             return false;
         }
 
@@ -140,7 +141,7 @@ public sealed class TrackPlaybackHandler
             if (shouldResume && track.PlayItem?.Metadata != null)
             {
                 seekPosition = inMemoryFinishedDuration;
-                logger.Information("[Resume] Seek from in-memory FinishedDuration={Duration}, ScheduleId={ScheduleId}",
+                logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekFromInMemoryFinishedDuration,
                     seekPosition.Value, currentScheduleId);
             }
         }
@@ -160,13 +161,13 @@ public sealed class TrackPlaybackHandler
                 if (shouldResume)
                 {
                     seekPosition = dbFinishedDuration;
-                    logger.Warning("[Resume] Fallback: in-memory FinishedDuration was zero but DB has {Duration} for ScheduleId={ScheduleId}. Using DB value.",
+                    logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeFallbackDbFinishedDuration,
                         dbFinishedDuration, currentScheduleId);
                 }
             }
             else
             {
-                logger.Debug("[Resume] No seek: in-memory FinishedDuration=Zero, DB FinishedDuration=Zero, ScheduleId={ScheduleId}",
+                logger.Debug(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeNoSeekBothZero,
                     currentScheduleId);
             }
         }
@@ -190,7 +191,7 @@ public sealed class TrackPlaybackHandler
             prePlayDuration = audioPlayer.Duration;
             if (prePlayDuration > TimeSpan.Zero && seekPosition.Value >= prePlayDuration)
             {
-                logger.Warning("[Resume] Seek position {SeekPosition} exceeds track duration {Duration} - starting from beginning. FinishedDuration may not have been reset after a publication/track change.",
+                logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekExceedsDurationStartingBeginning,
                     seekPosition.Value, prePlayDuration);
                 seekPosition = null;
             }
@@ -211,7 +212,7 @@ public sealed class TrackPlaybackHandler
         var playlistBeforePlay = getPlaylist();
         if (playlistBeforePlay == null || currentTrackIndex < 0 || currentTrackIndex >= playlistBeforePlay.Count)
         {
-            logger.Information("Playback was stopped before PlayAsync - aborting PlayCurrentTrackAsync");
+            logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.PlaybackStoppedBeforePlayAborting);
             return false;
         }
 
@@ -251,7 +252,7 @@ public sealed class TrackPlaybackHandler
                 var postPlayDuration = audioPlayer.Duration;
                 if (postPlayDuration > TimeSpan.Zero && seekPosition.Value >= postPlayDuration)
                 {
-                    logger.Warning("[Resume] Post-play validation: seek position {SeekPosition} exceeds track duration {Duration} - skipping seek",
+                    logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumePostPlaySeekExceedsDurationSkippingSeek,
                         seekPosition.Value, postPlayDuration);
                     seekPosition = null;
                 }
@@ -301,7 +302,7 @@ public sealed class TrackPlaybackHandler
 
             if (DateTime.UtcNow - seekBudgetStart > totalSeekBudget)
             {
-                logger.Warning("[Seek] Total time budget of {Budget}s exceeded after {Attempts} attempts — giving up, will play from current position",
+                logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekTotalBudgetExceeded,
                     totalSeekBudget.TotalSeconds, attempt - 1);
                 return;
             }
@@ -320,12 +321,12 @@ public sealed class TrackPlaybackHandler
         }
         catch (InvalidOperationException ex)
         {
-            logger.Debug(ex, "Seek failed because player isn't ready yet (seekable ranges not available)");
+            logger.Debug(ex, AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekFailedPlayerNotReadySeekableRanges);
         }
         catch (Exception ex)
         {
             // Catch any other exceptions during seek
-            logger.Warning(ex, "Unexpected error during seek to resume position, will start from beginning");
+            logger.Warning(ex, AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.UnexpectedErrorDuringSeekResumeWillStartBeginning);
         }
 #endif
     }
@@ -357,7 +358,7 @@ public sealed class TrackPlaybackHandler
                 return SeekAttemptOutcome.Success;
             }
 
-            logger.Warning("[Seek] Attempt {Attempt} was NO-OP - Target: {Target}, Current: {Current}, will retry",
+            logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekAttemptWasNoOpWillRetry,
                 attempt, position, currentPos);
 
             if (attempt < maxRetries)
@@ -366,14 +367,14 @@ public sealed class TrackPlaybackHandler
             }
             else
             {
-                logger.Error("[Seek] All {MaxRetries} attempts were no-ops, will start from beginning", maxRetries);
+                logger.Error(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekAllAttemptsNoOpStartingBeginning, maxRetries);
             }
 
             return SeekAttemptOutcome.Retry;
         }
         catch (InvalidOperationException ex)
         {
-            logger.Warning(ex, "[Seek] Attempt {Attempt} FAILED (InvalidOperationException): {Message}",
+            logger.Warning(ex, AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekAttemptFailedInvalidOperation,
                 attempt, ex.Message);
             if (attempt < maxRetries)
             {
@@ -381,14 +382,14 @@ public sealed class TrackPlaybackHandler
             }
             else
             {
-                logger.Error("[Seek] All {MaxRetries} attempts FAILED, will start from beginning", maxRetries);
+                logger.Error(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekAllAttemptsFailedStartingBeginning, maxRetries);
             }
 
             return SeekAttemptOutcome.Retry;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[Seek] Attempt {Attempt} FAILED with unexpected error: {Message}", attempt, ex.Message);
+            logger.Error(ex, AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekAttemptFailedUnexpectedError, attempt, ex.Message);
             return SeekAttemptOutcome.FatalError;
         }
     }

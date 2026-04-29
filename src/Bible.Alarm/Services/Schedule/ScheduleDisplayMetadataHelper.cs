@@ -166,7 +166,7 @@ public static class ScheduleDisplayMetadataHelper
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to resolve category display name for code {CategoryCode}", categoryCode);
+            logger.Warning(ex, AppConstants.Logging.ScheduleDisplayMetadataDiagnosticsLog.FailedToResolveCategoryDisplayName, categoryCode);
             return categoryCode;
         }
     }

@@ -3,6 +3,7 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.Messaging;
@@ -60,7 +61,7 @@ public sealed class TrackOnDemandPreparer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to resolve track URI on-demand: {Url}", track.PlayItem?.Url ?? MediaTrackTitleHelper.UnknownTitle);
+            logger.Error(ex, AppConstants.Logging.TrackOnDemandPreparerDiagnosticsLog.FailedToResolveTrackUriOnDemand, track.PlayItem?.Url ?? MediaTrackTitleHelper.UnknownTitle);
             return false;
         }
     }
@@ -96,7 +97,7 @@ public sealed class TrackOnDemandPreparer
 
         try
         {
-            logger.Debug("Pre-downloading next track in background: LookUpPath={LookUpPath}, URL={Url}",
+            logger.Debug(AppConstants.Logging.TrackOnDemandPreparerDiagnosticsLog.PreDownloadingNextTrackBackground,
                 playItem.Metadata.LookUpPath, playItem.Url);
 
             var cached = await mediaCacheService.CacheTrackAsync(playItem, scheduleId, cancellationToken);
@@ -108,7 +109,7 @@ public sealed class TrackOnDemandPreparer
                 if (prepared != null && !string.IsNullOrEmpty(prepared.Uri))
                 {
                     nextTrack.Uri = prepared.Uri;
-                    logger.Debug("Pre-download complete, URI resolved for next track: {Uri}", prepared.Uri);
+                    logger.Debug(AppConstants.Logging.TrackOnDemandPreparerDiagnosticsLog.PreDownloadCompleteUriResolved, prepared.Uri);
                 }
             }
         }
@@ -119,7 +120,7 @@ public sealed class TrackOnDemandPreparer
         catch (Exception ex)
         {
             // Non-critical: streaming fallback will handle playback.
-            logger.Debug(ex, "Pre-download of next track failed (non-critical)");
+            logger.Debug(ex, AppConstants.Logging.TrackOnDemandPreparerDiagnosticsLog.PreDownloadNextTrackFailedNonCritical);
         }
     }
 
