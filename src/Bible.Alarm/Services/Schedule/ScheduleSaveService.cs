@@ -304,7 +304,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
     /// For no-language music (e.g. iam), we store the schedule's current language (e.g. MY) in Music.LanguageCode,
     /// same as Bible container stores BiblePublicationSchedule.LanguageCode, so the schedule page shows the correct language when viewed again.
     /// </summary>
-    private Task NormalizeLanguageCodeForNoLanguagePublicationsAsync()
+    private static Task NormalizeLanguageCodeForNoLanguagePublicationsAsync()
     {
         return Task.CompletedTask;
     }

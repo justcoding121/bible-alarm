@@ -22,7 +22,7 @@ public sealed class PlaybackIndefiniteResolver
         this.logger = logger;
     }
 
-    public bool HasMusicInjection(PlayItem? sessionMusicPlayItem, TrackMetadata? anchorBibleMetadata, TrackMetadata? preAnchorBibleMetadata) =>
+    private static bool HasMusicInjection(PlayItem? sessionMusicPlayItem, TrackMetadata? anchorBibleMetadata, TrackMetadata? preAnchorBibleMetadata) =>
         sessionMusicPlayItem != null && anchorBibleMetadata != null && preAnchorBibleMetadata != null;
 
     public static bool IsSameBibleTrack(TrackMetadata a, TrackMetadata b) =>

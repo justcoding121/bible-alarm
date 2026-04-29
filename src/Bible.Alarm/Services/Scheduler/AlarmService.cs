@@ -33,7 +33,7 @@ public sealed class AlarmService(
         }
     }
 
-    private bool ShouldScheduleNotification(AlarmSchedule schedule)
+    private static bool ShouldScheduleNotification(AlarmSchedule schedule)
     {
 #if ANDROID
         // Android: If NotificationEnabled is true but permission is not granted, treat as NotificationEnabled = false
