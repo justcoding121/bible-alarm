@@ -28,7 +28,7 @@ public sealed class BatteryOptimizationService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error marking battery optimization modal as shown");
+            logger.Error(ex, AppConstants.Logging.BatteryOptimizationDiagnosticsLog.ErrorMarkingBatteryOptimizationModalAsShown);
         }
     }
 
@@ -42,7 +42,7 @@ public sealed class BatteryOptimizationService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking if battery optimization modal should be shown");
+            logger.Error(ex, AppConstants.Logging.BatteryOptimizationDiagnosticsLog.ErrorCheckingIfBatteryOptimizationModalShouldBeShown);
             return false;
         }
     }

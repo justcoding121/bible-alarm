@@ -534,6 +534,43 @@ public static class AppConstants
         public static class NotificationPermissionDiagnosticsLog
         {
             public const string FailedToOpenAndroidAppSettings = "Failed to open Android app settings";
+
+            public const string ErrorInOnModalDismissedCallback =
+                "Error in onModalDismissed callback";
+
+            public const string ErrorInDismissCommand =
+                "Error in DismissCommand";
+
+            public const string ErrorCheckingNotificationPermissionStatus =
+                "Error checking notification permission status";
+
+            public const string ErrorRefreshingCanShowSystemPromptIos =
+                "Error refreshing CanShowSystemPrompt (iOS)";
+
+            public const string ErrorInAsyncPermissionCheckFromTimer =
+                "Error in async permission check from timer";
+
+            public const string ErrorInScheduledAutoDismiss =
+                "Error in scheduled auto-dismiss";
+
+            public const string ErrorUpdatingHomePageButtonVisibilityAfterModalClose =
+                "Error updating home page button visibility after modal close";
+
+            public const string ErrorRequestingNotificationPermission =
+                "Error requesting notification permission";
+
+            public const string ErrorInPermissionCheckTask =
+                "Error in permission check task";
+        }
+
+        /// <summary>Battery optimization modal persistence checks.</summary>
+        public static class BatteryOptimizationDiagnosticsLog
+        {
+            public const string ErrorMarkingBatteryOptimizationModalAsShown =
+                "Error marking battery optimization modal as shown";
+
+            public const string ErrorCheckingIfBatteryOptimizationModalShouldBeShown =
+                "Error checking if battery optimization modal should be shown";
         }
 
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>

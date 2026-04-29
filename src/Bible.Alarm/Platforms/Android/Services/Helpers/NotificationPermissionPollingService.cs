@@ -69,7 +69,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error requesting notification permission");
+                logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorRequestingNotificationPermission);
             }
             finally
             {
@@ -162,7 +162,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in permission check task");
+                logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInPermissionCheckTask);
             }
             finally
             {

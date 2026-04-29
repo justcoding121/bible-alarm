@@ -148,13 +148,13 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                     }
                     catch (Exception ex)
                     {
-                        logger.Error(ex, "Error in onModalDismissed callback");
+                        logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInOnModalDismissedCallback);
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in DismissCommand");
+                logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInDismissCommand);
                 isDismissing = false;
             }
         });
@@ -191,7 +191,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking notification permission status");
+            logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorCheckingNotificationPermissionStatus);
         }
     }
 
@@ -244,7 +244,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error refreshing CanShowSystemPrompt (iOS)");
+            logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorRefreshingCanShowSystemPromptIos);
         }
     }
 #endif
@@ -283,7 +283,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                 }
                 catch (Exception asyncEx)
                 {
-                    logger.Error(asyncEx, "Error in async permission check from timer");
+                    logger.Error(asyncEx, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInAsyncPermissionCheckFromTimer);
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         CheckPermissionStatus();
@@ -335,7 +335,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in scheduled auto-dismiss");
+                logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInScheduledAutoDismiss);
             }
         });
     }
@@ -416,7 +416,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error updating home page button visibility after modal close");
+            logger.Warning(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorUpdatingHomePageButtonVisibilityAfterModalClose);
         }
     }
 
