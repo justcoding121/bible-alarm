@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -22,7 +23,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         ObservableCollection<BiblePublicationTrackListViewItemModel> tracks,
         Action<BiblePublicationTrackListViewItemModel?> setSelectedTrack)
     {
-        Log.Debug("TrackSelectionDataProvider.PopulateTracks: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+        Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLanguagePublicationSection,
             languageCode, publicationCode, sectionCode);
 
         IEnumerable<BiblePublicationTrack> tracksFromDb;
@@ -31,24 +32,24 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         // Load tracks directly from the publication
         if (string.IsNullOrWhiteSpace(sectionCode) && biblePublicationService != null)
         {
-            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading non-sectioned tracks for publication={PublicationCode}", publicationCode);
+            Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadingNonSectionedForPublication, publicationCode);
             var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
             tracksFromDb = publication?.Tracks?.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))) ?? Enumerable.Empty<BiblePublicationTrack>();
-            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} non-sectioned tracks", tracksFromDb.Count());
+            Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadedNonSectionedTrackCount, tracksFromDb.Count());
         }
         else
         {
             // Sectioned publication - use standard approach
-            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading sectioned tracks for section={SectionCode}", sectionCode);
+            Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadingSectionedForSection, sectionCode);
             var sectionedTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
             tracksFromDb = sectionedTracks.Values;
-            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} sectioned tracks", sectionedTracks.Count);
+            Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadedSectionedTrackCount, sectionedTracks.Count);
         }
 
         var trackViewModelList = new List<BiblePublicationTrackListViewItemModel>();
         BiblePublicationTrackListViewItemModel? selectedTrack = null;
 
-        Log.Debug("TrackSelectionDataProvider.PopulateTracks: current TrackCode={CurrentTrackCode}",
+        Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksCurrentTrackCode,
             current?.TrackCode ?? "(null)");
 
         foreach (var track in tracksFromDb)
@@ -63,13 +64,13 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
                 {
                     selectedTrack = trackVm;
                     selectedTrack.IsSelected = true;
-                    Log.Debug("TrackSelectionDataProvider.PopulateTracks: Matched track {TrackCode} ({TrackTitle}) as selected",
+                    Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksMatchedTrackAsSelected,
                         trackCodeFromTrack, track.Title);
                 }
             }
         }
 
-        Log.Debug("TrackSelectionDataProvider.PopulateTracks: Created {VmCount} track VMs, selectedTrack={HasSelected} (trackCode={SelectedTrackCode})",
+        Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksCreatedVmSummary,
             trackViewModelList.Count, selectedTrack != null, selectedTrack?.TrackCode ?? "(none)");
 
         // Minimal UI thread work - just swap the collection contents
@@ -94,7 +95,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         BiblePublicationTrackListViewItemModel? currentSelectedTrack,
         Action<BiblePublicationTrackListViewItemModel?> setSelectedTrack)
     {
-        Log.Debug("TrackSelectionDataProvider.SetSelectedTrack: current TrackCode={CurrentTrackCode}, tracksCount={TracksCount}",
+        Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackCurrentTrackAndTracksCount,
             current?.TrackCode ?? "(none)", tracks?.Count ?? 0);
 
         if (current == null || tracks == null || tracks.Count == 0)
@@ -111,14 +112,14 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
             c.TrackCode == current.TrackCode);
         if (track != null)
         {
-            Log.Debug("TrackSelectionDataProvider.SetSelectedTrack: Setting selected track {TrackCode} ({TrackTitle})",
+            Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackSettingSelected,
                 track.TrackCode, track.Title);
             setSelectedTrack(track);
             track.IsSelected = true;
         }
         else
         {
-            Log.Warning("TrackSelectionDataProvider.SetSelectedTrack: Could not find track {TrackCode} in tracks collection",
+            Log.Warning(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackCouldNotFindInCollection,
                 current.TrackCode);
         }
     }

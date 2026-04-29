@@ -1368,6 +1368,43 @@ public static class AppConstants
                 "CreateBiblePublicationItemFromSelection: Category is null in current schedule. This is a bug - category must always be selected. Publication={PublicationCode}, ScheduleId={ScheduleId}";
         }
 
+        /// <summary>Track list population (<c>TrackSelectionDataProvider</c>).</summary>
+        public static class TrackSelectionDataProviderDiagnosticsLog
+        {
+            public const string PopulateTracksLanguagePublicationSection =
+                "TrackSelectionDataProvider.PopulateTracks: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}";
+
+            public const string PopulateTracksLoadingNonSectionedForPublication =
+                "TrackSelectionDataProvider.PopulateTracks: Loading non-sectioned tracks for publication={PublicationCode}";
+
+            public const string PopulateTracksLoadedNonSectionedTrackCount =
+                "TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} non-sectioned tracks";
+
+            public const string PopulateTracksLoadingSectionedForSection =
+                "TrackSelectionDataProvider.PopulateTracks: Loading sectioned tracks for section={SectionCode}";
+
+            public const string PopulateTracksLoadedSectionedTrackCount =
+                "TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} sectioned tracks";
+
+            public const string PopulateTracksCurrentTrackCode =
+                "TrackSelectionDataProvider.PopulateTracks: current TrackCode={CurrentTrackCode}";
+
+            public const string PopulateTracksMatchedTrackAsSelected =
+                "TrackSelectionDataProvider.PopulateTracks: Matched track {TrackCode} ({TrackTitle}) as selected";
+
+            public const string PopulateTracksCreatedVmSummary =
+                "TrackSelectionDataProvider.PopulateTracks: Created {VmCount} track VMs, selectedTrack={HasSelected} (trackCode={SelectedTrackCode})";
+
+            public const string SetSelectedTrackCurrentTrackAndTracksCount =
+                "TrackSelectionDataProvider.SetSelectedTrack: current TrackCode={CurrentTrackCode}, tracksCount={TracksCount}";
+
+            public const string SetSelectedTrackSettingSelected =
+                "TrackSelectionDataProvider.SetSelectedTrack: Setting selected track {TrackCode} ({TrackTitle})";
+
+            public const string SetSelectedTrackCouldNotFindInCollection =
+                "TrackSelectionDataProvider.SetSelectedTrack: Could not find track {TrackCode} in tracks collection";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {
