@@ -181,8 +181,8 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                 }
 
                 // Clean up WAL and SHM files if they exist (these are usually easier to delete)
-                var walPath = dbPath + "-wal";
-                var shmPath = dbPath + "-shm";
+                var walPath = dbPath + AppConstants.Database.SqliteWalFileSuffix;
+                var shmPath = dbPath + AppConstants.Database.SqliteShmFileSuffix;
                 TryDeleteAuxiliaryDbFile(walPath);
                 TryDeleteAuxiliaryDbFile(shmPath);
 
@@ -332,8 +332,8 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         try
         {
             System.IO.File.Delete(dbPath);
-            var oldWalPath = dbPath + "-wal";
-            var oldShmPath = dbPath + "-shm";
+            var oldWalPath = dbPath + AppConstants.Database.SqliteWalFileSuffix;
+            var oldShmPath = dbPath + AppConstants.Database.SqliteShmFileSuffix;
             TryDeleteAuxiliaryDbFile(oldWalPath);
             TryDeleteAuxiliaryDbFile(oldShmPath);
             Log.Logger.Information("[BOOTSTRAP] Deleted {Description}: {DbPath}", description, dbPath);

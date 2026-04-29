@@ -378,8 +378,8 @@ class Program
         }
 
         // Also clean up any WAL/SHM files
-        var walPath = outputPath + "-wal";
-        var shmPath = outputPath + "-shm";
+        var walPath = outputPath + AppConstants.Database.SqliteWalFileSuffix;
+        var shmPath = outputPath + AppConstants.Database.SqliteShmFileSuffix;
         TryDeleteFileBestEffort(walPath);
         TryDeleteFileBestEffort(shmPath);
 

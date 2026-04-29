@@ -123,6 +123,23 @@ public static class AppConstants
         /// <summary>Suffix inserted before the extension when renaming the prior media index DB during upgrade (<c>_old</c> → <c>mediaIndex_old.db</c>).</summary>
         public const string MediaIndexDatabaseRenamedSuffix = "_old";
 
+        /// <summary>SQLite WAL sidecar filename suffix.</summary>
+        public const string SqliteWalFileSuffix = "-wal";
+
+        /// <summary>SQLite SHM sidecar filename suffix.</summary>
+        public const string SqliteShmFileSuffix = "-shm";
+
+        /// <summary>SQLite rollback journal sidecar filename suffix.</summary>
+        public const string SqliteJournalFileSuffix = "-journal";
+
+        /// <summary>Typical auxiliary files beside the main SQLite DB (WAL, SHM, classic journal).</summary>
+        public static readonly string[] SqliteAuxiliaryFileSuffixes =
+        [
+            SqliteWalFileSuffix,
+            SqliteShmFileSuffix,
+            SqliteJournalFileSuffix,
+        ];
+
         /// <summary>
         /// SQLite connection string format for schedule database
         /// </summary>

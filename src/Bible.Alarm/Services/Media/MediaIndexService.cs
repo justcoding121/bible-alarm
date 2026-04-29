@@ -221,9 +221,10 @@ public sealed class MediaIndexService(
         try
         {
             DeleteFileIfExists(oldDbPath);
-            DeleteFileIfExists(oldDbPath + "-wal");
-            DeleteFileIfExists(oldDbPath + "-shm");
-            DeleteFileIfExists(oldDbPath + "-journal");
+            foreach (var suffix in AppConstants.Database.SqliteAuxiliaryFileSuffixes)
+            {
+                DeleteFileIfExists(oldDbPath + suffix);
+            }
         }
         catch (Exception ex)
         {
@@ -241,8 +242,7 @@ public sealed class MediaIndexService(
 
     private static void RenameAuxiliaryFiles(string sourcePath, string destPath)
     {
-        string[] suffixes = ["-wal", "-shm", "-journal"];
-        foreach (var suffix in suffixes)
+        foreach (var suffix in AppConstants.Database.SqliteAuxiliaryFileSuffixes)
         {
             var sourceAux = sourcePath + suffix;
             if (File.Exists(sourceAux))
