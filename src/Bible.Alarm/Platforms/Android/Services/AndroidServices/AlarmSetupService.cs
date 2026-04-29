@@ -71,7 +71,7 @@ public class AlarmSetupService : Service, IDisposable
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "AlarmSetupService.OnCreate: failed to create MediaSession");
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.AlarmSetupServiceOnCreateFailed);
         }
 
         base.OnCreate();
@@ -90,7 +90,7 @@ public class AlarmSetupService : Service, IDisposable
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "AlarmSetupService.OnStartCommand: failed to create MediaSession");
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.AlarmSetupServiceOnStartCommandFailed);
         }
 
         // Ensure MauiApp is created exactly once (thread-safe)

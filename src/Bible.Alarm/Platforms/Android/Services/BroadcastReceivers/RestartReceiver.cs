@@ -73,7 +73,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "RestartReceiver.OnReceive: failed to create MediaSession");
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.RestartReceiverOnReceiveFailed);
         }
 
         this.context = context;

@@ -647,6 +647,47 @@ public static class AppConstants
             public const string FailedToShowToastExactAlarmPermissionError =
                 "Failed to show toast message for exact alarm permission error";
         }
+
+        /// <summary>Android MediaSession creation failures (service, receivers, legacy browser).</summary>
+        public static class AndroidMediaSessionCreationDiagnosticsLog
+        {
+            public const string AlarmSetupServiceOnCreateFailed =
+                "AlarmSetupService.OnCreate: failed to create MediaSession";
+
+            public const string AlarmSetupServiceOnStartCommandFailed =
+                "AlarmSetupService.OnStartCommand: failed to create MediaSession";
+
+            public const string RestartReceiverOnReceiveFailed =
+                "RestartReceiver.OnReceive: failed to create MediaSession";
+
+            public const string AlarmRingerReceiverOnReceiveFailed =
+                "AlarmRingerReceiver.OnReceive: failed to create MediaSession";
+
+            public const string LegacyMediaBrowserServiceOnCreateFailed =
+                "LegacyMediaBrowserService.OnCreate: failed to create MediaSession";
+        }
+
+        /// <summary><c>MediaSessionCompat</c> sync (<c>MediaSessionEffect</c>).</summary>
+        public static class AndroidMediaSessionCompatUpdateDiagnosticsLog
+        {
+            public const string ErrorUpdatingPlaybackState =
+                "Error updating MediaSessionCompat playback state";
+
+            public const string ErrorUpdatingMetadata =
+                "Error updating MediaSessionCompat metadata";
+
+            public const string ErrorUpdatingDefaultScheduleMetadata =
+                "Error updating MediaSessionCompat with default schedule metadata";
+
+            public const string ErrorUpdatingDuration =
+                "Error updating MediaSessionCompat duration";
+
+            public const string ErrorUpdatingNavigationState =
+                "Error updating MediaSessionCompat navigation state";
+
+            public const string ErrorUpdatingPlaybackPosition =
+                "Error updating MediaSessionCompat playback position";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>

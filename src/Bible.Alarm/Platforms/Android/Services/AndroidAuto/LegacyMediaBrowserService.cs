@@ -14,6 +14,7 @@ using Bible.Alarm.Platforms.Android.Services.AndroidAuto.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
 using Fluxor;
@@ -60,7 +61,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "LegacyMediaBrowserService.OnCreate: failed to create MediaSession");
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.LegacyMediaBrowserServiceOnCreateFailed);
         }
 
         base.OnCreate();

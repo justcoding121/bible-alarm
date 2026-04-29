@@ -225,7 +225,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating MediaSessionCompat playback state");
+            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingPlaybackState);
         }
     }
 
@@ -381,7 +381,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating MediaSessionCompat with default schedule metadata");
+            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingDefaultScheduleMetadata);
         }
     }
 
@@ -532,7 +532,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating MediaSessionCompat navigation state");
+            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingNavigationState);
         }
 
         return Task.CompletedTask;
@@ -598,7 +598,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating MediaSessionCompat playback position");
+            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingPlaybackPosition);
         }
     }
 

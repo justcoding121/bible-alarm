@@ -101,7 +101,7 @@ public sealed class PlaybackMediaEventAdapter
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error handling media failed event");
+            logger.Error(ex, AppConstants.Logging.PlaybackDiagnosticsLog.ErrorHandlingMediaFailedEvent);
             try
             {
                 await callbacks.ShowPlaybackErrorInModalKeepSessionAsync(

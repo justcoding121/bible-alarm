@@ -61,7 +61,7 @@ public class AlarmRingerReceiver : BroadcastReceiver
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "AlarmRingerReceiver.OnReceive: failed to create MediaSession");
+            logger.Warning(ex, AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.AlarmRingerReceiverOnReceiveFailed);
         }
 
         var pendingIntent = GoAsync();
