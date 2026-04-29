@@ -92,19 +92,7 @@ internal class VideoCataloger : BaseCataloger
 
             // Save discovered languages for on-demand fetching (excluding English)
             // The alllangs=1 response already lists only available languages, so no verification needed
-            if (dataPersister != null)
-            {
-                var discoveredLanguages = languageEntries
-                    .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
-                    .ToDictionary(
-                        e => e.Code,
-                        e => new LanguageInfo(e.Name, e.Direction));
-                
-                if (discoveredLanguages.Count > 0)
-                {
-                    await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
-                }
-            }
+            await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
             // Verify English (E) is available (it will be seeded separately after discovery)
             var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
@@ -149,19 +137,7 @@ internal class VideoCataloger : BaseCataloger
                 continue;
             }
 
-            if (dataPersister != null)
-            {
-                var discoveredLanguages = languageEntries
-                    .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
-                    .ToDictionary(
-                        e => e.Code,
-                        e => new LanguageInfo(e.Name, e.Direction));
-
-                if (discoveredLanguages.Count > 0)
-                {
-                    await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
-                }
-            }
+            await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
             var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
             if (englishEntry == default)
@@ -172,6 +148,27 @@ internal class VideoCataloger : BaseCataloger
 
             languageCodeToInfo[englishEntry.Code] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
             AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
+        }
+    }
+
+    private async Task SaveDiscoveredNonEnglishPublicationLanguagesAsync(
+        string publicationCode,
+        List<(string Code, string Name, string Direction)> languageEntries)
+    {
+        if (dataPersister == null)
+        {
+            return;
+        }
+
+        var discoveredLanguages = languageEntries
+            .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(
+                e => e.Code,
+                e => new LanguageInfo(e.Name, e.Direction));
+
+        if (discoveredLanguages.Count > 0)
+        {
+            await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
         }
     }
 

@@ -67,19 +67,7 @@ internal class MusicCataloger : BaseCataloger
 
             // Save discovered languages for on-demand fetching (excluding English)
             // The alllangs=1 response already lists only available languages, so no verification needed
-            if (dataPersister != null)
-            {
-                var discoveredLanguages = languageEntries
-                    .Where(e => !e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
-                    .ToDictionary(
-                        e => e.LanguageCode,
-                        e => new LanguageInfo(e.Name, e.Direction));
-                
-                if (discoveredLanguages.Count > 0)
-                {
-                    await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
-                }
-            }
+            await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
             // Verify English (E) is available (it will be seeded separately after discovery)
             var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase));
@@ -143,19 +131,7 @@ internal class MusicCataloger : BaseCataloger
                 continue;
             }
 
-            if (dataPersister != null)
-            {
-                var discoveredLanguages = languageEntries
-                    .Where(e => !e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
-                    .ToDictionary(
-                        e => e.LanguageCode,
-                        e => new LanguageInfo(e.Name, e.Direction));
-
-                if (discoveredLanguages.Count > 0)
-                {
-                    await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
-                }
-            }
+            await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
             var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase));
             if (englishEntry == default)
@@ -163,6 +139,27 @@ internal class MusicCataloger : BaseCataloger
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
                 continue;
             }
+        }
+    }
+
+    private async Task SaveDiscoveredNonEnglishPublicationLanguagesAsync(
+        string publicationCode,
+        List<(string LanguageCode, string Name, string Direction)> languageEntries)
+    {
+        if (dataPersister == null)
+        {
+            return;
+        }
+
+        var discoveredLanguages = languageEntries
+            .Where(e => !e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(
+                e => e.LanguageCode,
+                e => new LanguageInfo(e.Name, e.Direction));
+
+        if (discoveredLanguages.Count > 0)
+        {
+            await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
         }
     }
 

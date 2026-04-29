@@ -668,11 +668,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
         if (!hasSeenTrackTransition)
         {
-            if (state.Status != PlayStatus.Playing && state.Status != PlayStatus.Paused)
-            {
-                hasSeenTrackTransition = true;
-            }
-
+            hasSeenTrackTransition = state.Status != PlayStatus.Playing && state.Status != PlayStatus.Paused;
             return;
         }
 
@@ -752,23 +748,11 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         var showPercentForThisMessage = message.ShowPercent;
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (showPercentForThisMessage)
+            if (showPercentForThisMessage != showPreparationPercent)
             {
-                if (!showPreparationPercent)
-                {
-                    showPreparationPercent = true;
-                    OnPropertyChanged(nameof(ShowPreparationPercent));
-                    OnPropertyChanged(nameof(ShowPreparingCard));
-                }
-            }
-            else
-            {
-                if (showPreparationPercent)
-                {
-                    showPreparationPercent = false;
-                    OnPropertyChanged(nameof(ShowPreparationPercent));
-                    OnPropertyChanged(nameof(ShowPreparingCard));
-                }
+                showPreparationPercent = showPercentForThisMessage;
+                OnPropertyChanged(nameof(ShowPreparationPercent));
+                OnPropertyChanged(nameof(ShowPreparingCard));
             }
 
             totalBytesDownloaded = message.TotalBytesDownloaded;

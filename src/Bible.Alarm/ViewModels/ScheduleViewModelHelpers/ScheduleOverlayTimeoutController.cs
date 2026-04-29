@@ -92,26 +92,23 @@ internal sealed class ScheduleOverlayTimeoutController : IDisposable
         }
         
         // Handle overlay visibility based on container readiness and content load state
-        if (currentOverlayVisibility && !isSaving)
+        if (currentOverlayVisibility && !isSaving && stateValue.ContainerReadiness.AllReady && isContentLoaded)
         {
-            if (stateValue.ContainerReadiness.AllReady && isContentLoaded)
+            // Both containers ready and content loaded - hide overlay
+            // Only dispatch if overlay is currently visible to prevent redundant state changes
+            CancelOverlayTimeout();
+            // Double-check current state to ensure it's still visible before dispatching
+            // This prevents race conditions where state might have changed between checks
+            var latestState = state.Value;
+            if (latestState.IsSchedulePageOverlayVisible)
             {
-                // Both containers ready and content loaded - hide overlay
-                // Only dispatch if overlay is currently visible to prevent redundant state changes
-                CancelOverlayTimeout();
-                // Double-check current state to ensure it's still visible before dispatching
-                // This prevents race conditions where state might have changed between checks
-                var latestState = state.Value;
-                if (latestState.IsSchedulePageOverlayVisible)
-                {
-                    dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-                }
+                dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             }
-            else if (isContentLoaded && !stateValue.ContainerReadiness.AllReady && overlayTimeoutCancellation == null)
-            {
-                // Content loaded but containers not ready - start timeout ONLY if not already running
-                StartOverlayTimeout();
-            }
+        }
+        else if (currentOverlayVisibility && !isSaving && isContentLoaded && !stateValue.ContainerReadiness.AllReady && overlayTimeoutCancellation == null)
+        {
+            // Content loaded but containers not ready - start timeout ONLY if not already running
+            StartOverlayTimeout();
         }
         else if (!currentOverlayVisibility && wasVisible)
         {
