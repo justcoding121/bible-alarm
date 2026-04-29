@@ -80,12 +80,12 @@ public class Program
         services.AddDbContext<MediaDbContext>(options =>
         {
             var indexDir = DirectoryHelper.IndexDirectory;
-            var dbDir = Path.Combine(new DirectoryInfo(indexDir).FullName, "db");
+            var dbDir = Path.Combine(new DirectoryInfo(indexDir).FullName, AppConstants.FilePaths.MediaIndexCatalogOutputDbDirectoryName);
             if (!Directory.Exists(dbDir))
             {
                 Directory.CreateDirectory(dbDir);
             }
-            var dbPath = Path.Combine(dbDir, "mediaIndex.db");
+            var dbPath = Path.Combine(dbDir, AppConstants.Database.MediaIndexDatabaseFileName);
 
             var connectionString = $"Data Source={dbPath};";
 
@@ -150,7 +150,7 @@ public class Program
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
             var downloadUtility = serviceProvider.GetRequiredService<DownloadUtility>();
             var dbSeederLogger = serviceProvider.GetRequiredService<ILogger>();
-            var failedListPath = Path.Combine(DirectoryHelper.IndexDirectory, "last_run_failed.txt");
+            var failedListPath = Path.Combine(DirectoryHelper.IndexDirectory, AppConstants.FilePaths.CatalogerLastRunFailedListFileName);
             IDataPersister dataPersister = new DbSeeder(dbSeederLogger, scopeFactory, downloadUtility, isTestRun, failedListPath);
 
             await using (var catalogerScope = serviceProvider.CreateAsyncScope())
@@ -336,7 +336,7 @@ public class Program
             File.Delete(zipIndex);
         }
 
-        ZipFile.CreateFromDirectory($"{Path.Combine(DirectoryHelper.IndexDirectory, "db")}", zipIndex);
+        ZipFile.CreateFromDirectory(Path.Combine(DirectoryHelper.IndexDirectory, AppConstants.FilePaths.MediaIndexCatalogOutputDbDirectoryName), zipIndex);
     }
 
     private static void DeleteDirectory(string path)
@@ -417,7 +417,7 @@ public class Program
         {
             var path = retryArg.Length > "--retry-failed".Length && retryArg.AsSpan()["--retry-failed".Length] == '='
                 ? retryArg.Substring("--retry-failed=".Length).Trim()
-                : Path.Combine(indexDirectory, "last_run_failed.txt");
+                : Path.Combine(indexDirectory, AppConstants.FilePaths.CatalogerLastRunFailedListFileName);
             if (!File.Exists(path))
             {
                 logger.Error("Retry file not found: {Path}. Run a full catalog first; failed publications are written there.", path);

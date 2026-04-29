@@ -59,7 +59,7 @@ internal class DbSeeder : IDataPersister
         this.downloadUtility = downloadUtility;
         this.dataStore = new InMemoryDataStore();
         this.isTestRun = isTestRun;
-        this.failedListPath = failedListPath ?? Path.Combine(Path.GetTempPath(), "bible_alarm_last_run_failed.txt");
+        this.failedListPath = failedListPath ?? Path.Combine(Path.GetTempPath(), AppConstants.FilePaths.CatalogerTempFailedListFallbackFileName);
         
         // Initialize helper classes
         this.languageSeeder = new LanguageSeeder(logger, downloadUtility);

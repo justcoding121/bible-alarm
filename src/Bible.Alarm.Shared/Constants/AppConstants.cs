@@ -150,6 +150,15 @@ public static class AppConstants
         /// </summary>
         public const string MediaIndexZipFileName = "index.zip";
 
+        /// <summary>Cataloger media index output: subdirectory containing SQLite under index root (<c>db</c>).</summary>
+        public const string MediaIndexCatalogOutputDbDirectoryName = "db";
+
+        /// <summary>Cataloger: failed publication codes file next to index for <c>--retry-failed</c>.</summary>
+        public const string CatalogerLastRunFailedListFileName = "last_run_failed.txt";
+
+        /// <summary>Cataloger: default failed-list filename under temp when no path is passed.</summary>
+        public const string CatalogerTempFailedListFallbackFileName = "bible_alarm_last_run_failed.txt";
+
         /// <summary>
         /// Temporary extraction directory name
         /// </summary>
