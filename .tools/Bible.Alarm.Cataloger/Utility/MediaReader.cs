@@ -15,7 +15,7 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Language>> GetBibleLanguages()
     {
         var root = indexRoot;
-        var languageIndex = Path.Combine(root, "Bible", "languages.json");
+        var languageIndex = Path.Combine(root, "Bible", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x);
     }
@@ -136,7 +136,7 @@ public class MediaReader(string indexRoot)
     {
         var root = indexRoot;
         // Unified structure: Music/Vocals/languages.json
-        var languageIndex = Path.Combine(root, "Music", "Vocals", "languages.json");
+        var languageIndex = Path.Combine(root, "Music", "Vocals", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x);
     }
@@ -169,7 +169,7 @@ public class MediaReader(string indexRoot)
     {
         var root = indexRoot;
         // Unified structure: Dramas/languages.json (no Audio/Video prefix)
-        var languageIndex = Path.Combine(root, "Dramas", "languages.json");
+        var languageIndex = Path.Combine(root, "Dramas", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!
             .ToDictionary(x => x.Code.ToUpperInvariant(), x => x); // Normalize keys to uppercase
@@ -230,7 +230,7 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         // Unified structure: Dramas/languages.json (no Audio/Video prefix)
         // Videos are also stored under Dramas category, IsVideo flag determines media type
-        var languageIndex = Path.Combine(root, "Dramas", "languages.json");
+        var languageIndex = Path.Combine(root, "Dramas", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!
             .ToDictionary(x => x.Code.ToUpperInvariant(), x => x); // Normalize keys to uppercase

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -16,7 +17,7 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Language>> GetBiblePublicationLanguages()
     {
         var root = indexRoot;
-        var languageIndex = Path.Combine(root, "Audio", "Bible", "languages.json");
+        var languageIndex = Path.Combine(root, "Audio", "Bible", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.LanguageCode, x => x);
     }
@@ -95,7 +96,7 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Language>> GetVocalMusicLanguages()
     {
         var root = indexRoot;
-        var languageIndex = Path.Combine(root, "Music", "Vocals", "languages.json");
+        var languageIndex = Path.Combine(root, "Music", "Vocals", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.LanguageCode, x => x);
     }

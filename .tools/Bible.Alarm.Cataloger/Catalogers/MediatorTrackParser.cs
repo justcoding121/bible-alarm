@@ -23,7 +23,7 @@ internal static class MediatorTrackParser
     {
         var tracks = new List<MediatorTrack>();
         string? sectionName = null;
-        var formatKey = isVideo ? "MP4" : "MP3";
+        var formatKey = isVideo ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
 
         try
         {
@@ -47,7 +47,7 @@ internal static class MediatorTrackParser
                 return (null, sectionName);
             }
 
-            var fileFormat = isVideo ? "MP4" : "MP3";
+            var fileFormat = isVideo ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
             string lookUpPathBase;
             if (useDocidParam && sectionCode.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix, StringComparison.OrdinalIgnoreCase))
             {

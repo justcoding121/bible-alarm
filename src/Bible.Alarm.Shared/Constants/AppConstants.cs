@@ -67,6 +67,9 @@ public static class AppConstants
         /// Old format files don't have this prefix and will be preserved for backward compatibility
         /// </summary>
         public const string MediaIndexFileNamePrefix = "v2-";
+
+        /// <summary>Standard language index filename under category folders (<c>languages.json</c>).</summary>
+        public const string MediaIndexLanguagesFileName = "languages.json";
     }
 
     /// <summary>
