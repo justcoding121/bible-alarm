@@ -392,6 +392,56 @@ public static class AppConstants
         public const string BiblePublicationCodeSeriesBJFLessons = "SeriesBJFLessons";
 
         /// <summary>
+        /// Mediator publication code: What My Peers Say series.
+        /// </summary>
+        public const string BiblePublicationCodeSeriesWhatPeersSay = "SeriesWhatPeersSay";
+
+        /// <summary>JW catalog category code: Faith and Bible.</summary>
+        public const string BiblePublicationCategoryFaithAndBible = "FaithAndBible";
+
+        /// <summary>JW catalog category code: Books.</summary>
+        public const string BiblePublicationCategoryBooks = "Books";
+
+        /// <summary>JW catalog category code: Yearbooks.</summary>
+        public const string BiblePublicationCategoryYearbooks = "Yearbooks";
+
+        /// <summary>JW catalog category code: Broadcasting.</summary>
+        public const string BiblePublicationCategoryBroadcasting = "Broadcasting";
+
+        /// <summary>JW catalog category code: Brochures and booklets.</summary>
+        public const string BiblePublicationCategoryBrochuresAndBooklets = "BrochuresAndBooklets";
+
+        /// <summary>JW catalog category code: Children.</summary>
+        public const string BiblePublicationCategoryChildren = "Children";
+
+        /// <summary>JW catalog category code: Family.</summary>
+        public const string BiblePublicationCategoryFamily = "Family";
+
+        /// <summary>JW catalog category code: Interviews and experiences.</summary>
+        public const string BiblePublicationCategoryInterviewsAndExperiences = "InterviewsAndExperiences";
+
+        /// <summary>JW catalog category code: Meetings and ministry.</summary>
+        public const string BiblePublicationCategoryMeetingsAndMinistry = "MeetingsAndMinistry";
+
+        /// <summary>JW catalog category code: Programs and events.</summary>
+        public const string BiblePublicationCategoryProgramsAndEvents = "ProgramsAndEvents";
+
+        /// <summary>JW catalog category code: Series.</summary>
+        public const string BiblePublicationCategorySeries = "Series";
+
+        /// <summary>JW catalog category code: Teenagers.</summary>
+        public const string BiblePublicationCategoryTeenagers = "Teenagers";
+
+        /// <summary>JW catalog category code: Activities.</summary>
+        public const string BiblePublicationCategoryActivities = "Activities";
+
+        /// <summary>JW catalog category code: Organization.</summary>
+        public const string BiblePublicationCategoryOrganization = "Organization";
+
+        /// <summary>JW catalog category code: Article series.</summary>
+        public const string BiblePublicationCategoryArticleSeries = "ArticleSeries";
+
+        /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
         public const string TextDirectionLeftToRight = "ltr";

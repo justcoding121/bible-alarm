@@ -152,7 +152,7 @@ internal sealed class MediatorApiClient
         AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
         AppConstants.Media.BiblePublicationCodeVODMoviesExtras,
         AppConstants.Media.BiblePublicationCodeDramasGoodNews,
-        "SeriesWhatPeersSay",
+        AppConstants.Media.BiblePublicationCodeSeriesWhatPeersSay,
         AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
         AppConstants.Media.BiblePublicationCodeSeriesBJFLessons
     };
