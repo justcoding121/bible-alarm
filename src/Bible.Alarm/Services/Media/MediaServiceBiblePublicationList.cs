@@ -32,8 +32,7 @@ internal static class MediaServiceBiblePublicationList
         var availablePublicationCodes = await biblePublicationService.GetAvailablePublicationCodesAsync(
             languageCode, categoryName, requireIsMusicForMusicCategory, cancellationToken);
 
-        Log.Debug(
-            "GetBiblePublications: Found {Count} available publication codes from PublicationLanguages for language={LanguageCode}, category={CategoryName}",
+        Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsAvailableCodesFromPublicationLanguages,
             availablePublicationCodes.Count,
             languageCode,
             categoryName ?? "all");
@@ -69,8 +68,7 @@ internal static class MediaServiceBiblePublicationList
             }
         }
 
-        Log.Debug(
-            "GetBiblePublications: Found {Count} downloaded publications for language={LanguageCode}, category={CategoryName}, and {CountWithoutLang} publications without language FK",
+        Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsDownloadedCountSummary,
             downloadedPublications.Count,
             languageCode,
             categoryName ?? "all",
@@ -96,7 +94,7 @@ internal static class MediaServiceBiblePublicationList
 
         if (missingPublicationCodes.Count > 0)
         {
-            Log.Debug("GetBiblePublications: Creating placeholders for {Count} publications not yet downloaded", missingPublicationCodes.Count);
+            Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsCreatingPlaceholders, missingPublicationCodes.Count);
 
             // Get Category and Language info from PublicationLanguages: current language + non-languaged.
             var publicationLanguageInfoQuery = dbContext.PublicationLanguages
@@ -219,8 +217,7 @@ internal static class MediaServiceBiblePublicationList
             }
         }
 
-        Log.Information(
-            "GetBiblePublications: Returning {TotalCount} publications ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}, category={CategoryName}",
+        Log.Information(AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsReturningTotalCounts,
             result.Count,
             downloadedPublications.Count,
             result.Count - downloadedPublications.Count,
@@ -234,8 +231,7 @@ internal static class MediaServiceBiblePublicationList
         {
             try
             {
-                Log.Information(
-                    "Ensuring all publications are downloaded for language {LanguageCode} (publication modal opened)",
+                Log.Information(AppConstants.Logging.MediaServiceDiagnosticsLog.EnsuringAllPublicationsDownloadedPublicationModalOpened,
                     languageCode);
                 await languageContentService.EnsureAllPublicationsForLanguageAsync(
                     languageCode,
@@ -255,8 +251,7 @@ internal static class MediaServiceBiblePublicationList
                     result[refreshed.PublicationCode] = refreshed;
                 }
 
-                Log.Information(
-                    "GetBiblePublications: Refreshed {Count} downloaded publications after ensuring all publications for language={LanguageCode}, category={CategoryName}",
+                Log.Information(AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsRefreshedAfterEnsuring,
                     refreshedDownloadedPublications.Count,
                     languageCode,
                     categoryName ?? "all");
@@ -275,7 +270,7 @@ internal static class MediaServiceBiblePublicationList
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to ensure all publications for language {LanguageCode}", languageCode);
+                Log.Warning(ex, AppConstants.Logging.MediaServiceDiagnosticsLog.FailedEnsureAllPublicationsForLanguage, languageCode);
             }
         }
 

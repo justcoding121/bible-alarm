@@ -26,7 +26,7 @@ public static class MediaServiceVocalMusicHelper
         var availablePublicationCodes = await biblePublicationService.GetAvailablePublicationCodesAsync(
             languageCode, AppConstants.Media.BiblePublicationCategoryMusic, true, cancellationToken);
 
-        Log.Debug("GetVocalMusicReleases: Found {Count} available publication codes for language={LanguageCode}",
+        Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesAvailablePublicationCodes,
             availablePublicationCodes.Count, languageCode);
 
         var downloadedReleases = await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationToken);
@@ -50,7 +50,7 @@ public static class MediaServiceVocalMusicHelper
             }
         }
 
-        Log.Debug("GetVocalMusicReleases: Found {Count} downloaded for language={LanguageCode}, {CountWithoutLang} without language FK",
+        Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesDownloadedCountSummary,
             downloadedReleases.Count, languageCode, publicationsWithoutLanguage.Count);
 
         var result = new Dictionary<string, VocalMusic>();
@@ -69,7 +69,7 @@ public static class MediaServiceVocalMusicHelper
 
         if (missingPublicationCodes.Count > 0)
         {
-            Log.Debug("GetVocalMusicReleases: Creating placeholders for {Count} releases not yet downloaded", missingPublicationCodes.Count);
+            Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesCreatingPlaceholders, missingPublicationCodes.Count);
             using var scope2 = scopeFactory.CreateScope();
             var dbContext = scope2.ServiceProvider.GetRequiredService<MediaDbContext>();
             var publicationLanguageInfo = await dbContext.PublicationLanguages
@@ -103,7 +103,7 @@ public static class MediaServiceVocalMusicHelper
             }
         }
 
-        Log.Information("GetVocalMusicReleases: Returning {TotalCount} vocal music releases ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}",
+        Log.Information(AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesReturningTotalCounts,
             result.Count, downloadedReleases.Count, result.Count - downloadedReleases.Count, languageCode);
 
         return result;

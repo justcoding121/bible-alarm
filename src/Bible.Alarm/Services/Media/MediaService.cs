@@ -177,7 +177,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         if (await IsPublicationWithoutLanguageAsync(versionCode))
         {
             // Publication has LanguageId == null - use GetSectionsForPublicationWithoutLanguage which handles this case
-            Log.Debug("Publication {PublicationCode} has LanguageId == null, using GetSectionsForPublicationWithoutLanguage", versionCode);
+            Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.PublicationHasNullLanguageUsingSectionsWithoutLanguage, versionCode);
             return await GetSectionsForPublicationWithoutLanguage(versionCode);
         }
         
@@ -196,7 +196,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
             !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase) &&
             progress != null)
         {
-            Log.Information("Ensuring all sections are downloaded for publication {PublicationCode} in language {LanguageCode}", 
+            Log.Information(AppConstants.Logging.MediaServiceDiagnosticsLog.EnsuringAllSectionsDownloaded,
                 versionCode, languageCode);
             
             try
@@ -211,7 +211,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
                     sections = await biblePublicationSectionService.GetSectionsByPublicationAsync(
                         languageCode, versionCode, cancellationTokenSource.Token);
                     
-                    Log.Information("Successfully loaded {Count} sections for publication {PublicationCode} in language {LanguageCode}", 
+                    Log.Information(AppConstants.Logging.MediaServiceDiagnosticsLog.SuccessfullyLoadedSectionsForPublication,
                         sections.Count, versionCode, languageCode);
                 }
             }
@@ -229,7 +229,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to ensure all sections for publication {PublicationCode} in language {LanguageCode}", 
+                Log.Warning(ex, AppConstants.Logging.MediaServiceDiagnosticsLog.FailedEnsureAllSectionsForPublication,
                     versionCode, languageCode);
             }
         }
@@ -250,8 +250,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         // The user should run the cataloger to pre-catalog these publications
         if (sections == null || sections.Count == 0)
         {
-            Log.Warning("GetSectionsForPublicationWithoutLanguage: No sections found for publication {PublicationCode}. " +
-                "This publication may not be cataloged yet. Publications without language (like 'iam') should be pre-cataloged.",
+            Log.Warning(AppConstants.Logging.MediaServiceDiagnosticsLog.GetSectionsWithoutLanguageNoSectionsFoundStillUncatalogued,
                 publicationCode);
         }
         
@@ -274,7 +273,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         if (await IsPublicationWithoutLanguageAsync(versionCode))
         {
             // Publication has LanguageId == null - query tracks directly from database
-            Log.Debug("Publication {PublicationCode} has LanguageId == null, querying tracks directly", versionCode);
+            Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.PublicationHasNullLanguageQueryingTracksDirectly, versionCode);
             return await GetTracksForPublicationWithoutLanguage(versionCode, sectionCode);
         }
         
@@ -324,13 +323,13 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         // PublicationLanguages already has the discovery data we need for Music languages.
         // This is cached inside BiblePublicationService, so repeated calls are cheap.
         var result = await BiblePublicationService.GetDistinctLanguagesAsync(AppConstants.Media.BiblePublicationCategoryMusic, true, cancellationTokenSource.Token);
-        Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: returned {Count} languages", result.Count);
+        Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicLanguagesReturnedCount, result.Count);
 
         // If no vocal languages found, fall back to basic languages (English)
         // This can happen if the vocal music database doesn't have language metadata
         if (result.Count == 0)
         {
-            Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: No vocal languages found, falling back to English");
+            Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicLanguagesNoVocalLanguagesFallingBackEnglish);
             result = new Dictionary<string, Language>
             {
                 [AppConstants.Media.DefaultLanguageCode] = new Language { LanguageCode = AppConstants.Media.DefaultLanguageCode }
@@ -355,13 +354,13 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
             {
                 try
                 {
-                    Log.Information("Background: Ensuring all vocal music releases are downloaded for language {LanguageCode} (publication modal opened)", languageCode);
+                    Log.Information(AppConstants.Logging.MediaServiceDiagnosticsLog.BackgroundEnsuringAllVocalMusicReleasesForLanguage, languageCode);
                     await languageContentService.EnsureAllPublicationsForLanguageAsync(
                         languageCode, AppConstants.Media.BiblePublicationCategoryMusic, cancellationToken: cancellationTokenSource.Token);
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Background: Failed to ensure all vocal music releases for language {LanguageCode}", languageCode);
+                    Log.Warning(ex, AppConstants.Logging.MediaServiceDiagnosticsLog.BackgroundFailedEnsureAllVocalMusicReleasesForLanguage, languageCode);
                 }
             });
         }

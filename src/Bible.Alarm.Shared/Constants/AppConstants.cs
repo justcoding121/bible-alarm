@@ -2098,6 +2098,74 @@ public static class AppConstants
                 "Migrated version {Version} from version.dat to Preferences";
         }
 
+        /// <summary><c>MediaService</c>, Bible publication list query, vocal music helpers.</summary>
+        public static class MediaServiceDiagnosticsLog
+        {
+            public const string PublicationHasNullLanguageUsingSectionsWithoutLanguage =
+                "Publication {PublicationCode} has LanguageId == null, using GetSectionsForPublicationWithoutLanguage";
+
+            public const string EnsuringAllSectionsDownloaded =
+                "Ensuring all sections are downloaded for publication {PublicationCode} in language {LanguageCode}";
+
+            public const string SuccessfullyLoadedSectionsForPublication =
+                "Successfully loaded {Count} sections for publication {PublicationCode} in language {LanguageCode}";
+
+            public const string FailedEnsureAllSectionsForPublication =
+                "Failed to ensure all sections for publication {PublicationCode} in language {LanguageCode}";
+
+            public const string GetSectionsWithoutLanguageNoSectionsFoundStillUncatalogued =
+                "GetSectionsForPublicationWithoutLanguage: No sections found for publication {PublicationCode}. " +
+                "This publication may not be cataloged yet. Publications without language (like 'iam') should be pre-cataloged.";
+
+            public const string PublicationHasNullLanguageQueryingTracksDirectly =
+                "Publication {PublicationCode} has LanguageId == null, querying tracks directly";
+
+            public const string GetVocalMusicLanguagesReturnedCount =
+                "MediaService.GetVocalMusicLanguages: returned {Count} languages";
+
+            public const string GetVocalMusicLanguagesNoVocalLanguagesFallingBackEnglish =
+                "MediaService.GetVocalMusicLanguages: No vocal languages found, falling back to English";
+
+            public const string BackgroundEnsuringAllVocalMusicReleasesForLanguage =
+                "Background: Ensuring all vocal music releases are downloaded for language {LanguageCode} (publication modal opened)";
+
+            public const string BackgroundFailedEnsureAllVocalMusicReleasesForLanguage =
+                "Background: Failed to ensure all vocal music releases for language {LanguageCode}";
+
+            public const string GetBiblePublicationsAvailableCodesFromPublicationLanguages =
+                "GetBiblePublications: Found {Count} available publication codes from PublicationLanguages for language={LanguageCode}, category={CategoryName}";
+
+            public const string GetBiblePublicationsDownloadedCountSummary =
+                "GetBiblePublications: Found {Count} downloaded publications for language={LanguageCode}, category={CategoryName}, and {CountWithoutLang} publications without language FK";
+
+            public const string GetBiblePublicationsCreatingPlaceholders =
+                "GetBiblePublications: Creating placeholders for {Count} publications not yet downloaded";
+
+            public const string GetBiblePublicationsReturningTotalCounts =
+                "GetBiblePublications: Returning {TotalCount} publications ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}, category={CategoryName}";
+
+            public const string EnsuringAllPublicationsDownloadedPublicationModalOpened =
+                "Ensuring all publications are downloaded for language {LanguageCode} (publication modal opened)";
+
+            public const string GetBiblePublicationsRefreshedAfterEnsuring =
+                "GetBiblePublications: Refreshed {Count} downloaded publications after ensuring all publications for language={LanguageCode}, category={CategoryName}";
+
+            public const string FailedEnsureAllPublicationsForLanguage =
+                "Failed to ensure all publications for language {LanguageCode}";
+
+            public const string GetVocalMusicReleasesAvailablePublicationCodes =
+                "GetVocalMusicReleases: Found {Count} available publication codes for language={LanguageCode}";
+
+            public const string GetVocalMusicReleasesDownloadedCountSummary =
+                "GetVocalMusicReleases: Found {Count} downloaded for language={LanguageCode}, {CountWithoutLang} without language FK";
+
+            public const string GetVocalMusicReleasesCreatingPlaceholders =
+                "GetVocalMusicReleases: Creating placeholders for {Count} releases not yet downloaded";
+
+            public const string GetVocalMusicReleasesReturningTotalCounts =
+                "GetVocalMusicReleases: Returning {TotalCount} vocal music releases ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}";
+        }
+
         /// <summary>Single-track play, resume seek, and seek retry (<c>TrackPlaybackHandler</c>).</summary>
         public static class TrackPlaybackHandlerDiagnosticsLog
         {
