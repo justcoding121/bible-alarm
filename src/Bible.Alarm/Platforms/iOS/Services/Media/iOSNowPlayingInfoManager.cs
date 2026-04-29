@@ -85,7 +85,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[iOS NowPlaying] Failed to update metadata");
+            logger.Error(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToUpdateMetadata);
         }
     }
 
@@ -112,14 +112,14 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                         }
                         catch (Exception ex)
                         {
-                            logger.Debug(ex, "[iOS NowPlaying] Failed to apply async artwork (app may be in transitional state)");
+                            logger.Debug(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToApplyAsyncArtworkTransitional);
                         }
                     });
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "[iOS NowPlaying] Failed to load artwork async from {Url}", artworkUrl);
+                logger.Warning(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToLoadArtworkAsyncFromUrl, artworkUrl);
             }
         });
     }
@@ -245,7 +245,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[iOS NowPlaying] Failed to update playback position");
+            logger.Error(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToUpdatePlaybackPosition);
         }
     }
 
@@ -279,7 +279,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[iOS NowPlaying] Failed to update playback status");
+            logger.Error(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToUpdatePlaybackStatus);
         }
     }
 
@@ -310,7 +310,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[iOS NowPlaying] Failed to update duration");
+            logger.Error(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToUpdateDuration);
         }
     }
 
@@ -340,7 +340,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[iOS NowPlaying] Failed to clear Now Playing info");
+            logger.Error(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToClearNowPlayingInfo);
         }
     }
 
@@ -400,7 +400,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[iOS NowPlaying] Failed to set default metadata");
+            logger.Error(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToSetDefaultMetadata);
         }
     }
 
@@ -470,7 +470,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "[iOS NowPlaying] Failed to load artwork synchronously from {Url}", artworkUrl);
+            logger.Warning(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToLoadArtworkSynchronouslyFromUrl, artworkUrl);
         }
 
         return null;
@@ -540,7 +540,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "[iOS NowPlaying] Failed to download artwork from {Url}", artworkUrl);
+            logger.Warning(ex, AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToDownloadArtworkFromUrl, artworkUrl);
         }
 
         return null;

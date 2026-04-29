@@ -873,6 +873,40 @@ public static class AppConstants
                 "Failed to resolve category display name for code {CategoryCode}";
         }
 
+        /// <summary>iOS lock screen / Control Center Now Playing (<c>iOSNowPlayingInfoManager</c>).</summary>
+        public static class IosNowPlayingDiagnosticsLog
+        {
+            public const string FailedToUpdateMetadata =
+                "[iOS NowPlaying] Failed to update metadata";
+
+            public const string FailedToApplyAsyncArtworkTransitional =
+                "[iOS NowPlaying] Failed to apply async artwork (app may be in transitional state)";
+
+            public const string FailedToLoadArtworkAsyncFromUrl =
+                "[iOS NowPlaying] Failed to load artwork async from {Url}";
+
+            public const string FailedToUpdatePlaybackPosition =
+                "[iOS NowPlaying] Failed to update playback position";
+
+            public const string FailedToUpdatePlaybackStatus =
+                "[iOS NowPlaying] Failed to update playback status";
+
+            public const string FailedToUpdateDuration =
+                "[iOS NowPlaying] Failed to update duration";
+
+            public const string FailedToClearNowPlayingInfo =
+                "[iOS NowPlaying] Failed to clear Now Playing info";
+
+            public const string FailedToSetDefaultMetadata =
+                "[iOS NowPlaying] Failed to set default metadata";
+
+            public const string FailedToLoadArtworkSynchronouslyFromUrl =
+                "[iOS NowPlaying] Failed to load artwork synchronously from {Url}";
+
+            public const string FailedToDownloadArtworkFromUrl =
+                "[iOS NowPlaying] Failed to download artwork from {Url}";
+        }
+
         /// <summary>Modal scroll helper error paths (<c>ModalScrollHelper</c>).</summary>
         public static class ModalUiDiagnosticsLog
         {
