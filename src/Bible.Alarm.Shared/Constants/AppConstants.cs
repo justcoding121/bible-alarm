@@ -1109,6 +1109,76 @@ public static class AppConstants
                 "BiblePublicationCascadeHandler: Preserving language={LanguageCode}";
         }
 
+        /// <summary>Bible selection cascade (<c>BiblePublicationSelectionItemSelector</c>).</summary>
+        public static class BiblePublicationSelectionItemSelectorDiagnosticsLog
+        {
+            public const string GetSectionAndTrackStarting =
+                "GetSectionAndTrackForPublicationAsync: Starting for publication={PublicationCode}, language={LanguageCode}";
+
+            public const string GetSectionAndTrackFoundSectionsSectionedFlow =
+                "GetSectionAndTrackForPublicationAsync: Found {SectionCount} sections, using sectioned flow";
+
+            public const string GetSectionAndTrackSectionedResult =
+                "GetSectionAndTrackForPublicationAsync: Sectioned result: sectionCode={SectionCode}, trackCode={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}";
+
+            public const string GetSectionAndTrackSectionNameEmptyForSectionCode =
+                "GetSectionAndTrackForPublicationAsync: SectionName is empty for sectionCode={SectionCode}";
+
+            public const string GetSectionAndTrackTrackTitleEmptyForTrackCode =
+                "GetSectionAndTrackForPublicationAsync: TrackTitle is empty for trackCode={TrackCode}";
+
+            public const string GetSectionAndTrackNoSectionsUsingNonSectionedFlow =
+                "GetSectionAndTrackForPublicationAsync: No sections found, using non-sectioned flow";
+
+            public const string GetSectionAndTrackNonSectionedResult =
+                "GetSectionAndTrackForPublicationAsync: Non-sectioned result: trackCode={TrackCode}, trackTitle={TrackTitle}";
+
+            public const string GetPublicationSectionTrackLangStarting =
+                "GetPublicationSectionAndTrackForLanguageAsync: Starting for language={LanguageCode}";
+
+            public const string FailedToCatalogPublicationTryingNext =
+                "GetPublicationSectionAndTrackForLanguageAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next";
+
+            public const string NoPublicationFoundForLanguageCategory =
+                "GetPublicationSectionAndTrackForLanguageAsync: No publication found for language={LanguageCode}, category={CategoryName}";
+
+            public const string SelectedPublicationCodeNameWithoutLanguage =
+                "GetPublicationSectionAndTrackForLanguageAsync: Selected publication code={PublicationCode}, name={PublicationName}, withoutLanguage={WithoutLanguage}";
+
+            public const string EnsuringPublicationExistsBeforeGettingSections =
+                "GetPublicationSectionAndTrackForLanguageAsync: Ensuring publication {PublicationCode} exists for language {LanguageCode} before getting sections";
+
+            public const string FailedToEnsurePublicationExistsContinuingAnyway =
+                "GetPublicationSectionAndTrackForLanguageAsync: Failed to ensure publication {PublicationCode} exists, continuing anyway";
+
+            public const string QueryingSectionsPublicationWithoutLanguage =
+                "GetPublicationSectionAndTrackForLanguageAsync: Querying sections for publication without language={PublicationCode}";
+
+            public const string NoSectionsInDbAfterEnsuringLikelyNonSectioned =
+                "GetPublicationSectionAndTrackForLanguageAsync: No sections found in database after ensuring publication exists, publication is likely non-sectioned";
+
+            public const string BiblePublicationSectionServiceNullUsingMediaServiceSections =
+                "GetPublicationSectionAndTrackForLanguageAsync: biblePublicationSectionService is null, using MediaService.GetBiblePublicationSections";
+
+            public const string GetPublicationFoundSectionsSectionedFlow =
+                "GetPublicationSectionAndTrackForLanguageAsync: Found {SectionCount} sections, using sectioned flow";
+
+            public const string GetPublicationSectionedResult =
+                "GetPublicationSectionAndTrackForLanguageAsync: Sectioned result: sectionCode={SectionCode}, sectionName={SectionName}, trackCode={TrackCode}, trackTitle={TrackTitle}";
+
+            public const string GetPublicationSectionNameEmptyForSectionCode =
+                "GetPublicationSectionAndTrackForLanguageAsync: SectionName is empty for sectionCode={SectionCode}";
+
+            public const string GetPublicationTrackTitleEmptyForTrackCode =
+                "GetPublicationSectionAndTrackForLanguageAsync: TrackTitle is empty for trackCode={TrackCode}";
+
+            public const string GetPublicationNoSectionsUsingNonSectionedFlow =
+                "GetPublicationSectionAndTrackForLanguageAsync: No sections found, using non-sectioned flow";
+
+            public const string GetPublicationNonSectionedResult =
+                "GetPublicationSectionAndTrackForLanguageAsync: Non-sectioned result: trackCode={TrackCode}, trackTitle={TrackTitle}";
+        }
+
         /// <summary><c>MediaSessionHelper</c> early Android Auto state.</summary>
         public static class AndroidMediaSessionHelperDiagnosticsLog
         {
