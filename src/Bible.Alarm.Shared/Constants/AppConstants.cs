@@ -2973,6 +2973,55 @@ public static class AppConstants
             public const string PopAllModalsAndPagesErrorCleaningUpIosNativeViews =
                 "NavigationService.PopAllModalsAndPages - Error cleaning up iOS native views for {PageType}: {PageTypeName} (non-fatal)";
         }
+
+        /// <summary><c>NavigationStackManager</c> modal/page pop and iOS teardown diagnostics.</summary>
+        public static class NavigationStackManagerDiagnosticsLog
+        {
+            public const string PopModalAsyncFirstPopFailedRetry =
+                "NavigationStackManager.PopModalAsync: First pop failed (platform stack may be empty), retrying after {Delay}ms";
+
+            public const string PopModalAsyncRetryPopFailed =
+                "NavigationStackManager.PopModalAsync: Retry pop failed, modal may remain visible. MAUI ModalStack.Count={Count}";
+
+            public const string PopModalAsyncErrorDisposingModalNonFatal =
+                "NavigationStackManager.PopModalAsync: Error disposing modal (non-fatal)";
+
+            public const string PopModalAsyncErrorUpdatingNavigationBarColorsNonFatal =
+                "NavigationStackManager.PopModalAsync: Error updating navigation bar colors (non-fatal)";
+
+            public const string RefreshAfterModalPopFailedBestEffort =
+                "NavigationStackManager: Refresh after modal pop failed (best-effort)";
+
+            public const string ForceNativeRecompositionFailedBestEffort =
+                "NavigationStackManager: ForceNativeRecomposition failed (best-effort)";
+
+            public const string PopAsyncRefusingPopHome =
+                "NavigationStackManager.PopAsync: Refusing to pop Home page — Home must never be removed from the navigation stack";
+
+            public const string PopAsyncNavControllerBackStackOutOfSync =
+                "NavigationStackManager.PopAsync: NavController back stack out of sync with MAUI navigation stack";
+
+            public const string PopAsyncErrorDisposingPageNonFatal =
+                "NavigationStackManager.PopAsync: Error disposing page (non-fatal)";
+
+            public const string PopAsyncErrorUpdatingNavigationBarColorsNonFatal =
+                "NavigationStackManager.PopAsync: Error updating navigation bar colors (non-fatal)";
+
+            public const string CleanupIOSNativeViewsErrorSuppressingFinalizersForTypeNonFatal =
+                "CleanupIOSNativeViews: Error suppressing finalizers for {Type} (non-fatal)";
+
+            public const string CollectNativeViewsViewControllerAccessDisposedNonFatal =
+                "CollectNativeViews: ViewController access disposed (non-fatal)";
+
+            public const string DisconnectHandlersRecursivelyErrorDisconnectingHandlerForTypeNonFatal =
+                "DisconnectHandlersRecursively: Error disconnecting handler for {Type} (non-fatal)";
+
+            public const string SuppressViewControllerFinalizerViewControllerDisposedNonFatal =
+                "SuppressViewControllerFinalizer: ViewController disposed (non-fatal)";
+
+            public const string SuppressViewControllerFinalizerErrorNonFatal =
+                "SuppressViewControllerFinalizer: Error (non-fatal)";
+        }
     }
 
     /// <summary>Notification body copy shared across platforms.</summary>

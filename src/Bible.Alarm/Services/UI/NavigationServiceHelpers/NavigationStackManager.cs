@@ -2,6 +2,7 @@
 
 using System;
 using Bible.Alarm.Services.UI;
+using Bible.Alarm.Shared.Constants;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices;
 using Serilog;
@@ -44,7 +45,7 @@ public static class NavigationStackManager
         }
         catch (InvalidOperationException ex)
         {
-            Log.Warning(ex, "NavigationStackManager.PopModalAsync: First pop failed (platform stack may be empty), retrying after {Delay}ms", PopModalRetryDelayMs);
+            Log.Warning(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopModalAsyncFirstPopFailedRetry, PopModalRetryDelayMs);
             await Task.Delay(PopModalRetryDelayMs);
             try
             {
@@ -52,7 +53,7 @@ public static class NavigationStackManager
             }
             catch (InvalidOperationException ex2)
             {
-                Log.Warning(ex2, "NavigationStackManager.PopModalAsync: Retry pop failed, modal may remain visible. MAUI ModalStack.Count={Count}", navigation.ModalStack.Count);
+                Log.Warning(ex2, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopModalAsyncRetryPopFailed, navigation.ModalStack.Count);
                 return;
             }
         }
@@ -65,7 +66,7 @@ public static class NavigationStackManager
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "NavigationStackManager.PopModalAsync: Error disposing modal (non-fatal)");
+                Log.Warning(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopModalAsyncErrorDisposingModalNonFatal);
             }
         }
 
@@ -84,7 +85,7 @@ public static class NavigationStackManager
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "NavigationStackManager.PopModalAsync: Error updating navigation bar colors (non-fatal)");
+            Log.Warning(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopModalAsyncErrorUpdatingNavigationBarColorsNonFatal);
         }
 
         if (DeviceInfo.Platform == DevicePlatform.WinUI)
@@ -126,7 +127,7 @@ public static class NavigationStackManager
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "NavigationStackManager: Refresh after modal pop failed (best-effort)");
+            Log.Warning(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.RefreshAfterModalPopFailedBestEffort);
         }
     }
 
@@ -152,7 +153,7 @@ public static class NavigationStackManager
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "NavigationStackManager: ForceNativeRecomposition failed (best-effort)");
+            Log.Debug(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.ForceNativeRecompositionFailedBestEffort);
         }
 #endif
     }
@@ -182,7 +183,7 @@ public static class NavigationStackManager
 
         if (page is Views.Home)
         {
-            Log.Warning("NavigationStackManager.PopAsync: Refusing to pop Home page — Home must never be removed from the navigation stack");
+            Log.Warning(AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopAsyncRefusingPopHome);
             return;
         }
 
@@ -192,7 +193,7 @@ public static class NavigationStackManager
         }
         catch (Exception ex) when (IsAndroidNavControllerError(ex))
         {
-            Log.Warning(ex, "NavigationStackManager.PopAsync: NavController back stack out of sync with MAUI navigation stack");
+            Log.Warning(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopAsyncNavControllerBackStackOutOfSync);
             return;
         }
 
@@ -205,7 +206,7 @@ public static class NavigationStackManager
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "NavigationStackManager.PopAsync: Error disposing page (non-fatal)");
+                Log.Warning(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopAsyncErrorDisposingPageNonFatal);
             }
         }
 
@@ -223,7 +224,7 @@ public static class NavigationStackManager
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "NavigationStackManager.PopAsync: Error updating navigation bar colors (non-fatal)");
+            Log.Warning(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopAsyncErrorUpdatingNavigationBarColorsNonFatal);
         }
     }
 
@@ -268,7 +269,7 @@ public static class NavigationStackManager
             }
             catch (Exception ex)
             {
-                Log.Debug(ex, "CleanupIOSNativeViews: Error suppressing finalizers for {Type} (non-fatal)", view.GetType().Name);
+                Log.Debug(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.CleanupIOSNativeViewsErrorSuppressingFinalizersForTypeNonFatal, view.GetType().Name);
             }
         }
     }
@@ -311,7 +312,7 @@ public static class NavigationStackManager
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, "CollectNativeViews: ViewController access disposed (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.CollectNativeViewsViewControllerAccessDisposedNonFatal);
         }
     }
 
@@ -346,7 +347,7 @@ public static class NavigationStackManager
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "DisconnectHandlersRecursively: Error disconnecting handler for {Type} (non-fatal)", element.GetType().Name);
+            Log.Debug(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.DisconnectHandlersRecursivelyErrorDisconnectingHandlerForTypeNonFatal, element.GetType().Name);
         }
     }
 
@@ -369,11 +370,11 @@ public static class NavigationStackManager
         }
         catch (ObjectDisposedException ex)
         {
-            Log.Debug(ex, "SuppressViewControllerFinalizer: ViewController disposed (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.SuppressViewControllerFinalizerViewControllerDisposedNonFatal);
         }
         catch (Exception ex)
         {
-            Log.Debug(ex, "SuppressViewControllerFinalizer: Error (non-fatal)");
+            Log.Debug(ex, AppConstants.Logging.NavigationStackManagerDiagnosticsLog.SuppressViewControllerFinalizerErrorNonFatal);
         }
     }
 
