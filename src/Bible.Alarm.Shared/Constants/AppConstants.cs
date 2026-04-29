@@ -723,6 +723,63 @@ public static class AppConstants
         /// <summary>Mediator publication code (series).</summary>
         public const string MediatorPublicationCodeSeriesWhiteboard = "SeriesWhiteboard";
 
+        /// <summary>JW GETPUB vocal music publication codes (flat MP3; seeding / catalog).</summary>
+        public static readonly string[] VocalMusicCatalogPublicationCodes =
+        {
+            MusicPublicationCodeOsg,
+            "sjjc",
+            "sjji",
+            "snv",
+            "pksjj"
+        };
+
+        /// <summary>JW GETPUB flat MP3 publication codes (Books category).</summary>
+        public static readonly string[] FlatMp3BooksPublicationCodes =
+        {
+            "wcg", "lff", "rr", "lvs", "lfb", "bhs", "jy", "kr", "ia", "mb", "jr", "bt", "lv", "cf", "jd", "bh", "my", "lr", "cl", "fy", "gt"
+        };
+
+        /// <summary>JW GETPUB flat MP3 yearbook publication codes.</summary>
+        public static readonly string[] FlatMp3YearbooksPublicationCodes =
+        {
+            "yb17", "yb16", "yb15", "yb14", "yb13", "yb12", "yb11", "yb10"
+        };
+
+        /// <summary>JW GETPUB flat MP3 brochure and booklet publication codes.</summary>
+        public static readonly string[] FlatMp3BrochuresPublicationCodes =
+        {
+            "lmd", "wfg", "lffi", "th", "rj", "ypq", "hf", "jl", "yc", "hl", "fg", "ll", "lc", "lf", "la", "we"
+        };
+
+        /// <summary>
+        /// JW GETPUB flat MP3 article series: More Topics (mrt), How Your Donations Are Used (hdu), Life Stories (lfs).
+        /// </summary>
+        public static readonly string[] FlatMp3ArticleSeriesPublicationCodes =
+        {
+            "mrt",
+            "hdu",
+            "lfs"
+        };
+
+        /// <summary>JW GETPUB pub= codes that use issue= (YYYYMM) instead of track=.</summary>
+        public static readonly string[] GetPubIssueParameterPublicationCodes =
+        {
+            "mwbv", "jwb", "jwbrd", "jwbiv", "jwbcov", "jwbam", "jwbur", "jwbls", "jwbgg"
+        };
+
+        /// <summary>JW GETPUB pub= single-track codes (API returns files when no track param is sent).</summary>
+        public static readonly string[] GetPubSingleTrackNoParamPublicationCodes =
+        {
+            "ivdd",
+            "ivno"
+        };
+
+        /// <summary>JW GETPUB pub= single-track codes (API returns files when track=0).</summary>
+        public static readonly string[] GetPubSingleTrackZeroPublicationCodes =
+        {
+            "bhat"
+        };
+
         /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>

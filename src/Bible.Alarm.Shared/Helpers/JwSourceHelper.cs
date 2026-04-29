@@ -25,14 +25,7 @@ public static class JwSourceHelper
     /// <summary>
     /// Vocal music publication codes used for seeding.
     /// </summary>
-    public static HashSet<string> VocalMusicPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
-    {
-        "osg",
-        "sjjc",
-        "sjji",
-        "snv",
-        "pksjj"
-    };
+    public static HashSet<string> VocalMusicPublicationCodes => new(AppConstants.Media.VocalMusicCatalogPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Melody music publication codes used for seeding.
@@ -271,10 +264,7 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Books category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> BooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
-    {
-        "wcg", "lff", "rr", "lvs", "lfb", "bhs", "jy", "kr", "ia", "mb", "jr", "bt", "lv", "cf", "jd", "bh", "my", "lr", "cl", "fy", "gt"
-    };
+    public static HashSet<string> BooksPublicationCodes => new(AppConstants.Media.FlatMp3BooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Broadcasting category (Mediator API).
@@ -289,18 +279,12 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Yearbooks category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> YearbooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
-    {
-        "yb17", "yb16", "yb15", "yb14", "yb13", "yb12", "yb11", "yb10"
-    };
+    public static HashSet<string> YearbooksPublicationCodes => new(AppConstants.Media.FlatMp3YearbooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Brochures and Booklets category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> BrochuresAndBookletsPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
-    {
-        "lmd", "wfg", "lffi", "th", "rj", "ypq", "hf", "jl", "yc", "hl", "fg", "ll", "lc", "lf", "la", "we"
-    };
+    public static HashSet<string> BrochuresAndBookletsPublicationCodes => new(AppConstants.Media.FlatMp3BrochuresPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Children category.
@@ -480,12 +464,7 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Article Series category (flat audio via GETPUBMEDIALINKS).
     /// </summary>
-    public static HashSet<string> ArticleSeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
-    {
-        "mrt", // More Topics: flat MP3, pub=mrt&track=N&fileformat=MP3
-        "hdu", // How Your Donations Are Used: flat MP3, pub=hdu&track=N&fileformat=MP3
-        "lfs"  // Life Stories: flat MP3, pub=lfs&track=N&fileformat=MP3
-    };
+    public static HashSet<string> ArticleSeriesPublicationCodes => new(AppConstants.Media.FlatMp3ArticleSeriesPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for The Watchtower (Magazine) category (IssueSectioned, MP3 via GETPUBMEDIALINKS with issue=).
@@ -548,10 +527,7 @@ public static class JwSourceHelper
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that use issue= rather than track= for the numeric identifier (e.g. mwbv, jwb, jwbls use YYYYMM issue ids).
     /// </summary>
-    public static HashSet<string> SectionCodesUsingIssueParameter => new(StringComparer.OrdinalIgnoreCase)
-    {
-        "mwbv", "jwb", "jwbrd", "jwbiv", "jwbcov", "jwbam", "jwbur", "jwbls", "jwbgg"
-    };
+    public static HashSet<string> SectionCodesUsingIssueParameter => new(AppConstants.Media.GetPubIssueParameterPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Returns true if the numeric value looks like a YYYYMM issue id (e.g. 201512).
@@ -570,18 +546,12 @@ public static class JwSourceHelper
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when no track param is sent.
     /// </summary>
-    public static HashSet<string> SectionCodesSingleTrackNoParam => new(StringComparer.OrdinalIgnoreCase)
-    {
-        "ivdd", "ivno"
-    };
+    public static HashSet<string> SectionCodesSingleTrackNoParam => new(AppConstants.Media.GetPubSingleTrackNoParamPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when track=0 is sent.
     /// </summary>
-    public static HashSet<string> SectionCodesSingleTrackZero => new(StringComparer.OrdinalIgnoreCase)
-    {
-        "bhat"
-    };
+    public static HashSet<string> SectionCodesSingleTrackZero => new(AppConstants.Media.GetPubSingleTrackZeroPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Teenagers category (Mediator API).
