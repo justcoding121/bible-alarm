@@ -344,6 +344,9 @@ public static class AppConstants
         /// <summary>JW GETPUB query/fileformat key for AAC streams.</summary>
         public const string MediaStreamFormatAac = "AAC";
 
+        /// <summary>JW GETPUB/Mediator video <c>files[].label</c> for lowest-tier stream (preferred for audio-only).</summary>
+        public const string VideoQualityLabel240p = "240p";
+
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
         public const string PublicationUiTrackSingular = "Track";
 

@@ -2,6 +2,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Media.Helpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -64,7 +65,7 @@ public sealed class MelodyDiscTracksApiRefresher(
                 db,
                 normPub.ToLowerInvariant(),
                 normSection,
-                "E",
+                AppConstants.Media.DefaultLanguageCode,
                 normPub,
                 publication,
                 section,

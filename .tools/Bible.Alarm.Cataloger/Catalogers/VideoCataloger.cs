@@ -19,7 +19,6 @@ namespace Bible.Alarm.Cataloger.Catalogers;
 
 internal class VideoCataloger : BaseCataloger
 {
-    private const string PreferredQuality = "240p"; // Use lowest quality for audio-only playback
     private readonly IDataPersister? dataPersister;
     private readonly SignLanguageChecker signLanguageChecker;
 

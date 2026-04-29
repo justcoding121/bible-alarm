@@ -50,7 +50,7 @@ internal sealed class FlatPublicationFetcher
         var cancellationToken = request.CancellationToken;
 
         string? localizedPubName = null;
-        if (isVideo && !normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        if (isVideo && !normalizedLanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             localizedPubName = await videoLocalizedNameFetcher.FetchVideoLocalizedNameFromMediatorAsync(
                 normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
@@ -244,7 +244,7 @@ internal sealed class FlatPublicationFetcher
                     continue;
                 }
 
-                var prefer240p = file.TryGetProperty("label", out var labelEl) && labelEl.GetString() == "240p";
+                var prefer240p = file.TryGetProperty("label", out var labelEl) && labelEl.GetString() == AppConstants.Media.VideoQualityLabel240p;
                 if (prefer240p)
                 {
                     byTrack[trackNum] = file;

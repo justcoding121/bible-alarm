@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,7 +47,7 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
 
                 var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-                if (normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+                if (normalizedLanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
                 {
                     logger.Debug("Skipping fetch for English language - already pre-cataloged");
                     return true;
