@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using Bible.Alarm.Cataloger.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
@@ -29,17 +30,17 @@ internal static class MediatorSectionCodeExtractor
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("category", out var category))
+            if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category))
             {
                 return (tracks, null);
             }
 
-            if (category.TryGetProperty("name", out var nameElement))
+            if (category.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
             {
                 var rawName = nameElement.GetString();
                 var categoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-                if (category.TryGetProperty("parentCategory", out var parentCategoryElement) &&
-                    parentCategoryElement.TryGetProperty("name", out var parentNameElement))
+                if (category.TryGetProperty(AppConstants.Media.PubMediaJson.ParentCategory, out var parentCategoryElement) &&
+                    parentCategoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var parentNameElement))
                 {
                     var rawParent = parentNameElement.GetString();
                     var parentName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawParent);
@@ -54,7 +55,7 @@ internal static class MediatorSectionCodeExtractor
                 }
             }
 
-            if (!category.TryGetProperty("media", out var mediaArray))
+            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaArray))
             {
                 return (tracks, localizedPublicationName);
             }
@@ -65,16 +66,16 @@ internal static class MediatorSectionCodeExtractor
 
             foreach (var mediaItem in mediaArray.EnumerateArray())
             {
-                if (!mediaItem.TryGetProperty("naturalKey", out var _))
+                if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.NaturalKey, out var _))
                     continue;
 
-                if (!mediaItem.TryGetProperty("files", out var filesElement) || filesElement.ValueKind != JsonValueKind.Array)
+                if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement) || filesElement.ValueKind != JsonValueKind.Array)
                     continue;
 
                 string? url = null;
                 foreach (var file in filesElement.EnumerateArray())
                 {
-                    if (file.TryGetProperty("progressiveDownloadURL", out var urlEl))
+                    if (file.TryGetProperty(AppConstants.Media.PubMediaJson.ProgressiveDownloadUrl, out var urlEl))
                     {
                         url = urlEl.GetString();
                         break;
@@ -85,7 +86,7 @@ internal static class MediatorSectionCodeExtractor
                     continue;
 
                 var title = MediaTrackTitleHelper.UnknownTitle;
-                if (mediaItem.TryGetProperty("title", out var titleElement))
+                if (mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
                 {
                     title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
                 }
@@ -123,7 +124,7 @@ internal static class MediatorSectionCodeExtractor
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("category", out var category))
+            if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category))
             {
                 return (mediaItems, null);
             }
@@ -131,14 +132,14 @@ internal static class MediatorSectionCodeExtractor
             string? categoryName = null;
             string? parentCategoryName = null;
 
-            if (category.TryGetProperty("name", out var nameElement))
+            if (category.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
             {
                 var rawName = nameElement.GetString();
                 categoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
             }
 
-            if (category.TryGetProperty("parentCategory", out var parentCategoryElement) &&
-                parentCategoryElement.TryGetProperty("name", out var parentNameElement))
+            if (category.TryGetProperty(AppConstants.Media.PubMediaJson.ParentCategory, out var parentCategoryElement) &&
+                parentCategoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var parentNameElement))
             {
                 var rawParentName = parentNameElement.GetString();
                 parentCategoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawParentName);
@@ -153,14 +154,14 @@ internal static class MediatorSectionCodeExtractor
                 localizedPublicationName = categoryName;
             }
 
-            if (!category.TryGetProperty("media", out var mediaArray))
+            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaArray))
             {
                 return (mediaItems, localizedPublicationName);
             }
 
             foreach (var mediaItem in mediaArray.EnumerateArray())
             {
-                if (!mediaItem.TryGetProperty("naturalKey", out var naturalKeyElement))
+                if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.NaturalKey, out var naturalKeyElement))
                 {
                     continue;
                 }

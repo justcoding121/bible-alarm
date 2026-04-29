@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.Json;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
@@ -59,7 +60,7 @@ internal abstract class BaseCataloger
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("languages", out var languages))
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languages))
         {
             return null;
         }
@@ -75,14 +76,14 @@ internal abstract class BaseCataloger
         {
             foreach (var element in languages.EnumerateArray())
             {
-                var languageCode = element.TryGetProperty("langcode", out var lc) ? lc.GetString()?.ToUpperInvariant()
-                    : element.TryGetProperty("symbol", out var sym) ? sym.GetString()?.ToUpperInvariant() : null;
+                var languageCode = element.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var lc) ? lc.GetString()?.ToUpperInvariant()
+                    : element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Symbol, out var sym) ? sym.GetString()?.ToUpperInvariant() : null;
                 if (string.IsNullOrEmpty(languageCode))
                 {
                     continue;
                 }
 
-                if (!element.TryGetProperty("name", out var nameElement))
+                if (!element.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
                 {
                     continue;
                 }
@@ -95,7 +96,7 @@ internal abstract class BaseCataloger
                 }
 
                 var direction = "ltr";
-                if (element.TryGetProperty("direction", out var directionElement))
+                if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
                 {
                     direction = directionElement.GetString() ?? "ltr";
                 }
@@ -109,7 +110,7 @@ internal abstract class BaseCataloger
             {
                 var languageCode = item.Name.ToUpperInvariant();
 
-                if (!item.Value.TryGetProperty("name", out var nameElement))
+                if (!item.Value.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
                 {
                     continue;
                 }
@@ -122,7 +123,7 @@ internal abstract class BaseCataloger
                 }
 
                 var direction = "ltr";
-                if (item.Value.TryGetProperty("direction", out var directionElement))
+                if (item.Value.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
                 {
                     direction = directionElement.GetString() ?? "ltr";
                 }

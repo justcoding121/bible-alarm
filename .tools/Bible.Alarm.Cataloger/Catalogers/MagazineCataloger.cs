@@ -178,7 +178,7 @@ internal sealed class MagazineCataloger : BaseCataloger
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("languages", out var languages))
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languages))
         {
             return result;
         }
@@ -189,7 +189,7 @@ internal sealed class MagazineCataloger : BaseCataloger
             {
                 var languageCode = item.Name.ToUpperInvariant();
 
-                if (!item.Value.TryGetProperty("name", out var nameElement))
+                if (!item.Value.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
                     continue;
 
                 var rawName = nameElement.GetString();
@@ -198,7 +198,7 @@ internal sealed class MagazineCataloger : BaseCataloger
                     continue;
 
                 var direction = "ltr";
-                if (item.Value.TryGetProperty("direction", out var dirElement))
+                if (item.Value.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var dirElement))
                 {
                     direction = dirElement.GetString() ?? "ltr";
                 }
@@ -210,12 +210,12 @@ internal sealed class MagazineCataloger : BaseCataloger
         {
             foreach (var element in languages.EnumerateArray())
             {
-                var languageCode = element.TryGetProperty("langcode", out var lc) ? lc.GetString()?.ToUpperInvariant()
-                    : element.TryGetProperty("symbol", out var sym) ? sym.GetString()?.ToUpperInvariant() : null;
+                var languageCode = element.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var lc) ? lc.GetString()?.ToUpperInvariant()
+                    : element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Symbol, out var sym) ? sym.GetString()?.ToUpperInvariant() : null;
                 if (string.IsNullOrEmpty(languageCode))
                     continue;
 
-                if (!element.TryGetProperty("name", out var nameElement))
+                if (!element.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
                     continue;
 
                 var rawName = nameElement.GetString();
@@ -224,7 +224,7 @@ internal sealed class MagazineCataloger : BaseCataloger
                     continue;
 
                 var direction = "ltr";
-                if (element.TryGetProperty("direction", out var dirElement))
+                if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var dirElement))
                 {
                     direction = dirElement.GetString() ?? "ltr";
                 }

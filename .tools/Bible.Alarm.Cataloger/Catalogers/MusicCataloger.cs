@@ -453,14 +453,14 @@ internal class MusicCataloger : BaseCataloger
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement))
         {
             return (trackCode, null, null);
         }
 
         var lc = languageCode ?? "E";
         if (!filesElement.TryGetProperty(lc, out var languageFiles) ||
-            !languageFiles.TryGetProperty("MP3", out var musicFiles))
+            !languageFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp3, out var musicFiles))
         {
             return (trackCode, null, null);
         }
@@ -468,7 +468,7 @@ internal class MusicCataloger : BaseCataloger
         // Extract localized publication name from pubName field
         string? localizedPubName = null;
         string? discName = null;
-        if (root.TryGetProperty("pubName", out var pubNameElement))
+        if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
         {
             var rawName = pubNameElement.GetString();
             // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces

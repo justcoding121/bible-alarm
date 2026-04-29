@@ -161,7 +161,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
             return discoveredLanguages;
         }
 
-        if (!root.TryGetProperty("languages", out var languages))
+        if (!root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languages))
         {
             return discoveredLanguages;
         }
@@ -171,7 +171,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
             // Normalize language code to uppercase for consistent storage
             var languageCode = item.Name.ToUpperInvariant();
 
-            if (!item.Value.TryGetProperty("name", out var nameElement))
+            if (!item.Value.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
             {
                 continue;
             }
@@ -186,7 +186,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
 
             // Extract direction (defaults to "ltr" if not present)
             var direction = "ltr";
-            if (item.Value.TryGetProperty("direction", out var directionElement))
+            if (item.Value.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
             {
                 direction = directionElement.GetString() ?? "ltr";
             }

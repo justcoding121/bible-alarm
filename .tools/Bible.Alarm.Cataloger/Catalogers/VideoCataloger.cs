@@ -296,8 +296,8 @@ internal class VideoCataloger : BaseCataloger
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (root.TryGetProperty("category", out var category) &&
-                category.TryGetProperty("name", out var nameElement))
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category) &&
+                category.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
             {
                 var rawName = nameElement.GetString();
                 // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
@@ -390,7 +390,7 @@ internal class VideoCataloger : BaseCataloger
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement))
             return null;
 
         if (!filesElement.TryGetProperty(languageCode, out var languageFiles))
@@ -399,7 +399,7 @@ internal class VideoCataloger : BaseCataloger
                 return null;
         }
 
-        if (!languageFiles.TryGetProperty("MP4", out var mp4Files) || mp4Files.ValueKind != JsonValueKind.Array)
+        if (!languageFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp4, out var mp4Files) || mp4Files.ValueKind != JsonValueKind.Array)
             return null;
 
         var lookUpPathBase = $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}";
@@ -407,14 +407,14 @@ internal class VideoCataloger : BaseCataloger
 
         foreach (var fileElement in mp4Files.EnumerateArray())
         {
-            if (!fileElement.TryGetProperty("track", out var trackEl) || trackEl.ValueKind != JsonValueKind.Number)
+            if (!fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var trackEl) || trackEl.ValueKind != JsonValueKind.Number)
                 continue;
             var episodeNumber = trackEl.GetInt32();
             if (episodeNumber == 0)
                 continue;
 
-            if (!fileElement.TryGetProperty("file", out var fileInfo) ||
-                !fileInfo.TryGetProperty("url", out var urlElement))
+            if (!fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileInfo) ||
+                !fileInfo.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
                 continue;
 
             var url = urlElement.GetString();
@@ -422,13 +422,13 @@ internal class VideoCataloger : BaseCataloger
                 continue;
 
             var title = SharedHelpers.MediaTrackTitleHelper.UnknownTitle;
-            if (fileElement.TryGetProperty("title", out var titleElement))
+            if (fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
             {
                 title = SharedHelpers.MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
             }
 
             double duration = 0;
-            if (fileElement.TryGetProperty("duration", out var durationElement))
+            if (fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Duration, out var durationElement))
                 duration = durationElement.GetDouble();
 
             episodes.Add(new VideoEpisode

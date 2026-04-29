@@ -70,24 +70,24 @@ internal static class CatalogValidator
 
     private static (string? Title, string? Url) GetFirstTrackFromResponse(JsonElement root, string languageCode)
     {
-        if (!root.TryGetProperty("files", out var files) ||
+        if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var files) ||
             !files.TryGetProperty(languageCode, out var langFiles))
         {
             return (null, null);
         }
 
-        if (langFiles.TryGetProperty("MP3", out var mp3) && mp3.GetArrayLength() > 0)
+        if (langFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp3, out var mp3) && mp3.GetArrayLength() > 0)
         {
             var first = mp3[0];
-            var title = first.TryGetProperty("title", out var t) ? t.GetString() : null;
+            var title = first.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var t) ? t.GetString() : null;
             var url = GetUrlFromTrackElement(first);
             return (title, url);
         }
 
-        if (langFiles.TryGetProperty("MP4", out var mp4) && mp4.GetArrayLength() > 0)
+        if (langFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp4, out var mp4) && mp4.GetArrayLength() > 0)
         {
             var first = mp4[0];
-            var title = first.TryGetProperty("title", out var t) ? t.GetString() : null;
+            var title = first.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var t) ? t.GetString() : null;
             var url = GetUrlFromTrackElement(first);
             return (title, url);
         }
@@ -97,7 +97,7 @@ internal static class CatalogValidator
 
     private static string? GetUrlFromTrackElement(JsonElement trackElement)
     {
-        if (!trackElement.TryGetProperty("file", out var fileEl))
+        if (!trackElement.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileEl))
         {
             return null;
         }
@@ -107,7 +107,7 @@ internal static class CatalogValidator
             return fileEl.GetString();
         }
 
-        if (fileEl.ValueKind == JsonValueKind.Object && fileEl.TryGetProperty("url", out var urlEl))
+        if (fileEl.ValueKind == JsonValueKind.Object && fileEl.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlEl))
         {
             return urlEl.GetString();
         }
@@ -117,7 +117,7 @@ internal static class CatalogValidator
 
     private static (string? SectionName, string? PubName) GetSectionNameFromResponse(JsonElement root)
     {
-        var pubName = root.TryGetProperty("pubName", out var pn) ? pn.GetString() : null;
+        var pubName = root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pn) ? pn.GetString() : null;
         return (pubName, pubName);
     }
 
@@ -334,14 +334,14 @@ internal static class CatalogValidator
             {
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
-                if (!root.TryGetProperty("category", out var category))
+                if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category))
                 {
                     logger.Warning("CatalogValidator mediator: No 'category' in response for {PublicationCode}", publicationCode);
                     failed.Add($"{publicationCode} (no category)");
                     continue;
                 }
 
-                if (!category.TryGetProperty("media", out var mediaEl) || mediaEl.ValueKind != JsonValueKind.Array)
+                if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaEl) || mediaEl.ValueKind != JsonValueKind.Array)
                 {
                     logger.Warning("CatalogValidator mediator: No 'category.media' array for {PublicationCode}", publicationCode);
                     failed.Add($"{publicationCode} (no category.media array)");

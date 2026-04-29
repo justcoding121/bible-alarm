@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Models.BiblePublications;
+using Bible.Alarm.Shared.Constants;
 
 namespace Bible.Alarm.Cataloger.Utility;
 
@@ -113,7 +114,7 @@ public class MediaReader(string indexRoot)
                     {
                         var discInfoContent = await File.ReadAllTextAsync(discInfoFile);
                         var discInfo = JsonSerializer.Deserialize<JsonElement>(discInfoContent);
-                        if (discInfo.TryGetProperty("Name", out var nameElement))
+                        if (discInfo.TryGetProperty(AppConstants.Media.PubMediaJson.NamePascal, out var nameElement))
                         {
                             discName = nameElement.GetString() ?? discCode;
                         }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Cataloger.Utility;
@@ -208,11 +209,11 @@ internal sealed class SignLanguageChecker
         }
         else if (root.ValueKind == JsonValueKind.Object)
         {
-            if (root.TryGetProperty("languages", out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
+            if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
             {
                 languagesArray = languagesProp;
             }
-            else if (root.TryGetProperty("data", out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
+            else if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
             {
                 languagesArray = dataProp;
             }
@@ -230,7 +231,7 @@ internal sealed class SignLanguageChecker
 
         foreach (var langElement in languagesArray.EnumerateArray())
         {
-            if (!langElement.TryGetProperty("langcode", out var langcodeElement))
+            if (!langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var langcodeElement))
             {
                 continue;
             }
@@ -242,7 +243,7 @@ internal sealed class SignLanguageChecker
             }
 
             var isSignLanguage = false;
-            if (langElement.TryGetProperty("isSignLanguage", out var isSignLanguageElement))
+            if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.IsSignLanguage, out var isSignLanguageElement))
             {
                 isSignLanguage = isSignLanguageElement.GetBoolean();
             }

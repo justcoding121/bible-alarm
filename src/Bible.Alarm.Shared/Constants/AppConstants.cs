@@ -367,6 +367,29 @@ public static class AppConstants
             public const string PrimaryCategory = "primaryCategory";
             public const string NaturalKey = "naturalKey";
             public const string ProgressiveDownloadUrl = "progressiveDownloadURL";
+
+            /// <summary>Mediator <c>category.media[].availableLanguages</c>.</summary>
+            public const string AvailableLanguages = "availableLanguages";
+
+            /// <summary>Mediator <c>category.language</c> (localized metadata for request locale).</summary>
+            public const string Language = "language";
+
+            /// <summary>GETPUB flat video file duration field when present.</summary>
+            public const string Duration = "duration";
+
+            /// <summary>Some JW hub/index payloads use PascalCase <c>Name</c> on embedded nodes.</summary>
+            public const string NamePascal = "Name";
+        }
+
+        /// <summary>JSON property names in JW language list / catalog responses (alllangs, language APIs).</summary>
+        public static class LanguageIndexJson
+        {
+            public const string Languages = "languages";
+            public const string Data = "data";
+            public const string LangCode = "langcode";
+            public const string Symbol = "symbol";
+            public const string Direction = "direction";
+            public const string IsSignLanguage = "isSignLanguage";
         }
 
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>

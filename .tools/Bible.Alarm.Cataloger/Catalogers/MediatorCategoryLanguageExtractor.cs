@@ -23,19 +23,19 @@ internal static class MediatorCategoryLanguageExtractor
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("category", out var category))
+            if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category))
             {
                 return languages;
             }
 
-            if (!category.TryGetProperty("media", out var mediaArray))
+            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaArray))
             {
                 return languages;
             }
 
             foreach (var mediaItem in mediaArray.EnumerateArray())
             {
-                if (!mediaItem.TryGetProperty("availableLanguages", out var availableLanguages))
+                if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.AvailableLanguages, out var availableLanguages))
                 {
                     continue;
                 }
@@ -71,22 +71,22 @@ internal static class MediatorCategoryLanguageExtractor
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("category", out var category))
+            if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category))
             {
                 return languageInfoMap;
             }
 
             // Try to get language info from category.language if available
-            if (category.TryGetProperty("language", out var languageElement))
+            if (category.TryGetProperty(AppConstants.Media.PubMediaJson.Language, out var languageElement))
             {
                 var direction = "ltr";
-                if (languageElement.TryGetProperty("direction", out var dirElement))
+                if (languageElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var dirElement))
                 {
                     direction = dirElement.GetString() ?? "ltr";
                 }
 
                 string? name = null;
-                if (languageElement.TryGetProperty("name", out var nameElement))
+                if (languageElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
                 {
                     var rawName = nameElement.GetString();
                     name = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);

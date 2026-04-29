@@ -5,6 +5,7 @@ using System.Text.Json;
 using Bible.Alarm.Shared.Helpers;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Utility;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Microsoft.EntityFrameworkCore;
@@ -137,11 +138,11 @@ internal sealed class LanguageSeeder
             else if (root.ValueKind == JsonValueKind.Object)
             {
                 // Try common property names that might contain the languages array
-                if (root.TryGetProperty("languages", out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
+                if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
                 {
                     languagesArray = languagesProp;
                 }
-                else if (root.TryGetProperty("data", out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
+                else if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
                 {
                     languagesArray = dataProp;
                 }
@@ -162,7 +163,7 @@ internal sealed class LanguageSeeder
             // Search for the language by langcode
             foreach (var langElement in languagesArray.EnumerateArray())
             {
-                if (!langElement.TryGetProperty("langcode", out var langcodeElement))
+                if (!langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var langcodeElement))
                 {
                     continue;
                 }
@@ -176,7 +177,7 @@ internal sealed class LanguageSeeder
 
                 // Found the language - extract name and direction
                 var name = languageCode; // Default to code if name not found
-                if (langElement.TryGetProperty("name", out var nameElement))
+                if (langElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
                 {
                     var rawName = nameElement.GetString();
                     if (!string.IsNullOrWhiteSpace(rawName))
@@ -191,7 +192,7 @@ internal sealed class LanguageSeeder
                 }
 
                 var direction = "ltr";
-                if (langElement.TryGetProperty("direction", out var directionElement))
+                if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
                 {
                     var dirValue = directionElement.GetString();
                     if (!string.IsNullOrWhiteSpace(dirValue))
@@ -250,11 +251,11 @@ internal sealed class LanguageSeeder
             else if (root.ValueKind == JsonValueKind.Object)
             {
                 // Try common property names that might contain the languages array
-                if (root.TryGetProperty("languages", out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
+                if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
                 {
                     languagesArray = languagesProp;
                 }
-                else if (root.TryGetProperty("data", out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
+                else if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
                 {
                     languagesArray = dataProp;
                 }
@@ -277,7 +278,7 @@ internal sealed class LanguageSeeder
             // Process all languages from the API response
             foreach (var langElement in languagesArray.EnumerateArray())
             {
-                if (!langElement.TryGetProperty("langcode", out var langcodeElement))
+                if (!langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var langcodeElement))
                 {
                     continue;
                 }
@@ -290,7 +291,7 @@ internal sealed class LanguageSeeder
 
                 // Check if this is a sign language
                 var isSignLanguage = false;
-                if (langElement.TryGetProperty("isSignLanguage", out var isSignLanguageElement))
+                if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.IsSignLanguage, out var isSignLanguageElement))
                 {
                     isSignLanguage = isSignLanguageElement.GetBoolean();
                 }
@@ -316,7 +317,7 @@ internal sealed class LanguageSeeder
 
                 // Extract name and direction
                 var name = normalizedCode; // Default to code if name not found
-                if (langElement.TryGetProperty("name", out var nameElement))
+                if (langElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
                 {
                     var rawName = nameElement.GetString();
                     if (!string.IsNullOrWhiteSpace(rawName))
@@ -331,7 +332,7 @@ internal sealed class LanguageSeeder
                 }
 
                 var direction = "ltr";
-                if (langElement.TryGetProperty("direction", out var directionElement))
+                if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
                 {
                     var dirValue = directionElement.GetString();
                     if (!string.IsNullOrWhiteSpace(dirValue))

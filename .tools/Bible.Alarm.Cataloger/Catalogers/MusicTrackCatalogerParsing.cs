@@ -63,8 +63,8 @@ internal static class MusicTrackCatalogParsing
         track = 0;
         title = "Unknown";
 
-        if (!musicFile.TryGetProperty("file", out var fileElement) ||
-            !fileElement.TryGetProperty("url", out var urlElement))
+        if (!musicFile.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileElement) ||
+            !fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
         {
             return false;
         }
@@ -75,14 +75,14 @@ internal static class MusicTrackCatalogParsing
             return false;
         }
 
-        if (!musicFile.TryGetProperty("track", out var trackElement))
+        if (!musicFile.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var trackElement))
         {
             return false;
         }
 
         track = trackElement.GetInt32();
 
-        if (musicFile.TryGetProperty("title", out var titleElement))
+        if (musicFile.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
         {
             var rawTitle = titleElement.ValueKind != JsonValueKind.Undefined ? titleElement.GetString() : null;
             // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
