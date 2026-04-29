@@ -42,8 +42,8 @@ public static class PublicationCodeHelper
             return new CategoryPriorityPublicationCodeComparer(MusicPriorityPublicationCodes);
         if (string.Equals(c, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase))
             return PublicationCodeComparer;
-        if (string.Equals(c, "WatchtowerMagazine", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(c, "AwakeMagazine", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(c, AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(c, AppConstants.Media.BiblePublicationCategoryAwakeMagazine, StringComparison.OrdinalIgnoreCase))
             return MagazineDescendingYearComparer;
         return new CategoryPriorityPublicationCodeComparer(Array.Empty<string>());
     }
@@ -57,8 +57,8 @@ public static class PublicationCodeHelper
     public static IComparer<string?> GetNavigationComparerForCategory(string? categoryName)
     {
         var c = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
-        if (string.Equals(c, "WatchtowerMagazine", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(c, "AwakeMagazine", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(c, AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(c, AppConstants.Media.BiblePublicationCategoryAwakeMagazine, StringComparison.OrdinalIgnoreCase))
             return new CategoryPriorityPublicationCodeComparer(Array.Empty<string>());
         return GetPublicationCodeComparerForCategory(categoryName);
     }

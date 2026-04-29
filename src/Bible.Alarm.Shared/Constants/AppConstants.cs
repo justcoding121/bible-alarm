@@ -347,6 +347,16 @@ public static class AppConstants
         public const string BiblePublicationCodeDramaticBibleReadings = "DramaticBibleReadings";
 
         /// <summary>
+        /// JW catalog category code for Watchtower magazine content.
+        /// </summary>
+        public const string BiblePublicationCategoryWatchtowerMagazine = "WatchtowerMagazine";
+
+        /// <summary>
+        /// JW catalog category code for Awake! magazine content.
+        /// </summary>
+        public const string BiblePublicationCategoryAwakeMagazine = "AwakeMagazine";
+
+        /// <summary>
         /// Text direction constant for left-to-right languages
         /// </summary>
         public const string TextDirectionLeftToRight = "ltr";

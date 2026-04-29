@@ -685,8 +685,8 @@ public static class JwSourceHelper
                 ["Activities"] = ActivitiesPublicationCodes,
                 ["Organization"] = OrganizationPublicationCodes,
                 ["ArticleSeries"] = ArticleSeriesPublicationCodes,
-                ["WatchtowerMagazine"] = WatchtowerMagazinePublicationCodes,
-                ["AwakeMagazine"] = AwakeMagazinePublicationCodes
+                [AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine] = WatchtowerMagazinePublicationCodes,
+                [AppConstants.Media.BiblePublicationCategoryAwakeMagazine] = AwakeMagazinePublicationCodes
             };
         }
     }
