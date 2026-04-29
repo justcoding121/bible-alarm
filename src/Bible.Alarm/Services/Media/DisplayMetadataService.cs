@@ -28,6 +28,9 @@ public sealed class DisplayMetadataService(
     private readonly RemoteMp4ArtworkExtractor remoteMp4ArtworkExtractor = new(httpHandler, logger);
     private readonly SemaphoreSlim metadataFetchLock = new(1, 1);
 
+    private const string HttpsUriSchemePrefix = "https://";
+    private const string FallbackUnknownTitle = "Unknown Title";
+
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
         await metadataFetchLock.WaitAsync();
@@ -84,7 +87,7 @@ public sealed class DisplayMetadataService(
         // Ensure the alarm modal / now-playing metadata is still populated correctly from the melody catalog.
         if (await TrySetDiscStyleMelodyMetadataAsync(trackMetadata, meta))
         {
-            if (!skipRemoteArtwork || !uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            if (!skipRemoteArtwork || !uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 await TryExtractArtworkFromFileAsync(meta, uri, "Melody disc file");
             }
@@ -110,7 +113,7 @@ public sealed class DisplayMetadataService(
             await SetBiblePublicationTrackMetadataAsync(trackMetadata, meta);
         }
 
-        if (!skipRemoteArtwork || !uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        if (!skipRemoteArtwork || !uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
             await TryExtractArtworkFromFileAsync(meta, uri, "Bible file");
         }
@@ -200,7 +203,7 @@ public sealed class DisplayMetadataService(
 
     private Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri, bool skipRemoteArtwork = false)
     {
-        Func<Task> extractFileMetadata = (skipRemoteArtwork && uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        Func<Task> extractFileMetadata = (skipRemoteArtwork && uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
             ? () => Task.CompletedTask
             : () => TryExtractFileMetadataAsync(meta, uri);
         return musicHelper.SetMusicMetadataAsync(trackMetadata, meta, uri, extractFileMetadata);
@@ -343,9 +346,9 @@ public sealed class DisplayMetadataService(
             return Task.CompletedTask;
         }
 
-        if (skipRemoteArtwork && uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        if (skipRemoteArtwork && uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
-            meta.Title = "Unknown Title";
+            meta.Title = FallbackUnknownTitle;
             meta.Artist ??= "jw.org";
             return Task.CompletedTask;
         }
@@ -358,7 +361,7 @@ public sealed class DisplayMetadataService(
         try
         {
             var fileMeta = await ExtractMetadataFromFileAsync(uri);
-            meta.Title = fileMeta.Title ?? "Unknown Title";
+            meta.Title = fileMeta.Title ?? FallbackUnknownTitle;
             if (string.IsNullOrEmpty(meta.Artist))
             {
                 meta.Artist = fileMeta.Artist;
@@ -371,7 +374,7 @@ public sealed class DisplayMetadataService(
         catch (Exception ex)
         {
             logger.Warning(ex, "Failed to extract metadata from file {Uri}", uri);
-            meta.Title = "Unknown Title";
+            meta.Title = FallbackUnknownTitle;
         }
     }
 
@@ -386,7 +389,7 @@ public sealed class DisplayMetadataService(
 
         // Fallback: for HTTPS streaming URLs with no local file, use HTTP Range requests
         // to fetch tag/metadata (ID3v2 for MP3, moov for MP4) without downloading the full file.
-        if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        if (uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
             var remoteMeta = await remoteId3ArtworkExtractor.TryExtractMetadataAsync(uri);
             if (remoteMeta == null)
@@ -406,7 +409,7 @@ public sealed class DisplayMetadataService(
     private async Task<MetaData?> TryExtractFromLocalFileAsync(string uri)
     {
         // HTTPS URLs are not local files -- skip the file system check entirely.
-        if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        if (uri.StartsWith(HttpsUriSchemePrefix, StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -508,7 +511,7 @@ public sealed class DisplayMetadataService(
     {
         return new MetaData
         {
-            Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : "Unknown Title",
+            Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : FallbackUnknownTitle,
             Artist = !string.IsNullOrEmpty(tag.FirstPerformer) ? tag.FirstPerformer :
                      !string.IsNullOrEmpty(tag.FirstAlbumArtist) ? tag.FirstAlbumArtist :
                      null,
@@ -556,7 +559,7 @@ public sealed class DisplayMetadataService(
     {
         return new MetaData
         {
-            Title = "Unknown Title",
+            Title = FallbackUnknownTitle,
             Artist = null
         };
     }

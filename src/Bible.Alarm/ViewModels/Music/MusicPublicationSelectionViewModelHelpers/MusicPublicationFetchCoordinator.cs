@@ -12,6 +12,8 @@ namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers
 
 internal sealed class MusicPublicationFetchCoordinator
 {
+    private const string BiblePublicationCategoryMusic = "Music";
+
     private readonly IMediaService mediaService;
 
     public MusicPublicationFetchCoordinator(IMediaService mediaService)
@@ -39,8 +41,8 @@ internal sealed class MusicPublicationFetchCoordinator
         if (downloadAll)
         {
             // Always check DB first: if all expected publications are already cataloged, use that and skip fetch/progress (matches Bible).
-            var initialPublications = await mediaService.GetBiblePublications(languageForFetch, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
-            var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageForFetch, "Music", requireIsMusicForMusicCategory: true);
+            var initialPublications = await mediaService.GetBiblePublications(languageForFetch, BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
+            var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageForFetch, BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
             var actualPublicationCount = initialPublications?.Values.Count ?? 0;
             var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
             var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
@@ -56,11 +58,11 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (isMelodyMusic)
         {
-            publicationsData = await mediaService.GetBiblePublications(AppConstants.Media.DefaultLanguageCode, "Music", downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData = await mediaService.GetBiblePublications(AppConstants.Media.DefaultLanguageCode, BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
         }
         else if (!string.IsNullOrEmpty(languageCode))
         {
-            publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
         }
         else
         {
@@ -74,7 +76,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (publicationsData == null && !string.IsNullOrEmpty(languageCode))
         {
-            publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
         }
 
         return publicationsData;
@@ -87,10 +89,10 @@ internal sealed class MusicPublicationFetchCoordinator
     {
         // First, check if publications are already cataloged (without showing progress)
         // This prevents progress bar from flashing at 0% when data is already available
-        var initialPublications = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
+        var initialPublications = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
         
         // Get expected publication count from PublicationLanguages discovery table
-        var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, "Music", requireIsMusicForMusicCategory: true);
+        var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
         var actualPublicationCount = initialPublications?.Values.Count ?? 0;
         
         // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
@@ -142,16 +144,16 @@ internal sealed class MusicPublicationFetchCoordinator
                 {
                     // Fetch publications (this triggers cataloging if needed)
                     // Pass progress to show download percentage during cataloging
-                    publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: true, progress, requireIsMusicForMusicCategory: true);
+                    publicationsData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll: true, progress, requireIsMusicForMusicCategory: true);
 
                     // Wait a bit for background cataloging to start (with cancellation support)
                     await Task.Delay(500, cancellationToken);
 
                     // Re-query to check if publications are now cataloged (no progress needed for re-query)
-                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null, requireIsMusicForMusicCategory: true);
+                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
 
                     // Get expected publication count to verify we have all publications
-                    var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, "Music", requireIsMusicForMusicCategory: true);
+                    var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
                     var retryActualCount = reQueriedData?.Values.Count ?? 0;
                     
                     // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
@@ -261,7 +263,7 @@ internal sealed class MusicPublicationFetchCoordinator
                 // Final attempt to get at least some data
                 try
                 {
-                    publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, progress, requireIsMusicForMusicCategory: true);
+                    publicationsData = await mediaService.GetBiblePublications(languageCode, BiblePublicationCategoryMusic, downloadAll: false, progress, requireIsMusicForMusicCategory: true);
                 }
                 catch (Exception ex)
                 {

@@ -13,6 +13,9 @@ namespace Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 /// </summary>
 internal sealed class OldMediaIndexDataCopier(ILogger logger)
 {
+    private const string SqlParamPubCode = "@pubCode";
+    private const string SqlParamLangCode = "@langCode";
+
     public async Task CopyMissingAsync(
         string oldMediaIndexDbPath,
         string newMediaIndexDbPath,
@@ -146,8 +149,8 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
     {
         using var cmd = connection.CreateCommand();
         cmd.Transaction = transaction;
-        cmd.CommandText = "SELECT Id FROM Languages WHERE LanguageCode = @langCode LIMIT 1";
-        cmd.Parameters.AddWithValue("@langCode", langCode);
+        cmd.CommandText = $"SELECT Id FROM Languages WHERE LanguageCode = {SqlParamLangCode} LIMIT 1";
+        cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
         var result = await cmd.ExecuteScalarAsync();
         return result is long id ? (int)id : null;
     }
@@ -160,12 +163,12 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
     {
         using var cmd = connection.CreateCommand();
         cmd.Transaction = transaction;
-        cmd.CommandText = """
+        cmd.CommandText = $"""
             SELECT Id FROM BiblePublications
-            WHERE PublicationCode = @pubCode AND LanguageId = @langId
+            WHERE PublicationCode = {SqlParamPubCode} AND LanguageId = @langId
             LIMIT 1
             """;
-        cmd.Parameters.AddWithValue("@pubCode", pubCode);
+        cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
         cmd.Parameters.AddWithValue("@langId", languageId);
         var result = await cmd.ExecuteScalarAsync();
         return result is long id ? (int)id : null;
@@ -184,15 +187,15 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
     {
         using var readCmd = connection.CreateCommand();
         readCmd.Transaction = transaction;
-        readCmd.CommandText = """
+        readCmd.CommandText = $"""
             SELECT op.Name, op.PublicationCode, op.IsVideo, op.IsMusic, op.CatalogType
             FROM old_media.BiblePublications op
             JOIN old_media.Languages ol ON op.LanguageId = ol.Id
-            WHERE op.PublicationCode = @pubCode AND ol.LanguageCode = @langCode
+            WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode}
             LIMIT 1
             """;
-        readCmd.Parameters.AddWithValue("@pubCode", pubCode);
-        readCmd.Parameters.AddWithValue("@langCode", langCode);
+        readCmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+        readCmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
 
         using var reader = await readCmd.ExecuteReaderAsync();
         if (!await reader.ReadAsync())
@@ -209,13 +212,13 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
 
         using var insertCmd = connection.CreateCommand();
         insertCmd.Transaction = transaction;
-        insertCmd.CommandText = """
+        insertCmd.CommandText = $"""
             INSERT INTO BiblePublications (Name, PublicationCode, LanguageId, IsVideo, IsMusic, CatalogType)
-            VALUES (@name, @pubCode, @langId, @isVideo, @isMusic, @catalogType);
+            VALUES (@name, {SqlParamPubCode}, @langId, @isVideo, @isMusic, @catalogType);
             SELECT last_insert_rowid();
             """;
         insertCmd.Parameters.AddWithValue("@name", name);
-        insertCmd.Parameters.AddWithValue("@pubCode", publicationCode);
+        insertCmd.Parameters.AddWithValue(SqlParamPubCode, publicationCode);
         insertCmd.Parameters.AddWithValue("@langId", newLanguageId);
         insertCmd.Parameters.AddWithValue("@isVideo", isVideo);
         insertCmd.Parameters.AddWithValue("@isMusic", isMusic);
@@ -237,7 +240,7 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
     {
         using var cmd = connection.CreateCommand();
         cmd.Transaction = transaction;
-        cmd.CommandText = """
+        cmd.CommandText = $"""
             INSERT OR IGNORE INTO BiblePublicationCategories (BiblePublicationId, CategoryId)
             SELECT @newPubId, nc.Id
             FROM old_media.BiblePublicationCategories obpc
@@ -245,11 +248,11 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
             JOIN old_media.Languages ol ON op.LanguageId = ol.Id
             JOIN old_media.Categories oc ON obpc.CategoryId = oc.Id
             JOIN Categories nc ON nc.CategoryCode = oc.CategoryCode
-            WHERE op.PublicationCode = @pubCode AND ol.LanguageCode = @langCode
+            WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode}
             """;
         cmd.Parameters.AddWithValue("@newPubId", newPubId);
-        cmd.Parameters.AddWithValue("@pubCode", pubCode);
-        cmd.Parameters.AddWithValue("@langCode", langCode);
+        cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+        cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
         await cmd.ExecuteNonQueryAsync();
     }
 
@@ -355,16 +358,16 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
 
         using var readCmd = connection.CreateCommand();
         readCmd.Transaction = transaction;
-        readCmd.CommandText = """
+        readCmd.CommandText = $"""
             SELECT os.Name, os.SectionCode
             FROM old_media.BiblePublicationSections os
             JOIN old_media.BiblePublications op ON os.BiblePublicationId = op.Id
             JOIN old_media.Languages ol ON op.LanguageId = ol.Id
-            WHERE op.PublicationCode = @pubCode AND ol.LanguageCode = @langCode AND os.SectionCode = @sectionCode
+            WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode} AND os.SectionCode = @sectionCode
             LIMIT 1
             """;
-        readCmd.Parameters.AddWithValue("@pubCode", pubCode);
-        readCmd.Parameters.AddWithValue("@langCode", langCode);
+        readCmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+        readCmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
         readCmd.Parameters.AddWithValue("@sectionCode", sectionCode);
 
         using var reader = await readCmd.ExecuteReaderAsync();
@@ -411,33 +414,33 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
 
         if (string.IsNullOrEmpty(sectionCode))
         {
-            cmd.CommandText = """
+            cmd.CommandText = $"""
                 SELECT ot.TrackCode, ot.Title
                 FROM old_media.BiblePublicationTracks ot
                 JOIN old_media.BiblePublications op ON ot.BiblePublicationId = op.Id
                 JOIN old_media.Languages ol ON op.LanguageId = ol.Id
-                WHERE op.PublicationCode = @pubCode AND ol.LanguageCode = @langCode
+                WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode}
                   AND ot.BiblePublicationSectionId IS NULL AND ot.TrackCode = @trackCode
                 LIMIT 1
                 """;
         }
         else
         {
-            cmd.CommandText = """
+            cmd.CommandText = $"""
                 SELECT ot.TrackCode, ot.Title
                 FROM old_media.BiblePublicationTracks ot
                 JOIN old_media.BiblePublicationSections os ON ot.BiblePublicationSectionId = os.Id
                 JOIN old_media.BiblePublications op ON os.BiblePublicationId = op.Id
                 JOIN old_media.Languages ol ON op.LanguageId = ol.Id
-                WHERE op.PublicationCode = @pubCode AND ol.LanguageCode = @langCode
+                WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode}
                   AND os.SectionCode = @sectionCode AND ot.TrackCode = @trackCode
                 LIMIT 1
                 """;
             cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
         }
 
-        cmd.Parameters.AddWithValue("@pubCode", pubCode);
-        cmd.Parameters.AddWithValue("@langCode", langCode);
+        cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+        cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
         cmd.Parameters.AddWithValue("@trackCode", trackCode);
 
         using var reader = await cmd.ExecuteReaderAsync();
@@ -483,21 +486,21 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
 
         if (string.IsNullOrEmpty(sectionCode))
         {
-            cmd.CommandText = """
+            cmd.CommandText = $"""
                 INSERT OR IGNORE INTO TrackUrls (Url, BiblePublicationTrackId)
                 SELECT otu.Url, @newTrackId
                 FROM old_media.TrackUrls otu
                 JOIN old_media.BiblePublicationTracks ot ON otu.BiblePublicationTrackId = ot.Id
                 JOIN old_media.BiblePublications op ON ot.BiblePublicationId = op.Id
                 JOIN old_media.Languages ol ON op.LanguageId = ol.Id
-                WHERE op.PublicationCode = @pubCode AND ol.LanguageCode = @langCode
+                WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode}
                   AND ot.BiblePublicationSectionId IS NULL AND ot.TrackCode = @trackCode
                 LIMIT 1
                 """;
         }
         else
         {
-            cmd.CommandText = """
+            cmd.CommandText = $"""
                 INSERT OR IGNORE INTO TrackUrls (Url, BiblePublicationTrackId)
                 SELECT otu.Url, @newTrackId
                 FROM old_media.TrackUrls otu
@@ -505,7 +508,7 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
                 JOIN old_media.BiblePublicationSections os ON ot.BiblePublicationSectionId = os.Id
                 JOIN old_media.BiblePublications op ON os.BiblePublicationId = op.Id
                 JOIN old_media.Languages ol ON op.LanguageId = ol.Id
-                WHERE op.PublicationCode = @pubCode AND ol.LanguageCode = @langCode
+                WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode}
                   AND os.SectionCode = @sectionCode AND ot.TrackCode = @trackCode
                 LIMIT 1
                 """;
@@ -513,8 +516,8 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
         }
 
         cmd.Parameters.AddWithValue("@newTrackId", newTrackId);
-        cmd.Parameters.AddWithValue("@pubCode", pubCode);
-        cmd.Parameters.AddWithValue("@langCode", langCode);
+        cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
+        cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
         cmd.Parameters.AddWithValue("@trackCode", trackCode);
         await cmd.ExecuteNonQueryAsync();
     }
