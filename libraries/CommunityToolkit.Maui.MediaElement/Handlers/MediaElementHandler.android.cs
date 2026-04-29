@@ -94,7 +94,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
         return new MauiMediaElement(Context, playerView);
     }
 
-    IDispatcher GetDispatcher()
+    private static IDispatcher GetDispatcher()
     {
         // Get dispatcher - try current thread first, then Application.Current dispatcher
         // After bootstrap completes, Application.Current.Dispatcher should always be available

@@ -93,7 +93,7 @@ public class CarPlayScheduleListEffect
         return Task.CompletedTask;
     }
 
-    private void RefreshCarPlayScheduleList(string triggerAction)
+    private static void RefreshCarPlayScheduleList(string triggerAction)
     {
         if (!CarPlaySceneDelegate.IsCarPlayConnected)
         {
