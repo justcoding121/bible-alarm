@@ -87,58 +87,37 @@ public partial class ScheduleContent : ContentView
         // On WinUI, buttons are inside SfEffectsView; on Android/iOS, they're separate buttons
         Border? cancelButton = platform == DevicePlatform.WinUI ? CancelButton : CancelButtonNoEffects;
         Border? saveButton = platform == DevicePlatform.WinUI ? SaveButton : SaveButtonNoEffects;
-        
-        if (platform == DevicePlatform.WinUI)
+
+        void StyleCancelSave(Thickness padding, LayoutOptions verticalOptions)
         {
             if (cancelButton != null)
             {
-                cancelButton.Padding = new Thickness(10, 10);
-                cancelButton.VerticalOptions = LayoutOptions.Fill;
+                cancelButton.Padding = padding;
+                cancelButton.VerticalOptions = verticalOptions;
             }
+
             if (saveButton != null)
             {
-                saveButton.Padding = new Thickness(10, 10);
-                saveButton.VerticalOptions = LayoutOptions.Fill;
+                saveButton.Padding = padding;
+                saveButton.VerticalOptions = verticalOptions;
             }
+        }
+
+        if (platform == DevicePlatform.WinUI)
+        {
+            StyleCancelSave(new Thickness(10, 10), LayoutOptions.Fill);
         }
         else if (platform == DevicePlatform.iOS)
         {
-            if (cancelButton != null)
-            {
-                cancelButton.Padding = new Thickness(10, 12);
-                cancelButton.VerticalOptions = LayoutOptions.Fill;
-            }
-            if (saveButton != null)
-            {
-                saveButton.Padding = new Thickness(10, 12);
-                saveButton.VerticalOptions = LayoutOptions.Fill;
-            }
+            StyleCancelSave(new Thickness(10, 12), LayoutOptions.Fill);
         }
         else if (platform == DevicePlatform.Android)
         {
-            if (cancelButton != null)
-            {
-                cancelButton.Padding = new Thickness(10, 6, 10, 10);
-                cancelButton.VerticalOptions = LayoutOptions.Center;
-            }
-            if (saveButton != null)
-            {
-                saveButton.Padding = new Thickness(10, 6, 10, 10);
-                saveButton.VerticalOptions = LayoutOptions.Center;
-            }
+            StyleCancelSave(new Thickness(10, 6, 10, 10), LayoutOptions.Center);
         }
         else
         {
-            if (cancelButton != null)
-            {
-                cancelButton.Padding = new Thickness(10, 8);
-                cancelButton.VerticalOptions = LayoutOptions.Fill;
-            }
-            if (saveButton != null)
-            {
-                saveButton.Padding = new Thickness(10, 8);
-                saveButton.VerticalOptions = LayoutOptions.Fill;
-            }
+            StyleCancelSave(new Thickness(10, 8), LayoutOptions.Fill);
         }
 
         // Platform-specific styling for Delete button
@@ -146,28 +125,33 @@ public partial class ScheduleContent : ContentView
         // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
         // On WinUI, button is inside SfEffectsView; on Android/iOS, it's a separate button
         Border? deleteButton = platform == DevicePlatform.WinUI ? DeleteButton : DeleteButtonNoEffectsBorder;
-        if (deleteButton != null)
+
+        void StyleDelete(Thickness padding, LayoutOptions verticalOptions)
         {
-            if (platform == DevicePlatform.WinUI)
+            if (deleteButton == null)
             {
-                deleteButton.Padding = new Thickness(10, 10);
-                deleteButton.VerticalOptions = LayoutOptions.Fill;
+                return;
             }
-            else if (platform == DevicePlatform.iOS)
-            {
-                deleteButton.Padding = new Thickness(10, 12);
-                deleteButton.VerticalOptions = LayoutOptions.Fill;
-            }
-            else if (platform == DevicePlatform.Android)
-            {
-                deleteButton.Padding = new Thickness(10, 6, 10, 10);
-                deleteButton.VerticalOptions = LayoutOptions.Center;
-            }
-            else
-            {
-                deleteButton.Padding = new Thickness(10, 8);
-                deleteButton.VerticalOptions = LayoutOptions.Fill;
-            }
+
+            deleteButton.Padding = padding;
+            deleteButton.VerticalOptions = verticalOptions;
+        }
+
+        if (platform == DevicePlatform.WinUI)
+        {
+            StyleDelete(new Thickness(10, 10), LayoutOptions.Fill);
+        }
+        else if (platform == DevicePlatform.iOS)
+        {
+            StyleDelete(new Thickness(10, 12), LayoutOptions.Fill);
+        }
+        else if (platform == DevicePlatform.Android)
+        {
+            StyleDelete(new Thickness(10, 6, 10, 10), LayoutOptions.Center);
+        }
+        else
+        {
+            StyleDelete(new Thickness(10, 8), LayoutOptions.Fill);
         }
         
         // Ensure DeleteButtonNoEffects is only visible on Android/iOS

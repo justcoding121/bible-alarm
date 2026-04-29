@@ -49,45 +49,21 @@ public static class PublicationTypeHelper
     /// </summary>
     public static bool HasSectionStructure(string? publicationCode)
     {
-        if (string.IsNullOrEmpty(publicationCode))
-        {
-            return true; // Default to Bible structure
-        }
-
-        // Magazine publications (Watchtower, Awake!) have issue-based sections
-        if (MagazineHelper.IsMagazinePublicationCode(publicationCode))
+        // Default empty to Bible structure; magazines and Kingdom Melodies ("iam") use sections.
+        if (string.IsNullOrEmpty(publicationCode)
+            || MagazineHelper.IsMagazinePublicationCode(publicationCode)
+            || publicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
-        // Only Bible and "iam" (Kingdom Melodies) have sections
-        if (publicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
-        {
-            return true; // Kingdom Melodies uses discs (sections)
-        }
-
-        // All Mediator-based publications have flat tracks
-        if (JwSourceHelper.AllMediatorPublicationCodes.Contains(publicationCode))
-        {
-            return false;
-        }
-
-        // Article Series (e.g. mrt = More Topics) are flat audio
-        if (JwSourceHelper.ArticleSeriesPublicationCodes.Contains(publicationCode))
-        {
-            return false;
-        }
-
-        // Books, Yearbooks, Brochures and Booklets are flat audio (GETPUBMEDIALINKS, no booknum)
-        if (JwSourceHelper.BooksPublicationCodes.Contains(publicationCode) ||
-            JwSourceHelper.YearbooksPublicationCodes.Contains(publicationCode) ||
-            JwSourceHelper.BrochuresAndBookletsPublicationCodes.Contains(publicationCode))
-        {
-            return false;
-        }
-
-        // Series flat video (thv)
-        if (SeriesVideoPublicationCodes.Contains(publicationCode))
+        // Flat catalogs: Mediator flat tracks, article series, books/yearbooks/brochures, series video, vocal/melody music.
+        if (JwSourceHelper.AllMediatorPublicationCodes.Contains(publicationCode)
+            || JwSourceHelper.ArticleSeriesPublicationCodes.Contains(publicationCode)
+            || JwSourceHelper.BooksPublicationCodes.Contains(publicationCode)
+            || JwSourceHelper.YearbooksPublicationCodes.Contains(publicationCode)
+            || JwSourceHelper.BrochuresAndBookletsPublicationCodes.Contains(publicationCode)
+            || SeriesVideoPublicationCodes.Contains(publicationCode))
         {
             return false;
         }
