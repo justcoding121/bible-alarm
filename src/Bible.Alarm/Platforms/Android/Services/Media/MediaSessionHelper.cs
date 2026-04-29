@@ -48,7 +48,7 @@ public static class MediaSessionHelper
                     // This ensures Android Auto shows the last played item immediately on process start
                     ApplyLastPlayedMetadataIfAvailable(mediaSession);
 
-                    logger.Information("MediaSessionCompat created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}",
+                    logger.Information(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCompatCreatedSuccessfullyInitialBufferingActiveHasToken,
                         mediaSession.SessionToken != null);
                 }
             }
@@ -61,7 +61,7 @@ public static class MediaSessionHelper
 
     private static MediaSessionCompat InitializeMediaSession(Context context)
     {
-        logger.Information("Creating shared MediaSessionCompat instance (2025 Standard)");
+        logger.Information(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.CreatingSharedMediaSessionCompatInstance2025Standard);
 
         // 2025 NON-DEPRECATED CONSTRUCTOR: Only context and tag needed
         // Note: Ensure your AndroidManifest.xml has a MediaButtonReceiver registered
@@ -97,7 +97,7 @@ public static class MediaSessionHelper
         // Verify SessionToken is available
         if (session.SessionToken == null)
         {
-            logger.Error("MediaSessionCompat.SessionToken is null after creation - this should not happen");
+            logger.Error(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCompatSessionTokenNullAfterCreationShouldNotHappen);
             throw new InvalidOperationException("MediaSessionCompat.SessionToken is null after creation");
         }
     }
@@ -115,12 +115,12 @@ public static class MediaSessionHelper
             var metadata = LastPlayedMetadataHelper.GetAllPreferenceMetadata();
             if (metadata == null)
             {
-                logger.Debug("No last played metadata found in Preferences - already in blank loading state");
+                logger.Debug(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.NoLastPlayedMetadataInPreferencesAlreadyBlankLoading);
                 // Don't call ApplyBlankLoadingState again - it was already called in ApplyInitialLoadingState
                 return;
             }
 
-            logger.Information("Applying last played metadata to MediaSession - Title: {Title}, Artist: {Artist}, ScheduleId: {ScheduleId}",
+            logger.Information(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.ApplyingLastPlayedMetadataToMediaSessionTitleArtistScheduleId,
                 metadata.Value.Title, metadata.Value.Artist, metadata.Value.ScheduleId);
 
             // Build metadata directly (no DI dependencies)
@@ -143,7 +143,7 @@ public static class MediaSessionHelper
             // Set to stopped state (idle, ready to play) - similar to default schedule
             AndroidAutoPlayScreenHelper.SetStoppedState(session);
 
-            logger.Debug("Successfully applied last played metadata to MediaSession");
+            logger.Debug(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.SuccessfullyAppliedLastPlayedMetadataToMediaSession);
         }
         catch (Exception ex)
         {
@@ -177,11 +177,11 @@ public static class MediaSessionHelper
             if (artworkBitmap != null)
             {
                 metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
-                logger.Debug("Loaded artwork bitmap from: {ArtworkUrl}", artworkUrl);
+                logger.Debug(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.LoadedArtworkBitmapFromArtworkUrl, artworkUrl);
                 return;
             }
 
-            logger.Debug("Could not load artwork from: {ArtworkUrl} (file not found or invalid format) — omitting artwork", artworkUrl);
+            logger.Debug(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.CouldNotLoadArtworkFromArtworkUrlOmitting, artworkUrl);
         }
         catch (Exception ex)
         {

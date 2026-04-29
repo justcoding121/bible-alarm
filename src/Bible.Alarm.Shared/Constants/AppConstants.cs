@@ -619,6 +619,30 @@ public static class AppConstants
 
             public const string FailedToApplyLastPlayedMetadataToMediaSession =
                 "Failed to apply last played metadata to MediaSession";
+
+            public const string MediaSessionCompatCreatedSuccessfullyInitialBufferingActiveHasToken =
+                "MediaSessionCompat created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}";
+
+            public const string CreatingSharedMediaSessionCompatInstance2025Standard =
+                "Creating shared MediaSessionCompat instance (2025 Standard)";
+
+            public const string MediaSessionCompatSessionTokenNullAfterCreationShouldNotHappen =
+                "MediaSessionCompat.SessionToken is null after creation - this should not happen";
+
+            public const string NoLastPlayedMetadataInPreferencesAlreadyBlankLoading =
+                "No last played metadata found in Preferences - already in blank loading state";
+
+            public const string ApplyingLastPlayedMetadataToMediaSessionTitleArtistScheduleId =
+                "Applying last played metadata to MediaSession - Title: {Title}, Artist: {Artist}, ScheduleId: {ScheduleId}";
+
+            public const string SuccessfullyAppliedLastPlayedMetadataToMediaSession =
+                "Successfully applied last played metadata to MediaSession";
+
+            public const string LoadedArtworkBitmapFromArtworkUrl =
+                "Loaded artwork bitmap from: {ArtworkUrl}";
+
+            public const string CouldNotLoadArtworkFromArtworkUrlOmitting =
+                "Could not load artwork from: {ArtworkUrl} (file not found or invalid format) — omitting artwork";
         }
 
         /// <summary>Schedule listing display names for music (<c>ScheduleDisplayNameMusicHelper</c>).</summary>
@@ -1490,6 +1514,24 @@ public static class AppConstants
 
             public const string OnSeekCompletedMayBeDisposed =
                 "Error in OnSeekCompleted handler (MediaElement may have been disposed)";
+
+            public const string UnsubscribedFromMediaElementEvents =
+                "Unsubscribed from MediaElement events";
+
+            public const string ErrorUnsubscribingFromMediaElementEventsMayHaveBeenDisposed =
+                "Error unsubscribing from MediaElement events (may have been disposed)";
+
+            public const string MediaElementFailedToPlayTrackUriSource =
+                "MediaElement failed to play track. URI: {TrackUri}, Source: {Source}";
+
+            public const string AudioPlayerOnPositionChangedDuringSeekCurrentPosition =
+                "[AudioPlayer] OnPositionChanged during seek - CurrentPosition: {Position}";
+
+            public const string AudioPlayerOnSeekCompletedEventFiredResettingSeeking =
+                "[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false";
+
+            public const string AudioPlayerSeekCompletedResumingNormalPositionAndStatusUpdates =
+                "[AudioPlayer] Seek completed, resuming normal position and status updates";
         }
 
         /// <summary>Schedule list item VM initialization.</summary>

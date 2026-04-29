@@ -74,12 +74,12 @@ public class EventHandlerManager
             mediaElement.MediaFailed -= OnMediaFailed;
             mediaElement.PositionChanged -= OnPositionChanged;
             mediaElement.SeekCompleted -= OnSeekCompleted;
-            logger.Debug("Unsubscribed from MediaElement events");
+            logger.Debug(AppConstants.Logging.MediaElementHandlerDiagnosticsLog.UnsubscribedFromMediaElementEvents);
         }
         catch (Exception ex)
         {
             // MediaElement may have been disposed, ignore
-            logger.Debug(ex, "Error unsubscribing from MediaElement events (may have been disposed)");
+            logger.Debug(ex, AppConstants.Logging.MediaElementHandlerDiagnosticsLog.ErrorUnsubscribingFromMediaElementEventsMayHaveBeenDisposed);
         }
     }
 
@@ -107,7 +107,7 @@ public class EventHandlerManager
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error in OnMediaOpened handler (MediaElement may have been disposed)");
+            logger.Warning(ex, AppConstants.Logging.MediaElementHandlerDiagnosticsLog.OnMediaOpenedMayBeDisposed);
         }
     }
 
@@ -133,7 +133,7 @@ public class EventHandlerManager
 
             var currentTrack = getCurrentTrack();
             var trackUri = currentTrack?.Uri ?? MediaTrackTitleHelper.UnknownTitle;
-            logger.Error("MediaElement failed to play track. URI: {TrackUri}, Source: {Source}",
+            logger.Error(AppConstants.Logging.MediaElementHandlerDiagnosticsLog.MediaElementFailedToPlayTrackUriSource,
                 trackUri,
                 (sender as MediaElement)?.Source?.ToString() ?? "null");
 
@@ -141,7 +141,7 @@ public class EventHandlerManager
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in OnMediaFailed handler - invoking failure callback to ensure graceful recovery");
+            logger.Error(ex, AppConstants.Logging.MediaElementHandlerDiagnosticsLog.OnMediaFailedInvokingFailureCallback);
             try
             {
                 onMediaFailed?.Invoke(EventArgs.Empty);
@@ -181,7 +181,7 @@ public class EventHandlerManager
         {
             if (stateManager.IsSeeking)
             {
-                logger.Debug("[AudioPlayer] OnPositionChanged during seek - CurrentPosition: {Position}",
+                logger.Debug(AppConstants.Logging.MediaElementHandlerDiagnosticsLog.AudioPlayerOnPositionChangedDuringSeekCurrentPosition,
                     getCurrentPosition()?.ToString() ?? "null");
             }
             positionTracker.SendPositionUpdate(getCurrentPosition(), getDuration());
@@ -197,7 +197,7 @@ public class EventHandlerManager
         try
         {
             var currentPosition = getCurrentPosition();
-            logger.Debug("[AudioPlayer] OnSeekCompleted event fired - CurrentPosition: {Position}, Resetting _isSeeking = false",
+            logger.Debug(AppConstants.Logging.MediaElementHandlerDiagnosticsLog.AudioPlayerOnSeekCompletedEventFiredResettingSeeking,
                 currentPosition?.ToString() ?? "null");
 
             if (sender is MediaElement mediaElement)
@@ -209,7 +209,7 @@ public class EventHandlerManager
                 stateManager.EndSeeking();
             }
 
-            logger.Debug("[AudioPlayer] Seek completed, resuming normal position and status updates");
+            logger.Debug(AppConstants.Logging.MediaElementHandlerDiagnosticsLog.AudioPlayerSeekCompletedResumingNormalPositionAndStatusUpdates);
         }
         catch (Exception ex)
         {
