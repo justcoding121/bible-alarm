@@ -88,12 +88,8 @@ public static class ScheduleStateSyncHelper
 
     public static BiblePublicationStateItem? SyncBiblePublicationScheduleIfNeeded(UpdateScheduleFromViewModelAction action, ScheduleStateItem? updatedCurrentSchedule)
     {
-        if (!action.BiblePublicationUpdated || updatedCurrentSchedule == null)
-        {
-            return null;
-        }
-
-        if (!HasValidBiblePublicationProperties(updatedCurrentSchedule))
+        if (!action.BiblePublicationUpdated || updatedCurrentSchedule == null
+            || !HasValidBiblePublicationProperties(updatedCurrentSchedule))
         {
             return null;
         }
@@ -168,12 +164,8 @@ public static class ScheduleStateSyncHelper
 
     public static MusicStateItem? SyncMusicIfNeeded(UpdateScheduleFromViewModelAction action, ScheduleStateItem? updatedCurrentSchedule)
     {
-        if (!action.MusicUpdated || updatedCurrentSchedule == null)
-        {
-            return null;
-        }
-
-        if (!HasValidMusicProperties(updatedCurrentSchedule))
+        if (!action.MusicUpdated || updatedCurrentSchedule == null
+            || !HasValidMusicProperties(updatedCurrentSchedule))
         {
             return null;
         }
@@ -228,20 +220,15 @@ public static class ScheduleStateSyncHelper
         }
 
         // Preserve time if action has invalid values but existing has valid values
-        if (actionSchedule.Hour == 0 && actionSchedule.Minute == 0 && 
+        if (actionSchedule.Hour == 0 && actionSchedule.Minute == 0 &&
             (existingSchedule.Hour != 0 || existingSchedule.Minute != 0))
         {
-            // Only preserve if action time is truly invalid (midnight) and existing is not
-            // But be careful - midnight (0:00) is a valid time, so only preserve if both hour and minute are 0
-            // and existing has a different time
-            if (existingSchedule.Hour != 0 || existingSchedule.Minute != 0)
-            {
-                Log.Debug("ScheduleStateSyncHelper: Preserving time from existing schedule. Action had Hour={ActionHour}, Minute={ActionMinute}, existing has Hour={ExistingHour}, Minute={ExistingMinute}",
-                    actionSchedule.Hour, actionSchedule.Minute, existingSchedule.Hour, existingSchedule.Minute);
-                actionSchedule.Hour = existingSchedule.Hour;
-                actionSchedule.Minute = existingSchedule.Minute;
-                actionSchedule.Second = existingSchedule.Second;
-            }
+            // Only preserve when action is midnight and existing has a different time (midnight remains valid elsewhere).
+            Log.Debug("ScheduleStateSyncHelper: Preserving time from existing schedule. Action had Hour={ActionHour}, Minute={ActionMinute}, existing has Hour={ExistingHour}, Minute={ExistingMinute}",
+                actionSchedule.Hour, actionSchedule.Minute, existingSchedule.Hour, existingSchedule.Minute);
+            actionSchedule.Hour = existingSchedule.Hour;
+            actionSchedule.Minute = existingSchedule.Minute;
+            actionSchedule.Second = existingSchedule.Second;
         }
     }
 }

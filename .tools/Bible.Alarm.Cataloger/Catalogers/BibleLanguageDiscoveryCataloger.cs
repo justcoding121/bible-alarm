@@ -57,21 +57,16 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
                 continue;
             }
 
-            // Save language discovery results for English
+            // Save language discovery results for English and publication languages for on-demand fetching
             if (dataPersister != null)
             {
                 var languageCodeToNameMapping = allDiscoveredLanguages.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Name);
                 await dataPersister.SaveLanguageDiscovery("E", publicationCode, languageCodeToNameMapping);
+                await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
             }
             else
             {
                 await SaveLanguageDiscoveryForEnglish(publicationCode, allDiscoveredLanguages);
-            }
-
-            // Save discovered languages for on-demand fetching (including English - it will be seeded separately)
-            if (dataPersister != null)
-            {
-                await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
             }
         }
 

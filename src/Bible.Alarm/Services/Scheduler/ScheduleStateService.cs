@@ -216,21 +216,19 @@ public sealed class ScheduleStateService(
 #else
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
         // WinUI and other platforms
-        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        if (DeviceInfo.Platform == DevicePlatform.WinUI
+            && schedule != null && schedule.NotificationEnabled)
         {
-            if (schedule != null && schedule.NotificationEnabled)
+            if (await notificationService.CanScheduleAsync())
             {
-                if (await notificationService.CanScheduleAsync())
-                {
-                    return true;
-                }
-
-                logger.Warning("Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied", scheduleId);
-                await toastService.ShowMessage(
-                    "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
-                    7);
-                return false;
+                return true;
             }
+
+            logger.Warning("Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied", scheduleId);
+            await toastService.ShowMessage(
+                "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
+                7);
+            return false;
         }
         return true;
 #endif

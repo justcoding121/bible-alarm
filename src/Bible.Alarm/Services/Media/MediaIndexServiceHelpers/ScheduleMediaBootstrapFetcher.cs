@@ -178,13 +178,9 @@ internal sealed class ScheduleMediaBootstrapFetcher(
 
         foreach (var r in references)
         {
-            if (!await PublicationExistsInDiscoveryAsync(connection, r.PublicationCode, r.LanguageCode))
-            {
-                continue;
-            }
-
-            if (!string.IsNullOrEmpty(r.SectionCode) &&
-                !await SectionExistsInDiscoveryAsync(connection, r.PublicationCode, r.SectionCode, r.LanguageCode))
+            if (!await PublicationExistsInDiscoveryAsync(connection, r.PublicationCode, r.LanguageCode)
+                || (!string.IsNullOrEmpty(r.SectionCode)
+                    && !await SectionExistsInDiscoveryAsync(connection, r.PublicationCode, r.SectionCode, r.LanguageCode)))
             {
                 continue;
             }

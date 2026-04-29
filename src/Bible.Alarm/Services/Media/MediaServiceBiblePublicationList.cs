@@ -76,20 +76,12 @@ internal static class MediaServiceBiblePublicationList
             categoryName ?? "all",
             publicationsWithoutLanguage.Count);
 
-        // Step 3: Merge - use downloaded publications where available, create placeholders for others
-        var result = new Dictionary<string, BiblePublication>();
+        // Step 3: Merge - use downloaded publications where available, add non-language pubs, then placeholders for the rest
+        var result = new Dictionary<string, BiblePublication>(downloadedPublications);
 
-        foreach (var downloadedPub in downloadedPublications.Values)
+        foreach (var pubWithoutLang in publicationsWithoutLanguage.Values.Where(p => !result.ContainsKey(p.PublicationCode)))
         {
-            result[downloadedPub.PublicationCode] = downloadedPub;
-        }
-
-        foreach (var pubWithoutLang in publicationsWithoutLanguage.Values)
-        {
-            var code = pubWithoutLang.PublicationCode;
-            if (result.ContainsKey(code))
-                continue;
-            result[code] = pubWithoutLang;
+            result[pubWithoutLang.PublicationCode] = pubWithoutLang;
         }
 
         // Create placeholders for publications that are available but not yet downloaded
