@@ -3686,6 +3686,73 @@ public static class AppConstants
             public const string ErrorPlayingFallbackAlarmSound = "Error playing fallback alarm sound";
         }
 
+        /// <summary><c>PlaybackService</c> orchestration, stop safety nets, and error UI.</summary>
+        public static class PlaybackServiceDiagnosticsLog
+        {
+            public const string PrepareAndPlayAsyncCancelledForSchedule =
+                "PrepareAndPlayAsync cancelled for schedule {ScheduleId}";
+
+            public const string ErrorPreparingAndPlayingSchedule =
+                "Error preparing and playing schedule {ScheduleId}";
+
+            public const string StoppingExistingPlaybackBeforeStarting =
+                "Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}";
+
+            public const string ResumingPlaybackSameSchedule =
+                "Resuming playback for schedule {ScheduleId} (already paused/playing same schedule)";
+
+            public const string StalePlayerStateWillRePrepareWithSeek =
+                "Stale player state for schedule {ScheduleId}: cached status {Status} but MediaElement is not active. Will re-prepare with seek.";
+
+            public const string StateStillPlayingAfterStopForceResetting =
+                "State still shows playing after stop attempt (schedule {CurrentScheduleId}, status {Status}). Force-resetting for schedule {ScheduleId}.";
+
+            public const string ErrorForceStoppingPlayerDuringStateRecovery =
+                "Error force-stopping player during state recovery";
+
+            public const string PrepareAndPlayTimedOutWaitingForInFlightStop =
+                "PrepareAndPlayAsync: timed out waiting for in-progress stop to complete (10s). Proceeding — PrepareAsync will reset the player.";
+
+            public const string FailedToUpdateLastPlayedAtUtc =
+                "Failed to update LastPlayedAtUtc for schedule {ScheduleId}";
+
+            public const string PlayAsyncStaleStateClearingPlayedBibleTrackKeys =
+                "PlayAsync: stale state detected (Status={Status}). Clearing PlayedBibleTrackKeys for seek.";
+
+            public const string PlayPressedStartingDefaultSchedule =
+                "Play pressed with no active playback - starting default schedule {ScheduleId}";
+
+            public const string StopAsyncInternalAnotherStopInProgressSafetyNet =
+                "StopAsyncInternal: another stop is already in progress. Dispatching PlaybackStoppedAction as safety net.";
+
+            public const string StopAsyncInternalTimedOut15sSafetyNet =
+                "StopAsyncInternal: stop operation timed out after 15s — dispatching PlaybackStoppedAction as safety net";
+
+            public const string ResetAndRetryAsyncResettingSchedule =
+                "ResetAndRetryAsync - resetting and retrying schedule {ScheduleId}";
+
+            public const string CannotPlayTrackIndexOutOfRange =
+                "Cannot play track: playlist is null or track index {TrackIndex} is out of range (playlist count: {PlaylistCount})";
+
+            public const string BackgroundPreDownloadNextTrackFailedNonCritical =
+                "Background pre-download of next track failed (non-critical)";
+
+            public const string ShowPlaybackErrorCouldNotStartDeviceRingtone =
+                "ShowPlaybackErrorInModalKeepSessionAsync: could not start device ringtone";
+
+            public const string ShowPlaybackErrorInModalKeepSessionFailed =
+                "ShowPlaybackErrorInModalKeepSessionAsync failed";
+
+            public const string RecoveryAfterShowPlaybackErrorInModalKeepSessionFailed =
+                "Recovery after ShowPlaybackErrorInModalKeepSessionAsync failure";
+
+            public const string ErrorInHandlePlaybackFailureAsyncEnsuringErrorUi =
+                "Error in HandlePlaybackFailureAsync - ensuring error UI is shown";
+
+            public const string FallbackErrorHandlingAlsoFailed =
+                "Fallback error handling also failed";
+        }
+
         /// <summary><c>PlaylistBiblePublicationTrackBuilder</c> bible playlist construction.</summary>
         public static class PlaylistBiblePublicationTrackBuilderDiagnosticsLog
         {

@@ -2,6 +2,7 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Media.Playback;
 using Bible.Alarm.Shared.Models.Media;
@@ -155,11 +156,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
         catch (OperationCanceledException)
         {
-            logger.Debug("PrepareAndPlayAsync cancelled for schedule {ScheduleId}", scheduleId);
+            logger.Debug(AppConstants.Logging.PlaybackServiceDiagnosticsLog.PrepareAndPlayAsyncCancelledForSchedule, scheduleId);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error preparing and playing schedule {ScheduleId}", scheduleId);
+            logger.Error(ex, AppConstants.Logging.PlaybackServiceDiagnosticsLog.ErrorPreparingAndPlayingSchedule, scheduleId);
             await ResetAsync();
             throw;
         }
@@ -174,7 +175,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             return;
         }
 
-        logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}",
+        logger.Information(AppConstants.Logging.PlaybackServiceDiagnosticsLog.StoppingExistingPlaybackBeforeStarting,
             stateManager.CurrentScheduleId.Value, scheduleId);
 
         WeakReferenceMessenger.Default.Send(new BeginStoppingPlaybackMessage());
@@ -195,13 +196,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         if (audioPlayer.IsActuallyPlayingOrPaused)
         {
-            logger.Information("Resuming playback for schedule {ScheduleId} (already paused/playing same schedule)", scheduleId);
+            logger.Information(AppConstants.Logging.PlaybackServiceDiagnosticsLog.ResumingPlaybackSameSchedule, scheduleId);
             await PlayAsync();
             return true;
         }
 
         logger.Warning(
-            "Stale player state for schedule {ScheduleId}: cached status {Status} but MediaElement is not active. Will re-prepare with seek.",
+            AppConstants.Logging.PlaybackServiceDiagnosticsLog.StalePlayerStateWillRePrepareWithSeek,
             scheduleId, audioPlayer.Status);
 
         await progressTracker.SaveProgressAsync(stateManager.Playlist, stateManager.CurrentTrackIndex, forceSave: true);
@@ -222,7 +223,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             return;
         }
 
-        logger.Warning("State still shows playing after stop attempt (schedule {CurrentScheduleId}, status {Status}). Force-resetting for schedule {ScheduleId}.",
+        logger.Warning(AppConstants.Logging.PlaybackServiceDiagnosticsLog.StateStillPlayingAfterStopForceResetting,
             stateManager.CurrentScheduleId,
             audioPlayer.Status,
             scheduleId);
@@ -234,7 +235,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error force-stopping player during state recovery");
+            logger.Warning(ex, AppConstants.Logging.PlaybackServiceDiagnosticsLog.ErrorForceStoppingPlayerDuringStateRecovery);
         }
     }
 
@@ -247,7 +248,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
         else
         {
-            logger.Warning("PrepareAndPlayAsync: timed out waiting for in-progress stop to complete (10s). Proceeding — PrepareAsync will reset the player.");
+            logger.Warning(AppConstants.Logging.PlaybackServiceDiagnosticsLog.PrepareAndPlayTimedOutWaitingForInFlightStop);
         }
     }
 
@@ -266,7 +267,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to update LastPlayedAtUtc for schedule {ScheduleId}", scheduleId);
+                logger.Warning(ex, AppConstants.Logging.PlaybackServiceDiagnosticsLog.FailedToUpdateLastPlayedAtUtc, scheduleId);
             }
         });
 
@@ -320,7 +321,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         if (!audioPlayer.IsActuallyPlayingOrPaused
             && audioPlayer.Status is PlayStatus.Paused or PlayStatus.Stopped or PlayStatus.Ended)
         {
-            logger.Warning("PlayAsync: stale state detected (Status={Status}). Clearing PlayedBibleTrackKeys for seek.",
+            logger.Warning(AppConstants.Logging.PlaybackServiceDiagnosticsLog.PlayAsyncStaleStateClearingPlayedBibleTrackKeys,
                 audioPlayer.Status);
             stateManager.PlayedBibleTrackKeys.Clear();
         }
@@ -459,7 +460,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             var defaultScheduleId = PlaybackDefaultScheduleResolver.Resolve(playbackState, logger);
             if (defaultScheduleId.HasValue && defaultScheduleId.Value > 0)
             {
-                logger.Information("Play pressed with no active playback - starting default schedule {ScheduleId}", defaultScheduleId.Value);
+                logger.Information(AppConstants.Logging.PlaybackServiceDiagnosticsLog.PlayPressedStartingDefaultSchedule, defaultScheduleId.Value);
                 WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = defaultScheduleId.Value });
                 await PrepareAndPlayAsync(defaultScheduleId.Value, isAlarm: false);
                 return;
@@ -509,7 +510,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         if (!await stopLock.WaitAsync(0))
         {
-            logger.Warning("StopAsyncInternal: another stop is already in progress. Dispatching PlaybackStoppedAction as safety net.");
+            logger.Warning(AppConstants.Logging.PlaybackServiceDiagnosticsLog.StopAsyncInternalAnotherStopInProgressSafetyNet);
             if (!skipDispatchStopped)
             {
                 dispatcher.Dispatch(new PlaybackStoppedAction());
@@ -572,7 +573,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             return;
         }
 
-        logger.Warning("StopAsyncInternal: stop operation timed out after 15s — dispatching PlaybackStoppedAction as safety net");
+        logger.Warning(AppConstants.Logging.PlaybackServiceDiagnosticsLog.StopAsyncInternalTimedOut15sSafetyNet);
         dispatcher.Dispatch(new PlaybackStoppedAction());
 #if ANDROID || IOS
         dispatcher.Dispatch(new SetCarPlayScreenAction());
@@ -583,7 +584,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public async Task ResetAndRetryAsync(int scheduleId)
     {
-        logger.Information("ResetAndRetryAsync - resetting and retrying schedule {ScheduleId}", scheduleId);
+        logger.Information(AppConstants.Logging.PlaybackServiceDiagnosticsLog.ResetAndRetryAsyncResettingSchedule, scheduleId);
         await resetExecutor.ResetStateForRetryAsync();
         await PrepareAndPlayAsync(scheduleId, isAlarm: false);
     }
@@ -594,7 +595,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             if (stateManager.Playlist == null || stateManager.CurrentTrackIndex < 0 || stateManager.CurrentTrackIndex >= stateManager.Playlist.Count)
             {
-                logger.Warning("Cannot play track: playlist is null or track index {TrackIndex} is out of range (playlist count: {PlaylistCount})",
+                logger.Warning(AppConstants.Logging.PlaybackServiceDiagnosticsLog.CannotPlayTrackIndexOutOfRange,
                     stateManager.CurrentTrackIndex,
                     stateManager.Playlist?.Count ?? 0);
                 return;
@@ -645,7 +646,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 }
                 catch (Exception ex)
                 {
-                    logger.Debug(ex, "Background pre-download of next track failed (non-critical)");
+                    logger.Debug(ex, AppConstants.Logging.PlaybackServiceDiagnosticsLog.BackgroundPreDownloadNextTrackFailedNonCritical);
                 }
             });
         }
@@ -727,13 +728,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 }
                 catch (Exception ringEx)
                 {
-                    logger.Warning(ringEx, "ShowPlaybackErrorInModalKeepSessionAsync: could not start device ringtone");
+                    logger.Warning(ringEx, AppConstants.Logging.PlaybackServiceDiagnosticsLog.ShowPlaybackErrorCouldNotStartDeviceRingtone);
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "ShowPlaybackErrorInModalKeepSessionAsync failed");
+            logger.Error(ex, AppConstants.Logging.PlaybackServiceDiagnosticsLog.ShowPlaybackErrorInModalKeepSessionFailed);
             try
             {
                 dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = errorMessage });
@@ -742,7 +743,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             }
             catch (Exception innerEx)
             {
-                logger.Error(innerEx, "Recovery after ShowPlaybackErrorInModalKeepSessionAsync failure");
+                logger.Error(innerEx, AppConstants.Logging.PlaybackServiceDiagnosticsLog.RecoveryAfterShowPlaybackErrorInModalKeepSessionFailed);
             }
         }
     }
@@ -767,7 +768,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in HandlePlaybackFailureAsync - ensuring error UI is shown");
+            logger.Error(ex, AppConstants.Logging.PlaybackServiceDiagnosticsLog.ErrorInHandlePlaybackFailureAsyncEnsuringErrorUi);
             try
             {
                 if (!stateManager.IsAlarm && stateManager.CurrentScheduleId.HasValue)
@@ -786,7 +787,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             }
             catch (Exception innerEx)
             {
-                logger.Error(innerEx, "Fallback error handling also failed");
+                logger.Error(innerEx, AppConstants.Logging.PlaybackServiceDiagnosticsLog.FallbackErrorHandlingAlsoFailed);
             }
         }
     }
