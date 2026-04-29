@@ -27,18 +27,18 @@ public static class DisplayTextHelper
         foreach (var ch in input)
         {
             // Treat any whitespace/control char as whitespace for UI display.
-            if (char.IsWhiteSpace(ch) || char.IsControl(ch))
+            if (!char.IsWhiteSpace(ch) && !char.IsControl(ch))
             {
-                if (!inWhitespace)
-                {
-                    sb.Append(' ');
-                    inWhitespace = true;
-                }
+                sb.Append(ch);
+                inWhitespace = false;
                 continue;
             }
 
-            sb.Append(ch);
-            inWhitespace = false;
+            if (!inWhitespace)
+            {
+                sb.Append(' ');
+                inWhitespace = true;
+            }
         }
 
         return sb.ToString().Trim();

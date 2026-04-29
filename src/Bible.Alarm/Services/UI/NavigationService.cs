@@ -44,17 +44,20 @@ public sealed class NavigationService(
     {
 #if WINDOWS
         var app = Application.Current;
-        Microsoft.Maui.Dispatching.IDispatcher? winDispatcher = null;
-        if (app?.Windows.Count > 0 && app.Windows[0].Page is NavigationPage navPage)
-            winDispatcher = navPage.Dispatcher;
-        else if (app?.Dispatcher != null)
-            winDispatcher = app.Dispatcher;
+        var winDispatcher = (app?.Windows.Count > 0 && app.Windows[0].Page is NavigationPage navPage)
+            ? navPage.Dispatcher
+            : app?.Dispatcher;
         if (winDispatcher != null)
         {
             if (winDispatcher.IsDispatchRequired)
+            {
                 await winDispatcher.DispatchAsync(work);
+            }
             else
+            {
                 await work();
+            }
+
             return;
         }
 #endif
