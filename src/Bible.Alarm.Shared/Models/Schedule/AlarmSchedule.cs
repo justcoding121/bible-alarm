@@ -343,10 +343,10 @@ public sealed class AlarmSchedule : IComparable
             },
             BiblePublicationSchedule = new BiblePublicationSchedule
             {
-                TrackCode = "1",
+                TrackCode = AppConstants.Media.BiblePublicationGenesisBookNumber,
                 LanguageCode = bibleLanguageCode,
                 PublicationCode = biblePublicationCode,
-                SectionCode = "1" // Will be updated below with a random section
+                SectionCode = AppConstants.Media.BiblePublicationGenesisBookNumber // Will be updated below with a random section
             }
         };
 

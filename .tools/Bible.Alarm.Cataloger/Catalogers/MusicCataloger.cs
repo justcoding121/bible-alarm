@@ -83,16 +83,16 @@ internal class MusicCataloger : BaseCataloger
     }
 
     internal async Task CatalogArticleSeriesLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null) =>
-        await CatalogFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.ArticleSeriesPublicationCodes, "Article Series", isTestRun, publicationFilter);
+        await CatalogFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.ArticleSeriesPublicationCodes, AppConstants.Media.CatalogFlatAudioLabelArticleSeries, isTestRun, publicationFilter);
 
     internal async Task CatalogBooksLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null) =>
-        await CatalogFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.BooksPublicationCodes, "Books", isTestRun, publicationFilter);
+        await CatalogFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.BooksPublicationCodes, AppConstants.Media.CatalogFlatAudioLabelBooks, isTestRun, publicationFilter);
 
     internal async Task CatalogYearbooksLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null) =>
-        await CatalogFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.YearbooksPublicationCodes, "Yearbooks", isTestRun, publicationFilter);
+        await CatalogFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.YearbooksPublicationCodes, AppConstants.Media.CatalogFlatAudioLabelYearbooks, isTestRun, publicationFilter);
 
     internal async Task CatalogBrochuresAndBookletsLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null) =>
-        await CatalogFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.BrochuresAndBookletsPublicationCodes, "Brochures and Booklets", isTestRun, publicationFilter);
+        await CatalogFlatAudioPublicationLinks(SharedHelpers.JwSourceHelper.BrochuresAndBookletsPublicationCodes, AppConstants.Media.CatalogFlatAudioLabelBrochuresAndBooklets, isTestRun, publicationFilter);
 
     private async Task CatalogFlatAudioPublicationLinks(
         IReadOnlyCollection<string> publicationCodes,

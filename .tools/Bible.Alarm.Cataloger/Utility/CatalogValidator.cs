@@ -168,13 +168,13 @@ internal static class CatalogValidator
             }
         }
 
-        TryAdd(AppConstants.Media.BiblePublicationCodeNwt, "1", "1");
-        TryAdd(AppConstants.Media.BiblePublicationCodeBi12, "1", "1");
-        TryAdd(AppConstants.Media.MusicPublicationCodeSjjc, null, "1");
-        TryAdd(AppConstants.Media.MusicPublicationCodeOsg, null, "1");
-        TryAdd(AppConstants.Media.MelodyMusicPublicationCodeIam, $"{AppConstants.Media.MelodyMusicPublicationCodeIam}-1", "1");
-        TryAdd(AppConstants.Media.BiblePublicationCodeDramasGoodNews, null, "1");
-        TryAdd(AppConstants.Media.SeriesPublicationCodeThv, null, "1");
+        TryAdd(AppConstants.Media.BiblePublicationCodeNwt, AppConstants.Media.BiblePublicationGenesisBookNumber, AppConstants.Media.BiblePublicationGenesisBookNumber);
+        TryAdd(AppConstants.Media.BiblePublicationCodeBi12, AppConstants.Media.BiblePublicationGenesisBookNumber, AppConstants.Media.BiblePublicationGenesisBookNumber);
+        TryAdd(AppConstants.Media.MusicPublicationCodeSjjc, null, AppConstants.Media.BiblePublicationGenesisBookNumber);
+        TryAdd(AppConstants.Media.MusicPublicationCodeOsg, null, AppConstants.Media.BiblePublicationGenesisBookNumber);
+        TryAdd(AppConstants.Media.MelodyMusicPublicationCodeIam, $"{AppConstants.Media.MelodyMusicPublicationCodeIam}-1", AppConstants.Media.BiblePublicationGenesisBookNumber);
+        TryAdd(AppConstants.Media.BiblePublicationCodeDramasGoodNews, null, AppConstants.Media.BiblePublicationGenesisBookNumber);
+        TryAdd(AppConstants.Media.SeriesPublicationCodeThv, null, AppConstants.Media.BiblePublicationGenesisBookNumber);
         TryAdd(AppConstants.Media.BiblePublicationCategoryDramas, null, null);
         TryAdd(AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures, null, null);
         TryAdd(AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes, null, null);

@@ -546,6 +546,23 @@ public static class AppConstants
         public const string BiblePublicationCodeBi12 = "bi12";
 
         /// <summary>
+        /// Bible book number string for Genesis (<c>booknum=1</c>). Used for validation/sample hints and first-track defaults.
+        /// </summary>
+        public const string BiblePublicationGenesisBookNumber = "1";
+
+        /// <summary>Cataloger log label for flat Article Series MP3 publications.</summary>
+        public const string CatalogFlatAudioLabelArticleSeries = "Article Series";
+
+        /// <summary>Cataloger log label for Books flat MP3 publications.</summary>
+        public const string CatalogFlatAudioLabelBooks = "Books";
+
+        /// <summary>Cataloger log label for Yearbooks flat MP3 publications.</summary>
+        public const string CatalogFlatAudioLabelYearbooks = "Yearbooks";
+
+        /// <summary>Cataloger log label for Brochures and Booklets flat MP3 publications.</summary>
+        public const string CatalogFlatAudioLabelBrochuresAndBooklets = "Brochures and Booklets";
+
+        /// <summary>
         /// Bible publication category code for audio/video dramas (JW catalog).
         /// </summary>
         public const string BiblePublicationCategoryDramas = "Dramas";
