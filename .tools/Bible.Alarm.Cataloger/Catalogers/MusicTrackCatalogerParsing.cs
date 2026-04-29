@@ -16,7 +16,7 @@ internal static class MusicTrackCatalogParsing
     internal static string BuildMusicCatalogLink(string publicationDownloadCode, string? languageCode)
     {
         var langParam = languageCode == null ? $"&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}" : $"&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
-        return $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationDownloadCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}{langParam}";
+        return $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationDownloadCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}{langParam}";
     }
 
     internal static int ProcessMusicFiles(

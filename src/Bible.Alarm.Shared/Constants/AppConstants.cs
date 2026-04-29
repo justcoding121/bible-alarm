@@ -404,6 +404,17 @@ public static class AppConstants
         /// <summary>GETPUB query parameter name for written language (<c>langwritten</c>).</summary>
         public const string GetPubQueryParamLangWritten = "langwritten";
 
+        /// <summary>GETPUB/MEDIALINKS query parameter names (<c>pub</c>, <c>track</c>, etc.).</summary>
+        public static class GetPubQueryParamName
+        {
+            public const string Pub = "pub";
+            public const string BookNum = "booknum";
+            public const string Issue = "issue";
+            public const string DocId = "docid";
+            public const string FileFormat = "fileformat";
+            public const string Track = "track";
+        }
+
         /// <summary>Publication/track picker UI: singular track (sectioned media unit).</summary>
         public const string PublicationUiTrackSingular = "Track";
 

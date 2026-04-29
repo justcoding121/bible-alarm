@@ -19,7 +19,6 @@ internal static class MediatorTrackParser
         ILogger logger,
         bool isVideo = false,
         int? trackNumber = null,
-        bool useIssueParameter = false,
         bool useDocidParam = false)
     {
         var tracks = new List<MediatorTrack>();
@@ -53,14 +52,12 @@ internal static class MediatorTrackParser
             if (useDocidParam && sectionCode.StartsWith("docid:", StringComparison.OrdinalIgnoreCase))
             {
                 var docidValue = sectionCode.Substring(6);
-                lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&docid={docidValue}&fileformat={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
+                lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.DocId}={docidValue}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
             }
             else
             {
-                lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={sectionCode}&fileformat={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
+                lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
             }
-
-            var numberParam = useIssueParameter ? "issue" : "track";
 
             foreach (var trackFile in formatFiles.EnumerateArray())
             {

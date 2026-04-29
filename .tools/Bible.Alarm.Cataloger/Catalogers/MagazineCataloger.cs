@@ -133,7 +133,7 @@ internal sealed class MagazineCataloger : BaseCataloger
         string apiPubCode, string issueCode, bool isTestRun)
     {
         var url = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}" +
-                  $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={apiPubCode}&issue={issueCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOn}&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}";
+                  $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={apiPubCode}&{AppConstants.Media.GetPubQueryParamName.Issue}={issueCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOn}&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}";
 
         try
         {

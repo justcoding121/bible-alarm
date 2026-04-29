@@ -43,14 +43,14 @@ public static class LookUpPathBuilder
         if (string.IsNullOrWhiteSpace(sectionCode))
         {
             if (JwSourceHelper.VocalMusicPublicationCodes.Contains(publicationCode))
-                return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryParamLangWritten}={lc}";
-            return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&fileformat={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryParamLangWritten}={lc}";
+                return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryParamLangWritten}={lc}";
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryParamLangWritten}={lc}";
         }
 
         if (isDiscStyleSection)
-            return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryParamLangWritten}={lc}";
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryParamLangWritten}={lc}";
 
-        return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={publicationCode}&booknum={sectionCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={lc}";
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationCode}&{AppConstants.Media.GetPubQueryParamName.BookNum}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={lc}";
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public static class LookUpPathBuilder
         var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleDownload;
         var effectiveLanguageCode = effectiveIsNoLanguage ? AppConstants.Media.DefaultLanguageCode : languageCode;
         var langParam = string.IsNullOrEmpty(effectiveLanguageCode) ? $"&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}" : $"&{AppConstants.Media.GetPubQueryParamLangWritten}={effectiveLanguageCode}";
-        return $"?{AppConstants.Media.GetPubQueryOutputJson}&pub={pubCode}&fileformat={AppConstants.Media.MediaStreamFormatMp3}{langParam}";
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={pubCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}{langParam}";
     }
 
     /// <summary>
