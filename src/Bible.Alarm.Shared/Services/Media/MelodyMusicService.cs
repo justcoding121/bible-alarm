@@ -175,7 +175,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
 
             var orderedTracks = allTracks
                 .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
-                .GroupBy(t => t.TrackCode)
+                .GroupBy(t => t.TrackCode, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
                 .ToList();
             var trackList = orderedTracks.Select(t => MapBiblePublicationTrackToMusicTrack(t, null)).ToList();

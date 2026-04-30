@@ -44,7 +44,7 @@ public sealed class MediaCacheService(
     /// When a download is in progress, subsequent requests for the same file will await the existing task.
     /// Uses lookup path instead of CDN URL so cache files are stable even when CDN URLs change.
     /// </summary>
-    private static readonly ConcurrentDictionary<string, Task<string?>> inProgressDownloads = new();
+    private static readonly ConcurrentDictionary<string, Task<string?>> inProgressDownloads = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets the cache file name from a lookup path (API query string).

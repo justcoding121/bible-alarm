@@ -36,8 +36,8 @@ internal class MusicCataloger : BaseCataloger
 
     internal async Task CatalogVocalMusicLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {
-        var languageCodeToInfo = new Dictionary<string, LanguageInfo>();
-        var languageCodeToPublications = new Dictionary<string, List<string>>();
+        var languageCodeToInfo = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
+        var languageCodeToPublications = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         var vocalMusicPublicationCodes = SharedHelpers.JwSourceHelper.VocalMusicPublicationCodes;
         var codesToCatalog = publicationFilter != null ? vocalMusicPublicationCodes.Where(c => publicationFilter.Contains(c)).ToList() : vocalMusicPublicationCodes.ToList();
@@ -153,7 +153,8 @@ internal class MusicCataloger : BaseCataloger
             .Where(e => !e.LanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
             .ToDictionary(
                 e => e.LanguageCode,
-                e => new LanguageInfo(e.Name, e.Direction));
+                e => new LanguageInfo(e.Name, e.Direction),
+                StringComparer.OrdinalIgnoreCase);
 
         if (discoveredLanguages.Count > 0)
         {
@@ -251,8 +252,8 @@ internal class MusicCataloger : BaseCataloger
         // For iam (Kingdom Melodies), save tracks grouped by disc
         if (publicationCode == AppConstants.Media.MelodyMusicPublicationCodeIam && languageCode == null)
         {
-            var discTracksMap = new Dictionary<string, List<MusicTrack>>();
-            var discNamesMap = new Dictionary<string, string>();
+            var discTracksMap = new Dictionary<string, List<MusicTrack>>(StringComparer.OrdinalIgnoreCase);
+            var discNamesMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var publicationDownloadCode in publicationDownloadCodes)
             {

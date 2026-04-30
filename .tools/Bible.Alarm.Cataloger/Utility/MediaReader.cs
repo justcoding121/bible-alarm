@@ -17,7 +17,7 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         var languageIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryBible, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<Dictionary<string, Publication>> GetBiblePublications(string languageCode)
@@ -27,7 +27,7 @@ public class MediaReader(string indexRoot)
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var bibleIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryBible, normalizedLanguageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var biblePublications = await File.ReadAllTextAsync(bibleIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Publication>>(biblePublications)!.ToDictionary(x => x.Code, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Publication>>(biblePublications)!.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode)
@@ -51,7 +51,7 @@ public class MediaReader(string indexRoot)
         var sectionsIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryBible, normalizedLanguageCode, normalizedPublicationCode, sectionCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
         return new SortedDictionary<string, BiblePublicationTrack>(JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!
-                                                   .ToDictionary(x => x.TrackCode, x => x));
+                                                   .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal));
     }
 
     public async Task<Dictionary<string, Publication>> GetMelodyMusicReleases()
@@ -60,7 +60,7 @@ public class MediaReader(string indexRoot)
         // Unified structure: Music/Melodies/publications.json
         var releaseIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderMelodies, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var fileContent = await File.ReadAllTextAsync(releaseIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Publication>>(fileContent)!.ToDictionary(x => x.Code, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Publication>>(fileContent)!.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
@@ -81,7 +81,7 @@ public class MediaReader(string indexRoot)
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
         var baseDir = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderMelodies, normalizedPublicationCode);
         
-        var discTracksMap = new Dictionary<string, (string Name, SortedDictionary<int, MusicTrack> Tracks)>();
+        var discTracksMap = new Dictionary<string, (string Name, SortedDictionary<int, MusicTrack> Tracks)>(StringComparer.OrdinalIgnoreCase);
         
         if (!Directory.Exists(baseDir))
         {
@@ -138,7 +138,7 @@ public class MediaReader(string indexRoot)
         // Unified structure: Music/Vocals/languages.json
         var languageIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<Dictionary<string, Publication>> GetVocalMusicReleases(string languageCode)
@@ -149,7 +149,7 @@ public class MediaReader(string indexRoot)
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var releaseIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, normalizedLanguageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var vocalReleases = await File.ReadAllTextAsync(releaseIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Publication>>(vocalReleases)!.ToDictionary(x => x.Code, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Publication>>(vocalReleases)!.ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode)
@@ -172,7 +172,7 @@ public class MediaReader(string indexRoot)
         var languageIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!
-            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x); // Normalize keys to uppercase
+            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x, StringComparer.OrdinalIgnoreCase); // Normalize keys to uppercase
     }
 
     public async Task<Dictionary<string, Publication>> GetMediatorPublications(string languageCode)
@@ -184,7 +184,7 @@ public class MediaReader(string indexRoot)
         var publicationsIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var publications = await File.ReadAllTextAsync(publicationsIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(publications)!
-            .ToDictionary(x => x.Code, x => x);
+            .ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<SortedDictionary<string, MediatorTrack>> GetMediatorTracks(string languageCode, string categoryKey)
@@ -197,7 +197,7 @@ public class MediaReader(string indexRoot)
         var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedLanguageCode, normalizedCategoryKey, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
         return new SortedDictionary<string, MediatorTrack>(JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
-            .ToDictionary(x => x.TrackCode, x => x));
+            .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal));
     }
 
     public async Task<SortedDictionary<int, BiblePublicationSection>> GetMediatorPublicationSections(string languageCode, string publicationCode)
@@ -222,7 +222,7 @@ public class MediaReader(string indexRoot)
         var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedLanguageCode, normalizedPublicationCode, normalizedSectionCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
         return new SortedDictionary<string, MediatorTrack>(JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
-            .ToDictionary(x => x.TrackCode, x => x));
+            .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal));
     }
 
     public async Task<Dictionary<string, Language>> GetVideoLanguages()
@@ -233,7 +233,7 @@ public class MediaReader(string indexRoot)
         var languageIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!
-            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x); // Normalize keys to uppercase
+            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x, StringComparer.OrdinalIgnoreCase); // Normalize keys to uppercase
     }
 
     public async Task<Dictionary<string, Publication>> GetVideoPublications(string languageCode)
@@ -246,7 +246,7 @@ public class MediaReader(string indexRoot)
         var publicationsIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var publications = await File.ReadAllTextAsync(publicationsIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(publications)!
-            .ToDictionary(x => x.Code, x => x);
+            .ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<SortedDictionary<int, VideoEpisode>> GetVideoEpisodes(string languageCode, string publicationCode)

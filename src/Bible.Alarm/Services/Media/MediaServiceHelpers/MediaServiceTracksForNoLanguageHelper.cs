@@ -46,7 +46,7 @@ public static class MediaServiceTracksForNoLanguageHelper
             }
 
             var orderedTracks = flatTracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-            return new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
+            return new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal), TrackCodeComparer.Comparer);
         }
 
         var sectionId = await db.BiblePublicationSections

@@ -91,7 +91,7 @@ internal sealed class LookupDataLoader
 
         // For bootstrap schedule list display, we only need already-downloaded vocal publications
         // referenced by schedules. Avoid GetVocalMusicReleases (discovery + placeholders) to reduce DB work.
-        var vocalReleasesTasks = keys.VocalMusicKeys.GroupBy(k => k.LanguageCode).Select(async group =>
+        var vocalReleasesTasks = keys.VocalMusicKeys.GroupBy(k => k.LanguageCode, StringComparer.OrdinalIgnoreCase).Select(async group =>
         {
             try
             {
@@ -199,7 +199,7 @@ internal sealed class LookupDataLoader
             .ToDictionary(t => t.Key, t => t.Tracks);
 
         var melodyTracksFlatDict = (await Task.WhenAll(melodyTracksFlatTasks))
-            .ToDictionary(t => t.PublicationCode, t => t.Tracks);
+            .ToDictionary(t => t.PublicationCode, t => t.Tracks, StringComparer.OrdinalIgnoreCase);
 
         var melodyTracksBySectionDict = (await Task.WhenAll(melodyTracksBySectionTasks))
             .ToDictionary(t => t.Key, t => t.Tracks);

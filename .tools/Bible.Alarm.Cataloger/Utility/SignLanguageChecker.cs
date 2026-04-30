@@ -66,7 +66,7 @@ internal sealed class SignLanguageChecker
     {
         if (languages == null || languages.Count == 0)
         {
-            return languages ?? new Dictionary<string, LanguageInfo>();
+            return languages ?? new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
         }
 
         await EnsureCacheLoadedAsync();

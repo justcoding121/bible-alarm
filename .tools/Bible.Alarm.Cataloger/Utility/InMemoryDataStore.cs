@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Bible.Alarm.Cataloger.Models;
@@ -23,7 +24,7 @@ internal class InMemoryDataStore
     public ConcurrentDictionary<(string PublicationCode, string? LanguageCode), (string PublicationName, List<MusicTrack> Tracks)> MusicTracks { get; } = new();
 
     // Melody Music: publicationCode -> (discTracksMap, discNamesMap)
-    public ConcurrentDictionary<string, (Dictionary<string, List<MusicTrack>> DiscTracksMap, Dictionary<string, string> DiscNamesMap)> MelodyMusic { get; } = new();
+    public ConcurrentDictionary<string, (Dictionary<string, List<MusicTrack>> DiscTracksMap, Dictionary<string, string> DiscNamesMap)> MelodyMusic { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     // Video Publications: (languageCode, publicationCode) -> (publicationName, episodes)
     public ConcurrentDictionary<(string LanguageCode, string PublicationCode), (string PublicationName, List<VideoEpisode> Episodes)> VideoPublications { get; } = new();
@@ -32,7 +33,7 @@ internal class InMemoryDataStore
     public ConcurrentDictionary<(string LanguageCode, string PublicationCode), Dictionary<string, string>> LanguageDiscovery { get; } = new();
 
     // Publication Languages: publicationCode -> discovered languages (excluding English)
-    public ConcurrentDictionary<string, Dictionary<string, LanguageInfo>> PublicationLanguages { get; } = new();
+    public ConcurrentDictionary<string, Dictionary<string, LanguageInfo>> PublicationLanguages { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     // Section Languages: (publicationCode, sectionCode) -> discovered languages (excluding English)
     public ConcurrentDictionary<(string PublicationCode, string SectionCode), Dictionary<string, LanguageInfo>> SectionLanguages { get; } = new();
