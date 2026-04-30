@@ -43,6 +43,10 @@ public sealed class MediaElementService : IMediaElementService
     // This is critical because MediaElementService might be instantiated multiple times
     // Used in conditional checks to prevent duplicate ExoPlayer creation
     private static bool globalHandlerCreated;
+
+    private static void ResetGlobalHandlerCreatedFlag() => globalHandlerCreated = false;
+
+    private static void MarkGlobalHandlerCreatedFlag() => globalHandlerCreated = true;
 #endif
 
     public MediaElementService(ILogger logger)
@@ -130,7 +134,7 @@ public sealed class MediaElementService : IMediaElementService
 #if ANDROID
             // Reset flags to allow new MediaElement creation
             handlerCreated = false;
-            globalHandlerCreated = false;
+            ResetGlobalHandlerCreatedFlag();
 #endif
         }
 
@@ -378,7 +382,7 @@ public sealed class MediaElementService : IMediaElementService
             lock (lockObject)
             {
                 handlerCreated = true;
-                globalHandlerCreated = true; // STATIC flag prevents creation across entire app
+                MarkGlobalHandlerCreatedFlag();
             }
 
             logger.Information("MediaElement handler created successfully for headless Android operation");

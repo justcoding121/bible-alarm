@@ -74,7 +74,7 @@ public class MediaSessionEffect(
                     return;
                 }
 
-                isRestartingPlayback = false;
+                SetRestartingPlayback(false);
                 logger.Information(
                     "[AndroidAuto] Cleared restart suppression flag on {Status} status", action.Status);
             }

@@ -36,6 +36,14 @@ public class AlarmForegroundService : Service
         }
     }
 
+    private static void SetInstanceReference(AlarmForegroundService? svc)
+    {
+        lock (instanceLock)
+        {
+            instance = svc;
+        }
+    }
+
     public override IBinder? OnBind(Intent? intent) => null;
 
     public override void OnCreate()
@@ -46,10 +54,7 @@ public class AlarmForegroundService : Service
         ForegroundServiceOperations.StartForegroundMinimal(this);
 
         base.OnCreate();
-        lock (instanceLock)
-        {
-            instance = this;
-        }
+        SetInstanceReference(this);
         logger.Information("AlarmForegroundService.OnCreate() called - instance registered");
 
         StartSafetyTimeout();
@@ -65,10 +70,7 @@ public class AlarmForegroundService : Service
     {
         logger.Information("AlarmForegroundService.OnDestroy() called");
         CancelSafetyTimeout();
-        lock (instanceLock)
-        {
-            instance = null;
-        }
+        SetInstanceReference(null);
         base.OnDestroy();
     }
 

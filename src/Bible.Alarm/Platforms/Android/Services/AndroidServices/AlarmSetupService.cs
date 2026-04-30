@@ -23,6 +23,8 @@ public class AlarmSetupService : Service
 
     public static bool IsRunning { get; private set; }
 
+    private static void SetIsRunningState(bool value) => IsRunning = value;
+
     public AlarmSetupService()
     {
         LogSetup.Initialize(new AssemblyAppVersionFinder(),
@@ -77,7 +79,7 @@ public class AlarmSetupService : Service
         }
 
         base.OnCreate();
-        IsRunning = true;
+        SetIsRunningState(true);
     }
 
     [return: GeneratedEnum]
@@ -153,7 +155,11 @@ public class AlarmSetupService : Service
         }
     }
 
-    public override void OnDestroy() => IsRunning = false;
+    public override void OnDestroy()
+    {
+        SetIsRunningState(false);
+        base.OnDestroy();
+    }
 
     public static void ScheduleNotification(Context context, int scheduleId, DateTimeOffset time,
         string title, string body)

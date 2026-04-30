@@ -24,6 +24,8 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
     private static volatile bool initialized;
     private static readonly object initLock = new();
 
+    private static void MarkInitialized() => initialized = true;
+
     public Task InitializeAsync()
     {
         // Quick check without lock for performance
@@ -54,7 +56,7 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
                     ?? AndroidApplication.Context;
                 VerifyBackgroundTasks(context);
 
-                initialized = true;
+                MarkInitialized();
                 logger.Information("Android platform services initialized successfully");
             }
             catch (Exception ex)

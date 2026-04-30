@@ -27,6 +27,11 @@ public partial class App : Application
         set => isInForeground = value;
     }
 
+    /// <summary>
+    /// Window creation path: MAUI may not raise normal resume after activity recreate; treat as visible.
+    /// </summary>
+    public static void MarkInForegroundAfterWindowCreated() => isInForeground = true;
+
     public App(
         IExceptionHandlingService exceptionHandlingService,
         IWindowSetupService windowSetupService,

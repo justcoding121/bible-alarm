@@ -22,6 +22,8 @@ public sealed class IOsAlarmHandler(
 
     private static bool firstTime = true;
 
+    private static void MarkFirstAlarmInvocationComplete() => firstTime = false;
+
     public async Task HandleAsync(int scheduleId, bool isAlarm)
     {
         try
@@ -48,7 +50,7 @@ public sealed class IOsAlarmHandler(
                         UIApplication.SharedApplication.BeginReceivingRemoteControlEvents();
                     }
 
-                    firstTime = false;
+                    MarkFirstAlarmInvocationComplete();
                 }, taskScheduler);
 
 

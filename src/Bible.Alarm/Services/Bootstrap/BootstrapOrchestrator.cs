@@ -18,6 +18,8 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
     private static readonly SemaphoreSlim @lock = new(1);
     private static volatile bool servicesVerified;
 
+    private static void MarkServicesVerified() => servicesVerified = true;
+
     private readonly IDatabaseBootstrapService databaseBootstrapService;
     private readonly IFluxorBootstrapService fluxorBootstrapService;
     private readonly IResourceBootstrapService resourceBootstrapService;
@@ -170,7 +172,7 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                     // This runs after core bootstrap to ensure platform setup regardless of entry point
                     await platformBootstrapService.InitializeAsync();
                 });
-                servicesVerified = true;
+                MarkServicesVerified();
                 
                 // Set bootstrap completion flag so IsBootstrapCompleted() works correctly
                 // This ensures the flag is set regardless of which bootstrap path is taken

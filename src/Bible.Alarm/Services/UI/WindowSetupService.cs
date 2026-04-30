@@ -36,7 +36,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
         // When a new window is created the app will be visible. On Android, after a swipe-out
         // the old activity's OnStop set IsInForeground=false, but MAUI may not call OnStart/OnResume
         // again on the Application for the recreated activity, leaving the flag stale.
-        App.IsInForeground = true;
+        App.MarkInForegroundAfterWindowCreated();
 
         // Resolve the singleton early so MiniPlaybackBarViewModel.Instance is set
         // before Home's ControlTemplate (containing MiniPlaybackBar) materializes.

@@ -31,6 +31,12 @@ public sealed class MediaIndexService(
     private static bool verified;
     private static bool wasIndexReplacedThisRun;
 
+    private static void ResetWasIndexReplacedForVerify() => wasIndexReplacedThisRun = false;
+
+    private static void MarkIndexReplacedThisRun() => wasIndexReplacedThisRun = true;
+
+    private static void MarkMediaIndexVerified() => verified = true;
+
     // Polly retry policy for file operations that may fail due to file locking
     // Retries with exponential backoff to handle cases where database connections haven't fully closed
     private readonly AsyncRetryPolicy fileOperationRetryPolicy = Policy
@@ -60,13 +66,13 @@ public sealed class MediaIndexService(
                 return;
             }
 
-            wasIndexReplacedThisRun = false;
+            ResetWasIndexReplacedForVerify();
             if (await IndexDoNotExistOrIsOutdated())
             {
                 await ClearCopyIndexFromResource();
             }
 
-            verified = true;
+            MarkMediaIndexVerified();
         }, ex => logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.LockDisposedError));
     }
 
@@ -120,7 +126,7 @@ public sealed class MediaIndexService(
 
         if (await storageService.FileExists(mediaIndexDbPath))
         {
-            wasIndexReplacedThisRun = true;
+            MarkIndexReplacedThisRun();
             CloseMediaDbContextConnections();
 
             // Rename old DB so MigrateNonEnglishDataIfNeededAsync can copy data from it before deleting.
