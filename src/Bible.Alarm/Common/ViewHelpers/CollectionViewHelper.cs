@@ -65,7 +65,7 @@ public static class CollectionViewHelper
         {
             // Cancellation requested - this is expected, don't log
         }
-        catch
+        catch (Exception)
         {
             // Ignore errors - scrolling is not critical
         }

@@ -62,7 +62,7 @@ public sealed class DiskCacheService : IDiskCacheService
                         {
                             await preferencesService.RemoveAsync(cacheKey);
                         }
-                        catch
+                        catch (Exception)
                         {
                             // Ignore removal errors
                         }
@@ -121,7 +121,7 @@ public sealed class DiskCacheService : IDiskCacheService
             {
                 await preferencesService.RemoveAsync(cacheKey);
             }
-            catch
+            catch (Exception)
             {
                 // Ignore removal errors
             }

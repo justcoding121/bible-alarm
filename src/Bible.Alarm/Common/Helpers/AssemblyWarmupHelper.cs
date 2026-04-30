@@ -73,7 +73,7 @@ public static class AssemblyWarmupHelper
             // and triggers any static constructors
             System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
         }
-        catch
+        catch (Exception)
         {
             // Ignore errors - some types may not have parameterless constructors
             // The goal is just to load the assembly

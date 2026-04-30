@@ -20,7 +20,7 @@ public static class AndroidAutoRotationHelper
         {
             return ServiceProviderManager.GetService<IThreadSafePreferencesService>();
         }
-        catch
+        catch (Exception)
         {
             return null;
         }

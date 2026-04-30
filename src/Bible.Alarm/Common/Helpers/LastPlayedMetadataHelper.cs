@@ -23,7 +23,7 @@ public static class LastPlayedMetadataHelper
         {
             return Common.ServiceProviderManager.GetService<IThreadSafePreferencesService>();
         }
-        catch
+        catch (Exception)
         {
             // DI not available yet (e.g., during early Android Auto startup before MauiApp is created)
             return null;

@@ -115,13 +115,13 @@ public class EventToCommandBehavior : BindableBehavior<View>
     private void AddEventHandler(EventInfo eventInfo, object item, Action<object, EventArgs> action)
     {
         var eventParameters = eventInfo.EventHandlerType
-            .GetRuntimeMethods().First(m => m.Name == "Invoke")
+            .GetRuntimeMethods().First(m => string.Equals(m.Name, nameof(Action.Invoke), StringComparison.Ordinal))
             .GetParameters()
             .Select(p => Expression.Parameter(p.ParameterType))
             .ToArray();
 
         var actionInvoke = action.GetType()
-            .GetRuntimeMethods().First(m => m.Name == "Invoke");
+            .GetRuntimeMethods().First(m => string.Equals(m.Name, nameof(Action.Invoke), StringComparison.Ordinal));
 
         handler = Expression.Lambda(
                 eventInfo.EventHandlerType,

@@ -75,7 +75,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             {
                 return await entry.Value.Value;
             }
-            catch
+            catch (Exception)
             {
                 publicationWithSectionsCache.TryRemove(key, out _);
                 throw;
@@ -143,7 +143,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             {
                 return await entry.Value.Value;
             }
-            catch
+            catch (Exception)
             {
                 publicationWithTracksCache.TryRemove(key, out _);
                 throw;

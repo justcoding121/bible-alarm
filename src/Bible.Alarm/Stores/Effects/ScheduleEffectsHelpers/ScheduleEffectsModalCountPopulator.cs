@@ -86,7 +86,7 @@ public static class ScheduleEffectsModalCountPopulator
 
             return tracks.Count;
         }
-        catch
+        catch (Exception)
         {
             return null;
         }

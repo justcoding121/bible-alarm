@@ -21,7 +21,7 @@ public sealed class SelectableTextColorConverter : IValueConverter
             // Fallback
             return Colors.Purple;
         }
-        catch
+        catch (Exception)
         {
             // Return safe fallback on any error
             return Application.Current?.RequestedTheme == AppTheme.Dark

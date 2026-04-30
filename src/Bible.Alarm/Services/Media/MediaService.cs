@@ -107,7 +107,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         {
             return await entry.Value.Value;
         }
-        catch
+        catch (Exception)
         {
             // If the cached task fails, remove it so next call can retry.
             biblePublicationsCache.TryRemove(key, out _);

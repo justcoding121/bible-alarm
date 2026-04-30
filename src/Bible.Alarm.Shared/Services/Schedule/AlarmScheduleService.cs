@@ -211,7 +211,7 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
             cancellationTokenSource.Cancel();
             cancellationTokenSource.Dispose();
         }
-        catch
+        catch (Exception)
         {
             // Ignore errors during disposal
         }

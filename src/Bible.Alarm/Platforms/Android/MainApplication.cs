@@ -23,7 +23,7 @@ public class MainApplication(nint handle, JniHandleOwnership ownership) : MauiAp
             {
                 Serilog.Log.Error(ex, AppConstants.Logging.MauiPlatformUiDiagnosticsLog.AndroidMainApplicationFailedToCreateMediaSession);
             }
-            catch
+            catch (Exception)
             {
                 // If Serilog isn't available, ignore (this happens very early in app lifecycle)
             }

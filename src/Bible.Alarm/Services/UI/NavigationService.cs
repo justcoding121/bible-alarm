@@ -91,7 +91,7 @@ public sealed class NavigationService(
             var navigation = GetNavigation(shouldRetry: false);
             return homeHandler.GetCurrentHomePage(navigation);
         }
-        catch
+        catch (Exception)
         {
             return null;
         }
@@ -109,7 +109,7 @@ public sealed class NavigationService(
                 ? navigation.NavigationStack[^1]
                 : null;
         }
-        catch
+        catch (Exception)
         {
             return null;
         }

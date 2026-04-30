@@ -39,7 +39,7 @@ public sealed class ListItemFetchProgressReporter : IFetchProgress
                 Progress = clamped
             }));
         }
-        catch
+        catch (Exception)
         {
             // Ignore if receiver was disposed
         }

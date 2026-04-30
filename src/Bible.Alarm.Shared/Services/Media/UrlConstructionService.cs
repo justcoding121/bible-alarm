@@ -165,7 +165,7 @@ public class UrlConstructionService : IUrlConstructionService
         {
             return await entry.Value.Value;
         }
-        catch
+        catch (Exception)
         {
             // If the cached task fails, remove it so next call can retry.
             lookUpPathCache.TryRemove(key, out _);
