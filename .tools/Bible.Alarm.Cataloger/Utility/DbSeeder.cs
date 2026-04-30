@@ -199,7 +199,10 @@ internal class DbSeeder : IDataPersister
         Dictionary<string, string> sectionNames)
     {
         var key = (languageCode.ToUpperInvariant(), publicationCode.ToLowerInvariant());
-        dataStore.MediatorPublications[key] = (publicationName, tracksBySection, sectionNames);
+        dataStore.MediatorPublications[key] = (
+            publicationName,
+            new Dictionary<string, List<MediatorTrack>>(tracksBySection, StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, string>(sectionNames, StringComparer.OrdinalIgnoreCase));
         return Task.CompletedTask;
     }
 
@@ -219,7 +222,9 @@ internal class DbSeeder : IDataPersister
         Dictionary<string, List<MusicTrack>> discTracksMap,
         Dictionary<string, string> discNamesMap)
     {
-        dataStore.MelodyMusic[publicationCode.ToLowerInvariant()] = (discTracksMap, discNamesMap);
+        dataStore.MelodyMusic[publicationCode.ToLowerInvariant()] = (
+            new Dictionary<string, List<MusicTrack>>(discTracksMap, StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, string>(discNamesMap, StringComparer.OrdinalIgnoreCase));
         return Task.CompletedTask;
     }
 
@@ -240,7 +245,7 @@ internal class DbSeeder : IDataPersister
         Dictionary<string, string> languageCodeToNameMapping)
     {
         var key = (languageCode.ToUpperInvariant(), publicationCode.ToLowerInvariant());
-        dataStore.LanguageDiscovery[key] = languageCodeToNameMapping;
+        dataStore.LanguageDiscovery[key] = new Dictionary<string, string>(languageCodeToNameMapping, StringComparer.OrdinalIgnoreCase);
         return Task.CompletedTask;
     }
 
@@ -265,7 +270,8 @@ internal class DbSeeder : IDataPersister
             }
             else
             {
-                dataStore.PublicationLanguages[normalizedPublicationCode] = languagesToSave;
+                dataStore.PublicationLanguages[normalizedPublicationCode] =
+                    new Dictionary<string, LanguageInfo>(languagesToSave, StringComparer.OrdinalIgnoreCase);
             }
         }
         return Task.CompletedTask;
@@ -295,7 +301,7 @@ internal class DbSeeder : IDataPersister
             }
             else
             {
-                dataStore.SectionLanguages[key] = languagesToSave;
+                dataStore.SectionLanguages[key] = new Dictionary<string, LanguageInfo>(languagesToSave, StringComparer.OrdinalIgnoreCase);
             }
         }
         return Task.CompletedTask;

@@ -71,7 +71,7 @@ public class IOSLogFileSink : Serilog.Core.ILogEventSink, IDisposable
                 // Keep only recent lines
                 if (currentLineCount > MaxRecentLogLines)
                 {
-                    var lines = recentLogBuffer.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    var lines = recentLogBuffer.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     if (lines.Length > MaxRecentLogLines)
                     {
                         recentLogBuffer.Clear();

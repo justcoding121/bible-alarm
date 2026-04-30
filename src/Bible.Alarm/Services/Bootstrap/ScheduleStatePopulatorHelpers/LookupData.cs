@@ -183,26 +183,26 @@ internal sealed class LookupDataLoader
         // Build lookup dictionaries
         var publicationsDict = publicationTasks
             .Where(t => t.Result.Publication != null)
-            .ToDictionary(t => t.Result.Key, t => t.Result.Publication!);
+            .ToDictionary(t => t.Result.Key, t => t.Result.Publication!, PublicationLookupKeyComparers.LanguagePublication.Instance);
 
         var sectionsDict = sectionTasks
             .Where(t => !string.IsNullOrWhiteSpace(t.Result.SectionName))
-            .ToDictionary(t => t.Result.Key, t => t.Result.SectionName!);
+            .ToDictionary(t => t.Result.Key, t => t.Result.SectionName!, PublicationLookupKeyComparers.LanguagePublicationSection.Instance);
 
         var vocalLanguagesDict = await vocalLanguagesTask;
 
         var vocalReleasesDict = (await Task.WhenAll(vocalReleasesTasks))
             .SelectMany(r => r.Releases.Select(kvp => new { Key = (r.LanguageCode, PublicationCode: kvp.Key), Release = kvp.Value }))
-            .ToDictionary(x => x.Key, x => x.Release);
+            .ToDictionary(x => x.Key, x => x.Release, PublicationLookupKeyComparers.LanguagePublication.Instance);
 
         var vocalTracksDict = (await Task.WhenAll(vocalTracksTasks))
-            .ToDictionary(t => t.Key, t => t.Tracks);
+            .ToDictionary(t => t.Key, t => t.Tracks, PublicationLookupKeyComparers.LanguagePublication.Instance);
 
         var melodyTracksFlatDict = (await Task.WhenAll(melodyTracksFlatTasks))
             .ToDictionary(t => t.PublicationCode, t => t.Tracks, StringComparer.OrdinalIgnoreCase);
 
         var melodyTracksBySectionDict = (await Task.WhenAll(melodyTracksBySectionTasks))
-            .ToDictionary(t => t.Key, t => t.Tracks);
+            .ToDictionary(t => t.Key, t => t.Tracks, PublicationLookupKeyComparers.PublicationSection.Instance);
 
         var melodyReleasesDict = await melodyReleasesTask;
 
@@ -315,7 +315,7 @@ internal sealed class LookupDataLoader
             .GroupBy(s => s.Id)
             .ToDictionary(g => g.Key, g => SectionCodeHelper.Normalize(g.First().SectionCode));
 
-        var sectionsDict = new Dictionary<(string PublicationCode, string SectionCode), string>();
+        var sectionsDict = new Dictionary<(string PublicationCode, string SectionCode), string>(PublicationLookupKeyComparers.PublicationSection.Instance);
         foreach (var s in sections)
         {
             if (!pubCodeById.TryGetValue(s.BiblePublicationId, out var pubCode))
@@ -346,10 +346,12 @@ internal sealed class LookupDataLoader
             })
             .ToListAsync(CancellationToken.None);
 
-        var trackTitles = new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>();
+        var trackTitles = new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>(
+            PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance);
 
         // Precompute the desired track keys so we only retain titles for tracks we actually need.
-        var neededTrackKeys = new HashSet<(string PublicationCode, string? SectionCode, string TrackCode)>();
+        var neededTrackKeys = new HashSet<(string PublicationCode, string? SectionCode, string TrackCode)>(
+            PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance);
         foreach (var key in keys.BibleTrackKeys)
         {
             if (!missingPublicationCodes.Contains(key.PublicationCode))

@@ -32,7 +32,8 @@ internal class MusicCataloger : BaseCataloger
     /// <summary>
     /// Localized publication names: (languageCode, publicationCode) -> localizedName
     /// </summary>
-    private readonly Dictionary<(string LanguageCode, string PublicationCode), string> localizedVocalNames = new();
+    private readonly Dictionary<(string LanguageCode, string PublicationCode), string> localizedVocalNames =
+        new(SharedHelpers.PublicationLookupKeyComparers.LanguagePublication.Instance);
 
     internal async Task CatalogVocalMusicLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {

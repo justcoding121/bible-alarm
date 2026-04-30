@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.Cataloger.Catalogers;
@@ -27,7 +28,8 @@ internal class BibleCataloger : BaseCataloger
     /// <summary>
     /// Dictionary to store localized publication names: (languageCode, publicationCode) -> localizedName
     /// </summary>
-    private readonly ConcurrentDictionary<(string LanguageCode, string PublicationCode), string> localizedPublicationNames = new();
+    private readonly ConcurrentDictionary<(string LanguageCode, string PublicationCode), string> localizedPublicationNames =
+        new(PublicationLookupKeyComparers.LanguagePublication.Instance);
 
     /// <summary>
     /// Gets the localized publication names collected during cataloging.

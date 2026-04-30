@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 
 namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers.LookupLoading;
@@ -14,6 +15,7 @@ internal sealed record NoLanguageLookupData(
 {
     public static readonly NoLanguageLookupData Empty =
         new(new Dictionary<string, LookupDataLoader.NoLanguagePublicationMeta>(StringComparer.OrdinalIgnoreCase),
-            new Dictionary<(string PublicationCode, string SectionCode), string>(),
-            new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>());
+            new Dictionary<(string PublicationCode, string SectionCode), string>(PublicationLookupKeyComparers.PublicationSection.Instance),
+            new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>(
+                PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance));
 }
