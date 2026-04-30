@@ -380,9 +380,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
                 return;
             }
 
-            var isUserAction = !isSyncingFromState;
-            if (isUserAction &&
-                NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
+            if (NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
                     value,
                     () => permissionService != null && permissionService.IsGranted,
                     () => permissionService?.RequestPermissionIfNeeded() ?? false,
@@ -410,7 +408,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
                 DispatchScheduleUpdate(s => s.NotificationEnabled = value);
             }
 
-            if (isUserAction && !value)
+            if (!value)
             {
                 isWaitingForPermissionResponse = false;
             }

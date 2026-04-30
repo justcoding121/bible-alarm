@@ -99,7 +99,7 @@ public sealed class TrackPlaybackHandler
         // and AudioPlayer.Status may be Stopped from a MediaElement reset (e.g. CDN refresh replay)
         // even though no stop was requested.
         var playlistAfterWait = getPlaylist();
-        if (playlistAfterWait == null || currentTrackIndex < 0 || currentTrackIndex >= playlistAfterWait.Count)
+        if (playlistAfterWait == null || currentTrackIndex >= playlistAfterWait.Count)
         {
             logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.PlaybackStoppedDuringWaitAborting);
             return false;
@@ -130,7 +130,6 @@ public sealed class TrackPlaybackHandler
         var inMemoryFinishedDuration = track.PlayItem?.Metadata?.FinishedDuration ?? TimeSpan.Zero;
         var shouldCheckSeek = !startFromBeginning
             && isFirstEncounter
-            && isBibleTrack
             && inMemoryFinishedDuration != TimeSpan.Zero;
 
         if (shouldCheckSeek)
@@ -144,7 +143,7 @@ public sealed class TrackPlaybackHandler
                     seekPosition.Value, currentScheduleId);
             }
         }
-        else if (!startFromBeginning && isFirstEncounter && isBibleTrack
+        else if (!startFromBeginning && isFirstEncounter
             && inMemoryFinishedDuration == TimeSpan.Zero && currentScheduleId.HasValue
             && playedBibleTrackKeys.Count == 0)
         {
@@ -217,7 +216,7 @@ public sealed class TrackPlaybackHandler
         // Final check before starting playback - ensure stop wasn't called during seek/resume operations.
         // Same rationale as the post-WaitForMediaReadyAsync check: only check playlist validity.
         var playlistBeforePlay = getPlaylist();
-        if (playlistBeforePlay == null || currentTrackIndex < 0 || currentTrackIndex >= playlistBeforePlay.Count)
+        if (playlistBeforePlay == null || currentTrackIndex >= playlistBeforePlay.Count)
         {
             logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.PlaybackStoppedBeforePlayAborting);
             return false;

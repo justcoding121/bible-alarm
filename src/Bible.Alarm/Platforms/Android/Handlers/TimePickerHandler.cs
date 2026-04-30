@@ -224,8 +224,8 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
 
             // Find AM/PM TextView - in Material 3 TimePicker, it's typically a child view
             // Try to find by ID first (Material 3 uses specific IDs)
-            var context = dialog.Context;
-            if (context != null && timePicker is global::Android.Views.ViewGroup timePickerGroup)
+            var context = dialog.Context!;
+            if (timePicker is global::Android.Views.ViewGroup timePickerGroup)
             {
                 // Try finding by resource ID (Material 3 TimePicker AM/PM indicator)
                 var amPmId = context.Resources?.GetIdentifier("material_timepicker_am_label", "id", context.PackageName);

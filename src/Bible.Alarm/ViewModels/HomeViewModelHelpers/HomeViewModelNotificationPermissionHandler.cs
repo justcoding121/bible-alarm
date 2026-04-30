@@ -47,16 +47,18 @@ public sealed class HomeViewModelNotificationPermissionHandler
 
             setButtonVisible(shouldShow);
 
-            if (DeviceInfo.Platform == DevicePlatform.Android && (shouldShow || getFloatingButtonVisible()))
+#if ANDROID
+            if (shouldShow || getFloatingButtonVisible())
             {
                 setButtonBottomMargin(0);
                 setCollectionViewBottomMargin(24 + 56);
             }
-            else if (DeviceInfo.Platform == DevicePlatform.Android)
+            else
             {
                 setButtonBottomMargin(0);
                 setCollectionViewBottomMargin(0);
             }
+#endif
 
             MainThread.BeginInvokeOnMainThread(notifyMarginChanged);
         }

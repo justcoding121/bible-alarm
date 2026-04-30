@@ -92,7 +92,7 @@ internal sealed class ScheduleOverlayTimeoutController : IDisposable
         }
         
         // Handle overlay visibility based on container readiness and content load state
-        if (currentOverlayVisibility && !isSaving && stateValue.ContainerReadiness.AllReady && isContentLoaded)
+        if (currentOverlayVisibility && stateValue.ContainerReadiness.AllReady && isContentLoaded)
         {
             // Both containers ready and content loaded - hide overlay
             // Only dispatch if overlay is currently visible to prevent redundant state changes
@@ -105,7 +105,7 @@ internal sealed class ScheduleOverlayTimeoutController : IDisposable
                 dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             }
         }
-        else if (currentOverlayVisibility && !isSaving && isContentLoaded && !stateValue.ContainerReadiness.AllReady && overlayTimeoutCancellation == null)
+        else if (currentOverlayVisibility && isContentLoaded && !stateValue.ContainerReadiness.AllReady && overlayTimeoutCancellation == null)
         {
             // Content loaded but containers not ready - start timeout ONLY if not already running
             StartOverlayTimeout();

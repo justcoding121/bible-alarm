@@ -24,6 +24,11 @@ internal static class CatalogValidator
         logger.Information("=== Validating catalog: sample track/section/publication vs API ===");
 
         var samples = await GetSampleTracksAsync(db, logger);
+        if (samples.Count == 0)
+        {
+            logger.Warning("CatalogValidator: No sample tracks found in DB (no tracks with TrackUrl for language E)");
+        }
+
         var passed = 0;
         var failed = 0;
 
@@ -112,11 +117,6 @@ internal static class CatalogValidator
         TryAdd(AppConstants.Media.BiblePublicationCategoryDramas, null, null);
         TryAdd(AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures, null, null);
         TryAdd(AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes, null, null);
-
-        if (samples.Count == 0)
-        {
-            logger.Warning("CatalogValidator: No sample tracks found in DB (no tracks with TrackUrl for language E)");
-        }
 
         return samples;
     }
