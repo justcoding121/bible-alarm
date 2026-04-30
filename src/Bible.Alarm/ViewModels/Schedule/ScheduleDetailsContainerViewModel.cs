@@ -331,7 +331,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     private static int CountSelectedDays(DaysOfWeek daysOfWeek)
     {
         var count = 0;
-        foreach (DaysOfWeek day in Enum.GetValues(typeof(DaysOfWeek)))
+        foreach (DaysOfWeek day in Enum.GetValues<DaysOfWeek>())
         {
             if (day == DaysOfWeek.All)
             {

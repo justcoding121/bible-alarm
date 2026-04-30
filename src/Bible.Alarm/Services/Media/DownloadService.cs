@@ -80,15 +80,15 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
 
     public async Task<byte[]> DownloadAsync(string url, string? alternativeUrl = null, CancellationToken cancellationToken = default)
     {
-        return await DownloadWithProgressAsyncInternal(url, null, cancellationToken, alternativeUrl);
+        return await DownloadWithProgressAsyncInternal(url, null, alternativeUrl, cancellationToken);
     }
 
     public async Task<byte[]> DownloadWithProgressAsync(string url, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
     {
-        return await DownloadWithProgressAsyncInternal(url, progressCallback, cancellationToken, null);
+        return await DownloadWithProgressAsyncInternal(url, progressCallback, null, cancellationToken);
     }
 
-    private async Task<byte[]> DownloadWithProgressAsyncInternal(string url, Action<long, long?>? progressCallback, CancellationToken cancellationToken, string? alternativeUrl)
+    private async Task<byte[]> DownloadWithProgressAsyncInternal(string url, Action<long, long?>? progressCallback, string? alternativeUrl, CancellationToken cancellationToken)
     {
         // Combine the service's cancellation token with the provided one
         using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token, cancellationToken);

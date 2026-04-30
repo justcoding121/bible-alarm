@@ -21,7 +21,7 @@ public class AlarmSetupService : Service, IDisposable
     private static readonly ILogger logger = Log.ForContext<AlarmSetupService>();
 
 
-    public static bool IsRunning;
+    public static bool IsRunning { get; private set; }
 
     public AlarmSetupService()
     {

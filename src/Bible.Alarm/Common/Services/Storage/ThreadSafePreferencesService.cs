@@ -15,7 +15,7 @@ namespace Bible.Alarm.Common.Services.Storage;
 /// </summary>
 public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
 {
-    private static readonly ILogger logger = Log.ForContext(typeof(ThreadSafePreferencesService));
+    private static readonly ILogger logger = Log.ForContext<ThreadSafePreferencesService>();
 
     private const string LogMessageErrorReadingPreferencesForKey = "Error reading from Preferences for key: {Key}";
     private const string LogMessageErrorWritingPreferencesRetry =

@@ -57,8 +57,8 @@ internal static class MediaCacheCleanup
         IPlaylistService mediaPlayService,
         Func<int, string> getScheduleCacheFolder,
         Func<string, string> getCacheFileName,
-        CancellationToken cancellationToken,
-        List<AlarmSchedule> schedules)
+        List<AlarmSchedule> schedules,
+        CancellationToken cancellationToken)
     {
         var filePathsToDelete = new HashSet<string>(StringComparer.Ordinal);
 
@@ -235,8 +235,8 @@ internal static class MediaCacheCleanup
         ConcurrentDictionary<string, Task<string?>> inProgressDownloads,
         Func<int, string> getScheduleCacheFolder,
         Func<string, string> getCacheFileName,
-        CancellationToken cancellationToken,
-        int scheduleId)
+        int scheduleId,
+        CancellationToken cancellationToken)
     {
         if (scheduleId <= 0)
         {

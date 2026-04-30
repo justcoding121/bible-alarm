@@ -88,12 +88,12 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
                 BiblePublicationService,
                 languageContentService,
                 scopeFactory,
-                cancellationToken,
                 languageCode,
                 categoryName,
                 downloadAll,
                 progress,
-                requireIsMusicForMusicCategory);
+                requireIsMusicForMusicCategory,
+                cancellationToken);
             
             // Invalidate cache after downloading to ensure selectability checks use fresh data
             if (downloadAll)
@@ -145,12 +145,12 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
             BiblePublicationService,
             languageContentService,
             scopeFactory,
-            cancellationTokenSource.Token,
             languageCode,
             categoryName,
             downloadAll: false,
             progress: null,
-            requireIsMusicForMusicCategory);
+            requireIsMusicForMusicCategory,
+            cancellationTokenSource.Token);
     }
 
     /// <summary>

@@ -36,9 +36,9 @@ internal static class ScheduleStateServiceAndroidEnableWithPermission
         IDispatcher dispatcher,
         INavigationService navigationService,
         IServiceProvider serviceProvider,
-        CancellationToken cancellationToken,
         Func<Exception, bool> isSecurityException,
-        Func<int, Exception, Task<bool>> handleSecurityExceptionAsync)
+        Func<int, Exception, Task<bool>> handleSecurityExceptionAsync,
+        CancellationToken cancellationToken)
     {
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
         if (schedule == null || !schedule.NotificationEnabled)

@@ -501,7 +501,7 @@ public sealed class DisplayMetadataService(
                 // UNC path or extra slashes
                 path = path.TrimStart('/');
             }
-            else if (!path.StartsWith("/", StringComparison.Ordinal) && OperatingSystem.IsWindows())
+            else if (!path.StartsWith('/') && OperatingSystem.IsWindows())
             {
                 // Windows path without leading slash
                 return path;

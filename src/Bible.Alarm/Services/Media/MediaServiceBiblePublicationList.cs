@@ -21,12 +21,12 @@ internal static class MediaServiceBiblePublicationList
         IBiblePublicationService biblePublicationService,
         ILanguageContentService languageContentService,
         IServiceScopeFactory scopeFactory,
-        CancellationToken cancellationToken,
         string languageCode,
         string? categoryName = null,
         bool downloadAll = false,
         IFetchProgress? progress = null,
-        bool requireIsMusicForMusicCategory = false)
+        bool requireIsMusicForMusicCategory = false,
+        CancellationToken cancellationToken = default)
     {
         // Step 1: Get all available publication codes from PublicationLanguages (discovery table)
         var availablePublicationCodes = await biblePublicationService.GetAvailablePublicationCodesAsync(

@@ -36,10 +36,10 @@ internal static class ScheduleStateServiceIosEnableWithPermission
         IDispatcher dispatcher,
         INavigationService navigationService,
         IServiceProvider serviceProvider,
-        CancellationToken cancellationToken,
         Func<Exception, bool> isSecurityException,
         Func<int, Exception, Task<bool>> handleSecurityExceptionAsync,
-        Action<AlarmSchedule?> updateFluxorStore)
+        Action<AlarmSchedule?> updateFluxorStore,
+        CancellationToken cancellationToken)
     {
         try
         {

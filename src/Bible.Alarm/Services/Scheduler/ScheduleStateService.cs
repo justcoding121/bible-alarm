@@ -55,7 +55,7 @@ public sealed class ScheduleStateService(
 #if ANDROID
             var (androidHandled, androidUpdated) = await ScheduleStateServiceAndroidEnableWithPermission.TryHandleEnableAsync(
                 scheduleId, isEnabled, logger, alarmScheduleService, alarmService, dispatcher, navigationService,
-                serviceProvider, cancellationTokenSource.Token, IsSecurityException, HandleSecurityExceptionAsync);
+                serviceProvider, IsSecurityException, HandleSecurityExceptionAsync, cancellationTokenSource.Token);
             if (androidHandled)
             {
                 if (androidUpdated is AlarmSchedule storedAndroidSchedule)
@@ -69,7 +69,7 @@ public sealed class ScheduleStateService(
 #elif IOS
             var (iosHandled, iosUpdated) = await ScheduleStateServiceIosEnableWithPermission.TryHandleEnableAsync(
                 scheduleId, isEnabled, logger, alarmScheduleService, alarmService, dispatcher, navigationService,
-                serviceProvider, cancellationTokenSource.Token, IsSecurityException, HandleSecurityExceptionAsync, UpdateFluxorStore);
+                serviceProvider, IsSecurityException, HandleSecurityExceptionAsync, UpdateFluxorStore, cancellationTokenSource.Token);
             if (iosHandled)
             {
                 if (iosUpdated is AlarmSchedule storedIosSchedule)

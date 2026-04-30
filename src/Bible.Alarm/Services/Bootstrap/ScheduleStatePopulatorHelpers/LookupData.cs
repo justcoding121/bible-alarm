@@ -85,7 +85,7 @@ internal sealed class LookupDataLoader
             }
         }).ToList();
 
-        var vocalLanguagesTask = mediaService != null && keys.VocalMusicLanguageCodes.Any()
+        var vocalLanguagesTask = mediaService != null && keys.VocalMusicLanguageCodes.Count > 0
             ? mediaService.GetVocalMusicLanguages()
             : Task.FromResult<Dictionary<string, Language>>(new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase));
 
@@ -160,7 +160,7 @@ internal sealed class LookupDataLoader
         }).ToList();
 
         // Load melody releases for publication names
-        var melodyReleasesTask = mediaService != null && keys.MelodyPublicationCodes.Any()
+        var melodyReleasesTask = mediaService != null && keys.MelodyPublicationCodes.Count > 0
             ? mediaService.GetMelodyMusicReleases()
             : Task.FromResult<Dictionary<string, MelodyMusic>>(new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase));
 

@@ -289,8 +289,8 @@ public sealed class MediaCacheService(
             mediaPlayService,
             GetScheduleCacheFolder,
             GetCacheFileName,
-            cancellationTokenSource.Token,
-            schedules);
+            schedules,
+            cancellationTokenSource.Token);
         await DeleteFilesAsync(filePathsToDelete);
 
         // Clean up orphaned folders (folders without corresponding schedules in database)
@@ -322,8 +322,8 @@ public sealed class MediaCacheService(
             inProgressDownloads,
             GetScheduleCacheFolder,
             GetCacheFileName,
-            cancellationTokenSource.Token,
-            scheduleId);
+            scheduleId,
+            cancellationTokenSource.Token);
     }
 
 
