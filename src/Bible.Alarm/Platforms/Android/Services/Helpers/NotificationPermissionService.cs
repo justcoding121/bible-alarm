@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Android;
 using Android.Content.PM;
 using Android.OS;
@@ -54,6 +55,8 @@ public sealed class NotificationPermissionService : IDisposable
     /// <summary>
     /// Gets whether notification permission is currently granted.
     /// </summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Keeps symmetrical API with iOS notification singleton and instance event surface.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public bool IsGranted
     {
         get

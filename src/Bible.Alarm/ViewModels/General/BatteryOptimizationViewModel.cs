@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
 using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -252,8 +253,12 @@ public sealed class BatteryOptimizationViewModel : ObservableObject, IDisposable
         }
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Button labels bind from XAML to this modal ViewModel.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public string BatteryOptimizationButtonText => "OPEN BATTERY SETTINGS";
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Button labels bind from XAML to this modal ViewModel.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public string DndButtonText => "OPEN DND SETTINGS";
 
     /// <summary>

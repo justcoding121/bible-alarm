@@ -80,7 +80,7 @@ public sealed class AndroidAlarmHandler(
         AndroidNotificationService.RemoveLocalNotification(schedule.Id);
 
         var notificationTitle = string.IsNullOrEmpty(schedule.Name) ? AppConstants.AppSettings.ApplicationDisplayName : schedule.Name;
-        logger.Information(AppConstants.Logging.AndroidAlarmHandlerDiagnosticsLog.ShowingLocalNotificationForScheduleTitle, schedule.Id, notificationTitle);
+        logger.Debug(AppConstants.Logging.AndroidAlarmHandlerDiagnosticsLog.ShowingLocalNotificationForScheduleTitle, schedule.Id, notificationTitle);
         AndroidNotificationService.ShowLocalNotification(schedule.Id,
             notificationTitle,
             AppConstants.Notifications.TapAlarmToListenBody);

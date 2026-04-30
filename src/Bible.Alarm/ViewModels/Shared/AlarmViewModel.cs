@@ -1,4 +1,5 @@
 #nullable enable
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -476,6 +477,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     /// <summary>Show main player content when not preparing and no error.</summary>
     public bool ShowMainPlayerContent => !IsPreparing && !HasError;
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Exposed for XAML bindings on PlaybackViewModel instance.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Instance property required for MAUI BindingContext.")]
     public bool ShowPlaybackControls => true;
 
     /// <summary>True when media is buffering mid-playback (not during initial track preparation).</summary>
@@ -505,6 +508,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         playbackState.Value.Status != PlayStatus.Stopped;
 
     /// <summary>Stop button is always enabled (escape hatch for user to dismiss).</summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Exposed for XAML bindings on PlaybackViewModel instance.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Instance property required for MAUI BindingContext.")]
     public bool IsStopButtonEnabled => true;
 
     public string ProgressText => PlaybackViewModelProgressTextHelper.GetProgressText(loadedTracks, totalTracks, totalBytesDownloaded, totalBytesExpected, PreparationProgress);

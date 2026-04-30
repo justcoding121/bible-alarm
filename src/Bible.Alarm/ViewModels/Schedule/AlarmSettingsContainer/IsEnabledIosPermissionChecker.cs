@@ -41,7 +41,7 @@ public static class IsEnabledIosPermissionChecker
                 {
                     try
                     {
-                        var result = await permissionService.IsGrantedAsync();
+                        var result = await IOSNotificationPermissionService.IsGrantedAsync();
                         MainThread.BeginInvokeOnMainThread(() =>
                         {
                             if (result && !getIsEnabled())

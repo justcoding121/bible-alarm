@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -424,6 +425,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     /// <summary>
     /// Gets the FlowDirection for content (always LTR for instrumental music).
     /// </summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Flow direction binds from XAML to this list ViewModel instance.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public FlowDirection ContentFlowDirection => FlowDirection.LeftToRight;
 
     private async Task PopulateSections(string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)

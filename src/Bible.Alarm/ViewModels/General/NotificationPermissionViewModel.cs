@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Shared.Constants;
@@ -233,7 +234,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             return;
         try
         {
-            var canShow = await permissionService.CanShowSystemPromptAsync();
+            var canShow = await IOSNotificationPermissionService.CanShowSystemPromptAsync();
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 UpdateCanShowSystemPrompt(canShow);
@@ -264,8 +265,8 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                 try
                 {
                     permissionService.InvalidateCache();
-                    var result = await permissionService.IsGrantedAsync();
-                    var canShow = await permissionService.CanShowSystemPromptAsync();
+                    var result = await IOSNotificationPermissionService.IsGrantedAsync();
+                    var canShow = await IOSNotificationPermissionService.CanShowSystemPromptAsync();
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         IsNotificationPermissionGranted = result;
@@ -445,8 +446,12 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Localized labels bind from XAML to this modal ViewModel.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public string RequestButtonText => AppConstants.NotificationPermissionModalMessages.RequestNotificationPermissionButtonLabel;
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Localized labels bind from XAML to this modal ViewModel.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public string OpenSettingsButtonText
     {
         get
@@ -459,6 +464,8 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Localized labels bind from XAML to this modal ViewModel.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public string MainMessage
     {
         get
@@ -473,6 +480,8 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Localized labels bind from XAML to this modal ViewModel.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public string InstructionsText
     {
         get

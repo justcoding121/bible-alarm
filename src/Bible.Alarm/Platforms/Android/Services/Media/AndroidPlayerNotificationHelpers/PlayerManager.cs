@@ -1,4 +1,5 @@
 #nullable enable
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using AndroidX.Media3.Common;
 using AndroidX.Media3.ExoPlayer;
@@ -292,6 +293,8 @@ public sealed class PlayerManager(ILogger logger)
         public void OnCues(AndroidX.Media3.Common.Text.CueGroup? cueGroup) { }
         public void OnDeviceInfoChanged(AndroidX.Media3.Common.DeviceInfo? deviceInfo) { }
         public void OnDeviceVolumeChanged(int volume, bool muted) { }
+        [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Interfaces with AndroidX Listener require instance method signature.")]
+        [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
         public void OnEvents(IExoPlayer? iExoPlayer, PlayerEvents? playerEvents)
         {
             _ = iExoPlayer;

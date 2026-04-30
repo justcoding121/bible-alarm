@@ -69,7 +69,7 @@ public sealed class SchedulePersistenceService(
 
         logger.Debug(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncDispatchingAddScheduleAction);
         dispatcher.Dispatch(new AddScheduleAction(savedSchedule));
-        logger.Information(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncAddScheduleActionDispatchedSuccessfully);
+        logger.Debug(AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncAddScheduleActionDispatchedSuccessfully);
 
         return savedSchedule;
     }

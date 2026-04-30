@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
@@ -353,6 +354,8 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     public ICommand SelectTrackCommand { get; private set; } = null!;
 
     public bool IsSectionVisible => displayTextProvider.GetIsSectionVisible();
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Binding and property-changed notifications use this instance member path.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public bool IsLanguageVisible => BiblePublicationDisplayTextProvider.GetIsLanguageVisible();
     public FlowDirection ContentFlowDirection => displayTextProvider.GetFlowDirection();
     public string CategoryDisplayText => displayTextProvider.GetCategoryDisplayText();

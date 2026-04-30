@@ -39,7 +39,7 @@ public class ScheduleCreateHandler
     {
         try
         {
-            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleName, action.Schedule?.Name);
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleName, action.Schedule?.Name);
 
             if (action.Schedule == null || alarmScheduleService == null)
             {

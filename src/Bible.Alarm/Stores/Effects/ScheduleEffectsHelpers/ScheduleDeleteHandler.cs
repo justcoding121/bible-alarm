@@ -44,7 +44,7 @@ public class ScheduleDeleteHandler
     {
         try
         {
-            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncCalled,
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncCalled,
                 action?.ScheduleId ?? -1, action == null, dispatcher == null);
 
             if (action == null)
@@ -59,7 +59,7 @@ public class ScheduleDeleteHandler
                 return;
             }
 
-            Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleScheduleId, action.ScheduleId);
+            Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleScheduleId, action.ScheduleId);
 
             if (alarmScheduleService == null)
             {

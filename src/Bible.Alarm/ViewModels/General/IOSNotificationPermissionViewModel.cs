@@ -61,6 +61,8 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
         });
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "On non-iOS targets the body is empty; stays instance per modal lifetime.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     private void InitializePermissionStatus()
     {
 #if IOS
@@ -98,6 +100,8 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
     }
 #endif
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Bodies are IOS-only preprocessor; instance keeps Android/Windows stubs consistent.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public void StartPermissionCheckTimer()
     {
 #if IOS
@@ -170,6 +174,8 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
 #endif
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Implementation uses IOS-only blocks; analyzer sees no instance reads on neutral targets.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     private void UpdateHomePageButtonVisibility()
     {
 #if IOS
@@ -209,6 +215,8 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
         }
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Label binds from XAML to this modal ViewModel.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]
     public string RequestButtonText => "REQUEST NOTIFICATION PERMISSION";
 
     /// <summary>

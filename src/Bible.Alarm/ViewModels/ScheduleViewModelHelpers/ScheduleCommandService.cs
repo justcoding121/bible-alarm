@@ -159,7 +159,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             await Task.Delay(50);
         }
 
-        logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.ExecuteSaveAsyncBeforePrepareModelForSaveTracksAndAlwaysPlayFromStart,
+        logger.Debug(AppConstants.Logging.ScheduleCommandDiagnosticsLog.ExecuteSaveAsyncBeforePrepareModelForSaveTracksAndAlwaysPlayFromStart,
             currentSchedule.NumberOfTracksToPlay, currentSchedule.AlwaysPlayFromStart);
         
         var model = await scheduleSaveService.PrepareModelForSaveAsync(currentSchedule, isNewSchedule, musicUpdated);
@@ -171,7 +171,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             scheduleStateItem.BiblePublicationFinishedDuration = TimeSpan.Zero;
         }
 
-        logger.Information(AppConstants.Logging.ScheduleCommandDiagnosticsLog.ExecuteSaveAsyncAfterPrepareScheduleStateItemTracksAndAlwaysPlayFromStart,
+        logger.Debug(AppConstants.Logging.ScheduleCommandDiagnosticsLog.ExecuteSaveAsyncAfterPrepareScheduleStateItemTracksAndAlwaysPlayFromStart,
             scheduleStateItem.NumberOfTracksToPlay, scheduleStateItem.AlwaysPlayFromStart);
 
         if (isNewSchedule)

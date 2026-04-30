@@ -128,7 +128,7 @@ public sealed class HomeViewModelNotificationPermissionHandler
             {
                 try
                 {
-                    var asyncResult = await permissionService.IsGrantedAsync();
+                    var asyncResult = await Platforms.iOS.Services.Helpers.IOSNotificationPermissionService.IsGrantedAsync();
                     logger.Information("[NOTIFICATION-BUTTON] Async permission check completed: {Result}", asyncResult);
                     if (asyncResult != isGranted)
                     {

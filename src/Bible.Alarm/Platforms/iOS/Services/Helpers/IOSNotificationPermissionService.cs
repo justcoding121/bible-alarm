@@ -76,7 +76,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                 {
                     try
                     {
-                        var result = await IsGrantedAsync();
+                        var result = await IOSNotificationPermissionService.IsGrantedAsync();
                         cachedPermissionResult = result;
                         lastPermissionCheck = DateTime.Now;
                         logger.Debug("[NOTIFICATION-PERMISSION] Cache refreshed with result: {Result}", result);
@@ -105,7 +105,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
     /// <summary>
     /// Gets whether notification permission is currently granted (async version).
     /// </summary>
-    public async Task<bool> IsGrantedAsync()
+    public static async Task<bool> IsGrantedAsync()
     {
         try
         {
@@ -230,7 +230,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
     /// Returns true if the OS can still show the system permission prompt (user has not denied yet).
     /// On iOS the system prompt is shown only once; after the user taps "Don't Allow" this returns false.
     /// </summary>
-    public async Task<bool> CanShowSystemPromptAsync()
+    public static async Task<bool> CanShowSystemPromptAsync()
     {
         try
         {

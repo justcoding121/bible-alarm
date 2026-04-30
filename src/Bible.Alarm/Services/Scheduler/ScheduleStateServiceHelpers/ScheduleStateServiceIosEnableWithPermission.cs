@@ -48,7 +48,7 @@ internal static class ScheduleStateServiceIosEnableWithPermission
             try
             {
                 permissionService.InvalidateCache();
-                isPermissionGranted = await permissionService.IsGrantedAsync();
+                isPermissionGranted = await IOSNotificationPermissionService.IsGrantedAsync();
                 logger.Debug("EnableScheduleAsync (iOS): Permission check result - Granted: {IsGranted}", isPermissionGranted);
             }
             catch (Exception ex)
