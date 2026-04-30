@@ -269,7 +269,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             initComplete = true;
         }
 
-        if (needsRepopulation && !isDisposed && !isSelectingSection)
+        if (needsRepopulation && !isDisposed)
         {
             fetchCts?.CancelAsync();
             fetchCts?.Dispose();

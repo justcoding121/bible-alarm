@@ -8,8 +8,8 @@ using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Services.Media.Helpers.SectionFetcherHelpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -247,8 +247,8 @@ public sealed class TrackNavigatorSectionCataloger
 
             if (success)
             {
-            clearSectionsCache();
-            clearTracksCache();
+                clearSectionsCache();
+                clearTracksCache();
                 return true;
             }
 
@@ -272,26 +272,11 @@ public sealed class TrackNavigatorSectionCataloger
                 await db.SaveChangesAsync();
                 return;
             }
-            catch (DbUpdateException ex) when (attempt < maxAttempts)
+            catch (DbUpdateException ex) when (attempt < maxAttempts && SectionFetcherSqliteExceptionHelper.IsBusyOrLocked(ex))
             {
-                var isBusyOrLocked = false;
-                for (var e = (Exception)ex; e != null; e = e.InnerException)
-                {
-                    if (e is SqliteException sqliteEx && (int)sqliteEx.SqliteErrorCode is 5 or 6)
-                    {
-                        isBusyOrLocked = true;
-                        break;
-                    }
-                }
-
-                if (isBusyOrLocked)
-                {
-                    logger?.Debug(ex, "SaveChanges locked (attempt {Attempt}/{Max}) for {Context}, retrying",
-                        attempt, maxAttempts, context);
-                    await Task.Delay(100 * attempt);
-                    continue;
-                }
-                throw;
+                logger?.Debug(ex, "SaveChanges locked (attempt {Attempt}/{Max}) for {Context}, retrying",
+                    attempt, maxAttempts, context);
+                await Task.Delay(100 * attempt);
             }
         }
     }

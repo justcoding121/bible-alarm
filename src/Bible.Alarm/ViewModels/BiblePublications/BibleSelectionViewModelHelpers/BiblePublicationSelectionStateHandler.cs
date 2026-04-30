@@ -401,7 +401,7 @@ public sealed class BiblePublicationSelectionStateHandler
         lastCategoryName = newCategoryName;
 
         // Update current from CurrentSchedule (single source of truth)
-        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        if (!string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
             // Create BiblePublicationSchedule from CurrentSchedule
             current = new BiblePublicationSchedule

@@ -381,7 +381,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
             }
 
             var isUserAction = !isSyncingFromState;
-            if (isUserAction && value &&
+            if (isUserAction &&
                 NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
                     value,
                     () => permissionService != null && permissionService.IsGranted,

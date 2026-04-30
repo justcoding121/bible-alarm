@@ -360,7 +360,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
             }
 
             var isUserAction = !isSyncingFromState;
-            if (isUserAction && value &&
+            if (isUserAction &&
                 NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
                     value,
                     () => permissionService != null && permissionService.IsGranted,

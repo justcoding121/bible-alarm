@@ -115,26 +115,20 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         this.viewModel = viewModel;
         
         // Set initial visibility based on IsMusicSelectionVisible
-        if (viewModel != null)
-        {
-            IsVisible = viewModel.IsMusicSelectionVisible;
-        }
-        
+        IsVisible = viewModel.IsMusicSelectionVisible;
+
         InitializeHelpers();
 
-        if (viewModel != null && propertyChangeHandler != null)
+        if (propertyChangeHandler != null)
         {
 #if DEBUG
             Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribingPropertyChanged,
-                viewModel.GetType().Name, propertyChangeHandler != null);
+                viewModel.GetType().Name, true);
 #endif
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
-            if (propertyChangeHandler != null)
-            {
-                propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
-                propertyChangeHandler.ShouldScrollOnExpand = false; // Don't scroll on initial load
-                propertyChangeHandler.IsInitialLoad = true; // Mark as initial load
-            }
+            propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
+            propertyChangeHandler.ShouldScrollOnExpand = false; // Don't scroll on initial load
+            propertyChangeHandler.IsInitialLoad = true; // Mark as initial load
 #if DEBUG
             Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribedInitialMusicEnabled,
                 viewModel?.MusicEnabled ?? false, propertyChangeHandler?.LastMusicEnabledState ?? false);
@@ -144,7 +138,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             // This ensures we don't miss property changes that were raised before the view subscribed
             Dispatcher.Dispatch(() =>
             {
-                if (viewModel != null && propertyChangeHandler != null)
+                if (propertyChangeHandler != null)
                 {
                     // Trigger property change handler to sync with current state
                     var currentMusicEnabled = viewModel.MusicEnabled;
@@ -244,15 +238,12 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         {
 #if DEBUG
             Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedSubscribingPropertyChanged,
-                viewModel.GetType().Name, propertyChangeHandler != null, isNewViewModel);
+                viewModel.GetType().Name, true, isNewViewModel);
 #endif
             // Unsubscribe first to prevent duplicate subscriptions
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
-            if (viewModel != null && propertyChangeHandler != null)
-            {
-                propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
-            }
+            propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
 #if DEBUG
             Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedSubscribedInitialMusicEnabled,
                 viewModel?.MusicEnabled ?? false, propertyChangeHandler?.LastMusicEnabledState ?? false);
@@ -262,7 +253,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             // This ensures we don't miss property changes that were raised before the view subscribed
             Dispatcher.Dispatch(() =>
             {
-                if (viewModel != null && propertyChangeHandler != null)
+                if (propertyChangeHandler != null)
                 {
                     // Trigger property change handler to sync with current state
                     var currentMusicEnabled = viewModel.MusicEnabled;
@@ -278,7 +269,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
 
             // Only reset isInitialLoad if this is a new ViewModel instance
             // If it's the same ViewModel being reassigned, keep the current isInitialLoad state
-            if (isNewViewModel && propertyChangeHandler != null)
+            if (isNewViewModel)
             {
                 propertyChangeHandler.ShouldScrollOnExpand = false; // Don't scroll on initial load
                 propertyChangeHandler.IsInitialLoad = true; // Mark as initial load

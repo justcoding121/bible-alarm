@@ -8,7 +8,7 @@ namespace Bible.Alarm.Shared.Services.Media.Helpers.SectionFetcherHelpers;
 /// <summary>
 /// Shared SQLite exception classification for section-fetch retry / constraint handling.
 /// </summary>
-internal static class SectionFetcherSqliteExceptionHelper
+public static class SectionFetcherSqliteExceptionHelper
 {
     public static bool IsBusyOrLocked(Exception ex)
     {
