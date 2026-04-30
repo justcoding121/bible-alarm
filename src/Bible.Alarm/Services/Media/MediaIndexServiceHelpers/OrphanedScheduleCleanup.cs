@@ -301,7 +301,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 await transaction.CommitAsync();
                 logger.Information(AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.DeletedOrphanedAlarmSchedule, scheduleId);
             }
-            catch
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 throw;
@@ -328,7 +328,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
                 await transaction.CommitAsync();
                 logger.Information(AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.ResetMusicForAlarmSchedule, scheduleId);
             }
-            catch
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 throw;

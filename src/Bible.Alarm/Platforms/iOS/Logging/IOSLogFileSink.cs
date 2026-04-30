@@ -81,7 +81,7 @@ public class IOSLogFileSink : Serilog.Core.ILogEventSink, IDisposable
                     }
                 }
             }
-            catch
+            catch (Exception)
             {
                 // Silently fail - logging shouldn't crash the app
             }
@@ -118,7 +118,7 @@ public class IOSLogFileSink : Serilog.Core.ILogEventSink, IDisposable
                 writer?.Flush();
                 writer?.Dispose();
             }
-            catch
+            catch (Exception)
             {
                 // Ignore disposal errors
             }

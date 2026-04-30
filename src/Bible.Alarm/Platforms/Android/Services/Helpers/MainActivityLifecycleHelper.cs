@@ -124,7 +124,7 @@ public static class MainActivityLifecycleHelper
         {
             baseOnSaveInstanceState(outState);
         }
-        catch
+        catch (Exception)
         {
             // Ignore errors in base call
         }

@@ -36,7 +36,7 @@ public static class AndroidAutoPlayScreenHelper
             // Clear metadata - no artwork, no text
             mediaSession.SetMetadata(null);
         }
-        catch
+        catch (Exception)
         {
             mediaSession.SetMetadata(null);
         }

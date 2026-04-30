@@ -360,10 +360,10 @@ public partial class BusyOverlay : ContentView
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     try { ApplyHide(); }
-                    catch { overlay.isProcessingVisibilityChange = false; }
+                    catch (Exception) { overlay.isProcessingVisibilityChange = false; }
                 });
             }
-            catch
+            catch (Exception)
             {
                 overlay.isProcessingVisibilityChange = false;
             }

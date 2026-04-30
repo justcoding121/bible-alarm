@@ -54,7 +54,7 @@ public static class MainActivityExceptionHandler
         {
             Log.CloseAndFlush();
         }
-        catch
+        catch (Exception)
         {
             // Best-effort Serilog flush during crash path; suppress so delay still runs for log drain.
         }
@@ -79,7 +79,7 @@ public static class MainActivityExceptionHandler
         {
             logger.Fatal(ex, "Fatal error in MainActivity.OnCreate - app will crash");
         }
-        catch
+        catch (Exception)
         {
             // Serilog not available, already logged with AndroidLog
         }

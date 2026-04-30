@@ -374,7 +374,7 @@ public sealed class DefaultScheduleService(
                 {
                     file.Delete();
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore deletion errors - file might be in use
                 }

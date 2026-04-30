@@ -28,7 +28,7 @@ internal static class MediaCacheCleanup
             {
                 playItems.Add(await mediaPlayService.GetNextPlayItemAsync(anchorMetadata));
             }
-            catch
+            catch (Exception)
             {
                 // Ignore - keep at least what we have.
             }
@@ -37,7 +37,7 @@ internal static class MediaCacheCleanup
             {
                 playItems.Add(await mediaPlayService.GetPreviousPlayItemAsync(anchorMetadata));
             }
-            catch
+            catch (Exception)
             {
                 // Ignore - keep at least what we have.
             }
@@ -295,7 +295,7 @@ internal static class MediaCacheCleanup
                 {
                     newPlaylist.Add(await mediaPlayService.GetNextPlayItemAsync(anchorMetadata));
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore
                 }
@@ -304,7 +304,7 @@ internal static class MediaCacheCleanup
                 {
                     newPlaylist.Add(await mediaPlayService.GetPreviousPlayItemAsync(anchorMetadata));
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore
                 }

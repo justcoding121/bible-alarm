@@ -38,7 +38,7 @@ public sealed class WindowsAccessibilityFontScaleService : IAccessibilityFontSca
             // This corresponds to Windows Settings > Ease of Access > Display > Make text bigger
             return uiSettings.TextScaleFactor;
         }
-        catch
+        catch (Exception)
         {
             // Silently fall back to default
         }

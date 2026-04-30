@@ -37,7 +37,7 @@ public sealed class iOSAccessibilityFontScaleService : IAccessibilityFontScaleSe
             var category = UIApplication.SharedApplication.PreferredContentSizeCategory;
             return ContentSizeCategoryToScale(category);
         }
-        catch
+        catch (Exception)
         {
             // Silently fall back to default
         }

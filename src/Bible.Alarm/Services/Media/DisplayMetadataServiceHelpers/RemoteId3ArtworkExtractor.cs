@@ -212,7 +212,7 @@ internal sealed class RemoteId3ArtworkExtractor
                 {
                     System.IO.File.Delete(tempFilePath);
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore cleanup errors.
                 }

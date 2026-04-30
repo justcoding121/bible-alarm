@@ -41,7 +41,7 @@ public sealed class AndroidAccessibilityFontScaleService : IAccessibilityFontSca
                 return resources.Configuration.FontScale;
             }
         }
-        catch
+        catch (Exception)
         {
             // Silently fall back to default
         }
@@ -70,7 +70,7 @@ public sealed class AndroidAccessibilityFontScaleService : IAccessibilityFontSca
         {
             AndroidApplication.Context.UnregisterComponentCallbacks(componentCallbacks);
         }
-        catch
+        catch (Exception)
         {
             // Ignore disposal errors
         }

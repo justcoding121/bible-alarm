@@ -129,7 +129,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                     }
                 }
             }
-            catch
+            catch (Exception)
             {
                 MediaSessionEffect.SetRestartingPlayback(false);
                 throw;
@@ -292,7 +292,7 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             {
                 await HandlePlayFromMediaIdAsync(parsedScheduleId);
             }
-            catch
+            catch (Exception)
             {
                 MediaSessionEffect.SetRestartingPlayback(false);
                 throw;

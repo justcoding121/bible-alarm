@@ -58,7 +58,7 @@ internal static class WindowsNativeScrollHelper
             await Task.Delay(100, cancellationToken);
             return true;
         }
-        catch
+        catch (Exception)
         {
             return false;
         }
@@ -120,7 +120,7 @@ internal static class WindowsNativeScrollHelper
             // Cancellation requested - can't safely scroll
             return false;
         }
-        catch
+        catch (Exception)
         {
             return false;
         }

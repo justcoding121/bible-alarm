@@ -53,7 +53,7 @@ public class AlarmSetupService : Service, IDisposable
         {
             Log.CloseAndFlush();
         }
-        catch
+        catch (Exception)
         {
             // Best-effort Serilog flush during crash path; suppress so delay still runs for log drain.
         }
