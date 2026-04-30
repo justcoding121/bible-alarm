@@ -172,7 +172,8 @@ public sealed class BiblePublicationSelectionItemSelector
                 .ThenBy(pl => pl.Id)
                 .ToList();
 
-            foreach (var pl in publicationLanguages)
+            foreach (var (pl, publicationCodeForDb) in publicationLanguages.Select(pl =>
+                         (pl, PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(pl.PublicationCode))))
             {
                 // For non-English languages, catalog ONLY this publication (first section + its tracks for sectioned publications).
                 // Progress is reported by EnsurePublicationExistsAsync: 50% (pub+section saved), 100% (tracks saved)
@@ -210,14 +211,14 @@ public sealed class BiblePublicationSelectionItemSelector
                 BiblePublication? candidate;
                 if (biblePublicationService != null)
                 {
-                    candidate = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, pl.PublicationCode);
+                        candidate = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, publicationCodeForDb);
                 }
                 else
                 {
-                    candidate = await db.BiblePublications
-                        .AsNoTracking()
-                        .Include(bp => bp.Language)
-                        .Where(bp => bp.PublicationCode == pl.PublicationCode &&
+                        candidate = await db.BiblePublications
+                            .AsNoTracking()
+                            .Include(bp => bp.Language)
+                            .Where(bp => bp.PublicationCode == publicationCodeForDb &&
                                      bp.Language != null &&
                                      bp.Language.LanguageCode == normalizedLanguageCode)
                         .FirstOrDefaultAsync();

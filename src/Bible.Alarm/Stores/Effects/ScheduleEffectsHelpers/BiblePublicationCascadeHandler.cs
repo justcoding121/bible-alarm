@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -186,29 +187,9 @@ public sealed class BiblePublicationCascadeHandler
         // Cascade must fetch MINIMUM data:
         // - catalog ONLY the first viable publication (first section + tracks for first section)
         // - never ensure ALL publications or ALL sections here
-        foreach (var pl in publicationLanguages)
+        foreach (var (pl, publicationCodeForDb) in publicationLanguages.Select(pl =>
+                     (pl, PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(pl.PublicationCode))))
         {
-            // For dramas, use case-sensitive publication codes in DB (Dramas vs DramaticBibleReadings).
-            // For others, preserve exact case from discovery (usually lower-case codes).
-            var lowerCode = pl.PublicationCode.ToLowerInvariant();
-            var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                if (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase))
-                {
-                    publicationCodeForDb = AppConstants.Media.BiblePublicationCategoryDramas;
-                }
-                else
-                {
-                    publicationCodeForDb = AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
-                }
-            }
-            else
-            {
-                publicationCodeForDb = pl.PublicationCode;
-            }
-
             var isCataloged = await languageContentService.EnsurePublicationExistsAsync(pl.PublicationCode, languageCode);
             if (!isCataloged)
             {

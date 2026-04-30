@@ -163,21 +163,6 @@ public static class ThemeColors
             public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
         }
 
-        // Legacy properties for backward compatibility (use Light theme as default)
-        [Obsolete("Use EnabledText.Get(theme) instead")]
-        public static Color EnabledTextLegacy => EnabledText.Light;
-        
-        [Obsolete("Use CalendarMutedText.Get(theme) instead")]
-        public static Color DisabledTextLegacy => CalendarMutedText.Light;
-        
-        [Obsolete("Use EnabledBackground.Get(theme) instead")]
-        public static Color EnabledBackgroundLegacy => EnabledBackground.Light;
-        
-        [Obsolete("Use DisabledBackground.Get(theme) instead")]
-        public static Color DisabledBackgroundLegacy => DisabledBackground.Light;
-        
-        [Obsolete("Use DefaultBackground.Get(theme) instead")]
-        public static Color DefaultBackgroundLegacy => DefaultBackground.Light;
     }
 
     // Animation/Interaction Colors

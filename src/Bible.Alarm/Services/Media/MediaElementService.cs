@@ -114,18 +114,6 @@ public sealed class MediaElementService : IMediaElementService
     }
 
     /// <summary>
-    /// Initializes MediaElement during bootstrap.
-    /// OBSOLETE: MediaElement is now created on-demand when playback starts.
-    /// This method does nothing and is kept for backward compatibility.
-    /// </summary>
-    [Obsolete("MediaElement is now created on-demand. This method does nothing.")]
-    public async Task InitializeMediaElementAsync()
-    {
-        logger.Debug("InitializeMediaElementAsync called but MediaElement is now created on-demand - no action needed");
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
     /// Disposes the MediaElement instance and releases resources.
     /// Called when playback stops to free up ExoPlayer and MediaSession resources.
     /// </summary>

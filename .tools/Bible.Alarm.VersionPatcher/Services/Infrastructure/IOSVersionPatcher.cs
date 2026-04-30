@@ -60,10 +60,6 @@ public partial class IosVersionPatcher(IVersionService versionService, IFileServ
                         i++;
                     }
                 }
-                else
-                {
-                    output.AppendLine(line);
-                }
             }
             else
             {

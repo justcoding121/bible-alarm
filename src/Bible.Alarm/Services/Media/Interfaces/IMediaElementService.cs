@@ -17,13 +17,6 @@ public interface IMediaElementService : IDisposable
     Task<MediaElement> GetMediaElementAsync();
 
     /// <summary>
-    /// Initializes MediaElement during bootstrap.
-    /// OBSOLETE: MediaElement is now created on-demand. This method does nothing.
-    /// </summary>
-    [Obsolete("MediaElement is now created on-demand. This method does nothing.")]
-    Task InitializeMediaElementAsync();
-
-    /// <summary>
     /// Disposes the MediaElement instance and releases resources.
     /// Called when playback stops to free up ExoPlayer and MediaSession resources.
     /// </summary>

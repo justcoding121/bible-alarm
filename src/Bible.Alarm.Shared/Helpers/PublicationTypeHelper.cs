@@ -96,6 +96,23 @@ public static class PublicationTypeHelper
     }
 
     /// <summary>
+    /// Canonical database publication codes for the two MP3 audio dramas (<c>dramas</c> vs Dramatic Bible Readings);
+    /// all other discovery codes pass through unchanged.
+    /// </summary>
+    public static string GetCanonicalPublicationCodeForDatabase(string publicationCodeFromDiscovery)
+    {
+        var lowerCode = publicationCodeFromDiscovery.ToLowerInvariant();
+        if (!IsDrama(lowerCode))
+        {
+            return publicationCodeFromDiscovery;
+        }
+
+        return lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+            ? AppConstants.Media.BiblePublicationCategoryDramas
+            : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
+    }
+
+    /// <summary>
     /// Mediator drama publications that are audio-only (MP3). Excluded from IsVideo so we request MP3, not MP4.
     /// </summary>
     private static readonly HashSet<string> AudioDramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)

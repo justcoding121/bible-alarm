@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
 using Bible.Alarm.Common;
@@ -169,29 +170,9 @@ public sealed class CategorySelectionAutoPopulateHandler
                     .ToList();
 
                 // Try each publication: check if already cataloged, catalog if needed, then verify it can be queried
-                foreach (var pl in publicationLanguages)
+                foreach (var (pl, publicationCodeForDb) in publicationLanguages.Select(pl =>
+                             (pl, PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(pl.PublicationCode))))
                 {
-                    // For dramas, use case-sensitive publication codes in DB (Dramas vs DramaticBibleReadings).
-                    // For others (e.g. DramasGoodNews), preserve exact case.
-                    var lowerCode = pl.PublicationCode.ToLowerInvariant();
-                    var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
-                    string publicationCodeForDb;
-                    if (isDrama)
-                    {
-                        if (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase))
-                        {
-                            publicationCodeForDb = AppConstants.Media.BiblePublicationCategoryDramas;
-                        }
-                        else
-                        {
-                            publicationCodeForDb = AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
-                        }
-                    }
-                    else
-                    {
-                        publicationCodeForDb = pl.PublicationCode;
-                    }
-
                     var isAlreadyCataloged = await CategorySelectionAutoPopulateCatalogCheck.CheckIfPublicationWithFirstSectionCatalogedAsync(
                         logger, db, pl.PublicationCode, normalizedLanguageCode);
                     
