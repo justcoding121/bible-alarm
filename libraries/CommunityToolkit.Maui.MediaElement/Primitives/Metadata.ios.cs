@@ -34,6 +34,10 @@ sealed class Metadata
     /// </summary>
     public static void ClearNowPlaying()
     {
+        /*
+         * Clearing is handled by callers: SetMetadata resets fields on NowPlayingInfo, and Cleanup sets
+         * MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = null — there is no extra system API needed here.
+         */
     }
 
     /// <summary>

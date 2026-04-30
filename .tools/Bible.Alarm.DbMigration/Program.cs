@@ -514,32 +514,40 @@ static class Program
         }
     }
 
+    static async Task QueryBibleLanguagesFromMediaZipAsync(string zipPath)
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"bible_alarm_media_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            ExtractMediaIndexZipSafely(zipPath, tempDir);
+            var dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
+            if (!File.Exists(dbPath))
+            {
+                Console.WriteLine($"Error: {AppConstants.FilePaths.MediaIndexZipFileName} does not contain {AppConstants.Database.MediaIndexDatabaseFileName}");
+                return;
+            }
+
+            await QueryBibleLanguages(dbPath);
+        }
+        finally
+        {
+            TryDeleteDirectoryBestEffort(tempDir);
+        }
+    }
+
     static async Task ListBibleLanguages(string? path)
     {
         var repoRoot = Directory.GetCurrentDirectory();
         var searchDir = string.IsNullOrEmpty(path) ? Path.Combine(repoRoot, ".tools", "_index") : Path.GetFullPath(path);
-        string dbPath;
+
         if (File.Exists(searchDir) && searchDir.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
         {
-            var tempDir = Path.Combine(Path.GetTempPath(), $"bible_alarm_media_{Guid.NewGuid():N}");
-            Directory.CreateDirectory(tempDir);
-            try
-            {
-                ExtractMediaIndexZipSafely(searchDir, tempDir);
-                dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
-                if (!File.Exists(dbPath))
-                {
-                    Console.WriteLine($"Error: {AppConstants.FilePaths.MediaIndexZipFileName} does not contain {AppConstants.Database.MediaIndexDatabaseFileName}");
-                    return;
-                }
-                await QueryBibleLanguages(dbPath);
-            }
-            finally
-            {
-                TryDeleteDirectoryBestEffort(tempDir);
-            }
+            await QueryBibleLanguagesFromMediaZipAsync(searchDir);
             return;
         }
+
+        string dbPath;
         if (Directory.Exists(searchDir))
         {
             dbPath = Path.Combine(searchDir, AppConstants.Database.MediaIndexDatabaseFileName);
@@ -548,9 +556,10 @@ static class Program
                 var zipPath = Path.Combine(searchDir, AppConstants.FilePaths.MediaIndexZipFileName);
                 if (File.Exists(zipPath))
                 {
-                    path = zipPath;
-                    goto extractZip;
+                    await QueryBibleLanguagesFromMediaZipAsync(zipPath);
+                    return;
                 }
+
                 Console.WriteLine($"Error: {AppConstants.Database.MediaIndexDatabaseFileName} not found in {searchDir}");
                 return;
             }
@@ -564,28 +573,8 @@ static class Program
             Console.WriteLine($"Error: path not found or not a media index: {searchDir}");
             return;
         }
+
         await QueryBibleLanguages(dbPath);
-        return;
-extractZip:
-        {
-            var tempDir = Path.Combine(Path.GetTempPath(), $"bible_alarm_media_{Guid.NewGuid():N}");
-            Directory.CreateDirectory(tempDir);
-            try
-            {
-                ExtractMediaIndexZipSafely(path!, tempDir);
-                dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
-                if (!File.Exists(dbPath))
-                {
-                    Console.WriteLine($"Error: {AppConstants.FilePaths.MediaIndexZipFileName} does not contain {AppConstants.Database.MediaIndexDatabaseFileName}");
-                    return;
-                }
-                await QueryBibleLanguages(dbPath);
-            }
-            finally
-            {
-                TryDeleteDirectoryBestEffort(tempDir);
-            }
-        }
     }
 
     static async Task QueryBibleLanguages(string dbPath)

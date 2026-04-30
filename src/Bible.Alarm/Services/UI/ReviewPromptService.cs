@@ -1,4 +1,5 @@
 #nullable enable
+using System.Globalization;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Schedule;
@@ -226,8 +227,8 @@ public sealed class ReviewPromptService(ILogger logger, IGeneralSettingsService 
 
         if (DateTime.TryParse(
                 setting.Value,
-                null,
-                System.Globalization.DateTimeStyles.RoundtripKind,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
                 out var parsed))
         {
             return parsed.ToUniversalTime();

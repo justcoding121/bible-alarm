@@ -101,17 +101,10 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
 
                 var publicationCode = missingPublications[i];
 
-                try
+                var success = await ensurePublicationExists(publicationCode, languageCode, null, effectiveToken);
+                if (success)
                 {
-                    var success = await ensurePublicationExists(publicationCode, languageCode, null, effectiveToken);
-                    if (success)
-                    {
-                        successCount++;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
+                    successCount++;
                 }
 
                 var progressPercent = (double)(i + 1) / totalCount;

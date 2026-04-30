@@ -340,7 +340,10 @@ internal sealed class SectionFetcherSectionTracksLoader
                 {
                     return;
                 }
-                throw;
+
+                throw new InvalidOperationException(
+                    $"Unique constraint after concurrent insert but no tracks loaded for section {sectionCode} in publication {publicationCode} for language {languageCode}.",
+                    ex);
             }
         }
     }

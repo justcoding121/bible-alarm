@@ -12,8 +12,8 @@ internal static partial class AudioToolboxNative
 {
     private const string AudioToolboxFramework = "/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox";
 
-    [DllImport(AudioToolboxFramework, EntryPoint = "AudioServicesPlaySystemSound")]
-    internal static extern void AudioServicesPlaySystemSound(uint inSystemSoundId);
+    [LibraryImport(AudioToolboxFramework, EntryPoint = "AudioServicesPlaySystemSound")]
+    internal static partial void AudioServicesPlaySystemSound(uint inSystemSoundId);
 }
 
 /// <summary>

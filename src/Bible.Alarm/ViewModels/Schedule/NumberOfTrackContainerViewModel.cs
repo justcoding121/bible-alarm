@@ -257,58 +257,63 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
 
             if (currentSchedule != null)
             {
-#if ANDROID || IOS
-                isSyncingFromState = true;
-                try
-#endif
-                {
-                    var categoryBefore = lastCategoryName;
-                    NumberOfTrackStateChangeHandler.ApplyPropertyChanges(
-                        currentSchedule,
-                        ref notificationEnabled,
-                        ref alwaysPlayFromStart,
-                        ref playIndefinitely,
-                        ref lastCategoryName,
-#if ANDROID || IOS
-                        isWaitingForPermissionResponse,
-#else
-                        false,
-#endif
-#if ANDROID || IOS
-                        () => permissionService != null && permissionService.IsGranted,
-#else
-                        () => true,
-#endif
-                        () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
-                        forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
-                        () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1),
-                        logger);
-
-                    OnPropertyChanged(nameof(NotificationEnabled));
-                    OnPropertyChanged(nameof(AlwaysPlayFromStart));
-                    OnPropertyChanged(nameof(PlayIndefinitely));
-                    OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
-                    if (!string.Equals(categoryBefore, lastCategoryName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        OnPropertyChanged(nameof(TrackLabelText));
-                        OnPropertyChanged(nameof(TracksLabelText));
-                        OnPropertyChanged(nameof(SelectedTracksText));
-                        OnPropertyChanged(nameof(ModalHeaderText));
-                        OnPropertyChanged(nameof(RestartLabelText));
-                    }
-                }
-#if ANDROID || IOS
-                finally
-                {
-                    isSyncingFromState = false;
-                }
-#endif
+                ApplyScheduleStatePropertyChanges(currentSchedule);
             }
         }
         finally
         {
             isProcessingStateChange = false;
         }
+    }
+
+    private void ApplyScheduleStatePropertyChanges(ScheduleStateItem currentSchedule)
+    {
+#if ANDROID || IOS
+        isSyncingFromState = true;
+        try
+#endif
+        {
+            var categoryBefore = lastCategoryName;
+            NumberOfTrackStateChangeHandler.ApplyPropertyChanges(
+                currentSchedule,
+                ref notificationEnabled,
+                ref alwaysPlayFromStart,
+                ref playIndefinitely,
+                ref lastCategoryName,
+#if ANDROID || IOS
+                isWaitingForPermissionResponse,
+#else
+                false,
+#endif
+#if ANDROID || IOS
+                () => permissionService != null && permissionService.IsGranted,
+#else
+                () => true,
+#endif
+                () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
+                forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
+                () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1),
+                logger);
+
+            OnPropertyChanged(nameof(NotificationEnabled));
+            OnPropertyChanged(nameof(AlwaysPlayFromStart));
+            OnPropertyChanged(nameof(PlayIndefinitely));
+            OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
+            if (!string.Equals(categoryBefore, lastCategoryName, StringComparison.OrdinalIgnoreCase))
+            {
+                OnPropertyChanged(nameof(TrackLabelText));
+                OnPropertyChanged(nameof(TracksLabelText));
+                OnPropertyChanged(nameof(SelectedTracksText));
+                OnPropertyChanged(nameof(ModalHeaderText));
+                OnPropertyChanged(nameof(RestartLabelText));
+            }
+        }
+#if ANDROID || IOS
+        finally
+        {
+            isSyncingFromState = false;
+        }
+#endif
     }
 
     public ICommand OpenModalCommand { get; private set; } = null!;

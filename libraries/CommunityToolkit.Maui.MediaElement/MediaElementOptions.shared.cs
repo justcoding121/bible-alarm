@@ -7,16 +7,13 @@ namespace CommunityToolkit.Maui;
 /// </summary>
 public class MediaElementOptions
 {
-    readonly MauiAppBuilder? builder;
-
     internal MediaElementOptions()
     {
 
     }
 
-    internal MediaElementOptions(in MauiAppBuilder builder) : this()
+    internal MediaElementOptions(in MauiAppBuilder _) : this()
     {
-        this.builder = builder;
     }
 
     /// <summary>

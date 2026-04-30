@@ -10,12 +10,12 @@ namespace Bible.Alarm.Platforms.Windows.Logging;
 /// Serilog sink that writes to Windows OutputDebugString so logs are visible via
 /// DebugView (Sysinternals). Avoids file I/O that could block crash reporting.
 /// </summary>
-public sealed class WindowsOutputDebugSink : Serilog.Core.ILogEventSink
+public sealed partial class WindowsOutputDebugSink : Serilog.Core.ILogEventSink
 {
     private const string Tag = "BibleAlarm";
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    private static extern void OutputDebugString(string lpOutputString);
+    [LibraryImport("kernel32.dll", EntryPoint = "OutputDebugStringW", StringMarshalling = StringMarshalling.Utf16)]
+    private static partial void OutputDebugString(string lpOutputString);
 
     public void Emit(LogEvent logEvent)
     {

@@ -8,8 +8,6 @@ namespace Bible.Alarm.Platforms.Android.Handlers;
 
 public class SwitchHandler : Microsoft.Maui.Handlers.SwitchHandler
 {
-    protected override SwitchCompat CreatePlatformView() => base.CreatePlatformView();
-
     protected override void ConnectHandler(SwitchCompat platformView)
     {
         base.ConnectHandler(platformView);

@@ -243,5 +243,5 @@ internal sealed class MagazineCataloger : BaseCataloger
         return result;
     }
 
-    private record YearDiscoveryResult(int Year, int DiscoveredIssueCount);
+    private sealed record YearDiscoveryResult(int Year, int DiscoveredIssueCount);
 }
