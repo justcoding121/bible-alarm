@@ -89,15 +89,15 @@ public class AndroidAutoScheduleChangeTracker
         }
 
         // Find removed schedules (in last but not in current)
-        foreach (var kvp in lastScheduleSignatures.Where(k => !currentSignatures.ContainsKey(k.Key)))
+        foreach (var scheduleId in lastScheduleSignatures.Keys.Where(id => !currentSignatures.ContainsKey(id)))
         {
             changes.Add(new ScheduleChange
             {
                 ChangeType = ScheduleChangeType.Removed,
-                ScheduleId = kvp.Key,
+                ScheduleId = scheduleId,
                 Schedule = null
             });
-            logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleRemoved, kvp.Key);
+            logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleRemoved, scheduleId);
         }
 
         // Find updated schedules (in both but signature changed)

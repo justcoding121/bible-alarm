@@ -51,7 +51,7 @@ public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory 
                 {
                     if (err != null)
                     {
-                        logger.Error($"An error happened when scheduling ios notification. code: {err.Code}");
+                        logger.Error("An error happened when scheduling ios notification. code: {ErrCode}", err.Code);
                     }
                 });
             }

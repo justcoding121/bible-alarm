@@ -173,14 +173,6 @@ public sealed class TrackNavigatorNonSectionedHelper
         {
             return trackCode;
         }
-        foreach (var kvp in tracks)
-        {
-            if (TrackCodeHelper.GetFromTrack(kvp.Value) == trackCode)
-            {
-                return kvp.Key;
-            }
-        }
-
-        throw new InvalidOperationException("Sequence contains no matching element.");
+        return tracks.First(kvp => TrackCodeHelper.GetFromTrack(kvp.Value) == trackCode).Key;
     }
 }

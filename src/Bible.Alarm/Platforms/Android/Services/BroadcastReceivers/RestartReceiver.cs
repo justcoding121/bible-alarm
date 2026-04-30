@@ -99,7 +99,7 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
         }
         catch (Exception e)
         {
-            logger.Error(e, $"Failed to process restart task. Intent action {intent.Action}");
+            logger.Error(e, "Failed to process restart task. Intent action {IntentAction}", intent.Action ?? "(null)");
         }
         finally
         {

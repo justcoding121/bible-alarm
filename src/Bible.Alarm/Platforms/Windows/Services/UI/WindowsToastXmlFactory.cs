@@ -56,7 +56,7 @@ internal static class WindowsToastXmlFactory
             try
             {
                 // Convert local file path to proper URI for Windows toast
-                var imageUri = artworkUrl;
+                string imageUri;
 
                 // If it's already a URI (http/https), use it as-is
                 if (Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) &&

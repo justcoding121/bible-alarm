@@ -83,10 +83,10 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             var currentState = state.Value;
             if (currentState.Schedules != null)
             {
-                foreach (var unsavedSchedule in currentState.Schedules.Where(s => s.Id <= 0))
+                foreach (var unsavedId in currentState.Schedules.Where(s => s.Id <= 0).Select(s => s.Id))
                 {
-                    logger.Debug(AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandRemovingUnsavedScheduleFromState, unsavedSchedule.Id);
-                    dispatcher.Dispatch(new RemoveScheduleSuccessAction(unsavedSchedule.Id));
+                    logger.Debug(AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandRemovingUnsavedScheduleFromState, unsavedId);
+                    dispatcher.Dispatch(new RemoveScheduleSuccessAction(unsavedId));
                 }
             }
 

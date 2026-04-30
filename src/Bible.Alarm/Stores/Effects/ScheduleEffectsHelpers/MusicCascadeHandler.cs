@@ -234,7 +234,6 @@ public sealed class MusicCascadeHandler
         string? publicationCode = null;
         string? publicationName = null;
         bool publicationWithoutLanguage = false;
-        string? effectiveLanguageCode = languageCode;
         bool needCatalog = false;
 
         using (var scope = scopeFactory.CreateScope())
@@ -296,7 +295,6 @@ public sealed class MusicCascadeHandler
                         publicationCode = noLangPublication.PublicationCode;
                         publicationName = noLangPublication.Name;
                         publicationWithoutLanguage = true;
-                        effectiveLanguageCode = null;
                     }
                 }
             }

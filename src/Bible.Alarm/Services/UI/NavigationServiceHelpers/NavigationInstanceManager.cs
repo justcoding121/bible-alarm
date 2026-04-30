@@ -24,7 +24,11 @@ public sealed class NavigationInstanceManager(ILogger logger)
             sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
             onRetry: (exception, timeSpan, retryCount, _) =>
             {
-                logger?.Debug($"Navigation not available yet, retrying in {timeSpan.TotalMilliseconds}ms (attempt {retryCount}/10). Error: {exception.Message}");
+                logger?.Debug(
+                    "Navigation not available yet, retrying in {DelayMs}ms (attempt {RetryCount}/10). Error: {Message}",
+                    timeSpan.TotalMilliseconds,
+                    retryCount,
+                    exception.Message);
             });
 
     /// <summary>
@@ -83,7 +87,7 @@ public sealed class NavigationInstanceManager(ILogger logger)
             throw new InvalidOperationException(errorMsg);
         }
 
-        logger?.Debug($"Application.Current found. Windows count: {app.Windows.Count}");
+        logger?.Debug("Application.Current found. Windows count: {WindowsCount}", app.Windows.Count);
 
         // Try to get navigation from windows
         if (app.Windows.Count > 0)
@@ -116,8 +120,12 @@ public sealed class NavigationInstanceManager(ILogger logger)
         }
 
         var mainPageType = app.Windows.Count > 0 ? app.Windows[0].Page?.GetType().Name ?? "null" : "null (no windows)";
-        var finalErrorMsg = $"INavigation is not available. Application.Current.Windows.Count={app.Windows.Count}, MainPage type={mainPageType}";
-        logger?.Error(finalErrorMsg);
+        var finalErrorMsg =
+            $"INavigation is not available. Application.Current.Windows.Count={app.Windows.Count}, MainPage type={mainPageType}";
+        logger?.Error(
+            "INavigation is not available. Application.Current.Windows.Count={WindowsCount}, MainPage type={MainPageType}",
+            app.Windows.Count,
+            mainPageType);
         throw new InvalidOperationException(finalErrorMsg);
     }
 

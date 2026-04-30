@@ -390,7 +390,7 @@ public class MediaSessionEffect(
         var session = mediaSessionManager.GetOrCreate();
         if (session == null)
         {
-            logger.Warning($"MediaSessionCompat is null, {warningMessage}");
+            logger.Warning("MediaSessionCompat is null, {Detail}", warningMessage);
         }
         return session;
     }

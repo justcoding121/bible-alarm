@@ -317,7 +317,11 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
     /// </summary>
     private async Task EnsureHandlerCreatedAsync(MediaElement mediaElement)
     {
-        logger.Debug($"EnsureHandlerCreated called - handlerCreated={handlerCreated}, globalHandlerCreated={globalHandlerCreated}, mediaElement.Handler != null: {mediaElement.Handler != null}");
+        logger.Debug(
+            "EnsureHandlerCreated called - handlerCreated={HandlerCreated}, globalHandlerCreated={GlobalHandlerCreated}, MediaElement.Handler is not null: {HasHandler}",
+            handlerCreated,
+            globalHandlerCreated,
+            mediaElement.Handler != null);
 
         // CRITICAL: Check STATIC flag first to prevent duplicate ExoPlayer creation across entire application
         lock (lockObject)

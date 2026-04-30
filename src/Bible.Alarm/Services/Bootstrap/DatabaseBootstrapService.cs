@@ -139,7 +139,6 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                 // This ensures the file is not locked when we try to delete it
                 await scheduleDb.Database.CloseConnectionAsync();
                 await scheduleDb.DisposeAsync();
-                scheduleDb = null!; // Clear reference to help GC
 
                 // Force garbage collection to ensure connection is fully released
                 // SQLite connections can hold file locks even after Dispose()
