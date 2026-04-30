@@ -46,6 +46,10 @@ dlldata.c
 project.lock.json
 artifacts/
 
+# Local SonarCloud issue exports (large; regenerate via .github/scripts/export-sonar-issues.ps1)
+sonar-issues-open-maintainability.json
+sonar-issues-*.json
+
 *_i.c
 *_p.c
 *_i.h
