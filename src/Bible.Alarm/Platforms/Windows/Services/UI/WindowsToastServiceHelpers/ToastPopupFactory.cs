@@ -18,7 +18,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 /// <summary>
 /// Creates toast popup UI elements.
 /// </summary>
-internal sealed class ToastPopupFactory
+internal static class ToastPopupFactory
 {
     public static Popup CreateToastPopup(string message, Window currentWindow)
     {

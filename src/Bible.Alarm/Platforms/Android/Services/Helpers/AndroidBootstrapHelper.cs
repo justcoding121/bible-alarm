@@ -11,7 +11,7 @@ using AndroidApplication = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 
-public class AndroidBootstrapHelper
+public static class AndroidBootstrapHelper
 {
     /// <summary>
     /// Main entry point for Android platform initialization

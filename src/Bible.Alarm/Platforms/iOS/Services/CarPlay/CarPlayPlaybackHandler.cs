@@ -12,6 +12,10 @@ namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
 /// </summary>
 public sealed class CarPlayPlaybackHandler
 {
+    private CarPlayPlaybackHandler()
+    {
+    }
+
     private static readonly ILogger logger = Log.ForContext<CarPlayPlaybackHandler>();
     private static readonly TimeSpan CompletionTimeout = TimeSpan.FromSeconds(15);
 

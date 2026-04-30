@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 /// <summary>
 /// Manages window access for toast popups.
 /// </summary>
-internal sealed class ToastWindowManager
+internal static class ToastWindowManager
 {
     public static Window? GetNativeWindow()
     {

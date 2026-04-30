@@ -371,7 +371,7 @@ public sealed class NavigationService(
 
                 await PopOrRemovePlaybackPageAsync(navigation, playbackPage);
                 DisposePlaybackModalSafely(playbackPage);
-                NotifyPlaybackModalClosedOnPlatforms();
+                NotifyPlaybackModalClosedOnPlatforms(serviceProvider);
             });
         });
     }
@@ -441,7 +441,7 @@ public sealed class NavigationService(
 #endif
     }
 
-    private void NotifyPlaybackModalClosedOnPlatforms()
+    private static void NotifyPlaybackModalClosedOnPlatforms(IServiceProvider serviceProvider)
     {
 #if ANDROID
         var barHost = serviceProvider.GetService<IAndroidMiniPlaybackBarHost>();

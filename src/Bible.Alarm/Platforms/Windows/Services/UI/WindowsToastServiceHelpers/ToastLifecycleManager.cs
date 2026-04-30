@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 /// <summary>
 /// Manages toast popup lifecycle (cleanup, closing, etc.).
 /// </summary>
-internal sealed class ToastLifecycleManager
+internal static class ToastLifecycleManager
 {
     public static async Task CloseExistingPopupIfNeededAsync(Popup? currentPopup)
     {

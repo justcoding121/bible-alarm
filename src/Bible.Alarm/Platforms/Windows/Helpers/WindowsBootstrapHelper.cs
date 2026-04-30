@@ -3,7 +3,7 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Helpers;
 
-public class WindowsBootstrapHelper
+public static class WindowsBootstrapHelper
 {
     public static bool IsBackgroundTaskEnabled { get; set; } = true;
 

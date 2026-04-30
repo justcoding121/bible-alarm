@@ -1,6 +1,6 @@
 namespace Bible.Alarm.Common.ViewHelpers;
 
-public class AnimateUtils
+public static class AnimateUtils
 {
     public static void FlickUponTouched(View view, uint duration, string hexColorInitial,
         string hexColorFinal, int repeatCountMax)

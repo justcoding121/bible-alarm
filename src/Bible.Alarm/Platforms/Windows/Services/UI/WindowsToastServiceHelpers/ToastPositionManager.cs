@@ -12,7 +12,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 /// <summary>
 /// Manages popup positioning and window size change subscriptions.
 /// </summary>
-internal sealed class ToastPositionManager
+internal static class ToastPositionManager
 {
     private static SizeChangedEventHandler? sizeChangedHandler;
 

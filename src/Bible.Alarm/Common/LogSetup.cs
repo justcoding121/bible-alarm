@@ -9,6 +9,10 @@ public class LogSetup
     private static bool initialized;
     private static readonly Lock @lock = new();
 
+    private LogSetup()
+    {
+    }
+
     public static void Initialize(IVersionFinder versionFinder,
         string[] tags, string device, bool isLoggingEnabled = true)
     {

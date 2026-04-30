@@ -9,8 +9,12 @@ namespace Bible.Alarm.Platforms.iOS.Services.Logging;
 /// Service to access iOS log files for debugging
 /// Provides methods to read log content
 /// </summary>
-public class IOSLogAccessService
+public sealed class IOSLogAccessService
 {
+    private IOSLogAccessService()
+    {
+    }
+
     private static IOSLogFileSink? logSink;
     private static readonly ILogger logger = Log.ForContext<IOSLogAccessService>();
 

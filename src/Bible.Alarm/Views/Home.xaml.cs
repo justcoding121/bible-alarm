@@ -96,7 +96,7 @@ public partial class Home : BaseContentPage, IDisposable
     private void OnAddScheduleButtonClicked(object? sender, EventArgs e)
     {
         Log.Information(AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleButtonClicked,
-            viewModel?.IsBootstrapComplete ?? false,
+            HomeViewModel.IsBootstrapComplete,
             viewModel?.AddScheduleCommand?.CanExecute(null) ?? false);
 
         // Manually execute the command to test
@@ -108,7 +108,7 @@ public partial class Home : BaseContentPage, IDisposable
         else
         {
             Log.Warning(AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleCommandCannotExecute,
-                viewModel?.IsBootstrapComplete ?? false);
+                HomeViewModel.IsBootstrapComplete);
         }
     }
 

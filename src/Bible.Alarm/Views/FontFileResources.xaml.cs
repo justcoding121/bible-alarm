@@ -22,7 +22,7 @@ public partial class FontFileResources : ResourceDictionary
     }
 }
 
-public sealed class GlyphNames
+public static class GlyphNames
 {
     public const string Plus = "\uf067";
     public const string Search = "\uf002";

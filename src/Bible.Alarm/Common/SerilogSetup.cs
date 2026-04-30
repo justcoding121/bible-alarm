@@ -19,6 +19,10 @@ public class SerilogSetup
     private static bool initialized;
     private static readonly Lock @lock = new();
 
+    private SerilogSetup()
+    {
+    }
+
     public static void Initialize(IVersionFinder versionFinder,
         string[] tags, string device, bool isLoggingEnabled = true)
     {
