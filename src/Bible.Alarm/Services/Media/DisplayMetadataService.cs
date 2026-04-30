@@ -522,11 +522,27 @@ public sealed class DisplayMetadataService(
             artistMeta = tag.FirstAlbumArtist;
         }
 
+        string? albumMeta = null;
+        if (!string.IsNullOrEmpty(tag.Album))
+        {
+            albumMeta = tag.Album;
+        }
+
+        string titleMeta;
+        if (!string.IsNullOrEmpty(tag.Title))
+        {
+            titleMeta = tag.Title;
+        }
+        else
+        {
+            titleMeta = FallbackUnknownTitle;
+        }
+
         return new MetaData
         {
-            Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : FallbackUnknownTitle,
+            Title = titleMeta,
             Artist = artistMeta,
-            Album = !string.IsNullOrEmpty(tag.Album) ? tag.Album : null
+            Album = albumMeta
         };
     }
 

@@ -340,7 +340,17 @@ public sealed class BiblePublicationDisplayTextProvider
                 var lower = code.ToLowerInvariant();
                 if (PublicationTypeHelper.IsDrama(lower))
                 {
-                    unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? AppConstants.Media.BiblePublicationCategoryDramas : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings);
+                    string codeForDb;
+                    if (lower.Equals("dramas", StringComparison.OrdinalIgnoreCase))
+                    {
+                        codeForDb = AppConstants.Media.BiblePublicationCategoryDramas;
+                    }
+                    else
+                    {
+                        codeForDb = AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
+                    }
+
+                    unique.Add(codeForDb);
                 }
                 else
                 {

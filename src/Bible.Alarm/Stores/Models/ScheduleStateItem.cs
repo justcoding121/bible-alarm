@@ -56,7 +56,18 @@ public sealed class ScheduleStateItem : IComparable
             return Hour % 12;
         }
     }
-    public Meridian Meridian => Hour < 12 ? Meridian.Am : Meridian.Pm;
+    public Meridian Meridian
+    {
+        get
+        {
+            if (Hour < 12)
+            {
+                return Meridian.Am;
+            }
+
+            return Meridian.Pm;
+        }
+    }
     public string TimeText => $"{MeridianHour:D2}:{Minute:D2}";
 
     // Bible Reading Schedule properties (flattened)

@@ -161,11 +161,23 @@ internal sealed class RemoteId3ArtworkExtractor
                     artistMeta = tag.FirstAlbumArtist;
                 }
 
+                string? titleMeta = null;
+                if (!string.IsNullOrEmpty(tag.Title))
+                {
+                    titleMeta = tag.Title;
+                }
+
+                string? albumMeta = null;
+                if (!string.IsNullOrEmpty(tag.Album))
+                {
+                    albumMeta = tag.Album;
+                }
+
                 var meta = new MetaData
                 {
-                    Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : null,
+                    Title = titleMeta,
                     Artist = artistMeta,
-                    Album = !string.IsNullOrEmpty(tag.Album) ? tag.Album : null
+                    Album = albumMeta
                 };
 
                 // Extract artwork from the tag.

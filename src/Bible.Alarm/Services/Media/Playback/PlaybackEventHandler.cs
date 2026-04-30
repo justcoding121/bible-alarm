@@ -216,10 +216,7 @@ public sealed class PlaybackEventHandler
                     {
                         failedPlayItem.CdnStaleUrlRefetchReplayIssued = true;
                         failedPlayItem.Url = refreshedUrl;
-                        if (currentPlayerTrack != null)
-                        {
-                            currentPlayerTrack.Uri = refreshedUrl;
-                        }
+                        currentPlayerTrack!.Uri = refreshedUrl;
 
                         logger.Information(
                             AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.PlaybackCdnUrlUnreachableRefreshedAutoReplayingSameTrackOnce);

@@ -382,18 +382,37 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
         var useScheduleLanguage = string.IsNullOrWhiteSpace(actionMusic.LanguageCode);
         // For melody (no-language pub), preserve existing music display language (e.g. MY) so it is saved and restored on view schedule.
-        updatedSchedule.MusicLanguageCode = useScheduleLanguage
-            ? (currentSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode)
-            : actionMusic.LanguageCode;
+        if (useScheduleLanguage)
+        {
+            updatedSchedule.MusicLanguageCode = currentSchedule.MusicLanguageCode
+                ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode;
+        }
+        else
+        {
+            updatedSchedule.MusicLanguageCode = actionMusic.LanguageCode;
+        }
+
         updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
         updatedSchedule.MusicTrackCode = actionMusic.TrackCode;
         updatedSchedule.MusicRepeat = actionMusic.Repeat;
-        updatedSchedule.MusicLanguageName = useScheduleLanguage
-            ? currentSchedule.MusicLanguageName
-            : (actionMusic.LanguageName ?? currentSchedule.MusicLanguageName);
-        updatedSchedule.MusicLanguageDirection = useScheduleLanguage
-            ? currentSchedule.MusicLanguageDirection
-            : (actionMusic.LanguageDirection ?? currentSchedule.MusicLanguageDirection);
+
+        if (useScheduleLanguage)
+        {
+            updatedSchedule.MusicLanguageName = currentSchedule.MusicLanguageName;
+        }
+        else
+        {
+            updatedSchedule.MusicLanguageName = actionMusic.LanguageName ?? currentSchedule.MusicLanguageName;
+        }
+
+        if (useScheduleLanguage)
+        {
+            updatedSchedule.MusicLanguageDirection = currentSchedule.MusicLanguageDirection;
+        }
+        else
+        {
+            updatedSchedule.MusicLanguageDirection = actionMusic.LanguageDirection ?? currentSchedule.MusicLanguageDirection;
+        }
         updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
         updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
     }

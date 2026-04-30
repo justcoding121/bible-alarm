@@ -354,7 +354,12 @@ public sealed class MusicPublicationSelectionCommandHandler(
         string? languageNameOverride = null,
         string? languageDirectionOverride = null)
     {
-        var languageName = currentLanguage != null ? currentLanguage.Name : languageNameOverride;
+        string? languageName = languageNameOverride;
+        if (currentLanguage != null)
+        {
+            languageName = currentLanguage.Name;
+        }
+
         var languageDirection = currentLanguage?.Direction ?? languageDirectionOverride;
         return new MusicStateItem
         {

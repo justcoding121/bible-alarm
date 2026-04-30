@@ -157,8 +157,13 @@ public sealed class MusicPublicationSelectionRefreshHandler
                 : null;
 
             if (languageToSelect == null)
-                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == AppConstants.Media.DefaultLanguageCode)
-                    ?? (propertyManager.Languages.Count > 0 ? propertyManager.Languages[0] : null);
+            {
+                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == AppConstants.Media.DefaultLanguageCode);
+                if (languageToSelect == null && propertyManager.Languages.Count > 0)
+                {
+                    languageToSelect = propertyManager.Languages[0];
+                }
+            }
 
             if (languageToSelect != null)
             {

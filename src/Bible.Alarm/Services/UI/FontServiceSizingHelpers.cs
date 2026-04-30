@@ -188,12 +188,25 @@ internal static class FontServiceSizingHelpers
 
         // Max sizes: allow up to 2.5x for accessibility, with higher limits for tablets
         // Increased multipliers to allow alarm time to grow larger
-        double maxTimeMultiplier = isPhone ? 2.5 : 3.0;
-        double maxMeridianMultiplier = isPhone ? 2.0 : 2.5;
+        double maxTimeMultiplier;
+        double maxMeridianMultiplier;
+        double bellIconBase;
+        if (isPhone)
+        {
+            maxTimeMultiplier = 2.5;
+            maxMeridianMultiplier = 2.0;
+            bellIconBase = 100.0;
+        }
+        else
+        {
+            maxTimeMultiplier = 3.0;
+            maxMeridianMultiplier = 2.5;
+            bellIconBase = 130.0;
+        }
 
         double maxAlarmTimeSize = baseTimeSize * maxTimeMultiplier * maxScaleFactor;
         double maxAlarmMeridianSize = baseMeridianSize * maxMeridianMultiplier * maxScaleFactor;
-        double maxAlarmBellIconSize = (isPhone ? 100.0 : 130.0) * maxScaleFactor;
+        double maxAlarmBellIconSize = bellIconBase * maxScaleFactor;
 
         return (maxAlarmTimeSize, maxAlarmMeridianSize, maxAlarmBellIconSize);
     }

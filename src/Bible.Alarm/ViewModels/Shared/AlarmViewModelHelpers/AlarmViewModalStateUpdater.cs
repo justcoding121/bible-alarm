@@ -144,9 +144,15 @@ public class AlarmViewModalStateUpdater
         // default schedule icon then track artwork (or flip between them). Use default schedule
         // artwork only when not playing a specific schedule (e.g. idle/car screen).
         var inPlayback = state.CurrentScheduleId.HasValue;
-        var artworkUrl = inPlayback
-            ? state.ArtworkUrl
-            : (state.ArtworkUrl ?? state.DefaultScheduleArtworkUrl);
+        string? artworkUrl;
+        if (inPlayback)
+        {
+            artworkUrl = state.ArtworkUrl;
+        }
+        else
+        {
+            artworkUrl = state.ArtworkUrl ?? state.DefaultScheduleArtworkUrl;
+        }
         string? fallbackUrl = null;
         if (!inPlayback && state.ArtworkUrl != null)
         {
