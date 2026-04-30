@@ -6,7 +6,6 @@ using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
@@ -16,12 +15,10 @@ namespace Bible.Alarm.Services.Media.Playback;
 public sealed class PlaybackIndefiniteResolver
 {
     private readonly IPlaylistService playlistService;
-    private readonly ILogger logger;
 
-    public PlaybackIndefiniteResolver(IPlaylistService playlistService, ILogger logger)
+    public PlaybackIndefiniteResolver(IPlaylistService playlistService)
     {
         this.playlistService = playlistService;
-        this.logger = logger;
     }
 
     private static bool HasMusicInjection(PlayItem? sessionMusicPlayItem, TrackMetadata? anchorBibleMetadata, TrackMetadata? preAnchorBibleMetadata) =>

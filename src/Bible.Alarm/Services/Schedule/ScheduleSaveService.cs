@@ -1,6 +1,5 @@
 #nullable enable
 using AutoMapper;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
@@ -14,13 +13,11 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 {
     private readonly ILogger logger;
     private readonly IMapper mapper;
-    private readonly IMediaService? mediaService;
 
-    public ScheduleSaveService(ILogger logger, IMapper mapper, IMediaService? mediaService = null)
+    public ScheduleSaveService(ILogger logger, IMapper mapper)
     {
         this.logger = logger;
         this.mapper = mapper;
-        this.mediaService = mediaService;
     }
 
     public async Task<AlarmSchedule> PrepareModelForSaveAsync(

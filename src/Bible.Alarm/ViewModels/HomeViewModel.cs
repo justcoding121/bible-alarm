@@ -4,7 +4,6 @@ using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -24,14 +23,8 @@ namespace Bible.Alarm.ViewModels;
 public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<ShowProgressBarMessage>, IRecipient<HideProgressBarMessage>
 {
     private readonly ILogger logger;
-    private readonly IServiceScopeFactory scopeFactory;
     private readonly IServiceProvider serviceProvider;
 
-    private readonly IDatabaseSeedService databaseSeedService;
-    private readonly IScheduleMigrationService scheduleMigrationService;
-    private readonly IAlarmScheduleService alarmScheduleService;
-
-    private readonly Func<int, ScheduleListItemViewModel> scheduleListItemFactory;
     private readonly IMapper mapper;
 
     private readonly IDispatcher dispatcher;
@@ -55,42 +48,32 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
     public HomeViewModel(
         ILogger logger,
-        IServiceScopeFactory scopeFactory,
         IServiceProvider serviceProvider,
-        Func<int, ScheduleListItemViewModel> scheduleListItemFactory,
         IState<ApplicationState> state,
         IState<PlaybackState> playbackState,
         IDispatcher dispatcher,
-        IDatabaseSeedService databaseSeedService,
-        IScheduleMigrationService scheduleMigrationService,
         INavigationService navigationService,
-        IAlarmScheduleService alarmScheduleService,
         IMapper mapper)
     {
         this.logger = logger;
-        this.scopeFactory = scopeFactory;
         this.serviceProvider = serviceProvider;
-        this.scheduleListItemFactory = scheduleListItemFactory;
         this.state = state;
         this.playbackState = playbackState;
         this.dispatcher = dispatcher;
-        this.databaseSeedService = databaseSeedService;
-        this.scheduleMigrationService = scheduleMigrationService;
-        this.alarmScheduleService = alarmScheduleService;
         this.navigationService = navigationService;
         this.mapper = mapper;
 
         // Initialize helper classes
-        scheduleDataPreparer = new ScheduleDataPreparer(mapper);
-        var playbackModalService = serviceProvider.GetRequiredService<IPlaybackModalService>();
-        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, playbackModalService, playbackState, serviceProvider, mapper);
-        scheduleViewModelManager = new ScheduleViewModelManager(logger, serviceProvider, navigationHelper.TrackPlayClick);
+        scheduleDataPreparer = new ScheduleDataPreparer(this.mapper);
+        var playbackModalService = this.serviceProvider.GetRequiredService<IPlaybackModalService>();
+        navigationHelper = new HomeNavigationHelper(logger, dispatcher, this.navigationService, playbackModalService, playbackState, this.serviceProvider, this.mapper);
+        scheduleViewModelManager = new ScheduleViewModelManager(logger, this.serviceProvider, navigationHelper.TrackPlayClick);
         progressAnimator = new ProgressBarAnimator();
         progressBarManager = new ProgressBarManager(progressAnimator);
         propertyManager = new PropertyManager();
         bootstrapReadyManager = new BootstrapReadyManager(logger);
         notificationPermissionHandler = new HomeViewModelNotificationPermissionHandler(logger, state);
-        floatingButtonHandler = new HomeViewModelFloatingButtonHandler(logger, serviceProvider);
+        floatingButtonHandler = new HomeViewModelFloatingButtonHandler(logger, this.serviceProvider);
         focusWarningHandler = new HomeViewModelFocusWarningHandler(logger, state);
 
         progressBarManager.ProgressBarOpacityChanged += OnProgressBarOpacityChanged;
@@ -104,8 +87,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         commandHandler = new CommandHandler(
             logger,
             dispatcher,
-            navigationService,
-            serviceProvider,
+            this.navigationService,
+            this.serviceProvider,
             (x) => x.Schedule?.Id > 0 && navigationHelper.ShouldSkipNavigation(x.Schedule.Id),
             async (x) => await navigationHelper.ShowOverlayAndNavigateAsync(x));
 
@@ -139,7 +122,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             },
             () => progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count),
             async () => await progressBarManager.FadeOutAsync(),
-            () => navigationService.IsPlaybackModalOnScreen() || playbackModalService.IsModalOpenOrPending);
+            () => this.navigationService.IsPlaybackModalOnScreen() || playbackModalService.IsModalOpenOrPending);
 
         state.StateChanged += OnStateChanged;
         playbackState.StateChanged += OnPlaybackStateChanged;

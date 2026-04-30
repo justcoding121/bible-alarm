@@ -10,12 +10,10 @@ namespace Bible.Alarm.ViewModels.Music;
 public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
 {
     private readonly MusicTrack track;
-    private readonly bool isMelody;
 
-    public MusicTrackListViewItemModel(MusicTrack track, bool isMelody)
+    public MusicTrackListViewItemModel(MusicTrack track)
     {
         this.track = track;
-        this.isMelody = isMelody;
 
         ToggleRepeatCommand = new RelayCommand(() => Repeat = !Repeat);
     }

@@ -33,22 +33,14 @@ namespace Bible.Alarm.Services.Bootstrap;
 public class ScheduleBootstrapService : IScheduleBootstrapService
 {
     private readonly IDatabaseSeedService databaseSeedService;
-    private readonly IScheduleMigrationService scheduleMigrationService;
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IDispatcher dispatcher;
     private readonly IBiblePublicationService? BiblePublicationService;
-    private readonly IBiblePublicationSectionService? biblePublicationSectionService;
-    private readonly IMapper mapper;
-    private readonly IMediaService? mediaService;
-    private readonly IMelodyMusicService? melodyMusicService;
-    private readonly IVocalMusicService? vocalMusicService;
-    private readonly ScheduleStatePopulator statePopulator;
-    private readonly IServiceScopeFactory scopeFactory;
     private readonly ILanguageNameService? languageNameService;
+    private readonly ScheduleStatePopulator statePopulator;
 
     public ScheduleBootstrapService(
         IDatabaseSeedService databaseSeedService,
-        IScheduleMigrationService scheduleMigrationService,
         IAlarmScheduleService alarmScheduleService,
         IDispatcher dispatcher,
         IBiblePublicationService? BiblePublicationService,
@@ -61,18 +53,11 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         ILanguageNameService? languageNameService = null)
     {
         this.databaseSeedService = databaseSeedService;
-        this.scheduleMigrationService = scheduleMigrationService;
         this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
         this.BiblePublicationService = BiblePublicationService;
-        this.biblePublicationSectionService = biblePublicationSectionService;
-        this.mapper = mapper;
-        this.mediaService = mediaService;
-        this.melodyMusicService = melodyMusicService;
-        this.vocalMusicService = vocalMusicService;
-        this.scopeFactory = scopeFactory;
         this.languageNameService = languageNameService;
-        this.statePopulator = new ScheduleStatePopulator(
+        statePopulator = new ScheduleStatePopulator(
             BiblePublicationService,
             biblePublicationSectionService,
             mapper,

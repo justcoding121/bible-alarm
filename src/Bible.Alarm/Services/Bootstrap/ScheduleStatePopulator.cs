@@ -20,7 +20,6 @@ internal sealed class ScheduleStatePopulator
     private readonly IMapper mapper;
     private readonly LookupDataLoader dataLoader;
     private readonly DefaultMusicPopulator defaultMusicPopulator;
-    private readonly IMediaService? mediaService;
 
     public ScheduleStatePopulator(
         IBiblePublicationService? BiblePublicationService,
@@ -32,7 +31,6 @@ internal sealed class ScheduleStatePopulator
         IServiceScopeFactory? scopeFactory)
     {
         this.mapper = mapper;
-        this.mediaService = mediaService;
         dataLoader = new LookupDataLoader(BiblePublicationService, biblePublicationSectionService, mediaService, vocalMusicService, scopeFactory);
         defaultMusicPopulator = new DefaultMusicPopulator(melodyMusicService);
     }

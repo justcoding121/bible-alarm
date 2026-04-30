@@ -1,9 +1,7 @@
 #nullable enable
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playlist;
 
@@ -13,26 +11,17 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// </summary>
 public class PlaylistScheduleManager
 {
-    private readonly ILogger logger;
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IGeneralSettingsService generalSettingsService;
-    private readonly IBiblePublicationService BiblePublicationService;
-    private readonly IMelodyMusicService melodyMusicService;
     private readonly CancellationToken cancellationToken;
 
     public PlaylistScheduleManager(
-        ILogger logger,
         IAlarmScheduleService alarmScheduleService,
         IGeneralSettingsService generalSettingsService,
-        IBiblePublicationService BiblePublicationService,
-        IMelodyMusicService melodyMusicService,
         CancellationToken cancellationToken)
     {
-        this.logger = logger;
         this.alarmScheduleService = alarmScheduleService;
         this.generalSettingsService = generalSettingsService;
-        this.BiblePublicationService = BiblePublicationService;
-        this.melodyMusicService = melodyMusicService;
         this.cancellationToken = cancellationToken;
     }
 

@@ -27,7 +27,6 @@ namespace Bible.Alarm.ViewModels.Music;
 public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly ILogger logger;
-    private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
@@ -60,7 +59,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         IServiceProvider serviceProvider)
     {
         this.logger = logger;
-        this.mediaService = mediaService;
         this.state = state;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
@@ -69,13 +67,13 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
         // Initialize helper classes
         stateManager = new MusicPublicationSelectionStateManager();
-        var languageNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
-        var biblePublicationService = serviceProvider.GetService<IBiblePublicationService>();
-        var languageContentService = serviceProvider.GetService<ILanguageContentService>();
+        var languageNameService = this.serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
+        var biblePublicationService = this.serviceProvider.GetService<IBiblePublicationService>();
+        var languageContentService = this.serviceProvider.GetService<ILanguageContentService>();
         dataProvider = new MusicPublicationSelectionDataProvider(mediaService, languageNameService, biblePublicationService, languageContentService, scopeFactory);
-        commandHandler = new MusicPublicationSelectionCommandHandler(navigationService, state, dispatcher, mediaService, languageNameService);
+        commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, this.dispatcher, mediaService, languageNameService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
-        refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, dataProvider, propertyManager, mapper);
+        refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, dataProvider, propertyManager, this.mapper);
         initHandler = new MusicPublicationSelectionInitHandler(mediaService, stateManager, dataProvider, propertyManager);
         SetupPropertyManagerForwarding();
 
@@ -116,7 +114,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             try
             {
                 // Ensure current is set from state if it's null
-                stateManager.EnsureCurrentIsSet(state, mapper);
+                stateManager.EnsureCurrentIsSet(state, this.mapper);
 
                 // Ensure languages are populated before opening the modal
                 await PopulateLanguages();
@@ -132,7 +130,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                     await Task.Delay(50);
                 }
 
-                await navigationService.OpenLanguageModalAsync(this);
+                await this.navigationService.OpenLanguageModalAsync(this);
                 modalOpened = true;
             }
             finally
@@ -144,12 +142,12 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
-            await navigationService.PopAsync();
+            await this.navigationService.PopAsync();
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            await navigationService.PopModalAsync();
+            await this.navigationService.PopModalAsync();
         });
 
         SelectLanguageCommand = new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -217,7 +215,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             propertyManager.ShowProgress = false;
             propertyManager.IsBusy = false;
             DeviceDisplay.Current.KeepScreenOn = false;
-            await navigationService.PopModalAsync();
+            await this.navigationService.PopModalAsync();
         }
         finally
         {

@@ -95,7 +95,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         trackPlaybackHandler = new TrackPlaybackHandler(audioPlayer, logger, trackPreparationHandler, progressTracker);
         systemControlsHandler = new SystemControlsHandler(logger);
         trackMarker = new TrackMarker(playlistService, logger);
-        indefiniteResolver = new PlaybackIndefiniteResolver(playlistService, logger);
+        indefiniteResolver = new PlaybackIndefiniteResolver(playlistService);
         playlistExtender = new PlaybackPlaylistExtender(indefiniteResolver, logger);
         trackOnDemandPreparer = new TrackOnDemandPreparer(preparePlaybackService, mediaCacheService, logger);
         sessionContextInitializer = new PlaybackSessionContextInitializer(playlistService);

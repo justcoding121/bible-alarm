@@ -26,7 +26,6 @@ namespace Bible.Alarm.Services.Media;
 public sealed class PlaylistService : IPlaylistService
 {
     private readonly ILogger logger;
-    private readonly IMediaService mediaService;
     private readonly IDispatcher dispatcher;
     private readonly IState<ApplicationState> applicationState;
     private readonly IAlarmScheduleService alarmScheduleService;
@@ -37,11 +36,8 @@ public sealed class PlaylistService : IPlaylistService
     private bool isDisposed;
     private PlaylistScheduleManager? _scheduleManager;
     private PlaylistScheduleManager scheduleManager => _scheduleManager ??= new PlaylistScheduleManager(
-        logger,
         alarmScheduleService,
         generalSettingsService,
-        BiblePublicationService,
-        melodyMusicService,
         cancellationTokenSource.Token);
     private readonly PlaylistBiblePublicationTrackBuilder biblePublicationTrackBuilder;
     private readonly PlaylistMusicTrackBuilder musicTrackBuilder;
@@ -71,7 +67,6 @@ public sealed class PlaylistService : IPlaylistService
         IScheduleDisplayNameService? scheduleDisplayNameService = null)
     {
         this.logger = logger;
-        this.mediaService = mediaService;
         this.dispatcher = dispatcher;
         this.applicationState = applicationState;
         this.alarmScheduleService = alarmScheduleService;

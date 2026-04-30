@@ -68,7 +68,7 @@ public sealed class MusicTrackListManager(
                 var trackVMs = new List<MusicTrackListViewItemModel>();
                 foreach (var track in tracksFromDb.Select(x => x.Value))
                 {
-                    var trackVm = new MusicTrackListViewItemModel(track, isMelodyMusic);
+                    var trackVm = new MusicTrackListViewItemModel(track);
                     trackVMs.Add(trackVm);
                 }
 
