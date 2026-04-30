@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -110,8 +111,9 @@ public sealed class MediaIndexVersionService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToSaveVersionToPreferences);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToSaveVersionToPreferences,
+                ex);
         }
     }
 

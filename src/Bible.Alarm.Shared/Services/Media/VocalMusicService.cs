@@ -50,9 +50,9 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting VocalMusic. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
-                languageCode, publicationCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting vocal music for language {languageCode}, publication {publicationCode}.",
+                ex);
         }
     }
 
@@ -90,8 +90,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting VocalMusic by language code. LanguageCode={LanguageCode}", languageCode);
-            throw;
+            throw new InvalidOperationException($"Error getting vocal music by language code {languageCode}.", ex);
         }
     }
 
@@ -148,8 +147,9 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting distinct Languages from PublicationLanguages for Music category");
-            throw;
+            throw new InvalidOperationException(
+                "Error getting distinct languages from PublicationLanguages for Music category.",
+                ex);
         }
     }
 
@@ -197,9 +197,9 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting VocalMusic tracks. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
-                languageCode, publicationCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting vocal music tracks for language {languageCode}, publication {publicationCode}.",
+                ex);
         }
     }
 

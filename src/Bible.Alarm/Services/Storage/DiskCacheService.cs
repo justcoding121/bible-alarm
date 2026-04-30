@@ -145,8 +145,7 @@ public sealed class DiskCacheService : IDiskCacheService
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error serializing and caching value for key: {Key}", key);
-            throw;
+            throw new InvalidOperationException($"Error serializing and caching value for key {key}.", ex);
         }
     }
 

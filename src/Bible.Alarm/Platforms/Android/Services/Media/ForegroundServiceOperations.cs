@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
@@ -61,8 +63,7 @@ internal static class ForegroundServiceOperations
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "StartForeground failed - RemoteServiceException likely");
-                throw;
+                throw new InvalidOperationException("StartForeground failed (RemoteServiceException likely).", ex);
             }
         }
         else

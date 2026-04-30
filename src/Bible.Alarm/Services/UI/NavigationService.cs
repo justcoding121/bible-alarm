@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.UI.NavigationServiceHelpers;
@@ -145,8 +146,9 @@ public sealed class NavigationService(
 #if WINDOWS
             WindowsBootstrapLogger.WriteException(ex);
 #endif
-            logger.Error(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.NavigateToScheduleAsyncFailed);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.NavigationServiceDiagnosticsLog.NavigateToScheduleAsyncFailed,
+                ex);
         }
     }
 
@@ -230,8 +232,9 @@ public sealed class NavigationService(
 #if WINDOWS
             WindowsBootstrapLogger.WriteException(ex);
 #endif
-            logger.Error(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.NavigateToScheduleAsyncWithScheduleIdFailed);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.NavigationServiceDiagnosticsLog.NavigateToScheduleAsyncWithScheduleIdFailed,
+                ex);
         }
     }
 

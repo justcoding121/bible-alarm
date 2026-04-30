@@ -86,10 +86,9 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
         }
         catch (Exception ex)
         {
-            logger.Error(ex,
-                "Error getting BiblePublicationTracks by section. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
-                languageCode, publicationCode, sectionCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting BiblePublicationTracks by section. LanguageCode={languageCode}, PublicationCode={publicationCode}, SectionCode={sectionCode}",
+                ex);
         }
     }
 
@@ -137,10 +136,9 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
         }
         catch (Exception ex)
         {
-            logger.Error(ex,
-                "Error getting BiblePublicationTrack. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}",
-                languageCode, publicationCode, sectionCode, trackCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting BiblePublicationTrack. LanguageCode={languageCode}, PublicationCode={publicationCode}, SectionCode={sectionCode}, TrackCode={trackCode}",
+                ex);
         }
     }
 

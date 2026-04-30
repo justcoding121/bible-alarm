@@ -83,9 +83,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublication with Sections. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
-                languageCode, publicationCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting BiblePublication with Sections. LanguageCode={languageCode}, PublicationCode={publicationCode}",
+                ex);
         }
     }
 
@@ -151,9 +151,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublication with Tracks. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
-                languageCode, publicationCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting BiblePublication with Tracks. LanguageCode={languageCode}, PublicationCode={publicationCode}",
+                ex);
         }
     }
 
@@ -250,8 +250,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublications by language code. LanguageCode={LanguageCode}", languageCode);
-            throw;
+            throw new InvalidOperationException($"Error getting BiblePublications by language code {languageCode}.", ex);
         }
     }
 
@@ -326,8 +325,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting distinct Languages from PublicationLanguages");
-            throw;
+            throw new InvalidOperationException("Error getting distinct Languages from PublicationLanguages", ex);
         }
     }
 
@@ -378,9 +376,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting available publication codes from PublicationLanguages. LanguageCode={LanguageCode}, CategoryName={CategoryName}",
-                languageCode, categoryName);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting available publication codes from PublicationLanguages. LanguageCode={languageCode}, CategoryName={categoryName}",
+                ex);
         }
     }
 
@@ -422,9 +420,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting first publication code by order from PublicationLanguages. LanguageCode={LanguageCode}, CategoryName={CategoryName}",
-                languageCode, categoryName);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting first publication code by order from PublicationLanguages. LanguageCode={languageCode}, CategoryName={categoryName}",
+                ex);
         }
     }
 
@@ -446,8 +444,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking if publication has no language. PublicationCode={PublicationCode}", publicationCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error checking if publication has no language. PublicationCode={publicationCode}",
+                ex);
         }
     }
 
@@ -497,9 +496,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting publication category info. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
-                languageCode, publicationCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting publication category info. LanguageCode={languageCode}, PublicationCode={publicationCode}",
+                ex);
         }
     }
 
@@ -530,9 +529,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting publication codes in category order. LanguageCode={LanguageCode}, CategoryCode={CategoryCode}",
-                languageCode, categoryCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting publication codes in category order. LanguageCode={languageCode}, CategoryCode={categoryCode}",
+                ex);
         }
     }
 

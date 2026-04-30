@@ -58,8 +58,7 @@ public sealed class CategoryService(IServiceScopeFactory scopeFactory, ILogger l
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting all categories");
-            throw;
+            throw new InvalidOperationException("Error getting all categories.", ex);
         }
     }
 
