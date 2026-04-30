@@ -14,6 +14,7 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 public class BootstrapReadyManager : IDisposable
 {
     private readonly ILogger logger;
+    private bool disposed;
     private bool isBootstrapReady;
     private CancellationTokenSource? waitCancellation;
 
@@ -139,7 +140,20 @@ public class BootstrapReadyManager : IDisposable
 
     public void Dispose()
     {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (disposed || !disposing)
+        {
+            return;
+        }
+
         waitCancellation?.Cancel();
         waitCancellation?.Dispose();
+        waitCancellation = null;
+        disposed = true;
     }
 }

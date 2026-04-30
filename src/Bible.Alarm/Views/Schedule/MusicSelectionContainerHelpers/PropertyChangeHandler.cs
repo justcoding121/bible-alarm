@@ -15,6 +15,7 @@ public class PropertyChangeHandler : IDisposable
     private readonly Action<bool, bool> updateVisibility;
     private readonly Action scrollToBottom;
     private CancellationTokenSource? debounceTokenSource;
+    private bool disposed;
 
     public bool IsInitialLoad { get; set; } = true;
 
@@ -130,6 +131,17 @@ public class PropertyChangeHandler : IDisposable
 
     public void Dispose()
     {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (disposed || !disposing)
+        {
+            return;
+        }
+
         try
         {
             debounceTokenSource?.Cancel();
@@ -139,6 +151,8 @@ public class PropertyChangeHandler : IDisposable
         {
             // Ignore errors during cancellation/disposal
         }
+
+        disposed = true;
     }
 }
 

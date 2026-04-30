@@ -48,13 +48,25 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
             cancellationToken: cancellationTokenSource.Token);
     }
 
-    public void Dispose()
+    private void Dispose(bool disposing)
     {
-        if (!isDisposed)
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
-            isDisposed = true;
         }
+
+        isDisposed = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
