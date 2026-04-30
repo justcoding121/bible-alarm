@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
@@ -262,7 +263,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
     }
 }
 
-public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, IComparable
+public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, IComparable, IComparable<BiblePublicationTrackListViewItemModel>, IEquatable<BiblePublicationTrackListViewItemModel>
 {
     private readonly BiblePublicationTrack track;
 
@@ -298,5 +299,33 @@ public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, I
     /// <summary>CDN URL from <see cref="BiblePublicationTrack.TrackUrl"/> when the track was loaded with it.</summary>
     public string Url => track.TrackUrl?.Url ?? string.Empty;
 
-    public int CompareTo(object? obj) => track.CompareTo((obj as BiblePublicationTrackListViewItemModel)?.track);
+    public int CompareTo(BiblePublicationTrackListViewItemModel? other) =>
+        other is null ? 1 : track.CompareTo(other.track);
+
+    public int CompareTo(object? obj) => CompareTo(obj as BiblePublicationTrackListViewItemModel);
+
+    public bool Equals(BiblePublicationTrackListViewItemModel? other) =>
+        other is not null && track.Equals(other.track);
+
+    public override bool Equals(object? obj) => Equals(obj as BiblePublicationTrackListViewItemModel);
+
+    public override int GetHashCode() => track.GetHashCode();
+
+    public static bool operator ==(BiblePublicationTrackListViewItemModel? left, BiblePublicationTrackListViewItemModel? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(BiblePublicationTrackListViewItemModel? left, BiblePublicationTrackListViewItemModel? right) => !(left == right);
+
+    public static bool operator <(BiblePublicationTrackListViewItemModel? left, BiblePublicationTrackListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(BiblePublicationTrackListViewItemModel? left, BiblePublicationTrackListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(BiblePublicationTrackListViewItemModel? left, BiblePublicationTrackListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(BiblePublicationTrackListViewItemModel? left, BiblePublicationTrackListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }
+

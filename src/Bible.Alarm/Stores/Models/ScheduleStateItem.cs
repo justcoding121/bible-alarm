@@ -9,7 +9,7 @@ namespace Bible.Alarm.Stores.Models;
 /// Contains all schedule properties needed for display and state management.
 /// No database entities - this is a pure DTO.
 /// </summary>
-public sealed class ScheduleStateItem : IComparable
+public sealed class ScheduleStateItem : IComparable, IComparable<ScheduleStateItem>, IEquatable<ScheduleStateItem>
 {
     // Schedule properties
     public int Id { get; set; }
@@ -218,9 +218,9 @@ public sealed class ScheduleStateItem : IComparable
     /// Compare for ObservableHashSet ordering: recently played first, then by Id.
     /// Schedules never played (LastPlayedAtUtc null) sort after played ones.
     /// </summary>
-    public int CompareTo(object? obj)
+    public int CompareTo(ScheduleStateItem? other)
     {
-        if (obj is not ScheduleStateItem other)
+        if (other is null)
         {
             return 1;
         }
@@ -235,4 +235,39 @@ public sealed class ScheduleStateItem : IComparable
 
         return Id.CompareTo(other.Id);
     }
+
+    public int CompareTo(object? obj) => CompareTo(obj as ScheduleStateItem);
+
+    public bool Equals(ScheduleStateItem? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        var thisPlayed = LastPlayedAtUtc ?? DateTime.MinValue;
+        var otherPlayed = other.LastPlayedAtUtc ?? DateTime.MinValue;
+        return Id == other.Id && thisPlayed == otherPlayed;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ScheduleStateItem);
+
+    public override int GetHashCode() => HashCode.Combine(Id, LastPlayedAtUtc ?? DateTime.MinValue);
+
+    public static bool operator ==(ScheduleStateItem? left, ScheduleStateItem? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(ScheduleStateItem? left, ScheduleStateItem? right) => !(left == right);
+
+    public static bool operator <(ScheduleStateItem? left, ScheduleStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(ScheduleStateItem? left, ScheduleStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(ScheduleStateItem? left, ScheduleStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(ScheduleStateItem? left, ScheduleStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

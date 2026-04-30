@@ -8,7 +8,7 @@ namespace Bible.Alarm.Stores.Models;
 /// No database entities - this is a pure DTO.
 /// Music type (melody vs. vocal) is inferred from LanguageCode: NULL = melody, non-NULL = vocal.
 /// </summary>
-public sealed class MusicStateItem : IComparable
+public sealed class MusicStateItem : IComparable, IComparable<MusicStateItem>, IEquatable<MusicStateItem>
 {
     public int Id { get; set; }
     public string PublicationCode { get; set; } = string.Empty;
@@ -57,14 +57,32 @@ public sealed class MusicStateItem : IComparable
     /// <summary>
     /// Compare by ID for ObservableHashSet ordering.
     /// </summary>
-    public int CompareTo(object? obj)
-    {
-        if (obj is not MusicStateItem other)
-        {
-            return 1;
-        }
+    public int CompareTo(MusicStateItem? other) =>
+        other is null ? 1 : Id.CompareTo(other.Id);
 
-        return Id.CompareTo(other.Id);
-    }
+    public int CompareTo(object? obj) => CompareTo(obj as MusicStateItem);
+
+    public bool Equals(MusicStateItem? other) =>
+        other is not null && Id == other.Id;
+
+    public override bool Equals(object? obj) => Equals(obj as MusicStateItem);
+
+    public override int GetHashCode() => Id.GetHashCode();
+
+    public static bool operator ==(MusicStateItem? left, MusicStateItem? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(MusicStateItem? left, MusicStateItem? right) => !(left == right);
+
+    public static bool operator <(MusicStateItem? left, MusicStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(MusicStateItem? left, MusicStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(MusicStateItem? left, MusicStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(MusicStateItem? left, MusicStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }
-

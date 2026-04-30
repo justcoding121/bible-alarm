@@ -8,7 +8,7 @@ namespace Bible.Alarm.Stores.Models;
 /// Contains all Bible reading schedule properties needed for display and state management.
 /// No database entities - this is a pure DTO.
 /// </summary>
-public sealed class BiblePublicationStateItem : IComparable
+public sealed class BiblePublicationStateItem : IComparable, IComparable<BiblePublicationStateItem>, IEquatable<BiblePublicationStateItem>
 {
     public int Id { get; set; }
 
@@ -69,14 +69,32 @@ public sealed class BiblePublicationStateItem : IComparable
     /// <summary>
     /// Compare by ID for ObservableHashSet ordering.
     /// </summary>
-    public int CompareTo(object? obj)
-    {
-        if (obj is not BiblePublicationStateItem other)
-        {
-            return 1;
-        }
+    public int CompareTo(BiblePublicationStateItem? other) =>
+        other is null ? 1 : Id.CompareTo(other.Id);
 
-        return Id.CompareTo(other.Id);
-    }
+    public int CompareTo(object? obj) => CompareTo(obj as BiblePublicationStateItem);
+
+    public bool Equals(BiblePublicationStateItem? other) =>
+        other is not null && Id == other.Id;
+
+    public override bool Equals(object? obj) => Equals(obj as BiblePublicationStateItem);
+
+    public override int GetHashCode() => Id.GetHashCode();
+
+    public static bool operator ==(BiblePublicationStateItem? left, BiblePublicationStateItem? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(BiblePublicationStateItem? left, BiblePublicationStateItem? right) => !(left == right);
+
+    public static bool operator <(BiblePublicationStateItem? left, BiblePublicationStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(BiblePublicationStateItem? left, BiblePublicationStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(BiblePublicationStateItem? left, BiblePublicationStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(BiblePublicationStateItem? left, BiblePublicationStateItem? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }
-

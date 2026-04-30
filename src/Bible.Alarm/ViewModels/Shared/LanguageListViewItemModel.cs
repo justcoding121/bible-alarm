@@ -1,3 +1,4 @@
+using System;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -5,7 +6,8 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 /// <param name="language">Language entity (Code and Direction come from here).</param>
 /// <param name="displayName">Localized name for display (e.g. from LanguageNamesByLanguage for "E").</param>
-public sealed class LanguageListViewItemModel(Language language, string displayName) : ObservableObject, IComparable
+public sealed class LanguageListViewItemModel(Language language, string displayName)
+    : ObservableObject, IComparable, IComparable<LanguageListViewItemModel>, IEquatable<LanguageListViewItemModel>
 {
     public string Name { get; set; } = displayName;
     public string Code { get; set; } = language.LanguageCode;
@@ -64,5 +66,32 @@ public sealed class LanguageListViewItemModel(Language language, string displayN
         }
     }
 
-    public int CompareTo(object obj) => string.Compare(Name, (obj as LanguageListViewItemModel)?.Name, StringComparison.Ordinal);
+    public int CompareTo(LanguageListViewItemModel? other) =>
+        other is null ? 1 : string.Compare(Name, other.Name, StringComparison.Ordinal);
+
+    public int CompareTo(object? obj) => CompareTo(obj as LanguageListViewItemModel);
+
+    public bool Equals(LanguageListViewItemModel? other) =>
+        other is not null && string.Equals(Name, other.Name, StringComparison.Ordinal);
+
+    public override bool Equals(object? obj) => Equals(obj as LanguageListViewItemModel);
+
+    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Name);
+
+    public static bool operator ==(LanguageListViewItemModel? left, LanguageListViewItemModel? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(LanguageListViewItemModel? left, LanguageListViewItemModel? right) => !(left == right);
+
+    public static bool operator <(LanguageListViewItemModel? left, LanguageListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(LanguageListViewItemModel? left, LanguageListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(LanguageListViewItemModel? left, LanguageListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(LanguageListViewItemModel? left, LanguageListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

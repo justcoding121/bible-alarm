@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using Bible.Alarm.Shared.Constants;
@@ -25,15 +26,16 @@ public static class JwSourceHelper
     /// <summary>
     /// Vocal music publication codes used for seeding.
     /// </summary>
-    public static readonly HashSet<string> VocalMusicPublicationCodes = new(AppConstants.Media.VocalMusicCatalogPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> VocalMusicPublicationCodes { get; } =
+        FrozenSet.ToFrozenSet(AppConstants.Media.VocalMusicCatalogPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Melody music publication codes used for seeding.
     /// </summary>
-    public static readonly HashSet<string> MelodyMusicPublicationCodes =
-        new(
-        new[] { AppConstants.Media.MelodyMusicPublicationCodeIam },
-        StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> MelodyMusicPublicationCodes { get; } =
+        FrozenSet.ToFrozenSet(
+            new[] { AppConstants.Media.MelodyMusicPublicationCodeIam },
+            StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Music category publications that use Mediator API for discovery (MediatorSectioned, video).
@@ -264,7 +266,8 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Books category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static readonly HashSet<string> BooksPublicationCodes = new(AppConstants.Media.FlatMp3BooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> BooksPublicationCodes { get; } =
+        FrozenSet.ToFrozenSet(AppConstants.Media.FlatMp3BooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Broadcasting category (Mediator API).
@@ -279,12 +282,14 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Yearbooks category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static readonly HashSet<string> YearbooksPublicationCodes = new(AppConstants.Media.FlatMp3YearbooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> YearbooksPublicationCodes { get; } =
+        FrozenSet.ToFrozenSet(AppConstants.Media.FlatMp3YearbooksPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Brochures and Booklets category (flat MP3 via GETPUBMEDIALINKS).
     /// </summary>
-    public static readonly HashSet<string> BrochuresAndBookletsPublicationCodes = new(AppConstants.Media.FlatMp3BrochuresPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> BrochuresAndBookletsPublicationCodes { get; } =
+        FrozenSet.ToFrozenSet(AppConstants.Media.FlatMp3BrochuresPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Children category.
@@ -464,24 +469,28 @@ public static class JwSourceHelper
     /// <summary>
     /// Publication codes for Article Series category (flat audio via GETPUBMEDIALINKS).
     /// </summary>
-    public static readonly HashSet<string> ArticleSeriesPublicationCodes =
-        new(AppConstants.Media.FlatMp3ArticleSeriesPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> ArticleSeriesPublicationCodes { get; } =
+        FrozenSet.ToFrozenSet(AppConstants.Media.FlatMp3ArticleSeriesPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for The Watchtower (Magazine) category (IssueSectioned, MP3 via GETPUBMEDIALINKS with issue=).
     /// Dynamically generated: w2008..w{MagazineEndYear}.
     /// </summary>
-    public static readonly HashSet<string> WatchtowerMagazinePublicationCodes =
-        new(Enumerable.Range(MagazineHelper.MagazineStartYear, MagazineHelper.MagazineEndYear - MagazineHelper.MagazineStartYear + 1)
-            .Select(y => $"w{y}"), StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> WatchtowerMagazinePublicationCodes { get; } =
+        FrozenSet.ToFrozenSet(
+            Enumerable.Range(MagazineHelper.MagazineStartYear, MagazineHelper.MagazineEndYear - MagazineHelper.MagazineStartYear + 1)
+                .Select(y => $"w{y}"),
+            StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Awake! (Magazine) category (IssueSectioned, MP3 via GETPUBMEDIALINKS with issue=).
     /// Dynamically generated: g2008..g{MagazineEndYear}.
     /// </summary>
-    public static readonly HashSet<string> AwakeMagazinePublicationCodes =
-        new(Enumerable.Range(MagazineHelper.MagazineStartYear, MagazineHelper.MagazineEndYear - MagazineHelper.MagazineStartYear + 1)
-            .Select(y => $"g{y}"), StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> AwakeMagazinePublicationCodes { get; } =
+        FrozenSet.ToFrozenSet(
+            Enumerable.Range(MagazineHelper.MagazineStartYear, MagazineHelper.MagazineEndYear - MagazineHelper.MagazineStartYear + 1)
+                .Select(y => $"g{y}"),
+            StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// All publication codes that use Mediator API for discovery (MediatorSectioned). Used by GetCatalogType and IsVideo.
@@ -528,8 +537,8 @@ public static class JwSourceHelper
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that use issue= rather than track= for the numeric identifier (e.g. mwbv, jwb, jwbls use YYYYMM issue ids).
     /// </summary>
-    public static readonly HashSet<string> SectionCodesUsingIssueParameter =
-        new(AppConstants.Media.GetPubIssueParameterPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> SectionCodesUsingIssueParameter { get; } =
+        FrozenSet.ToFrozenSet(AppConstants.Media.GetPubIssueParameterPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Returns true if the numeric value looks like a YYYYMM issue id (e.g. 201512).
@@ -548,14 +557,14 @@ public static class JwSourceHelper
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when no track param is sent.
     /// </summary>
-    public static readonly HashSet<string> SectionCodesSingleTrackNoParam =
-        new(AppConstants.Media.GetPubSingleTrackNoParamPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> SectionCodesSingleTrackNoParam { get; } =
+        FrozenSet.ToFrozenSet(AppConstants.Media.GetPubSingleTrackNoParamPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Section codes (GETPUBMEDIALINKS pub=) that have a single track; API returns files when track=0 is sent.
     /// </summary>
-    public static readonly HashSet<string> SectionCodesSingleTrackZero =
-        new(AppConstants.Media.GetPubSingleTrackZeroPublicationCodes, StringComparer.OrdinalIgnoreCase);
+    public static FrozenSet<string> SectionCodesSingleTrackZero { get; } =
+        FrozenSet.ToFrozenSet(AppConstants.Media.GetPubSingleTrackZeroPublicationCodes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Teenagers category (Mediator API).
@@ -577,8 +586,8 @@ public static class JwSourceHelper
     /// Excludes melody (iam) which has no language.
     /// Used by EnglishSeeder and E-seed validation so every listed publication has E content with &gt;0 tracks.
     /// </summary>
-    public static readonly HashSet<string> AllPublicationCodesForEnglishSeeding =
-        new(
+    public static FrozenSet<string> AllPublicationCodesForEnglishSeeding { get; } =
+        FrozenSet.ToFrozenSet(
             BiblePublicationCodes
                 .Concat(VocalMusicPublicationCodes)
                 .Concat(MusicMediatorPublicationCodes)
@@ -640,10 +649,10 @@ public static class JwSourceHelper
                 [AppConstants.Media.BiblePublicationCategoryMusic] = musicCodes,
                 [AppConstants.Media.BiblePublicationCategoryDramas] = dramaCodes,
                 [AppConstants.Media.BiblePublicationCategoryFaithAndBible] = FaithAndBiblePublicationCodes,
-                [AppConstants.Media.BiblePublicationCategoryBooks] = BooksPublicationCodes,
-                [AppConstants.Media.BiblePublicationCategoryYearbooks] = YearbooksPublicationCodes,
+                [AppConstants.Media.BiblePublicationCategoryBooks] = new HashSet<string>(BooksPublicationCodes, StringComparer.OrdinalIgnoreCase),
+                [AppConstants.Media.BiblePublicationCategoryYearbooks] = new HashSet<string>(YearbooksPublicationCodes, StringComparer.OrdinalIgnoreCase),
                 [AppConstants.Media.BiblePublicationCategoryBroadcasting] = BroadcastingPublicationCodes,
-                [AppConstants.Media.BiblePublicationCategoryBrochuresAndBooklets] = BrochuresAndBookletsPublicationCodes,
+                [AppConstants.Media.BiblePublicationCategoryBrochuresAndBooklets] = new HashSet<string>(BrochuresAndBookletsPublicationCodes, StringComparer.OrdinalIgnoreCase),
                 [AppConstants.Media.BiblePublicationCategoryChildren] = ChildrenPublicationCodes,
                 [AppConstants.Media.BiblePublicationCategoryFamily] = FamilyPublicationCodes,
                 [AppConstants.Media.BiblePublicationCategoryInterviewsAndExperiences] = InterviewsAndExperiencesPublicationCodes,
@@ -653,9 +662,9 @@ public static class JwSourceHelper
                 [AppConstants.Media.BiblePublicationCategoryTeenagers] = TeenagersPublicationCodes,
                 [AppConstants.Media.BiblePublicationCategoryActivities] = ActivitiesPublicationCodes,
                 [AppConstants.Media.BiblePublicationCategoryOrganization] = OrganizationPublicationCodes,
-                [AppConstants.Media.BiblePublicationCategoryArticleSeries] = ArticleSeriesPublicationCodes,
-                [AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine] = WatchtowerMagazinePublicationCodes,
-                [AppConstants.Media.BiblePublicationCategoryAwakeMagazine] = AwakeMagazinePublicationCodes
+                [AppConstants.Media.BiblePublicationCategoryArticleSeries] = new HashSet<string>(ArticleSeriesPublicationCodes, StringComparer.OrdinalIgnoreCase),
+                [AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine] = new HashSet<string>(WatchtowerMagazinePublicationCodes, StringComparer.OrdinalIgnoreCase),
+                [AppConstants.Media.BiblePublicationCategoryAwakeMagazine] = new HashSet<string>(AwakeMagazinePublicationCodes, StringComparer.OrdinalIgnoreCase)
             };
         }
     }

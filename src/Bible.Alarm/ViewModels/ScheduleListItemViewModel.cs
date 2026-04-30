@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Messenger;
@@ -33,7 +34,7 @@ public sealed class ScheduleListItemViewModel(
     IDispatcher dispatcher,
     IMapper mapper,
     ICategoryNameService categoryNameService)
-    : ObservableObject, IComparable, IDisposable
+    : ObservableObject, IComparable, IComparable<ScheduleListItemViewModel>, IEquatable<ScheduleListItemViewModel>, IDisposable
 {
     // Helper classes
     private readonly ScheduleListItemInitializer initializer = new(logger, mapper, applicationState);
@@ -471,9 +472,9 @@ public sealed class ScheduleListItemViewModel(
         // Refresh from state only (no DB fallback)
         RefreshSubTitleFromState();
 
-    public int CompareTo(object? obj)
+    public int CompareTo(ScheduleListItemViewModel? other)
     {
-        if (obj is not ScheduleListItemViewModel other)
+        if (other is null)
         {
             return 1;
         }
@@ -488,6 +489,41 @@ public sealed class ScheduleListItemViewModel(
 
         return ScheduleId.CompareTo(other.ScheduleId);
     }
+
+    public int CompareTo(object? obj) => CompareTo(obj as ScheduleListItemViewModel);
+
+    public bool Equals(ScheduleListItemViewModel? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        var thisPlayed = Schedule?.LastPlayedAtUtc ?? DateTime.MinValue;
+        var otherPlayed = other.Schedule?.LastPlayedAtUtc ?? DateTime.MinValue;
+        return ScheduleId == other.ScheduleId && thisPlayed == otherPlayed;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ScheduleListItemViewModel);
+
+    public override int GetHashCode() => HashCode.Combine(ScheduleId, Schedule?.LastPlayedAtUtc ?? DateTime.MinValue);
+
+    public static bool operator ==(ScheduleListItemViewModel? left, ScheduleListItemViewModel? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(ScheduleListItemViewModel? left, ScheduleListItemViewModel? right) => !(left == right);
+
+    public static bool operator <(ScheduleListItemViewModel? left, ScheduleListItemViewModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(ScheduleListItemViewModel? left, ScheduleListItemViewModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(ScheduleListItemViewModel? left, ScheduleListItemViewModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(ScheduleListItemViewModel? left, ScheduleListItemViewModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 
     private void OnApplicationStateChanged(object? sender, EventArgs e)
     {

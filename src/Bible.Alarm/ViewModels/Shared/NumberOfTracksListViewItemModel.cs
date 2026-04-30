@@ -1,9 +1,10 @@
 #nullable enable
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class NumberOfTracksListViewItemModel : ObservableObject, IComparable
+public sealed class NumberOfTracksListViewItemModel : ObservableObject, IComparable, IComparable<NumberOfTracksListViewItemModel>, IEquatable<NumberOfTracksListViewItemModel>
 {
     private string unitSingular;
     private string unitPlural;
@@ -43,13 +44,32 @@ public sealed class NumberOfTracksListViewItemModel : ObservableObject, ICompara
         OnPropertyChanged(nameof(Text));
     }
 
-    public int CompareTo(object? obj)
-    {
-        if (obj is not NumberOfTracksListViewItemModel other)
-        {
-            return 1;
-        }
+    public int CompareTo(NumberOfTracksListViewItemModel? other) =>
+        other is null ? 1 : Value.CompareTo(other.Value);
 
-        return Value.CompareTo(other.Value);
-    }
+    public int CompareTo(object? obj) => CompareTo(obj as NumberOfTracksListViewItemModel);
+
+    public bool Equals(NumberOfTracksListViewItemModel? other) =>
+        other is not null && Value == other.Value;
+
+    public override bool Equals(object? obj) => Equals(obj as NumberOfTracksListViewItemModel);
+
+    public override int GetHashCode() => Value.GetHashCode();
+
+    public static bool operator ==(NumberOfTracksListViewItemModel? left, NumberOfTracksListViewItemModel? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(NumberOfTracksListViewItemModel? left, NumberOfTracksListViewItemModel? right) => !(left == right);
+
+    public static bool operator <(NumberOfTracksListViewItemModel? left, NumberOfTracksListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(NumberOfTracksListViewItemModel? left, NumberOfTracksListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(NumberOfTracksListViewItemModel? left, NumberOfTracksListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(NumberOfTracksListViewItemModel? left, NumberOfTracksListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

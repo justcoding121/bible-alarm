@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -6,7 +7,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class PublicationListViewItemModel(Publication publication) : ObservableObject, IComparable
+public sealed class PublicationListViewItemModel(Publication publication)
+    : ObservableObject, IComparable, IComparable<PublicationListViewItemModel>, IEquatable<PublicationListViewItemModel>
 {
     private bool isSelected;
     private bool isNavigating;
@@ -109,14 +111,13 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
         }
     }
 
-    public int CompareTo(object? obj)
+    public int CompareTo(PublicationListViewItemModel? other)
     {
-        if (obj is not PublicationListViewItemModel other)
+        if (other is null)
         {
             return 1;
         }
 
-        // Prefer sorting by publication code priority (e.g. nwt first), then by name.
         var codeCompare = PublicationCodeHelper.PublicationCodeComparer.Compare(Code, other.Code);
         if (codeCompare != 0)
         {
@@ -125,4 +126,43 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
 
         return string.Compare(Name, other.Name, StringComparison.OrdinalIgnoreCase);
     }
+
+    public int CompareTo(object? obj) => CompareTo(obj as PublicationListViewItemModel);
+
+    public bool Equals(PublicationListViewItemModel? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (!string.Equals(Code, other.Code, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return StringComparer.OrdinalIgnoreCase.Equals(PublicationLanguageCode ?? string.Empty, other.PublicationLanguageCode ?? string.Empty);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as PublicationListViewItemModel);
+
+    public override int GetHashCode() =>
+        HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(Code), StringComparer.OrdinalIgnoreCase.GetHashCode(PublicationLanguageCode ?? string.Empty));
+
+    public static bool operator ==(PublicationListViewItemModel? left, PublicationListViewItemModel? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(PublicationListViewItemModel? left, PublicationListViewItemModel? right) => !(left == right);
+
+    public static bool operator <(PublicationListViewItemModel? left, PublicationListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(PublicationListViewItemModel? left, PublicationListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(PublicationListViewItemModel? left, PublicationListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(PublicationListViewItemModel? left, PublicationListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

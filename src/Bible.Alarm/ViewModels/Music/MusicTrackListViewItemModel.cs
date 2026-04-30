@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Globalization;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -7,7 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
+public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable, IComparable<MusicTrackListViewItemModel>, IEquatable<MusicTrackListViewItemModel>
 {
     private readonly MusicTrack track;
 
@@ -55,10 +56,32 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
 
     public IRelayCommand ToggleRepeatCommand { get; }
 
-    public int CompareTo(object? obj)
-    {
-        if (obj is MusicTrackListViewItemModel other)
-            return Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Compare(TrackCode, other.TrackCode);
-        return 0;
-    }
+    public int CompareTo(MusicTrackListViewItemModel? other) =>
+        other is null ? 1 : CodeComparisonHelper.Compare(TrackCode, other.TrackCode);
+
+    public int CompareTo(object? obj) => CompareTo(obj as MusicTrackListViewItemModel);
+
+    public bool Equals(MusicTrackListViewItemModel? other) =>
+        other is not null && CodeComparisonHelper.Compare(TrackCode, other.TrackCode) == 0;
+
+    public override bool Equals(object? obj) => Equals(obj as MusicTrackListViewItemModel);
+
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(TrackCode);
+
+    public static bool operator ==(MusicTrackListViewItemModel? left, MusicTrackListViewItemModel? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(MusicTrackListViewItemModel? left, MusicTrackListViewItemModel? right) => !(left == right);
+
+    public static bool operator <(MusicTrackListViewItemModel? left, MusicTrackListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(MusicTrackListViewItemModel? left, MusicTrackListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(MusicTrackListViewItemModel? left, MusicTrackListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(MusicTrackListViewItemModel? left, MusicTrackListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

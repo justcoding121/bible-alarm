@@ -4,7 +4,7 @@ using System;
 
 namespace Bible.Alarm.Cataloger.Models;
 
-public class MusicTrack : IComparable
+public sealed class MusicTrack : IComparable, IComparable<MusicTrack>, IEquatable<MusicTrack>
 {
     public int Number { get; set; }
     public string Title { get; set; } = string.Empty;
@@ -29,5 +29,32 @@ public class MusicTrack : IComparable
     /// </summary>
     public int? OriginalTrackCode { get; set; }
 
-    public int CompareTo(object? obj) => Number.CompareTo((obj as MusicTrack)?.Number ?? 0);
+    public int CompareTo(MusicTrack? other) =>
+        other is null ? 1 : Number.CompareTo(other.Number);
+
+    public int CompareTo(object? obj) => CompareTo(obj as MusicTrack);
+
+    public bool Equals(MusicTrack? other) =>
+        other is not null && Number == other.Number;
+
+    public override bool Equals(object? obj) => Equals(obj as MusicTrack);
+
+    public override int GetHashCode() => Number.GetHashCode();
+
+    public static bool operator ==(MusicTrack? left, MusicTrack? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(MusicTrack? left, MusicTrack? right) => !(left == right);
+
+    public static bool operator <(MusicTrack? left, MusicTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(MusicTrack? left, MusicTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(MusicTrack? left, MusicTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(MusicTrack? left, MusicTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

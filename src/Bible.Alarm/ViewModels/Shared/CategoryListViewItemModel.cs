@@ -1,10 +1,11 @@
 #nullable enable
+using System;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class CategoryListViewItemModel : ObservableObject, IComparable
+public sealed class CategoryListViewItemModel : ObservableObject, IComparable, IComparable<CategoryListViewItemModel>, IEquatable<CategoryListViewItemModel>
 {
     public CategoryListViewItemModel(Category category, string? displayName = null)
     {
@@ -72,5 +73,32 @@ public sealed class CategoryListViewItemModel : ObservableObject, IComparable
         }
     }
 
-    public int CompareTo(object? obj) => string.Compare(Name, (obj as CategoryListViewItemModel)?.Name, StringComparison.Ordinal);
+    public int CompareTo(CategoryListViewItemModel? other) =>
+        other is null ? 1 : string.Compare(Name, other.Name, StringComparison.Ordinal);
+
+    public int CompareTo(object? obj) => CompareTo(obj as CategoryListViewItemModel);
+
+    public bool Equals(CategoryListViewItemModel? other) =>
+        other is not null && string.Equals(Name, other.Name, StringComparison.Ordinal);
+
+    public override bool Equals(object? obj) => Equals(obj as CategoryListViewItemModel);
+
+    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Name ?? string.Empty);
+
+    public static bool operator ==(CategoryListViewItemModel? left, CategoryListViewItemModel? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(CategoryListViewItemModel? left, CategoryListViewItemModel? right) => !(left == right);
+
+    public static bool operator <(CategoryListViewItemModel? left, CategoryListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(CategoryListViewItemModel? left, CategoryListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(CategoryListViewItemModel? left, CategoryListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(CategoryListViewItemModel? left, CategoryListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

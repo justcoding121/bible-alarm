@@ -1,12 +1,14 @@
 #nullable enable
 
+using System;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSection section) : ObservableObject, IComparable
+public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSection section)
+    : ObservableObject, IComparable, IComparable<BiblePublicationSectionListViewItemModel>, IEquatable<BiblePublicationSectionListViewItemModel>
 {
     private bool isSelected;
     private bool isNavigating;
@@ -73,16 +75,40 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
     /// </summary>
     public string Name => MediaTrackTitleHelper.DecodeHtmlTitle(section.Name);
 
-    public int CompareTo(object? obj)
+    public int CompareTo(BiblePublicationSectionListViewItemModel? other)
     {
-        if (obj is not BiblePublicationSectionListViewItemModel other)
+        if (other is null)
         {
             return 1;
         }
 
-        // Natural sort via shared comparer:
-        // numeric section codes sort numerically, otherwise as strings.
         return SectionCodeHelper.SectionCodeComparer.Compare(section.SectionCode, other.Section.SectionCode);
     }
+
+    public int CompareTo(object? obj) => CompareTo(obj as BiblePublicationSectionListViewItemModel);
+
+    public bool Equals(BiblePublicationSectionListViewItemModel? other) =>
+        other is not null && SectionCodeHelper.SectionCodeComparer.Compare(SectionCode, other.SectionCode) == 0;
+
+    public override bool Equals(object? obj) => Equals(obj as BiblePublicationSectionListViewItemModel);
+
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(SectionCode);
+
+    public static bool operator ==(BiblePublicationSectionListViewItemModel? left, BiblePublicationSectionListViewItemModel? right) =>
+        ReferenceEquals(left, right) || left is not null && left.Equals(right);
+
+    public static bool operator !=(BiblePublicationSectionListViewItemModel? left, BiblePublicationSectionListViewItemModel? right) => !(left == right);
+
+    public static bool operator <(BiblePublicationSectionListViewItemModel? left, BiblePublicationSectionListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(BiblePublicationSectionListViewItemModel? left, BiblePublicationSectionListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(BiblePublicationSectionListViewItemModel? left, BiblePublicationSectionListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(BiblePublicationSectionListViewItemModel? left, BiblePublicationSectionListViewItemModel? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }
 
