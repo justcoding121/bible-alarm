@@ -266,15 +266,11 @@ public class MauiMediaElement : CoordinatorLayout
     [SupportedOSPlatform("android30.0")]
     void ShowSystemBarsAndroid30Plus(Window currentWindow)
     {
-        if (!OperatingSystem.IsAndroidVersionAtLeast(30))
+        if (OperatingSystem.IsAndroidVersionAtLeast(30)
+            && isSystemBarVisible
+            && currentWindow.InsetsController is { } insetsController)
         {
-            return;
-        }
-
-        if (isSystemBarVisible && currentWindow.InsetsController is not null)
-        {
-            // InsetsController is only available on Android 30+; ShowSystemBarsAndroid30Plus exits early otherwise.
-            currentWindow.InsetsController.Show(WindowInsets.Type.SystemBars());
+            insetsController.Show(WindowInsets.Type.SystemBars());
         }
     }
 

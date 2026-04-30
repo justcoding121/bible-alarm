@@ -67,32 +67,15 @@ public sealed class TrackSelectionStateManager
         lastSectionCode = newSectionCode;
 
         // Derive from CurrentSchedule (single source of truth)
-        // currentSchedule is already declared above
-        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        current = new BiblePublicationSchedule
         {
-            // Create BiblePublicationSchedule from CurrentSchedule
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = newSectionCode,
-                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
-                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
-            };
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal BiblePublicationSchedule from CurrentSchedule
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                SectionCode = newSectionCode,
-                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
-            };
-            lastCurrent = current;
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = newPublicationCode,
+            SectionCode = newSectionCode,
+            TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
+            FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+        };
+        lastCurrent = current;
 
         initComplete = true;
         Task.Run(async () =>
@@ -144,32 +127,15 @@ public sealed class TrackSelectionStateManager
         lastSectionCode = newSectionCode;
 
         // Derive from CurrentSchedule (single source of truth)
-        // currentSchedule is already declared above
-        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        current = new BiblePublicationSchedule
         {
-            // Create BiblePublicationSchedule from CurrentSchedule
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = newSectionCode,
-                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
-                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
-            };
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal BiblePublicationSchedule from CurrentSchedule
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                SectionCode = newSectionCode,
-                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
-            };
-            lastCurrent = current;
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = newPublicationCode,
+            SectionCode = newSectionCode,
+            TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
+            FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+        };
+        lastCurrent = current;
 
         // If language, publication code, or section number changed, repopulate tracks
         if (needsRepopulation && initComplete)

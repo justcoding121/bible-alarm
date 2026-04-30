@@ -239,7 +239,7 @@ public sealed class BiblePublicationSelectionItemSelector
             if (publication == null && !string.IsNullOrWhiteSpace(categoryName))
             {
                 var categoryComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName);
-                var pubWithoutLanguage = (await db.BiblePublications
+                if (((await db.BiblePublications
                     .AsNoTracking()
                     .Include(bp => bp.BiblePublicationCategories)
                     .ThenInclude(bpc => bpc.Category)
@@ -248,9 +248,7 @@ public sealed class BiblePublicationSelectionItemSelector
                     .ToListAsync())
                     .OrderBy(bp => bp.PublicationCode, categoryComparer)
                     .ThenBy(bp => bp.Id)
-                    .FirstOrDefault();
-
-                if (pubWithoutLanguage != null)
+                    .FirstOrDefault()) is { } pubWithoutLanguage)
                 {
                     publication = pubWithoutLanguage;
                     publicationCode = pubWithoutLanguage.PublicationCode;

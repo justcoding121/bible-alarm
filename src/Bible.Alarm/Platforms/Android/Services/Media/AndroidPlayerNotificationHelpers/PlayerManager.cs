@@ -292,9 +292,9 @@ public sealed class PlayerManager(ILogger logger)
         public void OnCues(AndroidX.Media3.Common.Text.CueGroup? cueGroup) { }
         public void OnDeviceInfoChanged(AndroidX.Media3.Common.DeviceInfo? deviceInfo) { }
         public void OnDeviceVolumeChanged(int volume, bool muted) { }
-        public void OnEvents(IExoPlayer? player, PlayerEvents? playerEvents)
+        public void OnEvents(IExoPlayer? iExoPlayer, PlayerEvents? playerEvents)
         {
-            _ = player;
+            _ = iExoPlayer;
             _ = playerEvents;
         }
         public void OnIsLoadingChanged(bool isLoading) { }

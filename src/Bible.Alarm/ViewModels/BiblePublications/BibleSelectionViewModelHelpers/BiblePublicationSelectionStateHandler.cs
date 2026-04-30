@@ -253,32 +253,15 @@ public sealed class BiblePublicationSelectionStateHandler
         }
 
         // Derive from CurrentSchedule (single source of truth)
-        // currentSchedule is already declared above
-        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        current = new BiblePublicationSchedule
         {
-            // Create BiblePublicationSchedule from CurrentSchedule
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                    SectionCode = currentSchedule.BiblePublicationSectionCode,
-                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
-                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
-            };
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal BiblePublicationSchedule from CurrentSchedule
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
-                    SectionCode = currentSchedule?.BiblePublicationSectionCode,
-                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
-            };
-            lastCurrent = current;
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+            SectionCode = currentSchedule.BiblePublicationSectionCode,
+            TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
+            FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+        };
+        lastCurrent = current;
 
         // If language or category changed, repopulate publications
         if ((languageChanged || categoryChanged) && initComplete)

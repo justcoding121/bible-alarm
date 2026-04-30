@@ -28,10 +28,17 @@ internal static class FontServiceSizingHelpers
             return DeviceSizeCategory.Desktop;
         }
 
-        // Use width-based categorization per Material Design and iOS guidelines
-        return widthDp < 600 ? DeviceSizeCategory.Phone :
-            widthDp < 960 ? DeviceSizeCategory.Tablet :
-            DeviceSizeCategory.Desktop;
+        if (widthDp < 600)
+        {
+            return DeviceSizeCategory.Phone;
+        }
+
+        if (widthDp < 960)
+        {
+            return DeviceSizeCategory.Tablet;
+        }
+
+        return DeviceSizeCategory.Desktop;
     }
 
     /// <summary>
@@ -80,9 +87,17 @@ internal static class FontServiceSizingHelpers
         bool isPhone = widthDp < 600;
         bool isTablet = widthDp is >= 600 and < 960;
 
-        return isPhone ? Math.Min(density, 1.5) :
-            isTablet ? Math.Min(density, 1.8) :
-            Math.Min(density, 2.2);
+        if (isPhone)
+        {
+            return Math.Min(density, 1.5);
+        }
+
+        if (isTablet)
+        {
+            return Math.Min(density, 1.8);
+        }
+
+        return Math.Min(density, 2.2);
     }
 
     /// <summary>

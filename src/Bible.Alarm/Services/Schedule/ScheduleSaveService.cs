@@ -249,8 +249,8 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             else
             {
                 logger.Warning(AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareScheduleStateItemMusicUpdatedInvalidMusicProperties,
-                    currentSchedule?.MusicPublicationCode ?? "null",
-                    currentSchedule?.MusicTrackCode?.ToString() ?? "null");
+                    currentSchedule.MusicPublicationCode ?? "null",
+                    currentSchedule.MusicTrackCode?.ToString() ?? "null");
             }
         }
         // Populate default music properties when music is disabled
