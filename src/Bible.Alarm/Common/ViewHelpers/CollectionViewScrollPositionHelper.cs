@@ -41,7 +41,7 @@ internal static class CollectionViewScrollPositionHelper
 
             // Convert to enumerable to find index
             var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
-            if (itemsList == null || itemsList.Count == 0)
+            if (itemsList.Count == 0)
             {
                 return requestedPosition;
             }

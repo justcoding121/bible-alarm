@@ -14,7 +14,6 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Helpers.SectionFetcherHelpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -346,7 +345,7 @@ internal sealed class SectionFetcher
             }
             catch (DbUpdateException ex) when (attempt < maxAttempts)
             {
-                if (IsSqliteBusyOrLocked(ex))
+                if (SectionFetcherSqliteExceptionHelper.IsBusyOrLocked(ex))
                 {
                     logger.Debug(ex, "SaveChanges failed with database locked (attempt {Attempt}/{Max}), retrying",
                         attempt, maxAttempts);
@@ -356,22 +355,6 @@ internal sealed class SectionFetcher
                 throw;
             }
         }
-    }
-
-    private static bool IsSqliteBusyOrLocked(Exception ex)
-    {
-        for (var e = ex; e != null; e = e.InnerException)
-        {
-            if (e is SqliteException sqliteEx)
-            {
-                var code = (int)sqliteEx.SqliteErrorCode;
-                if (code is 5 or 6)
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private static void SyncPublicationCategories(BiblePublication publication, List<Category> categories)

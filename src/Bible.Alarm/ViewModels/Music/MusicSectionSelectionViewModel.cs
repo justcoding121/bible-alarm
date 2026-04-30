@@ -256,7 +256,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         var sectionsEmpty = Sections == null || Sections.Count == 0;
         var shouldRepopulate = needsRepopulation || sectionsEmpty;
 
-        if (shouldRepopulate && !isDisposed && !isSelectingSection)
+        if (shouldRepopulate && !isDisposed)
         {
             fetchCts?.CancelAsync();
             fetchCts?.Dispose();

@@ -70,20 +70,15 @@ public sealed class MusicPublicationSelectionStateManager
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
 
-        // Update current from CurrentSchedule
-        // Derive from CurrentSchedule (single source of truth)
-        if (currentSchedule != null)
+        // Update current from CurrentSchedule (single source of truth — non-null after guard above)
+        current = new AlarmMusic
         {
-            // Create AlarmMusic from CurrentSchedule
-            current = new AlarmMusic
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-                TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
-                Repeat = currentSchedule.MusicRepeat ?? false
-            };
-            lastCurrent = current;
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
+            TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
+            Repeat = currentSchedule.MusicRepeat ?? false
+        };
+        lastCurrent = current;
 
         initComplete = true;
         Task.Run(async () =>
@@ -124,19 +119,15 @@ public sealed class MusicPublicationSelectionStateManager
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
 
-        // Update current from CurrentSchedule (single source of truth)
-        if (currentSchedule != null)
+        // Non-null CurrentSchedule ensured above
+        current = new AlarmMusic
         {
-            // Create AlarmMusic from CurrentSchedule
-            current = new AlarmMusic
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-                TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
-                Repeat = currentSchedule.MusicRepeat ?? false
-            };
-            lastCurrent = current;
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
+            TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
+            Repeat = currentSchedule.MusicRepeat ?? false
+        };
+        lastCurrent = current;
 
         // If language changed, repopulate song sections
         if (needsRepopulation && initComplete)

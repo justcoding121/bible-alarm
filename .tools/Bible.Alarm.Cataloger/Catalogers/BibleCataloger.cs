@@ -90,12 +90,6 @@ internal class BibleCataloger : BaseCataloger
                     await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
                 }
             }
-            
-            if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
-            {
-                Logger.Warning("No languages available for publication {PublicationCode}. Skipping.", publicationCode);
-                continue;
-            }
 
             // Verify English (E) is available (it will be seeded separately after discovery)
             if (!allDiscoveredLanguages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguageInfo))

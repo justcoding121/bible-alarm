@@ -14,7 +14,6 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Helpers;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -325,13 +324,13 @@ internal sealed class SectionFetcherSectionTracksLoader
                 await db.SaveChangesAsync(cancellationToken);
                 return;
             }
-            catch (DbUpdateException ex) when (attempt < maxAttempts && IsSqliteBusyOrLocked(ex))
+            catch (DbUpdateException ex) when (attempt < maxAttempts && SectionFetcherSqliteExceptionHelper.IsBusyOrLocked(ex))
             {
                 logger.Debug(ex, "SaveChanges locked (attempt {Attempt}/{Max}) for section {SectionCode}, retrying",
                     attempt, maxAttempts, sectionCode);
                 await Task.Delay(100 * attempt, cancellationToken);
             }
-            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            catch (DbUpdateException ex) when (SectionFetcherSqliteExceptionHelper.IsUniqueConstraintViolation(ex))
             {
                 logger.Warning(ex, "Unique constraint on tracks for section {SectionCode} in {PublicationCode}/{LanguageCode} " +
                     "- another operation likely inserted them concurrently",
@@ -345,28 +344,5 @@ internal sealed class SectionFetcherSectionTracksLoader
             }
         }
     }
-
-    private static bool IsSqliteBusyOrLocked(Exception ex)
-    {
-        for (var e = ex; e != null; e = e.InnerException)
-        {
-            if (e is SqliteException sqliteEx)
-            {
-                var code = (int)sqliteEx.SqliteErrorCode;
-                if (code is 5 or 6)
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    private static bool IsUniqueConstraintViolation(Exception ex)
-    {
-        for (var e = ex; e != null; e = e.InnerException)
-        {
-            if (e is SqliteException sqliteEx && (int)sqliteEx.SqliteErrorCode == 19)
-                return true;
-        }
-        return false;
-    }
 }
+

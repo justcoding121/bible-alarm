@@ -257,7 +257,7 @@ public sealed class BiblePublicationSelectionItemSelector
             }
         }
 
-        if (string.IsNullOrEmpty(publicationCode) || publication == null)
+        if (publication is null)
         {
             Log.Warning(
                 AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.NoPublicationFoundForLanguageCategory,
@@ -265,6 +265,18 @@ public sealed class BiblePublicationSelectionItemSelector
                 categoryName ?? "(null)");
             return (null, null, string.Empty, string.Empty, string.Empty, string.Empty);
         }
+
+        var resolvedPublicationCode = publication.PublicationCode;
+        if (string.IsNullOrEmpty(resolvedPublicationCode))
+        {
+            Log.Warning(
+                AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.NoPublicationFoundForLanguageCategory,
+                language.Code,
+                categoryName ?? "(null)");
+            return (null, null, string.Empty, string.Empty, string.Empty, string.Empty);
+        }
+
+        publicationCode = resolvedPublicationCode;
 
         var publicationName = publication.Name;
 

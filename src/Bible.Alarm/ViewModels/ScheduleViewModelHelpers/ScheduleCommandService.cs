@@ -355,7 +355,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         {
             await toastService.ShowScheduledNotification(model);
         }
-        else if (saved && !isEnabled)
+        else if (saved)
         {
             await toastService.ShowMessage(AppConstants.ToastMessages.ScheduleSaved);
         }
