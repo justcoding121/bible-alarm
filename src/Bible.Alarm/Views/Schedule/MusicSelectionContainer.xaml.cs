@@ -410,14 +410,19 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             await Task.Delay(100);
 
             var ready = CollapsibleContent != null && viewModel != null && Handler != null && propertyChangeHandler != null;
-            if (ready && propertyChangeHandler!.IsInitialLoad)
+            if (!ready)
+            {
+                return;
+            }
+
+            if (propertyChangeHandler!.IsInitialLoad)
             {
 #if DEBUG
                 Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnHandlerChangedSettingInitialVisibility, viewModel!.MusicEnabled);
 #endif
                 visibilityManager?.UpdateCollapsibleContentVisibility(viewModel!.MusicEnabled, animate: false);
             }
-            else if (ready && viewModel!.MusicEnabled && animationManager != null
+            else if (viewModel!.MusicEnabled && animationManager != null
                      && CollapsibleContent!.IsVisible && !animationManager.IsAnimating)
             {
                 // Trigger a layout update to measure (for non-initial loads)

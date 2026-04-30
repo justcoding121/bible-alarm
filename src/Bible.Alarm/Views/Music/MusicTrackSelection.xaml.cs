@@ -28,15 +28,17 @@ public partial class MusicTrackSelection : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel != null)
+        if (ViewModel == null)
         {
-            await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
-            await Task.Delay(200, cancellationTokenSource.Token);
+            return;
+        }
 
-            if (ViewModel.SelectedTrack != null && trackCollectionView != null)
-            {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack, cancellationToken: cancellationTokenSource.Token);
-            }
+        await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
+        await Task.Delay(200, cancellationTokenSource.Token);
+
+        if (ViewModel.SelectedTrack != null && trackCollectionView != null)
+        {
+            await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack, cancellationToken: cancellationTokenSource.Token);
         }
     }
 

@@ -206,16 +206,15 @@ internal class VideoCataloger : BaseCataloger
     {
         lock (languageCodeToPublications)
         {
-            if (languageCodeToPublications.TryGetValue(languageCode, out var publications))
+            if (!languageCodeToPublications.TryGetValue(languageCode, out var publications))
             {
-                if (!publications.Contains(publicationCode))
-                {
-                    publications.Add(publicationCode);
-                }
+                publications = [];
+                languageCodeToPublications[languageCode] = publications;
             }
-            else
+
+            if (!publications.Contains(publicationCode))
             {
-                languageCodeToPublications[languageCode] = [publicationCode];
+                publications.Add(publicationCode);
             }
         }
     }

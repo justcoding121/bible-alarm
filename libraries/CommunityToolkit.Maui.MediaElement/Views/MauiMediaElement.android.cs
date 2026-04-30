@@ -271,14 +271,10 @@ public class MauiMediaElement : CoordinatorLayout
             return;
         }
 
-        if (isSystemBarVisible)
+        if (isSystemBarVisible && currentWindow.InsetsController is not null)
         {
-            // InsetsController is only available on Android 30+
-            // Runtime check ensures this code only runs on Android 30+
-            if (OperatingSystem.IsAndroidVersionAtLeast(30) && currentWindow.InsetsController is not null)
-            {
-                currentWindow.InsetsController.Show(WindowInsets.Type.SystemBars());
-            }
+            // InsetsController is only available on Android 30+; ShowSystemBarsAndroid30Plus exits early otherwise.
+            currentWindow.InsetsController.Show(WindowInsets.Type.SystemBars());
         }
     }
 
