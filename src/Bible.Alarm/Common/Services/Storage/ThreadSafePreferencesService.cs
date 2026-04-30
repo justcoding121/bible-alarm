@@ -186,7 +186,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         SetInternal(key, value, sharedName);
     }
 
-    private void SetInternal<T>(string key, T value, string? sharedName)
+    private static void SetInternal<T>(string key, T value, string? sharedName)
     {
         preferencesLock.Wait();
         try
@@ -447,7 +447,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         await SetAsyncInternal(key, value, sharedName, cancellationToken);
     }
 
-    private async Task SetAsyncInternal<T>(string key, T value, string? sharedName, CancellationToken cancellationToken)
+    private static async Task SetAsyncInternal<T>(string key, T value, string? sharedName, CancellationToken cancellationToken)
     {
         await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {

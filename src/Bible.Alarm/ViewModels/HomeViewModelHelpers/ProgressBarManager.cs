@@ -8,6 +8,7 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 /// </summary>
 public class ProgressBarManager : IDisposable
 {
+    private bool disposed;
     private const double OpacityEpsilon = 1e-9;
     private bool shouldShowProgressBar = true;
     private double progressBarOpacity = 1.0;
@@ -105,7 +106,18 @@ public class ProgressBarManager : IDisposable
 
     public void Dispose()
     {
-        // No resources to dispose - animation is handled by the view
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (disposed || !disposing)
+        {
+            return;
+        }
+
+        disposed = true;
     }
 }
 

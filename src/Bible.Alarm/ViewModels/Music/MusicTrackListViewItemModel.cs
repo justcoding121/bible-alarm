@@ -44,8 +44,8 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
     /// Gets the track title with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
     public string Title => MediaTrackTitleHelper.DecodeHtmlTitle(track.Title);
-    // URLs are now computed on-demand, not stored
-    public string Url => string.Empty;
+    /// <summary>URL from the hydrated track when set (playback may resolve otherwise).</summary>
+    public string Url => track.Url ?? string.Empty;
 
     private bool repeat;
 

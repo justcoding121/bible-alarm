@@ -7,6 +7,7 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 /// </summary>
 public class ProgressBarAnimator : IDisposable
 {
+    private bool disposed;
     private System.Timers.Timer? progressAnimationTimer;
     private const double RangeWidth = 0.3; // 30% of the bar width
 
@@ -68,6 +69,23 @@ public class ProgressBarAnimator : IDisposable
 
     public void Dispose()
     {
+        if (disposed)
+        {
+            return;
+        }
+
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+        disposed = true;
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            return;
+        }
+
         Stop();
     }
 }

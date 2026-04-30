@@ -46,6 +46,8 @@ public class ResourceBootstrapService : IResourceBootstrapService
     /// </summary>
     private async Task CopySilentMp3ToStorageAsync()
     {
+        GC.KeepAlive(mediaIndexService);
+        GC.KeepAlive(storageService);
 #if ANDROID
         try
         {
