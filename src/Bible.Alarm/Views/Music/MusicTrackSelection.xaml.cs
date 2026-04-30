@@ -50,7 +50,18 @@ public partial class MusicTrackSelection : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!isDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             try
             {
@@ -67,8 +78,9 @@ public partial class MusicTrackSelection : BaseContentPage, IDisposable
                 disposable.Dispose();
             }
             BindingContext = null;
-            isDisposed = true;
         }
+
+        isDisposed = true;
     }
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)

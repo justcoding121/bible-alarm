@@ -5,6 +5,8 @@ namespace Bible.Alarm.Services.UI;
 
 public abstract class ToastService : IToastService, IDisposable
 {
+    private bool disposed;
+
     public abstract Task ShowMessage(string message, int seconds = 2);
 
     public async Task ShowScheduledNotification(AlarmSchedule schedule, int seconds = 3)
@@ -23,8 +25,24 @@ public abstract class ToastService : IToastService, IDisposable
         }
     }
 
-    public virtual void Dispose()
+    public void Dispose()
     {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+        }
+
+        disposed = true;
     }
 
     public abstract Task Clear();

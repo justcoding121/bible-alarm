@@ -32,7 +32,18 @@ public partial class MusicPublicationSelection : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!isDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
@@ -41,8 +52,9 @@ public partial class MusicPublicationSelection : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            isDisposed = true;
         }
+
+        isDisposed = true;
     }
 
     private async void OnSongPublicationItemTapped(object? sender, TappedEventArgs e)

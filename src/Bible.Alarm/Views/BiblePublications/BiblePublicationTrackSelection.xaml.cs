@@ -58,7 +58,18 @@ public partial class BiblePublicationTrackSelection : BaseContentPage, IDisposab
 
     public void Dispose()
     {
-        if (!isDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             // Cancel and dispose cancellation token source
             try
@@ -79,8 +90,9 @@ public partial class BiblePublicationTrackSelection : BaseContentPage, IDisposab
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            isDisposed = true;
         }
+
+        isDisposed = true;
     }
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)

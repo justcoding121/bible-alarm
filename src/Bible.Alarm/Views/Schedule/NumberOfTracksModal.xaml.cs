@@ -73,10 +73,22 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!isDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
-            isDisposed = true;
         }
+
+        isDisposed = true;
     }
 }

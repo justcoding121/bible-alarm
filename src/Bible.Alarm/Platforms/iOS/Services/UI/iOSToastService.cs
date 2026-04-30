@@ -16,7 +16,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI;
 /// Custom in-app toast for iOS. Uses a native UIView overlay.
 /// When a new toast arrives while one is showing, the old toast is dismissed immediately.
 /// </summary>
-public class IOsToastService : ToastService, IDisposable
+public class IOsToastService : ToastService
 {
     private static readonly SemaphoreSlim @lock = new(1);
     private static CancellationTokenSource? activeCts;

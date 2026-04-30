@@ -15,9 +15,8 @@ namespace Bible.Alarm.Platforms.Windows.Services.UI;
 /// Custom in-app toast for Windows. Uses a WinUI Popup overlay.
 /// When a new toast arrives while one is showing, the old toast is dismissed immediately.
 /// </summary>
-public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILogger logger) : ToastService, IDisposable
+public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILogger logger) : ToastService
 {
-    private bool isDisposed;
     private static readonly SemaphoreSlim @lock = new(1);
 
     private static CancellationTokenSource? activeCts;
@@ -159,16 +158,5 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         }
 
         return Task.CompletedTask;
-    }
-
-    public override void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-        base.Dispose();
     }
 }

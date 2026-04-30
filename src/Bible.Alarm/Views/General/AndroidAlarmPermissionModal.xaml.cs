@@ -12,12 +12,24 @@ public partial class AndroidAlarmPermissionModal : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!isDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             // This modal uses parent page view model, so do NOT dispose it
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            isDisposed = true;
         }
+
+        isDisposed = true;
     }
 }

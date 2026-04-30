@@ -17,7 +17,7 @@ namespace Bible.Alarm.Platforms.Android.Services.UI;
 /// so we add a custom view overlay to the activity's content and position it ourselves.
 /// When a new toast arrives while one is showing, the old toast is dismissed immediately.
 /// </summary>
-public class AndroidToastService : ToastService, IDisposable
+public class AndroidToastService : ToastService
 {
     private static readonly ILogger logger = Log.ForContext<AndroidToastService>();
     private static readonly SemaphoreSlim @lock = new(1);

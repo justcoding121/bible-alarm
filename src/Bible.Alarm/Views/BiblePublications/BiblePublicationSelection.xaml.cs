@@ -55,7 +55,18 @@ public partial class BiblePublicationSelection : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!isDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             // Cancel and dispose cancellation token source
             try
@@ -76,8 +87,9 @@ public partial class BiblePublicationSelection : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            isDisposed = true;
         }
+
+        isDisposed = true;
     }
 
     private async void OnPublicationItemTapped(object? sender, TappedEventArgs e)

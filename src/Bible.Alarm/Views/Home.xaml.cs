@@ -276,7 +276,18 @@ public partial class Home : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!isDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             if (DeviceInfo.Platform == DevicePlatform.WinUI && viewModel is INotifyPropertyChanged inpc)
             {
@@ -290,7 +301,8 @@ public partial class Home : BaseContentPage, IDisposable
             }
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            isDisposed = true;
         }
+
+        isDisposed = true;
     }
 }

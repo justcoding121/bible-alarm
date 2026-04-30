@@ -262,7 +262,18 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     public void Dispose()
     {
-        if (!isDisposed)
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             if (viewModel != null)
             {
@@ -275,7 +286,8 @@ public partial class Schedule : BaseContentPage, IDisposable
             }
 
             BindingContext = null;
-            isDisposed = true;
         }
+
+        isDisposed = true;
     }
 }
