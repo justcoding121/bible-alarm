@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Services.Database.Interfaces;
@@ -69,9 +70,9 @@ public sealed class ScheduleDatabaseVersionService(
         }
         catch (Exception ex)
         {
-            logger.Error(ex,
-                AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.FailedToSaveScheduleDatabaseVersionToPreferences);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.FailedToSaveScheduleDatabaseVersionToPreferences,
+                ex);
         }
 
         return Task.CompletedTask;

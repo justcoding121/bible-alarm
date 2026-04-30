@@ -154,15 +154,14 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             await PrepareAndPlayCoreAsync(scheduleId, isAlarm);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException oc)
         {
-            logger.Debug(AppConstants.Logging.PlaybackServiceDiagnosticsLog.PrepareAndPlayAsyncCancelledForSchedule, scheduleId);
+            logger.Debug(oc, AppConstants.Logging.PlaybackServiceDiagnosticsLog.PrepareAndPlayAsyncCancelledForSchedule, scheduleId);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, AppConstants.Logging.PlaybackServiceDiagnosticsLog.ErrorPreparingAndPlayingSchedule, scheduleId);
             await ResetAsync();
-            throw;
+            throw new InvalidOperationException($"Error preparing and playing schedule {scheduleId}.", ex);
         }
     }
 

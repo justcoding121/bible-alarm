@@ -105,8 +105,7 @@ internal class DbSeeder : IDataPersister
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Failed to apply migrations");
-                throw;
+                throw new InvalidOperationException("Failed to apply migrations", ex);
             }
         }
 

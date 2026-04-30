@@ -366,8 +366,7 @@ internal sealed class LanguageSeeder
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to seed all languages from jw.org API");
-            throw;
+            throw new InvalidOperationException("Failed to seed all languages from jw.org API", ex);
         }
     }
 }

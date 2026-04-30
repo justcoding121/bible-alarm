@@ -100,9 +100,9 @@ internal static class WindowsToastNotifierFactory
             Log.Warning(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.FailedToCreateNotifierWithAnyAumidPackage,
                 packageId.Name, packageId.FamilyName, packageId.Publisher);
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
-            Log.Warning(AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.PackageCurrentUnavailableUnpackagedHint);
+            Log.Warning(ex, AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.PackageCurrentUnavailableUnpackagedHint);
         }
         catch (Exception ex)
         {

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Reflection;
 
 namespace Bible.Alarm.Common.Helpers;
@@ -24,16 +25,16 @@ public static class ResourceLoader
 
         if (resourcePaths.Length == 0)
         {
-            throw new Exception($"Resource ending with {resourceFileName} not found.");
+            throw new InvalidOperationException($"Resource ending with {resourceFileName} not found.");
         }
 
         if (resourcePaths.Length > 1)
         {
-            throw new Exception(
+            throw new InvalidOperationException(
                 $"Multiple resources ending with {resourceFileName} found: {Environment.NewLine}{string.Join(Environment.NewLine, resourcePaths)}");
         }
 
-        var stream = assembly.GetManifestResourceStream(resourcePaths.Single()) ?? throw new Exception(
+        var stream = assembly.GetManifestResourceStream(resourcePaths.Single()) ?? throw new InvalidOperationException(
             $"Resource stream for {resourceFileName} is null.");
         return stream;
     }

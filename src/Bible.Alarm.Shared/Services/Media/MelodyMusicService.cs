@@ -89,8 +89,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting MelodyMusic with Tracks. PublicationCode={PublicationCode}", publicationCode);
-            throw;
+            throw new InvalidOperationException($"Error getting MelodyMusic with tracks for publication {publicationCode}.", ex);
         }
     }
 
@@ -125,8 +124,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting all MelodyMusic");
-            throw;
+            throw new InvalidOperationException("Error enumerating melody music publications.", ex);
         }
     }
 
@@ -189,8 +187,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting MelodyMusic tracks. PublicationCode={PublicationCode}", publicationCode);
-            throw;
+            throw new InvalidOperationException($"Error getting melody music tracks for publication {publicationCode}.", ex);
         }
     }
 
@@ -241,9 +238,9 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting MelodyMusic tracks by section. PublicationCode={PublicationCode}, SectionCode={SectionCode}", 
-                publicationCode, sectionCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting melody music tracks by section for publication {publicationCode}, section {sectionCode}.",
+                ex);
         }
     }
 

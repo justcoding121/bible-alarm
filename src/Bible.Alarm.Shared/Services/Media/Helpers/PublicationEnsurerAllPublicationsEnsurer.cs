@@ -107,9 +107,9 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
                         successCount++;
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException oc)
                 {
-                    logger.Information("Publication fetch cancelled at {CompletedCount}/{TotalCount} for language {LanguageCode}",
+                    logger.Information(oc, "Publication fetch cancelled at {CompletedCount}/{TotalCount} for language {LanguageCode}",
                         successCount, totalCount, languageCode);
                     throw;
                 }
