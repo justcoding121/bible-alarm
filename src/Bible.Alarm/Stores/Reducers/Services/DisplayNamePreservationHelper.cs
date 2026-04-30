@@ -24,43 +24,69 @@ public static class DisplayNamePreservationHelper
 
     public static void PreserveBiblePublicationDisplayNames(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
     {
-        // ALWAYS preserve category - category can only be changed via CategorySelectionAction
-        // If category is null in action schedule, preserve it from existing schedule
-        if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCategoryName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationCategoryName))
-        {
-            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingCategoryName,
-                existingScheduleItem.BiblePublicationCategoryName);
-            actionSchedule.BiblePublicationCategoryId = existingScheduleItem.BiblePublicationCategoryId;
-            actionSchedule.BiblePublicationCategoryName = existingScheduleItem.BiblePublicationCategoryName;
-        }
-        else if (!string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCategoryName))
-        {
-            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionCategoryName,
-                actionSchedule.BiblePublicationCategoryName);
-        }
-        else
-        {
-            Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesCategoryNullInBothWarning);
-        }
-
-        if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationLanguageName))
-        {
-            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingLanguageName,
-                existingScheduleItem.BiblePublicationLanguageName);
-            actionSchedule.BiblePublicationLanguageName = existingScheduleItem.BiblePublicationLanguageName;
-        }
-        else
-        {
-            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionLanguageName,
-                actionSchedule.BiblePublicationLanguageName ?? "null");
-        }
+        PreserveBiblePublicationCategory(actionSchedule, existingScheduleItem);
+        PreserveBiblePublicationLanguage(actionSchedule, existingScheduleItem);
 
         if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationName))
         {
             actionSchedule.BiblePublicationName = existingScheduleItem.BiblePublicationName;
         }
 
-        // Preserve discovery-based "expected modal item counts" so unrelated updates don't wipe them.
+        CopyMissingBibleModalCounts(actionSchedule, existingScheduleItem);
+
+        var actionHasSectionStructure = !string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCode) &&
+            PublicationTypeHelper.HasSectionStructure(actionSchedule.BiblePublicationCode);
+        var existingHasSectionStructure = !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationCode) &&
+            PublicationTypeHelper.HasSectionStructure(existingScheduleItem.BiblePublicationCode);
+
+        PreserveEligibleBibleSectionName(actionSchedule, existingScheduleItem, actionHasSectionStructure, existingHasSectionStructure);
+        PreserveEligibleBibleNonSectionTrackTitle(actionSchedule, existingScheduleItem, actionHasSectionStructure, existingHasSectionStructure);
+    }
+
+    public static void PreserveMusicDisplayNames(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
+        PreserveMusicPublicationStrings(actionSchedule, existingScheduleItem);
+        PreserveMusicSectionTitleIfEligible(actionSchedule, existingScheduleItem);
+        CopyMusicTrackAndModalCounts(actionSchedule, existingScheduleItem);
+    }
+
+    private static void PreserveBiblePublicationCategory(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
+        if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCategoryName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationCategoryName))
+        {
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingCategoryName,
+                existingScheduleItem.BiblePublicationCategoryName);
+            actionSchedule.BiblePublicationCategoryId = existingScheduleItem.BiblePublicationCategoryId;
+            actionSchedule.BiblePublicationCategoryName = existingScheduleItem.BiblePublicationCategoryName;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCategoryName))
+        {
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionCategoryName,
+                actionSchedule.BiblePublicationCategoryName);
+            return;
+        }
+
+        Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesCategoryNullInBothWarning);
+    }
+
+    private static void PreserveBiblePublicationLanguage(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
+        if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationLanguageName))
+        {
+            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingLanguageName,
+                existingScheduleItem.BiblePublicationLanguageName);
+            actionSchedule.BiblePublicationLanguageName = existingScheduleItem.BiblePublicationLanguageName;
+            return;
+        }
+
+        Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionLanguageName,
+            actionSchedule.BiblePublicationLanguageName ?? "null");
+    }
+
+    private static void CopyMissingBibleModalCounts(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
         if (!actionSchedule.BiblePublicationModalItemCount.HasValue && existingScheduleItem.BiblePublicationModalItemCount.HasValue)
         {
             actionSchedule.BiblePublicationModalItemCount = existingScheduleItem.BiblePublicationModalItemCount;
@@ -75,15 +101,14 @@ public static class DisplayNamePreservationHelper
         {
             actionSchedule.BiblePublicationTrackModalItemCount = existingScheduleItem.BiblePublicationTrackModalItemCount;
         }
+    }
 
-        // Check if publication type changed (sectioned <-> non-sectioned)
-        var actionHasSectionStructure = !string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCode) &&
-            PublicationTypeHelper.HasSectionStructure(actionSchedule.BiblePublicationCode);
-        var existingHasSectionStructure = !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationCode) &&
-            PublicationTypeHelper.HasSectionStructure(existingScheduleItem.BiblePublicationCode);
-
-        // Only preserve section name if publication type hasn't changed, both are sectioned,
-        // and section CODE hasn't changed (playback track advance changes section/track; don't preserve stale names).
+    private static void PreserveEligibleBibleSectionName(
+        ScheduleStateItem actionSchedule,
+        ScheduleStateItem existingScheduleItem,
+        bool actionHasSectionStructure,
+        bool existingHasSectionStructure)
+    {
         var sectionCodeUnchanged = string.Equals(actionSchedule.BiblePublicationSectionCode, existingScheduleItem.BiblePublicationSectionCode, StringComparison.OrdinalIgnoreCase);
         if (actionHasSectionStructure == existingHasSectionStructure && actionHasSectionStructure && sectionCodeUnchanged
             && string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationSectionName))
@@ -92,8 +117,14 @@ public static class DisplayNamePreservationHelper
                 existingScheduleItem.BiblePublicationSectionName);
             actionSchedule.BiblePublicationSectionName = existingScheduleItem.BiblePublicationSectionName;
         }
-        // Only preserve track title if publication type hasn't changed, both are non-sectioned,
-        // and track CODE hasn't changed (playback track advance; don't preserve stale titles).
+    }
+
+    private static void PreserveEligibleBibleNonSectionTrackTitle(
+        ScheduleStateItem actionSchedule,
+        ScheduleStateItem existingScheduleItem,
+        bool actionHasSectionStructure,
+        bool existingHasSectionStructure)
+    {
         var trackCodeUnchanged = string.Equals(actionSchedule.BiblePublicationTrackCode, existingScheduleItem.BiblePublicationTrackCode, StringComparison.OrdinalIgnoreCase);
         if (actionHasSectionStructure == existingHasSectionStructure && !actionHasSectionStructure && trackCodeUnchanged)
         {
@@ -108,15 +139,15 @@ public static class DisplayNamePreservationHelper
                 Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionBibleTrackTitle,
                     actionSchedule.BiblePublicationTrackTitle);
             }
+
+            return;
         }
-        else
-        {
-            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPublicationTypeChanged,
-                actionHasSectionStructure, existingHasSectionStructure);
-        }
+
+        Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPublicationTypeChanged,
+            actionHasSectionStructure, existingHasSectionStructure);
     }
 
-    public static void PreserveMusicDisplayNames(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    private static void PreserveMusicPublicationStrings(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
     {
         if (string.IsNullOrWhiteSpace(actionSchedule.MusicLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicLanguageName))
         {
@@ -132,12 +163,15 @@ public static class DisplayNamePreservationHelper
         {
             actionSchedule.MusicPublicationName = existingScheduleItem.MusicPublicationName;
         }
+    }
 
-        // Only preserve music section name when both have sectioned music (mirrors Bible section preservation).
+    private static void PreserveMusicSectionTitleIfEligible(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
         var actionMusicSectioned = !string.IsNullOrWhiteSpace(actionSchedule.MusicPublicationCode) &&
             PublicationTypeHelper.HasSectionStructure(actionSchedule.MusicPublicationCode);
         var existingMusicSectioned = !string.IsNullOrWhiteSpace(existingScheduleItem.MusicPublicationCode) &&
             PublicationTypeHelper.HasSectionStructure(existingScheduleItem.MusicPublicationCode);
+
         if (actionMusicSectioned == existingMusicSectioned && actionMusicSectioned
             && string.IsNullOrWhiteSpace(actionSchedule.MusicSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicSectionName))
         {
@@ -145,13 +179,15 @@ public static class DisplayNamePreservationHelper
                 existingScheduleItem.MusicSectionName);
             actionSchedule.MusicSectionName = existingScheduleItem.MusicSectionName;
         }
+    }
 
+    private static void CopyMusicTrackAndModalCounts(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
+    {
         if (string.IsNullOrWhiteSpace(actionSchedule.MusicTrackName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicTrackName))
         {
             actionSchedule.MusicTrackName = existingScheduleItem.MusicTrackName;
         }
 
-        // Preserve discovery-based "expected modal item counts" so unrelated updates don't wipe them.
         if (!actionSchedule.MusicPublicationModalItemCount.HasValue && existingScheduleItem.MusicPublicationModalItemCount.HasValue)
         {
             actionSchedule.MusicPublicationModalItemCount = existingScheduleItem.MusicPublicationModalItemCount;

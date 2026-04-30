@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.ComponentModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Shared.Constants;
@@ -166,36 +167,48 @@ public partial class Home : BaseContentPage, IDisposable
 
     private bool IsTapOnChildControl(View view, Point tapPosition)
     {
+        foreach (var childView in EnumerateChildViewsForTapHitTest(view))
+        {
+            if (IsTapOnChild(childView, tapPosition))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<View> EnumerateChildViewsForTapHitTest(View view)
+    {
         if (view is Layout layout)
         {
             foreach (var child in layout.Children)
             {
-                if (child is View childView && IsTapOnChild(childView, tapPosition))
+                if (child is View childView)
                 {
-                    return true;
+                    yield return childView;
                 }
             }
 
-            return false;
+            yield break;
         }
 
         if (view is IContentView contentView && contentView.Content is View contentChild)
         {
-            return IsTapOnChild(contentChild, tapPosition);
+            yield return contentChild;
+            yield break;
         }
 
         if (view is IVisualTreeElement visualElement)
         {
             foreach (var child in visualElement.GetVisualChildren())
             {
-                if (child is View childView && IsTapOnChild(childView, tapPosition))
+                if (child is View childView)
                 {
-                    return true;
+                    yield return childView;
                 }
             }
         }
-
-        return false;
     }
 
     private bool IsTapOnChild(View childView, Point tapPosition)

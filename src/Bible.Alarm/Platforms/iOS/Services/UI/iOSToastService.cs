@@ -130,20 +130,40 @@ public class IOsToastService : ToastService
     private static UIWindow? GetKeyWindow()
     {
         var scenes = UIApplication.SharedApplication.ConnectedScenes;
-        if (scenes != null)
+        if (scenes == null)
         {
-            foreach (var scene in scenes)
+            return null;
+        }
+
+        foreach (var scene in scenes)
+        {
+            if (scene is not UIWindowScene windowScene)
             {
-                if (scene is UIWindowScene windowScene && windowScene.Windows != null)
-                {
-                    foreach (UIWindow w in windowScene.Windows)
-                    {
-                        if (w.IsKeyWindow)
-                        {
-                            return w;
-                        }
-                    }
-                }
+                continue;
+            }
+
+            var key = FindKeyWindow(windowScene.Windows);
+            if (key != null)
+            {
+                return key;
+            }
+        }
+
+        return null;
+    }
+
+    private static UIWindow? FindKeyWindow(UIWindow[]? windows)
+    {
+        if (windows == null)
+        {
+            return null;
+        }
+
+        foreach (UIWindow w in windows)
+        {
+            if (w.IsKeyWindow)
+            {
+                return w;
             }
         }
 

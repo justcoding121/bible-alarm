@@ -135,22 +135,14 @@ public sealed class HomeViewModelNotificationPermissionHandler
                     if (asyncResult != isGranted)
                     {
                         MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            try
-                            {
-                                var hasReminderEnabled = state.Value.Schedules?.Any(s => s.IsEnabled) ?? false;
-                                var shouldShowAsync = !asyncResult && hasReminderEnabled;
-                                setButtonVisible(shouldShowAsync);
-                                setButtonBottomMargin(shouldShowAsync ? 24 : 0);
-                                setCollectionViewBottomMargin(shouldShowAsync ? 24 + 56 : 0);
-                                notifyMarginChanged();
-                                logger.Information("[NOTIFICATION-BUTTON] Updated button visibility from async check: {ShouldShow}", shouldShowAsync);
-                            }
-                            catch (Exception uiEx)
-                            {
-                                logger.Error(uiEx, "[NOTIFICATION-BUTTON] Error updating UI from async result");
-                            }
-                        });
+                            ApplyIosAsyncPermissionMargins(
+                                logger,
+                                state,
+                                asyncResult,
+                                setButtonVisible,
+                                setButtonBottomMargin,
+                                setCollectionViewBottomMargin,
+                                notifyMarginChanged));
                     }
                 }
                 catch (Exception asyncEx)
@@ -165,6 +157,31 @@ public sealed class HomeViewModelNotificationPermissionHandler
         {
             logger.Error(ex, "[NOTIFICATION-BUTTON] Exception checking notification permission");
             return false;
+        }
+    }
+
+    private static void ApplyIosAsyncPermissionMargins(
+        ILogger logger,
+        IState<ApplicationState> state,
+        bool asyncPermissionGranted,
+        Action<bool> setButtonVisible,
+        Action<double> setButtonBottomMargin,
+        Action<double> setCollectionViewBottomMargin,
+        Action notifyMarginChanged)
+    {
+        try
+        {
+            var hasReminderEnabled = state.Value.Schedules?.Any(s => s.IsEnabled) ?? false;
+            var shouldShowAsync = !asyncPermissionGranted && hasReminderEnabled;
+            setButtonVisible(shouldShowAsync);
+            setButtonBottomMargin(shouldShowAsync ? 24 : 0);
+            setCollectionViewBottomMargin(shouldShowAsync ? 24 + 56 : 0);
+            notifyMarginChanged();
+            logger.Information("[NOTIFICATION-BUTTON] Updated button visibility from async check: {ShouldShow}", shouldShowAsync);
+        }
+        catch (Exception uiEx)
+        {
+            logger.Error(uiEx, "[NOTIFICATION-BUTTON] Error updating UI from async result");
         }
     }
 #endif

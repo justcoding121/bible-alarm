@@ -4,6 +4,7 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -124,27 +125,9 @@ public sealed class MusicStateChangeHandler
         {
             var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
             var melodyReleases = await melodyMusicService.GetAllAsync();
-            if (melodyReleases == null || melodyReleases.Count == 0)
+            if (!TryPickDefaultMelodyRelease(melodyReleases, out var defaultPublicationCode, out var defaultPublicationName))
             {
                 return;
-            }
-
-            string defaultPublicationCode;
-            string defaultPublicationName;
-            if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
-            {
-                defaultPublicationCode = PreferredMelodyPublicationCode;
-                defaultPublicationName = preferred.Name;
-            }
-            else
-            {
-                var first = melodyReleases.First();
-                if (first.Value == null)
-                {
-                    return;
-                }
-                defaultPublicationCode = first.Key;
-                defaultPublicationName = first.Value.Name;
             }
 
             var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
@@ -153,21 +136,7 @@ public sealed class MusicStateChangeHandler
                 return;
             }
 
-            BiblePublicationSection? chosenSection = null;
-            BiblePublicationTrack? chosenTrack = null;
-            var sectionsWithTracks = melodyMusic.Sections?
-                .Where(s => s.Tracks != null && s.Tracks.Count > 0)
-                .ToList();
-
-            if (sectionsWithTracks != null && sectionsWithTracks.Count > 0)
-            {
-                chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
-                if (chosenSection.Tracks!.Count > 0)
-                {
-                    chosenTrack = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
-                }
-            }
-            chosenTrack ??= melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
+            var (chosenSection, chosenTrack) = PickRandomMelodySectionAndTrack(melodyMusic);
 
             var latestSchedule = state.Value.CurrentSchedule;
             if (latestSchedule == null || latestSchedule.Id != scheduleId ||
@@ -176,18 +145,12 @@ public sealed class MusicStateChangeHandler
                 return;
             }
 
-            var scheduleLanguageCode = latestSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode;
-            var clonedSchedule = latestSchedule.DeepClone();
-            clonedSchedule.MusicEnabled = true;
-            clonedSchedule.MusicPublicationCode = defaultPublicationCode;
-            clonedSchedule.MusicPublicationName = defaultPublicationName;
-            clonedSchedule.MusicLanguageCode = scheduleLanguageCode;
-            clonedSchedule.MusicLanguageName = latestSchedule.MusicLanguageName;
-            clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
-            clonedSchedule.MusicSectionName = chosenSection?.Name;
-            clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
-            clonedSchedule.MusicRepeat = false;
-            clonedSchedule.MusicTrackName = MediaTrackTitleHelper.DecodeHtmlTitle(chosenTrack.Title);
+            var clonedSchedule = BuildScheduleCloneWithDefaultMelodyAssignment(
+                latestSchedule,
+                defaultPublicationCode,
+                defaultPublicationName,
+                chosenSection,
+                chosenTrack);
 
             stateTracker.RecordDefaultMusicTriggered(scheduleId);
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
@@ -198,6 +161,81 @@ public sealed class MusicStateChangeHandler
         {
             logger.Error(ex, "MusicStateChangeHandler: Error loading default music when publication code was null");
         }
+    }
+
+    private static bool TryPickDefaultMelodyRelease(
+        Dictionary<string, MelodyMusic>? melodyReleases,
+        out string defaultPublicationCode,
+        out string defaultPublicationName)
+    {
+        defaultPublicationCode = string.Empty;
+        defaultPublicationName = string.Empty;
+
+        if (melodyReleases == null || melodyReleases.Count == 0)
+        {
+            return false;
+        }
+
+        if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
+        {
+            defaultPublicationCode = PreferredMelodyPublicationCode;
+            defaultPublicationName = preferred.Name;
+            return true;
+        }
+
+        var first = melodyReleases.First();
+        if (first.Value == null)
+        {
+            return false;
+        }
+
+        defaultPublicationCode = first.Key;
+        defaultPublicationName = first.Value.Name;
+        return true;
+    }
+
+    private static (BiblePublicationSection? Section, BiblePublicationTrack Track) PickRandomMelodySectionAndTrack(MelodyMusic melodyMusic)
+    {
+        BiblePublicationSection? chosenSection = null;
+        BiblePublicationTrack? chosenTrack = null;
+
+        var sectionsWithTracks = melodyMusic.Sections?
+            .Where(static s => s.Tracks != null && s.Tracks!.Count > 0)
+            .ToList();
+
+        if (sectionsWithTracks is { Count: > 0 })
+        {
+            chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
+            if (chosenSection.Tracks!.Count > 0)
+            {
+                chosenTrack = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
+            }
+        }
+
+        chosenTrack ??= melodyMusic.Tracks![Random.Shared.Next(melodyMusic.Tracks!.Count)];
+        return (chosenSection, chosenTrack);
+    }
+
+    private static ScheduleStateItem BuildScheduleCloneWithDefaultMelodyAssignment(
+        ScheduleStateItem latestSchedule,
+        string defaultPublicationCode,
+        string defaultPublicationName,
+        BiblePublicationSection? chosenSection,
+        BiblePublicationTrack chosenTrack)
+    {
+        var scheduleLanguageCode = latestSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode;
+        var clonedSchedule = latestSchedule.DeepClone();
+        clonedSchedule.MusicEnabled = true;
+        clonedSchedule.MusicPublicationCode = defaultPublicationCode;
+        clonedSchedule.MusicPublicationName = defaultPublicationName;
+        clonedSchedule.MusicLanguageCode = scheduleLanguageCode;
+        clonedSchedule.MusicLanguageName = latestSchedule.MusicLanguageName;
+        clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
+        clonedSchedule.MusicSectionName = chosenSection?.Name;
+        clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
+        clonedSchedule.MusicRepeat = false;
+        clonedSchedule.MusicTrackName = MediaTrackTitleHelper.DecodeHtmlTitle(chosenTrack.Title);
+        return clonedSchedule;
     }
 
     private void HandleMusicEnabledChange(
@@ -293,29 +331,54 @@ public sealed class MusicStateChangeHandler
             var capturedMusicEnabled = currentSchedule.MusicEnabled;
 
             MainThread.BeginInvokeOnMainThread(() =>
-            {
-                isPropertyChangeScheduled = false;
-                propertyNotifier.NotifyPropertiesChanged(
+                DeliverPendingMusicPropertyNotifications(
                     languageCodeChanged,
                     publicationCodeChanged,
                     sectionCodeChanged,
                     trackCodeChanged,
                     repeatChanged,
+                    publicationNameChanged,
+                    sectionNameChanged,
                     isMelodyMusic,
-                    shouldScroll => { if (capturedMusicEnabled) setShouldScrollToBottom(shouldScroll); });
+                    capturedMusicEnabled,
+                    setShouldScrollToBottom,
+                    onPropertyChanged));
+        }
+    }
 
-                if (!languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackCodeChanged && !repeatChanged)
-                {
-                    if (publicationNameChanged)
-                    {
-                        onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
-                    }
-                    if (sectionNameChanged)
-                    {
-                        onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
-                    }
-                }
-            });
+    private void DeliverPendingMusicPropertyNotifications(
+        bool languageCodeChanged,
+        bool publicationCodeChanged,
+        bool sectionCodeChanged,
+        bool trackCodeChanged,
+        bool repeatChanged,
+        bool publicationNameChanged,
+        bool sectionNameChanged,
+        bool isMelodyMusic,
+        bool musicEnabled,
+        Action<bool> setShouldScrollToBottom,
+        Action<string> onPropertyChanged)
+    {
+        isPropertyChangeScheduled = false;
+        propertyNotifier.NotifyPropertiesChanged(
+            languageCodeChanged,
+            publicationCodeChanged,
+            sectionCodeChanged,
+            trackCodeChanged,
+            repeatChanged,
+            isMelodyMusic,
+            shouldScroll => { if (musicEnabled) setShouldScrollToBottom(shouldScroll); });
+
+        if (!languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackCodeChanged && !repeatChanged)
+        {
+            if (publicationNameChanged)
+            {
+                onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
+            }
+            if (sectionNameChanged)
+            {
+                onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
+            }
         }
     }
 

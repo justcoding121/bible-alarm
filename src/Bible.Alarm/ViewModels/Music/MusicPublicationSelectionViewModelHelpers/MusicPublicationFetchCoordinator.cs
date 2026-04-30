@@ -41,10 +41,7 @@ internal sealed class MusicPublicationFetchCoordinator
             // Always check DB first: if all expected publications are already cataloged, use that and skip fetch/progress (matches Bible).
             var initialPublications = await mediaService.GetBiblePublications(languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
             var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
-            var actualPublicationCount = initialPublications?.Values.Count ?? 0;
-            var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
-            var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
-                !string.IsNullOrEmpty(p.Name) && !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && p.Id > 0);
+            var allPublicationsCataloged = ArePublicationsFullyCataloged(initialPublications, expectedPublicationCount);
 
             if (allPublicationsCataloged)
             {
@@ -80,6 +77,25 @@ internal sealed class MusicPublicationFetchCoordinator
         return publicationsData;
     }
 
+    private static bool ArePublicationsFullyCataloged(Dictionary<string, BiblePublication>? publications, int expectedPublicationCount)
+    {
+        var actualCount = publications?.Values.Count ?? 0;
+        if (actualCount < expectedPublicationCount || publications == null || publications.Count == 0)
+        {
+            return false;
+        }
+
+        return CountCatalogedPublications(publications) == actualCount;
+    }
+
+    private static int CountCatalogedPublications(Dictionary<string, BiblePublication>? publications)
+    {
+        return publications?.Values.Count(static p =>
+            !string.IsNullOrEmpty(p.Name) &&
+            !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) &&
+            p.Id > 0) ?? 0;
+    }
+
     private async Task<Dictionary<string, BiblePublication>?> RetryFetchUntilCatalogedAsync(
         string languageCode, 
         IFetchProgress? progress,
@@ -91,14 +107,7 @@ internal sealed class MusicPublicationFetchCoordinator
         
         // Get expected publication count from PublicationLanguages discovery table
         var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
-        var actualPublicationCount = initialPublications?.Values.Count ?? 0;
-        
-        // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
-        var hasAllExpectedPublications = actualPublicationCount >= expectedPublicationCount;
-        var allPublicationsCataloged = hasAllExpectedPublications && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
-            !string.IsNullOrEmpty(p.Name) && 
-            !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && 
-            p.Id > 0);
+        var allPublicationsCataloged = ArePublicationsFullyCataloged(initialPublications, expectedPublicationCount);
 
         if (allPublicationsCataloged)
         {
@@ -153,14 +162,8 @@ internal sealed class MusicPublicationFetchCoordinator
                     // Get expected publication count to verify we have all publications
                     var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
                     var retryActualCount = reQueriedData?.Values.Count ?? 0;
-                    
-                    // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
-                    // A publication is cataloged if it has a name that's different from its code and has an ID > 0
                     var retryHasAllExpected = retryActualCount >= retryExpectedCount;
-                    var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p =>
-                        !string.IsNullOrEmpty(p.Name) &&
-                        !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) &&
-                        p.Id > 0);
+                    var retryAllCataloged = ArePublicationsFullyCataloged(reQueriedData, retryExpectedCount);
 
                     if (retryAllCataloged)
                     {
@@ -171,8 +174,7 @@ internal sealed class MusicPublicationFetchCoordinator
                     }
                     else
                     {
-                        var currentCatalogedCount = reQueriedData?.Values.Count(p =>
-                            !string.IsNullOrEmpty(p.Name) && !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && p.Id > 0) ?? 0;
+                        var currentCatalogedCount = CountCatalogedPublications(reQueriedData);
 
                         if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                         {

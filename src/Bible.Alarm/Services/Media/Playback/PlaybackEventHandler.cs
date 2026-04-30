@@ -74,54 +74,15 @@ public sealed class PlaybackEventHandler
             currentTrackIndex >= 0 &&
             currentTrackIndex == pl.Count - 1)
         {
-            var appended = await tryAppendNextTrackAsync();
-            var canAdvance = appended && pl.Count > currentTrackIndex + 1;
-
-            if (canAdvance)
-            {
-                await MarkCurrentTrackAsFinishedAsync(pl, currentTrackIndex);
-
-                dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
-                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
-
-                var nextTrackIndex = currentTrackIndex + 1;
-                setCurrentTrackIndex(nextTrackIndex);
-                navigationManager.NotifyNavigationChanged(pl, nextTrackIndex);
-                logger.Information(
-                    AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.IndefiniteAdvancingToNextTrack,
-                    currentScheduleId, nextTrackIndex, pl.Count);
-                await playCurrentTrackAsync(false);
-                return;
-            }
-
-            if (appended)
-            {
-                logger.Warning(
-                    AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedAppendSucceededCannotAdvance,
-                    currentScheduleId, currentTrackIndex, pl.Count);
-            }
-
-            var finishedMeta = pl[currentTrackIndex].PlayItem?.Metadata;
-            if (finishedMeta != null && finishedMeta.ScheduleId > 0)
-            {
-                try
-                {
-                    await playlistService.PersistSchedulePointerToFinishedTrackAsync(finishedMeta);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex,
-                        AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedFailedPersistSchedulePointerAfterIndefiniteAppend,
-                        finishedMeta.ScheduleId);
-                }
-            }
-
-            logger.Warning(
-                AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedIndefiniteAppendFailedShowingErrorModal,
-                currentScheduleId);
-            await showPlaybackErrorInModalKeepSessionAsync(
-                AppConstants.Media.PlaybackModalMessages.CouldNotLoadNextPartCheckConnectionTapRetry,
-                getIsAlarm());
+            await HandleIndefiniteLastTrackEndedAsync(
+                pl,
+                currentTrackIndex,
+                currentScheduleId,
+                tryAppendNextTrackAsync,
+                setCurrentTrackIndex,
+                playCurrentTrackAsync,
+                showPlaybackErrorInModalKeepSessionAsync,
+                getIsAlarm);
             return;
         }
 
@@ -201,52 +162,32 @@ public sealed class PlaybackEventHandler
 
             if (failedPlayItem != null && playedFromCdnStream)
             {
-                probeOutcome = await cdnPlaybackUrlProbe.ProbeStreamingUrlAsync(playbackUriUsedByPlayer, CancellationToken.None);
+                var (outcome, replayedAfterRefresh) = await TryProbeAndReplayAfterStaleCdnRecoveryAsync(
+                    failedPlayItem,
+                    currentPlayerTrack!,
+                    playbackUriUsedByPlayer,
+                    playCurrentTrackAsync);
 
-                var isStaleOrUnreachableUrl = probeOutcome == CdnUrlProbeOutcome.NotFoundOrGone ||
-                    probeOutcome == CdnUrlProbeOutcome.Indeterminate;
-                if (isStaleOrUnreachableUrl && !failedPlayItem.CdnStaleUrlRecoveryConsumed)
+                probeOutcome = outcome;
+
+                if (replayedAfterRefresh)
                 {
-                    failedPlayItem.CdnStaleUrlRecoveryConsumed = true;
-                    var refreshedUrl = await trackCdnUrlRefresher.TryRefreshTrackCdnUrlFromApiAsync(
-                        failedPlayItem.Metadata,
-                        CancellationToken.None);
-
-                    if (!string.IsNullOrEmpty(refreshedUrl))
-                    {
-                        failedPlayItem.CdnStaleUrlRefetchReplayIssued = true;
-                        failedPlayItem.Url = refreshedUrl;
-                        currentPlayerTrack!.Uri = refreshedUrl;
-
-                        logger.Information(
-                            AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.PlaybackCdnUrlUnreachableRefreshedAutoReplayingSameTrackOnce);
-                        await playCurrentTrackAsync(true);
-                        return;
-                    }
-                }
-
-                if (probeOutcome == CdnUrlProbeOutcome.ResourceReachable)
-                {
-                    logger.Warning(
-                        AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.PlaybackMediaFailedWhileCdnUrlStillResponds);
-                }
-            }
-
-            if (playedFromCdnStream && failedPlayItem != null && !failedPlayItem.CdnStaleUrlRefetchReplayIssued)
-            {
-                var established = isPlaybackEstablishedForTrack(currentTrackIndex);
-                var refreshAttemptedButNoNewUrl = failedPlayItem.CdnStaleUrlRecoveryConsumed &&
-                    !failedPlayItem.CdnStaleUrlRefetchReplayIssued;
-                if (!established &&
-                    !failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone &&
-                    !refreshAttemptedButNoNewUrl)
-                {
-                    failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone = true;
-                    logger.Information(
-                        AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.MediaFailedDuringStreamOpenBufferSilentRetryNoModal);
-                    await playCurrentTrackAsync(true);
                     return;
                 }
+
+                LogIfCdnReachableDespiteFailure(probeOutcome);
+            }
+
+            if (playedFromCdnStream &&
+                failedPlayItem != null &&
+                !failedPlayItem.CdnStaleUrlRefetchReplayIssued &&
+                await TryReplayStreamingOpenPhaseOnceAsync(
+                    failedPlayItem,
+                    currentTrackIndex,
+                    playCurrentTrackAsync,
+                    isPlaybackEstablishedForTrack))
+            {
+                return;
             }
 
             var hadStarted = isPlaybackEstablishedForTrack(currentTrackIndex);
@@ -267,6 +208,79 @@ public sealed class PlaybackEventHandler
                 logger.Error(innerEx, AppConstants.Logging.PlaybackDiagnosticsLog.FailureRecoveryInHandleMediaFailedCatch);
             }
         }
+    }
+
+    private async Task<(CdnUrlProbeOutcome Outcome, bool ReplayIssued)> TryProbeAndReplayAfterStaleCdnRecoveryAsync(
+        PlayItem failedPlayItem,
+        AudioPlayerTrack currentPlayerTrack,
+        string playbackUriUsedByPlayer,
+        Func<bool, Task> playCurrentTrackAsync)
+    {
+        var probeOutcome =
+            await cdnPlaybackUrlProbe.ProbeStreamingUrlAsync(playbackUriUsedByPlayer, CancellationToken.None);
+
+        var isStaleOrUnreachableUrl = probeOutcome == CdnUrlProbeOutcome.NotFoundOrGone ||
+            probeOutcome == CdnUrlProbeOutcome.Indeterminate;
+
+        if (isStaleOrUnreachableUrl && !failedPlayItem.CdnStaleUrlRecoveryConsumed)
+        {
+            failedPlayItem.CdnStaleUrlRecoveryConsumed = true;
+            var refreshedUrl = await trackCdnUrlRefresher.TryRefreshTrackCdnUrlFromApiAsync(
+                failedPlayItem.Metadata,
+                CancellationToken.None);
+
+            if (!string.IsNullOrEmpty(refreshedUrl))
+            {
+                failedPlayItem.CdnStaleUrlRefetchReplayIssued = true;
+                failedPlayItem.Url = refreshedUrl;
+                currentPlayerTrack.Uri = refreshedUrl;
+
+                logger.Information(
+                    AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.PlaybackCdnUrlUnreachableRefreshedAutoReplayingSameTrackOnce);
+                await playCurrentTrackAsync(true);
+                return (probeOutcome, true);
+            }
+        }
+
+        return (probeOutcome, false);
+    }
+
+    private void LogIfCdnReachableDespiteFailure(CdnUrlProbeOutcome? probeOutcome)
+    {
+        if (probeOutcome == CdnUrlProbeOutcome.ResourceReachable)
+        {
+            logger.Warning(
+                AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.PlaybackMediaFailedWhileCdnUrlStillResponds);
+        }
+    }
+
+    private async Task<bool> TryReplayStreamingOpenPhaseOnceAsync(
+        PlayItem failedPlayItem,
+        int currentTrackIndex,
+        Func<bool, Task> playCurrentTrackAsync,
+        Func<int, bool> isPlaybackEstablishedForTrack)
+    {
+        if (failedPlayItem.CdnStaleUrlRefetchReplayIssued)
+        {
+            return false;
+        }
+
+        var established = isPlaybackEstablishedForTrack(currentTrackIndex);
+        var refreshAttemptedButNoNewUrl = failedPlayItem.CdnStaleUrlRecoveryConsumed &&
+            !failedPlayItem.CdnStaleUrlRefetchReplayIssued;
+
+        if (established ||
+            failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone ||
+            refreshAttemptedButNoNewUrl)
+        {
+            return false;
+        }
+
+        failedPlayItem.StreamingOpenPhaseMediaFailedRetryDone = true;
+        logger.Information(
+            AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.MediaFailedDuringStreamOpenBufferSilentRetryNoModal);
+        await playCurrentTrackAsync(true);
+        return true;
     }
 
     private static string BuildNonAlarmMediaFailedMessage(
@@ -304,6 +318,66 @@ public sealed class PlaybackEventHandler
         }
 
         return AppConstants.Media.PlaybackModalMessages.CouldNotStartPlaybackCheckConnectionTapRetry;
+    }
+
+    private async Task HandleIndefiniteLastTrackEndedAsync(
+        List<AudioPlayerTrack> playlist,
+        int currentTrackIndex,
+        int? currentScheduleId,
+        Func<Task<bool>> tryAppendNextTrackAsync,
+        Action<int> setCurrentTrackIndex,
+        Func<bool, Task> playCurrentTrackAsync,
+        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync,
+        Func<bool> getIsAlarm)
+    {
+        var appended = await tryAppendNextTrackAsync();
+        var canAdvance = appended && playlist.Count > currentTrackIndex + 1;
+
+        if (canAdvance)
+        {
+            await MarkCurrentTrackAsFinishedAsync(playlist, currentTrackIndex);
+
+            dispatcher.Dispatch(new PlaybackTrackTransitionStartedAction());
+            dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+
+            var nextTrackIndex = currentTrackIndex + 1;
+            setCurrentTrackIndex(nextTrackIndex);
+            navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
+            logger.Information(
+                AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.IndefiniteAdvancingToNextTrack,
+                currentScheduleId, nextTrackIndex, playlist.Count);
+            await playCurrentTrackAsync(false);
+            return;
+        }
+
+        if (appended)
+        {
+            logger.Warning(
+                AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedAppendSucceededCannotAdvance,
+                currentScheduleId, currentTrackIndex, playlist.Count);
+        }
+
+        var finishedMeta = playlist[currentTrackIndex].PlayItem?.Metadata;
+        if (finishedMeta != null && finishedMeta.ScheduleId > 0)
+        {
+            try
+            {
+                await playlistService.PersistSchedulePointerToFinishedTrackAsync(finishedMeta);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex,
+                    AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedFailedPersistSchedulePointerAfterIndefiniteAppend,
+                    finishedMeta.ScheduleId);
+            }
+        }
+
+        logger.Warning(
+            AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedIndefiniteAppendFailedShowingErrorModal,
+            currentScheduleId);
+        await showPlaybackErrorInModalKeepSessionAsync(
+            AppConstants.Media.PlaybackModalMessages.CouldNotLoadNextPartCheckConnectionTapRetry,
+            getIsAlarm());
     }
 
     private async Task MarkCurrentTrackAsFinishedAsync(List<AudioPlayerTrack>? playlist, int currentTrackIndex)

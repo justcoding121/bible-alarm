@@ -42,31 +42,11 @@ public sealed class DiskCacheService : IDiskCacheService
         {
             if (preferencesService.ContainsKey(cacheKey))
             {
-                var json = await preferencesService.GetAsync(cacheKey, "", null, cancellationToken);
-                if (!string.IsNullOrEmpty(json))
+                var cached = await TryReadDeserializedCacheAsync<T>(key, cacheKey, cancellationToken);
+                if (!EqualityComparer<T>.Default.Equals(cached, default))
                 {
-                    try
-                    {
-                        var cached = JsonSerializer.Deserialize<T>(json, jsonOptions);
-                        if (!EqualityComparer<T>.Default.Equals(cached, default) && !IsDefaultValue(cached))
-                        {
-                            logger.Debug("Cache hit for key: {Key}", key);
-                            return cached!;
-                        }
-                    }
-                    catch (Exception deserializeEx)
-                    {
-                        // Deserialization failed - remove corrupted cache entry and call factory
-                        logger.Warning(deserializeEx, "Deserialization failed for key: {Key}, removing corrupted cache entry and calling factory", key);
-                        try
-                        {
-                            await preferencesService.RemoveAsync(cacheKey, cancellationToken: cancellationToken);
-                        }
-                        catch (Exception)
-                        {
-                            // Ignore removal errors
-                        }
-                    }
+                    logger.Debug("Cache hit for key: {Key}", key);
+                    return cached!;
                 }
             }
         }
@@ -196,6 +176,41 @@ public sealed class DiskCacheService : IDiskCacheService
         {
             logger.Error(ex, "Error clearing cache");
         }
+    }
+
+    private async Task<T?> TryReadDeserializedCacheAsync<T>(
+        string logicalKey,
+        string cacheKey,
+        CancellationToken cancellationToken)
+    {
+        var json = await preferencesService.GetAsync(cacheKey, "", null, cancellationToken);
+        if (string.IsNullOrEmpty(json))
+        {
+            return default;
+        }
+
+        try
+        {
+            var cached = JsonSerializer.Deserialize<T>(json, jsonOptions);
+            if (!EqualityComparer<T>.Default.Equals(cached, default) && !IsDefaultValue(cached))
+            {
+                return cached;
+            }
+        }
+        catch (Exception deserializeEx)
+        {
+            logger.Warning(deserializeEx, "Deserialization failed for key: {Key}, removing corrupted cache entry and calling factory", logicalKey);
+            try
+            {
+                await preferencesService.RemoveAsync(cacheKey, cancellationToken: cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Ignore removal errors
+            }
+        }
+
+        return default;
     }
 
     private static string GetCacheKey(string key)

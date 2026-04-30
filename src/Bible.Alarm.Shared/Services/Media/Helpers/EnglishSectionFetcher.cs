@@ -121,24 +121,14 @@ internal sealed class EnglishSectionFetcher
     {
         var isIssueSectioned = MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
 
-        string queryString;
-        if (isIssueSectioned)
-        {
-            var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={apiPubCode}&{AppConstants.Media.GetPubQueryParamName.Issue}={issueCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-        }
-        else if (isBible)
-        {
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={normalizedPublicationCode}&{AppConstants.Media.GetPubQueryParamName.BookNum}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-        }
-        else if (publicationWithoutLanguage)
-        {
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}";
-        }
-        else
-        {
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-        }
+        var queryString = BuildEnglishSectionQueryString(
+            sectionCode,
+            normalizedPublicationCode,
+            normalizedLanguageCode,
+            isIssueSectioned,
+            isBible,
+            publicationWithoutLanguage,
+            fileFormat);
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
@@ -154,22 +144,7 @@ internal sealed class EnglishSectionFetcher
             return null;
         }
 
-        string? sectionName = null;
-        if (isIssueSectioned)
-        {
-            string? pubName = null;
-            string? formattedDate = null;
-            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pnElement))
-                pubName = pnElement.GetString();
-            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.FormattedDate, out var fdElement))
-                formattedDate = fdElement.GetString();
-            sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
-        }
-        else if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
-        {
-            var rawName = pubNameElement.GetString();
-            sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-        }
+        var sectionName = ResolveEnglishSectionName(root, sectionCode, isIssueSectioned);
 
         var section = new BiblePublicationSection
         {
@@ -178,31 +153,87 @@ internal sealed class EnglishSectionFetcher
             Tracks = new List<BiblePublicationTrack>()
         };
 
-        if (isIssueSectioned)
-        {
-            var tracks = EnglishTrackParser.ParseGenericTracks(
-                filesElement, normalizedLanguageCode, AppConstants.Media.MediaStreamFormatMp3);
-            section.Tracks.AddRange(tracks);
-        }
-        else if (publicationWithoutLanguage)
-        {
-            var tracks = EnglishTrackParser.ParseIamTracks(filesElement);
-            section.Tracks.AddRange(tracks);
-        }
-        else if (isBible)
-        {
-            var tracks = EnglishTrackParser.ParseBibleTracks(
-                filesElement, normalizedLanguageCode);
-            section.Tracks.AddRange(tracks);
-        }
-        else
-        {
-            var tracks = EnglishTrackParser.ParseGenericTracks(
-                filesElement, normalizedLanguageCode, fileFormat);
-            section.Tracks.AddRange(tracks);
-        }
+        PopulateEnglishSectionTracks(
+            section,
+            filesElement,
+            isIssueSectioned,
+            publicationWithoutLanguage,
+            isBible,
+            normalizedLanguageCode,
+            fileFormat);
 
         return section;
+    }
+
+    private static string BuildEnglishSectionQueryString(
+        string sectionCode,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        bool isIssueSectioned,
+        bool isBible,
+        bool publicationWithoutLanguage,
+        string fileFormat)
+    {
+        if (isIssueSectioned)
+        {
+            var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={apiPubCode}&{AppConstants.Media.GetPubQueryParamName.Issue}={issueCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
+        }
+
+        if (isBible)
+        {
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={normalizedPublicationCode}&{AppConstants.Media.GetPubQueryParamName.BookNum}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
+        }
+
+        if (publicationWithoutLanguage)
+        {
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}";
+        }
+
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
+    }
+
+    private static string? ResolveEnglishSectionName(JsonElement root, string sectionCode, bool isIssueSectioned)
+    {
+        if (isIssueSectioned)
+        {
+            string? pubName = null;
+            string? formattedDate = null;
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pnElement))
+                pubName = pnElement.GetString();
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.FormattedDate, out var fdElement))
+                formattedDate = fdElement.GetString();
+            return MagazineHelper.BuildSectionName(pubName, formattedDate);
+        }
+
+        if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
+        {
+            var rawName = pubNameElement.GetString();
+            return MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
+        }
+
+        return null;
+    }
+
+    private static void PopulateEnglishSectionTracks(
+        BiblePublicationSection section,
+        JsonElement filesElement,
+        bool isIssueSectioned,
+        bool publicationWithoutLanguage,
+        bool isBible,
+        string normalizedLanguageCode,
+        string fileFormat)
+    {
+        IEnumerable<BiblePublicationTrack> tracks =
+            isIssueSectioned ? EnglishTrackParser.ParseGenericTracks(
+                filesElement, normalizedLanguageCode, AppConstants.Media.MediaStreamFormatMp3)
+            : publicationWithoutLanguage ? EnglishTrackParser.ParseIamTracks(filesElement)
+            : isBible ? EnglishTrackParser.ParseBibleTracks(
+                filesElement, normalizedLanguageCode)
+            : EnglishTrackParser.ParseGenericTracks(
+                filesElement, normalizedLanguageCode, fileFormat);
+
+        section.Tracks.AddRange(tracks);
     }
 
     private async Task<string?> ExtractPublicationNameAsync(

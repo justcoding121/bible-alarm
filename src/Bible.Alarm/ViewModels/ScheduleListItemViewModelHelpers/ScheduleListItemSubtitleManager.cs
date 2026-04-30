@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
@@ -120,42 +121,46 @@ public sealed class ScheduleListItemSubtitleManager(
     private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem, string? overrideTrackTitle = null)
     {
         var parts = new List<string>();
-        static void AddPart(List<string> parts, string? value)
-        {
-            var normalized = DisplayTextHelper.NormalizeSingleLine(value);
-            if (!string.IsNullOrWhiteSpace(normalized))
-            {
-                parts.Add(normalized);
-            }
-        }
+        AddSubtitlePart(parts, scheduleStateItem.BiblePublicationCategoryName);
+        AddSubtitlePart(parts, scheduleStateItem.BiblePublicationName);
 
-        // Add Category
-        AddPart(parts, scheduleStateItem.BiblePublicationCategoryName);
-
-        // Add Publication Name
-        AddPart(parts, scheduleStateItem.BiblePublicationName);
-
-        // Add Subsection (if exists) - only for sectioned publications
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
         if (hasSectionStructure)
         {
-            AddPart(parts, scheduleStateItem.BiblePublicationSectionName);
+            AddSubtitlePart(parts, scheduleStateItem.BiblePublicationSectionName);
         }
 
-        // Add Track Name (use override when this schedule is currently playing so list shows actual track)
         var trackTitleForDisplay = !string.IsNullOrWhiteSpace(overrideTrackTitle) ? overrideTrackTitle : scheduleStateItem.BiblePublicationTrackTitle;
+        AppendTrackSubtitleParts(parts, scheduleStateItem, trackTitleForDisplay);
+
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
+        {
+            AddSubtitlePart(parts, scheduleStateItem.BiblePublicationLanguageName);
+        }
+
+        return string.Join(" • ", parts);
+    }
+
+    private static void AddSubtitlePart(List<string> parts, string? value)
+    {
+        var normalized = DisplayTextHelper.NormalizeSingleLine(value);
+        if (!string.IsNullOrWhiteSpace(normalized))
+        {
+            parts.Add(normalized);
+        }
+    }
+
+    private static void AppendTrackSubtitleParts(List<string> parts, ScheduleStateItem scheduleStateItem, string? trackTitleForDisplay)
+    {
         var hasSectionStructureForTrack = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
         if (hasSectionStructureForTrack)
         {
-            // For sectioned publications:
-            // - Bible: show the track number (e.g., "9")
-            // - Music (e.g., "iam"): prefer the track title (e.g., "Melody Number(s) 195, 224") when available
             var categoryName = scheduleStateItem.BiblePublicationCategoryName;
             var isMusicCategory = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
 
             if (isMusicCategory && !string.IsNullOrWhiteSpace(trackTitleForDisplay))
             {
-                AddPart(parts, trackTitleForDisplay);
+                AddSubtitlePart(parts, trackTitleForDisplay);
             }
             else
             {
@@ -164,28 +169,17 @@ public sealed class ScheduleListItemSubtitleManager(
                     : null;
                 if (trackCode != null)
                 {
-                    AddPart(parts, trackCode);
+                    AddSubtitlePart(parts, trackCode);
                 }
             }
-        }
-        else
-        {
-            // For non-sectioned publications (dramas/videos), show track title
-            if (!string.IsNullOrWhiteSpace(trackTitleForDisplay))
-            {
-                AddPart(parts, trackTitleForDisplay);
-            }
+
+            return;
         }
 
-        // Add Language only if BiblePublicationLanguageName is set.
-        // Publications without language (like "iam" instrumental music) don't have a language name in the media index.
-        // Don't fall back to BiblePublicationLanguageCode as it might be stale from cascade logic.
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
+        if (!string.IsNullOrWhiteSpace(trackTitleForDisplay))
         {
-            AddPart(parts, scheduleStateItem.BiblePublicationLanguageName);
+            AddSubtitlePart(parts, trackTitleForDisplay);
         }
-
-        return string.Join(" • ", parts);
     }
 
     private static void ClearLanguage(Action<string> setLanguage, Action<string> onPropertyChanged)

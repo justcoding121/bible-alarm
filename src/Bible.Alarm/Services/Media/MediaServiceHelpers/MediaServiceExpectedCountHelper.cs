@@ -2,6 +2,7 @@
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,22 +21,13 @@ public static class MediaServiceExpectedCountHelper
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+        var normalizedLanguageCode = NormalizeLanguage(languageCode);
 
         var query = db.SectionLanguages
             .AsNoTracking()
             .Where(sl => sl.PublicationCode == publicationCode);
 
-        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
-        {
-            query = query.Where(sl =>
-                (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
-                sl.LanguageId == null);
-        }
-        else
-        {
-            query = query.Where(sl => sl.LanguageId == null);
-        }
+        query = ApplySectionLanguageRestriction(query, normalizedLanguageCode);
 
         return await query
             .Select(sl => sl.SectionCode)
@@ -52,27 +44,10 @@ public static class MediaServiceExpectedCountHelper
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+        var normalizedLanguageCode = NormalizeLanguage(languageCode);
 
-        var query = db.PublicationLanguages
-            .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
-
-        if (requireIsMusicForMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
-        {
-            query = query.Where(pl => pl.IsMusic);
-        }
-
-        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
-        {
-            query = query.Where(pl =>
-                (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
-                pl.LanguageId == null);
-        }
-        else
-        {
-            query = query.Where(pl => pl.LanguageId == null);
-        }
+        var query = PublicationLanguagesForCategoryQuery(db, categoryName, requireIsMusicForMusicCategory);
+        query = ApplyPublicationLanguageRestriction(query, normalizedLanguageCode);
 
         var publicationCodes = await query
             .Select(pl => pl.PublicationCode)
@@ -112,5 +87,51 @@ public static class MediaServiceExpectedCountHelper
             .Select(sl => sl.SectionCode)
             .Distinct()
             .CountAsync(cancellationToken);
+    }
+
+    private static string? NormalizeLanguage(string? languageCode) =>
+        string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+
+    private static IQueryable<SectionLanguage> ApplySectionLanguageRestriction(IQueryable<SectionLanguage> query, string? normalizedLanguageCode)
+    {
+        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            return query.Where(sl =>
+                (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
+                sl.LanguageId == null);
+        }
+
+        return query.Where(sl => sl.LanguageId == null);
+    }
+
+    private static IQueryable<PublicationLanguage> PublicationLanguagesForCategoryQuery(
+        MediaDbContext db,
+        string categoryName,
+        bool requireIsMusicForMusicCategory)
+    {
+        var query = db.PublicationLanguages
+            .AsNoTracking()
+            .Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
+
+        if (!requireIsMusicForMusicCategory || !string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
+        {
+            return query;
+        }
+
+        return query.Where(pl => pl.IsMusic);
+    }
+
+    private static IQueryable<PublicationLanguage> ApplyPublicationLanguageRestriction(
+        IQueryable<PublicationLanguage> query,
+        string? normalizedLanguageCode)
+    {
+        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            return query.Where(pl =>
+                (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
+                pl.LanguageId == null);
+        }
+
+        return query.Where(pl => pl.LanguageId == null);
     }
 }
