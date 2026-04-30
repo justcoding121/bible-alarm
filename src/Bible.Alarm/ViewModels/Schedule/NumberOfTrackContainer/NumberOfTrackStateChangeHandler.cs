@@ -40,16 +40,9 @@ public static class NumberOfTrackStateChangeHandler
             notificationEnabled = newValue;
         }
 
-        if (alwaysPlayFromStart != currentSchedule.AlwaysPlayFromStart)
-        {
-            alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
-        }
+        alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
 
-        var newPlayIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
-        if (playIndefinitely != newPlayIndefinitely)
-        {
-            playIndefinitely = newPlayIndefinitely;
-        }
+        playIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
 
         var newCategoryName = currentSchedule.BiblePublicationCategoryName;
         if (!string.Equals(lastCategoryName, newCategoryName, StringComparison.OrdinalIgnoreCase))

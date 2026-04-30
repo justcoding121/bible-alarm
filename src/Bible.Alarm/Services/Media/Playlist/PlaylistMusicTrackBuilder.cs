@@ -17,6 +17,8 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// </summary>
 public class PlaylistMusicTrackBuilder
 {
+    private const string MusicMissingMessage = "Music is null";
+
     private static readonly TimeSpan TracksCacheTtl = TimeSpan.FromSeconds(30);
 
     private readonly record struct MelodyTracksCacheKey(string PublicationCode, string? SectionCode);
@@ -141,7 +143,7 @@ public class PlaylistMusicTrackBuilder
 
     private async Task<PlayItem> GetNextMelodyTrackAsync(AlarmSchedule schedule, bool next)
     {
-        var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
+        var melodyMusic = schedule.Music ?? throw new InvalidOperationException(MusicMissingMessage);
 
         if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode) && !string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
         {
@@ -189,7 +191,7 @@ public class PlaylistMusicTrackBuilder
 
     private async Task<PlayItem> GetPreviousMelodyTrackAsync(AlarmSchedule schedule)
     {
-        var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
+        var melodyMusic = schedule.Music ?? throw new InvalidOperationException(MusicMissingMessage);
 
         if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode) && !string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
         {
@@ -207,7 +209,7 @@ public class PlaylistMusicTrackBuilder
 
     private async Task<PlayItem> GetNextVocalTrackAsync(AlarmSchedule schedule, bool next)
     {
-        var vocalMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
+        var vocalMusic = schedule.Music ?? throw new InvalidOperationException(MusicMissingMessage);
         // Vocal music: we're here because publication has a language (IsNoLanguageMusicPublicationAsync routed melody elsewhere)
         var vocalTracks = await GetVocalTracksCachedAsync(vocalMusic);
         var trackKey = GetNextTrackKey(vocalTracks, vocalMusic.TrackCode, next);
@@ -217,7 +219,7 @@ public class PlaylistMusicTrackBuilder
 
     private async Task<PlayItem> GetPreviousVocalTrackAsync(AlarmSchedule schedule)
     {
-        var vocalMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
+        var vocalMusic = schedule.Music ?? throw new InvalidOperationException(MusicMissingMessage);
         // Vocal music: publication has a language (no-language routed to melody path)
 
         var vocalTracks = await GetVocalTracksCachedAsync(vocalMusic);

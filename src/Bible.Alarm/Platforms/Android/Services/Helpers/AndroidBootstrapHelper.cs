@@ -46,7 +46,7 @@ public static class AndroidBootstrapHelper
         SchedulerSetupTask(context);
     }
 
-    private static bool SchedulerSetupTask(Context context)
+    private static void SchedulerSetupTask(Context context)
     {
         using var jobBuilder = context.CreateJobBuilderUsingJobId<SchedulerJob>(SchedulerJob.JobId, 30);
         var jobInfo = jobBuilder.Build();
@@ -54,17 +54,15 @@ public static class AndroidBootstrapHelper
         var jobScheduler = (JobScheduler)context.GetSystemService(Context.JobSchedulerService);
         if (jobScheduler == null)
         {
-            return false;
+            return;
         }
 
         if (jobInfo == null)
         {
-            return false;
+            return;
         }
 
-        var scheduleResult = jobScheduler.Schedule(jobInfo);
-
-        return JobScheduler.ResultSuccess == scheduleResult;
+        _ = jobScheduler.Schedule(jobInfo);
     }
 
 

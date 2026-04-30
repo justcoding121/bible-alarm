@@ -21,6 +21,9 @@ namespace Bible.Alarm.Stores.Effects.Services;
 /// </summary>
 public sealed class TrackSelectionSyncHandler
 {
+    private const string LogNullDisplay = "(null)";
+    private const string LogNotNullDisplay = "not null";
+
     private readonly IState<ApplicationState>? state;
 
     public TrackSelectionSyncHandler(IState<ApplicationState>? state = null)
@@ -79,11 +82,11 @@ public sealed class TrackSelectionSyncHandler
         {
             var actionPub = action.CurrentBiblePublicationSchedule;
             Log.Information(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationReceivedAction,
-                actionPub != null ? "not null" : "null",
-                actionPub?.TrackCode ?? "(null)",
-                actionPub?.TrackTitle ?? "(null)",
-                actionPub?.SectionCode ?? (actionPub?.SectionCode?.ToString() ?? "(null)"),
-                actionPub?.PublicationCode ?? "(null)");
+                actionPub != null ? LogNotNullDisplay : "null",
+                actionPub?.TrackCode ?? LogNullDisplay,
+                actionPub?.TrackTitle ?? LogNullDisplay,
+                actionPub?.SectionCode ?? (actionPub?.SectionCode?.ToString() ?? LogNullDisplay),
+                actionPub?.PublicationCode ?? LogNullDisplay);
 
             var currentState = state?.Value;
             if (currentState?.CurrentSchedule == null || action.CurrentBiblePublicationSchedule == null)
@@ -269,10 +272,10 @@ public sealed class TrackSelectionSyncHandler
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
         Log.Information(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedReceivedActionMusic,
-            action.CurrentMusic != null ? "not null" : "null",
+            action.CurrentMusic != null ? LogNotNullDisplay : "null",
             action.CurrentMusic?.LanguageCode ?? "null (melody)",
             action.CurrentMusic?.PublicationCode ?? "null",
-            action.CurrentMusic?.TrackCode ?? "(null)");
+            action.CurrentMusic?.TrackCode ?? LogNullDisplay);
     }
 
     private static bool CanSyncTrackSelection(ApplicationState? currentState, MusicTrackSelectedAction action)
@@ -280,8 +283,8 @@ public sealed class TrackSelectionSyncHandler
         if (currentState?.CurrentSchedule == null || action.CurrentMusic == null)
         {
             Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCurrentScheduleOrCurrentMusicNull,
-                currentState?.CurrentSchedule != null ? "not null" : "null",
-                action.CurrentMusic != null ? "not null" : "null");
+                currentState?.CurrentSchedule != null ? LogNotNullDisplay : "null",
+                action.CurrentMusic != null ? LogNotNullDisplay : "null");
             return false;
         }
         return true;

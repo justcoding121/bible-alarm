@@ -101,12 +101,7 @@ public sealed class MusicDisplayTextProvider
         return currentSchedule != null && currentSchedule.MusicEnabled;
     }
 
-    public bool GetIsMusicLanguageVisible()
-    {
-        var currentSchedule = state.Value.CurrentSchedule;
-        // Language row is always visible when music is enabled
-        return currentSchedule != null && currentSchedule.MusicEnabled;
-    }
+    public bool GetIsMusicLanguageVisible() => GetIsSongPublicationVisible();
 
     public string GetMusicLanguageDisplayText()
     {

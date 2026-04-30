@@ -17,6 +17,9 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// </summary>
 public class PlaylistBiblePublicationTrackBuilder
 {
+    private const string MissingSectionDiagnosticToken = "(none)";
+    private const string LogNullPlaceholder = "(null)";
+
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService? biblePublicationService;
@@ -151,7 +154,7 @@ public class PlaylistBiblePublicationTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? "(none)"}, track={resolvedTrackCode}. Only cataloged tracks can be played.");
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? MissingSectionDiagnosticToken}, track={resolvedTrackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 
@@ -161,7 +164,7 @@ public class PlaylistBiblePublicationTrackBuilder
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))
         {
-            throw new InvalidOperationException($"Failed to get URL for track {biblePublicationSchedule.TrackCode} in section {sectionCode ?? "(none)"}");
+            throw new InvalidOperationException($"Failed to get URL for track {biblePublicationSchedule.TrackCode} in section {sectionCode ?? MissingSectionDiagnosticToken}");
         }
 
         return new TrackInfo(biblePublicationSchedule.PublicationCode, sectionCode, trackDetail, url);
@@ -218,7 +221,7 @@ public class PlaylistBiblePublicationTrackBuilder
         }
 
         logger.Debug(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.NonSectionedSchedulePublicationSectionTrackCodes,
-            biblePublicationSchedule.PublicationCode, biblePublicationSchedule.SectionCode ?? "(null)", biblePublicationSchedule.TrackCode);
+            biblePublicationSchedule.PublicationCode, biblePublicationSchedule.SectionCode ?? LogNullPlaceholder, biblePublicationSchedule.TrackCode);
 
         var scheduleTrackCode = biblePublicationSchedule.TrackCode ?? string.Empty;
         var track = publication.Tracks.FirstOrDefault(t => TrackCodeHelper.GetFromTrack(t) == scheduleTrackCode);
@@ -303,7 +306,7 @@ public class PlaylistBiblePublicationTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={publicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? "(none)"}, track={trackCode}. Only cataloged tracks can be played.");
+                $"Track not found in media index: pub={publicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? MissingSectionDiagnosticToken}, track={trackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 
@@ -318,7 +321,7 @@ public class PlaylistBiblePublicationTrackBuilder
             biblePublicationSchedule.FinishedDuration,
             scheduleId,
             trackCode,
-            sectionCode ?? "(null)");
+            sectionCode ?? LogNullPlaceholder);
 
         if (shouldSet)
         {
@@ -396,7 +399,7 @@ public class PlaylistBiblePublicationTrackBuilder
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={resolvedPublicationCode}, lang={effectiveLanguageCode}, section={nextSectionCode ?? "(none)"}, track={nextTrackCode}. Only cataloged tracks can be played.");
+                $"Track not found in media index: pub={resolvedPublicationCode}, lang={effectiveLanguageCode}, section={nextSectionCode ?? MissingSectionDiagnosticToken}, track={nextTrackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 

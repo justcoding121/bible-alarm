@@ -41,6 +41,8 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     // Track last category name to detect changes
     private string? lastCategoryName;
 
+    private const string LogNullDisplayLabel = "(null)";
+
 
     public ScheduleViewModel(
         ILogger logger,
@@ -114,7 +116,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         {
             lastCategoryName = initialSchedule.BiblePublicationCategoryName;
             logger.Debug("ScheduleViewModel: Initialized lastCategoryName to '{Category}' from initial schedule",
-                lastCategoryName ?? "(null)");
+                lastCategoryName ?? LogNullDisplayLabel);
         }
 
         // Initialize IsNewSchedule immediately from current state
@@ -234,7 +236,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (categoryChanged)
             {
                 logger.Debug("ScheduleViewModel.OnStateChanged: Category changed from '{LastCategory}' to '{CurrentCategory}', notifying IsMusicSelectionVisible",
-                    lastCategoryName ?? "(null)", currentCategoryName ?? "(null)");
+                    lastCategoryName ?? LogNullDisplayLabel, currentCategoryName ?? LogNullDisplayLabel);
                 lastCategoryName = currentCategoryName;
             }
             else if (lastCategoryName == null && currentCategoryName != null)
@@ -254,7 +256,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             if (categoryChanged || lastCategoryName == null)
             {
                 logger.Debug("ScheduleViewModel.OnStateChanged: IsMusicSelectionVisible={IsVisible} for category='{Category}'",
-                    isVisible, currentCategoryName ?? "(null)");
+                    isVisible, currentCategoryName ?? LogNullDisplayLabel);
             }
         });
 
@@ -377,7 +379,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                 (!string.IsNullOrWhiteSpace(pubCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(pubCode));
             var isVisible = !isMusicPublication;
             logger.Debug("IsMusicSelectionVisible: BiblePublicationIsMusic={IsMusic}, PubCode={PubCode}, IsMusicPublication={IsMusicPub}, Returning={IsVisible}",
-                currentSchedule.BiblePublicationIsMusic, pubCode ?? "(null)", isMusicPublication, isVisible);
+                currentSchedule.BiblePublicationIsMusic, pubCode ?? LogNullDisplayLabel, isMusicPublication, isVisible);
             return isVisible;
         }
     }

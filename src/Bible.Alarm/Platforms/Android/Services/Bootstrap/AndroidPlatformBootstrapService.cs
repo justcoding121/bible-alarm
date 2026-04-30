@@ -123,7 +123,7 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
         SchedulerSetupTask(context);
     }
 
-    private static bool SchedulerSetupTask(Context context)
+    private static void SchedulerSetupTask(Context context)
     {
         using var jobBuilder = context.CreateJobBuilderUsingJobId<SchedulerJob>(SchedulerJob.JobId, 30);
         var jobInfo = jobBuilder.Build();
@@ -132,7 +132,7 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
         if (jobScheduler == null || jobInfo == null)
         {
             logger.Warning("Failed to schedule SchedulerJob - JobScheduler or JobInfo is null");
-            return false;
+            return;
         }
 
         var scheduleResult = jobScheduler.Schedule(jobInfo);
@@ -146,8 +146,6 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
         {
             logger.Warning("Failed to schedule SchedulerJob - result: {Result}", scheduleResult);
         }
-
-        return success;
     }
 
 }

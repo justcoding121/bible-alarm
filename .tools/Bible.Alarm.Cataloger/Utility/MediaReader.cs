@@ -229,29 +229,11 @@ public class MediaReader(string indexRoot)
         return new SortedDictionary<string, MediatorTrack>(mediatorSectionTracks, TrackCodeComparer.Comparer);
     }
 
-    public async Task<Dictionary<string, Language>> GetVideoLanguages()
-    {
-        var root = indexRoot;
-        // Unified structure: Dramas/languages.json (no Audio/Video prefix)
-        // Videos are also stored under Dramas category, IsVideo flag determines media type
-        var languageIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
-        var languages = await File.ReadAllTextAsync(languageIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!
-            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x, StringComparer.OrdinalIgnoreCase); // Normalize keys to uppercase
-    }
+    public Task<Dictionary<string, Language>> GetVideoLanguages()
+        => GetMediatorLanguages();
 
-    public async Task<Dictionary<string, Publication>> GetVideoPublications(string languageCode)
-    {
-        var root = indexRoot;
-        // Unified structure: Dramas/{languageCode}/publications.json (no Audio/Video prefix)
-        // Videos are also stored under Dramas category, IsVideo flag determines media type
-        // Normalize language code for file path lookup
-        var normalizedCode = languageCode.ToUpperInvariant();
-        var publicationsIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
-        var publications = await File.ReadAllTextAsync(publicationsIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Publication>>(publications)!
-            .ToDictionary(x => x.Code, x => x, StringComparer.OrdinalIgnoreCase);
-    }
+    public Task<Dictionary<string, Publication>> GetVideoPublications(string languageCode)
+        => GetMediatorPublications(languageCode);
 
     public async Task<SortedDictionary<int, VideoEpisode>> GetVideoEpisodes(string languageCode, string publicationCode)
     {
