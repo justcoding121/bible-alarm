@@ -35,7 +35,7 @@ internal sealed class EnglishSeeder
         using var scope = scopeFactory.CreateScope();
         var languageContentService = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>();
 
-        logger.Information("=== Seeding English (E) for all discovered publications ===");
+        logger.Debug("=== Seeding English (E) for all discovered publications ===");
 
         using var dbScope = scopeFactory.CreateScope();
         var db = dbScope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -76,7 +76,7 @@ internal sealed class EnglishSeeder
 
         if (publicationsNeedingEnglish.Count == 0)
         {
-            logger.Information("All publications already have English seeded or have LanguageId == null, skipping");
+            logger.Debug("All publications already have English seeded or have LanguageId == null, skipping");
             return;
         }
 

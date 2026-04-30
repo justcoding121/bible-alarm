@@ -34,13 +34,13 @@ public class AlarmSetupService : Service
 
     private const int CrashFlushDelayMs = 500;
 
-    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    private static void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
         logger.Error(e.Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskException);
         FlushAndDelay();
     }
 
-    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
         logger.Error(e.ExceptionObject as Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionIsTerminating,
             e.IsTerminating);

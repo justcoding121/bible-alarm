@@ -33,7 +33,7 @@ public class AlarmRingerReceiver : BroadcastReceiver
         FlushAndDelay();
     }
 
-    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
         logger.Error(e.ExceptionObject as Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionIsTerminating,
             e.IsTerminating);

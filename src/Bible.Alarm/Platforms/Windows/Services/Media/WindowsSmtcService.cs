@@ -131,7 +131,7 @@ public sealed class WindowsSmtcService : IWindowsSmtcService
         }
     }
 
-    private void OnSystemMediaControlsButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
+    private static void OnSystemMediaControlsButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
     {
         try
         {

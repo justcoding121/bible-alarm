@@ -38,14 +38,14 @@ public partial class App : MauiWinUIApplication
 
     private const int CrashFlushDelayMs = 500;
 
-    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
+    private static void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         WindowsBootstrapLogger.WriteException(e.Exception);
         Logger.Error(e.Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskException);
         FlushAndDelay();
     }
 
-    private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
         var exception = e.ExceptionObject as Exception;
         if (exception != null)
@@ -140,7 +140,7 @@ public partial class App : MauiWinUIApplication
     /// Handles app instance activation (protocol handlers, toast notifications, etc.)
     /// This is called when activation is redirected to an existing instance.
     /// </summary>
-    private void OnAppInstanceActivated(object? sender, AppActivationArguments e)
+    private static void OnAppInstanceActivated(object? sender, AppActivationArguments e)
     {
         try
         {

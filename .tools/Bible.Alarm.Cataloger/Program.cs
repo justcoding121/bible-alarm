@@ -182,7 +182,7 @@ public static class Program
                     await magazineCataloger.DiscoverLanguagesForMagazines(isTestRun);
                 }
 
-                logger.Information("=== DISCOVERY PHASE COMPLETED ===\n");
+                logger.Debug("=== DISCOVERY PHASE COMPLETED ===\n");
 
                 var mediatorLinksValid = await CatalogValidator.ValidateMediatorLinksAsync(catalogerLogger);
                 if (!mediatorLinksValid)
@@ -220,7 +220,7 @@ public static class Program
                 };
 
                 await Task.WhenAll([.. bibleTasks, .. musicTasks, .. mediatorTasks, .. videoTasks]);
-                logger.Information("=== CATALOGING PHASE COMPLETED ===\n");
+                logger.Debug("=== CATALOGING PHASE COMPLETED ===\n");
             }
 
             // Use the same DbSeeder instance that was used as dataPersister
@@ -272,15 +272,15 @@ public static class Program
             }
 
             SqliteConnection.ClearAllPools();
-            logger.Information("All SQLite connections closed. Safe to zip database.");
+            logger.Debug("All SQLite connections closed. Safe to zip database.");
 
             ZipFiles();
 
             var newIndexFileSize =
                 (new FileInfo($"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexZipFileName}")).Length;
 
-            logger.Information("Old size: {OldSize}kb", originalIndexFileSize / 1024);
-            logger.Information("New size: {NewSize}kb", newIndexFileSize / 1024);
+            logger.Debug("Old size: {OldSize}kb", originalIndexFileSize / 1024);
+            logger.Debug("New size: {NewSize}kb", newIndexFileSize / 1024);
 
             // Only check if new size is significantly smaller (could indicate data loss)
             // Size increases are expected when new content is added

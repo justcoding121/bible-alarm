@@ -67,7 +67,7 @@ internal sealed class SectionLanguageSeeder
             return;
         }
 
-        logger.Information("Seeding discovered languages for {Count} section(s)", dataStore.SectionLanguages.Count);
+        logger.Debug("Seeding discovered languages for {Count} section(s)", dataStore.SectionLanguages.Count);
 
         foreach (var ((publicationCode, sectionCode), languages) in dataStore.SectionLanguages)
         {
@@ -122,7 +122,7 @@ internal sealed class SectionLanguageSeeder
         }
 
         await db.SaveChangesAsync();
-        logger.Information("Seeded section languages");
+        logger.Debug("Seeded section languages");
 
         // Seed sections for publications without language (LanguageId == null) - data-driven, not hard-coded
         await SeedSectionsWithoutLanguage(db);

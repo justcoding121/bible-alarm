@@ -42,7 +42,7 @@ internal sealed class TestModeSeeder
         var languageContentService = new LanguageContentService(scopeFactory, logger, httpClient);
 
         var testLanguages = new[] { "MY", "A" };
-        logger.Information("=== Seeding test languages ({Languages}) for all discovered publications ===",
+        logger.Debug("=== Seeding test languages ({Languages}) for all discovered publications ===",
             string.Join(", ", testLanguages));
 
         // Get all discovered publication codes from PublicationLanguages
@@ -57,15 +57,15 @@ internal sealed class TestModeSeeder
             return;
         }
 
-        logger.Information("Found {Count} publication(s) to seed test languages for", publicationCodes.Count);
+        logger.Debug("Found {Count} publication(s) to seed test languages for", publicationCodes.Count);
 
         foreach (var languageCode in testLanguages)
         {
-            logger.Information("=== Seeding {LanguageCode} for all discovered publications ===", languageCode);
+            logger.Debug("=== Seeding {LanguageCode} for all discovered publications ===", languageCode);
 
             foreach (var publicationCode in publicationCodes.OrderBy(pc => pc))
             {
-                logger.Information("Seeding {LanguageCode} for publication: {PublicationCode}", languageCode, publicationCode);
+                logger.Debug("Seeding {LanguageCode} for publication: {PublicationCode}", languageCode, publicationCode);
 
                 // Use EnsurePublicationExistsAsync to seed the publication for this language
                 // This will fetch the publication if it doesn't exist
@@ -81,10 +81,10 @@ internal sealed class TestModeSeeder
                 }
             }
 
-            logger.Information("=== {LanguageCode} seeding completed ===", languageCode);
+            logger.Debug("=== {LanguageCode} seeding completed ===", languageCode);
         }
 
-        logger.Information("=== Test language seeding completed ===");
+        logger.Debug("=== Test language seeding completed ===");
     }
 
     /// <summary>
@@ -102,7 +102,7 @@ internal sealed class TestModeSeeder
         // Test languages: Malayalam (MY) and Arabic (A)
         var testLanguages = new[] { "MY", "A" };
 
-        logger.Information("=== TEST MODE: Testing on-demand fetching for languages {Languages} ===",
+        logger.Debug("=== TEST MODE: Testing on-demand fetching for languages {Languages} ===",
             string.Join(", ", testLanguages));
 
         // Get all publication codes from PublicationLanguages (these are the ones available for non-English)
@@ -119,7 +119,7 @@ internal sealed class TestModeSeeder
             return;
         }
 
-        logger.Information("Found {Count} publication(s) to test on-demand fetching", publicationCodes.Count);
+        logger.Debug("Found {Count} publication(s) to test on-demand fetching", publicationCodes.Count);
 
         var totalStartTime = DateTime.UtcNow;
         var publicationStats = new List<(string PublicationCode, Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)> LanguageTimes)>();
@@ -158,7 +158,7 @@ internal sealed class TestModeSeeder
                 continue;
             }
 
-            logger.Information("Testing on-demand fetching for publication: {PublicationCode} (Category: {Category}, IsVideo: {IsVideo})",
+            logger.Debug("Testing on-demand fetching for publication: {PublicationCode} (Category: {Category}, IsVideo: {IsVideo})",
                 publicationCode, englishPublication.PrimaryCategory?.CategoryCode ?? "Unknown", englishPublication.IsVideo);
 
             foreach (var testLanguageCode in testLanguages)
@@ -188,7 +188,7 @@ internal sealed class TestModeSeeder
 
                 if (existing)
                 {
-                    logger.Information("Publication {PublicationCode} for language {LanguageCode} already exists, skipping fetch",
+                    logger.Debug("Publication {PublicationCode} for language {LanguageCode} already exists, skipping fetch",
                         publicationCode, testLanguageCode);
                     continue;
                 }
@@ -208,7 +208,7 @@ internal sealed class TestModeSeeder
                     if (hasSections)
                     {
                         // Publication has sections: Fetch all sections first, then tracks for each section
-                        logger.Information("Fetching sections for publication {PublicationCode} in language {LanguageCode}...",
+                        logger.Debug("Fetching sections for publication {PublicationCode} in language {LanguageCode}...",
                             publicationCode, testLanguageCode);
 
                         var sectionsStartTime = DateTime.UtcNow;
@@ -218,7 +218,7 @@ internal sealed class TestModeSeeder
 
                         if (success)
                         {
-                            logger.Information("✓ Fetched sections for {PublicationCode} in {LanguageCode} in {ElapsedMs}ms",
+                            logger.Debug("✓ Fetched sections for {PublicationCode} in {LanguageCode} in {ElapsedMs}ms",
                                 publicationCode, testLanguageCode, sectionsElapsed.TotalMilliseconds);
 
                             // Get all section codes for this publication from English (E)
@@ -233,7 +233,7 @@ internal sealed class TestModeSeeder
                                 .OrderBy(sc => sc)
                                 .ToListAsync();
 
-                            logger.Information("Fetching tracks for {Count} section(s) in publication {PublicationCode} for language {LanguageCode}...",
+                            logger.Debug("Fetching tracks for {Count} section(s) in publication {PublicationCode} for language {LanguageCode}...",
                                 sectionCodes.Count, publicationCode, testLanguageCode);
 
                             var tracksStartTime = DateTime.UtcNow;
@@ -249,7 +249,7 @@ internal sealed class TestModeSeeder
                             }
                             var tracksElapsed = DateTime.UtcNow - tracksStartTime;
 
-                            logger.Information("✓ Fetched tracks for {Fetched}/{Total} section(s) in {ElapsedMs}ms",
+                            logger.Debug("✓ Fetched tracks for {Fetched}/{Total} section(s) in {ElapsedMs}ms",
                                 sectionsFetched, sectionCodes.Count, tracksElapsed.TotalMilliseconds);
 
                             // Total time includes both sections and tracks
@@ -265,7 +265,7 @@ internal sealed class TestModeSeeder
                     else
                     {
                         // Publication has no sections: Fetch all tracks directly
-                        logger.Information("Fetching tracks for publication {PublicationCode} in language {LanguageCode}...",
+                        logger.Debug("Fetching tracks for publication {PublicationCode} in language {LanguageCode}...",
                             publicationCode, testLanguageCode);
 
                         var pubTracksStartTime = DateTime.UtcNow;
@@ -278,7 +278,7 @@ internal sealed class TestModeSeeder
 
                         if (success)
                         {
-                            logger.Information("✓ Successfully fetched {PublicationCode} for {LanguageCode} in {ElapsedMs}ms",
+                            logger.Debug("✓ Successfully fetched {PublicationCode} for {LanguageCode} in {ElapsedMs}ms",
                                 publicationCode, testLanguageCode, elapsed.TotalMilliseconds);
                         }
                         else
@@ -303,9 +303,9 @@ internal sealed class TestModeSeeder
         var totalElapsed = DateTime.UtcNow - totalStartTime;
 
         // Log summary statistics
-        logger.Information("=== TEST MODE: On-Demand Fetching Summary ===");
-        logger.Information("Total time: {TotalSeconds:F2}s", totalElapsed.TotalSeconds);
-        logger.Information("Publications tested: {Count}", publicationStats.Count);
+        logger.Debug("=== TEST MODE: On-Demand Fetching Summary ===");
+        logger.Debug("Total time: {TotalSeconds:F2}s", totalElapsed.TotalSeconds);
+        logger.Debug("Publications tested: {Count}", publicationStats.Count);
 
         // Calculate averages per language
         foreach (var testLanguageCode in testLanguages)
@@ -319,7 +319,7 @@ internal sealed class TestModeSeeder
                 var avgTime = TimeSpan.FromMilliseconds(times.Average(t => t.TotalMilliseconds));
                 var minTime = times.Min();
                 var maxTime = times.Max();
-                logger.Information("Language {LanguageCode}: {Count} fetched, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
+                logger.Debug("Language {LanguageCode}: {Count} fetched, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
                     testLanguageCode, times.Count, avgTime.TotalMilliseconds, minTime.TotalMilliseconds, maxTime.TotalMilliseconds);
             }
         }
@@ -331,8 +331,8 @@ internal sealed class TestModeSeeder
         if (sectionsTimes.Count > 0)
         {
             var avgSections = TimeSpan.FromMilliseconds(sectionsTimes.Average(t => t.TotalMilliseconds));
-            logger.Information("=== Fetching Sections Statistics ===");
-            logger.Information("  Count: {Count}, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
+            logger.Debug("=== Fetching Sections Statistics ===");
+            logger.Debug("  Count: {Count}, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
                 sectionsTimes.Count, avgSections.TotalMilliseconds, sectionsTimes.Min().TotalMilliseconds, sectionsTimes.Max().TotalMilliseconds);
         }
 
@@ -345,10 +345,10 @@ internal sealed class TestModeSeeder
             var avgSectionTracks = TimeSpan.FromMilliseconds(sectionTracksTimes.Average(t => t.Time.TotalMilliseconds));
             var totalSections = sectionTracksTimes.Sum(t => t.Count);
             var avgPerSection = TimeSpan.FromMilliseconds(sectionTracksTimes.Average(t => t.Time.TotalMilliseconds / Math.Max(1, t.Count)));
-            logger.Information("=== Fetching Section Tracks Statistics ===");
-            logger.Information("  Publications: {Count}, Total Sections: {TotalSections}, Avg per publication: {AvgMs:F0}ms, Avg per section: {AvgPerSectionMs:F0}ms",
+            logger.Debug("=== Fetching Section Tracks Statistics ===");
+            logger.Debug("  Publications: {Count}, Total Sections: {TotalSections}, Avg per publication: {AvgMs:F0}ms, Avg per section: {AvgPerSectionMs:F0}ms",
                 sectionTracksTimes.Count, totalSections, avgSectionTracks.TotalMilliseconds, avgPerSection.TotalMilliseconds);
-            logger.Information("  Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
+            logger.Debug("  Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
                 sectionTracksTimes.Min(t => t.Time).TotalMilliseconds, sectionTracksTimes.Max(t => t.Time).TotalMilliseconds);
         }
 
@@ -358,13 +358,13 @@ internal sealed class TestModeSeeder
         if (publicationTracksTimes.Count > 0)
         {
             var avgPubTracks = TimeSpan.FromMilliseconds(publicationTracksTimes.Average(t => t.TotalMilliseconds));
-            logger.Information("=== Fetching Publication Tracks Statistics (non-sectioned) ===");
-            logger.Information("  Count: {Count}, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
+            logger.Debug("=== Fetching Publication Tracks Statistics (non-sectioned) ===");
+            logger.Debug("  Count: {Count}, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
                 publicationTracksTimes.Count, avgPubTracks.TotalMilliseconds, publicationTracksTimes.Min().TotalMilliseconds, publicationTracksTimes.Max().TotalMilliseconds);
         }
 
         // Log per-publication statistics with breakdown
-        logger.Information("=== Per-Publication Statistics ===");
+        logger.Debug("=== Per-Publication Statistics ===");
         foreach (var (pubCode, langTimes) in publicationStats.OrderBy(ps => ps.PublicationCode))
         {
             if (langTimes.Count > 0)
@@ -386,7 +386,7 @@ internal sealed class TestModeSeeder
                         return $"{lt.Key}: {total.TotalMilliseconds:F0}ms";
                     }
                 }));
-                logger.Information("  {PublicationCode}: {Times}", pubCode, timesStr);
+                logger.Debug("  {PublicationCode}: {Times}", pubCode, timesStr);
             }
         }
     }
