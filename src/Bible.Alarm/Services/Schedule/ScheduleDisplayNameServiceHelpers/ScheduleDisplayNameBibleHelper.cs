@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -125,7 +126,8 @@ public sealed class ScheduleDisplayNameBibleHelper
                     }
                     if (!hasSections && !string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) && publication.Tracks != null && publication.Tracks.Count > 0)
                     {
-                        var track = publication.Tracks.FirstOrDefault(t => t.TrackCode == biblePublicationSchedule.TrackCode);
+                        var track = publication.Tracks.FirstOrDefault(t =>
+                            CodeComparisonHelper.Equals(t.TrackCode, biblePublicationSchedule.TrackCode));
                         if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                             scheduleStateItem.BiblePublicationTrackTitle = track.Title;
                     }

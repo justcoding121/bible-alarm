@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -265,11 +266,10 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
     private static bool IsSameLanguageAndSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
     {
-        // Vocal music has a non-null LanguageCode
         return currentSchedule != null &&
                !string.IsNullOrEmpty(currentSchedule.MusicLanguageCode) &&
-               currentSchedule.MusicLanguageCode == languageCode &&
-               currentSchedule.MusicPublicationCode == publicationCode;
+               string.Equals(currentSchedule.MusicLanguageCode, languageCode, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(currentSchedule.MusicPublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase);
     }
 }
 

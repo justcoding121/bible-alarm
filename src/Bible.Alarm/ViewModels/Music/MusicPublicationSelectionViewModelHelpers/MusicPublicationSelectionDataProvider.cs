@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.ObjectModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -254,7 +255,7 @@ public sealed class MusicPublicationSelectionDataProvider(
     private static bool IsSameSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
     {
         return currentSchedule != null &&
-               currentSchedule.MusicLanguageCode == languageCode &&
-               currentSchedule.MusicPublicationCode == publicationCode;
+               string.Equals(currentSchedule.MusicLanguageCode, languageCode, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(currentSchedule.MusicPublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -65,7 +65,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
 
             if (pub?.Sections != null)
             {
-                var section = pub.Sections.FirstOrDefault(s => s.SectionCode == firstSection.SectionCode);
+                var section = pub.Sections.FirstOrDefault(s => SectionCodeHelper.CodeEquals(s.SectionCode, firstSection.SectionCode));
                 if (section?.Tracks != null && section.Tracks.Count > 0)
                 {
                     var tracksDict = section.Tracks

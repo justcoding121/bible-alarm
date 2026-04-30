@@ -135,7 +135,7 @@ public sealed class DisplayMetadataService(
             {
                 // Title: Track title from database
                 var track = publication.Tracks?.FirstOrDefault(t => !string.IsNullOrWhiteSpace(trackMetadata.TrackCode) &&
-                    t.TrackCode == trackMetadata.TrackCode);
+                    CodeComparisonHelper.Equals(t.TrackCode, trackMetadata.TrackCode));
                 if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                 {
                     meta.Title = track.Title;

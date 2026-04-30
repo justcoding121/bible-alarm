@@ -1,6 +1,8 @@
 #nullable enable
 
+using System;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -28,10 +30,10 @@ public sealed class PlaybackIndefiniteResolver
     public static bool IsSameBibleTrack(TrackMetadata a, TrackMetadata b) =>
         a.PlayType == PlayType.Bible &&
         b.PlayType == PlayType.Bible &&
-        a.LanguageCode == b.LanguageCode &&
-        a.PublicationCode == b.PublicationCode &&
-        a.SectionCode == b.SectionCode &&
-        a.TrackCode == b.TrackCode;
+        string.Equals(a.LanguageCode, b.LanguageCode, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(a.PublicationCode, b.PublicationCode, StringComparison.OrdinalIgnoreCase) &&
+        SectionCodeHelper.CodeEquals(a.SectionCode, b.SectionCode) &&
+        CodeComparisonHelper.Equals(a.TrackCode, b.TrackCode);
 
     public async Task<PlayItem> ResolveNextPlayItemAsync(
         TrackMetadata currentMetadata,

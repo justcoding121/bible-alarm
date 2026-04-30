@@ -57,7 +57,7 @@ public static class BiblePublicationCascadeNoLanguageResolver
 
             if (pub?.Sections != null)
             {
-                var section = pub.Sections.FirstOrDefault(s => s.SectionCode == firstSection.SectionCode);
+                var section = pub.Sections.FirstOrDefault(s => SectionCodeHelper.CodeEquals(s.SectionCode, firstSection.SectionCode));
                 if (section?.Tracks != null && section.Tracks.Count > 0)
                 {
                     var firstTrack = section.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList()[0];

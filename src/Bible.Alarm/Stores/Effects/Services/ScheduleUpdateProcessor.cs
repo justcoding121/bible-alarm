@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Schedule.Interfaces;
@@ -130,8 +131,8 @@ public sealed class ScheduleUpdateProcessor
 
         // After save: preserve music language display names from action so home list shows e.g. Malayalam not English for melody (PopulateDisplayNamesAsync may not resolve MY in time; action has the UI value).
         if (action.Schedule != null && !string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationCode) &&
-            scheduleStateItem.MusicPublicationCode == action.Schedule.MusicPublicationCode &&
-            scheduleStateItem.MusicLanguageCode == action.Schedule.MusicLanguageCode)
+            string.Equals(scheduleStateItem.MusicPublicationCode, action.Schedule.MusicPublicationCode, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(scheduleStateItem.MusicLanguageCode, action.Schedule.MusicLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             if (!string.IsNullOrWhiteSpace(action.Schedule.MusicLanguageName))
                 scheduleStateItem.MusicLanguageName = action.Schedule.MusicLanguageName;

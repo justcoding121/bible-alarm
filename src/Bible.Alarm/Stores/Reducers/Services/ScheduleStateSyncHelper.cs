@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
@@ -62,14 +63,14 @@ public static class ScheduleStateSyncHelper
         return current.Id == action.Id &&
                current.BiblePublicationCategoryId == action.BiblePublicationCategoryId &&
                string.Equals(current.BiblePublicationCategoryName, action.BiblePublicationCategoryName, StringComparison.OrdinalIgnoreCase) &&
-               current.MusicLanguageCode == action.MusicLanguageCode &&
-               current.MusicPublicationCode == action.MusicPublicationCode &&
-               current.MusicTrackCode == action.MusicTrackCode &&
+               string.Equals(current.MusicLanguageCode, action.MusicLanguageCode, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(current.MusicPublicationCode, action.MusicPublicationCode, StringComparison.OrdinalIgnoreCase) &&
+               CodeComparisonHelper.Equals(current.MusicTrackCode, action.MusicTrackCode) &&
                current.MusicRepeat == action.MusicRepeat &&
-               current.BiblePublicationLanguageCode == action.BiblePublicationLanguageCode &&
-               current.BiblePublicationCode == action.BiblePublicationCode &&
+               string.Equals(current.BiblePublicationLanguageCode, action.BiblePublicationLanguageCode, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(current.BiblePublicationCode, action.BiblePublicationCode, StringComparison.OrdinalIgnoreCase) &&
                SectionCodeHelper.CodeEquals(currentSectionCode, actionSectionCode) &&
-               current.BiblePublicationTrackCode == action.BiblePublicationTrackCode &&
+               CodeComparisonHelper.Equals(current.BiblePublicationTrackCode, action.BiblePublicationTrackCode) &&
                current.BiblePublicationModalItemCount == action.BiblePublicationModalItemCount &&
                current.BiblePublicationSectionModalItemCount == action.BiblePublicationSectionModalItemCount &&
                current.BiblePublicationTrackModalItemCount == action.BiblePublicationTrackModalItemCount &&

@@ -60,7 +60,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
             if (current != null && !string.IsNullOrWhiteSpace(current.TrackCode))
             {
                 var trackCodeFromTrack = TrackCodeHelper.GetFromTrack(track);
-                if (current.TrackCode == trackCodeFromTrack)
+                if (CodeComparisonHelper.Equals(current.TrackCode, trackCodeFromTrack))
                 {
                     selectedTrack = trackVm;
                     selectedTrack.IsSelected = true;
@@ -109,7 +109,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         }
 
         var track = tracks.FirstOrDefault(c => !string.IsNullOrWhiteSpace(current.TrackCode) &&
-            c.TrackCode == current.TrackCode);
+            CodeComparisonHelper.Equals(c.TrackCode, current.TrackCode));
         if (track != null)
         {
             Log.Debug(AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackSettingSelected,
