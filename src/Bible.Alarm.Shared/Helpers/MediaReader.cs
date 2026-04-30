@@ -19,7 +19,7 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         var languageIndex = Path.Combine(root, AppConstants.ApiEndpoints.MediaIndexFolderAudio, AppConstants.Media.BiblePublicationCategoryBible, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.LanguageCode, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.LanguageCode, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<Dictionary<string, Publication>> GetBiblePublications(string languageCode)
@@ -28,7 +28,7 @@ public class MediaReader(string indexRoot)
         var biblePublicationIndex = Path.Combine(root, AppConstants.ApiEndpoints.MediaIndexFolderAudio, AppConstants.Media.BiblePublicationCategoryBible, languageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var biblePublications = await File.ReadAllTextAsync(biblePublicationIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(biblePublications)!
-            .ToDictionary(x => x.PublicationCode, x => x);
+            .ToDictionary(x => x.PublicationCode, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode)
@@ -63,7 +63,7 @@ public class MediaReader(string indexRoot)
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
         // Parse TrackCode as int for dictionary key (for backward compatibility)
         var tracks = JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!;
-        var dict = new Dictionary<string, BiblePublicationTrack>();
+        var dict = new Dictionary<string, BiblePublicationTrack>(StringComparer.Ordinal);
         foreach (var track in tracks)
         {
             dict[track.TrackCode] = track;
@@ -76,7 +76,7 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         var releaseIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderMelodies, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var fileContent = await File.ReadAllTextAsync(releaseIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Publication>>(fileContent)!.ToDictionary(x => x.PublicationCode, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Publication>>(fileContent)!.ToDictionary(x => x.PublicationCode, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode)
@@ -97,7 +97,7 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         var languageIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.LanguageCode, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.LanguageCode, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<Dictionary<string, Publication>> GetVocalMusicReleases(string languageCode)
@@ -105,7 +105,7 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         var releaseIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, languageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var vocalReleases = await File.ReadAllTextAsync(releaseIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Publication>>(vocalReleases)!.ToDictionary(x => x.PublicationCode, x => x);
+        return JsonSerializer.Deserialize<IEnumerable<Publication>>(vocalReleases)!.ToDictionary(x => x.PublicationCode, x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode,

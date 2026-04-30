@@ -42,7 +42,7 @@ internal static class MediaServiceBiblePublicationList
             languageCode, categoryName, requireIsMusicForMusicCategory, cancellationToken);
 
         // Include non-language publications (LanguageId == null) for the category in every language.
-        Dictionary<string, BiblePublication> publicationsWithoutLanguage = new();
+        Dictionary<string, BiblePublication> publicationsWithoutLanguage = new(StringComparer.OrdinalIgnoreCase);
         using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -75,7 +75,7 @@ internal static class MediaServiceBiblePublicationList
             publicationsWithoutLanguage.Count);
 
         // Step 3: Merge - use downloaded publications where available, add non-language pubs, then placeholders for the rest
-        var result = new Dictionary<string, BiblePublication>(downloadedPublications);
+        var result = new Dictionary<string, BiblePublication>(downloadedPublications, StringComparer.OrdinalIgnoreCase);
 
         foreach (var pubWithoutLang in publicationsWithoutLanguage.Values.Where(p => !result.ContainsKey(p.PublicationCode)))
         {

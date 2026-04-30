@@ -26,7 +26,7 @@ public sealed class MusicPublicationSelectionDataProvider(
     ILanguageContentService? languageContentService = null,
     IServiceScopeFactory? scopeFactory = null)
 {
-    private readonly Dictionary<string, PublicationListViewItemModel> songPublicationVMsMapping = [];
+    private readonly Dictionary<string, PublicationListViewItemModel> songPublicationVMsMapping = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim languagePopulationLock = new(1, 1);
     private readonly MusicPublicationFetchCoordinator fetchCoordinator = new(mediaService);
     private readonly VocalMusicFirstPublicationTrackSelector firstVocalSelector = new(mediaService, biblePublicationService, languageContentService, scopeFactory);
@@ -117,7 +117,7 @@ public sealed class MusicPublicationSelectionDataProvider(
         var publicationsData = await fetchCoordinator.FetchMusicPublicationsAsync(languageCode, current, downloadAll, progress, cancellationToken);
 
         var songPublicationVMs = new List<PublicationListViewItemModel>();
-        var newMapping = new Dictionary<string, PublicationListViewItemModel>();
+        var newMapping = new Dictionary<string, PublicationListViewItemModel>(StringComparer.OrdinalIgnoreCase);
         PublicationListViewItemModel? selectedSongPublication = null;
 
         if (publicationsData != null && publicationsData.Count > 0)

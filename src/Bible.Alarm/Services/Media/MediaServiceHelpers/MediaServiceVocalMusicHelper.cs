@@ -31,7 +31,7 @@ public static class MediaServiceVocalMusicHelper
 
         var downloadedReleases = await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationToken);
 
-        Dictionary<string, BiblePublication> publicationsWithoutLanguage = new();
+        Dictionary<string, BiblePublication> publicationsWithoutLanguage = new(StringComparer.OrdinalIgnoreCase);
         using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -53,7 +53,7 @@ public static class MediaServiceVocalMusicHelper
         Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesDownloadedCountSummary,
             downloadedReleases.Count, languageCode, publicationsWithoutLanguage.Count);
 
-        var result = new Dictionary<string, VocalMusic>();
+        var result = new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase);
         foreach (var downloadedRelease in downloadedReleases.Values)
         {
             result[downloadedRelease.Code] = downloadedRelease;

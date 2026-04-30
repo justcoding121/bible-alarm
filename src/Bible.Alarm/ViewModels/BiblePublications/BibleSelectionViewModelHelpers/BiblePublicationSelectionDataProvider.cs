@@ -335,7 +335,7 @@ public sealed class BiblePublicationSelectionDataProvider
             }
             
             var vms = new List<PublicationListViewItemModel>();
-            var mapping = new Dictionary<string, PublicationListViewItemModel>();
+            var mapping = new Dictionary<string, PublicationListViewItemModel>(StringComparer.OrdinalIgnoreCase);
 
             if (publicationsData == null)
             {

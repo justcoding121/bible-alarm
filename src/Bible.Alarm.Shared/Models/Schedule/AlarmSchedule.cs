@@ -250,7 +250,7 @@ public sealed class AlarmSchedule : IComparable
                 var englishPublications = await biblePublicationService.GetByLanguageCodeAsync(DefaultLanguageCode);
                 if (englishPublications == null)
                 {
-                    englishPublications = new Dictionary<string, BiblePublication>();
+                    englishPublications = new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase);
                 }
 
                 // Sort publications by priority: nwt first, then bi12, then others

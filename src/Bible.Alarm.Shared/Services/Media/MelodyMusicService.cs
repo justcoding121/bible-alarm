@@ -108,7 +108,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .ToListAsync(cancellationToken);
 
             // Handle potential duplicates gracefully - use first occurrence
-            var result = new Dictionary<string, MelodyMusic>();
+            var result = new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase);
             foreach (var melody in melodyList)
             {
                 if (!result.ContainsKey(melody.PublicationCode))

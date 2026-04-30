@@ -87,7 +87,7 @@ internal sealed class LookupDataLoader
 
         var vocalLanguagesTask = mediaService != null && keys.VocalMusicLanguageCodes.Any()
             ? mediaService.GetVocalMusicLanguages()
-            : Task.FromResult<Dictionary<string, Language>>(new Dictionary<string, Language>());
+            : Task.FromResult<Dictionary<string, Language>>(new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase));
 
         // For bootstrap schedule list display, we only need already-downloaded vocal publications
         // referenced by schedules. Avoid GetVocalMusicReleases (discovery + placeholders) to reduce DB work.
@@ -98,12 +98,12 @@ internal sealed class LookupDataLoader
                 var releases = vocalMusicService != null
                     ? await vocalMusicService.GetByLanguageCodeAsync(group.Key)
                     : null;
-                return (LanguageCode: group.Key, Releases: releases ?? new Dictionary<string, VocalMusic>());
+                return (LanguageCode: group.Key, Releases: releases ?? new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase));
             }
             catch (Exception ex)
             {
                 Log.Logger.Warning(ex, "Error loading vocal music releases for {LanguageCode}", group.Key);
-                return (LanguageCode: group.Key, Releases: new Dictionary<string, VocalMusic>());
+                return (LanguageCode: group.Key, Releases: new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase));
             }
         }).ToList();
 
@@ -162,7 +162,7 @@ internal sealed class LookupDataLoader
         // Load melody releases for publication names
         var melodyReleasesTask = mediaService != null && keys.MelodyPublicationCodes.Any()
             ? mediaService.GetMelodyMusicReleases()
-            : Task.FromResult<Dictionary<string, MelodyMusic>>(new Dictionary<string, MelodyMusic>());
+            : Task.FromResult<Dictionary<string, MelodyMusic>>(new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase));
 
         // Batch load no-language publication/section/track display data for publications that
         // can't be resolved via language-bound services (e.g. melody discs like "iam" stored with LanguageId == null).

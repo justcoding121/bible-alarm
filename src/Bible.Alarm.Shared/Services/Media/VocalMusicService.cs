@@ -74,7 +74,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .ToListAsync(cancellationToken);
 
             // Handle potential duplicates gracefully - use first occurrence
-            var result = new Dictionary<string, VocalMusic>();
+            var result = new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase);
             foreach (var vm in vocalMusicList)
             {
                 if (!result.ContainsKey(vm.PublicationCode))
@@ -143,7 +143,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             logger.Information("VocalMusicService.GetDistinctLanguagesAsync: Found {PublicationLanguageCount} PublicationLanguage entries across {LanguageCount} distinct vocal music languages: {LanguageCodes}",
                 publicationLanguagesCount, vocalLanguages.Count, string.Join(", ", vocalLanguages.Select(l => l.LanguageCode)));
 
-            return vocalLanguages.ToDictionary(x => x.LanguageCode, x => x);
+            return vocalLanguages.ToDictionary(x => x.LanguageCode, x => x, StringComparer.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {

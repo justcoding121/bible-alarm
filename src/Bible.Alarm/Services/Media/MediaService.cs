@@ -330,7 +330,7 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
         if (result.Count == 0)
         {
             Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicLanguagesNoVocalLanguagesFallingBackEnglish);
-            result = new Dictionary<string, Language>
+            result = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase)
             {
                 [AppConstants.Media.DefaultLanguageCode] = new Language { LanguageCode = AppConstants.Media.DefaultLanguageCode }
             };

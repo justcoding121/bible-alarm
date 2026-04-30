@@ -232,7 +232,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 publicationsList.Count, languageCode);
 
             // Handle potential duplicates gracefully - use first occurrence
-            var result = new Dictionary<string, BiblePublication>();
+            var result = new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase);
             foreach (var publication in publicationsList)
             {
                 logger.Debug("GetByLanguageCodeAsync: Publication code={Code}, name={Name}",
@@ -277,13 +277,13 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 if (cacheKey == null && cachedDistinctLanguagesAll != null)
                 {
                     // Return a copy to avoid callers mutating the cached dictionary.
-                    return new Dictionary<string, Language>(cachedDistinctLanguagesAll);
+                    return new Dictionary<string, Language>(cachedDistinctLanguagesAll, StringComparer.OrdinalIgnoreCase);
                 }
 
                 if (cacheKey != null &&
                     cachedDistinctLanguagesByCategory.TryGetValue(cacheKey, out var cachedForCategory))
                 {
-                    return new Dictionary<string, Language>(cachedForCategory);
+                    return new Dictionary<string, Language>(cachedForCategory, StringComparer.OrdinalIgnoreCase);
                 }
             }
 
@@ -317,7 +317,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             logger.Debug("BiblePublicationService.GetDistinctLanguagesAsync: Found {PublicationLanguageCount} PublicationLanguage entries across {LanguageCount} distinct languages",
                 publicationLanguagesCount, distinctLanguages.Count);
 
-            var result = distinctLanguages.ToDictionary(x => x.LanguageCode, x => x);
+            var result = distinctLanguages.ToDictionary(x => x.LanguageCode, x => x, StringComparer.OrdinalIgnoreCase);
 
             // Cache result for subsequent calls
             lock (distinctLanguagesCacheLock)
@@ -332,7 +332,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 }
             }
 
-            return new Dictionary<string, Language>(result);
+            return new Dictionary<string, Language>(result, StringComparer.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {
