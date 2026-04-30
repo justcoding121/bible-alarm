@@ -214,7 +214,6 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
             }
             catch (Exception recoveryEx)
             {
-                Log.Logger.Error(recoveryEx, "[BOOTSTRAP] Failed to recover Schedule database using bundled database");
                 throw new InvalidOperationException(
                     "Schedule database migration failed and recovery attempt failed. The app cannot continue without a valid database.",
                     recoveryEx);

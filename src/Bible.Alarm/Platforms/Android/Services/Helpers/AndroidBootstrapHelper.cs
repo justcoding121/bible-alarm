@@ -29,8 +29,9 @@ public class AndroidBootstrapHelper
         }
         catch (Exception e)
         {
-            logger.Fatal(e, "Android database initialization crashed.");
-            throw;
+            throw new InvalidOperationException(
+                "Android database initialization crashed.",
+                e);
         }
 
         // Create notification channel

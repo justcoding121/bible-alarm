@@ -99,8 +99,9 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception e)
         {
-            logger.Fatal(e, AppConstants.Logging.IosAppDelegateDiagnosticsLog.IosMauiAppCreationFailed);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.IosAppDelegateDiagnosticsLog.IosMauiAppCreationFailed,
+                e);
         }
     }
 
@@ -137,8 +138,9 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
         catch (Exception ex)
         {
-            logger.Fatal(ex, AppConstants.Logging.IosAppDelegateDiagnosticsLog.BaseFinishedLaunchingThrewException);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.IosAppDelegateDiagnosticsLog.BaseFinishedLaunchingThrewException,
+                ex);
         }
 
         try

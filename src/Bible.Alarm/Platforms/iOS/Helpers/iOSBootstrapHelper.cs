@@ -16,8 +16,9 @@ public class IosBootstrapHelper
         }
         catch (Exception e)
         {
-            logger.Fatal(e, "iOS database initialization crashed.");
-            throw;
+            throw new InvalidOperationException(
+                "iOS database initialization crashed.",
+                e);
         }
     }
 

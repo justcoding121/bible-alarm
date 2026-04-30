@@ -252,8 +252,9 @@ public sealed class MediaCacheService(
             var newUrl = await RefetchSectionOrPubAndGetNewUrlAsync(playItem.Metadata, cancellationToken);
             if (string.IsNullOrEmpty(newUrl))
             {
-                logger.Warning(AppConstants.Logging.MediaCacheDiagnosticsLog.RefetchDidNotYieldNewUrl);
-                throw;
+                throw new InvalidOperationException(
+                    AppConstants.Logging.MediaCacheDiagnosticsLog.RefetchDidNotYieldNewUrl,
+                    ex);
             }
             playItem.Url = newUrl;
             return await DownloadAndCacheTrackAsync(playItem, scheduleId, cancellationToken);

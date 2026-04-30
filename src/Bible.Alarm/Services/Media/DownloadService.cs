@@ -127,11 +127,6 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                     }
                 }
 
-                logger.Warning(ex, AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadPrimaryUrl, url);
-                if (string.IsNullOrEmpty(alternativeUrl))
-                {
-                    logger.Error(AppConstants.Logging.DownloadDiagnosticsLog.NoAlternativeUrlForFailedDownload, url);
-                }
                 throw;
             }
         }, combinedCts.Token);

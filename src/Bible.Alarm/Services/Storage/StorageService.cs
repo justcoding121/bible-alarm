@@ -99,8 +99,6 @@ public abstract class StorageService : IStorageService, IDisposable
                               $"Available resources: {availableResources}. " +
                               $"Make sure the file is included as an EmbeddedResource in the project file.";
 
-            Log.Logger.Error(ex, errorMessage);
-
             throw new InvalidOperationException(errorMessage, ex);
         }
     }
