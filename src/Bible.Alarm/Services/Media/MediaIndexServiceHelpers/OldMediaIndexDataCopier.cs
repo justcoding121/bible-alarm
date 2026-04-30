@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Microsoft.Data.Sqlite;
 using Serilog;
 
@@ -56,7 +57,7 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
             references.Count);
 
         var publicationGroups = references
-            .GroupBy(r => (r.PublicationCode, r.LanguageCode))
+            .GroupBy(r => (r.PublicationCode, r.LanguageCode), PublicationLookupKeyComparers.PublicationLanguage.Instance)
             .ToList();
 
         using var connection = new SqliteConnection($"Data Source={newMediaIndexDbPath}");
@@ -113,8 +114,8 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
 
             var trackRefs = references
                 .Where(r => !string.IsNullOrEmpty(r.TrackCode))
+                .DistinctBy(r => $"{r.SectionCode ?? ""}\u001f{r.TrackCode!}", StringComparer.OrdinalIgnoreCase)
                 .Select(r => (r.SectionCode, r.TrackCode!))
-                .Distinct()
                 .ToList();
 
             foreach (var (sectionCode, trackCode) in trackRefs)

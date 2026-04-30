@@ -66,7 +66,7 @@ internal sealed class ScheduleMediaBootstrapFetcher(
             references.Count);
 
         var publicationGroups = references
-            .GroupBy(r => (r.PublicationCode, r.LanguageCode))
+            .GroupBy(r => (r.PublicationCode, r.LanguageCode), PublicationLookupKeyComparers.PublicationLanguage.Instance)
             .ToList();
 
         foreach (var group in publicationGroups)

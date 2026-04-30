@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Models.BiblePublications;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Cataloger.Utility;
 
@@ -50,8 +51,9 @@ public class MediaReader(string indexRoot)
         var normalizedPublicationCode = versionCode.ToUpperInvariant();
         var sectionsIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryBible, normalizedLanguageCode, normalizedPublicationCode, sectionCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
-        return new SortedDictionary<string, BiblePublicationTrack>(JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!
-                                                   .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal));
+        var bibleTracksDict = JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!
+            .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal);
+        return new SortedDictionary<string, BiblePublicationTrack>(bibleTracksDict, TrackCodeComparer.Comparer);
     }
 
     public async Task<Dictionary<string, Publication>> GetMelodyMusicReleases()
@@ -196,8 +198,9 @@ public class MediaReader(string indexRoot)
         var normalizedCategoryKey = categoryKey.ToUpperInvariant();
         var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedLanguageCode, normalizedCategoryKey, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
-        return new SortedDictionary<string, MediatorTrack>(JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
-            .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal));
+        var mediatorTracksFlat = JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
+            .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal);
+        return new SortedDictionary<string, MediatorTrack>(mediatorTracksFlat, TrackCodeComparer.Comparer);
     }
 
     public async Task<SortedDictionary<int, BiblePublicationSection>> GetMediatorPublicationSections(string languageCode, string publicationCode)
@@ -221,8 +224,9 @@ public class MediaReader(string indexRoot)
         var normalizedSectionCode = sectionCode.ToUpperInvariant();
         var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedLanguageCode, normalizedPublicationCode, normalizedSectionCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
-        return new SortedDictionary<string, MediatorTrack>(JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
-            .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal));
+        var mediatorSectionTracks = JsonSerializer.Deserialize<IEnumerable<MediatorTrack>>(dramaTracks)!
+            .ToDictionary(x => x.TrackCode, x => x, StringComparer.Ordinal);
+        return new SortedDictionary<string, MediatorTrack>(mediatorSectionTracks, TrackCodeComparer.Comparer);
     }
 
     public async Task<Dictionary<string, Language>> GetVideoLanguages()

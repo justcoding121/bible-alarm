@@ -56,6 +56,33 @@ public static class PublicationLookupKeyComparers
     }
 
     /// <summary>
+    /// (LanguageCode, PublicationCode, SectionCode, TrackCode) with optional normalized section code.
+    /// </summary>
+    public sealed class LanguagePublicationNullableSectionTrack : IEqualityComparer<(string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode)>
+    {
+        public static readonly LanguagePublicationNullableSectionTrack Instance = new();
+
+        private LanguagePublicationNullableSectionTrack()
+        {
+        }
+
+        public bool Equals(
+            (string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode) x,
+            (string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode) y) =>
+            string.Equals(x.LanguageCode, y.LanguageCode, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.PublicationCode, y.PublicationCode, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.SectionCode ?? string.Empty, y.SectionCode ?? string.Empty, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.TrackCode, y.TrackCode, StringComparison.Ordinal);
+
+        public int GetHashCode((string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode) obj) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LanguageCode),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PublicationCode),
+                obj.SectionCode != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(obj.SectionCode) : 0,
+                StringComparer.Ordinal.GetHashCode(obj.TrackCode ?? string.Empty));
+    }
+
+    /// <summary>
     /// (PublicationCode, SectionCode)
     /// </summary>
     public sealed class PublicationSection : IEqualityComparer<(string PublicationCode, string SectionCode)>
@@ -122,5 +149,26 @@ public static class PublicationLookupKeyComparers
             HashCode.Combine(
                 StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PublicationCode),
                 obj.LanguageCode != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LanguageCode) : 0);
+    }
+
+    /// <summary>
+    /// (PublicationCode, LanguageCode): both codes always present (e.g. schedule media groups).
+    /// </summary>
+    public sealed class PublicationLanguage : IEqualityComparer<(string PublicationCode, string LanguageCode)>
+    {
+        public static readonly PublicationLanguage Instance = new();
+
+        private PublicationLanguage()
+        {
+        }
+
+        public bool Equals((string PublicationCode, string LanguageCode) x, (string PublicationCode, string LanguageCode) y) =>
+            string.Equals(x.PublicationCode, y.PublicationCode, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.LanguageCode, y.LanguageCode, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((string PublicationCode, string LanguageCode) obj) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PublicationCode),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LanguageCode));
     }
 }

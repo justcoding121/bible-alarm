@@ -13,14 +13,21 @@ internal static class LookupDataCollector
 {
     public static LookupKeys CollectKeys(List<AlarmSchedule> alarmSchedules)
     {
-        var publicationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
-        var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, string SectionCode)>();
-        var bibleTrackKeys = new HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode)>();
+        var publicationKeys =
+            new HashSet<(string LanguageCode, string PublicationCode)>(PublicationLookupKeyComparers.LanguagePublication.Instance);
+        var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, string SectionCode)>(
+            PublicationLookupKeyComparers.LanguagePublicationSection.Instance);
+        var bibleTrackKeys =
+            new HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode)>(
+                PublicationLookupKeyComparers.LanguagePublicationNullableSectionTrack.Instance);
         var vocalMusicLanguageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
-        var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
+        var vocalMusicKeys =
+            new HashSet<(string LanguageCode, string PublicationCode)>(PublicationLookupKeyComparers.LanguagePublication.Instance);
+        var vocalTrackKeys =
+            new HashSet<(string LanguageCode, string PublicationCode)>(PublicationLookupKeyComparers.LanguagePublication.Instance);
         var melodyPublicationCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var melodySectionKeys = new HashSet<(string PublicationCode, string SectionCode)>();
+        var melodySectionKeys = new HashSet<(string PublicationCode, string SectionCode)>(
+            PublicationLookupKeyComparers.PublicationSection.Instance);
 
         foreach (var schedule in alarmSchedules)
         {
