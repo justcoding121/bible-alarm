@@ -24,14 +24,14 @@ public sealed class TrackNavigatorSectionCataloger
     private readonly IMediaService mediaService;
     private readonly ILanguageContentService? languageContentService;
     private readonly IServiceScopeFactory? scopeFactory;
-    private readonly ILogger? logger;
+    private readonly ILogger logger;
     private readonly Func<string, string, Task<SortedDictionary<string, BiblePublicationSection>>> getSectionsCachedAsync;
 
     public TrackNavigatorSectionCataloger(
         IMediaService mediaService,
         ILanguageContentService? languageContentService,
         IServiceScopeFactory? scopeFactory,
-        ILogger? logger,
+        ILogger logger,
         Func<string, string, Task<SortedDictionary<string, BiblePublicationSection>>> getSectionsCachedAsync)
     {
         this.mediaService = mediaService;
@@ -80,7 +80,7 @@ public sealed class TrackNavigatorSectionCataloger
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, "Failed to get discovered section codes: languageCode={LanguageCode}, publicationCode={PublicationCode}",
+            logger.Warning(ex, "Failed to get discovered section codes: languageCode={LanguageCode}, publicationCode={PublicationCode}",
                 languageCode, publicationCode);
             var sections = await getSectionsCachedAsync(languageCode, publicationCode);
             return sections.Keys.ToList();
@@ -116,7 +116,7 @@ public sealed class TrackNavigatorSectionCataloger
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, "Failed to check if publication is no-language: publicationCode={PublicationCode}", publicationCode);
+            logger.Warning(ex, "Failed to check if publication is no-language: publicationCode={PublicationCode}", publicationCode);
             return false;
         }
     }
@@ -132,21 +132,21 @@ public sealed class TrackNavigatorSectionCataloger
         var isNoLanguagePublication = await IsPublicationWithoutLanguageAsync(publicationCode);
         if (isNoLanguagePublication)
         {
-            logger?.Debug("Publication {PublicationCode} is a no-language publication, cannot ad-hoc catalog sections.", publicationCode);
+            logger.Debug("Publication {PublicationCode} is a no-language publication, cannot ad-hoc catalog sections.", publicationCode);
             var noLanguageSections = await getSectionsCachedAsync(languageCode, publicationCode);
             return noLanguageSections.ContainsKey(sectionCode);
         }
 
         if (languageContentService == null || scopeFactory == null)
         {
-            logger?.Warning("ILanguageContentService or IServiceScopeFactory not available");
+            logger.Warning("ILanguageContentService or IServiceScopeFactory not available");
             return false;
         }
 
         var discoveredSectionCodes = await GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
         if (!discoveredSectionCodes.Any(sc => string.Equals(sc, sectionCode, StringComparison.OrdinalIgnoreCase)))
         {
-            logger?.Warning("Section {SectionCode} not found in discovered sections", sectionCode);
+            logger.Warning("Section {SectionCode} not found in discovered sections", sectionCode);
             return false;
         }
 
@@ -163,13 +163,13 @@ public sealed class TrackNavigatorSectionCataloger
         var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
         if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
         {
-            logger?.Warning("No internet - cannot catalog section for navigation");
+            logger.Warning("No internet - cannot catalog section for navigation");
             return false;
         }
 
         try
         {
-            logger?.Information("Cataloging section for navigation: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+            logger.Information("Cataloging section for navigation: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
                 languageCode, publicationCode, sectionCode);
 
             sectionFetchProgress?.UpdateProgress(0.0);
@@ -188,7 +188,7 @@ public sealed class TrackNavigatorSectionCataloger
 
             if (!publicationExists)
             {
-                logger?.Warning("Failed to ensure publication exists");
+                logger.Warning("Failed to ensure publication exists");
                 return false;
             }
 
@@ -213,7 +213,7 @@ public sealed class TrackNavigatorSectionCataloger
 
                 if (publication == null)
                 {
-                    logger?.Warning("Publication not found after EnsurePublicationExistsAsync");
+                    logger.Warning("Publication not found after EnsurePublicationExistsAsync");
                     return false;
                 }
 
@@ -222,7 +222,7 @@ public sealed class TrackNavigatorSectionCataloger
 
                 if (section == null)
                 {
-                    logger?.Information("Section entity doesn't exist, creating it");
+                    logger.Information("Section entity doesn't exist, creating it");
                     section = new BiblePublicationSection
                     {
                         Name = sectionCode,
@@ -252,12 +252,12 @@ public sealed class TrackNavigatorSectionCataloger
                 return true;
             }
 
-            logger?.Warning("Failed to catalog section");
+            logger.Warning("Failed to catalog section");
             return false;
         }
         catch (Exception ex)
         {
-            logger?.Error(ex, "Error cataloging section");
+            logger.Error(ex, "Error cataloging section");
             return false;
         }
     }
@@ -274,7 +274,7 @@ public sealed class TrackNavigatorSectionCataloger
             }
             catch (DbUpdateException ex) when (attempt < maxAttempts && SectionFetcherSqliteExceptionHelper.IsBusyOrLocked(ex))
             {
-                logger?.Debug(ex, "SaveChanges locked (attempt {Attempt}/{Max}) for {Context}, retrying",
+                logger.Debug(ex, "SaveChanges locked (attempt {Attempt}/{Max}) for {Context}, retrying",
                     attempt, maxAttempts, context);
                 await Task.Delay(100 * attempt);
             }

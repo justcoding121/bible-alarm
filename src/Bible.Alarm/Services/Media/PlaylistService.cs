@@ -82,7 +82,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, urlRefreshService, urlConstructionService, BiblePublicationService);
         musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService, urlRefreshService, urlConstructionService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
-        trackNavigator = new TrackNavigator(mediaService, BiblePublicationService, languageContentService, scopeFactory, logger);
+        trackNavigator = new TrackNavigator(mediaService, BiblePublicationService, logger, languageContentService, scopeFactory);
         scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);
         scheduleDisplayRefresher = scheduleDisplayNameService != null && alarmScheduleService != null
             ? new PlaylistScheduleDisplayRefresher(alarmScheduleService, scheduleDisplayNameService, applicationState, dispatcher, logger)

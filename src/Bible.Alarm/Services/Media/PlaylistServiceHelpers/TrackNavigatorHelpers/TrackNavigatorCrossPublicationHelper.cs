@@ -22,18 +22,18 @@ public sealed class TrackNavigatorCrossPublicationHelper
     private readonly IBiblePublicationService biblePublicationService;
     private readonly Func<string, string, IFetchProgress?, Task<(BiblePublicationSection? Section, BiblePublicationTrack Track)?>> getFirstTrackOfPublicationAsync;
     private readonly Func<string, string, IFetchProgress?, Task<(BiblePublicationSection? Section, BiblePublicationTrack Track)?>> getLastTrackOfPublicationAsync;
-    private readonly ILogger? logger;
+    private readonly ILogger logger;
 
     public TrackNavigatorCrossPublicationHelper(
         IBiblePublicationService biblePublicationService,
+        ILogger logger,
         Func<string, string, IFetchProgress?, Task<(BiblePublicationSection? Section, BiblePublicationTrack Track)?>> getFirstTrackOfPublicationAsync,
-        Func<string, string, IFetchProgress?, Task<(BiblePublicationSection? Section, BiblePublicationTrack Track)?>> getLastTrackOfPublicationAsync,
-        ILogger? logger = null)
+        Func<string, string, IFetchProgress?, Task<(BiblePublicationSection? Section, BiblePublicationTrack Track)?>> getLastTrackOfPublicationAsync)
     {
         this.biblePublicationService = biblePublicationService;
+        this.logger = logger;
         this.getFirstTrackOfPublicationAsync = getFirstTrackOfPublicationAsync;
         this.getLastTrackOfPublicationAsync = getLastTrackOfPublicationAsync;
-        this.logger = logger;
     }
 
     /// <summary>
@@ -56,13 +56,13 @@ public sealed class TrackNavigatorCrossPublicationHelper
                 var firstTrack = await getFirstTrackOfPublicationAsync(languageCode, nextPubCode, sectionFetchProgress);
                 if (firstTrack is { } ft)
                 {
-                    logger?.Information("Cross-publication next: {FromPub} -> {ToPub}", publicationCode, nextPubCode);
+                    logger.Information("Cross-publication next: {FromPub} -> {ToPub}", publicationCode, nextPubCode);
                     return new TrackNavigationResult(nextPubCode, ft.Section, ft.Track);
                 }
             }
             catch (Exception ex)
             {
-                logger?.Debug(ex, "Failed to get first track for next pub {PublicationCode}, skipping", nextPubCode);
+                logger.Debug(ex, "Failed to get first track for next pub {PublicationCode}, skipping", nextPubCode);
             }
         }
 
@@ -89,13 +89,13 @@ public sealed class TrackNavigatorCrossPublicationHelper
                 var lastTrack = await getLastTrackOfPublicationAsync(languageCode, prevPubCode, sectionFetchProgress);
                 if (lastTrack is { } lt)
                 {
-                    logger?.Information("Cross-publication previous: {FromPub} -> {ToPub}", publicationCode, prevPubCode);
+                    logger.Information("Cross-publication previous: {FromPub} -> {ToPub}", publicationCode, prevPubCode);
                     return new TrackNavigationResult(prevPubCode, lt.Section, lt.Track);
                 }
             }
             catch (Exception ex)
             {
-                logger?.Debug(ex, "Failed to get last track for previous pub {PublicationCode}, skipping", prevPubCode);
+                logger.Debug(ex, "Failed to get last track for previous pub {PublicationCode}, skipping", prevPubCode);
             }
         }
 

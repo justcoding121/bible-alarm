@@ -20,7 +20,7 @@ public sealed class MusicDisplayTextProvider
     private readonly IMediaService mediaService;
     private readonly ILanguageNameService? languageNameService;
     private readonly IServiceScopeFactory? serviceScopeFactory;
-    private readonly ILogger? logger;
+    private readonly ILogger logger;
 
     private string? cachedSongPublicationName;
     private string? lastMusicPublicationCode;
@@ -37,7 +37,7 @@ public sealed class MusicDisplayTextProvider
     private string? cachedMusicSectionSelectableKey;
     private bool cachedMusicSectionSelectableValue;
 
-    public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService, ILanguageNameService? languageNameService = null, IServiceScopeFactory? serviceScopeFactory = null, ILogger? logger = null)
+    public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService, ILogger logger, ILanguageNameService? languageNameService = null, IServiceScopeFactory? serviceScopeFactory = null)
     {
         this.state = state;
         this.mediaService = mediaService;
@@ -488,7 +488,7 @@ public sealed class MusicDisplayTextProvider
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, "Failed to query music publication count for selectability. Language={Language}", languageCode);
+            logger.Warning(ex, "Failed to query music publication count for selectability. Language={Language}", languageCode);
             return false;
         }
     }
@@ -553,7 +553,7 @@ public sealed class MusicDisplayTextProvider
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, "Failed to query music section count for selectability. Publication={Publication}, Language={Language}", publicationCode, languageCode);
+            logger.Warning(ex, "Failed to query music section count for selectability. Publication={Publication}, Language={Language}", publicationCode, languageCode);
             return false;
         }
     }

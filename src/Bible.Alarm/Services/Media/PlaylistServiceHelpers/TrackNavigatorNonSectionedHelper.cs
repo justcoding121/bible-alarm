@@ -23,18 +23,18 @@ public sealed class TrackNavigatorNonSectionedHelper
     private readonly IBiblePublicationService biblePublicationService;
     private readonly Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getFirstTrackOfPublicationAsync;
     private readonly Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getLastTrackOfPublicationAsync;
-    private readonly ILogger? logger;
+    private readonly ILogger logger;
 
     public TrackNavigatorNonSectionedHelper(
         IBiblePublicationService biblePublicationService,
+        ILogger logger,
         Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getFirstTrackOfPublicationAsync = null,
-        Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getLastTrackOfPublicationAsync = null,
-        ILogger? logger = null)
+        Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>>? getLastTrackOfPublicationAsync = null)
     {
         this.biblePublicationService = biblePublicationService;
+        this.logger = logger;
         this.getFirstTrackOfPublicationAsync = getFirstTrackOfPublicationAsync;
         this.getLastTrackOfPublicationAsync = getLastTrackOfPublicationAsync;
-        this.logger = logger;
     }
 
     public async System.Threading.Tasks.Task<TrackNavigationResult> GetNextAsync(
@@ -92,7 +92,7 @@ public sealed class TrackNavigatorNonSectionedHelper
                         }
                         catch (Exception ex)
                         {
-                            logger?.Debug(ex, "Failed to get first track for next pub {PublicationCode}, skipping", nextPubCode);
+                            logger.Debug(ex, "Failed to get first track for next pub {PublicationCode}, skipping", nextPubCode);
                         }
                     }
                 }
@@ -157,7 +157,7 @@ public sealed class TrackNavigatorNonSectionedHelper
                         }
                         catch (Exception ex)
                         {
-                            logger?.Debug(ex, "Failed to get last track for previous pub {PublicationCode}, skipping", prevPubCode);
+                            logger.Debug(ex, "Failed to get last track for previous pub {PublicationCode}, skipping", prevPubCode);
                         }
                     }
                 }

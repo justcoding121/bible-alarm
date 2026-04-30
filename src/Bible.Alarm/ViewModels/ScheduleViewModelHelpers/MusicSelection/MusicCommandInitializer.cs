@@ -98,7 +98,7 @@ public sealed class MusicCommandInitializer
         {
             // Check if publication is selectable (multiple options available)
             // If not selectable, don't open the modal
-            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger: logger);
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), logger, serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>());
             var isSelectable = await displayTextProvider.GetIsSongPublicationSelectableAsync();
             if (!isSelectable)
             {
@@ -136,7 +136,7 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger: logger);
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), logger, serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>());
             if (!await displayTextProvider.GetIsMusicSectionSelectableAsync())
             {
                 return;
@@ -171,7 +171,7 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger: logger);
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), logger, serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>());
             if (!await displayTextProvider.GetIsMusicTrackSelectableAsync())
             {
                 return;
@@ -206,7 +206,7 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
-            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>(), logger: logger);
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>(), logger, serviceScopeFactory: serviceProvider.GetRequiredService<IServiceScopeFactory>());
             if (!await displayTextProvider.GetIsMusicLanguageSelectableAsync())
             {
                 return;

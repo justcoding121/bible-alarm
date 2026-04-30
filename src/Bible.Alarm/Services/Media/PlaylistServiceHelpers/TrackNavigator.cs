@@ -20,14 +20,14 @@ public sealed class TrackNavigator
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService biblePublicationService;
     private readonly ILanguageContentService? languageContentService;
-    private readonly ILogger? logger;
+    private readonly ILogger logger;
 
     public TrackNavigator(
         IMediaService mediaService,
         IBiblePublicationService biblePublicationService,
+        ILogger logger,
         ILanguageContentService? languageContentService = null,
-        IServiceScopeFactory? scopeFactory = null,
-        ILogger? logger = null)
+        IServiceScopeFactory? scopeFactory = null)
     {
         this.mediaService = mediaService;
         this.biblePublicationService = biblePublicationService;
@@ -35,9 +35,9 @@ public sealed class TrackNavigator
         this.logger = logger;
         NonSectionedHelper = new TrackNavigatorNonSectionedHelper(
             biblePublicationService,
+            logger,
             GetFirstTrackOfPublicationAsync,
-            GetLastTrackOfPublicationAsync,
-            logger);
+            GetLastTrackOfPublicationAsync);
         SectionCataloger = new TrackNavigatorSectionCataloger(
             mediaService,
             languageContentService,
@@ -46,9 +46,9 @@ public sealed class TrackNavigator
             GetSectionsCachedAsync);
         CrossPublicationHelper = new TrackNavigatorCrossPublicationHelper(
             biblePublicationService,
+            logger,
             GetFirstTrackOfPublicationAsync,
-            GetLastTrackOfPublicationAsync,
-            logger);
+            GetLastTrackOfPublicationAsync);
     }
 
     private TrackNavigatorNonSectionedHelper NonSectionedHelper { get; }
@@ -491,7 +491,7 @@ public sealed class TrackNavigator
                 return (section, FirstSortedDictionaryTrack(tracks));
             }
 
-            logger?.Information("GetFirstTrackOfPublicationAsync: Section {SectionCode} has no tracks after catalog, trying next section",
+            logger.Information("GetFirstTrackOfPublicationAsync: Section {SectionCode} has no tracks after catalog, trying next section",
                 candidateSectionCode);
         }
 
@@ -560,7 +560,7 @@ public sealed class TrackNavigator
                 return (section, LastSortedDictionaryTrack(tracks));
             }
 
-            logger?.Information("GetLastTrackOfPublicationAsync: Section {SectionCode} has no tracks after catalog, trying previous section",
+            logger.Information("GetLastTrackOfPublicationAsync: Section {SectionCode} has no tracks after catalog, trying previous section",
                 candidateSectionCode);
         }
 

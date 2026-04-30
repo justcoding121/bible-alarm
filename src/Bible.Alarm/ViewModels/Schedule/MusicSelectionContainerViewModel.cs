@@ -101,7 +101,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         commandInitializer = new MusicCommandInitializer(
             logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider, toastService);
         var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
-        displayTextProvider = new MusicDisplayTextProvider(state, mediaService, serviceScopeFactory: serviceScopeFactory, logger: logger);
+        displayTextProvider = new MusicDisplayTextProvider(state, mediaService, logger, serviceScopeFactory: serviceScopeFactory);
         propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
         // Set property change notifier so display provider can notify when language name loads asynchronously
         displayTextProvider.SetPropertyChangeNotifier(propertyName => OnPropertyChanged(propertyName));
