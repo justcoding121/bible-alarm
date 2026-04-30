@@ -43,5 +43,13 @@ public sealed class NumberOfTracksListViewItemModel : ObservableObject, ICompara
         OnPropertyChanged(nameof(Text));
     }
 
-    public int CompareTo(object? obj) => obj is not NumberOfTracksListViewItemModel other ? 1 : Value.CompareTo(other.Value);
+    public int CompareTo(object? obj)
+    {
+        if (obj is not NumberOfTracksListViewItemModel other)
+        {
+            return 1;
+        }
+
+        return Value.CompareTo(other.Value);
+    }
 }

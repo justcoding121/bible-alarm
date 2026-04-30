@@ -96,8 +96,18 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
     /// Language code for this publication row (when available).
     /// For many selection flows, this avoids re-querying the DB just to rediscover language.
     /// </summary>
-    public string? PublicationLanguageCode =>
-        publication is BiblePublication biblePublication ? biblePublication.Language?.LanguageCode : null;
+    public string? PublicationLanguageCode
+    {
+        get
+        {
+            if (publication is BiblePublication biblePublication)
+            {
+                return biblePublication.Language?.LanguageCode;
+            }
+
+            return null;
+        }
+    }
 
     public int CompareTo(object? obj)
     {

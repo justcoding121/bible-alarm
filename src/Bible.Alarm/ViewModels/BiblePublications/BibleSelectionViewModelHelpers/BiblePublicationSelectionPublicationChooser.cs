@@ -101,11 +101,8 @@ internal sealed class BiblePublicationSelectionPublicationChooser
 
             // Check if this publication can be queried with a language (has LanguageId)
             // Re-query from database to get the actual publication with correct localized name (not placeholder)
-            BiblePublication? queriedPub = null;
-            queriedPub = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, pubCode);
-            var canQueryWithLanguage = queriedPub != null;
-
-            if (canQueryWithLanguage && queriedPub != null)
+            BiblePublication? queriedPub = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, pubCode);
+            if (queriedPub != null)
             {
                 Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationQueryableWithLanguage,
                     pubCode,

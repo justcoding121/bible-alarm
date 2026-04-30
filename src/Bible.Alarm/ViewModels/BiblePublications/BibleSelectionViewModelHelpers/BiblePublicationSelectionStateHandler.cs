@@ -247,10 +247,7 @@ public sealed class BiblePublicationSelectionStateHandler
 
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
-        if (newCategoryName != null)
-        {
-            lastCategoryName = newCategoryName;
-        }
+        lastCategoryName = newCategoryName;
 
         // Derive from CurrentSchedule (single source of truth)
         current = new BiblePublicationSchedule

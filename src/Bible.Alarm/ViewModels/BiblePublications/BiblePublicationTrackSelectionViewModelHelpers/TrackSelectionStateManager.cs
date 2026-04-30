@@ -188,11 +188,9 @@ public sealed class TrackSelectionStateManager
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;
 
-        // Derive from CurrentSchedule (single source of truth)
-        // currentSchedule is already declared above
-        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        // Derive from CurrentSchedule (single source of truth); currentSchedule is non-null above.
+        if (!string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            // Create BiblePublicationSchedule from CurrentSchedule
             current = new BiblePublicationSchedule
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
@@ -209,9 +207,10 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionCode = newSectionCode,
-                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty
             };
         }
+
         lastCurrent = current;
     }
 
@@ -243,11 +242,9 @@ public sealed class TrackSelectionStateManager
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;
 
-        // Derive from CurrentSchedule (single source of truth)
-        // currentSchedule is already declared above
-        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        // Derive from CurrentSchedule (single source of truth); currentSchedule is non-null above.
+        if (!string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            // Create BiblePublicationSchedule from CurrentSchedule
             current = new BiblePublicationSchedule
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
@@ -264,9 +261,10 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionCode = newSectionCode,
-                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty
             };
         }
+
         lastCurrent = current;
     }
 

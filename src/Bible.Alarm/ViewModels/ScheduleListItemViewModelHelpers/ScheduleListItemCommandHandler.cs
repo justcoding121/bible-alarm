@@ -25,14 +25,16 @@ public sealed class ScheduleListItemCommandHandler(
     {
         return new AsyncRelayCommand(async () =>
         {
-            if (schedule?.Id > 0)
+            if (schedule == null || schedule.Id <= 0)
             {
-                // Notify HomeViewModel to show overlay immediately
-                onPlayStarted?.Invoke();
-                // Wait 50ms to ensure overlay is visible before starting playback
-                await Task.Delay(50);
-                await playbackService.PlayScheduleAsync(schedule.Id);
+                return;
             }
+
+            // Notify HomeViewModel to show overlay immediately
+            onPlayStarted?.Invoke();
+            // Wait 50ms to ensure overlay is visible before starting playback
+            await Task.Delay(50);
+            await playbackService.PlayScheduleAsync(schedule.Id);
         });
     }
 
@@ -43,15 +45,10 @@ public sealed class ScheduleListItemCommandHandler(
     {
         return new AsyncRelayCommand(async () =>
         {
-            if (schedule?.Id <= 0)
+            if (schedule == null || schedule.Id <= 0)
             {
                 logger.Warning(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandScheduleNullOrInvalidId);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule not found"));
-                return;
-            }
-
-            if (schedule == null)
-            {
                 return;
             }
 
@@ -101,15 +98,10 @@ public sealed class ScheduleListItemCommandHandler(
     {
         return new AsyncRelayCommand(async () =>
         {
-            if (schedule?.Id <= 0)
+            if (schedule == null || schedule.Id <= 0)
             {
                 logger.Warning(AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.NextCommandScheduleNullOrInvalidId);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule not found"));
-                return;
-            }
-
-            if (schedule == null)
-            {
                 return;
             }
 

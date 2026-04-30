@@ -160,6 +160,11 @@ public sealed class PositionManager()
     /// </summary>
     public static double CalculateProgress(TimeSpan position, TimeSpan duration)
     {
-        return duration.TotalSeconds > 0 ? position.TotalSeconds / duration.TotalSeconds : 0.0;
+        if (duration.TotalSeconds <= 0)
+        {
+            return 0.0;
+        }
+
+        return position.TotalSeconds / duration.TotalSeconds;
     }
 }
