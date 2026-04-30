@@ -323,9 +323,9 @@ public class ScheduleEffects(
         }
         catch (Exception ex)
         {
-            Log.Error(ex, AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleExceptionOccurred, action?.ScheduleId ?? -1);
-            // Re-throw to ensure Fluxor sees the error
-            throw;
+            throw new InvalidOperationException(
+                $"ScheduleEffects: HandleDeleteSchedule failed for ScheduleId: {action?.ScheduleId ?? -1}",
+                ex);
         }
     }
 

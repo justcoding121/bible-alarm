@@ -245,8 +245,6 @@ internal sealed class MusicInstrumentalSectionListLoader
                 catch (OperationCanceledException)
                 {
                     // Re-throw cancellation - data saved so far is preserved
-                    logger.Information("MusicInstrumentalSectionListLoader: Fetch cancelled at attempt {Attempt} for publication={PublicationCode}",
-                        attempt, publicationCode);
                     throw;
                 }
                 catch (System.Net.Http.HttpRequestException)

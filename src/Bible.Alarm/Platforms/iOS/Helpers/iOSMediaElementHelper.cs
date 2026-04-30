@@ -69,7 +69,6 @@ public static class IosMediaElementHelper
                     return filePath;
                 }
 
-                logger.Error(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.FileDoesNotExistAtOriginalEither, filePath);
                 throw new FileNotFoundException($"File not found: {normalizedPath}");
             }
 

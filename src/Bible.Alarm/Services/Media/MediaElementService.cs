@@ -95,7 +95,6 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
 
         if (newMediaElement == null)
         {
-            logger.Error("Failed to create MediaElement on main thread");
             throw new InvalidOperationException("Failed to create MediaElement - could not create on main thread");
         }
 

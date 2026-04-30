@@ -104,7 +104,6 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             }
             catch (OperationCanceledException)
             {
-                logger.Information(AppConstants.Logging.DownloadDiagnosticsLog.DownloadCancelledForUrl, url);
                 throw; // Re-throw cancellation immediately - Polly won't retry due to Handle condition
             }
             catch (Exception ex)

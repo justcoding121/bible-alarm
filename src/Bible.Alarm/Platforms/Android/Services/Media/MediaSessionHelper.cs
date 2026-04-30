@@ -97,7 +97,6 @@ public static class MediaSessionHelper
         // Verify SessionToken is available
         if (session.SessionToken == null)
         {
-            logger.Error(AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCompatSessionTokenNullAfterCreationShouldNotHappen);
             throw new InvalidOperationException("MediaSessionCompat.SessionToken is null after creation");
         }
     }

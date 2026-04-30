@@ -145,7 +145,6 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error opening PlaybackModal");
             throw new InvalidOperationException("PlaybackModal push failed", ex);
         }
     }

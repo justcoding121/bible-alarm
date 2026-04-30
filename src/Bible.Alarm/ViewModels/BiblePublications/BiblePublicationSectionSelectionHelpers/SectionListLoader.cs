@@ -264,8 +264,6 @@ internal sealed class SectionListLoader
                 catch (OperationCanceledException)
                 {
                     // Re-throw cancellation - data saved so far is preserved
-                    logger.Information("SectionListLoader: Fetch cancelled at attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
-                        attempt, publicationCode, languageCode);
                     throw;
                 }
                 catch (System.Net.Http.HttpRequestException)

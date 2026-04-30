@@ -274,8 +274,6 @@ public sealed class BiblePublicationSelectionDataProvider
                         catch (OperationCanceledException)
                         {
                             // Re-throw cancellation - data saved so far is preserved
-                            Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsFetchCancelledAtAttempt,
-                                attempt, languageCode);
                             throw;
                         }
                         catch (System.Net.Http.HttpRequestException)
