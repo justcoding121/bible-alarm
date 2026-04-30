@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using AVKit;
 using CommunityToolkit.Maui.Extensions;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls.Handlers.Items;
 using Microsoft.Maui.Controls.Handlers.Items2;
 using Microsoft.Maui.Handlers;
@@ -120,7 +121,14 @@ public class MauiMediaElement : UIView
             viewController.AddChildViewController(playerViewController);
         }
 #endif
-        AddSubview(playerViewController.View);
+        // Defer virtual AddSubview until after ctor completes (S1699).
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (playerViewController.View.Superview is null)
+            {
+                AddSubview(playerViewController.View);
+            }
+        });
     }
 
     static bool TryGetItemsViewOnPage(Page currentPage, [NotNullWhen(true)] out ItemsView? itemsView)

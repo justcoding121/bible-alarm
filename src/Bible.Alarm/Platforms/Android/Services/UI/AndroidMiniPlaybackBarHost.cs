@@ -25,7 +25,6 @@ public sealed class AndroidMiniPlaybackBarHost : IAndroidMiniPlaybackBarHost,
 {
     private static readonly ILogger logger = Log.ForContext<AndroidMiniPlaybackBarHost>();
 
-    private MiniPlaybackBar? miniPlaybackBar;
     private View? nativeBarView;
     private FrameLayout? rootView;
     private bool isDisposed;
@@ -62,7 +61,7 @@ public sealed class AndroidMiniPlaybackBarHost : IAndroidMiniPlaybackBarHost,
                 return;
             }
 
-            miniPlaybackBar = new MiniPlaybackBar();
+            var miniPlaybackBar = new MiniPlaybackBar();
             nativeBarView = miniPlaybackBar.ToPlatform(mauiContext);
 
             int navBarBottomPx = GetNavigationBarHeightPx(activity!);
@@ -161,7 +160,6 @@ public sealed class AndroidMiniPlaybackBarHost : IAndroidMiniPlaybackBarHost,
         }
 
         nativeBarView = null;
-        miniPlaybackBar = null;
         rootView = null;
     }
 

@@ -24,7 +24,7 @@ namespace CommunityToolkit.Maui.Views;
 /// </summary>
 public class MauiMediaElement : CoordinatorLayout
 {
-    readonly RelativeLayout? relativeLayout;
+    RelativeLayout? relativeLayout;
     readonly PlayerView? playerView;
 
     int defaultSystemUiVisibility;
@@ -66,6 +66,23 @@ public class MauiMediaElement : CoordinatorLayout
         this.playerView = playerView;
         this.playerView.SetBackgroundColor(Color.Black);
         playerView.FullscreenButtonClick += OnFullscreenButtonClick;
+        Post(AttachPlayerLayoutIfNeeded);
+
+        defaultSystemUiVisibility = 0;
+        isSystemBarVisible = false;
+        isFullScreen = false;
+    }
+
+    /// <summary>
+    /// Deferred from constructor so virtual <see cref="ViewGroup.AddView"/> is not invoked from the ctor (S1699).
+    /// </summary>
+    void AttachPlayerLayoutIfNeeded()
+    {
+        if (relativeLayout is not null || playerView is null)
+        {
+            return;
+        }
+
         var layout = new RelativeLayout.LayoutParams(LayoutParams.WrapContent, LayoutParams.WrapContent);
         layout.AddRule(LayoutRules.CenterInParent);
         layout.AddRule(LayoutRules.CenterVertical);
@@ -77,11 +94,6 @@ public class MauiMediaElement : CoordinatorLayout
         relativeLayout.AddView(playerView);
 
         AddView(relativeLayout);
-
-        // Initialize fields
-        defaultSystemUiVisibility = 0;
-        isSystemBarVisible = false;
-        isFullScreen = false;
     }
 
     public override void OnDetachedFromWindow()

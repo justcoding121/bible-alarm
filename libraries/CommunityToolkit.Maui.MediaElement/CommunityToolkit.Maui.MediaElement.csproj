@@ -12,6 +12,8 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <IsAotCompatible>true</IsAotCompatible>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- NSObject / UIKit tooling uses GC.SuppressFinalize outside IDisposable.Dispose — intentional for Objective-C lifecycle. -->
+    <NoWarn>$(NoWarn);CA1816</NoWarn>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
     
 
