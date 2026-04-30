@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.XPath;
+using Bible.Alarm.VersionPatcher.Constants;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
@@ -100,7 +101,7 @@ public class ReleaseVersionPatcher(IVersionService versionService, IFileService 
         }
 
         var nsmgr = new XmlNamespaceManager(doc.NameTable);
-        nsmgr.AddNamespace("appx", "http://schemas.microsoft.com/appx/manifest/foundation/windows10");
+        nsmgr.AddNamespace("appx", AppxManifestXml.FoundationWindows10);
         var identity = doc.SelectSingleNode("//appx:Identity", nsmgr) ?? doc.SelectSingleNode("//Identity");
         if (identity?.Attributes?["Version"] != null)
         {

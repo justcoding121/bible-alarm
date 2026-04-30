@@ -181,9 +181,9 @@ public sealed class TrackPlaybackHandler
         // Seeking past the end causes ExoPlayer to immediately fire endedState, which triggers
         // auto-advance to the next track. This happens when FinishedDuration is stale
         // (e.g. from a previously played longer track after a publication/track change).
-        // Only reject the seek when duration is positively known and the seek exceeds it.
-        // When duration is still zero (not yet determined from stream), allow the seek through;
-        // the post-play validation on iOS/Android will catch it once duration is accurate.
+        // Only reject the seek when duration is known and the seek exceeds it.
+        // When duration is still zero (not yet from stream metadata), allow the seek.
+        // Post-play validation on iOS/Android corrects once duration is known.
 #if IOS || ANDROID
         var postPlayNeedsDurationRecheck = false;
 #endif

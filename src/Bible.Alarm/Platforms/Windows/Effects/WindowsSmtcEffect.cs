@@ -48,9 +48,8 @@ public class WindowsSmtcEffect(
 
             // Update SMTC button states based on navigation capabilities
             // Enable buttons when playback is active (playing or paused)
-            var canPlayNext = (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused)
-                ? action.CanPlayNext
-                : false;
+            var playbackActive = currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused;
+            var canPlayNext = playbackActive && action.CanPlayNext;
 
             // Previous button is always available when playing or paused (can restart current track)
             var canPlayPrevious = (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused);
@@ -81,9 +80,8 @@ public class WindowsSmtcEffect(
 
             // Update button states when status changes
             // Enable buttons when playing or paused
-            var canPlayNext = (action.Status == PlayStatus.Playing || action.Status == PlayStatus.Paused)
-                ? currentState.CanPlayNext
-                : false;
+            var playbackActive = action.Status == PlayStatus.Playing || action.Status == PlayStatus.Paused;
+            var canPlayNext = playbackActive && currentState.CanPlayNext;
 
             // Previous button is always available when playing or paused
             var canPlayPrevious = (action.Status == PlayStatus.Playing || action.Status == PlayStatus.Paused);

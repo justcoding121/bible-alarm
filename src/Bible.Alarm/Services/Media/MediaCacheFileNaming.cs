@@ -38,8 +38,7 @@ internal static class MediaCacheFileNaming
     /// </summary>
     private static string GetFileExtensionFromLookUpPath(string lookUpPath)
     {
-        // When LookUpPath is a CDN URL (mediator/VOD), UrlConstructionService returns track.TrackUrl.Url;
-        // it has no fileformat param, so infer extension from the URL path.
+        // CDN lookup paths: UrlConstructionService may set track TrackUrl URL with no fileformat param — infer extension from path.
         if (Uri.TryCreate(lookUpPath, UriKind.Absolute, out var uri) &&
             uri.Scheme is "http" or "https" &&
             !string.IsNullOrEmpty(uri.AbsolutePath))

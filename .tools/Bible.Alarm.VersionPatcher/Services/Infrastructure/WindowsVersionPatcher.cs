@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.XPath;
+using Bible.Alarm.VersionPatcher.Constants;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
@@ -38,7 +39,7 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
         }
 
         var namespaceManager = new XmlNamespaceManager(doc.NameTable);
-        namespaceManager.AddNamespace("appx", "http://schemas.microsoft.com/appx/manifest/foundation/windows10");
+        namespaceManager.AddNamespace("appx", AppxManifestXml.FoundationWindows10);
 
         var identityNode = doc.SelectSingleNode("//appx:Identity", namespaceManager)
                           ?? doc.SelectSingleNode("//Identity");

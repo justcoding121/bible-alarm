@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.IO;
+
 namespace Bible.Alarm.Shared.Constants;
 
 /// <summary>
@@ -10,7 +12,7 @@ public static class MediaUriSchemeConstants
     public const string FilePrefix = "file://";
 
     /// <summary><c>file:///</c> variant used on some Unix-style absolute URIs.</summary>
-    public const string FileUriTripleSlashPrefix = FilePrefix + "/";
+    public static readonly string FileUriTripleSlashPrefix = FilePrefix + Path.AltDirectorySeparatorChar;
 
     public const string HttpsPrefix = "https://";
     public const string HttpPrefix = "http://";

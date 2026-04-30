@@ -107,9 +107,7 @@ public static class PlaybackReducer
         // but once Playing, we use the actual status
         // Keep flag set during Loading/Stopped transitions to prevent flicker
         var wasAutoAdvancing = state.IsAutoAdvancing;
-        var isAutoAdvancing = action.Status == PlayStatus.Playing
-            ? false
-            : state.IsAutoAdvancing;
+        var isAutoAdvancing = action.Status != PlayStatus.Playing && state.IsAutoAdvancing;
 
         if (wasAutoAdvancing && !isAutoAdvancing && action.Status == PlayStatus.Playing)
         {

@@ -95,8 +95,7 @@ internal static class CollectionViewScrollExecutor
                                 }
 
 #if WINDOWS
-                                // Check if item is in the last 10 positions — this block is compiled only for WinUI;
-                                // use native scrolling for those items when needed.
+                                // Check if item is in the last 10 positions — WinUI-only block for native scrolling when needed.
                                     bool isInLast10 = false;
                                     var itemsSource = collectionView.ItemsSource;
                                     if (itemsSource != null)

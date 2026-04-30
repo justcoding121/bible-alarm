@@ -13,8 +13,20 @@ internal static class CarConnectionHelper
 {
     private static readonly ILogger logger = Log.ForContext(typeof(CarConnectionHelper));
 
-    private static readonly global::Android.Net.Uri CarConnectionUri =
-        global::Android.Net.Uri.Parse("content://androidx.car.app.connection")!;
+    private static readonly global::Android.Net.Uri CarConnectionUri = CreateCarConnectionUri();
+
+    private static global::Android.Net.Uri CreateCarConnectionUri()
+    {
+#pragma warning disable CS8602 // Xamarin Android Uri.Builder facade is oblivious to nullability; runtime always returns a valid Uri here.
+        var uri = new global::Android.Net.Uri.Builder()
+            .Scheme(global::Android.Content.ContentResolver.SchemeContent)
+            .Authority("androidx.car.app.connection")
+            .Build();
+#pragma warning restore CS8602
+
+        ArgumentNullException.ThrowIfNull(uri);
+        return uri;
+    }
 
     private const string CarConnectionStateColumn = "CarConnectionState";
 

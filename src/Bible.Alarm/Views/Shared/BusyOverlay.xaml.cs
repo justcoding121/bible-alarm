@@ -377,7 +377,7 @@ public partial class BusyOverlay : ContentView
         // Note: We now use Opacity instead of IsVisible for instant show/hide
         if (bindable is BusyOverlay overlay && oldValue != newValue)
         {
-            var oldBoolValue = oldValue is bool oldBool ? oldBool : false;
+            var oldBoolValue = oldValue as bool? ?? false;
             var newBoolValue = (bool)newValue;
             
             // Double-check: if the boolean values are actually the same, skip processing
