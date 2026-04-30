@@ -236,27 +236,24 @@ public sealed class CategorySelectionAutoPopulateHandler
             }
             
             // Step 3: If no publication with LanguageId found, try publications without LanguageId
-            if (string.IsNullOrEmpty(publicationCode))
+            if (string.IsNullOrEmpty(publicationCode) && !string.IsNullOrWhiteSpace(action.CategoryName))
             {
-                if (!string.IsNullOrWhiteSpace(action.CategoryName))
+                var categoryComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(action.CategoryName);
+                var pubWithoutLanguage = (await db.BiblePublications
+                    .AsNoTracking()
+                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == action.CategoryName) &&
+                                bp.LanguageId == null)
+                    .ToListAsync())
+                    .OrderBy(bp => bp.PublicationCode, categoryComparer)
+                    .ThenBy(bp => bp.Id)
+                    .FirstOrDefault();
+
+                if (pubWithoutLanguage != null)
                 {
-                    var categoryComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(action.CategoryName);
-                    var pubWithoutLanguage = (await db.BiblePublications
-                        .AsNoTracking()
-                        .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == action.CategoryName) &&
-                                    bp.LanguageId == null)
-                        .ToListAsync())
-                        .OrderBy(bp => bp.PublicationCode, categoryComparer)
-                        .ThenBy(bp => bp.Id)
-                        .FirstOrDefault();
-                    
-                    if (pubWithoutLanguage != null)
-                    {
-                        publicationCode = pubWithoutLanguage.PublicationCode;
-                        publicationWithoutLanguage = true;
-                        logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId,
-                            publicationCode);
-                    }
+                    publicationCode = pubWithoutLanguage.PublicationCode;
+                    publicationWithoutLanguage = true;
+                    logger.Debug(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId,
+                        publicationCode);
                 }
             }
 

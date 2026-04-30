@@ -91,15 +91,13 @@ public class AudioPlayerStateManager
         }
 
         // If Source is null, ignore state changes (except Stopped/None)
-        if (mediaElement?.Source == null)
+        if (mediaElement?.Source == null &&
+            newState is not MediaElementState.Stopped and not MediaElementState.None)
         {
-            if (newState is not MediaElementState.Stopped and not MediaElementState.None)
-            {
-                logger.Debug("Ignoring state change to {NewState} because Source is null, forcing Status to Stopped", newState);
-                Status = PlayStatus.Stopped;
-                SendStatusMessage();
-                return true;
-            }
+            logger.Debug("Ignoring state change to {NewState} because Source is null, forcing Status to Stopped", newState);
+            Status = PlayStatus.Stopped;
+            SendStatusMessage();
+            return true;
         }
 
         return false;

@@ -46,16 +46,14 @@ public sealed class MusicStateInitializer
         var initialMusicEnabled = currentSchedule.MusicEnabled;
 
         if (!string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
-            !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode))
+            !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
+            !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
         {
-            if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
-            {
-                displayTextProvider.UpdateTrackCache(
-                    currentSchedule.MusicTrackName,
-                    currentSchedule.MusicTrackCode,
-                    currentSchedule.MusicPublicationCode,
-                    currentSchedule.MusicLanguageCode);
-            }
+            displayTextProvider.UpdateTrackCache(
+                currentSchedule.MusicTrackName,
+                currentSchedule.MusicTrackCode,
+                currentSchedule.MusicPublicationCode,
+                currentSchedule.MusicLanguageCode);
         }
 
         propertyNotifier.NotifyAllMusicPropertiesChanged();

@@ -90,12 +90,11 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
 
         try
         {
-            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand)
+            if (ViewModel != null &&
+                ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand &&
+                asyncCommand.CanExecute(sectionItem))
             {
-                if (asyncCommand.CanExecute(sectionItem))
-                {
-                    await asyncCommand.ExecuteAsync(sectionItem);
-                }
+                await asyncCommand.ExecuteAsync(sectionItem);
             }
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))

@@ -136,14 +136,12 @@ internal static class MusicDisplayNamePopulator
         }
 
         // Populate melody publication name
-        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+        if (!string.IsNullOrWhiteSpace(music.PublicationCode) &&
+            lookupData.MelodyReleases.TryGetValue(music.PublicationCode, out var melodyRelease))
         {
-            if (lookupData.MelodyReleases.TryGetValue(music.PublicationCode, out var melodyRelease))
-            {
-                scheduleStateItem.MusicPublicationName = melodyRelease.Name;
-                Log.Logger.Debug("Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    melodyRelease.Name, schedule.Id, music.PublicationCode);
-            }
+            scheduleStateItem.MusicPublicationName = melodyRelease.Name;
+            Log.Logger.Debug("Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                melodyRelease.Name, schedule.Id, music.PublicationCode);
         }
 
         // Use cached melody tracks.

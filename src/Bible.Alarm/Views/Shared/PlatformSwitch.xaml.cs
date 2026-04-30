@@ -159,21 +159,15 @@ public partial class PlatformSwitch : ContentView
         base.OnPropertyChanged(propertyName);
 
         // Sync Scale property to child controls (for Android and iOS SfSwitch)
-        if (propertyName == nameof(Scale))
+        if (propertyName == nameof(Scale) && sfSwitch != null)
         {
-            if (sfSwitch != null)
-            {
-                sfSwitch.Scale = Scale;
-            }
+            sfSwitch.Scale = Scale;
         }
 
         // Sync HorizontalOptions property to child controls
-        if (propertyName == nameof(HorizontalOptions))
+        if (propertyName == nameof(HorizontalOptions) && sfSwitch != null)
         {
-            if (sfSwitch != null)
-            {
-                sfSwitch.HorizontalOptions = HorizontalOptions;
-            }
+            sfSwitch.HorizontalOptions = HorizontalOptions;
         }
     }
 }

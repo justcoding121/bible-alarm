@@ -107,28 +107,26 @@ internal static class BiblePublicationDisplayNamePopulator
         // Use media index: if publication is no-language (e.g. iam), use no-language lookups regardless of schedule's stored LanguageCode (e.g. MY).
         var isNoLanguagePublication = lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode);
 
-        if (isNoLanguagePublication)
+        if (isNoLanguagePublication &&
+            lookupData.NoLanguagePublications.TryGetValue(biblePublication.PublicationCode, out var noLangMeta))
         {
-            if (lookupData.NoLanguagePublications.TryGetValue(biblePublication.PublicationCode, out var noLangMeta))
+            if (!string.IsNullOrWhiteSpace(noLangMeta.Name))
             {
-                if (!string.IsNullOrWhiteSpace(noLangMeta.Name))
-                {
-                    scheduleStateItem.BiblePublicationName = noLangMeta.Name;
-                    Log.Logger.Debug("Set BiblePublicationName '{BiblePublicationName}' (no-language) for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                        noLangMeta.Name, schedule.Id, biblePublication.PublicationCode);
-                }
-
-                scheduleStateItem.BiblePublicationIsMusic = noLangMeta.IsMusic ||
-                    JwSourceHelper.MusicFlagPublicationCodes.Contains(biblePublication.PublicationCode);
-                if (!string.IsNullOrWhiteSpace(noLangMeta.CategoryName)) // CategoryName holds CategoryCode for display/filter
-                {
-                    scheduleStateItem.BiblePublicationCategoryId = noLangMeta.CategoryId;
-                    scheduleStateItem.BiblePublicationCategoryName = noLangMeta.CategoryName;
-                    Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' (no-language) for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                        noLangMeta.CategoryId, noLangMeta.CategoryName, schedule.Id, biblePublication.PublicationCode);
-                }
-                return;
+                scheduleStateItem.BiblePublicationName = noLangMeta.Name;
+                Log.Logger.Debug("Set BiblePublicationName '{BiblePublicationName}' (no-language) for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                    noLangMeta.Name, schedule.Id, biblePublication.PublicationCode);
             }
+
+            scheduleStateItem.BiblePublicationIsMusic = noLangMeta.IsMusic ||
+                JwSourceHelper.MusicFlagPublicationCodes.Contains(biblePublication.PublicationCode);
+            if (!string.IsNullOrWhiteSpace(noLangMeta.CategoryName)) // CategoryName holds CategoryCode for display/filter
+            {
+                scheduleStateItem.BiblePublicationCategoryId = noLangMeta.CategoryId;
+                scheduleStateItem.BiblePublicationCategoryName = noLangMeta.CategoryName;
+                Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' (no-language) for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                    noLangMeta.CategoryId, noLangMeta.CategoryName, schedule.Id, biblePublication.PublicationCode);
+            }
+            return;
         }
 
         // For language-bound publications, or fallback if no-language lookup didn't find it.
@@ -183,15 +181,13 @@ internal static class BiblePublicationDisplayNamePopulator
         // Use media index: if publication is no-language (e.g. iam), use no-language lookups regardless of schedule's stored LanguageCode (e.g. MY).
         var isNoLanguagePublication = lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode);
 
-        if (isNoLanguagePublication)
+        if (isNoLanguagePublication &&
+            lookupData.NoLanguageSections.TryGetValue((biblePublication.PublicationCode, sectionCode), out var noLangSectionName))
         {
-            if (lookupData.NoLanguageSections.TryGetValue((biblePublication.PublicationCode, sectionCode), out var noLangSectionName))
-            {
-                scheduleStateItem.BiblePublicationSectionName = noLangSectionName;
-                Log.Logger.Debug("Set BiblePublicationSectionName '{BiblePublicationSectionName}' (no-language) for schedule {ScheduleId} (SectionCode: {SectionCode})",
-                    noLangSectionName, schedule.Id, biblePublication.SectionCode);
-                return;
-            }
+            scheduleStateItem.BiblePublicationSectionName = noLangSectionName;
+            Log.Logger.Debug("Set BiblePublicationSectionName '{BiblePublicationSectionName}' (no-language) for schedule {ScheduleId} (SectionCode: {SectionCode})",
+                noLangSectionName, schedule.Id, biblePublication.SectionCode);
+            return;
         }
 
         // For language-bound publications, or fallback if no-language lookup didn't find it.
@@ -221,16 +217,14 @@ internal static class BiblePublicationDisplayNamePopulator
         // Use media index: if publication is no-language (e.g. iam), use no-language lookups regardless of schedule's stored LanguageCode (e.g. MY).
         var isNoLanguagePublication = lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode);
 
-        if (isNoLanguagePublication)
+        var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
+        if (isNoLanguagePublication &&
+            lookupData.NoLanguageTrackTitles.TryGetValue((biblePublication.PublicationCode, normalizedSectionCode, biblePublication.TrackCode), out var noLangTitle))
         {
-            var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
-            if (lookupData.NoLanguageTrackTitles.TryGetValue((biblePublication.PublicationCode, normalizedSectionCode, biblePublication.TrackCode), out var noLangTitle))
-            {
-                scheduleStateItem.BiblePublicationTrackTitle = noLangTitle;
-                Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' (no-language) for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackCode: {TrackCode})",
-                    noLangTitle, schedule.Id, biblePublication.SectionCode, biblePublication.TrackCode);
-                return;
-            }
+            scheduleStateItem.BiblePublicationTrackTitle = noLangTitle;
+            Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' (no-language) for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackCode: {TrackCode})",
+                noLangTitle, schedule.Id, biblePublication.SectionCode, biblePublication.TrackCode);
+            return;
         }
 
         // For language-bound publications, or fallback if no-language lookup didn't find it.

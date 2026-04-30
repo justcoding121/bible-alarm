@@ -34,7 +34,7 @@ public sealed class SectionFetchProgressReporter : IFetchProgress
         });
     }
 
-    public void UpdateProgressText(string _) { }
+    public void UpdateProgressText(string text) => _ = text;
 
-    public void SetIsVisible(bool _) { }
+    public void SetIsVisible(bool isVisible) => _ = isVisible;
 }

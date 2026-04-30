@@ -13,24 +13,24 @@ public class BindableBehavior<T> : Behavior<T> where T : BindableObject
     public T AssociatedObject { get; private set; }
 
     /// <inheritdoc />
-    protected override void OnAttachedTo(T visualElement)
+    protected override void OnAttachedTo(T bindable)
     {
-        base.OnAttachedTo(visualElement);
+        base.OnAttachedTo(bindable);
 
-        AssociatedObject = visualElement;
+        AssociatedObject = bindable;
 
-        if (visualElement.BindingContext != null)
+        if (bindable.BindingContext != null)
         {
-            BindingContext = visualElement.BindingContext;
+            BindingContext = bindable.BindingContext;
         }
 
-        visualElement.BindingContextChanged += OnBindingContextChanged;
+        bindable.BindingContextChanged += OnBindingContextChanged;
     }
 
     private void OnBindingContextChanged(object sender, EventArgs e) => OnBindingContextChanged();
 
     /// <inheritdoc />
-    protected override void OnDetachingFrom(T view) => view.BindingContextChanged -= OnBindingContextChanged;
+    protected override void OnDetachingFrom(T bindable) => bindable.BindingContextChanged -= OnBindingContextChanged;
 
     /// <summary>
     /// Track any changes of the view's binding context

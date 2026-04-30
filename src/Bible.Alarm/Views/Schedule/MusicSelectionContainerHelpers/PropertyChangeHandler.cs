@@ -135,7 +135,7 @@ public class PropertyChangeHandler : IDisposable
             debounceTokenSource?.Cancel();
             debounceTokenSource?.Dispose();
         }
-        catch
+        catch (Exception)
         {
             // Ignore errors during cancellation/disposal
         }

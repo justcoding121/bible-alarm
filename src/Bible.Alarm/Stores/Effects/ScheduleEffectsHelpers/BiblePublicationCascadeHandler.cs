@@ -236,24 +236,21 @@ public sealed class BiblePublicationCascadeHandler
             break;
         }
         
-        if (string.IsNullOrEmpty(publicationCode))
+        if (string.IsNullOrEmpty(publicationCode) && !string.IsNullOrWhiteSpace(categoryName))
         {
-            if (!string.IsNullOrWhiteSpace(categoryName))
+            var pubWithoutLanguage = await db.BiblePublications
+                .AsNoTracking()
+                .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
+                            bp.LanguageId == null)
+                .OrderBy(bp => bp.Id)
+                .FirstOrDefaultAsync();
+
+            if (pubWithoutLanguage != null)
             {
-                var pubWithoutLanguage = await db.BiblePublications
-                    .AsNoTracking()
-                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
-                                bp.LanguageId == null)
-                    .OrderBy(bp => bp.Id)
-                    .FirstOrDefaultAsync();
-                
-                if (pubWithoutLanguage != null)
-                {
-                    publicationCode = pubWithoutLanguage.PublicationCode;
-                    publicationWithoutLanguage = true;
-                    logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId,
-                        publicationCode);
-                }
+                publicationCode = pubWithoutLanguage.PublicationCode;
+                publicationWithoutLanguage = true;
+                logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId,
+                    publicationCode);
             }
         }
         

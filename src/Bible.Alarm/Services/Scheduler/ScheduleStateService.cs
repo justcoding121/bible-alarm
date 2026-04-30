@@ -50,26 +50,26 @@ public sealed class ScheduleStateService(
             var (androidHandled, androidUpdated) = await ScheduleStateServiceAndroidEnableWithPermission.TryHandleEnableAsync(
                 scheduleId, isEnabled, logger, alarmScheduleService, alarmService, dispatcher, navigationService,
                 serviceProvider, cancellationTokenSource.Token, IsSecurityException, HandleSecurityExceptionAsync);
+            if (androidHandled && androidUpdated != null)
+            {
+                UpdateFluxorStore(androidUpdated);
+                await ShowNotificationIfEnabledAsync(isEnabled, androidUpdated);
+            }
             if (androidHandled)
             {
-                if (androidUpdated != null)
-                {
-                    UpdateFluxorStore(androidUpdated);
-                    await ShowNotificationIfEnabledAsync(isEnabled, androidUpdated);
-                }
                 return true;
             }
 #elif IOS
             var (iosHandled, iosUpdated) = await ScheduleStateServiceIosEnableWithPermission.TryHandleEnableAsync(
                 scheduleId, isEnabled, logger, alarmScheduleService, alarmService, dispatcher, navigationService,
                 serviceProvider, cancellationTokenSource.Token, IsSecurityException, HandleSecurityExceptionAsync, UpdateFluxorStore);
+            if (iosHandled && iosUpdated != null)
+            {
+                UpdateFluxorStore(iosUpdated);
+                await ShowNotificationIfEnabledAsync(isEnabled, iosUpdated);
+            }
             if (iosHandled)
             {
-                if (iosUpdated != null)
-                {
-                    UpdateFluxorStore(iosUpdated);
-                    await ShowNotificationIfEnabledAsync(isEnabled, iosUpdated);
-                }
                 return true;
             }
 #else
