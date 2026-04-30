@@ -23,7 +23,7 @@ internal static class MediaCacheCleanup
         // Keep a small lookaround window (prev + next) so cleanup doesn't delete them.
         if (schedule.NumberOfTracksToPlay <= 0 && playItems.Count > 0)
         {
-            var anchorMetadata = playItems.Last().Metadata;
+            var anchorMetadata = playItems[playItems.Count - 1].Metadata;
             try
             {
                 playItems.Add(await mediaPlayService.GetNextPlayItemAsync(anchorMetadata));
@@ -290,7 +290,7 @@ internal static class MediaCacheCleanup
             // so we don't delete tracks that were downloaded opportunistically.
             if (schedule.NumberOfTracksToPlay <= 0 && newPlaylist.Count > 0)
             {
-                var anchorMetadata = newPlaylist.Last().Metadata;
+                var anchorMetadata = newPlaylist[newPlaylist.Count - 1].Metadata;
                 try
                 {
                     newPlaylist.Add(await mediaPlayService.GetNextPlayItemAsync(anchorMetadata));

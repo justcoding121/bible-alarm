@@ -55,16 +55,6 @@ public abstract class MediaSource : Element
     }
 
     /// <summary>
-    /// Creates a <see cref="FileMediaSource"/> from a local path.
-    /// </summary>
-    /// <param name="path">Full path to the file to load.</param>
-    /// <returns>A <see cref="FileMediaSource"/> instance.</returns>
-    public static MediaSource FromFile(string? path)
-    {
-        return new FileMediaSource { Path = path };
-    }
-
-    /// <summary>
     /// Creates a <see cref="UriMediaSource"/> from an absolute URI.
     /// </summary>
     /// <param name="uri">Absolute URI to load.</param>
@@ -83,6 +73,16 @@ public abstract class MediaSource : Element
         }
 
         return new UriMediaSource { Uri = uri };
+    }
+
+    /// <summary>
+    /// Creates a <see cref="FileMediaSource"/> from a local path.
+    /// </summary>
+    /// <param name="path">Full path to the file to load.</param>
+    /// <returns>A <see cref="FileMediaSource"/> instance.</returns>
+    public static MediaSource FromFile(string? path)
+    {
+        return new FileMediaSource { Path = path };
     }
 
     /// <summary>

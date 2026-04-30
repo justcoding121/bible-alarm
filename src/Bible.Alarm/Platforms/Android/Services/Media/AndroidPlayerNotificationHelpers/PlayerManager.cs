@@ -210,7 +210,7 @@ public sealed class PlayerManager(ILogger logger)
     /// <summary>
     /// ExoPlayer listener that intercepts Next/Previous button presses from system controls.
     /// </summary>
-    private class ExoPlayerListener(ILogger logger) : Object, IPlayerListener
+    private sealed class ExoPlayerListener(ILogger logger) : Object, IPlayerListener
     {
         private DateTime lastButtonPressTime = DateTime.MinValue;
         private string? lastMediaId;

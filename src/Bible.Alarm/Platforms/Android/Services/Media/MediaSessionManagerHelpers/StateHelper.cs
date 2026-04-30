@@ -8,6 +8,8 @@ namespace Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelper
 /// </summary>
 public static class StateHelper
 {
+    private static readonly string[] ActionsDescriptionNoneFallback = ["None"];
+
     /// <summary>
     /// Gets a human-readable name for a playback state.
     /// </summary>
@@ -43,7 +45,7 @@ public static class StateHelper
         if ((actions & PlaybackStateCompat.ActionSkipToNext) != 0) actionList.Add("Next");
         if ((actions & PlaybackStateCompat.ActionSkipToPrevious) != 0) actionList.Add("Previous");
         if ((actions & PlaybackStateCompat.ActionPlayFromMediaId) != 0) actionList.Add("PlayFromMediaId");
-        return string.Join(", ", actionList.Count > 0 ? actionList : new[] { "None" });
+        return string.Join(", ", actionList.Count > 0 ? actionList : ActionsDescriptionNoneFallback);
     }
 
     /// <summary>

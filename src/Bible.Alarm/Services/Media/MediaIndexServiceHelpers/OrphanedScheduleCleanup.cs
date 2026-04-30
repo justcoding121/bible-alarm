@@ -16,7 +16,7 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
     private const string SqlParamPubCode = "@pubCode";
     private const string SqlParamLangCode = "@langCode";
 
-    private record ScheduleRef(
+    private sealed record ScheduleRef(
         int AlarmScheduleId,
         string PublicationCode,
         string LanguageCode,

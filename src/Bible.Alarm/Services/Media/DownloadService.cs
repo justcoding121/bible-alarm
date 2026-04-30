@@ -231,7 +231,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
 
             try
             {
-                bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, readTimeoutCts.Token);
+                bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), readTimeoutCts.Token);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {

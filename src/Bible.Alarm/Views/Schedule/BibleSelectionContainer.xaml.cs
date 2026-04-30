@@ -22,6 +22,11 @@ public partial class BibleSelectionContainer : ContentView
         WireUpTapGestureHandlers();
     }
 
+    public BibleSelectionContainer(BiblePublicationSelectionContainerViewModel viewModel) : this()
+    {
+        BindingContext = viewModel;
+    }
+
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
@@ -119,11 +124,6 @@ public partial class BibleSelectionContainer : ContentView
             }
             parent = parent.Parent;
         }
-    }
-
-    public BibleSelectionContainer(BiblePublicationSelectionContainerViewModel viewModel) : this()
-    {
-        BindingContext = viewModel;
     }
 
     protected override void OnBindingContextChanged()

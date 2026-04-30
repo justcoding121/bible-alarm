@@ -52,29 +52,6 @@ public static class ConcurrencyHelper
     }
 
     /// <summary>
-    /// Like <see cref="ExecuteAsync{T}(SemaphoreSlim, Func{Task{T}}, int)"/> but <typeparamref name="TResult"/> must be a struct so a timed-out wait returns <c>null</c> unambiguously (nullable value semantics).
-    /// </summary>
-    public static async Task<TResult?> ExecuteWithTimeoutAsync<TResult>(
-        SemaphoreSlim @lock,
-        Func<Task<TResult>> func,
-        int timeoutMs) where TResult : struct
-    {
-        if (!await @lock.WaitAsync(timeoutMs))
-        {
-            return null;
-        }
-
-        try
-        {
-            return await func();
-        }
-        finally
-        {
-            @lock.Release();
-        }
-    }
-
-    /// <summary>
     /// Executes an async action within a SemaphoreSlim lock, automatically releasing the lock in a finally block.
     /// Handles ObjectDisposedException gracefully when releasing the lock.
     /// </summary>
@@ -171,6 +148,29 @@ public static class ConcurrencyHelper
                 Log.Logger.Debug(ex, LogMessageSemaphoreReleaseDisposed);
                 onDisposedException?.Invoke(ex);
             }
+        }
+    }
+
+    /// <summary>
+    /// Like <see cref="ExecuteAsync{T}(SemaphoreSlim, Func{Task{T}}, int)"/> but <typeparamref name="TResult"/> must be a struct so a timed-out wait returns <c>null</c> unambiguously (nullable value semantics).
+    /// </summary>
+    public static async Task<TResult?> ExecuteWithTimeoutAsync<TResult>(
+        SemaphoreSlim @lock,
+        Func<Task<TResult>> func,
+        int timeoutMs) where TResult : struct
+    {
+        if (!await @lock.WaitAsync(timeoutMs))
+        {
+            return null;
+        }
+
+        try
+        {
+            return await func();
+        }
+        finally
+        {
+            @lock.Release();
         }
     }
 }

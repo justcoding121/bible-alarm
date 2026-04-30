@@ -411,21 +411,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         });
     }
 
-    /// <summary>
-    /// Clears the ManualNavigationPending flag after a delay. Both PlayNextAsync and MediaEnded run on the
-    /// main thread, so MediaEnded is always dequeued AFTER PlayNextAsync completes. An immediate clear in
-    /// finally would let the queued MediaEnded (from the old dummy track) see the flag as false and advance
-    /// a second time. The delay keeps the flag true long enough for any queued MediaEnded to be suppressed.
-    /// </summary>
-    private void ScheduleClearManualNavigationFlag()
-    {
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(1000);
-            stateManager.ManualNavigationPending = false;
-        });
-    }
-
     public void Receive(PlayButtonPressedMessage message)
     {
         systemControlsHandler.HandlePlayButton(PlayOrStartDefaultAsync);
@@ -451,6 +436,31 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         });
     }
 
+    public void Receive(SeekForwardButtonPressedMessage message)
+    {
+        systemControlsHandler.HandleSeekForwardButton(() => SeekForwardAsync());
+    }
+
+    public void Receive(SeekBackwardButtonPressedMessage message)
+    {
+        systemControlsHandler.HandleSeekBackwardButton(() => SeekBackwardAsync());
+    }
+
+    /// <summary>
+    /// Clears the ManualNavigationPending flag after a delay. Both PlayNextAsync and MediaEnded run on the
+    /// main thread, so MediaEnded is always dequeued AFTER PlayNextAsync completes. An immediate clear in
+    /// finally would let the queued MediaEnded (from the old dummy track) see the flag as false and advance
+    /// a second time. The delay keeps the flag true long enough for any queued MediaEnded to be suppressed.
+    /// </summary>
+    private void ScheduleClearManualNavigationFlag()
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(1000);
+            stateManager.ManualNavigationPending = false;
+        });
+    }
+
     private async Task PlayOrStartDefaultAsync()
     {
         if (!stateManager.IsPreparingOrPlaying(audioPlayer) &&
@@ -467,16 +477,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
 
         await PlayAsync();
-    }
-
-    public void Receive(SeekForwardButtonPressedMessage message)
-    {
-        systemControlsHandler.HandleSeekForwardButton(() => SeekForwardAsync());
-    }
-
-    public void Receive(SeekBackwardButtonPressedMessage message)
-    {
-        systemControlsHandler.HandleSeekBackwardButton(() => SeekBackwardAsync());
     }
 
     public async Task SeekForwardAsync()

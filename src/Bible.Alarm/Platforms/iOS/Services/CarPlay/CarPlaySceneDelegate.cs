@@ -85,6 +85,15 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     }
 
     /// <summary>
+    /// Called when the CarPlay scene is about to connect to a session with a window.
+    /// </summary>
+    [Export("templateApplicationScene:didConnectInterfaceController:toWindow:")]
+    public void DidConnect(CPTemplateApplicationScene templateApplicationScene, CPInterfaceController interfaceController, CPWindow window)
+    {
+        DidConnect(templateApplicationScene, interfaceController);
+    }
+
+    /// <summary>
     /// Called when CarPlay disconnects from the app.
     /// </summary>
     [Export("templateApplicationScene:didDisconnectInterfaceController:")]
@@ -153,15 +162,6 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         {
             logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressCarPlayFinalizersUnexpected);
         }
-    }
-
-    /// <summary>
-    /// Called when the CarPlay scene is about to connect to a session with a window.
-    /// </summary>
-    [Export("templateApplicationScene:didConnectInterfaceController:toWindow:")]
-    public void DidConnect(CPTemplateApplicationScene templateApplicationScene, CPInterfaceController interfaceController, CPWindow window)
-    {
-        DidConnect(templateApplicationScene, interfaceController);
     }
 
     /// <summary>
