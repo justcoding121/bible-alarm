@@ -25,7 +25,6 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
-    private readonly IServiceProvider serviceProvider;
 
 #if ANDROID
     private readonly NotificationPermissionService? permissionService;
@@ -42,12 +41,10 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
     public NotificationPermissionViewModel(
         ILogger logger,
         INavigationService navigationService,
-        IServiceProvider serviceProvider,
         Action<bool>? onModalDismissed = null)
     {
         this.logger = logger;
         this.navigationService = navigationService;
-        this.serviceProvider = serviceProvider;
         this.onModalDismissed = onModalDismissed;
 
 #if ANDROID

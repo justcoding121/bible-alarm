@@ -68,7 +68,7 @@ public static class NumberOfTrackPermissionHandlers
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 await NotificationPermissionDeniedModalHelper.ShowAsync(
-                    logger, navigationService, serviceProvider,
+                    logger, navigationService,
                     onPermissionGranted: () =>
                     {
                         setIsUpdatingFromPermissionCheck(true);

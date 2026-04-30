@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels;
@@ -15,6 +16,7 @@ namespace Bible.Alarm.ViewModels.General;
 
 public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisposable
 {
+    [SuppressMessage("SonarAnalyzer.CSharp", "S4487", Justification = "Used only in IOS preprocessor blocks; unreachable on other targets.")]
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
 #if IOS

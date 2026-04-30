@@ -133,8 +133,8 @@ public sealed class ScheduleCommandExecutor
             // This is important because permission polling may have updated the ViewModel property
             // but the state update might not have been processed yet
 #if ANDROID
-            var alarmSettingsViewModel = getAlarmSettingsContainerViewModel?.Invoke();
-            var numberOfTrackViewModel = getNumberOfTrackContainerViewModel?.Invoke();
+            var alarmSettingsViewModel = this.getAlarmSettingsContainerViewModel?.Invoke();
+            var numberOfTrackViewModel = this.getNumberOfTrackContainerViewModel?.Invoke();
             
             if (currentSchedule != null)
             {

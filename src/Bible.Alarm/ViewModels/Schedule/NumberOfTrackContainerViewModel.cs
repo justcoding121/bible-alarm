@@ -86,7 +86,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
         this.dispatcher = dispatcher;
         this.mapper = mapper;
         containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "NumberOfTrack", s => s.ContainerReadiness.NumberOfTrack);
-        listPopulator = new NumberOfTracksListPopulator(logger, serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>());
+        listPopulator = new NumberOfTracksListPopulator(logger, this.serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>());
         stateChangeOrchestrator = new NumberOfTrackStateChangeOrchestrator(containerReadySignaler);
 
         state.StateChanged += OnStateChanged;
@@ -135,8 +135,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
         NumberOfTrackPermissionHandlers.HandlePermissionDenied(
             isWaitingForPermissionResponse,
             logger,
-            navigationService,
-            serviceProvider,
+            this.navigationService,
+            this.serviceProvider,
             () =>
             {
                 notificationEnabled = false;

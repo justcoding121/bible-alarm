@@ -16,7 +16,6 @@ public static class NotificationPermissionDeniedModalHelper
     public static async Task ShowAsync(
         ILogger logger,
         INavigationService navigationService,
-        IServiceProvider serviceProvider,
         Action onPermissionGranted)
     {
         try
@@ -24,7 +23,6 @@ public static class NotificationPermissionDeniedModalHelper
             var notificationViewModel = new NotificationPermissionViewModel(
                 logger,
                 navigationService,
-                serviceProvider,
                 onModalDismissed: permissionGranted =>
                 {
                     if (permissionGranted)

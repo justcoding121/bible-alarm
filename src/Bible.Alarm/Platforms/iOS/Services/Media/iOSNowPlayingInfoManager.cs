@@ -31,6 +31,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
     // Prevent the source UIImage from being garbage-collected while the
     // MPMediaItemArtwork handler still references it across the managed/native boundary.
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S4487", Justification = "Write-only retention field; value is not read after assignment by design.")]
     private UIImage? retainedArtworkImage;
 
     /// <summary>

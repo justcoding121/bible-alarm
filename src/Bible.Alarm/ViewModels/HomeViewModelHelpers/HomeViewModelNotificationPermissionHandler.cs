@@ -1,4 +1,5 @@
 #nullable enable
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -12,6 +13,7 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 public sealed class HomeViewModelNotificationPermissionHandler
 {
     private readonly ILogger logger;
+    [SuppressMessage("SonarAnalyzer.CSharp", "S4487", Justification = "Used only in ANDROID/IOS preprocessor blocks; unreachable on other targets.")]
     private readonly IState<ApplicationState> state;
 
     public HomeViewModelNotificationPermissionHandler(ILogger logger, IState<ApplicationState> state)

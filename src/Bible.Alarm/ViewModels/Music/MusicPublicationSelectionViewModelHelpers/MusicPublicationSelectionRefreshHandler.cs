@@ -23,20 +23,17 @@ public sealed class MusicPublicationSelectionRefreshHandler
 
     private readonly IState<ApplicationState> state;
     private readonly MusicPublicationSelectionStateManager stateManager;
-    private readonly MusicPublicationSelectionDataProvider dataProvider;
     private readonly MusicPublicationSelectionPropertyManager propertyManager;
     private readonly IMapper mapper;
 
     public MusicPublicationSelectionRefreshHandler(
         IState<ApplicationState> state,
         MusicPublicationSelectionStateManager stateManager,
-        MusicPublicationSelectionDataProvider dataProvider,
         MusicPublicationSelectionPropertyManager propertyManager,
         IMapper mapper)
     {
         this.state = state;
         this.stateManager = stateManager;
-        this.dataProvider = dataProvider;
         this.propertyManager = propertyManager;
         this.mapper = mapper;
     }

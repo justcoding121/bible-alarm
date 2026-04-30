@@ -4,7 +4,6 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -26,45 +25,33 @@ public sealed class ScheduleCommandService : IScheduleCommandService
     private readonly ILogger logger;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
-    private readonly IAlarmScheduleService alarmScheduleService;
-    private readonly IScheduleDisplayNameService scheduleDisplayNameService;
     private readonly IScheduleSaveService scheduleSaveService;
-    private readonly IScheduleValidationService scheduleValidationService;
     private readonly IPlaybackService playbackService;
     private readonly INotificationService notificationService;
     private readonly IToastService toastService;
     private readonly IMapper mapper;
     private readonly IState<ApplicationState> state;
-    private readonly IState<PlaybackState> playbackState;
 
     public ScheduleCommandService(
         ILogger logger,
         IDispatcher dispatcher,
         INavigationService navigationService,
-        IAlarmScheduleService alarmScheduleService,
-        IScheduleDisplayNameService scheduleDisplayNameService,
         IScheduleSaveService scheduleSaveService,
-        IScheduleValidationService scheduleValidationService,
         IPlaybackService playbackService,
         INotificationService notificationService,
         IToastService toastService,
         IMapper mapper,
-        IState<ApplicationState> state,
-        IState<PlaybackState> playbackState)
+        IState<ApplicationState> state)
     {
         this.logger = logger;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
-        this.alarmScheduleService = alarmScheduleService;
-        this.scheduleDisplayNameService = scheduleDisplayNameService;
         this.scheduleSaveService = scheduleSaveService;
-        this.scheduleValidationService = scheduleValidationService;
         this.playbackService = playbackService;
         this.notificationService = notificationService;
         this.toastService = toastService;
         this.mapper = mapper;
         this.state = state;
-        this.playbackState = playbackState;
     }
 
     public async Task ExecuteCancelAsync(

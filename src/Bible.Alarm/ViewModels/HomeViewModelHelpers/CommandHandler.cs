@@ -176,7 +176,7 @@ public class CommandHandler
         {
             try
             {
-                var notificationViewModel = new NotificationPermissionViewModel(logger, navigationService, serviceProvider);
+                var notificationViewModel = new NotificationPermissionViewModel(logger, navigationService);
                 notificationViewModel.StartPermissionCheckTimer();
                 await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
             }

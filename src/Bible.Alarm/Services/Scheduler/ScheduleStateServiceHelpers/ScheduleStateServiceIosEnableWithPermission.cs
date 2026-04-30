@@ -97,7 +97,6 @@ internal static class ScheduleStateServiceIosEnableWithPermission
                     var notificationViewModel = new NotificationPermissionViewModel(
                         logger,
                         navigationService,
-                        serviceProvider,
                         onModalDismissed: (permissionGranted) =>
                         {
                             MainThread.BeginInvokeOnMainThread(async () =>

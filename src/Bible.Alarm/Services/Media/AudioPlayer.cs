@@ -18,13 +18,6 @@ namespace Bible.Alarm.Services.Media;
 public sealed class AudioPlayer : IAudioPlayer
 {
     private readonly ILogger logger;
-    private readonly IMediaElementService mediaElementService;
-    private readonly IDisplayMetadataService displayMetadataService;
-    private readonly IDispatcher dispatcher;
-#if ANDROID
-    private readonly IAndroidPlayerNotificationService? androidPlayerNotificationService;
-#endif
-
     private AudioPlayerTrack? currentTrack;
     private TaskCompletionSource<bool>? mediaOpenedCompletionSource;
     // MediaElement instance - populated in PrepareAsync
@@ -85,12 +78,6 @@ public sealed class AudioPlayer : IAudioPlayer
         )
     {
         this.logger = logger;
-        this.mediaElementService = mediaElementService;
-        this.displayMetadataService = displayMetadataService;
-        this.dispatcher = dispatcher;
-#if ANDROID
-        this.androidPlayerNotificationService = androidPlayerNotificationService;
-#endif
 
         // Initialize helper classes
         stateManager = new AudioPlayerStateManager(logger, dispatcher);
@@ -132,7 +119,7 @@ public sealed class AudioPlayer : IAudioPlayer
 #if ANDROID
             , androidPlayerNotificationService
 #endif
-            );
+        );
 
         // MediaElement will be initialized lazily when first accessed
         // Event handlers will be attached in PrepareAsync
@@ -216,8 +203,7 @@ public sealed class AudioPlayer : IAudioPlayer
             eventHandlerManager.UnsubscribeFromMediaElement(mediaElement);
         }
 
-        // All injected services (_mediaElementService, _displayMetadataService, _dispatcher, 
-        // _androidPlayerNotificationService) are singletons, so don't dispose them
+        // All injected services other than logger are forwarded to helpers for their lifetime only
     }
 
     // MediaElement is now created on-demand and disposed when playback stops

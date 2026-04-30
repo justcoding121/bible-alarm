@@ -129,7 +129,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
     {
 #if ANDROID
         AlarmSettingsPermissionHandlers.HandlePermissionDenied(
-            isWaitingForPermissionResponse, logger, navigationService, serviceProvider,
+            isWaitingForPermissionResponse, logger, this.navigationService, this.serviceProvider,
             () =>
             {
                 notificationEnabled = false;
@@ -147,7 +147,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
             x => isWaitingForPermissionResponse = x);
 #elif IOS
         AlarmSettingsPermissionHandlers.HandlePermissionDenied(
-            isWaitingForPermissionResponse, logger, navigationService, serviceProvider,
+            isWaitingForPermissionResponse, logger, this.navigationService, this.serviceProvider,
             () =>
             {
                 isEnabled = false;

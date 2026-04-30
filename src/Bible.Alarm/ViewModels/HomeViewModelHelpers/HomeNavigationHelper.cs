@@ -201,7 +201,6 @@ public class HomeNavigationHelper
                     var notificationViewModel = new NotificationPermissionViewModel(
                         serviceProvider.GetRequiredService<ILogger>(),
                         navigationService,
-                        serviceProvider,
                         onModalDismissed: (permissionGranted) =>
                         {
                             // Ensure overlay is hidden after modal dismissal
@@ -247,7 +246,7 @@ public class HomeNavigationHelper
                                             
                                             if (scheduleToUpdate != null)
                                             {
-                                                var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
+                                                var updatedSchedule = this.mapper.Map<ScheduleStateItem>(scheduleToUpdate);
                                                 updatedSchedule.NotificationEnabled = permissionGranted;
                                                 dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
                                                 logger.Information("ShowOverlayAndNavigateAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} for schedule {ScheduleId}", 
@@ -281,7 +280,7 @@ public class HomeNavigationHelper
                                 
                                                 if (scheduleToUpdate != null)
                                                 {
-                                                    var stateUpdatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
+                                                    var stateUpdatedSchedule = this.mapper.Map<ScheduleStateItem>(scheduleToUpdate);
                                                     stateUpdatedSchedule.IsEnabled = permissionGranted;
                                                     dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(stateUpdatedSchedule, false, false, shouldSave: false));
                                                 }
@@ -308,7 +307,7 @@ public class HomeNavigationHelper
                                                 
                                                 if (scheduleToUpdate != null)
                                                 {
-                                                    var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
+                                                    var updatedSchedule = this.mapper.Map<ScheduleStateItem>(scheduleToUpdate);
                                                     updatedSchedule.IsEnabled = permissionGranted;
                                                     dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
                                                 }

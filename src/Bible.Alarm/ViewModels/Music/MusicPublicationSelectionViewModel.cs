@@ -73,7 +73,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         dataProvider = new MusicPublicationSelectionDataProvider(mediaService, languageNameService, biblePublicationService, languageContentService, scopeFactory);
         commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, this.dispatcher, mediaService, languageNameService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
-        refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, dataProvider, propertyManager, this.mapper);
+        refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, propertyManager, this.mapper);
         initHandler = new MusicPublicationSelectionInitHandler(mediaService, stateManager, dataProvider, propertyManager);
         SetupPropertyManagerForwarding();
 

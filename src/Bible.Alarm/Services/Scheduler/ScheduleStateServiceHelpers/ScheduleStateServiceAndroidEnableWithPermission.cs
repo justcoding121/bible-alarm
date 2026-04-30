@@ -77,7 +77,6 @@ internal static class ScheduleStateServiceAndroidEnableWithPermission
                 var notificationViewModel = new NotificationPermissionViewModel(
                     logger,
                     navigationService,
-                    serviceProvider,
                     onModalDismissed: (permissionGranted) =>
                     {
                         MainThread.BeginInvokeOnMainThread(() =>
