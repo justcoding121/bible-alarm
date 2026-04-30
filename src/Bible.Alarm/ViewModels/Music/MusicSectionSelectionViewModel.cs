@@ -24,7 +24,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicSectionSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
+public sealed class MusicSectionSelectionViewModel : ObservableObject, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
@@ -43,7 +43,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private bool canCancelFetch = false;
     private bool hasFetchError = false;
     private bool isCancelBusy = false;
-    private MusicSectionSelectionStateChangeHandler? stateChangeHandler;
+    private readonly MusicSectionSelectionStateChangeHandler stateChangeHandler;
     private CancellationTokenSource? fetchCts;
     private readonly MusicSectionSelectionRefreshHandler refreshHandler;
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
@@ -120,7 +120,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private void OnMusicSectionChanged(object? sender, EventArgs e)
     {
         // Don't handle state changes while selecting a section or initializing (to avoid conflicts)
-        if (isDisposed || stateChangeHandler == null || isSelectingSection || isInitializing)
+        if (isDisposed || isSelectingSection || isInitializing)
         {
             return;
         }

@@ -16,7 +16,7 @@ public static class SectionFetcherSqliteExceptionHelper
         {
             if (e is SqliteException sqliteEx)
             {
-                var code = (int)sqliteEx.SqliteErrorCode;
+                var code = sqliteEx.SqliteErrorCode;
                 if (code is 5 or 6)
                 {
                     return true;
@@ -31,7 +31,7 @@ public static class SectionFetcherSqliteExceptionHelper
     {
         for (var e = ex; e != null; e = e.InnerException)
         {
-            if (e is SqliteException sqliteEx && (int)sqliteEx.SqliteErrorCode == 19)
+            if (e is SqliteException sqliteEx && sqliteEx.SqliteErrorCode == 19)
             {
                 return true;
             }

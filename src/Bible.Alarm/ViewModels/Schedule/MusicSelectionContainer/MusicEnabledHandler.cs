@@ -130,7 +130,7 @@ public class MusicEnabledHandler
                         }
                         else
                         {
-                            var firstMelody = melodyReleases.FirstOrDefault();
+                            var firstMelody = melodyReleases.First();
                             if (firstMelody.Value == null)
                             {
                                 return;

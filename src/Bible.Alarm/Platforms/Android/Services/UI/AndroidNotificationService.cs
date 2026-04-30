@@ -235,13 +235,9 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
 
     private static Bitmap DrawableToBitmap(Drawable drawable)
     {
-        if (drawable is BitmapDrawable)
+        if (drawable is BitmapDrawable bitmapDrawable && bitmapDrawable.Bitmap != null)
         {
-            var bitmapDrawable = (BitmapDrawable)drawable;
-            if (bitmapDrawable.Bitmap != null)
-            {
-                return bitmapDrawable.Bitmap;
-            }
+            return bitmapDrawable.Bitmap;
         }
 
         Bitmap bitmap;

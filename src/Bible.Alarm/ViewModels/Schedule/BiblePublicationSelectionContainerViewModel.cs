@@ -55,7 +55,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     private bool shouldScrollToContainer;
 
     // Cached selectability flags (updated when state changes)
-    private bool isCategorySelectable = true; // Categories are typically always selectable (3 categories)
+    private readonly bool isCategorySelectable = true; // Categories are typically always selectable (3 categories)
     private bool isLanguageSelectable = false;
     private bool isPublicationSelectable = false;
     private bool isSectionSelectable = false;

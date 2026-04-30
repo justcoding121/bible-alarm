@@ -138,7 +138,7 @@ public sealed class MusicStateChangeHandler
             }
             else
             {
-                var first = melodyReleases.FirstOrDefault();
+                var first = melodyReleases.First();
                 if (first.Value == null)
                 {
                     return;

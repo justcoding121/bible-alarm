@@ -28,22 +28,16 @@ public sealed class DayColorConverter : IValueConverter, IMultiValueConverter
 
         var theme = ThemeColors.GetCurrentTheme();
 
-        if (value is DaysOfWeek)
+        if (value is DaysOfWeek dayMask)
         {
-            var isDayEnabled = ((DaysOfWeek)value & dayParameter) == dayParameter;
+            var isDayEnabled = (dayMask & dayParameter) == dayParameter;
             return isDayEnabled 
                 ? ThemeColors.Day.EnabledText.Get(theme) 
                 : ThemeColors.Day.CalendarMutedText.Get(theme);
         }
-        else
+
+        if (value is ScheduleListItemViewModel schedule)
         {
-            var schedule = value as ScheduleListItemViewModel;
-
-            if (schedule == null)
-            {
-                return Colors.White;
-            }
-
             var isDayEnabled = (schedule.DaysOfWeek & dayParameter) == dayParameter;
 
             if (schedule.IsEnabled)
@@ -57,6 +51,8 @@ public sealed class DayColorConverter : IValueConverter, IMultiValueConverter
             // Schedule disabled - all days use disabled text color
             return ThemeColors.Day.CalendarMutedText.Get(theme);
         }
+
+        return Colors.White;
     }
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)

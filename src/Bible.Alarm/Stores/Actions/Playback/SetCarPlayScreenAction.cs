@@ -6,7 +6,9 @@ namespace Bible.Alarm.Stores.Actions.Playback;
 /// - Android: MediaSession for Android Auto
 /// - iOS: MPNowPlayingInfoCenter for CarPlay and Lock Screen
 /// </summary>
-public class SetCarPlayScreenAction
+public sealed class SetCarPlayScreenAction
 {
+    /// <summary>Version marker for non-empty Fluxor action type surface.</summary>
+    internal const byte FluxorPayloadVersion = 1;
 }
 

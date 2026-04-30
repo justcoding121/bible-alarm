@@ -49,7 +49,7 @@ public class MainActivityBackgroundTaskHelper
     /// </summary>
     public void UpdateResumeTime()
     {
-        lastResumeTime = DateTime.Now;
+        lastResumeTime = DateTime.UtcNow;
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ public class MainActivityBackgroundTaskHelper
     private bool ShouldSetupBackgroundTasks()
     {
         return lastResumeTime.HasValue &&
-               DateTime.Now.Subtract(lastResumeTime.Value).TotalSeconds >= 3;
+               DateTime.UtcNow.Subtract(lastResumeTime.Value).TotalSeconds >= 3;
     }
 
     /// <summary>

@@ -63,7 +63,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
             {
                 // Return cached result if available and recent
                 if (cachedPermissionResult.HasValue && 
-                    DateTime.Now - lastPermissionCheck < permissionCacheTimeout)
+                    DateTime.UtcNow - lastPermissionCheck < permissionCacheTimeout)
                 {
                     logger.Debug("[NOTIFICATION-PERMISSION] Using cached result: {Result}", cachedPermissionResult.Value);
                     return cachedPermissionResult.Value;
@@ -78,7 +78,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                     {
                         var result = await IOSNotificationPermissionService.IsGrantedAsync();
                         cachedPermissionResult = result;
-                        lastPermissionCheck = DateTime.Now;
+                        lastPermissionCheck = DateTime.UtcNow;
                         logger.Debug("[NOTIFICATION-PERMISSION] Cache refreshed with result: {Result}", result);
                     }
                     catch (Exception ex)
@@ -170,7 +170,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                     logger.Error("IOSNotificationPermissionService: Error requesting permission: {Error}", error);
                     // Update cache
                     cachedPermissionResult = false;
-                    lastPermissionCheck = DateTime.Now;
+                    lastPermissionCheck = DateTime.UtcNow;
                     PermissionDenied?.Invoke(this, EventArgs.Empty);
                     return;
                 }
@@ -180,7 +180,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                 // Update cache immediately when permission changes
                 // This ensures IsGranted property returns correct value immediately
                 cachedPermissionResult = granted;
-                lastPermissionCheck = DateTime.Now;
+                lastPermissionCheck = DateTime.UtcNow;
                 logger.Information("[NOTIFICATION-PERMISSION] Cache updated after permission request - Granted: {Granted}", granted);
 
                 // Fire events on main thread (like Android does)
@@ -208,7 +208,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                 logger.Error(ex, "IOSNotificationPermissionService: Exception requesting permission");
                 // Update cache
                 cachedPermissionResult = false;
-                lastPermissionCheck = DateTime.Now;
+                lastPermissionCheck = DateTime.UtcNow;
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     try
