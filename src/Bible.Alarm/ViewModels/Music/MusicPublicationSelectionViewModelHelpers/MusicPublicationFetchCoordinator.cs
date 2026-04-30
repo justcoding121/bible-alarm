@@ -44,7 +44,7 @@ internal sealed class MusicPublicationFetchCoordinator
             var actualPublicationCount = initialPublications?.Values.Count ?? 0;
             var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
             var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
-                !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0);
+                !string.IsNullOrEmpty(p.Name) && !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && p.Id > 0);
 
             if (allPublicationsCataloged)
             {
@@ -97,7 +97,7 @@ internal sealed class MusicPublicationFetchCoordinator
         var hasAllExpectedPublications = actualPublicationCount >= expectedPublicationCount;
         var allPublicationsCataloged = hasAllExpectedPublications && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
             !string.IsNullOrEmpty(p.Name) && 
-            p.Name != p.PublicationCode && 
+            !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && 
             p.Id > 0);
 
         if (allPublicationsCataloged)
@@ -159,7 +159,7 @@ internal sealed class MusicPublicationFetchCoordinator
                     var retryHasAllExpected = retryActualCount >= retryExpectedCount;
                     var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p =>
                         !string.IsNullOrEmpty(p.Name) &&
-                        p.Name != p.PublicationCode &&
+                        !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) &&
                         p.Id > 0);
 
                     if (retryAllCataloged)
@@ -172,7 +172,7 @@ internal sealed class MusicPublicationFetchCoordinator
                     else
                     {
                         var currentCatalogedCount = reQueriedData?.Values.Count(p =>
-                            !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0) ?? 0;
+                            !string.IsNullOrEmpty(p.Name) && !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && p.Id > 0) ?? 0;
 
                         if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                         {
@@ -188,7 +188,7 @@ internal sealed class MusicPublicationFetchCoordinator
                         {
                             var placeholders = reQueriedData.Values.Where(p =>
                                 string.IsNullOrEmpty(p.Name) ||
-                                p.Name == p.PublicationCode ||
+                                string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) ||
                                 p.Id == 0).Select(p => p.PublicationCode).ToList();
 
                             if (placeholders.Count > 0)

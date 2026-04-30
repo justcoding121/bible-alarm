@@ -156,7 +156,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 var actualPublicationCount = initialPublications?.Values.Count ?? 0;
                 var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
                 var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
-                    !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0);
+                    !string.IsNullOrEmpty(p.Name) && !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && p.Id > 0);
 
                 if (allPublicationsCataloged)
                 {
@@ -217,7 +217,7 @@ public sealed class BiblePublicationSelectionDataProvider
                             var retryHasAllExpected = retryActualCount >= retryExpectedCount;
                             var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p => 
                                 !string.IsNullOrEmpty(p.Name) && 
-                                p.Name != p.PublicationCode && 
+                                !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && 
                                 p.Id > 0);
                             
                             if (retryAllCataloged)
@@ -230,7 +230,7 @@ public sealed class BiblePublicationSelectionDataProvider
                             else
                             {
                                 var currentCatalogedCount = reQueriedData?.Values.Count(p =>
-                                    !string.IsNullOrEmpty(p.Name) && p.Name != p.PublicationCode && p.Id > 0) ?? 0;
+                                    !string.IsNullOrEmpty(p.Name) && !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && p.Id > 0) ?? 0;
 
                                 if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                                 {
@@ -246,7 +246,7 @@ public sealed class BiblePublicationSelectionDataProvider
                                 {
                                     var placeholders = reQueriedData.Values.Where(p => 
                                         string.IsNullOrEmpty(p.Name) || 
-                                        p.Name == p.PublicationCode || 
+                                        string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) || 
                                         p.Id == 0).Select(p => p.PublicationCode).ToList();
                                     
                                     if (placeholders.Count > 0)
@@ -344,7 +344,7 @@ public sealed class BiblePublicationSelectionDataProvider
 
             // Remove placeholder publications that couldn't be fetched (e.g. no tracks on the server)
             var unfetchableCodes = publicationsData
-                .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || kvp.Value.Name == kvp.Value.PublicationCode)
+                .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || string.Equals(kvp.Value.Name, kvp.Value.PublicationCode, StringComparison.OrdinalIgnoreCase))
                 .Select(kvp => kvp.Key)
                 .ToList();
             if (unfetchableCodes.Count > 0)

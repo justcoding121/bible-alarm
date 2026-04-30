@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -91,7 +92,7 @@ public class EventToCommandBehavior : BindableBehavior<View>
         var events = AssociatedObject.GetType().GetRuntimeEvents().ToArray();
         if (events.Length != 0)
         {
-            eventInfo = events.FirstOrDefault(e => e.Name == EventName);
+            eventInfo = events.FirstOrDefault(e => string.Equals(e.Name, EventName, StringComparison.Ordinal));
             if (eventInfo == null)
             {
                 throw new ArgumentException(

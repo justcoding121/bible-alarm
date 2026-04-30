@@ -124,7 +124,7 @@ public sealed class MusicPublicationSelectionDataProvider(
         {
             // Remove placeholder publications that couldn't be fetched (e.g. no tracks on the server)
             var unfetchableCodes = publicationsData
-                .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || kvp.Value.Name == kvp.Value.PublicationCode)
+                .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || string.Equals(kvp.Value.Name, kvp.Value.PublicationCode, StringComparison.OrdinalIgnoreCase))
                 .Select(kvp => kvp.Key)
                 .ToList();
             if (unfetchableCodes.Count > 0)

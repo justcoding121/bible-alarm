@@ -75,7 +75,7 @@ public static class ScheduleStateSyncHelper
                current.BiblePublicationTrackModalItemCount == action.BiblePublicationTrackModalItemCount &&
                current.MusicPublicationModalItemCount == action.MusicPublicationModalItemCount &&
                current.MusicSectionModalItemCount == action.MusicSectionModalItemCount &&
-               current.Name == action.Name &&
+               string.Equals(current.Name, action.Name, StringComparison.CurrentCulture) &&
                current.IsEnabled == action.IsEnabled &&
                current.NotificationEnabled == action.NotificationEnabled &&
                current.Hour == action.Hour &&

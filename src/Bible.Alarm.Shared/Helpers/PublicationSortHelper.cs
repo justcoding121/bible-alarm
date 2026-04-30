@@ -41,7 +41,7 @@ public static class PublicationSortHelper
 
         return publications
             .OrderBy(p => getCode(p), PublicationCodeHelper.PublicationCodeComparer)
-            .ThenBy(p => getName != null ? getName(p) : getCode(p))
+            .ThenBy(p => getName != null ? getName(p) : getCode(p), StringComparer.CurrentCultureIgnoreCase)
             .ToList();
     }
 
@@ -61,7 +61,7 @@ public static class PublicationSortHelper
 
         return publications
             .OrderBy(kvp => kvp.Key, PublicationCodeHelper.PublicationCodeComparer)
-            .ThenBy(kvp => getName != null ? getName(kvp.Value) : kvp.Key)
+            .ThenBy(kvp => getName != null ? getName(kvp.Value) : kvp.Key, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
     }
 
@@ -90,7 +90,7 @@ public static class PublicationSortHelper
         var comparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName);
         return publications
             .OrderBy(p => getCode(p), comparer)
-            .ThenBy(p => getName != null ? getName(p) : getCode(p))
+            .ThenBy(p => getName != null ? getName(p) : getCode(p), StringComparer.CurrentCultureIgnoreCase)
             .ToList();
     }
 }
