@@ -2,7 +2,6 @@
 
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using AutoMapper;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -27,11 +26,8 @@ namespace Bible.Alarm.ViewModels.Music;
 public sealed class MusicSectionSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly ILogger logger;
-    private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
-    private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
-    private readonly IMapper mapper;
     private readonly MusicInstrumentalSectionListLoader sectionListLoader;
     private readonly MusicSectionSelectionCommandHandler commandHandler;
     private bool initComplete;
@@ -61,15 +57,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         IMediaService mediaService,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
-        INavigationService navigationService,
-        IMapper mapper)
+        INavigationService navigationService)
     {
         this.logger = logger;
-        this.mediaService = mediaService;
         this.state = state;
-        this.dispatcher = dispatcher;
         this.navigationService = navigationService;
-        this.mapper = mapper;
         sectionListLoader = new MusicInstrumentalSectionListLoader(logger, mediaService);
         commandHandler = new MusicSectionSelectionCommandHandler(logger, mediaService, state, dispatcher, navigationService);
         refreshHandler = new MusicSectionSelectionRefreshHandler(logger);
@@ -110,13 +102,10 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         // Initialize helper
         stateChangeHandler = new MusicSectionSelectionStateChangeHandler(
             logger,
-            () => lastPublicationCode,
             (code) => lastPublicationCode = code,
-            () => lastSectionCode,
             (code) => lastSectionCode = code,
             () => initComplete,
             (b) => IsBusy = b,
-            () => Sections,
             (pub) => _ = Initialize(pub),
             SetSelectedSection);
 

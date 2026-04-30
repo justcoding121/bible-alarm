@@ -22,9 +22,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
-    private readonly IDispatcher dispatcher;
-    private readonly IMapper mapper;
-    private readonly IServiceProvider serviceProvider;
 
     // Helper classes for modular functionality
     private readonly MusicCommandInitializer commandInitializer;
@@ -93,9 +90,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     {
         this.logger = logger;
         this.state = state;
-        this.dispatcher = dispatcher;
-        this.mapper = mapper;
-        this.serviceProvider = serviceProvider;
 
         // Initialize helper classes
         commandInitializer = new MusicCommandInitializer(

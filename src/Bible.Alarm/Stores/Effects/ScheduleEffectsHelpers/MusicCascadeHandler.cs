@@ -24,7 +24,6 @@ namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 /// </summary>
 public sealed class MusicCascadeHandler
 {
-    private readonly IBiblePublicationService biblePublicationService;
     private readonly IMediaService mediaService;
     private readonly ILanguageContentService languageContentService;
     private readonly IState<ApplicationState> state;
@@ -32,14 +31,12 @@ public sealed class MusicCascadeHandler
     private readonly ILogger logger;
 
     public MusicCascadeHandler(
-        IBiblePublicationService biblePublicationService,
         IMediaService mediaService,
         ILanguageContentService languageContentService,
         IState<ApplicationState> state,
         IServiceScopeFactory scopeFactory,
         ILogger logger)
     {
-        this.biblePublicationService = biblePublicationService;
         this.mediaService = mediaService;
         this.languageContentService = languageContentService;
         this.state = state;

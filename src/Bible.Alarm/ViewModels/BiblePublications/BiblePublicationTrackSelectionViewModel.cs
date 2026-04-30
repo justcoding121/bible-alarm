@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
-using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
@@ -26,7 +25,6 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
-    private readonly IMapper mapper;
 
     // Helper classes
     private readonly TrackSelectionStateManager stateManager;
@@ -48,20 +46,18 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         IMediaUrlRefreshService urlRefreshService,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
-        IMapper mapper,
         IBiblePublicationService? biblePublicationService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
         this.state = state;
         this.dispatcher = dispatcher;
-        this.mapper = mapper;
         this.navigationService = navigationService;
 
         // Initialize helper classes
         stateManager = new TrackSelectionStateManager();
-        dataProvider = new TrackSelectionDataProvider(mediaService, biblePublicationService);
-        commandHandler = new TrackSelectionCommandHandler(logger, state, dispatcher, navigationService);
+        dataProvider = new TrackSelectionDataProvider(this.mediaService, biblePublicationService);
+        commandHandler = new TrackSelectionCommandHandler(logger, state, this.dispatcher, navigationService);
         propertyManager = new TrackSelectionPropertyManager();
         SetupPropertyManagerForwarding();
 

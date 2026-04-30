@@ -1,5 +1,4 @@
 #nullable enable
-using AutoMapper;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Constants;
@@ -15,7 +14,6 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationTrackSelectio
 public sealed class TrackSelectionStateManager
 {
     private BiblePublicationSchedule? current;
-    private BiblePublicationSchedule? lastCurrent;
     private bool initComplete;
 
     // Track last language, publication code, and section number to detect changes
@@ -75,8 +73,6 @@ public sealed class TrackSelectionStateManager
             TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
             FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
         };
-        lastCurrent = current;
-
         initComplete = true;
         Task.Run(async () =>
         {
@@ -135,8 +131,6 @@ public sealed class TrackSelectionStateManager
             TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
             FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
         };
-        lastCurrent = current;
-
         // If language, publication code, or section number changed, repopulate tracks
         if (needsRepopulation && initComplete)
         {
@@ -198,7 +192,6 @@ public sealed class TrackSelectionStateManager
             FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
         };
 
-        lastCurrent = current;
     }
 
     /// <summary>
@@ -239,7 +232,6 @@ public sealed class TrackSelectionStateManager
             FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
         };
 
-        lastCurrent = current;
     }
 
     public void SetInitComplete(bool value) => initComplete = value;

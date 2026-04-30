@@ -1,6 +1,5 @@
 #nullable enable
 using System.Collections.ObjectModel;
-using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -22,7 +21,6 @@ public sealed class BiblePublicationSelectionStateHandler
 {
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
-    private readonly IMapper mapper;
     private readonly BiblePublicationSelectionDataProvider dataProvider;
     private readonly IServiceScopeFactory scopeFactory;
 
@@ -36,13 +34,11 @@ public sealed class BiblePublicationSelectionStateHandler
     public BiblePublicationSelectionStateHandler(
         IMediaService mediaService,
         IState<ApplicationState> state,
-        IMapper mapper,
         BiblePublicationSelectionDataProvider dataProvider,
         IServiceScopeFactory scopeFactory)
     {
         this.mediaService = mediaService;
         this.state = state;
-        this.mapper = mapper;
         this.dataProvider = dataProvider;
         this.scopeFactory = scopeFactory;
     }

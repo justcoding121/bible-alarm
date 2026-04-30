@@ -30,8 +30,6 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     private readonly IiOSNowPlayingInfoManager nowPlayingManager;
     private readonly IState<PlaybackState> playbackState;
 
-    // Track the last status to send correct toggle command
-    private PlayStatus lastKnownStatus = PlayStatus.Stopped;
     private bool messageHandlersRegistered;
 
     // Metadata dedup fields to prevent redundant Now Playing updates that cause visual jitter
@@ -113,7 +111,6 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                     logger.Information(
                         "[iOS MediaSession] Stopped with auto-advancing: keeping Playing rate to prevent CarPlay pause flash");
                     nowPlayingManager.UpdatePlaybackStatus(PlayStatus.Playing);
-                    lastKnownStatus = PlayStatus.Playing;
                     return Task.CompletedTask;
                 }
             }
@@ -127,12 +124,10 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                         currentState2.IsAutoAdvancing,
                         currentState2.IsTransitioningTrack);
                     nowPlayingManager.UpdatePlaybackStatus(PlayStatus.Playing);
-                    lastKnownStatus = PlayStatus.Playing;
                     return Task.CompletedTask;
                 }
             }
 
-            lastKnownStatus = action.Status;
             nowPlayingManager.UpdatePlaybackStatus(action.Status);
 
             var hasActiveSchedule = currentState.CurrentScheduleId.HasValue;

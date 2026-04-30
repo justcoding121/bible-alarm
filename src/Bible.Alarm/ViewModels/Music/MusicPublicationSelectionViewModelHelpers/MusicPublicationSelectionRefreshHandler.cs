@@ -1,6 +1,5 @@
 #nullable enable
 using System.Net.Sockets;
-using AutoMapper;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
@@ -24,18 +23,15 @@ public sealed class MusicPublicationSelectionRefreshHandler
     private readonly IState<ApplicationState> state;
     private readonly MusicPublicationSelectionStateManager stateManager;
     private readonly MusicPublicationSelectionPropertyManager propertyManager;
-    private readonly IMapper mapper;
 
     public MusicPublicationSelectionRefreshHandler(
         IState<ApplicationState> state,
         MusicPublicationSelectionStateManager stateManager,
-        MusicPublicationSelectionPropertyManager propertyManager,
-        IMapper mapper)
+        MusicPublicationSelectionPropertyManager propertyManager)
     {
         this.state = state;
         this.stateManager = stateManager;
         this.propertyManager = propertyManager;
-        this.mapper = mapper;
     }
 
     public async Task RefreshAsync(
@@ -80,7 +76,7 @@ public sealed class MusicPublicationSelectionRefreshHandler
 
             var current = MusicPublicationSelectionStateManager.GetCurrentFromState(state);
             if (current != null)
-                stateManager.EnsureCurrentIsSet(state, mapper);
+                stateManager.EnsureCurrentIsSet(state);
 
             if (!isMelodyMusic)
             {

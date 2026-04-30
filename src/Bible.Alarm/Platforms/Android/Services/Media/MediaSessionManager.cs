@@ -18,7 +18,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
 {
     private MediaSessionCompat? mediaSession;
     private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();
-    private readonly IServiceProvider serviceProvider;
 
     // Helper classes - initialized in constructor
     private readonly MediaSessionInitializer initializer;
@@ -31,7 +30,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
     public MediaSessionManager(IServiceProvider serviceProvider)
     {
-        this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        ArgumentNullException.ThrowIfNull(serviceProvider);
 
         // Initialize helper classes after serviceProvider is set
         initializer = new MediaSessionInitializer(logger, serviceProvider);

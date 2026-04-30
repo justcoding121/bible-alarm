@@ -563,12 +563,10 @@ public class ScheduleEffects(
 
             var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
             var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>()!;
-            var currentBiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>()!;
             var languageContentService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>()!;
             var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>()!;
             
             var handler = new MusicCascadeHandler(
-                currentBiblePublicationService,
                 currentMediaService,
                 languageContentService,
                 currentState,

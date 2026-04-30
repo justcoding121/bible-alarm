@@ -3,7 +3,6 @@
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
-using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
@@ -24,7 +23,6 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
     private readonly IResourceBootstrapService resourceBootstrapService;
     private readonly IScheduleBootstrapService scheduleBootstrapService;
     private readonly IPlatformBootstrapService platformBootstrapService;
-    private readonly IDatabaseSeedService databaseSeedService;
     private readonly ILanguageNameService languageNameService;
     private readonly ICategoryNameService categoryNameService;
 
@@ -34,7 +32,6 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
         IResourceBootstrapService resourceBootstrapService,
         IScheduleBootstrapService scheduleBootstrapService,
         IPlatformBootstrapService platformBootstrapService,
-        IDatabaseSeedService databaseSeedService,
         ILanguageNameService languageNameService,
         ICategoryNameService categoryNameService)
     {
@@ -43,7 +40,6 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
         this.resourceBootstrapService = resourceBootstrapService;
         this.scheduleBootstrapService = scheduleBootstrapService;
         this.platformBootstrapService = platformBootstrapService;
-        this.databaseSeedService = databaseSeedService;
         this.languageNameService = languageNameService;
         this.categoryNameService = categoryNameService;
     }

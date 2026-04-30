@@ -1,5 +1,4 @@
 #nullable enable
-using AutoMapper;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
@@ -14,7 +13,6 @@ namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers
 public sealed class MusicPublicationSelectionStateManager
 {
     private AlarmMusic? current;
-    private AlarmMusic? lastCurrent;
     private bool initComplete;
 
     // Track last language code to detect changes
@@ -38,7 +36,6 @@ public sealed class MusicPublicationSelectionStateManager
                 TrackCode = schedule.MusicTrackCode ?? string.Empty,
                 Repeat = schedule.MusicRepeat ?? false
             };
-            lastCurrent = current;
         }
     }
 
@@ -78,8 +75,6 @@ public sealed class MusicPublicationSelectionStateManager
             TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
-        lastCurrent = current;
-
         initComplete = true;
         Task.Run(async () =>
         {
@@ -127,8 +122,6 @@ public sealed class MusicPublicationSelectionStateManager
             TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
-        lastCurrent = current;
-
         // If language changed, repopulate song sections
         if (needsRepopulation && initComplete)
         {
@@ -156,7 +149,7 @@ public sealed class MusicPublicationSelectionStateManager
         }
     }
 
-    public void EnsureCurrentIsSet(IState<ApplicationState> state, IMapper mapper)
+    public void EnsureCurrentIsSet(IState<ApplicationState> state)
     {
         if (current == null)
         {

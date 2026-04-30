@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
-using AutoMapper;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -26,12 +25,9 @@ namespace Bible.Alarm.ViewModels.Music;
 
 public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
-    private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
-    private readonly IMapper mapper;
-    private readonly IServiceProvider serviceProvider;
 
     // Helper classes
     private readonly MusicPublicationSelectionStateManager stateManager;
@@ -49,31 +45,25 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
 
     public MusicPublicationSelectionViewModel(
-        ILogger logger,
         IMediaService mediaService,
         IServiceScopeFactory scopeFactory,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
-        INavigationService navigationService,
-        IMapper mapper,
-        IServiceProvider serviceProvider)
+        INavigationService navigationService,        IServiceProvider serviceProvider)
     {
-        this.logger = logger;
         this.state = state;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
-        this.mapper = mapper;
-        this.serviceProvider = serviceProvider;
 
         // Initialize helper classes
         stateManager = new MusicPublicationSelectionStateManager();
-        var languageNameService = this.serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
-        var biblePublicationService = this.serviceProvider.GetService<IBiblePublicationService>();
-        var languageContentService = this.serviceProvider.GetService<ILanguageContentService>();
+        var languageNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
+        var biblePublicationService = serviceProvider.GetService<IBiblePublicationService>();
+        var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         dataProvider = new MusicPublicationSelectionDataProvider(mediaService, languageNameService, biblePublicationService, languageContentService, scopeFactory);
         commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, this.dispatcher, mediaService, languageNameService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
-        refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, propertyManager, this.mapper);
+        refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, propertyManager);
         initHandler = new MusicPublicationSelectionInitHandler(mediaService, stateManager, dataProvider, propertyManager);
         SetupPropertyManagerForwarding();
 
@@ -114,7 +104,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             try
             {
                 // Ensure current is set from state if it's null
-                stateManager.EnsureCurrentIsSet(state, this.mapper);
+                stateManager.EnsureCurrentIsSet(state);
 
                 // Ensure languages are populated before opening the modal
                 await PopulateLanguages();

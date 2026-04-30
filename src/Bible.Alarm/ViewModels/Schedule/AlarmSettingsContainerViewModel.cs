@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -25,6 +26,7 @@ namespace Bible.Alarm.ViewModels.Schedule;
 public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
+    [SuppressMessage("SonarAnalyzer.CSharp", "S4487", Justification = "Read only inside ANDROID||IOS permission handlers; neutral targets see no reads.")]
     private readonly IServiceProvider serviceProvider;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;

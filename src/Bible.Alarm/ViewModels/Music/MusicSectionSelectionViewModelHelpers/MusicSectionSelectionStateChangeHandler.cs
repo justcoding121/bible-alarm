@@ -1,9 +1,6 @@
 #nullable enable
 
-using System.Collections.ObjectModel;
-using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels.BiblePublications;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
@@ -16,13 +13,10 @@ namespace Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
 public class MusicSectionSelectionStateChangeHandler
 {
     private readonly ILogger logger;
-    private readonly Func<string?> getLastPublicationCode;
     private readonly Action<string?> setLastPublicationCode;
-    private readonly Func<string?> getLastSectionCode;
     private readonly Action<string?> setLastSectionCode;
     private readonly Func<bool> getInitComplete;
     private readonly Action<bool> setIsBusy;
-    private readonly Func<ObservableCollection<BiblePublicationSectionListViewItemModel>?> getSections;
     private readonly Action<string> initialize;
     private readonly Action setSelectedSection;
 
@@ -32,24 +26,18 @@ public class MusicSectionSelectionStateChangeHandler
 
     public MusicSectionSelectionStateChangeHandler(
         ILogger logger,
-        Func<string?> getLastPublicationCode,
         Action<string?> setLastPublicationCode,
-        Func<string?> getLastSectionCode,
         Action<string?> setLastSectionCode,
         Func<bool> getInitComplete,
         Action<bool> setIsBusy,
-        Func<ObservableCollection<BiblePublicationSectionListViewItemModel>?> getSections,
         Action<string> initialize,
         Action setSelectedSection)
     {
         this.logger = logger;
-        this.getLastPublicationCode = getLastPublicationCode;
         this.setLastPublicationCode = setLastPublicationCode;
-        this.getLastSectionCode = getLastSectionCode;
         this.setLastSectionCode = setLastSectionCode;
         this.getInitComplete = getInitComplete;
         this.setIsBusy = setIsBusy;
-        this.getSections = getSections;
         this.initialize = initialize;
         this.setSelectedSection = setSelectedSection;
     }

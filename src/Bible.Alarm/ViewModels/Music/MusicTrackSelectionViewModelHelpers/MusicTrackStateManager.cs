@@ -14,7 +14,6 @@ namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 public sealed class MusicTrackStateManager
 {
     private AlarmMusic? current;
-    private AlarmMusic? lastCurrent;
     private bool initComplete;
     private string? lastLanguageCode;
     private string? lastPublicationCode;
@@ -34,7 +33,6 @@ public sealed class MusicTrackStateManager
                 TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
                 Repeat = currentSchedule.MusicRepeat ?? false
             };
-            lastCurrent = current;
         }
     }
 
@@ -71,8 +69,6 @@ public sealed class MusicTrackStateManager
             TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
-        lastCurrent = current;
-
         initComplete = true;
 
         Task.Run(async () =>
@@ -127,8 +123,6 @@ public sealed class MusicTrackStateManager
             TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
-        lastCurrent = current;
-
         if (needsRepopulation && initComplete && newPublicationCode != null)
         {
             Task.Run(async () =>

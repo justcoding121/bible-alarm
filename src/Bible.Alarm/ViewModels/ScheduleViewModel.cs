@@ -81,15 +81,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         this.serviceProvider = serviceProvider;
 
         // Initialize helper classes
-        stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, dispatcher, logger);
+        stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, this.dispatcher, logger);
         propertyManager = new SchedulePropertyManager(state, logger);
         commandExecutor = new ScheduleCommandExecutor(
             scheduleCommandService, 
             scheduleMediaCacheService, 
             state, 
-            playbackState, 
-            dispatcher, 
-            mapper, 
+            this.playbackState, 
+            this.dispatcher, 
+            this.mapper, 
             logger, 
             () => propertyManager?.MusicSelectionContainerViewModel,
             () => propertyManager?.AlarmSettingsContainerViewModel,
@@ -99,8 +99,8 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             (isBusy) => propertyManager.IsSaveBusy = isBusy,
             (isBusy) => propertyManager.IsDeleteBusy = isBusy);
         containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
-        overlayManager = new ScheduleOverlayManager(dispatcher);
-        overlayTimeoutController = new ScheduleOverlayTimeoutController(logger, state, dispatcher);
+        overlayManager = new ScheduleOverlayManager(this.dispatcher);
+        overlayTimeoutController = new ScheduleOverlayTimeoutController(logger, state, this.dispatcher);
 
         // Subscribe to property manager changes to forward property changes
         propertyManager.PropertyChanged += OnPropertyManagerPropertyChanged;

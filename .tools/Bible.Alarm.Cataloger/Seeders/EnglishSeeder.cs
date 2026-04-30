@@ -19,13 +19,11 @@ internal sealed class EnglishSeeder
 {
     private readonly ILogger logger;
     private readonly IServiceScopeFactory scopeFactory;
-    private readonly InMemoryDataStore dataStore;
 
-    public EnglishSeeder(ILogger logger, IServiceScopeFactory scopeFactory, InMemoryDataStore dataStore)
+    public EnglishSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
     {
         this.logger = logger;
         this.scopeFactory = scopeFactory;
-        this.dataStore = dataStore;
     }
 
     /// <summary>

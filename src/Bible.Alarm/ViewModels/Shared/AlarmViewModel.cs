@@ -10,7 +10,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.Shared;
 
 public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>, IRecipient<BeginStoppingPlaybackMessage>
@@ -18,8 +17,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;
     private readonly IState<PlaybackState> playbackState;
-    private readonly IDispatcher dispatcher;
-    private readonly INavigationService navigationService;
 
     private bool isDisposed;
     private TimeSpan currentDuration = TimeSpan.Zero;
@@ -54,13 +51,11 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     public ICommand SeekCommand { get; set; }
     public ICommand RetryCommand { get; set; }
 
-    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IReviewPromptService reviewPromptService, IAudioPlayer audioPlayer)
+    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IReviewPromptService reviewPromptService, IAudioPlayer audioPlayer)
     {
         this.logger = logger;
         this.playbackService = playbackService;
         this.playbackState = playbackState;
-        this.dispatcher = dispatcher;
-        this.navigationService = navigationService;
 
         // Initialize string fields to avoid nullable warnings
         title = "";

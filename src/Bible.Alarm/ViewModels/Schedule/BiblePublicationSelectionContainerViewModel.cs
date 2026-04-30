@@ -76,7 +76,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         this.mapper = mapper;
 
         // Initialize helper classes
-        commandInitializer = new BiblePublicationCommandInitializer(logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider);
+        commandInitializer = new BiblePublicationCommandInitializer(logger, navigationService, scheduleSelectionService, state, this.dispatcher, this.mapper, serviceProvider);
         var mediaService = serviceProvider.GetRequiredService<Bible.Alarm.Services.Media.Interfaces.IMediaService>();
         var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
         var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();

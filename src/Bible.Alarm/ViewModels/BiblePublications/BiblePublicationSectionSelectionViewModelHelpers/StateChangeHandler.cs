@@ -1,7 +1,5 @@
 #nullable enable
 
-using System.Collections.ObjectModel;
-using AutoMapper;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Serilog;
@@ -14,13 +12,10 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelect
 public class StateChangeHandler
 {
     private readonly ILogger logger;
-    private readonly IMapper mapper;
-    private readonly Func<BiblePublicationSchedule?> getCurrent;
     private readonly Action<BiblePublicationSchedule> setCurrent;
     private readonly Action<BiblePublicationSchedule> setLastCurrent;
     private readonly Func<bool> getInitComplete;
     private readonly Action<bool> setIsBusy;
-    private readonly Func<ObservableCollection<BiblePublicationSectionListViewItemModel>?> getSections;
     private readonly Action<string, string> initialize;
     private readonly Action setSelectedSection;
 
@@ -30,24 +25,18 @@ public class StateChangeHandler
 
     public StateChangeHandler(
         ILogger logger,
-        IMapper mapper,
-        Func<BiblePublicationSchedule?> getCurrent,
         Action<BiblePublicationSchedule> setCurrent,
         Action<BiblePublicationSchedule> setLastCurrent,
         Func<bool> getInitComplete,
         Action<bool> setIsBusy,
-        Func<ObservableCollection<BiblePublicationSectionListViewItemModel>?> getSections,
         Action<string, string> initialize,
         Action setSelectedSection)
     {
         this.logger = logger;
-        this.mapper = mapper;
-        this.getCurrent = getCurrent;
         this.setCurrent = setCurrent;
         this.setLastCurrent = setLastCurrent;
         this.getInitComplete = getInitComplete;
         this.setIsBusy = setIsBusy;
-        this.getSections = getSections;
         this.initialize = initialize;
         this.setSelectedSection = setSelectedSection;
     }

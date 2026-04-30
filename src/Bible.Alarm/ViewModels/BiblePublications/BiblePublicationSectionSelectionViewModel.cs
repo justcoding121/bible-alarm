@@ -3,7 +3,6 @@
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.ViewHelpers;
@@ -38,7 +37,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
-    private readonly IMapper mapper;
     private bool initComplete;
     private BiblePublicationSchedule? lastCurrent;
     private string? lastLanguageCode;
@@ -67,17 +65,16 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     public ICommand TrackSelectionCommand { get; set; }
     public ICommand CancelFetchCommand { get; }
 
-    public BiblePublicationSectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper, IInternetConnectivityChecker? internetChecker = null)
+    public BiblePublicationSectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IInternetConnectivityChecker? internetChecker = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
         this.state = state;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
-        this.mapper = mapper;
-        sectionListLoader = new SectionListLoader(logger, mediaService, internetChecker);
-        trackSelectionResolver = new TrackSelectionResolver(logger, mediaService);
-        trackTapHandler = new BiblePublicationSectionSelectionTrackTapHandler(logger, state, dispatcher, navigationService, trackSelectionResolver);
+        sectionListLoader = new SectionListLoader(logger, this.mediaService, internetChecker);
+        trackSelectionResolver = new TrackSelectionResolver(logger, this.mediaService);
+        trackTapHandler = new BiblePublicationSectionSelectionTrackTapHandler(logger, state, this.dispatcher, this.navigationService, trackSelectionResolver);
         refreshHandler = new BiblePublicationSectionSelectionRefreshHandler(logger);
 
         // Don't initialize here - let OnBiblePublicationInitialized handle it
@@ -113,13 +110,10 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         // Initialize helper
         stateChangeHandler = new StateChangeHandler(
             logger,
-            mapper,
-            () => current,
             (c) => current = c,
             (c) => lastCurrent = c,
             () => initComplete,
             (b) => IsBusy = b,
-            () => Sections,
             (lang, pub) => ObserveFaultedTask(Initialize(lang, pub), "Section list Initialize from state change"),
             SetSelectedSection);
 

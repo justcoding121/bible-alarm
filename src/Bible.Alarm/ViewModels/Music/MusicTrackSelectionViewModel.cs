@@ -23,7 +23,6 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
-    private readonly IDispatcher dispatcher;
     private readonly MusicTrackStateManager stateManager;
     private readonly MusicTrackSelectionHandler selectionHandler;
     private readonly MusicTrackListManager listManager;
@@ -45,7 +44,6 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         this.logger = logger;
         this.mediaService = mediaService;
         this.state = state;
-        this.dispatcher = dispatcher;
         this.navigationService = navigationService;
 
         stateManager = new MusicTrackStateManager();

@@ -34,7 +34,6 @@ internal class DbSeeder : IDataPersister
 {
     private readonly ILogger logger;
     private readonly IServiceScopeFactory scopeFactory;
-    private readonly DownloadUtility downloadUtility;
     private readonly InMemoryDataStore dataStore;
     private readonly bool isTestRun;
     private readonly LanguageSeeder languageSeeder;
@@ -56,7 +55,6 @@ internal class DbSeeder : IDataPersister
     {
         this.logger = logger;
         this.scopeFactory = scopeFactory;
-        this.downloadUtility = downloadUtility;
         this.dataStore = new InMemoryDataStore();
         this.isTestRun = isTestRun;
         this.failedListPath = failedListPath ?? Path.Combine(Path.GetTempPath(), AppConstants.FilePaths.CatalogerTempFailedListFallbackFileName);
@@ -67,7 +65,7 @@ internal class DbSeeder : IDataPersister
         this.publicationLanguageSeeder = new PublicationLanguageSeeder(logger, dataStore, languageSeeder);
         this.sectionLanguageSeeder = new SectionLanguageSeeder(logger, dataStore, languageSeeder);
         this.testModeSeeder = new TestModeSeeder(logger, scopeFactory, dataStore);
-        this.englishSeeder = new EnglishSeeder(logger, scopeFactory, dataStore);
+        this.englishSeeder = new EnglishSeeder(logger, scopeFactory);
         this.melodyMusicSeeder = new MelodyMusicSeeder(logger, scopeFactory, dataStore);
         this.spanishSeeder = new SpanishSeeder(logger, scopeFactory);
     }
