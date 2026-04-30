@@ -52,32 +52,36 @@ public partial class MusicPublicationSelection : BaseContentPage, IDisposable
             return;
         }
 
-        if (sender is View view && view.BindingContext is PublicationListViewItemModel publicationItem)
+        if (sender is not View view || view.BindingContext is not PublicationListViewItemModel publicationItem)
         {
-            isSelectingPublication = true;
+            return;
+        }
 
-            // Reset progress and show row indicator immediately
-            publicationItem.DownloadProgress = 0.0;
-            publicationItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
+        isSelectingPublication = true;
 
-            try
+        // Reset progress and show row indicator immediately
+        publicationItem.DownloadProgress = 0.0;
+        publicationItem.IsNavigating = true;
+
+        // Wait 50ms to ensure UI thread renders the update before doing backend work
+        await Task.Delay(50);
+
+        try
+        {
+            if (ViewModel is null ||
+                ViewModel.TrackSelectionCommand is not IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(publicationItem))
             {
-                if (ViewModel != null
-                    && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand
-                    && asyncCommand.CanExecute(publicationItem))
-                {
-                    await asyncCommand.ExecuteAsync(publicationItem);
-                }
+                return;
             }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                publicationItem.IsNavigating = false;
-                isSelectingPublication = false;
-            }
+
+            await asyncCommand.ExecuteAsync(publicationItem);
+        }
+        finally
+        {
+            // Reset IsNavigating after operation completes
+            publicationItem.IsNavigating = false;
+            isSelectingPublication = false;
         }
     }
 }

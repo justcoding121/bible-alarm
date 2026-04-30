@@ -40,12 +40,14 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
 
         try
         {
-            if (ViewModel != null
-                && ViewModel.SelectNumberOfTracksCommand is IAsyncRelayCommand<NumberOfTracksListViewItemModel> asyncCommand
-                && asyncCommand.CanExecute(trackItem))
+            if (ViewModel is null ||
+                ViewModel.SelectNumberOfTracksCommand is not IAsyncRelayCommand<NumberOfTracksListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(trackItem))
             {
-                await asyncCommand.ExecuteAsync(trackItem);
+                return;
             }
+
+            await asyncCommand.ExecuteAsync(trackItem);
         }
         finally
         {

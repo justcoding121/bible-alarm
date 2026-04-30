@@ -73,24 +73,28 @@ public partial class MusicTrackSelection : BaseContentPage, IDisposable
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is View view && view.BindingContext is MusicTrackListViewItemModel trackItem)
+        if (sender is not View view || view.BindingContext is not MusicTrackListViewItemModel trackItem)
         {
-            trackItem.IsNavigating = true;
-            await Task.Delay(50);
+            return;
+        }
 
-            try
+        trackItem.IsNavigating = true;
+        await Task.Delay(50);
+
+        try
+        {
+            if (ViewModel is null ||
+                ViewModel.SetTrackCommand is not IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(trackItem))
             {
-                if (ViewModel != null
-                    && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand
-                    && asyncCommand.CanExecute(trackItem))
-                {
-                    await asyncCommand.ExecuteAsync(trackItem);
-                }
+                return;
             }
-            finally
-            {
-                trackItem.IsNavigating = false;
-            }
+
+            await asyncCommand.ExecuteAsync(trackItem);
+        }
+        finally
+        {
+            trackItem.IsNavigating = false;
         }
     }
 }

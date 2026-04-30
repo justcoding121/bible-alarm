@@ -44,6 +44,12 @@ public sealed class ScheduleStateService(
 
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
     {
+#if !ANDROID && !IOS
+        if (isEnabled && !await CheckNotificationPermissionsAsync(scheduleId))
+        {
+            return false;
+        }
+#endif
         if (isEnabled)
         {
 #if ANDROID
@@ -73,12 +79,6 @@ public sealed class ScheduleStateService(
                 }
 
                 return true;
-            }
-#else
-            // Other platforms: Permission is required for IsEnabled
-            if (!await CheckNotificationPermissionsAsync(scheduleId))
-            {
-                return false;
             }
 #endif
         }

@@ -76,12 +76,14 @@ public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
 
         try
         {
-            if (ViewModel != null
-                && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand
-                && asyncCommand.CanExecute(trackItem))
+            if (ViewModel is null ||
+                ViewModel.SetTrackCommand is not IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(trackItem))
             {
-                await asyncCommand.ExecuteAsync(trackItem);
+                return;
             }
+
+            await asyncCommand.ExecuteAsync(trackItem);
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {

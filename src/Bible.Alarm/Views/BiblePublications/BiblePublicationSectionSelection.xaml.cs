@@ -89,32 +89,36 @@ public partial class BiblePublicationSectionSelection : BaseContentPage, IDispos
             return;
         }
 
-        if (sender is View view && view.BindingContext is BiblePublicationSectionListViewItemModel sectionItem)
+        if (sender is not View view || view.BindingContext is not BiblePublicationSectionListViewItemModel sectionItem)
         {
-            isSelectingSection = true;
+            return;
+        }
 
-            // Reset progress and show row indicator immediately
-            sectionItem.DownloadProgress = 0.0;
-            sectionItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
+        isSelectingSection = true;
 
-            try
+        // Reset progress and show row indicator immediately
+        sectionItem.DownloadProgress = 0.0;
+        sectionItem.IsNavigating = true;
+
+        // Wait 50ms to ensure UI thread renders the update before doing backend work
+        await Task.Delay(50);
+
+        try
+        {
+            if (ViewModel is null ||
+                ViewModel.TrackSelectionCommand is not IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(sectionItem))
             {
-                if (ViewModel != null
-                    && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand
-                    && asyncCommand.CanExecute(sectionItem))
-                {
-                    await asyncCommand.ExecuteAsync(sectionItem);
-                }
+                return;
             }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                sectionItem.IsNavigating = false;
-                isSelectingSection = false;
-            }
+
+            await asyncCommand.ExecuteAsync(sectionItem);
+        }
+        finally
+        {
+            // Reset IsNavigating after operation completes
+            sectionItem.IsNavigating = false;
+            isSelectingSection = false;
         }
     }
 }

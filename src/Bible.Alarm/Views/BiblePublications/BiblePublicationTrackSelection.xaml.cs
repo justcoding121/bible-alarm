@@ -85,28 +85,32 @@ public partial class BiblePublicationTrackSelection : BaseContentPage, IDisposab
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is View view && view.BindingContext is BiblePublicationTrackListViewItemModel trackItem)
+        if (sender is not View view || view.BindingContext is not BiblePublicationTrackListViewItemModel trackItem)
         {
-            // Set IsNavigating immediately to show progress indicator
-            trackItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
+            return;
+        }
 
-            try
+        // Set IsNavigating immediately to show progress indicator
+        trackItem.IsNavigating = true;
+
+        // Wait 50ms to ensure UI thread renders the update before doing backend work
+        await Task.Delay(50);
+
+        try
+        {
+            if (ViewModel is null ||
+                ViewModel.SetTrackCommand is not IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(trackItem))
             {
-                if (ViewModel != null
-                    && ViewModel.SetTrackCommand is IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand
-                    && asyncCommand.CanExecute(trackItem))
-                {
-                    await asyncCommand.ExecuteAsync(trackItem);
-                }
+                return;
             }
-            finally
-            {
-                // Reset IsNavigating after operation completes
-                trackItem.IsNavigating = false;
-            }
+
+            await asyncCommand.ExecuteAsync(trackItem);
+        }
+        finally
+        {
+            // Reset IsNavigating after operation completes
+            trackItem.IsNavigating = false;
         }
     }
 }

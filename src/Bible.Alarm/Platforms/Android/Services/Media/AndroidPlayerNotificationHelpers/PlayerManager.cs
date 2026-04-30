@@ -288,7 +288,7 @@ public sealed class PlayerManager(ILogger logger)
         // Required interface methods - can be empty
         public void OnAudioAttributesChanged(AndroidX.Media3.Common.AudioAttributes? audioAttributes) { }
         public void OnAudioSessionIdChanged(int audioSessionId) { }
-        public void OnAvailableCommandsChanged(PlayerCommands? player) { }
+        public void OnAvailableCommandsChanged(PlayerCommands? commands) { }
         public void OnCues(AndroidX.Media3.Common.Text.CueGroup? cues) { }
         public void OnDeviceInfoChanged(AndroidX.Media3.Common.DeviceInfo? deviceInfo) { }
         public void OnDeviceVolumeChanged(int volume, bool muted) { }

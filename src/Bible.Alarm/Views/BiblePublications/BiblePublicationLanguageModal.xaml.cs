@@ -153,12 +153,14 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
 
         try
         {
-            if (ViewModel is BiblePublicationSelectionViewModel bibleSelectionViewModel
-                && bibleSelectionViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand
-                && asyncCommand.CanExecute(languageItem))
+            if (ViewModel is not BiblePublicationSelectionViewModel bibleSelectionViewModel ||
+                bibleSelectionViewModel.SelectLanguageCommand is not IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(languageItem))
             {
-                await asyncCommand.ExecuteAsync(languageItem);
+                return;
             }
+
+            await asyncCommand.ExecuteAsync(languageItem);
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {

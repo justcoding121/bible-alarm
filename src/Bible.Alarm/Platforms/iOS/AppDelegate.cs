@@ -126,7 +126,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         return base.GetConfiguration(application, connectingSceneSession, options);
     }
 
-    public override bool FinishedLaunching(UIApplication app, NSDictionary? launchOptions)
+    public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
     {
         // With UIApplicationSceneManifest in Info.plist, MAUI's base.FinishedLaunching
         // will NOT create a window here. Window creation is handled by
@@ -134,7 +134,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         bool result;
         try
         {
-            result = base.FinishedLaunching(app, launchOptions);
+            result = base.FinishedLaunching(application, launchOptions);
         }
         catch (Exception ex)
         {
@@ -178,7 +178,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         UNUserNotificationCenter.Current.Delegate = this;
     }
 
-    public override void OnActivated(UIApplication uiApplication)
+    public override void OnActivated(UIApplication application)
     {
         try
         {
@@ -190,7 +190,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             logger.Error(e, AppConstants.Logging.IosAppDelegateDiagnosticsLog.ErrorWhenShowingNotificationOnIosActivation);
         }
 
-        base.OnActivated(uiApplication);
+        base.OnActivated(application);
     }
 
     private static void HandleDeliveredNotifications()

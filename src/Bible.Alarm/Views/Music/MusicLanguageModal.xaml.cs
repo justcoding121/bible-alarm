@@ -102,12 +102,14 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
         try
         {
-            if (ViewModel is MusicPublicationSelectionViewModel musicPublicationViewModel &&
-                musicPublicationViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand &&
-                asyncCommand.CanExecute(languageItem))
+            if (ViewModel is not MusicPublicationSelectionViewModel musicPublicationViewModel ||
+                musicPublicationViewModel.SelectLanguageCommand is not IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(languageItem))
             {
-                await asyncCommand.ExecuteAsync(languageItem);
+                return;
             }
+
+            await asyncCommand.ExecuteAsync(languageItem);
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {

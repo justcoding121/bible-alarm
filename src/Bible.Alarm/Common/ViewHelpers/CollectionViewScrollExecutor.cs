@@ -97,11 +97,11 @@ internal static class CollectionViewScrollExecutor
                                 if (DeviceInfo.Platform == DevicePlatform.WinUI)
                                 {
                                     bool isInLast10 = false;
-                                    var itemsSource = collectionView.ItemsSource;
-                                    if (itemsSource != null)
-                                    {
-                                        var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
-                                        if (itemsList != null && itemsList.Count > 0)
+                                        var itemsSource = collectionView.ItemsSource;
+                                        if (itemsSource != null)
+                                        {
+                                            var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
+                                            if (itemsList.Count > 0)
                                         {
                                             // Find the item index
                                             int itemIndex = -1;
@@ -146,7 +146,7 @@ internal static class CollectionViewScrollExecutor
                                 if (scrollItemsSource != null)
                                 {
                                     var itemsList = scrollItemsSource as IList ?? scrollItemsSource.Cast<object>().ToList();
-                                    if (itemsList != null && itemsList.Count > 0)
+                                    if (itemsList.Count > 0)
                                     {
                                         int itemIndex = FindItemIndexByValue(itemsList, item);
                                         if (itemIndex >= 0)

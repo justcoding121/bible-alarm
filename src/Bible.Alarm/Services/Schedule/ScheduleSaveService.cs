@@ -107,8 +107,8 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             else
             {
                 logger.Warning(AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareModelForSaveMusicUpdatedInvalidMusicProperties,
-                    currentSchedule?.MusicPublicationCode ?? "null",
-                    currentSchedule?.MusicTrackCode?.ToString() ?? "null");
+                    currentSchedule.MusicPublicationCode ?? "null",
+                    currentSchedule.MusicTrackCode?.ToString() ?? "null");
             }
         }
         else

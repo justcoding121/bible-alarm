@@ -78,12 +78,14 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
 
         try
         {
-            if (ViewModel != null
-                && ViewModel.SetTrackCommand is IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand
-                && asyncCommand.CanExecute(trackItem))
+            if (ViewModel is null ||
+                ViewModel.SetTrackCommand is not IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand ||
+                !asyncCommand.CanExecute(trackItem))
             {
-                await asyncCommand.ExecuteAsync(trackItem);
+                return;
             }
+
+            await asyncCommand.ExecuteAsync(trackItem);
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {
