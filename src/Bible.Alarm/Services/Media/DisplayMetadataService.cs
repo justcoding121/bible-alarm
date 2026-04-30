@@ -491,7 +491,7 @@ public sealed class DisplayMetadataService(
             var fileUri = new Uri(uri);
             return fileUri.LocalPath;
         }
-        catch
+        catch (Exception)
         {
             // If URI parsing fails, try to extract path manually
             // Remove "file://" prefix (or "file:///" on Unix)

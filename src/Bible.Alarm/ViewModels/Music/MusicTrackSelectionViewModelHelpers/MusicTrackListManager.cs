@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.ViewModels.Music;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
@@ -98,7 +99,7 @@ public sealed class MusicTrackListManager(
                 return;
             }
 
-            if (e.PropertyName == "Repeat")
+            if (string.Equals(e.PropertyName, nameof(MusicTrackListViewItemModel.Repeat), StringComparison.Ordinal))
             {
                 HandleRepeatChanged(item, tracks);
             }

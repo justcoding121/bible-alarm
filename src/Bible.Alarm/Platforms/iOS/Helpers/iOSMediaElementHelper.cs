@@ -99,7 +99,7 @@ public static class IosMediaElementHelper
 
         foreach (var part in pathParts)
         {
-            if (part == "..")
+            if (part.Equals("..", StringComparison.Ordinal))
             {
                 if (normalizedParts.Count > 0)
                 {
@@ -153,7 +153,7 @@ public static class IosMediaElementHelper
     {
         // Check if state is Paused by comparing string representation
         var stateString = currentState.ToString();
-        if (stateString == "Paused")
+        if (string.Equals(stateString, "Paused", StringComparison.Ordinal))
         {
             // When a new source is set, iOS MediaElement transitions to "Paused" state (loaded but not playing).
             // In this case, we don't need to Stop() first - we can just Play() directly.

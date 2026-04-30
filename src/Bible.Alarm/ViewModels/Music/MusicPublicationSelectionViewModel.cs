@@ -401,13 +401,13 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         var p = message.Value;
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (p.Context == "MusicLanguage")
+            if (string.Equals(p.Context, "MusicLanguage", StringComparison.Ordinal))
             {
                 var lang = propertyManager.Languages?.FirstOrDefault(l => l.Code == p.ItemId);
                 if (lang != null)
                     lang.DownloadProgress = p.Progress;
             }
-            else if (p.Context == "MusicPublication")
+            else if (string.Equals(p.Context, "MusicPublication", StringComparison.Ordinal))
             {
                 var pub = propertyManager.SongPublications?.FirstOrDefault(pr => pr.Code == p.ItemId);
                 if (pub != null)

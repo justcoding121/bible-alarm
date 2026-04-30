@@ -249,7 +249,7 @@ public sealed class ScheduleStateService(
         for (Exception? cur = ex; cur != null; cur = cur.InnerException)
         {
             var exceptionType = cur.GetType().FullName;
-            if (exceptionType == "Java.Lang.SecurityException" ||
+            if (string.Equals(exceptionType, "Java.Lang.SecurityException", StringComparison.Ordinal) ||
                 cur.Message.Contains("SCHEDULE_EXACT_ALARM", StringComparison.Ordinal) ||
                 cur.Message.Contains("USE_EXACT_ALARM", StringComparison.Ordinal))
             {

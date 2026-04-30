@@ -60,7 +60,8 @@ internal static class WindowsToastXmlFactory
 
                 // If it's already a URI (http/https), use it as-is
                 if (Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) &&
-                    (uri.Scheme == "http" || uri.Scheme == "https"))
+                    (string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
                 {
                     imageUri = artworkUrl;
                 }

@@ -259,19 +259,19 @@ public sealed class PlayerManager(ILogger logger)
                         return;
                     }
 
-                    if (mediaId == "bible_alarm_next_dummy")
+                    if (string.Equals(mediaId, "bible_alarm_next_dummy", StringComparison.Ordinal))
                     {
                         logger.Information("NEXT BUTTON PRESSED — BLOCKING DUMMY TRACK");
                         OnNextButtonPressed();
                     }
-                    else if (mediaId == "bible_alarm_previous_dummy")
+                    else if (string.Equals(mediaId, "bible_alarm_previous_dummy", StringComparison.Ordinal))
                     {
                         logger.Information("PREVIOUS BUTTON PRESSED — BLOCKING DUMMY TRACK");
                         OnPreviousButtonPressed();
                     }
                 }
                 else if (reason == AutomaticTransitionReason
-                         && mediaId == "bible_alarm_next_dummy")
+                         && string.Equals(mediaId, "bible_alarm_next_dummy", StringComparison.Ordinal))
                 {
                     // Do NOT call OnNextButtonPressed() here.
                     // The automatic transition to the silent dummy is an ExoPlayer queue artifact,

@@ -15,7 +15,7 @@ static class AppPackageService
                 return true;
             }
         }
-        catch
+        catch (Exception)
         {
             // no-op
         }

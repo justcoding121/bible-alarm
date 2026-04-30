@@ -74,7 +74,7 @@ internal static class AndroidArtworkBytesFetcher
             {
                 Serilog.Log.Debug(e, "Unable to retrieve {MetadataArtworkUrl} for {Url}", nameof(MediaElement.MetadataArtworkUrl), url);
             }
-            catch
+            catch (Exception)
             {
                 // Serilog may not be initialized in static context, ignore
             }

@@ -102,7 +102,7 @@ sealed class Metadata
                 cachedArtworkImage = defaultUiImage;
             }
         }
-        catch
+        catch (Exception)
         {
             cachedArtworkImage = defaultUiImage;
         }

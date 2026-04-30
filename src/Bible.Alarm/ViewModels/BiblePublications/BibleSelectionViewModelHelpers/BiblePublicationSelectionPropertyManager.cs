@@ -156,7 +156,7 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
     {
         propertyChangedHandler = (sender, e) =>
         {
-            if (e.PropertyName == "LanguageSearchTerm")
+            if (string.Equals(e.PropertyName, nameof(LanguageSearchTerm), StringComparison.Ordinal))
             {
                 populateLanguages(LanguageSearchTerm?.Trim());
             }

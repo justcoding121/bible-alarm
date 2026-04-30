@@ -165,7 +165,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         }
 
         var totalStr = contentRange[(slash + 1)..].Trim();
-        if (totalStr == "*")
+        if (string.Equals(totalStr, "*", StringComparison.Ordinal))
         {
             return null;
         }

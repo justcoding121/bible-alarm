@@ -423,7 +423,7 @@ public sealed class BiblePublicationSelectionDataProvider
                                     currentSchedule.BiblePublicationLanguageCode == languageCode &&
                                     currentSchedule.BiblePublicationCode == defaultPublication.Code &&
                                     string.Equals(currentSectionCode, "1", StringComparison.OrdinalIgnoreCase) &&
-                                    currentSchedule.BiblePublicationTrackCode == "1";
+                                    string.Equals(currentSchedule.BiblePublicationTrackCode, "1", StringComparison.Ordinal);
 
                 if (!alreadyMatches)
                 {
