@@ -745,55 +745,64 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
     public void Dispose()
     {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
         if (isDisposed)
         {
             return;
         }
 
-        isDisposed = true;
-
-        try
+        if (disposing)
         {
-            seekDebounceTimer?.Stop();
-            seekDebounceTimer?.Dispose();
-        }
-        catch (Exception)
-        {
-            // Seek debounce timer dispose is best-effort during modal teardown.
-        }
-        finally
-        {
-            seekDebounceTimer = null;
-        }
-
-        try
-        {
-            Loaded -= OnPageLoaded;
-            SizeChanged -= OnSizeChanged;
-            UnwireLandscapeContentEvents();
-#if IOS
-            RemoveIOSTapRecognizers();
-#endif
-        }
-        catch (Exception)
-        {
-            // Ignore - page may be in transitional state (e.g. CarPlay disconnect)
-        }
-
-        pendingSeekValue = null;
-
-        try
-        {
-            if (viewModel is IDisposable disposable)
+            try
             {
-                disposable.Dispose();
+                seekDebounceTimer?.Stop();
+                seekDebounceTimer?.Dispose();
             }
-        }
-        catch (Exception)
-        {
-            // Ignore errors during ViewModel disposal
+            catch (Exception)
+            {
+                // Seek debounce timer dispose is best-effort during modal teardown.
+            }
+            finally
+            {
+                seekDebounceTimer = null;
+            }
+
+            try
+            {
+                Loaded -= OnPageLoaded;
+                SizeChanged -= OnSizeChanged;
+                UnwireLandscapeContentEvents();
+#if IOS
+                RemoveIOSTapRecognizers();
+#endif
+            }
+            catch (Exception)
+            {
+                // Ignore - page may be in transitional state (e.g. CarPlay disconnect)
+            }
+
+            pendingSeekValue = null;
+
+            try
+            {
+                if (viewModel is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore errors during ViewModel disposal
+            }
+
+            BindingContext = null;
         }
 
-        BindingContext = null;
+        isDisposed = true;
     }
 }

@@ -3,9 +3,8 @@ using Bible.Alarm.Services.Storage;
 
 namespace Bible.Alarm.Platforms.Android.Services.Storage;
 
-public class AndroidStorageService : StorageService, IDisposable
+public class AndroidStorageService : StorageService
 {
-    private bool isDisposed;
     public override string StorageRoot =>
         //never backed up to cloud
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -16,17 +15,4 @@ public class AndroidStorageService : StorageService, IDisposable
 
 
     public override Assembly MainAssembly => typeof(AndroidStorageService).Assembly;
-
-    public override void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // No resources to dispose
-        base.Dispose();
-    }
 }

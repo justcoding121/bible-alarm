@@ -16,7 +16,7 @@ using Exception = System.Exception;
 namespace Bible.Alarm.Platforms.Android.Services.AndroidServices;
 
 [Service(Enabled = true)]
-public class AlarmSetupService : Service, IDisposable
+public class AlarmSetupService : Service
 {
     private static readonly ILogger logger = Log.ForContext<AlarmSetupService>();
 
@@ -220,8 +220,11 @@ public class AlarmSetupService : Service, IDisposable
             return;
         }
 
-        AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-        TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
+        if (disposing)
+        {
+            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
+        }
 
         disposed = true;
 

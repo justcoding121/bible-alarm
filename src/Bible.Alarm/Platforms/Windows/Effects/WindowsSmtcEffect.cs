@@ -17,6 +17,8 @@ public class WindowsSmtcEffect(
     IWindowsSmtcService smtcService,
     IState<PlaybackState> playbackState) : IDisposable
 {
+    private bool disposed;
+
     private static readonly ILogger logger = Log.ForContext<WindowsSmtcEffect>();
 
     /// <summary>
@@ -101,6 +103,22 @@ public class WindowsSmtcEffect(
 
     public void Dispose()
     {
-        // SMTC service will be disposed by DI container
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            // SMTC service will be disposed by DI container
+        }
+
+        disposed = true;
     }
 }

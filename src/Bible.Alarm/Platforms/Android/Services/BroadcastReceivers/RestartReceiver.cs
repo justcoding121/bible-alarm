@@ -15,11 +15,9 @@ namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
     "android.intent.action.QUICKBOOT_POWERON", "com.htc.intent.action.QUICKBOOT_POWERON",
     "com.Bible.Alarm.Restart"
 ])]
-public class RestartReceiver : BroadcastReceiver, IDisposable
+public class RestartReceiver : BroadcastReceiver
 {
     private readonly ILogger logger;
-
-    private Context context;
 
     public RestartReceiver() : this(Log.ForContext<RestartReceiver>())
     {
@@ -77,8 +75,6 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
             logger.Warning(ex, AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.RestartReceiverOnReceiveFailed);
         }
 
-        this.context = context;
-
         var pendingIntent = GoAsync();
 
         try
@@ -111,18 +107,24 @@ public class RestartReceiver : BroadcastReceiver, IDisposable
 
     public new void Dispose()
     {
-        if (!disposed)
+        DisposeManagedResources(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void DisposeManagedResources(bool disposing)
+    {
+        if (disposed)
         {
-            disposed = true;
+            return;
         }
 
-        AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-        TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
+        if (disposing)
+        {
+            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+            TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
+        }
 
         disposed = true;
-
         base.Dispose();
-
-        GC.SuppressFinalize(this);
     }
 }

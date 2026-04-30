@@ -8,6 +8,8 @@ namespace Bible.Alarm.Services.Storage;
 
 public abstract class StorageService : IStorageService, IDisposable
 {
+    private bool disposed;
+
     public abstract string StorageRoot { get; }
     public abstract string CacheRoot { get; }
     public abstract Assembly MainAssembly { get; }
@@ -124,7 +126,23 @@ public abstract class StorageService : IStorageService, IDisposable
             new DateTimeOffset(new[] { file.LastAccessTime, file.LastWriteTime, file.CreationTime }.Max()));
     }
 
-    public virtual void Dispose()
+    public void Dispose()
     {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+        }
+
+        disposed = true;
     }
 }

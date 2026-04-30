@@ -7,10 +7,8 @@ using Windows.Storage;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Storage;
 
-public class WindowsStorageService : StorageService, IDisposable
+public class WindowsStorageService : StorageService
 {
-    private bool isDisposed;
-
     private static string GetStorageRoot()
     {
         try
@@ -46,17 +44,4 @@ public class WindowsStorageService : StorageService, IDisposable
     private static readonly Lazy<string> CacheRootLazy = new(GetCacheRoot);
     public override string CacheRoot => CacheRootLazy.Value;
     public override Assembly MainAssembly => typeof(WindowsStorageService).Assembly;
-
-    public override void Dispose()
-    {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
-
-        // No resources to dispose
-        base.Dispose();
-    }
 }

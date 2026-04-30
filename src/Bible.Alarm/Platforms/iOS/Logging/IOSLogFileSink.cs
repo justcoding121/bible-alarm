@@ -106,25 +106,34 @@ public class IOSLogFileSink : Serilog.Core.ILogEventSink, IDisposable
 
     public void Dispose()
     {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
         if (disposed)
         {
             return;
         }
 
-        lock (lockObject)
+        if (disposing)
         {
-            try
+            lock (lockObject)
             {
-                writer?.Flush();
-                writer?.Dispose();
+                try
+                {
+                    writer.Flush();
+                    writer.Dispose();
+                }
+                catch (Exception)
+                {
+                    // Ignore disposal errors
+                }
             }
-            catch (Exception)
-            {
-                // Ignore disposal errors
-            }
-
-            disposed = true;
         }
+
+        disposed = true;
     }
 }
 #endif

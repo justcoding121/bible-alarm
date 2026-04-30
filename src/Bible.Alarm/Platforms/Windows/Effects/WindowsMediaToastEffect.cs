@@ -19,6 +19,8 @@ public class WindowsMediaToastEffect(
     IState<PlaybackState> playbackState) : IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<WindowsMediaToastEffect>();
+    private bool disposed;
+
     private bool isAppInForeground = true;
     private bool isLifecycleSubscribed;
 
@@ -144,15 +146,35 @@ public class WindowsMediaToastEffect(
 
     public void Dispose()
     {
-        if (!isLifecycleSubscribed) return;
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 
-        MainThread.BeginInvokeOnMainThread(() =>
+    private void Dispose(bool disposing)
+    {
+        if (disposed)
         {
-            var window = Application.Current?.Windows is { Count: > 0 } wins ? wins[0] : null;
-            if (window == null) return;
+            return;
+        }
 
-            window.Activated -= OnWindowActivated;
-            window.Deactivated -= OnWindowDeactivated;
-        });
+        if (disposing)
+        {
+            if (isLifecycleSubscribed)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    var window = Application.Current?.Windows is { Count: > 0 } wins ? wins[0] : null;
+                    if (window != null)
+                    {
+                        window.Activated -= OnWindowActivated;
+                        window.Deactivated -= OnWindowDeactivated;
+                    }
+
+                    isLifecycleSubscribed = false;
+                });
+            }
+        }
+
+        disposed = true;
     }
 }
