@@ -268,11 +268,11 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
 
     public bool ShowCancelButton => IsBusy;
 
-    public ICommand CloseModalCommand { get; private set; } = null!;
+    public ICommand CloseModalCommand { get; private set; }
 
-    public ICommand CancelFetchCommand { get; private set; } = null!;
+    public ICommand CancelFetchCommand { get; private set; }
 
-    public ICommand OverlayCancelCommand { get; private set; } = null!;
+    public ICommand OverlayCancelCommand { get; private set; }
 
     private async Task CloseModalAsync()
     {

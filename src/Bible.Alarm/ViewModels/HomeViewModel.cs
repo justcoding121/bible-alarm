@@ -273,9 +273,9 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
     public ICommand AddScheduleCommand { get; set; }
     public ICommand ViewScheduleCommand { get; set; }
-    public ICommand OpenAlarmSettingsCommand { get; private set; } = null!;
-    public ICommand OpenNotificationPermissionCommand { get; private set; } = null!;
-    public ICommand OpenFocusSettingsCommand { get; private set; } = null!;
+    public ICommand OpenAlarmSettingsCommand { get; private set; }
+    public ICommand OpenNotificationPermissionCommand { get; private set; }
+    public ICommand OpenFocusSettingsCommand { get; private set; }
 
     private bool isFloatingButtonVisible = true;
     public bool IsFloatingButtonVisible

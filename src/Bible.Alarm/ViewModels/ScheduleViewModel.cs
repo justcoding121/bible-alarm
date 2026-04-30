@@ -265,10 +265,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
 
 
-    public ICommand CancelCommand { get; set; } = null!;
+    public ICommand CancelCommand { get; set; }
 
-    public ICommand SaveCommand { get; set; } = null!;
-    public ICommand DeleteCommand { get; set; } = null!;
+    public ICommand SaveCommand { get; set; }
+    public ICommand DeleteCommand { get; set; }
 
     public bool IsBusy
     {
