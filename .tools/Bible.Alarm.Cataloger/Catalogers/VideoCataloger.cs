@@ -31,9 +31,10 @@ internal class VideoCataloger : BaseCataloger
     /// Video publication code to name mappings (for logging/fallback).
     /// Codes come from centralized JwSourceHelper.VideoPublicationCodes.
     /// </summary>
-    private static readonly Dictionary<string, string> VideoPublicationCodeToNameMappings = new([
-        new KeyValuePair<string, string>(AppConstants.Media.BiblePublicationCodeDramasGoodNews, AppConstants.Media.PublicationDisplayNameGoodNewsAccordingToJesus)
-    ]);
+    private static readonly Dictionary<string, string> VideoPublicationCodeToNameMappings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [AppConstants.Media.BiblePublicationCodeDramasGoodNews] = AppConstants.Media.PublicationDisplayNameGoodNewsAccordingToJesus,
+    };
 
     internal async Task CatalogVideoLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {

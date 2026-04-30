@@ -33,7 +33,8 @@ public class UrlConstructionService : IUrlConstructionService
         public Lazy<Task<string?>> Value { get; } = value;
     }
 
-    private readonly ConcurrentDictionary<LookUpPathCacheKey, LookUpPathCacheEntry> lookUpPathCache = new();
+    private readonly ConcurrentDictionary<LookUpPathCacheKey, LookUpPathCacheEntry> lookUpPathCache =
+        new(LookUpPathCacheKeyEqualityComparer.Instance);
 
     public UrlConstructionService(IServiceScopeFactory scopeFactory)
     {
@@ -235,5 +236,27 @@ public class UrlConstructionService : IUrlConstructionService
     public void ClearLookUpPathCache()
     {
         lookUpPathCache.Clear();
+    }
+
+    private sealed class LookUpPathCacheKeyEqualityComparer : IEqualityComparer<LookUpPathCacheKey>
+    {
+        public static readonly LookUpPathCacheKeyEqualityComparer Instance = new();
+
+        private LookUpPathCacheKeyEqualityComparer()
+        {
+        }
+
+        public bool Equals(LookUpPathCacheKey x, LookUpPathCacheKey y) =>
+            string.Equals(x.PublicationCode, y.PublicationCode, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.LanguageCode, y.LanguageCode, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.SectionCode, y.SectionCode, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.TrackCode, y.TrackCode, StringComparison.Ordinal);
+
+        public int GetHashCode(LookUpPathCacheKey obj) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PublicationCode),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LanguageCode),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.SectionCode),
+                StringComparer.Ordinal.GetHashCode(obj.TrackCode));
     }
 }

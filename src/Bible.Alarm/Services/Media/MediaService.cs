@@ -1,5 +1,7 @@
 #nullable enable annotations
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.MediaServiceHelpers;
 using Bible.Alarm.Shared.Constants;
@@ -34,10 +36,31 @@ public sealed class MediaService(MediaServiceDependencies dependencies)
 
     private static readonly TimeSpan BiblePublicationsCacheTtl = TimeSpan.FromSeconds(5);
 
-    private readonly ConcurrentDictionary<BiblePublicationsCacheKey, BiblePublicationsCacheEntry> biblePublicationsCache = new();
+    private readonly ConcurrentDictionary<BiblePublicationsCacheKey, BiblePublicationsCacheEntry> biblePublicationsCache =
+        new(BiblePublicationsCacheKeyEqualityComparer.Instance);
     private readonly ConcurrentDictionary<string, bool> publicationWithoutLanguageCache = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly record struct BiblePublicationsCacheKey(string LanguageCode, string? CategoryName, bool RequireIsMusicForMusicCategory);
+
+    private sealed class BiblePublicationsCacheKeyEqualityComparer : IEqualityComparer<BiblePublicationsCacheKey>
+    {
+        public static readonly BiblePublicationsCacheKeyEqualityComparer Instance = new();
+
+        private BiblePublicationsCacheKeyEqualityComparer()
+        {
+        }
+
+        public bool Equals(BiblePublicationsCacheKey x, BiblePublicationsCacheKey y) =>
+            string.Equals(x.LanguageCode, y.LanguageCode, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.CategoryName ?? "", y.CategoryName ?? "", StringComparison.OrdinalIgnoreCase)
+            && x.RequireIsMusicForMusicCategory == y.RequireIsMusicForMusicCategory;
+
+        public int GetHashCode(BiblePublicationsCacheKey obj) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LanguageCode),
+                obj.CategoryName != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(obj.CategoryName) : 0,
+                obj.RequireIsMusicForMusicCategory);
+    }
 
     private sealed class BiblePublicationsCacheEntry(DateTimeOffset createdAt, Lazy<Task<Dictionary<string, BiblePublication>>> value)
     {

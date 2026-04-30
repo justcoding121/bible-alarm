@@ -32,7 +32,7 @@ public static class LookUpPathBuilder
         // If section code follows the pattern "publicationCode-*", it's a disc-style section
         // which implies a no-language publication
         var isDiscStyleSection = !string.IsNullOrWhiteSpace(sectionCode) &&
-            sectionCode.Contains('-') &&
+            sectionCode.Contains("-", StringComparison.Ordinal) &&
             sectionCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase);
 
         // No-language publications (including disc-style sections) always use "E"
@@ -73,7 +73,7 @@ public static class LookUpPathBuilder
     {
         var pubCode = !string.IsNullOrEmpty(downloadCode) ? downloadCode : publicationCode;
         var isDiscStyleDownload = !string.IsNullOrEmpty(downloadCode) &&
-            downloadCode.Contains('-') &&
+            downloadCode.Contains("-", StringComparison.Ordinal) &&
             downloadCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase);
         var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleDownload;
         var effectiveLanguageCode = effectiveIsNoLanguage ? AppConstants.Media.DefaultLanguageCode : languageCode;

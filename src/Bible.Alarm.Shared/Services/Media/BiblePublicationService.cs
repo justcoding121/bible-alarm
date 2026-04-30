@@ -28,10 +28,10 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
     private static readonly TimeSpan PublicationCacheTtl = TimeSpan.FromSeconds(10);
 
-    private readonly ConcurrentDictionary<PublicationCacheKey, PublicationCacheEntry> publicationWithSectionsCache = new();
-    private readonly ConcurrentDictionary<PublicationCacheKey, PublicationCacheEntry> publicationWithTracksCache = new();
-
-    private readonly record struct PublicationCacheKey(string LanguageCode, string PublicationCode);
+    private readonly ConcurrentDictionary<(string LanguageCode, string PublicationCode), PublicationCacheEntry>
+        publicationWithSectionsCache = new(PublicationLookupKeyComparers.LanguagePublication.Instance);
+    private readonly ConcurrentDictionary<(string LanguageCode, string PublicationCode), PublicationCacheEntry>
+        publicationWithTracksCache = new(PublicationLookupKeyComparers.LanguagePublication.Instance);
 
     private sealed class PublicationCacheEntry(DateTimeOffset createdAt, Lazy<Task<BiblePublication?>> value)
     {
@@ -52,7 +52,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         try
         {
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            var key = new PublicationCacheKey(normalizedLanguageCode, publicationCode);
+            var key = (normalizedLanguageCode, publicationCode);
             var now = DateTimeOffset.UtcNow;
 
             static Lazy<Task<BiblePublication?>> CreateLazy(
@@ -118,7 +118,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             var lowerCode = publicationCode.ToLowerInvariant();
             var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
 
-            var key = new PublicationCacheKey(normalizedLanguageCode, publicationCodeForDb);
+            var key = (normalizedLanguageCode, publicationCodeForDb);
             var now = DateTimeOffset.UtcNow;
 
             static Lazy<Task<BiblePublication?>> CreateLazy(
@@ -551,7 +551,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var lowerCode = publicationCode.ToLowerInvariant();
         var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
-        var key = new PublicationCacheKey(normalizedLanguageCode, publicationCodeForDb);
+        var key = (normalizedLanguageCode, publicationCodeForDb);
         publicationWithTracksCache.TryRemove(key, out _);
         publicationWithSectionsCache.TryRemove(key, out _);
     }
