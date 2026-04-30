@@ -117,8 +117,8 @@ public sealed class BiblePublicationScheduleService(IServiceScopeFactory scopeFa
 
         try
         {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
         }
         catch (Exception ex)
         {

@@ -208,8 +208,8 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
 
         try
         {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
         }
         catch
         {

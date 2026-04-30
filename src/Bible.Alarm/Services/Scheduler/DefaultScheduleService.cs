@@ -326,8 +326,8 @@ public sealed class DefaultScheduleService(
         // Cancel and dispose cancellation token source
         try
         {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
         }
         catch (Exception ex)
         {

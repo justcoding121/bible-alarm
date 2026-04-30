@@ -184,7 +184,9 @@ public sealed class TrackPlaybackHandler
         // Only reject the seek when duration is positively known and the seek exceeds it.
         // When duration is still zero (not yet determined from stream), allow the seek through;
         // the post-play validation on iOS/Android will catch it once duration is accurate.
+#if IOS || ANDROID
         var postPlayNeedsDurationRecheck = false;
+#endif
         if (seekPosition.HasValue)
         {
             var prePlayDuration = audioPlayer.Duration;
@@ -194,10 +196,12 @@ public sealed class TrackPlaybackHandler
                     seekPosition.Value, prePlayDuration);
                 seekPosition = null;
             }
+#if IOS || ANDROID
             else if (prePlayDuration == TimeSpan.Zero)
             {
                 postPlayNeedsDurationRecheck = true;
             }
+#endif
         }
 
 #if !IOS && !ANDROID

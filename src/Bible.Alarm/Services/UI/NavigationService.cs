@@ -478,8 +478,8 @@ public sealed class NavigationService(
         // Cancel and dispose cancellation token source (this will cancel any infinite Polly retries)
         try
         {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
         }
         catch (Exception ex)
         {

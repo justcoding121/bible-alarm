@@ -68,8 +68,8 @@ public sealed class GeneralSettingsService(IServiceScopeFactory scopeFactory, IL
 
         try
         {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
         }
         catch (Exception ex)
         {

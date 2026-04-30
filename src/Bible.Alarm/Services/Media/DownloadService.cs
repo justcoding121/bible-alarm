@@ -324,8 +324,8 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
         // Cancel and dispose cancellation token source
         try
         {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
         }
         catch (Exception ex)
         {

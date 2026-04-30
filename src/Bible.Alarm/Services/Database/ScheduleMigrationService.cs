@@ -31,8 +31,8 @@ public sealed class ScheduleMigrationService(
         // Cancel and dispose cancellation token source
         try
         {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
         }
         catch (Exception ex)
         {

@@ -711,8 +711,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         // Cancel and dispose cancellation token source
         try
         {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
+            cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
         }
         catch (Exception ex)
         {
