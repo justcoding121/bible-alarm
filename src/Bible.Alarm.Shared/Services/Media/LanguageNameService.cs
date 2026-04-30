@@ -160,7 +160,7 @@ public sealed class LanguageNameService(IServiceScopeFactory scopeFactory, ILogg
             .Select(x => new { x.LanguageId, x.Name })
             .ToListAsync(cancellationToken);
 
-        return pairs.ToDictionary(x => x.LanguageId, x => x.Name, null);
+        return pairs.ToDictionary(x => x.LanguageId, x => x.Name, EqualityComparer<int>.Default);
     }
 
     public string? GetNameCached(int languageId)

@@ -166,8 +166,9 @@ public class Program
 
                 // Create a dictionary with publication codes (names will be extracted from API)
                 var biblePublicationCodeToNameMappings = JwSourceHelper.BiblePublicationCodes.ToDictionary(
-                    code => code, 
-                    code => code); // Temporary name, will be replaced by API response
+                    code => code,
+                    code => code,
+                    StringComparer.OrdinalIgnoreCase); // Temporary name, will be replaced by API response
 
                 // === PHASE 1: DISCOVERY ===
                 // Discover all languages for all publications and sections using alllangs=1 and langwritten=E

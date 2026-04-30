@@ -162,7 +162,7 @@ public class PlaylistMusicTrackBuilder
             {
                 var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(melodyMusic.PublicationCode);
                 var sectionCodes = sections.Keys.ToList();
-                var sectionIndex = sectionCodes.IndexOf(melodyMusic.SectionCode);
+                var sectionIndex = sectionCodes.FindIndex(s => SectionCodeHelper.CodeEquals(s, melodyMusic.SectionCode));
                 string? nextSectionCode = null;
                 if (sectionIndex >= 0 && sectionIndex < sectionCodes.Count - 1)
                 {

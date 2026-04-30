@@ -126,7 +126,7 @@ internal sealed class TestModeSeeder
 
         foreach (var publicationCode in publicationCodes.OrderBy(pc => pc))
         {
-            var languageTimes = new Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)>();
+            var languageTimes = new Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)>(StringComparer.OrdinalIgnoreCase);
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
 
             // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"

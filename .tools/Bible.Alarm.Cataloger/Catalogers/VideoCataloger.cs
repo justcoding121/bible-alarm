@@ -146,7 +146,8 @@ internal class VideoCataloger : BaseCataloger
             .Where(e => !e.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
             .ToDictionary(
                 e => e.Code,
-                e => new LanguageInfo(e.Name, e.Direction));
+                e => new LanguageInfo(e.Name, e.Direction),
+                StringComparer.OrdinalIgnoreCase);
 
         if (discoveredLanguages.Count > 0)
         {

@@ -77,8 +77,8 @@ internal static class CatalogValidator
         var byPub = tracksWithParams
             .Where(t => t.Publication != null &&
                         (t.Publication.Language?.LanguageCode == AppConstants.Media.DefaultLanguageCode || t.Publication.LanguageId == null))
-            .GroupBy(t => t.Publication!.PublicationCode)
-            .ToDictionary(g => g.Key, g => g.ToList());
+            .GroupBy(t => t.Publication!.PublicationCode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
         void TryAdd(string pubCode, string? sectionCode, string? trackCodeHint)
         {

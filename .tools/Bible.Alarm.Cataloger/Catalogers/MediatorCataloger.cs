@@ -100,7 +100,7 @@ internal class MediatorCataloger : BaseCataloger
             // Remove English from discovered languages since we're processing it
             var languagesToSave = discoveredLanguages
                 .Where(kvp => !kvp.Key.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
             
             if (languagesToSave.Count > 0)
             {

@@ -61,7 +61,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
             // Save language discovery results for English and publication languages for on-demand fetching
             if (dataPersister != null)
             {
-                var languageCodeToNameMapping = allDiscoveredLanguages.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Name);
+                var languageCodeToNameMapping = allDiscoveredLanguages.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Name, StringComparer.OrdinalIgnoreCase);
                 await dataPersister.SaveLanguageDiscovery("E", publicationCode, languageCodeToNameMapping);
                 await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
             }

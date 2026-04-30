@@ -149,7 +149,7 @@ internal sealed class SectionLanguageSeeder
         var publicationLanguagesS = await db.PublicationLanguages
             .Include(pl => pl.Language)
             .Where(pl => pl.Language != null && pl.Language.LanguageCode == SpanishCode)
-            .ToDictionaryAsync(pl => pl.PublicationCode, pl => pl);
+            .ToDictionaryAsync(pl => pl.PublicationCode, pl => pl, StringComparer.OrdinalIgnoreCase);
 
         var added = 0;
         foreach (var slE in sectionLanguagesE)

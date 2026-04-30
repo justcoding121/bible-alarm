@@ -115,7 +115,7 @@ internal sealed class MagazineCataloger : BaseCataloger
         {
             await dataPersister.SavePublicationLanguages(pubCode, mergedLanguages);
 
-            var languageCodeToNameMapping = mergedLanguages.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Name);
+            var languageCodeToNameMapping = mergedLanguages.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Name, StringComparer.OrdinalIgnoreCase);
             await dataPersister.SaveLanguageDiscovery("E", pubCode, languageCodeToNameMapping);
 
             Logger.Information("Year {Year} ({PubCode}): {IssueCount} issues, {LanguageCount} languages",
