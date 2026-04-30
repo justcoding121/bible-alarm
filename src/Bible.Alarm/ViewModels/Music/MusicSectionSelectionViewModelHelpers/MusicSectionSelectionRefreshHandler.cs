@@ -85,7 +85,6 @@ public sealed class MusicSectionSelectionRefreshHandler
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
-            logger.Warning(ex, "[MusicSectionSelection] RefreshFromState - Network error during repopulation");
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -95,11 +94,12 @@ public sealed class MusicSectionSelectionRefreshHandler
                     ctx.SetShowProgress(false);
                 }
             });
-            throw;
+            throw new InvalidOperationException(
+                "[MusicSectionSelection] RefreshFromState - Network error during repopulation",
+                ex);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[MusicSectionSelection] RefreshFromState - Error during repopulation");
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -109,7 +109,9 @@ public sealed class MusicSectionSelectionRefreshHandler
                     ctx.SetShowProgress(false);
                 }
             });
-            throw;
+            throw new InvalidOperationException(
+                "[MusicSectionSelection] RefreshFromState - Error during repopulation",
+                ex);
         }
     }
 }

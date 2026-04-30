@@ -146,8 +146,9 @@ public class AlarmSetupService : Service, IDisposable
         }
         catch (Exception e)
         {
-            logger.Error(e, AppConstants.Logging.AndroidAlarmBootstrapLog.AlarmSetupTaskFailed);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.AndroidAlarmBootstrapLog.AlarmSetupTaskFailed,
+                e);
         }
     }
 

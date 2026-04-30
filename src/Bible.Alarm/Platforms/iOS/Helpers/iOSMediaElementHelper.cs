@@ -78,7 +78,6 @@ public static class IosMediaElementHelper
         }
         catch (Exception ex)
         {
-            logger.Error(ex, AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.ErrorNormalizingFilePath, filePath);
             // Fallback: use original path if normalization fails
             if (File.Exists(filePath))
             {
@@ -86,8 +85,7 @@ public static class IosMediaElementHelper
                 return filePath;
             }
 
-            logger.Error(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.OriginalPathDoesNotExist, filePath);
-            throw;
+            throw new InvalidOperationException($"Error normalizing file path: {filePath}", ex);
         }
     }
 

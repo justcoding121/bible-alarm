@@ -117,15 +117,17 @@ public sealed class MusicPublicationSelectionRefreshHandler
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
-            Serilog.Log.Warning(ex, AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchFailedNetworkError);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchFailedNetworkError,
+                ex);
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchFailedDuringRefresh);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
-            throw;
+            throw new InvalidOperationException(
+                AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchFailedDuringRefresh,
+                ex);
         }
         finally
         {

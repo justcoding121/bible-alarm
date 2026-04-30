@@ -131,7 +131,6 @@ internal static class MediaCacheDownloadCoordinator
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception while downloading track: LookUpPath={LookUpPath}, URL={Url}. No URL refresh - rethrowing.", lookUpPath, playItem.Url);
             downloadTaskSource.SetException(ex);
             throw;
         }

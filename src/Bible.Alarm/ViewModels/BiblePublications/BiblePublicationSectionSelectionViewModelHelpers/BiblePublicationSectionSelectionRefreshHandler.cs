@@ -98,7 +98,6 @@ public sealed class BiblePublicationSectionSelectionRefreshHandler
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
             ctx.SetInitCompleteFalse();
-            logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: Fetch failed with network error");
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -108,12 +107,13 @@ public sealed class BiblePublicationSectionSelectionRefreshHandler
                     ctx.SetShowProgress(false);
                 }
             });
-            throw;
+            throw new InvalidOperationException(
+                "BiblePublicationSectionSelectionViewModel: Fetch failed with network error",
+                ex);
         }
         catch (Exception ex)
         {
             ctx.SetInitCompleteFalse();
-            logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromStateInternal - Error during repopulation");
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -123,7 +123,9 @@ public sealed class BiblePublicationSectionSelectionRefreshHandler
                     ctx.SetShowProgress(false);
                 }
             });
-            throw;
+            throw new InvalidOperationException(
+                "BiblePublicationSectionSelectionViewModel: RefreshFromStateInternal - Error during repopulation",
+                ex);
         }
     }
 }
