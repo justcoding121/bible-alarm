@@ -98,7 +98,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             (isBusy) => propertyManager.IsCancelBusy = isBusy,
             (isBusy) => propertyManager.IsSaveBusy = isBusy,
             (isBusy) => propertyManager.IsDeleteBusy = isBusy);
-        containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
+        containerManager = new ScheduleContainerManager(scheduleContainerService, this.serviceProvider);
         overlayManager = new ScheduleOverlayManager(this.dispatcher);
         overlayTimeoutController = new ScheduleOverlayTimeoutController(logger, state, this.dispatcher);
 

@@ -18,9 +18,7 @@ public class HomeStateChangeHandler
     private readonly ILogger logger;
     private readonly ScheduleDataPreparer dataPreparer;
     private readonly ScheduleViewModelManager viewModelManager;
-    private readonly ProgressBarAnimator progressAnimator;
     private readonly Action<bool> setIsBusy;
-    private readonly Action<double> setProgressBarOpacity;
     private readonly Func<bool> getIsBusy;
     private readonly Func<ObservableHashSet<ScheduleListItemViewModel>?> getSchedules;
     private readonly Action<ObservableHashSet<ScheduleListItemViewModel>> setSchedules;
@@ -42,9 +40,7 @@ public class HomeStateChangeHandler
         ILogger logger,
         ScheduleDataPreparer dataPreparer,
         ScheduleViewModelManager viewModelManager,
-        ProgressBarAnimator progressAnimator,
         Action<bool> setIsBusy,
-        Action<double> setProgressBarOpacity,
         Func<bool> getIsBusy,
         Func<ObservableHashSet<ScheduleListItemViewModel>?> getSchedules,
         Action<ObservableHashSet<ScheduleListItemViewModel>> setSchedules,
@@ -56,9 +52,7 @@ public class HomeStateChangeHandler
         this.logger = logger;
         this.dataPreparer = dataPreparer;
         this.viewModelManager = viewModelManager;
-        this.progressAnimator = progressAnimator;
         this.setIsBusy = setIsBusy;
-        this.setProgressBarOpacity = setProgressBarOpacity;
         this.getIsBusy = getIsBusy;
         this.getSchedules = getSchedules;
         this.setSchedules = setSchedules;

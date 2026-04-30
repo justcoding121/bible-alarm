@@ -1,6 +1,5 @@
 #nullable enable
 using System.Collections.ObjectModel;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -19,7 +18,6 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelper
 /// </summary>
 public sealed class BiblePublicationSelectionStateHandler
 {
-    private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly BiblePublicationSelectionDataProvider dataProvider;
     private readonly IServiceScopeFactory scopeFactory;
@@ -28,16 +26,13 @@ public sealed class BiblePublicationSelectionStateHandler
     private string? lastLanguageCode;
     private string? lastCategoryName;
     private BiblePublicationSchedule? current;
-    private BiblePublicationSchedule? lastCurrent;
     private bool initComplete;
 
     public BiblePublicationSelectionStateHandler(
-        IMediaService mediaService,
         IState<ApplicationState> state,
         BiblePublicationSelectionDataProvider dataProvider,
         IServiceScopeFactory scopeFactory)
     {
-        this.mediaService = mediaService;
         this.state = state;
         this.dataProvider = dataProvider;
         this.scopeFactory = scopeFactory;
@@ -254,7 +249,6 @@ public sealed class BiblePublicationSelectionStateHandler
             TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
             FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
         };
-        lastCurrent = current;
 
         // If language or category changed, repopulate publications
         if ((languageChanged || categoryChanged) && initComplete)

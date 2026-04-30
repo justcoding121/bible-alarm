@@ -47,15 +47,15 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         this.navigationService = navigationService;
 
         stateManager = new MusicTrackStateManager();
-        selectionHandler = new MusicTrackSelectionHandler(dispatcher, state, navigationService);
+        selectionHandler = new MusicTrackSelectionHandler(dispatcher, state, this.navigationService);
         listManager = new MusicTrackListManager(logger, mediaService);
         propertyManager = new MusicTrackPropertyManager();
         SetupPropertyManagerForwarding();
 
         stateManager.InitializeCurrent(state);
 
-        BackCommand = new AsyncRelayCommand(async () => await navigationService.PopAsync());
-        CloseModalCommand = new AsyncRelayCommand(async () => await navigationService.PopModalAsync());
+        BackCommand = new AsyncRelayCommand(async () => await this.navigationService.PopAsync());
+        CloseModalCommand = new AsyncRelayCommand(async () => await this.navigationService.PopModalAsync());
         OverlayCancelCommand = new AsyncRelayCommand(OverlayCancelAsync);
 
         SetTrackCommand = new AsyncRelayCommand<MusicTrackListViewItemModel>(async x =>

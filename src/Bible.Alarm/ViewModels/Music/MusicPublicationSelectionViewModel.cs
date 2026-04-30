@@ -26,7 +26,6 @@ namespace Bible.Alarm.ViewModels.Music;
 public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly IState<ApplicationState> state;
-    private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
 
     // Helper classes
@@ -52,7 +51,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         INavigationService navigationService,        IServiceProvider serviceProvider)
     {
         this.state = state;
-        this.dispatcher = dispatcher;
         this.navigationService = navigationService;
 
         // Initialize helper classes
@@ -61,7 +59,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         var biblePublicationService = serviceProvider.GetService<IBiblePublicationService>();
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         dataProvider = new MusicPublicationSelectionDataProvider(mediaService, languageNameService, biblePublicationService, languageContentService, scopeFactory);
-        commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, this.dispatcher, mediaService, languageNameService);
+        commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, dispatcher, mediaService, languageNameService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
         refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, propertyManager);
         initHandler = new MusicPublicationSelectionInitHandler(mediaService, stateManager, dataProvider, propertyManager);

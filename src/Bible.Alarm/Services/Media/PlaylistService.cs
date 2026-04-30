@@ -31,7 +31,6 @@ public sealed class PlaylistService : IPlaylistService
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IGeneralSettingsService generalSettingsService;
     private readonly IBiblePublicationService BiblePublicationService;
-    private readonly IMelodyMusicService melodyMusicService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
     private PlaylistScheduleManager? _scheduleManager;
@@ -59,7 +58,6 @@ public sealed class PlaylistService : IPlaylistService
         IAlarmScheduleService alarmScheduleService,
         IGeneralSettingsService generalSettingsService,
         IBiblePublicationService BiblePublicationService,
-        IMelodyMusicService melodyMusicService,
         IMediaUrlRefreshService urlRefreshService,
         IUrlConstructionService urlConstructionService,
         ILanguageContentService? languageContentService = null,
@@ -72,10 +70,9 @@ public sealed class PlaylistService : IPlaylistService
         this.alarmScheduleService = alarmScheduleService;
         this.generalSettingsService = generalSettingsService;
         this.BiblePublicationService = BiblePublicationService;
-        this.melodyMusicService = melodyMusicService;
         this.urlConstructionService = urlConstructionService ?? throw new ArgumentNullException(nameof(urlConstructionService));
         biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, urlRefreshService, urlConstructionService, BiblePublicationService);
-        musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService, urlRefreshService, urlConstructionService);
+        musicTrackBuilder = new PlaylistMusicTrackBuilder(mediaService, urlRefreshService, urlConstructionService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
         trackNavigator = new TrackNavigator(mediaService, BiblePublicationService, logger, languageContentService, scopeFactory);
         scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);

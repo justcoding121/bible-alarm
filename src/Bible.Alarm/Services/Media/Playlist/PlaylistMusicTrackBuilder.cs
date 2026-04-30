@@ -6,8 +6,6 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Serilog;
-
 namespace Bible.Alarm.Services.Media.Playlist;
 
 /// <summary>
@@ -34,22 +32,16 @@ public class PlaylistMusicTrackBuilder
     private readonly Dictionary<VocalTracksCacheKey, CacheEntry<SortedDictionary<int, MusicTrack>>> vocalTracksCache = new();
     private readonly object cacheLock = new();
 
-    private readonly ILogger logger;
     private readonly IMediaService mediaService;
-    private readonly IMelodyMusicService melodyMusicService;
     private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IUrlConstructionService urlConstructionService;
 
     public PlaylistMusicTrackBuilder(
-        ILogger logger,
         IMediaService mediaService,
-        IMelodyMusicService melodyMusicService,
         IMediaUrlRefreshService urlRefreshService,
         IUrlConstructionService urlConstructionService)
     {
-        this.logger = logger;
         this.mediaService = mediaService;
-        this.melodyMusicService = melodyMusicService;
         this.urlRefreshService = urlRefreshService;
         this.urlConstructionService = urlConstructionService ?? throw new ArgumentNullException(nameof(urlConstructionService));
     }

@@ -2,7 +2,6 @@
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
-using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media.Audio;
@@ -13,15 +12,13 @@ namespace Bible.Alarm.Services.Media.Audio;
 /// </summary>
 public class AudioPlayerPositionTracker
 {
-    private readonly ILogger logger;
     private readonly IDispatcher dispatcher;
     private DateTime? lastPositionUpdateTime;
     private TimeSpan lastDuration = TimeSpan.Zero;
     private const int PositionUpdateIntervalMs = 500;
 
-    public AudioPlayerPositionTracker(ILogger logger, IDispatcher dispatcher)
+    public AudioPlayerPositionTracker(IDispatcher dispatcher)
     {
-        this.logger = logger;
         this.dispatcher = dispatcher;
     }
 

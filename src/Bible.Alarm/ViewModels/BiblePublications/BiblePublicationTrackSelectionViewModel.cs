@@ -57,7 +57,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         // Initialize helper classes
         stateManager = new TrackSelectionStateManager();
         dataProvider = new TrackSelectionDataProvider(this.mediaService, biblePublicationService);
-        commandHandler = new TrackSelectionCommandHandler(logger, state, this.dispatcher, navigationService);
+        commandHandler = new TrackSelectionCommandHandler(this.logger, state, this.dispatcher, navigationService);
         propertyManager = new TrackSelectionPropertyManager();
         SetupPropertyManagerForwarding();
 

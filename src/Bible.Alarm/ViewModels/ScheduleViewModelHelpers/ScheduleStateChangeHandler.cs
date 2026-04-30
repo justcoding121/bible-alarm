@@ -2,8 +2,6 @@
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
-
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
 /// <summary>
@@ -13,12 +11,10 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 public class ScheduleStateChangeHandler : IScheduleStateChangeHandler
 {
     private readonly ILogger logger;
-    private readonly IDispatcher dispatcher;
 
-    public ScheduleStateChangeHandler(ILogger logger, IDispatcher dispatcher)
+    public ScheduleStateChangeHandler(ILogger logger)
     {
         this.logger = logger;
-        this.dispatcher = dispatcher;
     }
 
     public bool HandleScheduleUpdateFromState(

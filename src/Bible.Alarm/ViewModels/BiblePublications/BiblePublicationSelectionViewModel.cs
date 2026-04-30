@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
-using AutoMapper;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -26,8 +25,6 @@ namespace Bible.Alarm.ViewModels.BiblePublications;
 public sealed class BiblePublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly IState<ApplicationState> state;
-    private readonly IMapper mapper;
-    private readonly IServiceProvider serviceProvider;
     private readonly INavigationService navigationService;
 
     // Services
@@ -55,21 +52,18 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         IState<ApplicationState> state,
         IDispatcher dispatcher,
         INavigationService navigationService,
-        IMapper mapper,
         IServiceProvider serviceProvider,
         IBiblePublicationService? biblePublicationService = null)
     {
         this.state = state;
-        this.mapper = mapper;
-        this.serviceProvider = serviceProvider;
         this.navigationService = navigationService;
 
         // Initialize services
         var languageNameService = serviceProvider.GetRequiredService<ILanguageNameService>();
         dataProvider = new BiblePublicationSelectionDataProvider(mediaService, languageNameService, state, dispatcher);
-        stateHandler = new BiblePublicationSelectionStateHandler(mediaService, state, dataProvider, scopeFactory);
+        stateHandler = new BiblePublicationSelectionStateHandler(state, dataProvider, scopeFactory);
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
-        commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, mapper, biblePublicationService, languageContentService);
+        commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, biblePublicationService, languageContentService);
         propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);
         SetupPropertyManagerForwarding();
 

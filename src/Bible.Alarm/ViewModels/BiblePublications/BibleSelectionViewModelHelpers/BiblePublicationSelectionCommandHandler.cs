@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Windows.Input;
-using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Common.ViewHelpers;
@@ -35,14 +34,12 @@ public sealed class BiblePublicationSelectionCommandHandler
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
-    private readonly IMapper mapper;
 
     public BiblePublicationSelectionCommandHandler(
         IMediaService mediaService,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
         INavigationService navigationService,
-        IMapper mapper,
         IBiblePublicationService? biblePublicationService = null,
         ILanguageContentService? languageContentService = null)
     {
@@ -52,7 +49,6 @@ public sealed class BiblePublicationSelectionCommandHandler
         this.state = state;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
-        this.mapper = mapper;
     }
 
     public ICommand CreateSectionSelectionCommand(

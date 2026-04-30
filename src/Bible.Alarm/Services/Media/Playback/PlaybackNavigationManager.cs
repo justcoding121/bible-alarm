@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
-using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media.Playback;
@@ -13,12 +12,10 @@ namespace Bible.Alarm.Services.Media.Playback;
 public sealed class PlaybackNavigationManager
 {
     private readonly IDispatcher dispatcher;
-    private readonly ILogger logger;
 
-    public PlaybackNavigationManager(IDispatcher dispatcher, ILogger logger)
+    public PlaybackNavigationManager(IDispatcher dispatcher)
     {
         this.dispatcher = dispatcher;
-        this.logger = logger;
     }
 
     private static bool CanPlayNext(List<AudioPlayerTrack>? playlist)

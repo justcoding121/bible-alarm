@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
-using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
@@ -11,7 +10,6 @@ namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 /// </summary>
 public class AlarmViewModalStateUpdater
 {
-    private readonly ILogger logger;
     private readonly Action<string> setTitle;
     private readonly Action<string> setSubTitle;
     private readonly Action<string> setDescription;
@@ -38,7 +36,6 @@ public class AlarmViewModalStateUpdater
     private bool hasReachedPlayingForCurrentTrack;
 
     public AlarmViewModalStateUpdater(
-        ILogger logger,
         Action<string> setTitle,
         Action<string> setSubTitle,
         Action<string> setDescription,
@@ -56,7 +53,6 @@ public class AlarmViewModalStateUpdater
         Action notifyPreparationProgressChanged,
         Action notifyHasErrorChanged)
     {
-        this.logger = logger;
         this.setTitle = setTitle;
         this.setSubTitle = setSubTitle;
         this.setDescription = setDescription;

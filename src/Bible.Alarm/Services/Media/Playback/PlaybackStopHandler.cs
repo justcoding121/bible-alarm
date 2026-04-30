@@ -19,20 +19,16 @@ public sealed class PlaybackStopHandler
     private readonly IPlaylistService playlistService;
     private readonly IDispatcher dispatcher;
     private readonly ILogger logger;
-    private readonly ProgressTracker progressTracker;
-
     public PlaybackStopHandler(
         IAudioPlayer audioPlayer,
         IPlaylistService playlistService,
         IDispatcher dispatcher,
-        ILogger logger,
-        ProgressTracker progressTracker)
+        ILogger logger)
     {
         this.audioPlayer = audioPlayer;
         this.playlistService = playlistService;
         this.dispatcher = dispatcher;
         this.logger = logger;
-        this.progressTracker = progressTracker;
     }
 
     public async Task StopAsync(PlaybackStopRequest request)

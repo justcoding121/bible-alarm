@@ -93,7 +93,7 @@ public sealed class AudioPlayer : IAudioPlayer
         stateManager.SetBufferingWatchdog(bufferingWatchdog);
 
         metadataHandler = new AudioPlayerMetadataHandler(logger, displayMetadataService, dispatcher);
-        positionTracker = new AudioPlayerPositionTracker(logger, dispatcher);
+        positionTracker = new AudioPlayerPositionTracker(dispatcher);
 
         eventHandlerManager = new EventHandlerManager(
             logger,

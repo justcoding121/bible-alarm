@@ -24,7 +24,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly IAudioPlayer audioPlayer;
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IDispatcher dispatcher;
-    private readonly IDisplayMetadataService displayMetadataService;
     private readonly INotificationService notificationService;
     private readonly IDefaultDeviceRingtoneService defaultDeviceRingtoneService;
 
@@ -60,7 +59,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         IFallbackAlarmSoundService fallbackAlarmSoundService,
         IDispatcher dispatcher,
         INotificationService notificationService,
-        IDisplayMetadataService displayMetadataService,
         IMediaCacheService mediaCacheService,
         IDefaultDeviceRingtoneService defaultDeviceRingtoneService,
         IState<PlaybackState> playbackState,
@@ -71,13 +69,12 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         this.audioPlayer = audioPlayer;
         this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
-        this.displayMetadataService = displayMetadataService;
         this.notificationService = notificationService;
         this.defaultDeviceRingtoneService = defaultDeviceRingtoneService;
         this.playbackState = playbackState;
 
         stateManager = new PlaybackStateManager(logger);
-        navigationManager = new PlaybackNavigationManager(dispatcher, logger);
+        navigationManager = new PlaybackNavigationManager(dispatcher);
         progressTracker = new ProgressTracker(playlistService, audioPlayer, logger);
         operationHandler = new PlaybackOperationHandler(audioPlayer, dispatcher, logger, progressTracker);
         trackPreparationHandler = new TrackPreparationHandler(audioPlayer, playlistService, logger);
@@ -91,7 +88,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         failureHandler = new PlaybackFailureHandler(fallbackAlarmSoundService, notificationService, dispatcher, logger);
         initializer = new PlaybackInitializer(preparePlaybackService, dispatcher, logger);
         navigationHandler = new PlaybackNavigationHandler(audioPlayer, dispatcher, logger, progressTracker, navigationManager);
-        stopHandler = new PlaybackStopHandler(audioPlayer, playlistService, dispatcher, logger, progressTracker);
+        stopHandler = new PlaybackStopHandler(audioPlayer, playlistService, dispatcher, logger);
         trackPlaybackHandler = new TrackPlaybackHandler(audioPlayer, logger, trackPreparationHandler, progressTracker);
         systemControlsHandler = new SystemControlsHandler(logger);
         trackMarker = new TrackMarker(playlistService, logger);

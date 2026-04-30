@@ -83,12 +83,12 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
-            await navigationService.PopAsync();
+            await this.navigationService.PopAsync();
         });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
-            await navigationService.PopModalAsync();
+            await this.navigationService.PopModalAsync();
         });
 
         CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
@@ -152,7 +152,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             ShowProgress = false;
             IsBusy = false;
             DeviceDisplay.Current.KeepScreenOn = false;
-            await navigationService.PopModalAsync();
+            await this.navigationService.PopModalAsync();
         }
         finally
         {

@@ -30,7 +30,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     private readonly AlarmViewModelReviewHandler reviewHandler;
     private readonly AlarmViewModalStateUpdater stateUpdater;
     private readonly AlarmViewModalSliderHandler sliderHandler;
-    private readonly AlarmViewModelArtworkHandler artworkHandler;
     private readonly ArtworkManager artworkManager;
     private readonly PositionManager positionManager;
     private readonly MessageHandler messageHandler;
@@ -65,16 +64,15 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         endTime = "00:00";
 
         // Initialize helper classes
-        reviewHandler = new AlarmViewModelReviewHandler(logger, reviewPromptService);
+        reviewHandler = new AlarmViewModelReviewHandler(this.logger, reviewPromptService);
         commandInitializer = new AlarmViewModelCommandInitializer(
-            logger,
-            playbackService,
+            this.logger,
+            this.playbackService,
             schedulePlaybackService,
             reviewHandler.HandleReviewRequestAsync,
             () => PlaybackViewModelStoppingHandler.BeginStoppingUi(ApplyBeginStopping),
             () => PlaybackViewModelStoppingHandler.ResetProgressUi(() => IsUserInteracting, ApplyResetProgress));
         stateUpdater = new AlarmViewModalStateUpdater(
-            logger,
             (t) => Title = t,
             (s) => SubTitle = s,
             (d) => Description = d,
@@ -92,19 +90,13 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             () => OnPropertyChanged(nameof(PreparationProgress)),
             () => OnPropertyChanged(nameof(HasError)));
         sliderHandler = new AlarmViewModalSliderHandler(
-            logger,
+            this.logger,
             () => AreControlsEnabled,
             () => currentDuration,
             SetProgressDirectly,
             () => OnPropertyChanged(nameof(Progress)));
-        artworkHandler = new AlarmViewModelArtworkHandler(
-            logger,
-            (s) => ArtworkSource = s,
-            (l) => IsArtworkLoading = l,
-            () => { });
-
         // Initialize new helper classes
-        artworkManager = new ArtworkManager(logger);
+        artworkManager = new ArtworkManager(this.logger);
         positionManager = new PositionManager();
         messageHandler = new MessageHandler(positionManager);
         landscapeHandler = new PlaybackViewModelLandscapeHandler();
