@@ -1,3 +1,4 @@
+using System;
 using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
@@ -41,11 +42,10 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
 
             context.SendBroadcast(alarmIntent);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            logger.Error(e, AppConstants.Logging.ProcessDiagnosticsLog.ErrorPlayingAlarmManually);
             await Task.Delay(1500);
-            throw;
+            throw new InvalidOperationException("Manual alarm broadcast failed.", ex);
         }
     }
 
@@ -60,9 +60,6 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         }
         catch (SecurityException ex)
         {
-            logger.Error(ex, AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionSchedulingAlarmForSchedule, schedule.Id);
-
-            // Show user-friendly message
             try
             {
                 var toastService = ServiceProviderManager.GetService<IToastService>();
@@ -78,8 +75,9 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
                 logger.Warning(toastEx, AppConstants.Logging.AndroidNotificationServiceDiagnosticsLog.FailedToShowToastExactAlarmPermissionError);
             }
 
-            // Re-throw to be handled by caller
-            throw;
+            throw new InvalidOperationException(
+                $"Exact alarm scheduling failed for schedule {schedule.Id}.",
+                ex);
         }
     }
 

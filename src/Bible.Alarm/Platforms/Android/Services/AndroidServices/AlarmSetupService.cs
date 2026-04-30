@@ -1,3 +1,4 @@
+using System;
 using Android.App;
 using Android.Content;
 using Android.OS;
@@ -205,9 +206,9 @@ public class AlarmSetupService : Service, IDisposable
         }
         catch (SecurityException ex)
         {
-            logger.Error(ex, AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionSchedulingAlarmForSchedule, scheduleId);
-            // Re-throw to be handled by caller
-            throw;
+            throw new InvalidOperationException(
+                $"Exact alarm scheduling failed for schedule {scheduleId}.",
+                ex);
         }
     }
 

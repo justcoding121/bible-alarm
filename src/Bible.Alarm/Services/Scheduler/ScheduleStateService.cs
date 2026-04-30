@@ -249,10 +249,18 @@ public sealed class ScheduleStateService(
 
     private static bool IsSecurityException(Exception ex)
     {
-        var exceptionType = ex.GetType().FullName;
-        return exceptionType == "Java.Lang.SecurityException" ||
-               ex.Message.Contains("SCHEDULE_EXACT_ALARM") ||
-               ex.Message.Contains("USE_EXACT_ALARM");
+        for (Exception? cur = ex; cur != null; cur = cur.InnerException)
+        {
+            var exceptionType = cur.GetType().FullName;
+            if (exceptionType == "Java.Lang.SecurityException" ||
+                cur.Message.Contains("SCHEDULE_EXACT_ALARM", StringComparison.Ordinal) ||
+                cur.Message.Contains("USE_EXACT_ALARM", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task<bool> HandleSecurityExceptionAsync(int scheduleId, Exception ex)

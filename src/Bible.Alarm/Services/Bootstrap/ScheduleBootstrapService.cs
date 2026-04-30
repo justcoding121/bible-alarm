@@ -1,6 +1,8 @@
 #nullable enable
 
 using AutoMapper;
+using System;
+
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -295,15 +297,17 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                 }
                 catch (Exception dispatchEx)
                 {
-                    Log.Logger.Error(dispatchEx, "Error dispatching InitializeAction");
-                    throw;
+                    throw new InvalidOperationException(
+                        "Error dispatching InitializeAction.",
+                        dispatchEx);
                 }
             });
         }
         catch (Exception mainThreadEx)
         {
-            Log.Logger.Error(mainThreadEx, "Error invoking MainThread for InitializeAction dispatch");
-            throw;
+            throw new InvalidOperationException(
+                "Error invoking MainThread for InitializeAction dispatch.",
+                mainThreadEx);
         }
     }
 }

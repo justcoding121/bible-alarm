@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Serilog;
@@ -210,8 +212,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, LogMessageErrorWritingPreferencesForKey, key);
-            throw;
+            throw new InvalidOperationException($"Error writing to Preferences for key {key}.", ex);
         }
         finally
         {
@@ -258,8 +259,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, LogMessageErrorRemovingPreferencesKey, key);
-            throw;
+            throw new InvalidOperationException($"Error removing key from Preferences: {key}", ex);
         }
         finally
         {
@@ -276,8 +276,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Error clearing Preferences");
-            throw;
+            throw new InvalidOperationException("Error clearing Preferences.", ex);
         }
         finally
         {
@@ -483,8 +482,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, LogMessageErrorRemovingPreferencesKey, key);
-                throw;
+                throw new InvalidOperationException($"Error removing key from Preferences: {key}", ex);
             }
         }, cancellationToken);
     }
