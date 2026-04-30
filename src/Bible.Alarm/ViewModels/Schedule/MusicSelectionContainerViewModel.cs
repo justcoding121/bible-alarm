@@ -225,7 +225,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             stateChangeHandler.HandleStateChanged(
                 scheduleId,
                 stateHolder,
-                initialMusicEnabledOnPageLoad,
                 (val) => ShouldScrollToBottom = val,
                 (propertyName) => OnPropertyChanged(propertyName));
 

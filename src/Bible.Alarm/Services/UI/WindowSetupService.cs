@@ -28,8 +28,6 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     // Widest is ~400px, add padding for comfort = 450px base
     private const double BaseWidth = 450;
     private const double BaseHeight = 850;
-    // ~1.9:1 aspect ratio (phone-like)
-    private const double AspectRatio = BaseHeight / BaseWidth;
 
     public Window CreateWindow(IActivationState? activationState)
     {
@@ -361,7 +359,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
             
             // Use the larger of base width or content-based minimum
             double effectiveMinWidth = Math.Max(BaseWidth, contentBasedMinWidth);
-            double effectiveMinHeight = effectiveMinWidth * AspectRatio;
+            double effectiveMinHeight = effectiveMinWidth * (BaseHeight / BaseWidth);
 
             // Scale target dimensions by accessibility factor
             double scaledWidth = BaseWidth * fontScale;
@@ -379,13 +377,13 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
             if (scaledHeight > maxUsableHeight)
             {
                 scaledHeight = maxUsableHeight;
-                scaledWidth = scaledHeight / AspectRatio;
+                scaledWidth = scaledHeight / (BaseHeight / BaseWidth);
             }
 
             if (scaledWidth > maxUsableWidth)
             {
                 scaledWidth = maxUsableWidth;
-                scaledHeight = scaledWidth * AspectRatio;
+                scaledHeight = scaledWidth * (BaseHeight / BaseWidth);
             }
 
             // Final dimensions

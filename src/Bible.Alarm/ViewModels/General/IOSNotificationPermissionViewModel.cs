@@ -19,10 +19,6 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
     private readonly INavigationService navigationService;
 #if IOS
     private readonly IOSNotificationPermissionService permissionService;
-#else
-#pragma warning disable CS0649, CS0169 // Field is never assigned/used on non-iOS platforms
-    private readonly object? permissionService;
-#pragma warning restore CS0649, CS0169
 #endif
 
     private bool isNotificationPermissionGranted;

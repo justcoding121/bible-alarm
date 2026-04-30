@@ -1,7 +1,6 @@
 #nullable enable
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -30,16 +29,8 @@ internal class MediatorCataloger : BaseCataloger
         signLanguageChecker = new SignLanguageChecker(logger, downloadUtility);
     }
 
-    /// <summary>
-    /// Localized category names: (languageCode, categoryKey) -> localizedName (from API response per language).
-    /// </summary>
-    private readonly ConcurrentDictionary<(string LanguageCode, string CategoryKey), string> localizedCategoryNames = new();
-
-    internal async Task CatalogMediatorLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
+    internal async Task CatalogMediatorLinks(IReadOnlySet<string>? publicationFilter = null)
     {
-        // Track publications per language: languageCode -> set of publication codes
-        var languageCodeToPublications = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
-
         // Catalog each Mediator API publication (dramas, series, children, broadcasting, family, etc.).
         var mediatorCodes = JwSourceHelper.AllMediatorPublicationCodes;
         var codesToCatalog = publicationFilter != null
@@ -51,18 +42,14 @@ internal class MediatorCataloger : BaseCataloger
 
             await CatalogMediatorPublication(
                 publicationCode,
-                publicationCode,
-                languageCodeToPublications,
-                isTestRun);
+                publicationCode);
         }
 
     }
 
     private async Task CatalogMediatorPublication(
         string publicationCode,
-        string publicationName,
-        ConcurrentDictionary<string, ConcurrentDictionary<string, string>> languageCodeToPublications,
-        bool isTestRun)
+        string publicationName)
     {
         var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
         var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{AppConstants.Media.DefaultLanguageCode}/{categoryKey}";
@@ -130,78 +117,5 @@ internal class MediatorCataloger : BaseCataloger
 
         Logger.Information("English (E) found for publication {PublicationName} - will be seeded separately", publicationName);
     }
-
-    private async Task ProcessPublicationForLanguage(
-        string publicationCode,
-        string publicationName,
-        string languageCode,
-        ConcurrentDictionary<string, ConcurrentDictionary<string, string>> languageCodeToPublications)
-    {
-        Logger.Information("Processing {PublicationName} for language: {LanguageCode}", publicationName, languageCode);
-        
-        // Normalize language code to uppercase for consistent storage and comparison
-        var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        Logger.Information("Cataloging {PublicationName} for language {LanguageCode}", publicationName, normalizedLanguageCode);
-
-        var categoryKey = JwSourceHelper.GetMediatorCategoryKey(publicationCode);
-        var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{normalizedLanguageCode}/{categoryKey}";
-        string? jsonString;
-        try
-        {
-            jsonString = await DownloadUtilityType.GetMediatorAsync(pathAndQuery);
-        }
-        catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
-        {
-            Logger.Warning(ex, "Publication {PublicationCode} not available for language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
-            return;
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to fetch publication {PublicationCode} for language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
-            return;
-        }
-
-        if (string.IsNullOrEmpty(jsonString))
-        {
-            Logger.Warning("Empty response for publication {PublicationCode} in language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
-            return;
-        }
-
-        var (allTracks, localizedPublicationName) = MediatorSectionCodeExtractor.ExtractTracksFromMediatorCategory(
-            jsonString,
-            publicationCode,
-            normalizedLanguageCode,
-            Logger);
-        if (allTracks.Count == 0)
-        {
-            Logger.Warning("No tracks found for publication {PublicationCode} in language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
-            return;
-        }
-
-        if (!string.IsNullOrEmpty(localizedPublicationName))
-        {
-            localizedCategoryNames[(normalizedLanguageCode, publicationCode)] = localizedPublicationName;
-        }
-
-        var publicationsForLanguage = languageCodeToPublications.GetOrAdd(normalizedLanguageCode, _ => new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase));
-        var finalPublicationName = localizedPublicationName ?? publicationName;
-        publicationsForLanguage[publicationCode] = finalPublicationName;
-
-        var tracksBySection = new Dictionary<string, List<MediatorTrack>>(StringComparer.OrdinalIgnoreCase)
-        {
-            [publicationCode] = allTracks
-        };
-        var sectionNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        if (dataPersister != null)
-        {
-            await dataPersister.SaveMediatorPublication(normalizedLanguageCode, publicationCode, finalPublicationName, tracksBySection, sectionNames);
-        }
-        else
-        {
-            MediatorFilePersistence.SaveMediatorSectionsAndTracks(publicationCode, normalizedLanguageCode, tracksBySection, sectionNames);
-        }
-
-        Logger.Information("Saved {Count} tracks for publication {PublicationCode} ({LanguageCode})", allTracks.Count, publicationCode, normalizedLanguageCode);
-    }
 }
+

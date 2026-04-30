@@ -57,7 +57,6 @@ public sealed class MusicStateChangeHandler
     public void HandleStateChanged(
         int scheduleId,
         MusicStateHolder stateHolder,
-        bool? initialMusicEnabledOnPageLoad,
         Action<bool> setShouldScrollToBottom,
         Action<string> onPropertyChanged)
     {
@@ -74,7 +73,6 @@ public sealed class MusicStateChangeHandler
             HandleMusicEnabledChange(
                 currentSchedule,
                 stateHolder,
-                initialMusicEnabledOnPageLoad,
                 setShouldScrollToBottom,
                 onPropertyChanged);
         }
@@ -117,8 +115,7 @@ public sealed class MusicStateChangeHandler
             };
             HandleCurrentMusicChange(
                 musicStateItem,
-                stateHolder,
-                onPropertyChanged);
+                stateHolder);
         }
     }
 
@@ -207,7 +204,6 @@ public sealed class MusicStateChangeHandler
     private void HandleMusicEnabledChange(
         ScheduleStateItem currentSchedule,
         MusicStateHolder stateHolder,
-        bool? initialMusicEnabledOnPageLoad,
         Action<bool> setShouldScrollToBottom,
         Action<string> onPropertyChanged)
     {
@@ -351,8 +347,7 @@ public sealed class MusicStateChangeHandler
 
     private void HandleCurrentMusicChange(
         MusicStateItem newMusicItem,
-        MusicStateHolder stateHolder,
-        Action<string> onPropertyChanged)
+        MusicStateHolder stateHolder)
     {
         var hasChanged = stateHolder.LastMusic == null ||
                         stateHolder.Music == null ||

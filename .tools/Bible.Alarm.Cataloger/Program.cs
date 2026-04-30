@@ -212,7 +212,7 @@ public class Program
 
                 var mediatorTasks = new List<Task>
                 {
-                    mediatorCataloger.CatalogMediatorLinks(isTestRun, publicationFilter)
+                    mediatorCataloger.CatalogMediatorLinks(publicationFilter)
                 };
 
                 var videoTasks = new List<Task>

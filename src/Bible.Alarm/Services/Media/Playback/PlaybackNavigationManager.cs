@@ -21,13 +21,13 @@ public sealed class PlaybackNavigationManager
         this.logger = logger;
     }
 
-    private static bool CanPlayNext(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
+    private static bool CanPlayNext(List<AudioPlayerTrack>? playlist)
     {
         // Next is always enabled during playback sessions.
         return playlist is not null && playlist.Count > 0;
     }
 
-    private static bool CanPlayPrevious(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
+    private static bool CanPlayPrevious(List<AudioPlayerTrack>? playlist)
     {
         // Previous is always enabled during playback sessions.
         return playlist is not null && playlist.Count > 0;
@@ -35,8 +35,8 @@ public sealed class PlaybackNavigationManager
 
     public void NotifyNavigationChanged(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
     {
-        var canPlayNext = CanPlayNext(playlist, currentTrackIndex);
-        var canPlayPrevious = CanPlayPrevious(playlist, currentTrackIndex);
+        var canPlayNext = CanPlayNext(playlist);
+        var canPlayPrevious = CanPlayPrevious(playlist);
 
         // Dispatch Fluxor action
         dispatcher.Dispatch(new PlaybackNavigationChangedAction(canPlayNext, canPlayPrevious));

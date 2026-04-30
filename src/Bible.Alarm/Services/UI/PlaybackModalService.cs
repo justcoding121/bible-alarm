@@ -574,6 +574,7 @@ public sealed class PlaybackModalService :
             return false;
         }
 #else
+        _ = logger;
         return false;
 #endif
     }

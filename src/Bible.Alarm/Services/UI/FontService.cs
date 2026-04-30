@@ -92,7 +92,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         }
         else
         {
-            SetScaledFontSizes(mainDisplayInfo, isAndroid);
+            SetScaledFontSizes(mainDisplayInfo);
         }
 
         buttonFontSize = headerFontSize - 1.0;
@@ -298,7 +298,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
             isAndroid ? AppConstants.Platform.Android : AppConstants.Platform.IOs, BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
     }
 
-    private void SetScaledFontSizes(DisplayInfo mainDisplayInfo, bool isAndroid)
+    private void SetScaledFontSizes(DisplayInfo mainDisplayInfo)
     {
         double density = mainDisplayInfo.Density;
         double widthDp = mainDisplayInfo.Width / density;

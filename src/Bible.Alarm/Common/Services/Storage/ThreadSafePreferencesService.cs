@@ -20,8 +20,6 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
     private const string LogMessageErrorReadingPreferencesForKey = "Error reading from Preferences for key: {Key}";
     private const string LogMessageErrorWritingPreferencesRetry =
         "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}";
-    private const string LogMessageErrorWritingPreferencesForKey = "Error writing to Preferences for key: {Key}";
-    private const string LogMessageErrorRemovingPreferencesKey = "Error removing key from Preferences: {Key}";
 
     // SemaphoreSlim for async/await support and thread-safe access
     // Initial count of 1 ensures only one operation at a time
