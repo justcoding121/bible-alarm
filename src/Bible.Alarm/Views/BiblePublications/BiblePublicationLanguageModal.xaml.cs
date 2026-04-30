@@ -57,7 +57,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         }
     }
 
-    private void OnSearchEntryUnfocused(object? sender, FocusEventArgs e)
+    private static void OnSearchEntryUnfocused(object? sender, FocusEventArgs e)
     {
         if (sender is Entry entry && !entry.IsFocused)
         {
@@ -175,12 +175,24 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         }
     }
 
-    public void Dispose()
+    private void Dispose(bool disposing)
     {
-        if (!isDisposed)
+        if (isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
         {
             ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
-            isDisposed = true;
         }
+
+        isDisposed = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

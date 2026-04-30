@@ -14,7 +14,7 @@ namespace Bible.Alarm.IosScreenshotResizer;
 /// <summary>
 /// Resizes images under .docs/screenshots/iOS to Apple App Store required dimensions.
 /// </summary>
-class Program
+static class Program
 {
     private static readonly (int W, int H)[] IPhoneSizes =
     {

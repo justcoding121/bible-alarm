@@ -438,9 +438,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     public void StopPermissionCheckTasks()
     {
+        var pm = propertyManager;
 #if ANDROID
-        propertyManager.AlarmSettingsContainerViewModel?.StopPermissionCheckTaskIfRunning();
-        propertyManager.NumberOfTrackContainerViewModel?.StopPermissionCheckTaskIfRunning();
+        pm.AlarmSettingsContainerViewModel?.StopPermissionCheckTaskIfRunning();
+        pm.NumberOfTrackContainerViewModel?.StopPermissionCheckTaskIfRunning();
 #endif
     }
 

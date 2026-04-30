@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.VersionPatcher;
 
-internal class Program
+internal static class Program
 {
     private static async Task Main(string[] args)
     {

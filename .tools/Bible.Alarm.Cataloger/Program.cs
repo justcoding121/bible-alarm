@@ -26,7 +26,7 @@ using ILogger = Serilog.ILogger;
 
 namespace Bible.Alarm.Cataloger;
 
-public class Program
+public static class Program
 {
 
     // Bible publication codes to catalog (from centralized JwSourceHelper)

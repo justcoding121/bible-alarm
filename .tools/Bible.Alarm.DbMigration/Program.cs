@@ -16,7 +16,7 @@ namespace Bible.Alarm.DbMigration;
 /// Console application for managing Entity Framework Core migrations.
 /// This tool allows you to create and apply migrations for ScheduleDbContext and MediaDbContext.
 /// </summary>
-class Program
+static class Program
 {
     private static readonly string[] GenerateEmptyScheduleDbArgs = ["generate-empty-schedule-db"];
 
