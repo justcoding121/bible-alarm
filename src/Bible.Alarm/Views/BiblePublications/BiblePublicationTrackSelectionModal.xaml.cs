@@ -32,7 +32,7 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
     {
         Appearing -= OnAppearing;
 
-        var result = await ModalScrollHelper.HandleModalAppearingAsync(
+        await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             trackCollectionView,
@@ -46,11 +46,6 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
                 await toastService.ShowMessage(errorMessage);
             },
             cancellationToken: cancellationTokenSource.Token);
-
-        if (result == ModalAppearingResult.FetchFailed)
-        {
-            return;
-        }
     }
 
     public void Dispose()

@@ -36,7 +36,7 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
 
         var categoryViewModel = ViewModel as CategorySelectionViewModel;
 
-        var result = await ModalScrollHelper.HandleModalAppearingAsync(
+        await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             CategoryCollectionView,
@@ -48,11 +48,6 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
                 await toastService.ShowMessage(errorMessage);
             },
             cancellationToken: cancellationTokenSource.Token);
-
-        if (result == ModalAppearingResult.FetchFailed)
-        {
-            return;
-        }
     }
 
     private async void OnCategoryItemTapped(object? sender, TappedEventArgs e)

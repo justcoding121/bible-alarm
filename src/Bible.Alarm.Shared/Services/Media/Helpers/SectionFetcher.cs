@@ -293,7 +293,6 @@ internal sealed class SectionFetcher
                 logger.Debug(ex, "Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                 completedSections++;
-                continue;
             }
             catch (Exception ex)
             {
@@ -305,7 +304,6 @@ internal sealed class SectionFetcher
                 logger.Warning(ex, "Failed to fetch section {SectionCode} for publication {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                 completedSections++;
-                continue;
             }
         }
 

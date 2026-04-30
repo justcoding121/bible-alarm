@@ -78,7 +78,6 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                 {
                     Log.Logger.Error(ex, "[BOOTSTRAP] Error loading schedules after services verified");
                 }
-                return;
             }
             else
             {

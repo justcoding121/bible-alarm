@@ -130,7 +130,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
         var musicPublicationViewModel = ViewModel as MusicPublicationSelectionViewModel;
 
-        var result = await ModalScrollHelper.HandleModalAppearingAsync(
+        await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             LanguageCollectionView,
@@ -161,11 +161,6 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
                 await toastService.ShowMessage(errorMessage);
             },
             cancellationToken: cancellationTokenSource.Token);
-
-        if (result == ModalAppearingResult.FetchFailed)
-        {
-            return;
-        }
     }
 
     public void Dispose()

@@ -136,7 +136,6 @@ internal class MusicCataloger : BaseCataloger
             if (englishEntry == default)
             {
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
-                continue;
             }
         }
     }

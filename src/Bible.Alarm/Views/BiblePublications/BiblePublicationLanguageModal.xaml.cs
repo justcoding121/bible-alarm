@@ -84,7 +84,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
             }
         }
 
-        var result = await ModalScrollHelper.HandleModalAppearingAsync(
+        await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             LanguageCollectionView,
@@ -115,12 +115,6 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
                 await toastService.ShowMessage(errorMessage);
             },
             cancellationToken: cancellationTokenSource.Token);
-
-        // If fetch failed, modal is already closed - nothing more to do
-        if (result == ModalAppearingResult.FetchFailed)
-        {
-            return;
-        }
     }
 
     private void OnGridTapped(object? sender, TappedEventArgs e)

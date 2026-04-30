@@ -99,13 +99,11 @@ internal sealed class EnglishSectionFetcher
             {
                 logger.Debug(ex, "Section {SectionCode} not available for publication {PublicationCode} in English",
                     sectionCode, normalizedPublicationCode);
-                continue;
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Failed to fetch section {SectionCode} for publication {PublicationCode} in English",
                     sectionCode, normalizedPublicationCode);
-                continue;
             }
         }
 

@@ -34,7 +34,7 @@ public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposab
     {
         Appearing -= OnAppearing;
 
-        var result = await ModalScrollHelper.HandleModalAppearingAsync(
+        await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             songPublicationsCollectionView,
@@ -59,11 +59,6 @@ public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposab
                 await toastService.ShowMessage(errorMessage);
             },
             cancellationToken: cancellationTokenSource.Token);
-
-        if (result == ModalAppearingResult.FetchFailed)
-        {
-            return;
-        }
     }
 
     public void Dispose()
