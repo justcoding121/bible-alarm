@@ -361,8 +361,6 @@ public sealed class ForegroundServiceCoordinator
     /// <param name="scheduleId">The schedule ID for the alarm</param>
     public static async Task OnAlarmTriggered(Context context, int scheduleId)
     {
-        Intent? intent = null;
-
         lock (@lock)
         {
             // Skip if app is already in foreground or has active foreground service
@@ -376,7 +374,7 @@ public sealed class ForegroundServiceCoordinator
         }
 
         // Start the AlarmForegroundService (outside lock to avoid blocking)
-        intent = new Intent(context, typeof(AlarmForegroundService));
+        var intent = new Intent(context, typeof(AlarmForegroundService));
 
         try
         {
@@ -419,10 +417,7 @@ public sealed class ForegroundServiceCoordinator
             if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
             {
                 logger.Information("Alarm foreground service started but app came to foreground - stopping service");
-                if (intent != null)
-                {
-                    context.StopService(intent);
-                }
+                context.StopService(intent);
                 return;
             }
 
@@ -431,10 +426,7 @@ public sealed class ForegroundServiceCoordinator
             if (serviceInstance == null)
             {
                 logger.Warning("AlarmForegroundService instance became null after lock acquisition");
-                if (intent != null)
-                {
-                    context.StopService(intent);
-                }
+                context.StopService(intent);
                 return;
             }
         }
@@ -452,10 +444,7 @@ public sealed class ForegroundServiceCoordinator
                 if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
                 {
                     logger.Information("Alarm foreground service ready but app came to foreground - stopping service");
-                    if (intent != null)
-                    {
-                        context.StopService(intent);
-                    }
+                    context.StopService(intent);
                     return;
                 }
 
@@ -468,10 +457,7 @@ public sealed class ForegroundServiceCoordinator
         else
         {
             logger.Warning("Failed to get MediaSession or service instance for alarm foreground service");
-            if (intent != null)
-            {
-                context.StopService(intent);
-            }
+            context.StopService(intent);
         }
     }
 

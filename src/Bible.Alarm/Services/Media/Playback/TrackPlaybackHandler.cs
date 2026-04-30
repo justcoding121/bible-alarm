@@ -184,15 +184,19 @@ public sealed class TrackPlaybackHandler
         // Only reject the seek when duration is positively known and the seek exceeds it.
         // When duration is still zero (not yet determined from stream), allow the seek through;
         // the post-play validation on iOS/Android will catch it once duration is accurate.
-        var prePlayDuration = TimeSpan.Zero;
+        var postPlayNeedsDurationRecheck = false;
         if (seekPosition.HasValue)
         {
-            prePlayDuration = audioPlayer.Duration;
+            var prePlayDuration = audioPlayer.Duration;
             if (prePlayDuration > TimeSpan.Zero && seekPosition.Value >= prePlayDuration)
             {
                 logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekExceedsDurationStartingBeginning,
                     seekPosition.Value, prePlayDuration);
                 seekPosition = null;
+            }
+            else if (prePlayDuration == TimeSpan.Zero)
+            {
+                postPlayNeedsDurationRecheck = true;
             }
         }
 
@@ -240,7 +244,7 @@ public sealed class TrackPlaybackHandler
             // On iOS and Android, seek AFTER play starts - seekable ranges are more reliable once playing
             // On Android, this is critical when transitioning from music to Bible track because
             // SetSourceWithDummyQueue's player.SeekTo(currentItemIndex, 0) may interfere with seeking before play
-            if (seekPosition.HasValue && prePlayDuration == TimeSpan.Zero)
+            if (seekPosition.HasValue && postPlayNeedsDurationRecheck)
             {
                 // Re-validate only when pre-play duration was unknown (zero). Now that playback
                 // started, duration may be available from stream headers. When pre-play duration

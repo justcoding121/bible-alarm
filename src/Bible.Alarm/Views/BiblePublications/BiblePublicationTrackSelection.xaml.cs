@@ -63,8 +63,8 @@ public partial class BiblePublicationTrackSelection : BaseContentPage, IDisposab
             // Cancel and dispose cancellation token source
             try
             {
-                cancellationTokenSource?.Cancel();
-                cancellationTokenSource?.Dispose();
+                cancellationTokenSource.Cancel();
+                cancellationTokenSource.Dispose();
             }
             catch (Exception ex)
             {

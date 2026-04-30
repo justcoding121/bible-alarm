@@ -54,8 +54,8 @@ public partial class MusicTrackSelection : BaseContentPage, IDisposable
         {
             try
             {
-                cancellationTokenSource?.Cancel();
-                cancellationTokenSource?.Dispose();
+                cancellationTokenSource.Cancel();
+                cancellationTokenSource.Dispose();
             }
             catch (Exception ex)
             {

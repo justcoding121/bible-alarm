@@ -147,7 +147,6 @@ public sealed class BiblePublicationSelectionItemSelector
         // Use the override when provided (e.g. during category change, state hasn't been updated yet).
         var categoryName = categoryNameOverride ?? stateValue.CurrentSchedule?.BiblePublicationCategoryName;
 
-        string? publicationCode = null;
         BiblePublication? publication = null;
         bool publicationWithoutLanguage = false;
 
@@ -230,7 +229,6 @@ public sealed class BiblePublicationSelectionItemSelector
                 }
 
                 publication = candidate;
-                publicationCode = candidate.PublicationCode;
                 publicationWithoutLanguage = candidate.LanguageId == null;
                 break;
             }
@@ -251,7 +249,6 @@ public sealed class BiblePublicationSelectionItemSelector
                     .FirstOrDefault()) is { } pubWithoutLanguage)
                 {
                     publication = pubWithoutLanguage;
-                    publicationCode = pubWithoutLanguage.PublicationCode;
                     publicationWithoutLanguage = true;
                 }
             }
@@ -266,8 +263,8 @@ public sealed class BiblePublicationSelectionItemSelector
             return (null, null, string.Empty, string.Empty, string.Empty, string.Empty);
         }
 
-        var resolvedPublicationCode = publication.PublicationCode;
-        if (string.IsNullOrEmpty(resolvedPublicationCode))
+        var publicationCode = publication.PublicationCode;
+        if (string.IsNullOrEmpty(publicationCode))
         {
             Log.Warning(
                 AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.NoPublicationFoundForLanguageCategory,
@@ -275,8 +272,6 @@ public sealed class BiblePublicationSelectionItemSelector
                 categoryName ?? "(null)");
             return (null, null, string.Empty, string.Empty, string.Empty, string.Empty);
         }
-
-        publicationCode = resolvedPublicationCode;
 
         var publicationName = publication.Name;
 

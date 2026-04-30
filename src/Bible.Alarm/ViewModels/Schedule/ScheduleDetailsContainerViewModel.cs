@@ -166,43 +166,46 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             }
 
             // Only update properties if they changed (don't re-initialize)
-            if (currentSchedule != null && !hasSignaledReady)
+            if (currentSchedule != null)
             {
-                // Handle case where InitializeFromState hasn't been called yet
-                InitializeFromState();
-            }
-            else if (currentSchedule != null && hasSignaledReady)
-            {
-                // Update individual properties when they change (after initialization)
-                if (isEnabled != currentSchedule.IsEnabled)
+                if (!hasSignaledReady)
                 {
-                    isEnabled = currentSchedule.IsEnabled;
-                    OnPropertyChanged(nameof(IsEnabled));
+                    // Handle case where InitializeFromState hasn't been called yet
+                    InitializeFromState();
                 }
-                if (time != new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second))
+                else
                 {
-                    time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
-                    OnPropertyChanged(nameof(Time));
-                }
-                // Preserve DaysOfWeek if state has it as 0 but local has a valid value
-                // This prevents state updates from clearing DaysOfWeek after page load
-                if (currentSchedule.DaysOfWeek == 0 && daysOfWeek != 0)
-                {
-                    // State has invalid DaysOfWeek, preserve local value
-                    // Dispatch update to fix state (but don't save)
-                    logger.Warning("ScheduleDetailsContainerViewModel: State has DaysOfWeek=0 but local has {LocalDaysOfWeek}. Preserving local value and fixing state.",
-                        daysOfWeek);
-                    DispatchScheduleUpdate(s => s.DaysOfWeek = daysOfWeek);
-                }
-                else if (daysOfWeek != currentSchedule.DaysOfWeek)
-                {
-                    daysOfWeek = currentSchedule.DaysOfWeek;
-                    OnPropertyChanged(nameof(DaysOfWeek));
-                }
-                if (name != currentSchedule.Name)
-                {
-                    name = currentSchedule.Name;
-                    OnPropertyChanged(nameof(Name));
+                    // Update individual properties when they change (after initialization)
+                    if (isEnabled != currentSchedule.IsEnabled)
+                    {
+                        isEnabled = currentSchedule.IsEnabled;
+                        OnPropertyChanged(nameof(IsEnabled));
+                    }
+                    if (time != new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second))
+                    {
+                        time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
+                        OnPropertyChanged(nameof(Time));
+                    }
+                    // Preserve DaysOfWeek if state has it as 0 but local has a valid value
+                    // This prevents state updates from clearing DaysOfWeek after page load
+                    if (currentSchedule.DaysOfWeek == 0 && daysOfWeek != 0)
+                    {
+                        // State has invalid DaysOfWeek, preserve local value
+                        // Dispatch update to fix state (but don't save)
+                        logger.Warning("ScheduleDetailsContainerViewModel: State has DaysOfWeek=0 but local has {LocalDaysOfWeek}. Preserving local value and fixing state.",
+                            daysOfWeek);
+                        DispatchScheduleUpdate(s => s.DaysOfWeek = daysOfWeek);
+                    }
+                    else if (daysOfWeek != currentSchedule.DaysOfWeek)
+                    {
+                        daysOfWeek = currentSchedule.DaysOfWeek;
+                        OnPropertyChanged(nameof(DaysOfWeek));
+                    }
+                    if (name != currentSchedule.Name)
+                    {
+                        name = currentSchedule.Name;
+                        OnPropertyChanged(nameof(Name));
+                    }
                 }
             }
         }

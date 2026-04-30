@@ -49,13 +49,11 @@ public sealed class HomeViewModelNotificationPermissionHandler
             {
                 setButtonBottomMargin(0);
                 setCollectionViewBottomMargin(24 + 56);
-                MainThread.BeginInvokeOnMainThread(notifyMarginChanged);
             }
             else if (DeviceInfo.Platform == DevicePlatform.Android)
             {
                 setButtonBottomMargin(0);
                 setCollectionViewBottomMargin(0);
-                MainThread.BeginInvokeOnMainThread(notifyMarginChanged);
             }
 
             MainThread.BeginInvokeOnMainThread(notifyMarginChanged);
