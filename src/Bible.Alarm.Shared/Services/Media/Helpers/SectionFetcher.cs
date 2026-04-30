@@ -287,7 +287,7 @@ internal sealed class SectionFetcher
                 // Re-throw cancellation - data saved so far is preserved
                 throw;
             }
-            catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+            catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
             {
                 logger.Debug(ex, "Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);

@@ -114,7 +114,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     public override UISceneConfiguration GetConfiguration(UIApplication application, UISceneSession connectingSceneSession, UISceneConnectionOptions options)
     {
         // CarPlay scene: return a config with our CarPlaySceneDelegate
-        if (connectingSceneSession.Role.ToString().Contains("CPTemplate"))
+        if (connectingSceneSession.Role.ToString().Contains("CPTemplate", StringComparison.Ordinal))
         {
             logger.Information(AppConstants.Logging.IosAppDelegateDiagnosticsLog.ReturningCarPlaySceneConfiguration);
             var carPlayConfig = new UISceneConfiguration("CarPlayConfiguration", connectingSceneSession.Role);

@@ -206,7 +206,7 @@ internal static class MediaCacheCleanup
                     // Key format is "scheduleId:lookUpPath", so we need to check if the filename matches
                     var schedulePrefix = $"{scheduleId}:";
                     var isBeingDownloaded = inProgressDownloads.Keys.Any(key =>
-                        key.StartsWith(schedulePrefix) &&
+                        key.StartsWith(schedulePrefix, StringComparison.Ordinal) &&
                         getCacheFileName(key.Substring(schedulePrefix.Length)) == fileName);
 
                     if (isBeingDownloaded)

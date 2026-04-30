@@ -281,7 +281,7 @@ public partial class App : MauiWinUIApplication
             // Parse schedule ID from arguments
             // Format could be: "scheduleId=123" or just "123"
             if (int.TryParse(arguments.Trim(), out var scheduleId) ||
-                (arguments.Contains("scheduleId=") &&
+                (arguments.Contains("scheduleId=", StringComparison.OrdinalIgnoreCase) &&
                  int.TryParse(arguments.Split('=').LastOrDefault(), out scheduleId)))
             {
             Task.Run(async () =>

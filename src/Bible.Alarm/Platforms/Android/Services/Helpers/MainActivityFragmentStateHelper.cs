@@ -50,7 +50,7 @@ public static class MainActivityFragmentStateHelper
     /// </summary>
     public static bool IsFragmentRestorationError(IllegalArgumentException ex)
     {
-        return ex.Message?.Contains("No view found for id") is true;
+        return ex.Message?.Contains("No view found for id", StringComparison.Ordinal) is true;
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public static class MainActivityFragmentStateHelper
     /// </summary>
     public static bool IsFragmentRestorationError(Java.Lang.RuntimeException ex)
     {
-        if (ex.Message?.Contains("No view found for id") is true)
+        if (ex.Message?.Contains("No view found for id", StringComparison.Ordinal) is true)
         {
             return true;
         }

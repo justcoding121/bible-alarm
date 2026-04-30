@@ -496,12 +496,12 @@ public sealed class DisplayMetadataService(
             // If URI parsing fails, try to extract path manually
             // Remove "file://" prefix (or "file:///" on Unix)
             var path = uri.Substring(MediaUriSchemeConstants.FilePrefix.Length);
-            if (path.StartsWith("//"))
+            if (path.StartsWith("//", StringComparison.Ordinal))
             {
                 // UNC path or extra slashes
                 path = path.TrimStart('/');
             }
-            else if (!path.StartsWith("/") && OperatingSystem.IsWindows())
+            else if (!path.StartsWith("/", StringComparison.Ordinal) && OperatingSystem.IsWindows())
             {
                 // Windows path without leading slash
                 return path;
