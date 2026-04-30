@@ -199,21 +199,16 @@ public partial class Styles : ResourceDictionary
 
         this["MarginThicknessModalClose"] = new Thickness(paddingLarge, paddingMedium, paddingLarge, paddingLarge);
 
-        if (currentPlatform == DevicePlatform.Android)
-        {
-            this["MarginThicknessNotificationFloatingButton"] = new Thickness(marginXLarge, 0, 0, marginXLarge);
-            this["MarginThicknessAlarmSettingsFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
-        }
-        else if (currentPlatform == DevicePlatform.iOS)
+        if (currentPlatform == DevicePlatform.iOS)
         {
             this["MarginThicknessNotificationFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
-            this["MarginThicknessAlarmSettingsFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
         }
         else
         {
             this["MarginThicknessNotificationFloatingButton"] = new Thickness(marginXLarge, 0, 0, marginXLarge);
-            this["MarginThicknessAlarmSettingsFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
         }
+
+        this["MarginThicknessAlarmSettingsFloatingButton"] = new Thickness(0, 0, marginXLarge, marginXLarge);
 
         // Corner radius resources - scale slightly with font size for better proportions
         // Corner radius scales less aggressively than spacing (0.8x factor) to maintain visual balance

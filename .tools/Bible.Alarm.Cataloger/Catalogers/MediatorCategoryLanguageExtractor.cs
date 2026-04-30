@@ -28,7 +28,7 @@ internal static class MediatorCategoryLanguageExtractor
                 return languages;
             }
 
-            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaArray))
+            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.CategoryMedia, out var mediaArray))
             {
                 return languages;
             }

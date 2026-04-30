@@ -86,7 +86,7 @@ internal sealed class MediatorApiClient
                 localizedPubName = categoryName;
         }
 
-        if (!categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaArray) || mediaArray.ValueKind != JsonValueKind.Array)
+        if (!categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.CategoryMedia, out var mediaArray) || mediaArray.ValueKind != JsonValueKind.Array)
         {
             logger.Warning("No media items found in mediator category {CategoryKey}", categoryKey);
             return (localizedPubName, new List<MediatorTrack>());

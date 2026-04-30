@@ -762,13 +762,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                     // when state.ArtworkUrl or default is set. Setting it here when preparation ends caused
                     // an endless spinner when artwork extraction failed or timed out (no URL dispatched).
 
-                    if (preparing && !isPreparing && !showPercentForThisMessage)
-                    {
-                        showPreparationPercent = false;
-                        OnPropertyChanged(nameof(ShowPreparationPercent));
-                        OnPropertyChanged(nameof(ShowPreparingCard));
-                    }
-                    else if (!preparing && showPreparationPercent)
+                    if ((preparing && !isPreparing && !showPercentForThisMessage) ||
+                        (!preparing && showPreparationPercent))
                     {
                         showPreparationPercent = false;
                         OnPropertyChanged(nameof(ShowPreparationPercent));

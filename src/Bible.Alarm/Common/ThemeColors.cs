@@ -119,7 +119,7 @@ public static class ThemeColors
             public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
         }
 
-        public static class DisabledText
+        public static class CalendarMutedText
         {
             // Dark mode: lighter gray for better contrast on dark backgrounds
             public static Color Dark => Color.FromArgb("#B0B0B0");
@@ -167,8 +167,8 @@ public static class ThemeColors
         [Obsolete("Use EnabledText.Get(theme) instead")]
         public static Color EnabledTextLegacy => EnabledText.Light;
         
-        [Obsolete("Use DisabledText.Get(theme) instead")]
-        public static Color DisabledTextLegacy => DisabledText.Light;
+        [Obsolete("Use CalendarMutedText.Get(theme) instead")]
+        public static Color DisabledTextLegacy => CalendarMutedText.Light;
         
         [Obsolete("Use EnabledBackground.Get(theme) instead")]
         public static Color EnabledBackgroundLegacy => EnabledBackground.Light;
@@ -197,7 +197,7 @@ public static class ThemeColors
     // Fallback colors for converters (when resources aren't available)
     public static class Fallback
     {
-        public static class DisabledText
+        public static class ConverterMutedText
         {
             public static Color Dark => Color.FromArgb("#404040");
             public static Color Light => Color.FromArgb("#B0B0B0");

@@ -89,7 +89,7 @@ internal static class CatalogValidator
                     (string.IsNullOrEmpty(trackCodeHint) || t.TrackCode == trackCodeHint || t.TrackCode.StartsWith(trackCodeHint + "-", StringComparison.Ordinal)));
                 if (track == null)
                 {
-                    track = list.First();
+                    track = list[0];
                 }
 
                 samples.Add(new SampleTrack(
@@ -287,7 +287,7 @@ internal static class CatalogValidator
                     continue;
                 }
 
-                if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaEl) || mediaEl.ValueKind != JsonValueKind.Array)
+                if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.CategoryMedia, out var mediaEl) || mediaEl.ValueKind != JsonValueKind.Array)
                 {
                     logger.Warning("CatalogValidator mediator: No 'category.media' array for {PublicationCode}", publicationCode);
                     failed.Add($"{publicationCode} (no category.media array)");

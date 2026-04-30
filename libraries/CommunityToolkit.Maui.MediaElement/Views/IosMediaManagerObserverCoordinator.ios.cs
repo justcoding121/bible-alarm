@@ -163,7 +163,7 @@ internal sealed class IosMediaManagerObserverCoordinator
         GC.SuppressFinalize(obj);
     }
 
-    private static void ErrorOccurred(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? sender, NSNotificationEventArgs args)
+    private static void ErrorOccurred(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? _, NSNotificationEventArgs args)
     {
         var error = player.CurrentItem?.Error;
         if (error is not null)
@@ -178,7 +178,7 @@ internal sealed class IosMediaManagerObserverCoordinator
         logger.LogWarning("{LogMessage}", nonFatal);
     }
 
-    private static void PlayedToEnd(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? sender, NSNotificationEventArgs args)
+    private static void PlayedToEnd(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? _, NSNotificationEventArgs args)
     {
         if (args.Notification.Object != player.CurrentItem)
         {

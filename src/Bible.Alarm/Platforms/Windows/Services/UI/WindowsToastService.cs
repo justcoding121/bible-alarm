@@ -24,7 +24,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
     private static Popup? currentPopup;
     private static Window? currentWindow;
 
-    public override async Task ShowMessage(string message, int seconds)
+    public override async Task ShowMessage(string message, int seconds = 2)
     {
         CancelActiveCts();
 

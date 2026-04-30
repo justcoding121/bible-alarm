@@ -147,7 +147,7 @@ internal static class IosMediaManagerSourceUpdater
         IMediaElement mediaElement,
         AVPlayer player,
         AVPlayerItem playerItem,
-        Metadata metaData,
+        Metadata _,
         AVPlayerViewController? playerViewController)
     {
         mediaElement.MediaOpened();

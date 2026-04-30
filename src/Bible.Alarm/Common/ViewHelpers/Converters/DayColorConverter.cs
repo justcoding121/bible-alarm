@@ -33,7 +33,7 @@ public sealed class DayColorConverter : IValueConverter, IMultiValueConverter
             var isDayEnabled = ((DaysOfWeek)value & dayParameter) == dayParameter;
             return isDayEnabled 
                 ? ThemeColors.Day.EnabledText.Get(theme) 
-                : ThemeColors.Day.DisabledText.Get(theme);
+                : ThemeColors.Day.CalendarMutedText.Get(theme);
         }
         else
         {
@@ -51,11 +51,11 @@ public sealed class DayColorConverter : IValueConverter, IMultiValueConverter
                 // Schedule enabled
                 return isDayEnabled 
                     ? ThemeColors.Day.EnabledText.Get(theme) 
-                    : ThemeColors.Day.DisabledText.Get(theme);
+                    : ThemeColors.Day.CalendarMutedText.Get(theme);
             }
 
             // Schedule disabled - all days use disabled text color
-            return ThemeColors.Day.DisabledText.Get(theme);
+            return ThemeColors.Day.CalendarMutedText.Get(theme);
         }
     }
 
@@ -90,12 +90,12 @@ public sealed class DayColorConverter : IValueConverter, IMultiValueConverter
             // Schedule enabled
             return isDayEnabled 
                 ? ThemeColors.Day.EnabledText.Get(theme) 
-                : ThemeColors.Day.DisabledText.Get(theme);
+                : ThemeColors.Day.CalendarMutedText.Get(theme);
         }
         else
         {
             // Schedule disabled - all days use disabled text color (theme-aware)
-            return ThemeColors.Day.DisabledText.Get(theme);
+            return ThemeColors.Day.CalendarMutedText.Get(theme);
         }
     }
 

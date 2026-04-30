@@ -4750,7 +4750,8 @@ public static class AppConstants
             public const string Text = "text";
             public const string Label = "label";
             public const string ParentCategory = "parentCategory";
-            public const string Media = "media";
+            /// <summary>Mediator <c>category.media</c> array JSON property name.</summary>
+            public const string CategoryMedia = "media";
             public const string PrimaryCategory = "primaryCategory";
             public const string NaturalKey = "naturalKey";
             public const string ProgressiveDownloadUrl = "progressiveDownloadURL";

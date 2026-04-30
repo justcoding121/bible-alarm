@@ -55,7 +55,7 @@ internal static class MediatorSectionCodeExtractor
                 }
             }
 
-            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaArray))
+            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.CategoryMedia, out var mediaArray))
             {
                 return (tracks, localizedPublicationName);
             }
@@ -154,7 +154,7 @@ internal static class MediatorSectionCodeExtractor
                 localizedPublicationName = categoryName;
             }
 
-            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.Media, out var mediaArray))
+            if (!category.TryGetProperty(AppConstants.Media.PubMediaJson.CategoryMedia, out var mediaArray))
             {
                 return (mediaItems, localizedPublicationName);
             }

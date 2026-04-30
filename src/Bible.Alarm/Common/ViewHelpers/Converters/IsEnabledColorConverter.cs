@@ -60,7 +60,7 @@ public sealed class IsEnabledColorConverter : IValueConverter
 
         // Fallback if resource not found
         var theme = ThemeColors.GetCurrentTheme();
-        return ThemeColors.Fallback.DisabledText.Get(theme);
+        return ThemeColors.Fallback.ConverterMutedText.Get(theme);
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
