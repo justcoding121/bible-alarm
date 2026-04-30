@@ -50,28 +50,14 @@ public sealed class ScheduleListItemViewModel(
     private volatile bool isPlayCommandRunning;
     private volatile bool isShowModalPending;
     private CancellationTokenSource? spinnerTimeoutCts;
-    private Action? onPlayStarted;
-    private Action? onPlaybackStarted;
-
-    public AlarmSchedule? Schedule { get; private set; }
-
-    /// <summary>
-    /// Action to call when play button is pressed. Used to show overlay on Home page.
-    /// </summary>
-    public Action? OnPlayStarted
-    {
-        get => onPlayStarted;
-        set => onPlayStarted = value;
-    }
+    public Action? OnPlayStarted { get; set; }
 
     /// <summary>
     /// Action to call when playback actually starts (modal is shown). Used to hide overlay on Home page.
     /// </summary>
-    public Action? OnPlaybackStarted
-    {
-        get => onPlaybackStarted;
-        set => onPlaybackStarted = value;
-    }
+    public Action? OnPlaybackStarted { get; set; }
+
+    public AlarmSchedule? Schedule { get; private set; }
 
     /// <summary>
     /// Initializes the ScheduleListItem from pre-mapped AlarmSchedule data.
@@ -211,7 +197,7 @@ public sealed class ScheduleListItemViewModel(
                 {
                     try
                     {
-                        onPlayStarted?.Invoke();
+                        OnPlayStarted?.Invoke();
                         WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule!.Id });
                         await playbackService.PlayScheduleAsync(Schedule!.Id);
                     }

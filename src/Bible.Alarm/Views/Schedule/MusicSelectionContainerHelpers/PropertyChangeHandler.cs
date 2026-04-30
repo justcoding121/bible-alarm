@@ -14,10 +14,11 @@ public class PropertyChangeHandler : IDisposable
     private readonly MusicSelectionContainer container;
     private readonly Action<bool, bool> updateVisibility;
     private readonly Action scrollToBottom;
-    private bool lastMusicEnabledState;
-    private bool isInitialLoad = true;
     private CancellationTokenSource? debounceTokenSource;
-    private bool shouldScrollOnExpand;
+
+    public bool IsInitialLoad { get; set; } = true;
+
+    public bool LastMusicEnabledState { get; set; }
 
     public PropertyChangeHandler(
         MusicSelectionContainer container,
@@ -29,17 +30,7 @@ public class PropertyChangeHandler : IDisposable
         this.scrollToBottom = scrollToBottom;
     }
 
-    public bool IsInitialLoad
-    {
-        get => isInitialLoad;
-        set => isInitialLoad = value;
-    }
-
-    public bool LastMusicEnabledState
-    {
-        get => lastMusicEnabledState;
-        set => lastMusicEnabledState = value;
-    }
+    public bool ShouldScrollOnExpand { get; set; }
 
     public void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e, MusicSelectionContainerViewModel? viewModel)
     {
@@ -53,11 +44,11 @@ public class PropertyChangeHandler : IDisposable
             var newState = vm.MusicEnabled;
 
 #if DEBUG
-            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangedMusicEnabledState, newState, lastMusicEnabledState, isInitialLoad);
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangedMusicEnabledState, newState, LastMusicEnabledState, IsInitialLoad);
 #endif
 
             // Debounce rapid changes (but not during initial load - always update during initial load)
-            if (!isInitialLoad && newState == lastMusicEnabledState)
+            if (!IsInitialLoad && newState == LastMusicEnabledState)
             {
 #if DEBUG
                 Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.StateUnchangedIgnoring);
@@ -67,12 +58,12 @@ public class PropertyChangeHandler : IDisposable
 
             // During initial load, still update visibility but without animation
             // This ensures the UI reflects the correct state even during initialization
-            if (isInitialLoad)
+            if (IsInitialLoad)
             {
 #if DEBUG
-                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangeDuringInitialLoadUpdatingVisibility, newState, lastMusicEnabledState);
+                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangeDuringInitialLoadUpdatingVisibility, newState, LastMusicEnabledState);
 #endif
-                lastMusicEnabledState = newState; // Update last state
+                LastMusicEnabledState = newState; // Update last state
                 // Still update visibility, just without animation
                 container.Dispatcher.Dispatch(() =>
                 {
@@ -85,12 +76,12 @@ public class PropertyChangeHandler : IDisposable
             }
 
             // Only scroll if user is toggling from false to true (user-initiated expand)
-            shouldScrollOnExpand = !lastMusicEnabledState && newState;
+            ShouldScrollOnExpand = !LastMusicEnabledState && newState;
 
-            lastMusicEnabledState = newState;
+            LastMusicEnabledState = newState;
 
 #if DEBUG
-            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.TriggeringAnimationMusicEnabled, newState, shouldScrollOnExpand);
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.TriggeringAnimationMusicEnabled, newState, ShouldScrollOnExpand);
 #endif
 
             // Cancel and dispose any pending debounce
@@ -135,12 +126,6 @@ public class PropertyChangeHandler : IDisposable
                 }
             });
         }
-    }
-
-    public bool ShouldScrollOnExpand
-    {
-        get => shouldScrollOnExpand;
-        set => shouldScrollOnExpand = value;
     }
 
     public void Dispose()

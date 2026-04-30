@@ -19,18 +19,13 @@ public class AudioPlayerStateManager
     private readonly ILogger logger;
     private readonly IDispatcher dispatcher;
     private BufferingWatchdog? bufferingWatchdog;
-    private bool isResetting;
     private bool isSeeking;
     private PlayStatus statusBeforeSeek = PlayStatus.Stopped;
     private bool isTransitioningFromLoadingToPlaying;
     private DateTime? lastLoadingToPlayingTransitionTime;
 
     public PlayStatus Status { get; set; } = PlayStatus.Stopped;
-    public bool IsResetting
-    {
-        get => isResetting;
-        set => isResetting = value;
-    }
+    public bool IsResetting { get; set; }
 
     public bool IsSeeking => isSeeking;
 
@@ -45,7 +40,7 @@ public class AudioPlayerStateManager
     public bool ShouldIgnoreStateChange(MediaElementState newState, MediaElement? mediaElement)
     {
         // Don't update status if we're in the middle of resetting
-        if (isResetting && newState != MediaElementState.Stopped)
+        if (IsResetting && newState != MediaElementState.Stopped)
         {
             logger.Debug("Ignoring state change to {NewState} during reset", newState);
             return true;

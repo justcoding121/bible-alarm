@@ -29,7 +29,6 @@ public class AlarmViewModalStateUpdater
     private readonly Action notifyPreparationProgressChanged;
     private readonly Action notifyHasErrorChanged;
 
-    private bool hasReceivedInitialState;
     private string? previousTrackTitle;
     private string? previousTrackArtist;
     private string? previousTrackAlbum;
@@ -76,11 +75,7 @@ public class AlarmViewModalStateUpdater
         this.notifyHasErrorChanged = notifyHasErrorChanged;
     }
 
-    public bool HasReceivedInitialState
-    {
-        get => hasReceivedInitialState;
-        set => hasReceivedInitialState = value;
-    }
+    public bool HasReceivedInitialState { get; set; }
 
     public bool DetectTrackChange(PlaybackState state)
     {
@@ -88,7 +83,7 @@ public class AlarmViewModalStateUpdater
         var currentArtist = state.Artist ?? "";
         var currentAlbum = state.Album ?? "";
 
-        return hasReceivedInitialState &&
+        return HasReceivedInitialState &&
                (previousTrackTitle != currentTitle ||
                 previousTrackArtist != currentArtist ||
                 previousTrackAlbum != currentAlbum);
@@ -98,19 +93,19 @@ public class AlarmViewModalStateUpdater
     {
         if (trackChanged)
         {
-            hasReceivedInitialState = false;
+            HasReceivedInitialState = false;
             hasReachedPlayingForCurrentTrack = false;
             notifyControlsEnabledChanged();
         }
 
-        if (!hasReceivedInitialState &&
+        if (!HasReceivedInitialState &&
             (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
         {
-            hasReceivedInitialState = true;
+            HasReceivedInitialState = true;
             notifyControlsEnabledChanged();
         }
 
-        if (hasReceivedInitialState)
+        if (HasReceivedInitialState)
         {
             previousTrackTitle = state.Title ?? "";
             previousTrackArtist = state.Artist ?? "";

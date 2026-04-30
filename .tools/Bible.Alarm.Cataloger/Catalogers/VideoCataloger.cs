@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -12,7 +11,6 @@ using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Cataloger.Utility;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
-using DownloadUtilityType = Bible.Alarm.Cataloger.Utility.DownloadUtility;
 using SharedHelpers = Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Cataloger.Catalogers;
@@ -36,20 +34,6 @@ internal class VideoCataloger : BaseCataloger
     private static readonly Dictionary<string, string> VideoPublicationCodeToNameMappings = new([
         new KeyValuePair<string, string>(AppConstants.Media.BiblePublicationCodeDramasGoodNews, AppConstants.Media.PublicationDisplayNameGoodNewsAccordingToJesus)
     ]);
-
-    /// <summary>
-    /// Maps publication codes to Mediator API category keys for fetching localized names (pub code = category key for video).
-    /// </summary>
-    private static readonly Dictionary<string, string> PublicationCodeToCategoryKey = new([
-        new KeyValuePair<string, string>(AppConstants.Media.BiblePublicationCodeDramasGoodNews, AppConstants.Media.BiblePublicationCodeDramasGoodNews)
-    ]);
-
-    /// <summary>
-    /// Localized publication names: (languageCode, publicationCode) -> localizedName
-    /// </summary>
-    private readonly Dictionary<(string LanguageCode, string PublicationCode), string> localizedPublicationNames = new();
-    private readonly object localizedNamesLock = new();
-
 
     internal async Task CatalogVideoLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {
@@ -215,47 +199,6 @@ internal class VideoCataloger : BaseCataloger
         return filteredEntries;
     }
 
-    private async Task FetchLocalizedPublicationName(string publicationCode, string languageCode)
-    {
-        if (!PublicationCodeToCategoryKey.TryGetValue(publicationCode, out var categoryKey))
-        {
-            return;
-        }
-
-        try
-        {
-            var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{languageCode}/{categoryKey}";
-            var jsonString = await DownloadUtilityType.GetMediatorAsync(pathAndQuery);
-            if (string.IsNullOrEmpty(jsonString))
-            {
-                return;
-            }
-
-            using var doc = JsonDocument.Parse(jsonString);
-            var root = doc.RootElement;
-
-            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category) &&
-                category.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
-            {
-                var rawName = nameElement.GetString();
-                // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-                var localizedName = SharedHelpers.MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-                if (!string.IsNullOrEmpty(localizedName))
-                {
-                    lock (localizedNamesLock)
-                    {
-                        localizedPublicationNames[(languageCode.ToUpperInvariant(), publicationCode)] = localizedName;
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Warning(ex, "Failed to fetch localized name for {PublicationCode} in {LanguageCode}",
-                publicationCode, languageCode);
-        }
-    }
-
     private static void AddPublicationToLanguage(
         string languageCode,
         string publicationCode,
@@ -275,122 +218,6 @@ internal class VideoCataloger : BaseCataloger
                 languageCodeToPublications[languageCode] = [publicationCode];
             }
         }
-    }
-
-    private async Task<bool> CatalogVideoEpisodes(string publicationCode, string languageCode, string publicationName)
-    {
-        var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var dir = $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexCatalogRootMediaSegment}/{AppConstants.Media.BiblePublicationCategoryDramas}/{normalizedLanguageCode}/{normalizedPublicationCode}";
-        var file = $"{dir}/{AppConstants.ApiEndpoints.MediaIndexVideoEpisodesFileName}";
-
-        var episodes = await FetchAllEpisodes(publicationCode, languageCode);
-        if (episodes == null || episodes.Count == 0)
-        {
-            return false;
-        }
-
-        if (dataPersister != null)
-        {
-            await dataPersister.SaveVideoEpisodes(languageCode, publicationCode, publicationName, episodes);
-        }
-        else
-        {
-            SaveEpisodes(dir, file, episodes);
-        }
-        return true;
-    }
-
-    private async Task<List<VideoEpisode>?> FetchAllEpisodes(string publicationCode, string languageCode)
-    {
-        try
-        {
-            var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
-            var jsonString = await DownloadUtility.GetAsync(catalogLink);
-            return ParseAllEpisodes(jsonString, publicationCode, languageCode);
-        }
-        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
-        {
-            return null;
-        }
-        catch (Exception ex)
-        {
-            Logger.Warning(ex, "Failed to fetch episodes for {PublicationCode} in {LanguageCode}", publicationCode, languageCode);
-            return null;
-        }
-    }
-
-    private static List<VideoEpisode>? ParseAllEpisodes(string? jsonString, string publicationCode, string languageCode)
-    {
-        if (string.IsNullOrEmpty(jsonString))
-            return null;
-
-        using var doc = JsonDocument.Parse(jsonString);
-        var root = doc.RootElement;
-
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement))
-            return null;
-
-        if (!filesElement.TryGetProperty(languageCode, out var languageFiles))
-        {
-            if (!filesElement.TryGetProperty(languageCode.ToUpperInvariant(), out languageFiles))
-                return null;
-        }
-
-        if (!languageFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp4, out var mp4Files) || mp4Files.ValueKind != JsonValueKind.Array)
-            return null;
-
-        var lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
-        var episodes = new List<VideoEpisode>();
-
-        foreach (var fileElement in mp4Files.EnumerateArray())
-        {
-            if (!fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var trackEl) || trackEl.ValueKind != JsonValueKind.Number)
-                continue;
-            var episodeNumber = trackEl.GetInt32();
-            if (episodeNumber == 0)
-                continue;
-
-            if (!fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileInfo) ||
-                !fileInfo.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
-                continue;
-
-            var url = urlElement.GetString();
-            if (string.IsNullOrEmpty(url))
-                continue;
-
-            var title = SharedHelpers.MediaTrackTitleHelper.UnknownTitle;
-            if (fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
-            {
-                title = SharedHelpers.MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
-            }
-
-            double duration = 0;
-            if (fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Duration, out var durationElement))
-                duration = durationElement.GetDouble();
-
-            episodes.Add(new VideoEpisode
-            {
-                Number = episodeNumber,
-                Title = title,
-                Url = url,
-                LookUpPath = lookUpPathBase,
-                Duration = duration
-            });
-        }
-
-        return episodes.Count > 0 ? episodes.OrderBy(e => e.Number).ToList() : null;
-    }
-
-    private static void SaveEpisodes(string dir, string file, List<VideoEpisode> episodes)
-    {
-        if (!Directory.Exists(dir))
-        {
-            Directory.CreateDirectory(dir);
-        }
-
-        var episodesJson = JsonSerializer.Serialize(episodes.OrderBy(x => x.Number));
-        File.WriteAllText(file, episodesJson);
     }
 
 }

@@ -13,7 +13,6 @@ public class AnimationManager
     private readonly View container;
     private readonly View collapsibleContent;
     private bool isAnimating;
-    private double? cachedHeight;
 
     public AnimationManager(View container, View collapsibleContent)
     {
@@ -23,11 +22,7 @@ public class AnimationManager
 
     public bool IsAnimating => isAnimating;
 
-    public double? CachedHeight
-    {
-        get => cachedHeight;
-        set => cachedHeight = value;
-    }
+    public double? CachedHeight { get; set; }
 
     // Track the last requested state to handle rapid toggles
     private bool? lastRequestedState;
@@ -136,7 +131,7 @@ public class AnimationManager
     {
         if (collapsibleContent == null) return;
 
-        if (!cachedHeight.HasValue || cachedHeight.Value <= 0)
+        if (!CachedHeight.HasValue || CachedHeight.Value <= 0)
         {
             collapsibleContent.HeightRequest = -1;
             collapsibleContent.Opacity = 1;
@@ -144,7 +139,7 @@ public class AnimationManager
 
             if (collapsibleContent != null)
             {
-                cachedHeight = collapsibleContent.Height > 0 ? collapsibleContent.Height : 200;
+                CachedHeight = collapsibleContent.Height > 0 ? collapsibleContent.Height : 200;
                 collapsibleContent.Opacity = 0;
             }
         }
@@ -152,7 +147,7 @@ public class AnimationManager
 
     private double GetTargetHeight()
     {
-        return cachedHeight.HasValue && cachedHeight.Value > 0 ? cachedHeight.Value : 200;
+        return CachedHeight.HasValue && CachedHeight.Value > 0 ? CachedHeight.Value : 200;
     }
 
     private async Task<double> GetStartHeightForCollapse()
@@ -161,7 +156,7 @@ public class AnimationManager
 
         if (currentHeight <= 0)
         {
-            if (!cachedHeight.HasValue || cachedHeight.Value <= 0)
+            if (!CachedHeight.HasValue || CachedHeight.Value <= 0)
             {
                 collapsibleContent.HeightRequest = -1;
                 await Task.Delay(50);
@@ -171,14 +166,14 @@ public class AnimationManager
             var useCachedFallback = currentHeight <= 0;
             if (useCachedFallback)
             {
-                currentHeight = cachedHeight ?? 200;
+                currentHeight = CachedHeight ?? 200;
             }
 
-            cachedHeight = currentHeight;
+            CachedHeight = currentHeight;
         }
         else
         {
-            cachedHeight = currentHeight;
+            CachedHeight = currentHeight;
         }
 
         return currentHeight > 0 ? currentHeight : 200;

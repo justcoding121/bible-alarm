@@ -209,8 +209,9 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
         return MPRemoteCommandHandlerStatus.Success;
     }
 
-    private MPRemoteCommandHandlerStatus HandleTogglePlayPauseCommand(MPRemoteCommandEvent _)
+    private MPRemoteCommandHandlerStatus HandleTogglePlayPauseCommand(MPRemoteCommandEvent evt)
     {
+        _ = evt;
         if (ShouldSuppressCarPlayConnectResume())
         {
             logger.Information(

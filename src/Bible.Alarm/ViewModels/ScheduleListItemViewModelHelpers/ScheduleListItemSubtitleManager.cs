@@ -17,20 +17,9 @@ public sealed class ScheduleListItemSubtitleManager(
     IState<ApplicationState> applicationState,
     IState<PlaybackState> playbackState)
 {
-    private string subtitle = string.Empty;
-    private string language = string.Empty;
+    public string SubTitle { get; set; } = string.Empty;
 
-    public string SubTitle
-    {
-        get => subtitle;
-        set => subtitle = value;
-    }
-
-    public string Language
-    {
-        get => language;
-        set => language = value;
-    }
+    public string Language { get; set; } = string.Empty;
 
     /// <summary>
     /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated SectionName).

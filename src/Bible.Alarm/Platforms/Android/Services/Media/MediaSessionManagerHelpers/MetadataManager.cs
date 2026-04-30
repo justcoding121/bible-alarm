@@ -14,13 +14,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelper
 /// </summary>
 public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProvider)
 {
-    private long? lastDurationMs;
-
-    public long? LastDurationMs
-    {
-        get => lastDurationMs;
-        set => lastDurationMs = value;
-    }
+    public long? LastDurationMs { get; set; }
 
     /// <summary>
     /// Creates a metadata builder with title, artist, and album.
@@ -150,7 +144,7 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
     {
         // Only update duration if it has changed (duration rarely changes, only on track change)
         // Position updates are frequent (~200ms), but duration only changes when a new track starts
-        if (durationMs <= 0 || durationMs == lastDurationMs)
+        if (durationMs <= 0 || durationMs == LastDurationMs)
         {
             return;
         }
@@ -170,7 +164,7 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
             if (metadata != null)
             {
                 mediaSession?.SetMetadata(metadata);
-                lastDurationMs = durationMs;
+                LastDurationMs = durationMs;
                 logger.Debug(AppConstants.Logging.AndroidMediaArtworkLog.DurationUpdatedInMetadataArtworkPreserved, durationMs);
             }
         }

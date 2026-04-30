@@ -13,20 +13,9 @@ public sealed class ScheduleListItemPropertyManager(
     ILogger logger,
     IScheduleStateService scheduleStateService)
 {
-    private bool isEnabled;
-    private bool isInitializing;
+    public bool IsEnabled { get; set; }
 
-    public bool IsEnabled
-    {
-        get => isEnabled;
-        set => isEnabled = value;
-    }
-
-    public bool IsInitializing
-    {
-        get => isInitializing;
-        set => isInitializing = value;
-    }
+    public bool IsInitializing { get; set; }
 
     /// <summary>
     /// Handles IsEnabled property change.

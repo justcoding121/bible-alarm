@@ -73,7 +73,6 @@ public sealed class MusicStateChangeHandler
             HandleMusicEnabledChange(
                 currentSchedule,
                 stateHolder,
-                setShouldScrollToBottom,
                 onPropertyChanged);
         }
 
@@ -101,7 +100,7 @@ public sealed class MusicStateChangeHandler
             currentSchedule.Id == scheduleId &&
             stateTracker.ShouldTriggerDefaultMusicForNullPublication(scheduleId))
         {
-            _ = LoadAndDispatchDefaultMusicWhenPublicationCodeNullAsync(scheduleId, onPropertyChanged);
+            _ = LoadAndDispatchDefaultMusicWhenPublicationCodeNullAsync(scheduleId);
         }
 
         if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
@@ -119,7 +118,7 @@ public sealed class MusicStateChangeHandler
         }
     }
 
-    private async Task LoadAndDispatchDefaultMusicWhenPublicationCodeNullAsync(int scheduleId, Action<string> onPropertyChanged)
+    private async Task LoadAndDispatchDefaultMusicWhenPublicationCodeNullAsync(int scheduleId)
     {
         try
         {
@@ -204,7 +203,6 @@ public sealed class MusicStateChangeHandler
     private void HandleMusicEnabledChange(
         ScheduleStateItem currentSchedule,
         MusicStateHolder stateHolder,
-        Action<bool> setShouldScrollToBottom,
         Action<string> onPropertyChanged)
     {
         var stateMusicEnabled = currentSchedule.MusicEnabled;
