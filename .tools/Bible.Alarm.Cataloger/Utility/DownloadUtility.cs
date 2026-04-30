@@ -110,13 +110,13 @@ internal class DownloadUtility
     {
         if (url.Contains(AppConstants.ApiEndpoints.JwCdnHostB, StringComparison.OrdinalIgnoreCase))
         {
-            alternateUrl = url.Replace(AppConstants.ApiEndpoints.JwCdnOriginHttpsB, AppConstants.ApiEndpoints.JwCdnOriginHttpsApp);
+            alternateUrl = url.Replace(AppConstants.ApiEndpoints.JwCdnOriginHttpsB, AppConstants.ApiEndpoints.JwCdnOriginHttpsApp, StringComparison.OrdinalIgnoreCase);
             return true;
         }
 
         if (url.Contains(AppConstants.ApiEndpoints.JwCdnHostApp, StringComparison.OrdinalIgnoreCase))
         {
-            alternateUrl = url.Replace(AppConstants.ApiEndpoints.JwCdnOriginHttpsApp, AppConstants.ApiEndpoints.JwCdnOriginHttpsB);
+            alternateUrl = url.Replace(AppConstants.ApiEndpoints.JwCdnOriginHttpsApp, AppConstants.ApiEndpoints.JwCdnOriginHttpsB, StringComparison.OrdinalIgnoreCase);
             return true;
         }
 

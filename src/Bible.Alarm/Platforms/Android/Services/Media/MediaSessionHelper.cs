@@ -166,7 +166,7 @@ public static class MediaSessionHelper
             }
             else if (artworkUrl.StartsWith(MediaUriSchemeConstants.FilePrefix, StringComparison.OrdinalIgnoreCase))
             {
-                var filePath = artworkUrl.Replace(MediaUriSchemeConstants.FilePrefix, "");
+                var filePath = artworkUrl.Replace(MediaUriSchemeConstants.FilePrefix, string.Empty, StringComparison.OrdinalIgnoreCase);
                 if (System.IO.File.Exists(filePath))
                 {
                     artworkBitmap = BitmapFactory.DecodeFile(filePath);

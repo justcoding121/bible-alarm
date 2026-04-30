@@ -24,7 +24,7 @@ internal static class MediaCacheFileNaming
         var base64Name = Convert.ToBase64String(plainTextBytes)
             .Replace('/', '_')  // Replace / with _ for filesystem safety
             .Replace('+', '-')  // Replace + with - for filesystem safety
-            .Replace("=", "");  // Remove padding
+            .Replace("=", string.Empty, StringComparison.Ordinal);  // Remove padding
 
         // Determine file extension from lookup path
         var extension = GetFileExtensionFromLookUpPath(lookUpPath);

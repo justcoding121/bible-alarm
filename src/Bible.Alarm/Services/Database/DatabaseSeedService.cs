@@ -40,8 +40,8 @@ public sealed class DatabaseSeedService(
 
                 return true; // Schedule was seeded
             }
-            catch (InvalidOperationException ex) when (ex.Message.Contains(AppConstants.SampleScheduleDiagnostics.MessageContainsNoBiblePublications) ||
-                                                       ex.Message.Contains(AppConstants.SampleScheduleDiagnostics.MessageContainsNoSectionedPublication))
+            catch (InvalidOperationException ex) when (ex.Message.Contains(AppConstants.SampleScheduleDiagnostics.MessageContainsNoBiblePublications, StringComparison.Ordinal) ||
+                                                       ex.Message.Contains(AppConstants.SampleScheduleDiagnostics.MessageContainsNoSectionedPublication, StringComparison.Ordinal))
             {
                 // Bible publications not yet available (Media database may still be initializing)
                 // This is expected during early bootstrap or when test data doesn't include sectioned publications

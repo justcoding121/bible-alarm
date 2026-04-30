@@ -41,10 +41,10 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
 
                 var message = httpEx.Message;
                 // Check for permanent HTTP errors that shouldn't be retried
-                if (!message.Contains(AppConstants.Media.DownloadPermanentFailureHttpFragments.StatusCode403) &&
-                    !message.Contains(AppConstants.Media.DownloadPermanentFailureHttpFragments.StatusCode404) &&
-                    !message.Contains(AppConstants.Media.DownloadPermanentFailureHttpFragments.Forbidden) &&
-                    !message.Contains(AppConstants.Media.DownloadPermanentFailureHttpFragments.NotFound))
+                if (!message.Contains(AppConstants.Media.DownloadPermanentFailureHttpFragments.StatusCode403, StringComparison.Ordinal) &&
+                    !message.Contains(AppConstants.Media.DownloadPermanentFailureHttpFragments.StatusCode404, StringComparison.Ordinal) &&
+                    !message.Contains(AppConstants.Media.DownloadPermanentFailureHttpFragments.Forbidden, StringComparison.Ordinal) &&
+                    !message.Contains(AppConstants.Media.DownloadPermanentFailureHttpFragments.NotFound, StringComparison.Ordinal))
                 {
                     return true;
                 }

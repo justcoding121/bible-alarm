@@ -141,9 +141,9 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
             return string.Empty;
 
         var singleLine = value
-            .Replace("\r\n", " ")
-            .Replace("\n", " ")
-            .Replace("\r", " ")
+            .Replace("\r\n", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal)
+            .Replace("\r", " ", StringComparison.Ordinal)
             .Trim();
 
         if (singleLine.Length <= maxLength)
@@ -419,7 +419,8 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                 }
                 catch
                 {
-                    filePath = artworkUrl.Replace(MediaUriSchemeConstants.FilePrefix, "").Replace(MediaUriSchemeConstants.FileUriTripleSlashPrefix, "/");
+                    filePath = artworkUrl.Replace(MediaUriSchemeConstants.FilePrefix, string.Empty, StringComparison.OrdinalIgnoreCase)
+                        .Replace(MediaUriSchemeConstants.FileUriTripleSlashPrefix, "/", StringComparison.Ordinal);
                 }
             }
             else if (System.IO.Path.IsPathRooted(artworkUrl))
