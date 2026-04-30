@@ -24,7 +24,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 {
     private static readonly ILogger logger = Log.ForContext<CarPlaySceneDelegate>();
 
-    private CPInterfaceController? interfaceController;
+    private CPInterfaceController? cpInterfaceController;
     private CPListTemplate? scheduleListTemplate;
 
     /// <summary>
@@ -48,12 +48,12 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// Called when CarPlay connects to the app.
     /// </summary>
     [Export("templateApplicationScene:didConnectInterfaceController:")]
-    public void DidConnect(CPTemplateApplicationScene scene, CPInterfaceController controller)
+    public void DidConnect(CPTemplateApplicationScene templateApplicationScene, CPInterfaceController interfaceController)
     {
         try
         {
             logger.Information(AppConstants.Logging.CarPlayDiagnosticsLog.ConnectedToInterfaceController);
-            interfaceController = controller;
+            cpInterfaceController = interfaceController;
             IsCarPlayConnected = true;
             IsRecentlyConnected = true;
             Current = this;
@@ -88,7 +88,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// Called when CarPlay disconnects from the app.
     /// </summary>
     [Export("templateApplicationScene:didDisconnectInterfaceController:")]
-    public void DidDisconnect(CPTemplateApplicationScene scene, CPInterfaceController controller)
+    public void DidDisconnect(CPTemplateApplicationScene templateApplicationScene, CPInterfaceController interfaceController)
     {
         try
         {
@@ -96,9 +96,9 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             IsCarPlayConnected = false;
             Current = null;
 
-            var oldController = interfaceController;
+            var oldController = cpInterfaceController;
             var oldTemplate = scheduleListTemplate;
-            interfaceController = null;
+            cpInterfaceController = null;
             scheduleListTemplate = null;
 
             SuppressCarPlayFinalizers(oldController, oldTemplate);
@@ -159,9 +159,9 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// Called when the CarPlay scene is about to connect to a session with a window.
     /// </summary>
     [Export("templateApplicationScene:didConnectInterfaceController:toWindow:")]
-    public void DidConnect(CPTemplateApplicationScene scene, CPInterfaceController controller, CPWindow window)
+    public void DidConnect(CPTemplateApplicationScene templateApplicationScene, CPInterfaceController interfaceController, CPWindow window)
     {
-        DidConnect(scene, controller);
+        DidConnect(templateApplicationScene, interfaceController);
     }
 
     /// <summary>
@@ -169,7 +169,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// </summary>
     private void SetRootTemplate()
     {
-        if (interfaceController == null)
+        if (cpInterfaceController == null)
         {
             logger.Warning(AppConstants.Logging.CarPlayDiagnosticsLog.CannotSetRootTemplateInterfaceControllerNull);
             return;
@@ -179,7 +179,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         {
             scheduleListTemplate = CreateScheduleListTemplate();
 
-            interfaceController.SetRootTemplate(scheduleListTemplate, animated: true, completion: (success, error) =>
+            cpInterfaceController.SetRootTemplate(scheduleListTemplate, animated: true, completion: (success, error) =>
             {
                 if (success)
                 {
@@ -268,7 +268,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     /// </summary>
     public void RefreshScheduleList()
     {
-        if (!IsCarPlayConnected || interfaceController == null)
+        if (!IsCarPlayConnected || cpInterfaceController == null)
         {
             return;
         }

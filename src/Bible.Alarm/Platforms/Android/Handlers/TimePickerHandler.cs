@@ -250,12 +250,8 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
                 }
             }
 
-            // Fallback: Find all TextViews in TimePicker and check if they contain "AM" or "PM"
-            // TimePicker extends ViewGroup which extends View, so we can pass it directly
-            if (timePicker is global::Android.Views.View timePickerView)
-            {
-                FindAndStyleAmPmTextViews(timePickerView, fontSize);
-            }
+            // Fallback: Find all TextViews in TimePicker (TimePicker derives from View)
+            FindAndStyleAmPmTextViews(timePicker, fontSize);
         }
         catch
         {

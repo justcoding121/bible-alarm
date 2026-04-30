@@ -288,8 +288,8 @@ public sealed class PlayerManager(ILogger logger)
         // Required interface methods - can be empty
         public void OnAudioAttributesChanged(AndroidX.Media3.Common.AudioAttributes? audioAttributes) { }
         public void OnAudioSessionIdChanged(int audioSessionId) { }
-        public void OnAvailableCommandsChanged(PlayerCommands? commands) { }
-        public void OnCues(AndroidX.Media3.Common.Text.CueGroup? cues) { }
+        public void OnAvailableCommandsChanged(PlayerCommands? availableCommands) { }
+        public void OnCues(AndroidX.Media3.Common.Text.CueGroup? cueGroup) { }
         public void OnDeviceInfoChanged(AndroidX.Media3.Common.DeviceInfo? deviceInfo) { }
         public void OnDeviceVolumeChanged(int volume, bool muted) { }
         public void OnEvents(IExoPlayer? player, PlayerEvents? playerEvents)
@@ -320,7 +320,7 @@ public sealed class PlayerManager(ILogger logger)
         public void OnSkipSilenceEnabledChanged(bool skipSilenceEnabled) { }
         public void OnSurfaceSizeChanged(int width, int height) { }
         public void OnTimelineChanged(Timeline? timeline, int reason) { }
-        public void OnTrackSelectionParametersChanged(TrackSelectionParameters? trackSelectionParameters) { }
+        public void OnTrackSelectionParametersChanged(TrackSelectionParameters? parameters) { }
         public void OnTracksChanged(Tracks? tracks) { }
         public void OnVolumeChanged(float volume) { }
     }

@@ -218,15 +218,10 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
         if (shouldApplyArtworkChange)
         {
-            if (currentArtwork == null && newArtwork != null)
-            {
-                logger.Debug("[AndroidAuto] Title/Artist unchanged but artwork missing from current metadata — applying update with artwork");
-            }
-            else
-            {
-                logger.Debug("[AndroidAuto] Title/Artist unchanged but clearing artwork in metadata (e.g. removed app icon fallback)");
-            }
-
+            var addingArtwork = currentArtwork == null && newArtwork != null;
+            logger.Debug(addingArtwork
+                ? "[AndroidAuto] Title/Artist unchanged but artwork missing from current metadata — applying update with artwork"
+                : "[AndroidAuto] Title/Artist unchanged but clearing artwork in metadata (e.g. removed app icon fallback)");
             return false;
         }
 
@@ -307,7 +302,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
             // the progress bar to 0:00 on state transitions (especially pause).
             // For Playing state, Android Auto uses position + playbackSpeed + timestamp
             // to advance the position automatically.
-            var position = mediaSession?.Controller?.PlaybackState?.Position ?? 0;
+            var position = mediaSession.Controller?.PlaybackState?.Position ?? 0;
             UpdatePlaybackState(state, position: position, canPlayNext: canPlayNext, canPlayPrevious: canPlayPrevious);
 
             if (status == PlayStatus.Playing)
@@ -333,13 +328,13 @@ public sealed class MediaSessionManager : IMediaSessionManager
         }
 
         var actions = PlaybackStateManager.BuildPlaybackActions(canPlayNext, canPlayPrevious);
-        var position = mediaSession?.Controller?.PlaybackState?.Position ?? 0;
+        var position = mediaSession.Controller?.PlaybackState?.Position ?? 0;
         var message = string.IsNullOrEmpty(errorMessage) ? "Playback failed. Tap Play to retry." : errorMessage;
 
         var playbackState = AndroidAutoPlayScreenHelper.CreateErrorPlaybackState(position, actions, message);
         if (playbackState != null)
         {
-            mediaSession?.SetPlaybackState(playbackState);
+            mediaSession.SetPlaybackState(playbackState);
             lastSetState = PlaybackStateCompat.StateError;
             lastSetPosition = position;
         }

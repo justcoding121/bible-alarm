@@ -93,13 +93,12 @@ internal static class CollectionViewScrollExecutor
                                 }
 
 #if WINDOWS
-                                // Check if item is in the last 10 positions - use native scrolling for those on Windows
-                                if (DeviceInfo.Platform == DevicePlatform.WinUI)
-                                {
+                                // Check if item is in the last 10 positions — this block is compiled only for WinUI;
+                                // use native scrolling for those items when needed.
                                     bool isInLast10 = false;
-                                        var itemsSource = collectionView.ItemsSource;
-                                        if (itemsSource != null)
-                                        {
+                                    var itemsSource = collectionView.ItemsSource;
+                                    if (itemsSource != null)
+                                    {
                                             var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
                                             if (itemsList.Count > 0)
                                         {
@@ -136,7 +135,6 @@ internal static class CollectionViewScrollExecutor
                                             return;
                                         }
                                     }
-                                }
 #endif
 
                                 // Try to find the item's index for more reliable scrolling

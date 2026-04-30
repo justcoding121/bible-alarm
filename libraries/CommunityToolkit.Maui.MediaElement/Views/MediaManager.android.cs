@@ -470,8 +470,8 @@ public partial class MediaManager : Object, IPlayerListener
 
     public void OnAudioAttributesChanged(AudioAttributes? audioAttributes) { }
     public void OnAudioSessionIdChanged(int audioSessionId) { }
-    public void OnAvailableCommandsChanged(PlayerCommands? player) { }
-    public void OnCues(CueGroup? cues) { }
+    public void OnAvailableCommandsChanged(PlayerCommands? availableCommands) { }
+    public void OnCues(CueGroup? cueGroup) { }
     public void OnDeviceInfoChanged(DeviceInfo? deviceInfo) { }
     public void OnDeviceVolumeChanged(int volume, bool muted) { }
     public void OnEvents(IPlayer? player, PlayerEvents? playerEvents) { }
@@ -507,7 +507,7 @@ public partial class MediaManager : Object, IPlayerListener
     public void OnSkipSilenceEnabledChanged(bool skipSilenceEnabled) { }
     public void OnSurfaceSizeChanged(int width, int height) { }
     public void OnTimelineChanged(Timeline? timeline, int reason) { }
-    public void OnTrackSelectionParametersChanged(TrackSelectionParameters? trackSelectionParameters) { }
+    public void OnTrackSelectionParametersChanged(TrackSelectionParameters? parameters) { }
     public void OnTracksChanged(Tracks? tracks) { }
 
 }
