@@ -483,7 +483,7 @@ public sealed class PlaybackModalService :
             {
                 state = playbackState.Value;
             }
-            catch
+            catch (Exception)
             {
                 // Fluxor not ready; fall through to platform check
             }
@@ -958,7 +958,7 @@ public sealed class PlaybackModalService :
         {
             state = playbackState.Value;
         }
-        catch
+        catch (Exception)
         {
             // Fluxor not ready
         }

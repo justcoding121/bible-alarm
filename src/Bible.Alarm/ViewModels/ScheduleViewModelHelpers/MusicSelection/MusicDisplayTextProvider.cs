@@ -195,7 +195,7 @@ public sealed class MusicDisplayTextProvider
                 });
             }
         }
-        catch
+        catch (Exception)
         {
             // Fallback on error
             cachedDefaultLanguageName = AppConstants.Media.DefaultLanguageDisplayNameEnglish;
@@ -427,7 +427,7 @@ public sealed class MusicDisplayTextProvider
             var languages = await mediaService.GetBiblePublicationLanguages(AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
             return languages.Count > 1;
         }
-        catch
+        catch (Exception)
         {
             // On error, default to not selectable
             return false;
@@ -588,7 +588,7 @@ public sealed class MusicDisplayTextProvider
 
             return tracks.Count > 1;
         }
-        catch
+        catch (Exception)
         {
             // On error, default to not selectable
             return false;

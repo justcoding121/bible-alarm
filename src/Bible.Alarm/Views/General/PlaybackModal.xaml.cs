@@ -757,7 +757,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             seekDebounceTimer?.Stop();
             seekDebounceTimer?.Dispose();
         }
-        catch
+        catch (Exception)
         {
             // Seek debounce timer dispose is best-effort during modal teardown.
         }
@@ -775,7 +775,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             RemoveIOSTapRecognizers();
 #endif
         }
-        catch
+        catch (Exception)
         {
             // Ignore - page may be in transitional state (e.g. CarPlay disconnect)
         }
@@ -789,7 +789,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                 disposable.Dispose();
             }
         }
-        catch
+        catch (Exception)
         {
             // Ignore errors during ViewModel disposal
         }

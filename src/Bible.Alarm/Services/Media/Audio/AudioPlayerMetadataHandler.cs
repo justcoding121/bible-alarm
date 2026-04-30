@@ -168,13 +168,13 @@ public class AudioPlayerMetadataHandler
                 {
                     file.Delete();
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore deletion errors
                 }
             }
         }
-        catch
+        catch (Exception)
         {
             // Ignore cleanup errors
         }
@@ -272,7 +272,7 @@ public class AudioPlayerMetadataHandler
                 {
                     file.Delete();
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore deletion errors - file might be in use
                 }

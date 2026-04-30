@@ -196,9 +196,9 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
 
             await transaction.CommitAsync();
         }
-        catch
+        catch (Exception)
         {
-            try { await transaction.RollbackAsync(); } catch { /* already logged by caller */ }
+            try { await transaction.RollbackAsync(); } catch (Exception) { /* already logged by caller */ }
             throw;
         }
     }
@@ -237,9 +237,9 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
                 logger.Debug("Background copy: copied {Count} flat track(s) for {PubCode}/{LangCode}", copiedCount, pubCode, langCode);
             }
         }
-        catch
+        catch (Exception)
         {
-            try { await transaction.RollbackAsync(); } catch { /* already logged by caller */ }
+            try { await transaction.RollbackAsync(); } catch (Exception) { /* already logged by caller */ }
             throw;
         }
     }

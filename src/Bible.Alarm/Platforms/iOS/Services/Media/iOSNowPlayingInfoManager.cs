@@ -417,7 +417,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                     var uri = new Uri(artworkUrl);
                     filePath = uri.LocalPath;
                 }
-                catch
+                catch (Exception)
                 {
                     filePath = artworkUrl.Replace(MediaUriSchemeConstants.FilePrefix, string.Empty, StringComparison.OrdinalIgnoreCase)
                         .Replace(MediaUriSchemeConstants.FileUriTripleSlashPrefix, "/", StringComparison.Ordinal);
@@ -509,7 +509,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
             return scaledImage ?? image;
         }
-        catch
+        catch (Exception)
         {
             return image;
         }

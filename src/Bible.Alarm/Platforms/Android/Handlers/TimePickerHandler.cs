@@ -202,7 +202,7 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
             // Apply font size to AM/PM text in TimePicker
             ApplyAmPmFontSize(dialog, fontSize);
         }
-        catch
+        catch (Exception)
         {
             // Views might not be available yet, will retry via delayed calls
         }
@@ -253,7 +253,7 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
             // Fallback: Find all TextViews in TimePicker (TimePicker derives from View)
             FindAndStyleAmPmTextViews(timePicker, fontSize);
         }
-        catch
+        catch (Exception)
         {
             // AM/PM views might not be available or accessible
         }

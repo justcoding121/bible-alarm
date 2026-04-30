@@ -275,7 +275,7 @@ public sealed class BiblePublicationDisplayTextProvider
             var languages = await mediaService.GetBiblePublicationLanguages(categoryName);
             return languages.Count > 1;
         }
-        catch
+        catch (Exception)
         {
             // On error, default to not selectable
             return false;
