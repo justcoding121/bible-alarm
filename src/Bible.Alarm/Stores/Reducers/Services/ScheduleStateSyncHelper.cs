@@ -208,12 +208,12 @@ public static class ScheduleStateSyncHelper
     }
 
     /// <summary>
-    /// Preserves basic schedule properties (DaysOfWeek, time, etc.) if action has invalid values but existing has valid values.
+    /// Preserves basic schedule properties (days-of-week bitmask, time, etc.) if action has invalid values but existing has valid values.
     /// This prevents cascade handlers or other updates from clearing essential schedule properties.
     /// </summary>
     private static void PreserveBasicScheduleProperties(ScheduleStateItem actionSchedule, ScheduleStateItem existingSchedule)
     {
-        // Preserve DaysOfWeek if action has it as 0 but existing has a valid value
+        // Preserve recurrence weekdays if action has it as 0 but existing has a valid value
         if (actionSchedule.DaysOfWeek == 0 && existingSchedule.DaysOfWeek != 0)
         {
             Log.Warning(AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.PreservingDaysOfWeekFromExisting,

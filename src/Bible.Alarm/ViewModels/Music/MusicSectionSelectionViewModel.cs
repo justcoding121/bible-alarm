@@ -24,7 +24,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicSectionSelectionViewModel : ObservableObject, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
+public sealed partial class MusicSectionSelectionViewModel : ObservableObject, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;

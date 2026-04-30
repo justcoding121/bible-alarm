@@ -12,7 +12,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class PlaybackModalService :
+public sealed partial class PlaybackModalService :
     IPlaybackModalService,
     IRecipient<MinimizePlaybackMessage>,
     IRecipient<MaximizePlaybackMessage>,

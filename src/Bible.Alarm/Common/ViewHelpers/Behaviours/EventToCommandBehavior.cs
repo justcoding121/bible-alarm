@@ -13,7 +13,7 @@ namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
 /// to a View or a class deriving from View.
 /// https://github.com/asimmon/Pillar/blob/master/src/Pillar/Behaviors/EventToCommandBehavior.cs
 /// </summary>
-public class EventToCommandBehavior : BindableBehavior<View>
+public partial class EventToCommandBehavior : BindableBehavior<View>
 {
     public static readonly BindableProperty EventNameProperty =
         BindableProperty.Create(nameof(EventName), typeof(string), typeof(EventToCommandBehavior));

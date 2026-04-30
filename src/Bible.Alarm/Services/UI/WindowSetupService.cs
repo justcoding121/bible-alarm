@@ -13,7 +13,7 @@ using Microsoft.Maui.Platform;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlaybackModalService playbackModalService, INavigationService navigationService) : IWindowSetupService
+public sealed partial class WindowSetupService(IServiceProvider serviceProvider, IPlaybackModalService playbackModalService, INavigationService navigationService) : IWindowSetupService
 {
     private static NavigationPage? mainNavPage;
     private static readonly ILogger logger = Log.ForContext<WindowSetupService>();

@@ -15,7 +15,7 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
             return ThemeColors.Day.DisabledBackground.Get(theme);
         }
 
-        DaysOfWeek daysOfWeek;
+        WeekDays daysOfWeek;
         // Default to enabled for ScheduleViewModel
         bool isEnabled = true;
 
@@ -24,7 +24,7 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
             daysOfWeek = schedule.DaysOfWeek;
             isEnabled = schedule.IsEnabled;
         }
-        else if (value is DaysOfWeek days)
+        else if (value is WeekDays days)
         {
             daysOfWeek = days;
         }
@@ -77,7 +77,7 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
             return ThemeColors.Day.DisabledBackground.Get(theme);
         }
 
-        if (values[0] is not DaysOfWeek daysOfWeek)
+        if (values[0] is not WeekDays daysOfWeek)
         {
             return ThemeColors.Day.DisabledBackground.Get(theme);
         }
@@ -124,13 +124,13 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
-    private static DaysOfWeek ParseDayParameter(object parameter)
+    private static WeekDays ParseDayParameter(object parameter)
     {
         return parameter switch
         {
             null => 0,
-            DaysOfWeek day => day,
-            string dayString when Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay) => parsedDay,
+            WeekDays day => day,
+            string dayString when Enum.TryParse<WeekDays>(dayString, out var parsedDay) => parsedDay,
             _ => 0
         };
     }

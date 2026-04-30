@@ -3,8 +3,12 @@ using System.Collections.Generic;
 
 namespace Bible.Alarm.Shared.Models.Enums;
 
+/// <summary>
+/// Bitmask of selected weekdays for alarm recurrence (Sonar S2342: name must end with plural "s").
+/// Schedule models expose this as <see cref="AlarmSchedule.DaysOfWeek"/> (property name unchanged).
+/// </summary>
 [Flags]
-public enum DaysOfWeek
+public enum WeekDays
 {
     Sunday = 1,
     Monday = 2,
@@ -16,16 +20,16 @@ public enum DaysOfWeek
     All = Sunday | Monday | Tuesday | Wednesday | Thursday | Friday | Saturday
 }
 
-public static class DaysOfWeekExtensions
+public static class WeekDaysExtensions
 {
-    public static List<int> ToList(this DaysOfWeek daysOfWeek)
+    public static List<int> ToList(this WeekDays daysOfWeek)
     {
         var result = new List<int>();
 
         var day = 1;
-        foreach (var item in Enum.GetValues<DaysOfWeek>())
+        foreach (var item in Enum.GetValues<WeekDays>())
         {
-            if (item == DaysOfWeek.All)
+            if (item == WeekDays.All)
             {
                 continue;
             }

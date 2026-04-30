@@ -18,7 +18,7 @@ public sealed class ScheduleValidationService : IScheduleValidationService
         this.toastService = toastService;
     }
 
-    public async Task<bool> ValidateDaysOfWeekAsync(DaysOfWeek daysOfWeek)
+    public async Task<bool> ValidateDaysOfWeekAsync(WeekDays daysOfWeek)
     {
         if (daysOfWeek != 0)
         {

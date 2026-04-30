@@ -8,7 +8,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
-internal sealed class ScheduleOverlayTimeoutController : IDisposable
+internal sealed partial class ScheduleOverlayTimeoutController : IDisposable
 {
     /// <summary>
     /// Hard timeout in milliseconds for the busy overlay.

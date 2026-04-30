@@ -18,7 +18,7 @@ public sealed class ScheduleStateItem : IComparable, IComparable<ScheduleStateIt
     public int Hour { get; set; }
     public int Minute { get; set; }
     public int Second { get; set; }
-    public DaysOfWeek DaysOfWeek { get; set; }
+    public WeekDays DaysOfWeek { get; set; }
     public bool NotificationEnabled { get; set; }
     public bool MusicEnabled { get; set; }
     public int SnoozeMinutes { get; set; }

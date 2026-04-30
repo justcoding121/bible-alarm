@@ -7,7 +7,7 @@ namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 /// <summary>
 /// Handles property management for MusicTrackSelectionViewModel.
 /// </summary>
-public sealed class MusicTrackPropertyManager : ObservableObject
+public sealed partial class MusicTrackPropertyManager : ObservableObject
 {
     private bool isBusy = true;
     private ObservableCollection<MusicTrackListViewItemModel> tracks = [];

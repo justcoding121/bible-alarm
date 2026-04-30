@@ -19,7 +19,7 @@ namespace Bible.Alarm.Services.UI;
 /// 
 /// Automatically recalculates when screen size/orientation changes or OS font scale changes.
 /// </summary>
-public sealed class FontService : IFontService, INotifyPropertyChanged
+public sealed partial class FontService : IFontService, INotifyPropertyChanged
 {
     private bool isDisposed;
     private double standardFontSize;

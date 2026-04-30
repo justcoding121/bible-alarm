@@ -6,7 +6,7 @@ using MediaSourceType = CommunityToolkit.Maui.MediaSource.MediaSource;
 
 namespace CommunityToolkit.Maui;
 
-public class MediaElement : View, IMediaElement, IDisposable
+public partial class MediaElement : View, IMediaElement, IDisposable
 {
     public static readonly BindableProperty AspectProperty = BindableProperty.Create(nameof(Aspect), typeof(Aspect), typeof(MediaElement), Aspect.AspectFit);
     public static readonly BindableProperty CurrentStateProperty = BindableProperty.Create(nameof(CurrentState), typeof(MediaElementState), typeof(MediaElement), MediaElementState.None, propertyChanged: OnCurrentStatePropertyChanged);

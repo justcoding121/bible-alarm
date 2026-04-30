@@ -20,7 +20,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed partial class BiblePublicationTrackSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;

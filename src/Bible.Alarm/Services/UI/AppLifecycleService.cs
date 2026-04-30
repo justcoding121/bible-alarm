@@ -11,7 +11,7 @@ using Bible.Alarm.Platforms.Windows.Helpers;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider, IReviewPromptService reviewPromptService) : IAppLifecycleService, IDisposable
+public sealed partial class AppLifecycleService(ILogger logger, IServiceProvider serviceProvider, IReviewPromptService reviewPromptService) : IAppLifecycleService, IDisposable
 {
     private readonly IServiceProvider serviceProvider = serviceProvider;
 

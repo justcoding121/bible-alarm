@@ -13,7 +13,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class MediaCacheService(
+public sealed partial class MediaCacheService(
     ILogger logger,
     IStorageService storageService,
     IDownloadService downloadService,

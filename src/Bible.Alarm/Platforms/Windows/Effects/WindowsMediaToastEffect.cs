@@ -14,7 +14,7 @@ namespace Bible.Alarm.Platforms.Windows.Effects;
 /// Fluxor effect that shows rich toast notifications with metadata during playback on Windows.
 /// Only shows when the app is not the active foreground window (minimized or behind other windows).
 /// </summary>
-public class WindowsMediaToastEffect(
+public partial class WindowsMediaToastEffect(
     IWindowsNotificationService notificationService,
     IState<PlaybackState> playbackState) : IDisposable
 {

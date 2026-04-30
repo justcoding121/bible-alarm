@@ -50,10 +50,10 @@ public static class ScheduleEntityUpdater
     /// </summary>
     public static void UpdateBasicScheduleProperties(AlarmSchedule existing, AlarmSchedule dbSchedule)
     {
-        // Preserve DaysOfWeek if dbSchedule has it as 0 (shouldn't happen, but protect against data loss)
+        // Preserve WeekDays if dbSchedule has it as 0 (shouldn't happen, but protect against data loss)
         if (dbSchedule.DaysOfWeek == 0 && existing.DaysOfWeek != 0)
         {
-            // Don't update DaysOfWeek - keep the existing value
+            // Don't update WeekDays - keep the existing value
         }
         else
         {

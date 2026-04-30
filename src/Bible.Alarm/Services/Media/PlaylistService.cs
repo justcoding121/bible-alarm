@@ -23,7 +23,7 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media;
 
-public sealed class PlaylistService : IPlaylistService
+public sealed partial class PlaylistService : IPlaylistService
 {
     private readonly ILogger logger;
     private readonly IDispatcher dispatcher;

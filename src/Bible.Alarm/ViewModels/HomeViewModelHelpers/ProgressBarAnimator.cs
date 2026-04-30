@@ -5,7 +5,7 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 /// Handles progress bar animation logic.
 /// Separated from HomeViewModel for better modularity.
 /// </summary>
-public class ProgressBarAnimator : IDisposable
+public partial class ProgressBarAnimator : IDisposable
 {
     private bool disposed;
     private System.Timers.Timer? progressAnimationTimer;

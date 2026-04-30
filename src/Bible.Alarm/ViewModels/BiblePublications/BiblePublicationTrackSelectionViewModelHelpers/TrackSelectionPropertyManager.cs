@@ -7,7 +7,7 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationTrackSelectio
 /// <summary>
 /// Handles property management for BiblePublicationTrackSelectionViewModel.
 /// </summary>
-public sealed class TrackSelectionPropertyManager : ObservableObject
+public sealed partial class TrackSelectionPropertyManager : ObservableObject
 {
     private bool isBusy = true;
     private ObservableCollection<BiblePublicationTrackListViewItemModel>? tracks;

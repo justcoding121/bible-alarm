@@ -5,7 +5,7 @@ namespace Bible.Alarm.Services.Schedule.Interfaces;
 
 public interface IScheduleValidationService
 {
-    Task<bool> ValidateDaysOfWeekAsync(DaysOfWeek daysOfWeek);
+    Task<bool> ValidateDaysOfWeekAsync(WeekDays daysOfWeek);
 }
 
 

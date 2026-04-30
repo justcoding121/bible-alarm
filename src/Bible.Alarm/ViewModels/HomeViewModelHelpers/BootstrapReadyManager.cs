@@ -11,7 +11,7 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 /// Manages bootstrap ready state tracking for HomeViewModel.
 /// Uses async waiting via BootstrapHelper.WaitForBootstrapAsync instead of polling.
 /// </summary>
-public class BootstrapReadyManager : IDisposable
+public partial class BootstrapReadyManager : IDisposable
 {
     private readonly ILogger logger;
     private bool disposed;

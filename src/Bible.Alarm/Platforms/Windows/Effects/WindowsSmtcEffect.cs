@@ -13,7 +13,7 @@ namespace Bible.Alarm.Platforms.Windows.Effects;
 /// <summary>
 /// Fluxor effect that initializes Windows SMTC service and updates button states based on navigation changes.
 /// </summary>
-public class WindowsSmtcEffect(
+public partial class WindowsSmtcEffect(
     IWindowsSmtcService smtcService,
     IState<PlaybackState> playbackState) : IDisposable
 {

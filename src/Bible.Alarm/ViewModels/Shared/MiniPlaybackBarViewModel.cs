@@ -12,7 +12,7 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class MiniPlaybackBarViewModel : ObservableObject,
+public sealed partial class MiniPlaybackBarViewModel : ObservableObject,
     IRecipient<PlaybackPositionChangedMessage>,
     IRecipient<BeginStoppingPlaybackMessage>,
     IRecipient<NextButtonPressedMessage>,

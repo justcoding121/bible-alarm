@@ -28,7 +28,7 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;

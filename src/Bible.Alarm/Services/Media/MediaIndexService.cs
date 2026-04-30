@@ -15,7 +15,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class MediaIndexService(
+public sealed partial class MediaIndexService(
     ILogger logger,
     IStorageService storageService,
     IMediaIndexVersionService versionService,

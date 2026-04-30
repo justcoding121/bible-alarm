@@ -12,7 +12,7 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelper
 /// <summary>
 /// Manages UI properties and property changes for bible selection.
 /// </summary>
-public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
+public sealed partial class BiblePublicationSelectionPropertyManager : ObservableObject
 {
     private readonly IState<ApplicationState> state;
     private readonly BiblePublicationSelectionDataProvider dataProvider;

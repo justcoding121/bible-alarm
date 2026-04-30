@@ -5,7 +5,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Database;
 
-public sealed class ScheduleMigrationService(
+public sealed partial class ScheduleMigrationService(
     ILogger logger)
     : IScheduleMigrationService
 {

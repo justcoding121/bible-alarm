@@ -20,7 +20,7 @@ namespace Bible.Alarm.Services.Scheduler;
 /// Returns track metadata and scheduleId for the next schedule to be played.
 /// Downloads the first track and uses DisplayMetadataService to get full metadata (same as PreparePlaybackService).
 /// </summary>
-public sealed class DefaultScheduleService(
+public sealed partial class DefaultScheduleService(
     ILogger logger,
     IState<ApplicationState> applicationState,
     IAlarmScheduleService alarmScheduleService,

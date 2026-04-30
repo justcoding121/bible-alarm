@@ -7,7 +7,7 @@ namespace CommunityToolkit.Maui.MediaSource;
 /// Represents a source, loaded from local filesystem, that can be played by <see cref="MediaElement"/>.
 /// </summary>
 [TypeConverter(typeof(FileMediaSourceConverter))]
-public sealed class FileMediaSource : MediaSource
+public sealed partial class FileMediaSource : MediaSource
 {
     /// <summary>
     /// Backing store for the <see cref="Path"/> property.

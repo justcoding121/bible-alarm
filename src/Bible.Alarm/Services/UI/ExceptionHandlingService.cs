@@ -5,7 +5,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class ExceptionHandlingService(ILogger logger) : IExceptionHandlingService
+public sealed partial class ExceptionHandlingService(ILogger logger) : IExceptionHandlingService
 {
     private const int CrashFlushDelayMs = 500;
     private bool isDisposed;

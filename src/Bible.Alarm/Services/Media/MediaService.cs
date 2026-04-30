@@ -18,7 +18,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class MediaService(MediaServiceDependencies dependencies)
+public sealed partial class MediaService(MediaServiceDependencies dependencies)
     : IMediaService
 {
     private readonly IMediaIndexService mediaIndexService = dependencies.MediaIndexService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.MediaIndexService)} is required.");

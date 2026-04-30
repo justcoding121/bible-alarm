@@ -3832,7 +3832,7 @@ public static class AppConstants
                 "ScheduleViewModelManager: Skipping update for invalid schedule ID {ScheduleId}";
 
             public const string UpdatingExistingViewModelDaysOfWeek =
-                "ScheduleViewModelManager: Updating existing ViewModel for schedule {ScheduleId}. DaysOfWeek: {DaysOfWeek}";
+                "ScheduleViewModelManager: Updating existing ViewModel for schedule {ScheduleId}. WeekDays: {WeekDays}";
 
             public const string SuccessfullyUpdatedViewModel =
                 "ScheduleViewModelManager: Successfully updated ViewModel for schedule {ScheduleId}";

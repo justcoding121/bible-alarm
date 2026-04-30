@@ -6,7 +6,7 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 /// Manages progress bar visibility and opacity for HomeViewModel.
 /// Animation is now handled natively by the AnimatedProgressBar control.
 /// </summary>
-public class ProgressBarManager : IDisposable
+public partial class ProgressBarManager : IDisposable
 {
     private bool disposed;
     private const double OpacityEpsilon = 1e-9;

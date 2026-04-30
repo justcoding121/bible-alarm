@@ -104,10 +104,10 @@ public sealed class ScheduleListItemStateHandler(
             LastKnownTrackTitle != newTrackTitle,
             LastKnownSectionName != newSectionName);
 
-        // Log DaysOfWeek changes for debugging
+        // Log WeekDays changes for debugging
         if (daysOfWeekChanged)
         {
-            logger.Debug("ScheduleListItemStateHandler: DaysOfWeek changed for schedule {ScheduleId}. Old: {OldDaysOfWeek}, New: {NewDaysOfWeek}",
+            logger.Debug("ScheduleListItemStateHandler: WeekDays changed for schedule {ScheduleId}. Old: {OldDaysOfWeek}, New: {NewDaysOfWeek}",
                 updatedScheduleItem.Id, oldDaysOfWeek, updatedSchedule.DaysOfWeek);
         }
 

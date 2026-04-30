@@ -13,7 +13,7 @@ using Fluxor;
 using Serilog;
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>, IRecipient<BeginStoppingPlaybackMessage>
+public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>, IRecipient<BeginStoppingPlaybackMessage>
 {
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;

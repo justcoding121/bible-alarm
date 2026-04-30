@@ -11,7 +11,7 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 /// <summary>
 /// Handles property management for ScheduleViewModel.
 /// </summary>
-public sealed class SchedulePropertyManager : ObservableObject
+public sealed partial class SchedulePropertyManager : ObservableObject
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
@@ -138,7 +138,7 @@ public sealed class SchedulePropertyManager : ObservableObject
 
     public bool IsEnabled => SchedulePropertyHelper.GetIsEnabled(state.Value.CurrentSchedule);
 
-    public DaysOfWeek DaysOfWeek => SchedulePropertyHelper.GetDaysOfWeek(state.Value.CurrentSchedule);
+    public WeekDays DaysOfWeek => SchedulePropertyHelper.GetDaysOfWeek(state.Value.CurrentSchedule);
 
     public TimeSpan Time => SchedulePropertyHelper.GetTime(state.Value.CurrentSchedule);
 

@@ -63,7 +63,7 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
     public int Second { get; set; }
 
     [Required]
-    public DaysOfWeek DaysOfWeek { get; set; }
+    public WeekDays DaysOfWeek { get; set; }
 
     public string TimeText => $"{MeridianHour:D2}:{Minute:D2}";
 
@@ -372,7 +372,7 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
             IsEnabled = false,
             MusicEnabled = false,
             NotificationEnabled = false, // Disabled by default - user must explicitly enable tap-to-play
-            DaysOfWeek = DaysOfWeek.All,
+            DaysOfWeek = WeekDays.All,
             Name = $"{(isNew ? AppConstants.Media.ScheduleUiSampleNameNew : AppConstants.Media.ScheduleUiSampleNamePlaceholder)}",
             Hour = 6,
             Minute = 0,

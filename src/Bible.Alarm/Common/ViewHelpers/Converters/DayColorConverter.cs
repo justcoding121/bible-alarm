@@ -6,13 +6,13 @@ namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
 public sealed class DayColorConverter : IValueConverter, IMultiValueConverter
 {
-    private static DaysOfWeek ParseDayParameter(object parameter)
+    private static WeekDays ParseDayParameter(object parameter)
     {
         return parameter switch
         {
             null => 0,
-            DaysOfWeek day => day,
-            string dayString when Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay) => parsedDay,
+            WeekDays day => day,
+            string dayString when Enum.TryParse<WeekDays>(dayString, out var parsedDay) => parsedDay,
             _ => 0
         };
     }
@@ -28,7 +28,7 @@ public sealed class DayColorConverter : IValueConverter, IMultiValueConverter
 
         var theme = ThemeColors.GetCurrentTheme();
 
-        if (value is DaysOfWeek dayMask)
+        if (value is WeekDays dayMask)
         {
             var isDayEnabled = (dayMask & dayParameter) == dayParameter;
             return isDayEnabled 
@@ -62,7 +62,7 @@ public sealed class DayColorConverter : IValueConverter, IMultiValueConverter
             return Colors.White;
         }
 
-        if (values[0] is not DaysOfWeek daysOfWeek)
+        if (values[0] is not WeekDays daysOfWeek)
         {
             return Colors.White;
         }

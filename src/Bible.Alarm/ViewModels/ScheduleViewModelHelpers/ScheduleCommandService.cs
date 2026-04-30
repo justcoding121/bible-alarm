@@ -127,7 +127,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             return false;
         }
 
-        // Validate DaysOfWeek before saving
+        // Validate WeekDays before saving
         if (currentSchedule.DaysOfWeek == 0)
         {
             logger.Warning(AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveCommandCannotSaveDaysOfWeekEmpty);

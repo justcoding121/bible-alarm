@@ -14,7 +14,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Media;
 /// Windows-specific service that subscribes to System Media Transport Controls (SMTC) button events
 /// and dispatches messages that trigger Fluxor actions for playback control.
 /// </summary>
-public sealed class WindowsSmtcService : IWindowsSmtcService
+public sealed partial class WindowsSmtcService : IWindowsSmtcService
 {
     private static readonly ILogger logger = Log.ForContext<WindowsSmtcService>();
     private readonly IMediaElementService mediaElementService;

@@ -4,7 +4,7 @@ namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
 /// <summary>
 /// Behavior that adds touch feedback animation to views when tapped
 /// </summary>
-public class TouchFeedbackBehavior : Behavior<View>
+public partial class TouchFeedbackBehavior : Behavior<View>
 {
     private View? associatedView;
 

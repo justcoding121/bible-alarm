@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Battery;
 
-public sealed class BatteryOptimizationService(
+public sealed partial class BatteryOptimizationService(
     ILogger logger,
     IGeneralSettingsService generalSettingsService,
     IBatteryOptimizationManager batteryOptimizationManager)

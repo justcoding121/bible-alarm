@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class MessageHandlingService(
+public sealed partial class MessageHandlingService(
     ILogger logger,
     IServiceProvider serviceProvider,
     INavigationService navigationService,

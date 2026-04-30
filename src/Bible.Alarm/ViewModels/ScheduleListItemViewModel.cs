@@ -393,7 +393,7 @@ public sealed class ScheduleListItemViewModel(
         OnPropertyChanged(nameof(This));
     }
 
-    public DaysOfWeek DaysOfWeek => Schedule?.DaysOfWeek ?? 0;
+    public WeekDays DaysOfWeek => Schedule?.DaysOfWeek ?? 0;
 
     public string TimeText => Schedule?.TimeText ?? string.Empty;
 
@@ -564,7 +564,7 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
-        // Store old DaysOfWeek before updating to ensure we can detect changes
+        // Store old WeekDays before updating to ensure we can detect changes
         var oldDaysOfWeek = schedule.DaysOfWeek;
 
         isProcessingStateChange = true;
@@ -588,8 +588,8 @@ public sealed class ScheduleListItemViewModel(
             isProcessingStateChange = false;
         }
 
-        // Double-check DaysOfWeek change after update (in case comparison missed it)
-        // This handles edge cases where the schedule was already updated but DaysOfWeek changed
+        // Double-check WeekDays change after update (in case comparison missed it)
+        // This handles edge cases where the schedule was already updated but WeekDays changed
         var updatedSchedule = changeInfo.UpdatedSchedule;
         if (!changeInfo.DaysOfWeekChanged && updatedSchedule != null && updatedSchedule.DaysOfWeek != oldDaysOfWeek)
         {

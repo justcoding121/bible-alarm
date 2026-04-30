@@ -9,7 +9,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Platform;
 /// This reads the user's text size preference from Windows accessibility settings
 /// (Settings > Ease of Access > Display > Make text bigger).
 /// </summary>
-public sealed class WindowsAccessibilityFontScaleService : IAccessibilityFontScaleService, IDisposable
+public sealed partial class WindowsAccessibilityFontScaleService : IAccessibilityFontScaleService, IDisposable
 {
     private double currentFontScale;
     private bool isDisposed;

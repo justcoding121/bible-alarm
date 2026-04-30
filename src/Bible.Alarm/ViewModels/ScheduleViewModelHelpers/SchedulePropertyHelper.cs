@@ -10,7 +10,7 @@ public static class SchedulePropertyHelper
 
     public static bool GetIsEnabled(ScheduleStateItem? currentSchedule) => currentSchedule?.IsEnabled ?? false;
 
-    public static DaysOfWeek GetDaysOfWeek(ScheduleStateItem? currentSchedule) => currentSchedule?.DaysOfWeek ?? 0;
+    public static WeekDays GetDaysOfWeek(ScheduleStateItem? currentSchedule) => currentSchedule?.DaysOfWeek ?? 0;
 
     public static TimeSpan GetTime(ScheduleStateItem? currentSchedule)
     {

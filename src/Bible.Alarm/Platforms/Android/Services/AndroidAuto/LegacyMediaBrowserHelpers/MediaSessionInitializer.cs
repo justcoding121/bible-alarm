@@ -13,7 +13,6 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserH
 public sealed class MediaSessionInitializer(ILogger logger)
 {
     private MediaSessionCompat? session;
-    private IMediaSessionManager? mediaSessionManager;
 
     /// <summary>
     /// Initializes the MediaSession for the service.
@@ -38,7 +37,7 @@ public sealed class MediaSessionInitializer(ILogger logger)
     {
         // MediaSession is created here if needed (for SessionToken), but buffering state is set
         // centrally after bootstrap completes in CommonBootstrapHelper.InitializeSchedules().
-        mediaSessionManager = ServiceProviderManager.GetService<IMediaSessionManager>();
+        var mediaSessionManager = ServiceProviderManager.GetService<IMediaSessionManager>();
         if (mediaSessionManager == null)
         {
             logger.Warning(AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.MediaSessionManagerNullCannotCreateMediaSession);

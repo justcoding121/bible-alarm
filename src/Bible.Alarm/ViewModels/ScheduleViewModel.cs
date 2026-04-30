@@ -21,7 +21,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public sealed class ScheduleViewModel : ObservableObject, IDisposable
+public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
@@ -301,7 +301,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
     public bool IsEnabled => SchedulePropertyHelper.GetIsEnabled(state.Value.CurrentSchedule);
 
-    public DaysOfWeek DaysOfWeek => SchedulePropertyHelper.GetDaysOfWeek(state.Value.CurrentSchedule);
+    public WeekDays DaysOfWeek => SchedulePropertyHelper.GetDaysOfWeek(state.Value.CurrentSchedule);
 
     public TimeSpan Time => SchedulePropertyHelper.GetTime(state.Value.CurrentSchedule);
 

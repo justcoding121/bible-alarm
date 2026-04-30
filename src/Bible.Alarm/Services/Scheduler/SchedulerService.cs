@@ -9,7 +9,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Scheduler;
 
-public sealed class SchedulerService(
+public sealed partial class SchedulerService(
     ILogger logger,
     IAlarmScheduleService alarmScheduleService,
     IMediaCacheService mediaCacheService,

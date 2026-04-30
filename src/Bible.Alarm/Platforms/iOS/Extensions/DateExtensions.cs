@@ -16,41 +16,41 @@ public static class DateExtensions
         };
     }
 
-    public static List<nint> ToWeekDays(this DaysOfWeek daysOfWeek)
+    public static List<nint> ToWeekDays(this WeekDays daysOfWeek)
     {
         var result = new List<nint>();
 
-        if ((daysOfWeek & DaysOfWeek.Sunday) == DaysOfWeek.Sunday)
+        if ((daysOfWeek & WeekDays.Sunday) == WeekDays.Sunday)
         {
             result.Add(1);
         }
 
-        if ((daysOfWeek & DaysOfWeek.Monday) == DaysOfWeek.Monday)
+        if ((daysOfWeek & WeekDays.Monday) == WeekDays.Monday)
         {
             result.Add(2);
         }
 
-        if ((daysOfWeek & DaysOfWeek.Tuesday) == DaysOfWeek.Tuesday)
+        if ((daysOfWeek & WeekDays.Tuesday) == WeekDays.Tuesday)
         {
             result.Add(3);
         }
 
-        if ((daysOfWeek & DaysOfWeek.Wednesday) == DaysOfWeek.Wednesday)
+        if ((daysOfWeek & WeekDays.Wednesday) == WeekDays.Wednesday)
         {
             result.Add(4);
         }
 
-        if ((daysOfWeek & DaysOfWeek.Thursday) == DaysOfWeek.Thursday)
+        if ((daysOfWeek & WeekDays.Thursday) == WeekDays.Thursday)
         {
             result.Add(5);
         }
 
-        if ((daysOfWeek & DaysOfWeek.Friday) == DaysOfWeek.Friday)
+        if ((daysOfWeek & WeekDays.Friday) == WeekDays.Friday)
         {
             result.Add(6);
         }
 
-        if ((daysOfWeek & DaysOfWeek.Saturday) == DaysOfWeek.Saturday)
+        if ((daysOfWeek & WeekDays.Saturday) == WeekDays.Saturday)
         {
             result.Add(7);
         }

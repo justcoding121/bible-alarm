@@ -9,7 +9,7 @@ namespace Bible.Alarm.Platforms.Windows.Helpers;
 /// Manages periodic background tasks for Windows (similar to Android JobScheduler).
 /// - SchedulerService: Runs every 30 minutes (like Android SchedulerJob)
 /// </summary>
-public sealed class WindowsPeriodicBackgroundTasks : IDisposable
+public sealed partial class WindowsPeriodicBackgroundTasks : IDisposable
 {
     private readonly ILogger logger;
     private readonly IServiceProvider serviceProvider;

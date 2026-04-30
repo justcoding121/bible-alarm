@@ -7,7 +7,7 @@ using Windows.Storage;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Storage;
 
-public class WindowsStorageService : StorageService
+public partial class WindowsStorageService : StorageService
 {
     private static string GetStorageRoot()
     {

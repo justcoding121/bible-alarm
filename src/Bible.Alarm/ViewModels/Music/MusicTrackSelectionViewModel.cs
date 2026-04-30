@@ -18,7 +18,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed partial class MusicTrackSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;

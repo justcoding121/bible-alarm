@@ -9,7 +9,7 @@ namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers
 /// <summary>
 /// Handles property management for MusicPublicationSelectionViewModel.
 /// </summary>
-public sealed class MusicPublicationSelectionPropertyManager : ObservableObject
+public sealed partial class MusicPublicationSelectionPropertyManager : ObservableObject
 {
     private bool isBusy = true;
     private ObservableCollection<PublicationListViewItemModel>? songPublications;

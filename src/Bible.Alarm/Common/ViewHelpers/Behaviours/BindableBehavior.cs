@@ -5,7 +5,7 @@ namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
 /// so that when the view's binding context changes, the behavior binding context will be the same.
 /// https://github.com/asimmon/Pillar/blob/master/src/Pillar/Behaviors/BindableBehavior.cs
 /// </summary>
-public class BindableBehavior<T> : Behavior<T> where T : BindableObject
+public partial class BindableBehavior<T> : Behavior<T> where T : BindableObject
 {
     /// <summary>
     /// The associated Xamarin.Forms visual element

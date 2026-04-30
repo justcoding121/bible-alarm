@@ -94,7 +94,7 @@ internal sealed class ScheduleListItemStateChangeApplier
 
             if (changeInfo.DaysOfWeekChanged)
             {
-                logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - DaysOfWeek changed for schedule {ScheduleId}. New value: {NewDaysOfWeek}",
+                logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - WeekDays changed for schedule {ScheduleId}. New value: {NewDaysOfWeek}",
                     getScheduleId(), getSchedule()?.DaysOfWeek ?? 0);
                 onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.DaysOfWeek));
             }

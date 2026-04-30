@@ -17,7 +17,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDisposable
+public sealed partial class ScheduleDetailsContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
@@ -26,7 +26,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     private readonly IScheduleValidationService scheduleValidationService;
 
     private TimeSpan time;
-    private DaysOfWeek daysOfWeek;
+    private WeekDays daysOfWeek;
     private string name = string.Empty;
     private bool isEnabled;
     private bool hasSignaledReady;
@@ -186,11 +186,11 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
                         time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
                         OnPropertyChanged(nameof(Time));
                     }
-                    // Preserve DaysOfWeek if state has it as 0 but local has a valid value
-                    // This prevents state updates from clearing DaysOfWeek after page load
+                    // Preserve WeekDays if state has it as 0 but local has a valid value
+                    // This prevents state updates from clearing WeekDays after page load
                     if (currentSchedule.DaysOfWeek == 0 && daysOfWeek != 0)
                     {
-                        // State has invalid DaysOfWeek, preserve local value
+                        // State has invalid WeekDays, preserve local value
                         // Dispatch update to fix state (but don't save)
                         logger.Warning("ScheduleDetailsContainerViewModel: State has DaysOfWeek=0 but local has {LocalDaysOfWeek}. Preserving local value and fixing state.",
                             daysOfWeek);
@@ -234,7 +234,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         }
     }
 
-    public DaysOfWeek DaysOfWeek
+    public WeekDays DaysOfWeek
     {
         get => daysOfWeek;
         set
@@ -287,13 +287,13 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
 
     private async Task ToggleDayAsync(object? parameter)
     {
-        DaysOfWeek day;
+        WeekDays day;
 
-        if (parameter is DaysOfWeek dayEnum)
+        if (parameter is WeekDays dayEnum)
         {
             day = dayEnum;
         }
-        else if (parameter is string dayString && Enum.TryParse<DaysOfWeek>(dayString, out var parsedDay))
+        else if (parameter is string dayString && Enum.TryParse<WeekDays>(dayString, out var parsedDay))
         {
             day = parsedDay;
         }
@@ -328,12 +328,12 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         }
     }
 
-    private static int CountSelectedDays(DaysOfWeek daysOfWeek)
+    private static int CountSelectedDays(WeekDays daysOfWeek)
     {
         var count = 0;
-        foreach (DaysOfWeek day in Enum.GetValues<DaysOfWeek>())
+        foreach (WeekDays day in Enum.GetValues<WeekDays>())
         {
-            if (day == DaysOfWeek.All)
+            if (day == WeekDays.All)
             {
                 continue;
             }

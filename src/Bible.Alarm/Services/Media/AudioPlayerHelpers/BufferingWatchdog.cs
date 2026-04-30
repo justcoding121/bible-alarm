@@ -10,7 +10,7 @@ namespace Bible.Alarm.Services.Media.AudioPlayerHelpers;
 /// configurable timeout so the app can attempt recovery via the existing MediaFailed
 /// pipeline (CDN probe, URL refresh, retry, and finally error modal with Retry button).
 /// </summary>
-public sealed class BufferingWatchdog : IDisposable
+public sealed partial class BufferingWatchdog : IDisposable
 {
     private readonly ILogger logger;
     private readonly Action onStallDetected;

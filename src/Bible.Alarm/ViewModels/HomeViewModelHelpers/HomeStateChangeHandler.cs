@@ -29,12 +29,12 @@ public class HomeStateChangeHandler
 
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
-    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek, DateTime? LastPlayedAtUtc)>? lastProcessedScheduleProperties;
+    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, WeekDays DaysOfWeek, DateTime? LastPlayedAtUtc)>? lastProcessedScheduleProperties;
 
     // Stored when a reorder is deferred because the playback modal is visible.
     // Applied by ApplyDeferredReorderAsync() when the modal is confirmed on screen.
     private ObservableHashSet<ScheduleListItemViewModel>? deferredNewSchedules;
-    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek, DateTime? LastPlayedAtUtc)>? deferredScheduleProperties;
+    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, WeekDays DaysOfWeek, DateTime? LastPlayedAtUtc)>? deferredScheduleProperties;
 
     public HomeStateChangeHandler(
         ILogger logger,

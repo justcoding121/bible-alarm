@@ -18,7 +18,7 @@ using Bible.Alarm.Platforms.Android.Services.UI.Interfaces;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class NavigationService(
+public sealed partial class NavigationService(
     IServiceProvider serviceProvider,
     ILogger logger,
     IDispatcher dispatcher)

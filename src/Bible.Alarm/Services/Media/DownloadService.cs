@@ -10,7 +10,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) : IDownloadService
+public sealed partial class DownloadService(HttpMessageHandler handler, ILogger logger) : IDownloadService
 {
     private readonly int timeOutSeconds = AppConstants.CacheSettings.DownloadTimeoutSeconds;
     private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
