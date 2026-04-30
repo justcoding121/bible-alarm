@@ -2,7 +2,7 @@ namespace CommunityToolkit.Maui.Extensions;
 
 // Since MediaElement can't access .NET MAUI internals we have to copy this code here
 // https://github.com/dotnet/maui/blob/main/src/Controls/src/Core/Platform/PageExtensions.cs
-static class PageExtensions
+static partial class PageExtensions
 {
     internal static Page GetCurrentPage(this Page currentPage)
     {
@@ -19,29 +19,5 @@ static class PageExtensions
             IPageContainer<Page> pc => GetCurrentPage(pc.CurrentPage),
             _ => currentPage
         };
-    }
-
-    internal static class ParentWindow
-    {
-        static Page CurrentPage => GetCurrentPage(Application.Current?.Windows[^1].Page ?? throw new InvalidOperationException($"{nameof(Page)} cannot be null."));
-        /// <summary>
-        /// Checks if the parent window is null.
-        /// </summary>
-        public static bool Exists
-        {
-            get
-            {
-                if (CurrentPage.GetParentWindow() is null)
-                {
-                    return false;
-                }
-                if (CurrentPage.GetParentWindow().Handler is null)
-                {
-                    return false;
-                }
-
-                return CurrentPage.GetParentWindow().Handler?.PlatformView is not null;
-            }
-        }
     }
 }

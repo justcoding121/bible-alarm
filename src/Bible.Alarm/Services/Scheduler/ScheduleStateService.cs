@@ -104,120 +104,10 @@ public sealed class ScheduleStateService(
         return true;
     }
 
-#pragma warning disable CS9113 // Parameter 'notificationService' is used in iOS/WinUI paths (#else block)
+#if !ANDROID && !IOS
     private async Task<bool> CheckNotificationPermissionsAsync(int scheduleId)
     {
-#if ANDROID
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
-        // Android: Only check notification permission if "Tap to Play" (NotificationEnabled) is enabled
-        // The main reminder (IsEnabled) can work without notification permission
-        // However, if user enables IsEnabled (reminder) from home page and NotificationEnabled is already true,
-        // we need to check/request notification permission because tap-to-play requires it
-        if (schedule != null && schedule.NotificationEnabled)
-        {
-            logger.Information(AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationEnabledCheckingPermissionBeforeReminder, scheduleId);
-            // Check permission status without waiting (non-blocking)
-            // Permission requests are handled by ViewModels via the modal
-            var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
-            if (!granted)
-            {
-                logger.Warning(AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableNotificationDeniedTapToPlay, scheduleId);
-                return false;
-            }
-            logger.Information(AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidNotificationPermissionGrantedForSchedule, scheduleId);
-        }
-        else if (schedule != null)
-        {
-            logger.Debug(AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationDisabledNoPermissionCheckNeeded, scheduleId);
-        }
-        return true; // Android permission check passed or not needed
-#elif IOS
-        // iOS: Always check notification permission when enabling a reminder
-        // iOS always uses notifications for alarms, so permission is required for the reminder itself
-        // There is no separate "Tap to Play" toggle on iOS
-        // Request permission if not already granted
-        var permissionService = IOSNotificationPermissionService.Instance;
-        if (!permissionService.IsGranted)
-        {
-            // Request permission - this will show the iOS permission dialog
-            logger.Information(AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.RequestingIosNotificationPermissionForSchedule, scheduleId);
-            
-            // Use TaskCompletionSource to wait for permission response
-            var tcs = new TaskCompletionSource<bool>();
-            EventHandler? grantedHandler = null;
-            EventHandler? deniedHandler = null;
-            
-            grantedHandler = (sender, e) =>
-            {
-                permissionService.PermissionGranted -= grantedHandler;
-                permissionService.PermissionDenied -= deniedHandler;
-                if (!tcs.Task.IsCompleted)
-                {
-                    tcs.SetResult(true);
-                }
-            };
-            
-            deniedHandler = (sender, e) =>
-            {
-                permissionService.PermissionGranted -= grantedHandler;
-                permissionService.PermissionDenied -= deniedHandler;
-                if (!tcs.Task.IsCompleted)
-                {
-                    tcs.SetResult(false);
-                }
-            };
-            
-            permissionService.PermissionGranted += grantedHandler;
-            permissionService.PermissionDenied += deniedHandler;
-            
-            try
-            {
-                // Request permission
-                permissionService.RequestPermissionIfNeeded();
-                
-                // Wait for user response (with timeout of 10 seconds)
-                var timeoutTask = Task.Delay(10000);
-                var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
-                
-                bool granted = false;
-                if (completedTask == tcs.Task)
-                {
-                    try
-                    {
-                        granted = await tcs.Task;
-                    }
-                    catch (Exception)
-                    {
-                        granted = false;
-                    }
-                }
-                else
-                {
-                    // Timeout - user didn't respond, assume denied
-                    logger.Warning(AppConstants.Logging.ScheduleEnableDiagnosticsLog.PermissionRequestTimeoutForSchedule, scheduleId);
-                    granted = false;
-                }
-                
-                if (!granted)
-                {
-                    logger.Warning(AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableIosRemindersPermissionDenied, scheduleId);
-                    await toastService.ShowMessage(
-                        AppConstants.ToastMessages.NotificationPermissionRequiredRemindersIos,
-                        7);
-                    return false;
-                }
-            }
-            finally
-            {
-                // Clean up event handlers
-                permissionService.PermissionGranted -= grantedHandler;
-                permissionService.PermissionDenied -= deniedHandler;
-            }
-        }
-        return true; // iOS permission check passed
-#else
-        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
-        // WinUI and other platforms
         if (DeviceInfo.Platform == DevicePlatform.WinUI
             && schedule != null && schedule.NotificationEnabled
             && !await notificationService.CanScheduleAsync())
@@ -229,9 +119,8 @@ public sealed class ScheduleStateService(
             return false;
         }
         return true;
-#endif
     }
-#pragma warning restore CS9113
+#endif
 
     private async Task<AlarmSchedule> UpdateScheduleEnabledStateInDatabaseAsync(int scheduleId, bool isEnabled)
     {

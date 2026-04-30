@@ -155,6 +155,7 @@ internal sealed class IosMediaManagerObserverCoordinator
         }
         catch (ObjectDisposedException)
         {
+            // Observers may race native teardown with Dispose; intentional no-op.
         }
     }
 

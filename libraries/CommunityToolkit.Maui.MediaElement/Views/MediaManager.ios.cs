@@ -419,6 +419,7 @@ public partial class MediaManager : IDisposable
                     }
                     catch (ObjectDisposedException)
                     {
+                        // KVO teardown can throw if already finalized; intentional no-op.
                     }
                 }
 

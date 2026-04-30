@@ -236,6 +236,7 @@ public class SerilogSetup
         Log.Logger = loggerConfig.CreateLogger();
     }
 
+#if !ANDROID
     private static string GetLogDirectory()
     {
         try
@@ -251,12 +252,6 @@ public class SerilogSetup
                 var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 cacheBasePath = Path.Combine(localAppData, AppConstants.FilePaths.WindowsAppDataFolderName, AppConstants.FilePaths.WindowsAppDataCacheFolderName);
 #endif
-            }
-            else if (CurrentDevice.RuntimePlatform == AppConstants.Platform.Android)
-            {
-                // Android: LocalApplicationData maps to the app's cache directory
-                // This is automatically cleared by the OS when storage is low or app is uninstalled
-                cacheBasePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || CurrentDevice.RuntimePlatform == AppConstants.Platform.IOs)
             {
@@ -284,6 +279,7 @@ public class SerilogSetup
 #endif
         }
     }
+#endif
 
     private static string GetVersionName(IVersionFinder versionFinder)
     {

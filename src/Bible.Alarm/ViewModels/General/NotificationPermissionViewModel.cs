@@ -438,6 +438,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
     /// </summary>
     public bool CanShowSystemPrompt => canShowSystemPrompt;
 
+#if ANDROID || IOS
     private void UpdateCanShowSystemPrompt(bool value)
     {
         if (SetProperty(ref canShowSystemPrompt, value))
@@ -445,6 +446,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             OnPropertyChanged(nameof(IsRequestButtonVisible));
         }
     }
+#endif
 
     [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Localized labels bind from XAML to this modal ViewModel.")]
     [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Same as CA1822.")]

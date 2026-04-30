@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Primitives;
@@ -27,6 +28,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
     /// This method handles that gracefully by using reflection as a fallback.
     /// </summary>
     /// <param name="mediaElement">The MediaElement to set as the virtual view.</param>
+    [SuppressMessage("SonarAnalyzer.CSharp", "S3011", Justification = "Headless gesture setup fails SetVirtualView; reflection assigns MAUI-internal _virtualView by design.")]
     public void SetVirtualViewWithFallback(MediaElement mediaElement)
     {
         try

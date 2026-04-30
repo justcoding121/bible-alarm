@@ -1,4 +1,5 @@
 #nullable enable
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Bible.Alarm.Services.Media.Interfaces;
 using CommunityToolkit.Maui;
@@ -161,6 +162,7 @@ public sealed class MediaElementService : IMediaElementService
         }
     }
 
+    [SuppressMessage("SonarAnalyzer.CSharp", "S3011", Justification = "Reflection clears MAUI internal _handler after disposal; no supported public API.")]
     private void DisposeMediaElementOnMainThread(MediaElement mediaElement)
     {
         if (!MainThread.IsMainThread)
@@ -291,6 +293,7 @@ public sealed class MediaElementService : IMediaElementService
     /// Ensures MediaElement handler is created for headless Android operation.
     /// Must be called on main thread after bootstrap completes.
     /// </summary>
+    [SuppressMessage("SonarAnalyzer.CSharp", "S3011", Justification = "Headless mode: MAUI does not expose handler wiring; reflection matches SetVirtualViewWithFallback behavior.")]
     private async Task EnsureHandlerCreatedAsync(MediaElement mediaElement)
     {
         logger.Debug(
@@ -392,6 +395,7 @@ public sealed class MediaElementService : IMediaElementService
     /// Must be called on main thread after bootstrap completes.
     /// </summary>
 #if !ANDROID
+    [SuppressMessage("SonarAnalyzer.CSharp", "S3011", Justification = "Headless mode: MAUI does not expose handler wiring; reflection is the supported fork pattern.")]
     private async Task EnsureHandlerCreatedAsync(MediaElement mediaElement)
     {
         if (mediaElement.Handler != null)

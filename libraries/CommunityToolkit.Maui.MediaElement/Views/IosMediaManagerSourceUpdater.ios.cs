@@ -276,6 +276,7 @@ internal static class IosMediaManagerSourceUpdater
         }
         catch (ObjectDisposedException)
         {
+            // Observers may race native teardown with Dispose; intentional no-op.
         }
     }
 }

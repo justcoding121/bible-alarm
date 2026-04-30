@@ -29,6 +29,7 @@ public class MauiMediaElement : UIView
     /// <param name="playerViewController">The <see cref="AVPlayerViewController"/> that acts as the platform media player.</param>
     /// <param name="virtualView">The <see cref="MediaElement"/> used as the VirtualView for this <see cref="MauiMediaElement"/>.</param>
     /// <exception cref="NullReferenceException">Thrown when <paramref name="playerViewController"/><c>.View</c> is <see langword="null"/>.</exception>
+    [SuppressMessage("SonarAnalyzer.CSharp", "S3011", Justification = "ItemsViewController is internal to MAUI; reflection matches upstream CommunityToolkit pattern.")]
     public MauiMediaElement(AVPlayerViewController playerViewController, MediaElement virtualView)
     {
         ArgumentNullException.ThrowIfNull(playerViewController.View);
