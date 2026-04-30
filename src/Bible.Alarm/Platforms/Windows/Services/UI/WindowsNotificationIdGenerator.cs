@@ -20,7 +20,7 @@ internal static class WindowsNotificationIdGenerator
         {
             // If scheduleId is too long, truncate the hash
             var maxHashLength = 16 - scheduleId.ToString().Length - 1; // -1 for underscore
-            dateHash = dateHash.Substring(0, Math.Min(maxHashLength, dateHash.Length));
+            dateHash = dateHash[..Math.Min(maxHashLength, dateHash.Length)];
             uniqueId = $"{scheduleId}_{dateHash}";
         }
 
@@ -66,7 +66,7 @@ internal static class WindowsNotificationIdGenerator
         }
 
         // Pad to exactly 11 characters for consistency
-        return hash.ToString().PadLeft(11, '0').Substring(0, 11);
+        return hash.ToString().PadLeft(11, '0')[..11];
     }
 }
 

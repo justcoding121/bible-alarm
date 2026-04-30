@@ -167,7 +167,7 @@ public sealed class ScheduleDisplayNameBibleHelper
                     var sectionCodeLower = normalizedSectionCode.ToLowerInvariant();
                     var sectionName = await dbContext.BiblePublicationSections
                         .AsNoTracking()
-                        .Where(x => x.BiblePublication.PublicationCode == publicationCode && x.BiblePublication.LanguageId == null && x.SectionCode != null && x.SectionCode.ToLower() == sectionCodeLower)
+                        .Where(x => x.BiblePublication.PublicationCode == publicationCode && x.BiblePublication.LanguageId == null && x.SectionCode != null && x.SectionCode.ToLowerInvariant() == sectionCodeLower)
                         .Select(x => x.Name)
                         .FirstOrDefaultAsync();
                     if (!string.IsNullOrWhiteSpace(sectionName))

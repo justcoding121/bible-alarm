@@ -207,7 +207,7 @@ internal static class MediaCacheCleanup
                     var schedulePrefix = $"{scheduleId}:";
                     var isBeingDownloaded = inProgressDownloads.Keys.Any(key =>
                         key.StartsWith(schedulePrefix, StringComparison.Ordinal) &&
-                        getCacheFileName(key.Substring(schedulePrefix.Length)) == fileName);
+                        getCacheFileName(key[schedulePrefix.Length..]) == fileName);
 
                     if (isBeingDownloaded)
                     {

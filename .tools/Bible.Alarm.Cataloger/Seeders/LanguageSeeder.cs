@@ -186,7 +186,7 @@ internal sealed class LanguageSeeder
                         // Truncate if too long (max 100 characters)
                         if (name.Length > 100)
                         {
-                            name = name.Substring(0, 100);
+                            name = name[..100];
                         }
                     }
                 }
@@ -326,7 +326,7 @@ internal sealed class LanguageSeeder
                         // Truncate if too long (max 100 characters)
                         if (name.Length > 100)
                         {
-                            name = name.Substring(0, 100);
+                            name = name[..100];
                         }
                     }
                 }

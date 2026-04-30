@@ -51,7 +51,7 @@ internal static class MediatorTrackParser
             string lookUpPathBase;
             if (useDocidParam && sectionCode.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                var docidValue = sectionCode.Substring(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length);
+                var docidValue = sectionCode[AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length..];
                 lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.DocId}={docidValue}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
             }
             else
@@ -101,7 +101,10 @@ internal static class MediatorTrackParser
 
                 string trackCode;
                 if (useDocidParam && sectionCode.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix, StringComparison.OrdinalIgnoreCase))
-                    trackCode = trackNumber.HasValue ? $"{sectionCode.Substring(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length)}-{trackNumber.Value}" : sectionCode.Substring(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length);
+                {
+                    var docidSuffix = sectionCode[AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length..];
+                    trackCode = trackNumber.HasValue ? $"{docidSuffix}-{trackNumber.Value}" : docidSuffix;
+                }
                 else
                     trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
                 var lookUpPath = lookUpPathBase;

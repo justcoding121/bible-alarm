@@ -33,7 +33,7 @@ internal static class MusicTrackCatalogParsing
                 continue;
             }
 
-            if (track == 0 || url.EndsWith(".zip") || AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(languageCode, title))
+            if (track == 0 || url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(languageCode, title))
             {
                 continue;
             }

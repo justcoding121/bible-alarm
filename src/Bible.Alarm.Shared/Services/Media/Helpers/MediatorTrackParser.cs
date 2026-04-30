@@ -88,7 +88,7 @@ internal static class MediatorTrackParser
         string trackCode;
         if (context.UseDocidParam && context.SectionCode.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix, StringComparison.OrdinalIgnoreCase))
         {
-            var docidValue = context.SectionCode.Substring(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length);
+            var docidValue = context.SectionCode[AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length..];
             trackCode = context.TrackNumber.HasValue ? $"{docidValue}-{context.TrackNumber.Value}" : docidValue;
         }
         else

@@ -40,7 +40,7 @@ internal class Program
     {
         var platformArg = args.FirstOrDefault(a => a.StartsWith("--platform=", StringComparison.OrdinalIgnoreCase));
         if (!string.IsNullOrEmpty(platformArg))
-            return platformArg.Substring("--platform=".Length).Trim();
+            return platformArg["--platform=".Length..].Trim();
 
         return Environment.GetEnvironmentVariable("VERSION_PATCH_PLATFORM")?.Trim();
     }

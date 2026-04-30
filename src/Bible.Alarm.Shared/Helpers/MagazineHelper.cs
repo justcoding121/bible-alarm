@@ -65,8 +65,8 @@ public static class MagazineHelper
         if (lastDash < 0)
             throw new ArgumentException($"Invalid magazine section code (no dash): {sectionCode}", nameof(sectionCode));
 
-        var issueCode = sectionCode.Substring(0, lastDash);
-        var apiPubCode = sectionCode.Substring(lastDash + 1);
+        var issueCode = sectionCode[..lastDash];
+        var apiPubCode = sectionCode[(lastDash + 1)..];
         return (apiPubCode, issueCode);
     }
 

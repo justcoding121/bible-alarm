@@ -175,7 +175,7 @@ internal static class MediatorSectionCodeExtractor
                         continue;
                     }
 
-                    var docidValue = parts[0].Substring(AppConstants.Media.MediatorIdentifiers.DocIdNaturalKeyPrefix.Length);
+                    var docidValue = parts[0][AppConstants.Media.MediatorIdentifiers.DocIdNaturalKeyPrefix.Length..];
                     if (string.IsNullOrEmpty(docidValue) || !int.TryParse(docidValue, out _))
                     {
                         continue;
@@ -201,7 +201,7 @@ internal static class MediatorSectionCodeExtractor
                     continue;
                 }
 
-                var sectionCode = pubParts[0].Substring(AppConstants.Media.MediatorIdentifiers.PubNaturalKeyPrefix.Length);
+                var sectionCode = pubParts[0][AppConstants.Media.MediatorIdentifiers.PubNaturalKeyPrefix.Length..];
                 if (string.IsNullOrEmpty(sectionCode))
                 {
                     continue;

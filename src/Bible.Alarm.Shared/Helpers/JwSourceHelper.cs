@@ -700,7 +700,7 @@ public static class JwSourceHelper
 
     private static string CategoryNameToCode(string categoryName)
     {
-        return categoryName.Replace(" and ", "And").Replace(" ", "");
+        return categoryName.Replace(" and ", "And", StringComparison.Ordinal).Replace(" ", "", StringComparison.Ordinal);
     }
 
     /// <summary>

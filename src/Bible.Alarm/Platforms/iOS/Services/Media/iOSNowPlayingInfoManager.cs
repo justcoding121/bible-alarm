@@ -148,7 +148,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
         if (singleLine.Length <= maxLength)
             return singleLine;
-        return singleLine.Substring(0, maxLength - 1).TrimEnd() + "…";
+        return singleLine[..(maxLength - 1)].TrimEnd() + "…";
     }
 
     private MPNowPlayingInfo CreateNowPlayingInfoWithArtwork(string? title, string? artist, string? album, TimeSpan duration, MPMediaItemArtwork? artwork)

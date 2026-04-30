@@ -396,7 +396,7 @@ public class Program
         var pubArg = args.FirstOrDefault(a => a.StartsWith("--publications=", cmp));
         if (pubArg != null)
         {
-            var list = pubArg.Substring("--publications=".Length).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var list = pubArg["--publications=".Length..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (list.Length == 0)
             {
                 logger.Warning("--publications= was empty, ignoring");
@@ -411,7 +411,7 @@ public class Program
         if (retryArg != null)
         {
             var path = retryArg.Length > "--retry-failed".Length && retryArg.AsSpan()["--retry-failed".Length] == '='
-                ? retryArg.Substring("--retry-failed=".Length).Trim()
+                ? retryArg["--retry-failed=".Length..].Trim()
                 : Path.Combine(indexDirectory, AppConstants.FilePaths.CatalogerLastRunFailedListFileName);
             if (!File.Exists(path))
             {
