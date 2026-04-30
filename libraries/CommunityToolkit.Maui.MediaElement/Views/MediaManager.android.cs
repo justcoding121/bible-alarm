@@ -474,10 +474,10 @@ public partial class MediaManager : Object, IPlayerListener
     public void OnCues(CueGroup? cueGroup) { }
     public void OnDeviceInfoChanged(DeviceInfo? deviceInfo) { }
     public void OnDeviceVolumeChanged(int volume, bool muted) { }
-    public void OnEvents(IPlayer? iPlayer, PlayerEvents? events)
+    public void OnEvents(IPlayer? player, PlayerEvents? events)
     {
         _ = events;
-        _ = iPlayer;
+        _ = player;
     }
     public void OnIsLoadingChanged(bool isLoading) { }
     public void OnIsPlayingChanged(bool isPlaying) { }

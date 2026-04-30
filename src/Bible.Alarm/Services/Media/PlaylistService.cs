@@ -415,7 +415,15 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var trackInfo = await biblePublicationTrackBuilder.GetInitialTrackInfo(biblePublicationSchedule);
 
         var isNoLanguagePublication = await BiblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : (biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode);
+        string effectiveLanguageCode;
+        if (isNoLanguagePublication)
+        {
+            effectiveLanguageCode = AppConstants.Media.DefaultLanguageCode;
+        }
+        else
+        {
+            effectiveLanguageCode = biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
+        }
 
         var trackCode = TrackCodeHelper.GetFromTrack(trackInfo.Track);
         var trackMetadata = new TrackMetadata

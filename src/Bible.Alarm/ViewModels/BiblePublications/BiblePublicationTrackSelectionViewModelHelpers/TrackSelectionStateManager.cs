@@ -188,28 +188,15 @@ public sealed class TrackSelectionStateManager
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;
 
-        // Derive from CurrentSchedule (single source of truth); currentSchedule is non-null above.
-        if (!string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        // Derive from CurrentSchedule (single source of truth); guards above ensure language and publication are non-empty.
+        current = new BiblePublicationSchedule
         {
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = newSectionCode,
-                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
-                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
-            };
-        }
-        else
-        {
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                SectionCode = newSectionCode,
-                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty
-            };
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+            SectionCode = newSectionCode,
+            TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
+            FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+        };
 
         lastCurrent = current;
     }
@@ -242,28 +229,15 @@ public sealed class TrackSelectionStateManager
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;
 
-        // Derive from CurrentSchedule (single source of truth); currentSchedule is non-null above.
-        if (!string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        // Derive from CurrentSchedule (single source of truth); guards above ensure language and publication are non-empty.
+        current = new BiblePublicationSchedule
         {
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = newSectionCode,
-                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
-                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
-            };
-        }
-        else
-        {
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                SectionCode = newSectionCode,
-                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty
-            };
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+            SectionCode = newSectionCode,
+            TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
+            FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+        };
 
         lastCurrent = current;
     }

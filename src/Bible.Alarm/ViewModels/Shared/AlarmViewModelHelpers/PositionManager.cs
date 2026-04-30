@@ -150,9 +150,12 @@ public sealed class PositionManager()
     /// </summary>
     public static string FormatTime(TimeSpan timeSpan)
     {
-        return timeSpan.TotalHours >= 1
-            ? $"{(int)timeSpan.TotalHours}:{timeSpan.Minutes:00}:{timeSpan.Seconds:00}"
-            : $"{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
+        if (timeSpan.TotalHours >= 1)
+        {
+            return $"{(int)timeSpan.TotalHours}:{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
+        }
+
+        return $"{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
     }
 
     /// <summary>

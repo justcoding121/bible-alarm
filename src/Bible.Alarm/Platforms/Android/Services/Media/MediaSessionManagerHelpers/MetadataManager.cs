@@ -22,14 +22,14 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
     public static MediaMetadataCompat.Builder? CreateMetadataBuilder(string title, string artist, string? album)
     {
         // Handle empty strings with fallback values (consistent with AndroidAutoPlayScreenHelper)
-        // This ensures we never show empty text in Android Auto UI
-        var builder = new MediaMetadataCompat.Builder()
-            ?.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? AppConstants.AppSettings.ApplicationDisplayName : title)
-            ?.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? AppConstants.Media.NowPlayingPlaceholder.ArtistTapToPlay : artist)
-            ?.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? AppConstants.Media.NowPlayingPlaceholder.AlbumEllipsis : album);
+        // Builder is never null; avoid erroneous null-conditioning on fluent chain.
+        var builder = new MediaMetadataCompat.Builder();
+        builder.PutString(MediaMetadataCompat.MetadataKeyTitle, string.IsNullOrEmpty(title) ? AppConstants.AppSettings.ApplicationDisplayName : title);
+        builder.PutString(MediaMetadataCompat.MetadataKeyArtist, string.IsNullOrEmpty(artist) ? AppConstants.Media.NowPlayingPlaceholder.ArtistTapToPlay : artist);
+        builder.PutString(MediaMetadataCompat.MetadataKeyAlbum, string.IsNullOrEmpty(album) ? AppConstants.Media.NowPlayingPlaceholder.AlbumEllipsis : album);
         // Always include duration key so the time area is always allocated on the Now Playing screen.
         // Prevents layout bounce (title/subtitle shifting) when time appears/disappears during transitions.
-        builder?.PutLong(MediaMetadataCompat.MetadataKeyDuration, 0);
+        builder.PutLong(MediaMetadataCompat.MetadataKeyDuration, 0);
         return builder;
     }
 
@@ -156,17 +156,11 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
 
         // Use CreateMetadataBuilderFromExisting to ensure artwork and all metadata is preserved
         var existingMetadata = mediaSession.Controller.Metadata;
-        if (existingMetadata != null)
-        {
-            var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderFromExisting(existingMetadata);
-            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
-            var metadata = metadataBuilder.Build();
-            if (metadata != null)
-            {
-                mediaSession?.SetMetadata(metadata);
-                LastDurationMs = durationMs;
-                logger.Debug(AppConstants.Logging.AndroidMediaArtworkLog.DurationUpdatedInMetadataArtworkPreserved, durationMs);
-            }
-        }
+        var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderFromExisting(existingMetadata);
+        metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
+        var metadata = metadataBuilder.Build();
+        mediaSession!.SetMetadata(metadata);
+        LastDurationMs = durationMs;
+        logger.Debug(AppConstants.Logging.AndroidMediaArtworkLog.DurationUpdatedInMetadataArtworkPreserved, durationMs);
     }
 }

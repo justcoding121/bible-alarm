@@ -333,7 +333,16 @@ public sealed class CategorySelectionAutoPopulateHandler
                 return;
             }
 
-            var languageCodeForLog = publicationWithoutLanguage ? "N/A" : (selectedLanguage?.LanguageCode ?? "N/A");
+            string languageCodeForLog;
+            if (publicationWithoutLanguage)
+            {
+                languageCodeForLog = "N/A";
+            }
+            else
+            {
+                languageCodeForLog = selectedLanguage?.LanguageCode ?? "N/A";
+            }
+
             logger.Information(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.AutoPopulatedSummary,
                 languageCodeForLog, publicationCode, sectionCode, trackCode, publicationWithoutLanguage);
 

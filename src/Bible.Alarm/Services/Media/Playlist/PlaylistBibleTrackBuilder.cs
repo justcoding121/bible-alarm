@@ -130,7 +130,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // For no-language publications, we use "E" for both URL construction and API response parsing
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : (biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode);
+        var effectiveLanguageCode = ResolvePlaybackLanguageCode(isNoLanguagePublication, biblePublicationSchedule.LanguageCode);
 
         // Compute URL on-demand using TrackMetadata
         var trackMetadata = new TrackMetadata
@@ -279,7 +279,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // Check if this is a no-language publication (e.g., instrumental music)
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(publicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : (biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode);
+        var effectiveLanguageCode = ResolvePlaybackLanguageCode(isNoLanguagePublication, biblePublicationSchedule.LanguageCode);
 
         var trackMetadata = new TrackMetadata
         {
@@ -376,7 +376,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // Check if this is a no-language publication (e.g., instrumental music)
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(resolvedPublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : (biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode);
+        var effectiveLanguageCode = ResolvePlaybackLanguageCode(isNoLanguagePublication, biblePublicationSchedule.LanguageCode);
 
         var trackMetadata = new TrackMetadata
         {
@@ -407,5 +407,18 @@ public class PlaylistBiblePublicationTrackBuilder
         }
 
         return new TrackInfo(resolvedPublicationCode, nextSectionCode, next.Track, url);
+    }
+
+    /// <summary>
+    /// Uses default language code for melody/no-language publications; otherwise schedule language with fallback.
+    /// </summary>
+    private static string ResolvePlaybackLanguageCode(bool isNoLanguagePublication, string? scheduleLanguageCode)
+    {
+        if (isNoLanguagePublication)
+        {
+            return AppConstants.Media.DefaultLanguageCode;
+        }
+
+        return scheduleLanguageCode ?? AppConstants.Media.DefaultLanguageCode;
     }
 }

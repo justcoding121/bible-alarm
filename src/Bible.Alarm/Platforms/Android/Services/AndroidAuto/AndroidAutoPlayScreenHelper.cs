@@ -34,11 +34,11 @@ public static class AndroidAutoPlayScreenHelper
         try
         {
             // Clear metadata - no artwork, no text
-            mediaSession?.SetMetadata(null);
+            mediaSession.SetMetadata(null);
         }
         catch
         {
-            mediaSession?.SetMetadata(null);
+            mediaSession.SetMetadata(null);
         }
 
 
@@ -49,14 +49,11 @@ public static class AndroidAutoPlayScreenHelper
 
         if (playbackState != null)
         {
-            mediaSession?.SetPlaybackState(playbackState);
+            mediaSession.SetPlaybackState(playbackState);
         }
 
         // Keep session active so Android Auto can see the session and show proper UI
-        if (mediaSession != null)
-        {
-            mediaSession.Active = true;
-        }
+        mediaSession.Active = true;
     }
 
 
@@ -88,11 +85,6 @@ public static class AndroidAutoPlayScreenHelper
     /// </summary>
     public static void SetBufferingStateOnly(MediaSessionCompat mediaSession)
     {
-        if (mediaSession == null)
-        {
-            return;
-        }
-
         // Get current playback state to preserve actions and position
         var currentState = mediaSession.Controller?.PlaybackState;
         if (currentState != null)
