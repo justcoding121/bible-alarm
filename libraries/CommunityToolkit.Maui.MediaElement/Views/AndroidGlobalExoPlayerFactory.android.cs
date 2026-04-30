@@ -81,8 +81,8 @@ internal static class AndroidGlobalExoPlayerFactory
         {
             globalExoPlayerCreated = false;
 
-            try { globalPlayer?.Stop(); } catch (Exception) { }
-            try { globalPlayer?.Release(); } catch (Exception) { }
+            try { globalPlayer?.Stop(); } catch (Exception) { /* Best-effort reset; player may be in bad state. */ }
+            try { globalPlayer?.Release(); } catch (Exception) { /* Same: ignore release errors during global teardown. */ }
 
             globalPlayer = null;
             globalSession = null;

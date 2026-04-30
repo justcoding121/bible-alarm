@@ -102,6 +102,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
         }
         catch (ObjectDisposedException)
         {
+            // Cancel/Dispose may race when toast is already torn down.
         }
     }
 

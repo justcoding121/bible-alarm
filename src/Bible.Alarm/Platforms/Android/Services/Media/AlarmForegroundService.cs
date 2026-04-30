@@ -90,6 +90,7 @@ public class AlarmForegroundService : Service
             }
             catch (System.OperationCanceledException)
             {
+                // Expected when AlarmForegroundService CTS is cancelled during normal stop.
             }
             catch (Exception ex)
             {

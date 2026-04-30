@@ -391,6 +391,7 @@ public partial class BaseContentPage : ContentPage
             }
             catch (ObjectDisposedException)
             {
+                // ViewTreeObserver or platform view may be disposed during layout detach.
             }
         }
 

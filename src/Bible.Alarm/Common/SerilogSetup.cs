@@ -118,6 +118,7 @@ public class SerilogSetup
                 }
                 catch
                 {
+                    // Fallback logger creation can fail if Serilog isn't ready; nothing else to do.
                 }
             }
         }
@@ -149,6 +150,7 @@ public class SerilogSetup
                 }
                 catch
                 {
+                    // Fallback logger creation can fail if Serilog isn't ready; nothing else to do.
                 }
             }
         }

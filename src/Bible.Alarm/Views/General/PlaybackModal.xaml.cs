@@ -185,14 +185,17 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
                     }
                     catch (ObjectDisposedException)
                     {
+                        // Handler/control may be disposed on background thread; artwork refresh is best-effort.
                     }
                     catch (InvalidOperationException)
                     {
+                        // Same: skip if MAUI rejects UpdateValue during teardown.
                     }
                 });
             }
             catch (ObjectDisposedException)
             {
+                // Delay callback may race with page disposal during artwork refresh.
             }
         });
     }

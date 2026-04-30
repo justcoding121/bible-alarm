@@ -95,6 +95,7 @@ public class IOsToastService : ToastService, IDisposable
         }
         catch (ObjectDisposedException)
         {
+            // Cancel/Dispose may race when toast is already torn down.
         }
     }
 

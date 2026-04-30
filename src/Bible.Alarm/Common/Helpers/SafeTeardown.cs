@@ -18,6 +18,7 @@ public static class SafeTeardown
         }
         catch (ObjectDisposedException)
         {
+            // CancelAsync may observe disposal if caller already disposed the CTS.
         }
     }
 
@@ -40,6 +41,7 @@ public static class SafeTeardown
         }
         catch (ObjectDisposedException)
         {
+            // CTS may already be disposed during concurrent teardown.
         }
 
         try
@@ -48,6 +50,7 @@ public static class SafeTeardown
         }
         catch (ObjectDisposedException)
         {
+            // Concurrent dispose is expected on rapid navigation / cancel.
         }
     }
 }
