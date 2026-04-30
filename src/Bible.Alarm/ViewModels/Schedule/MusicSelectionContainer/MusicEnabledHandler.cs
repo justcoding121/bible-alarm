@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
@@ -167,9 +168,9 @@ public class MusicEnabledHandler
                             }
 
                             if (latestSchedule.MusicLanguageCode == null &&
-                                latestSchedule.MusicPublicationCode == defaultPublicationCode &&
-                                latestSchedule.MusicSectionCode == chosenSection?.SectionCode &&
-                                latestSchedule.MusicTrackCode == TrackCodeHelper.GetFromTrack(chosenTrack) &&
+                                string.Equals(latestSchedule.MusicPublicationCode, defaultPublicationCode, StringComparison.OrdinalIgnoreCase) &&
+                                SectionCodeHelper.CodeEquals(latestSchedule.MusicSectionCode, chosenSection?.SectionCode) &&
+                                CodeComparisonHelper.Equals(latestSchedule.MusicTrackCode, TrackCodeHelper.GetFromTrack(chosenTrack)) &&
                                 latestSchedule.MusicEnabled)
                             {
                                 return;

@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
@@ -231,7 +232,8 @@ public sealed class MusicDisplayTextProvider
         if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationName))
         {
             // Update cache if it's different or empty
-            if (string.IsNullOrEmpty(cachedSongPublicationName) || cachedSongPublicationName != currentSchedule.MusicPublicationName)
+            if (string.IsNullOrEmpty(cachedSongPublicationName) ||
+                !string.Equals(cachedSongPublicationName, currentSchedule.MusicPublicationName, StringComparison.CurrentCulture))
             {
                 cachedSongPublicationName = currentSchedule.MusicPublicationName;
                 lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
@@ -273,7 +275,7 @@ public sealed class MusicDisplayTextProvider
 
         // Return cached value if publication code hasn't changed
         if (!string.IsNullOrEmpty(cachedSongPublicationName) &&
-            lastMusicPublicationCode == currentSchedule.MusicPublicationCode)
+            string.Equals(lastMusicPublicationCode, currentSchedule.MusicPublicationCode, StringComparison.OrdinalIgnoreCase))
         {
             return cachedSongPublicationName;
         }
@@ -295,7 +297,8 @@ public sealed class MusicDisplayTextProvider
         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
         {
             // Update cache if it's different or empty
-            if (string.IsNullOrEmpty(cachedTrackName) || cachedTrackName != currentSchedule.MusicTrackName)
+            if (string.IsNullOrEmpty(cachedTrackName) ||
+                !string.Equals(cachedTrackName, currentSchedule.MusicTrackName, StringComparison.CurrentCulture))
             {
                 cachedTrackName = currentSchedule.MusicTrackName;
                 lastMusicTrackCode = currentSchedule.MusicTrackCode;
@@ -336,9 +339,9 @@ public sealed class MusicDisplayTextProvider
 
         // Return cached value if nothing changed
         if (!string.IsNullOrEmpty(cachedTrackName) &&
-            lastMusicTrackCode == currentSchedule.MusicTrackCode &&
-            lastTrackPublicationCode == currentSchedule.MusicPublicationCode &&
-            lastTrackLanguageCode == currentSchedule.MusicLanguageCode)
+            CodeComparisonHelper.Equals(lastMusicTrackCode, currentSchedule.MusicTrackCode) &&
+            string.Equals(lastTrackPublicationCode, currentSchedule.MusicPublicationCode, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(lastTrackLanguageCode, currentSchedule.MusicLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             return cachedTrackName;
         }

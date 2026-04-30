@@ -1,8 +1,10 @@
 #nullable enable
 
+using System;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -232,13 +234,13 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             // Also check display names (language name, publication name, section name) to ensure display text updates when they change
             if (currentSchedule != null &&
                 currentSchedule.Id == lastProcessedScheduleId &&
-                currentSchedule.BiblePublicationLanguageCode == lastProcessedLanguageCode &&
-                currentSchedule.BiblePublicationLanguageName == lastProcessedLanguageName &&
-                currentSchedule.BiblePublicationCode == lastProcessedPublicationCode &&
-                currentSchedule.BiblePublicationName == lastProcessedPublicationName &&
-                string.Equals(currentSchedule.BiblePublicationSectionCode, lastProcessedSectionCode, StringComparison.OrdinalIgnoreCase) &&
-                currentSchedule.BiblePublicationSectionName == lastProcessedSectionName &&
-                currentSchedule.BiblePublicationTrackCode == lastProcessedTrackCode)
+                string.Equals(currentSchedule.BiblePublicationLanguageCode, lastProcessedLanguageCode, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(currentSchedule.BiblePublicationLanguageName, lastProcessedLanguageName, StringComparison.CurrentCulture) &&
+                string.Equals(currentSchedule.BiblePublicationCode, lastProcessedPublicationCode, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(currentSchedule.BiblePublicationName, lastProcessedPublicationName, StringComparison.CurrentCulture) &&
+                SectionCodeHelper.CodeEquals(currentSchedule.BiblePublicationSectionCode, lastProcessedSectionCode) &&
+                string.Equals(currentSchedule.BiblePublicationSectionName, lastProcessedSectionName, StringComparison.CurrentCulture) &&
+                CodeComparisonHelper.Equals(currentSchedule.BiblePublicationTrackCode, lastProcessedTrackCode))
             {
                 return;
             }

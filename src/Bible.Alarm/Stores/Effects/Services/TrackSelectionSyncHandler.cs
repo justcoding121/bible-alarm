@@ -1,8 +1,10 @@
 #nullable enable
+using System;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -98,11 +100,11 @@ public sealed class TrackSelectionSyncHandler
             // The reducer OnBiblePublicationTrackSelected now updates CurrentSchedule synchronously,
             // so we should check if CurrentSchedule already has the action's values.
             // If everything is already in sync, skip the redundant dispatch to avoid extra state updates.
-            var alreadyInSync = 
-                currentSchedule.BiblePublicationLanguageCode == biblePub.LanguageCode &&
-                currentSchedule.BiblePublicationCode == biblePub.PublicationCode &&
-                Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, actionSectionCode) &&
-                currentSchedule.BiblePublicationTrackCode == biblePub.TrackCode;
+            var alreadyInSync =
+                string.Equals(currentSchedule.BiblePublicationLanguageCode, biblePub.LanguageCode, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(currentSchedule.BiblePublicationCode, biblePub.PublicationCode, StringComparison.OrdinalIgnoreCase) &&
+                SectionCodeHelper.CodeEquals(currentSectionCode, actionSectionCode) &&
+                CodeComparisonHelper.Equals(currentSchedule.BiblePublicationTrackCode, biblePub.TrackCode);
             
             if (alreadyInSync)
             {
@@ -117,12 +119,12 @@ public sealed class TrackSelectionSyncHandler
             // 
             // IMPORTANT: When user selects a publication with no language (null), the current language stays the same.
             // The publication's language code (null) will be used in queries, but the schedule's language code doesn't change.
-            var languageChanged = !string.IsNullOrEmpty(biblePub.LanguageCode) && 
+            var languageChanged = !string.IsNullOrEmpty(biblePub.LanguageCode) &&
                                   !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) &&
-                                  biblePub.LanguageCode != currentSchedule.BiblePublicationLanguageCode;
-            
-            var publicationChanged = !string.IsNullOrEmpty(biblePub.PublicationCode) && 
-                                     biblePub.PublicationCode != currentSchedule.BiblePublicationCode;
+                                  !string.Equals(biblePub.LanguageCode, currentSchedule.BiblePublicationLanguageCode, StringComparison.OrdinalIgnoreCase);
+
+            var publicationChanged = !string.IsNullOrEmpty(biblePub.PublicationCode) &&
+                                     !string.Equals(biblePub.PublicationCode, currentSchedule.BiblePublicationCode, StringComparison.OrdinalIgnoreCase);
 
             // Create updated schedule with Bible publication properties
             var updatedSchedule = currentSchedule.DeepClone();

@@ -146,7 +146,8 @@ public sealed class MusicPublicationSelectionDataProvider(
                 if (newMapping.TryGetValue(publication.PublicationCode, out var existingVm))
                 {
                     // Check if this matches the current publication code
-                    if (current != null && current.PublicationCode == publication.PublicationCode)
+                    if (current != null &&
+                        string.Equals(current.PublicationCode, publication.PublicationCode, StringComparison.OrdinalIgnoreCase))
                     {
                         existingVm.IsSelected = true;
                         selectedSongPublication = existingVm;
@@ -159,7 +160,8 @@ public sealed class MusicPublicationSelectionDataProvider(
                 newMapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
 
                 // Check if this matches the current publication code
-                if (current != null && current.PublicationCode == publication.PublicationCode)
+                if (current != null &&
+                    string.Equals(current.PublicationCode, publication.PublicationCode, StringComparison.OrdinalIgnoreCase))
                 {
                     songPublicationListViewItemModel.IsSelected = true;
                     selectedSongPublication = songPublicationListViewItemModel;
