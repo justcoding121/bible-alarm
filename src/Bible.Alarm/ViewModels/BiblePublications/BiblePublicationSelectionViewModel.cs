@@ -324,13 +324,13 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         {
             if (string.Equals(p.Context, "BibleLanguage", StringComparison.Ordinal))
             {
-                var lang = propertyManager.Languages?.FirstOrDefault(l => l.Code == p.ItemId);
+                var lang = propertyManager.Languages?.FirstOrDefault(l => string.Equals(l.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
                 if (lang != null)
                     lang.DownloadProgress = p.Progress;
             }
             else if (string.Equals(p.Context, "BiblePublication", StringComparison.Ordinal))
             {
-                var pub = propertyManager.Publications?.FirstOrDefault(pr => pr.Code == p.ItemId);
+                var pub = propertyManager.Publications?.FirstOrDefault(pr => string.Equals(pr.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
                 if (pub != null)
                     pub.DownloadProgress = p.Progress;
             }

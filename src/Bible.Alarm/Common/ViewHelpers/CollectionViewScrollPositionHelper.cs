@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Shared;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
@@ -100,13 +101,13 @@ internal static class CollectionViewScrollPositionHelper
             // This handles cases where the item passed is a different instance than the one in the collection
             if (item is LanguageListViewItemModel langItem &&
                 itemsList[i] is LanguageListViewItemModel listLangItem &&
-                langItem.Code == listLangItem.Code)
+                string.Equals(langItem.Code, listLangItem.Code, StringComparison.OrdinalIgnoreCase))
             {
                 return i;
             }
             else if (item is PublicationListViewItemModel pubItem &&
                      itemsList[i] is PublicationListViewItemModel listPubItem &&
-                     pubItem.Code == listPubItem.Code)
+                     string.Equals(pubItem.Code, listPubItem.Code, StringComparison.OrdinalIgnoreCase))
             {
                 return i;
             }
@@ -118,7 +119,7 @@ internal static class CollectionViewScrollPositionHelper
             }
             else if (item is BiblePublicationTrackListViewItemModel trackItem &&
                      itemsList[i] is BiblePublicationTrackListViewItemModel listTrackItem &&
-                     trackItem.TrackCode == listTrackItem.TrackCode)
+                     CodeComparisonHelper.Equals(trackItem.TrackCode, listTrackItem.TrackCode))
             {
                 return i;
             }

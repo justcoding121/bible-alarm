@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common.Helpers;
@@ -434,10 +435,10 @@ public class MediaSessionEffect(
 
     private bool IsMetadataUnchanged(PlaybackMetadataChangedAction action)
     {
-        return action.Title == lastMetadataTitle
-            && action.Artist == lastMetadataArtist
-            && action.Album == lastMetadataAlbum
-            && action.ArtworkUrl == lastMetadataArtworkUrl;
+        return string.Equals(action.Title, lastMetadataTitle, StringComparison.Ordinal)
+            && string.Equals(action.Artist, lastMetadataArtist, StringComparison.Ordinal)
+            && string.Equals(action.Album, lastMetadataAlbum, StringComparison.Ordinal)
+            && string.Equals(action.ArtworkUrl, lastMetadataArtworkUrl, StringComparison.Ordinal);
     }
 
     private void ResetMetadataDedup()

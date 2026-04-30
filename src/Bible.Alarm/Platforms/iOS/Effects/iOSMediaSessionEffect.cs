@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.iOS.Services.Media;
 using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
@@ -215,10 +216,10 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
 
     private bool IsMetadataUnchanged(PlaybackMetadataChangedAction action)
     {
-        return action.Title == lastMetadataTitle
-            && action.Artist == lastMetadataArtist
-            && action.Album == lastMetadataAlbum
-            && action.ArtworkUrl == lastMetadataArtworkUrl;
+        return string.Equals(action.Title, lastMetadataTitle, StringComparison.Ordinal)
+            && string.Equals(action.Artist, lastMetadataArtist, StringComparison.Ordinal)
+            && string.Equals(action.Album, lastMetadataAlbum, StringComparison.Ordinal)
+            && string.Equals(action.ArtworkUrl, lastMetadataArtworkUrl, StringComparison.Ordinal);
     }
 
     private void ResetMetadataDedup()

@@ -403,13 +403,13 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         {
             if (string.Equals(p.Context, "MusicLanguage", StringComparison.Ordinal))
             {
-                var lang = propertyManager.Languages?.FirstOrDefault(l => l.Code == p.ItemId);
+                var lang = propertyManager.Languages?.FirstOrDefault(l => string.Equals(l.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
                 if (lang != null)
                     lang.DownloadProgress = p.Progress;
             }
             else if (string.Equals(p.Context, "MusicPublication", StringComparison.Ordinal))
             {
-                var pub = propertyManager.SongPublications?.FirstOrDefault(pr => pr.Code == p.ItemId);
+                var pub = propertyManager.SongPublications?.FirstOrDefault(pr => string.Equals(pr.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
                 if (pub != null)
                     pub.DownloadProgress = p.Progress;
             }

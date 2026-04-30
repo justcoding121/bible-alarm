@@ -1,6 +1,8 @@
 #nullable enable
+using System;
 using System.Collections;
 using System.Runtime.InteropServices;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
@@ -107,7 +109,7 @@ internal static class CollectionViewScrollExecutor
                                             for (int i = 0; i < itemsList.Count; i++)
                                             {
                                                 if (ReferenceEquals(itemsList[i], item) ||
-                                                    (item is LanguageListViewItemModel targetLang && itemsList[i] is LanguageListViewItemModel listLang && targetLang.Code == listLang.Code))
+                                                    (item is LanguageListViewItemModel targetLang && itemsList[i] is LanguageListViewItemModel listLang && string.Equals(targetLang.Code, listLang.Code, StringComparison.OrdinalIgnoreCase)))
                                                 {
                                                     itemIndex = i;
                                                     break;
@@ -344,13 +346,13 @@ internal static class CollectionViewScrollExecutor
             // For virtual scrolling scenarios, also try value equality for known model types
             if (item is LanguageListViewItemModel langItem &&
                 itemsList[i] is LanguageListViewItemModel listLangItem &&
-                langItem.Code == listLangItem.Code)
+                string.Equals(langItem.Code, listLangItem.Code, StringComparison.OrdinalIgnoreCase))
             {
                 return i;
             }
             else if (item is PublicationListViewItemModel pubItem &&
                      itemsList[i] is PublicationListViewItemModel listPubItem &&
-                     pubItem.Code == listPubItem.Code)
+                     string.Equals(pubItem.Code, listPubItem.Code, StringComparison.OrdinalIgnoreCase))
             {
                 return i;
             }
@@ -362,7 +364,7 @@ internal static class CollectionViewScrollExecutor
             }
             else if (item is BiblePublicationTrackListViewItemModel trackItem &&
                      itemsList[i] is BiblePublicationTrackListViewItemModel listTrackItem &&
-                     trackItem.TrackCode == listTrackItem.TrackCode)
+                     CodeComparisonHelper.Equals(trackItem.TrackCode, listTrackItem.TrackCode))
             {
                 return i;
             }

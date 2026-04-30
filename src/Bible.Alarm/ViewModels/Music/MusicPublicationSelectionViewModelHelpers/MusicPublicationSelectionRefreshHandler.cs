@@ -153,12 +153,12 @@ public sealed class MusicPublicationSelectionRefreshHandler
         {
             var langCode = scheduleLanguageCode ?? newLanguageCode;
             var languageToSelect = !string.IsNullOrEmpty(langCode)
-                ? propertyManager.Languages.FirstOrDefault(l => l.Code == langCode)
+                ? propertyManager.Languages.FirstOrDefault(l => string.Equals(l.Code, langCode, StringComparison.OrdinalIgnoreCase))
                 : null;
 
             if (languageToSelect == null)
             {
-                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == AppConstants.Media.DefaultLanguageCode);
+                languageToSelect = propertyManager.Languages.FirstOrDefault(l => string.Equals(l.Code, AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
                 if (languageToSelect == null && propertyManager.Languages.Count > 0)
                 {
                     languageToSelect = propertyManager.Languages[0];
