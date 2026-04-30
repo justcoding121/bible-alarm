@@ -444,7 +444,7 @@ public sealed class ForegroundServiceCoordinator
         // ForegroundNotificationHelper.CreateNotification handles alarm notifications with "Preparing playback..." message.
         // The notification will be updated when metadata is set later via UpdateForeground.
         var mediaSession = MediaSessionHelper.Create();
-        if (mediaSession != null && serviceInstance != null)
+        if (mediaSession != null)
         {
             lock (@lock)
             {

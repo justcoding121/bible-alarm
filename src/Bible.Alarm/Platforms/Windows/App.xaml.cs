@@ -301,7 +301,7 @@ public partial class App : MauiWinUIApplication
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, $"Error handling alarm activation for schedule {scheduleId}");
+                    Logger.Error(e, "Error handling alarm activation for schedule {ScheduleId}", scheduleId);
                 }
                 });
             }

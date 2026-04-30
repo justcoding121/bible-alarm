@@ -22,12 +22,12 @@ public class AlarmRingerReceiver : BroadcastReceiver
             [$"AndroidSdk {Build.VERSION.SdkInt}"], AppConstants.Platform.Android);
 
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-        TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
+        TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
     }
 
     private const int CrashFlushDelayMs = 500;
 
-    private void UnobserverdTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    private static void UnobservedTaskExceptionHandler(object sender, UnobservedTaskExceptionEventArgs e)
     {
         logger.Error(e.Exception, AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskException);
         FlushAndDelay();
@@ -120,7 +120,7 @@ public class AlarmRingerReceiver : BroadcastReceiver
         finally
         {
             AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-            TaskScheduler.UnobservedTaskException -= UnobserverdTaskException;
+            TaskScheduler.UnobservedTaskException -= UnobservedTaskExceptionHandler;
             pendingIntent.Finish();
         }
     }

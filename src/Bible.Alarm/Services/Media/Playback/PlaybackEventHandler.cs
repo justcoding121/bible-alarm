@@ -94,7 +94,7 @@ public sealed class PlaybackEventHandler
                 return;
             }
 
-            if (appended && !canAdvance)
+            if (appended)
             {
                 logger.Warning(
                     AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.HandleMediaEndedAppendSucceededCannotAdvance,

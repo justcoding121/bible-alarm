@@ -237,7 +237,7 @@ internal sealed class SectionFetcher
                     }
                 }
 
-                var tracks = new List<BiblePublicationTrack>();
+                List<BiblePublicationTrack> tracks;
                 if (isIssueSectioned)
                 {
                     tracks = EnglishTrackParser.ParseGenericTracks(
@@ -360,14 +360,12 @@ internal sealed class SectionFetcher
 
     private static bool IsSqliteBusyOrLocked(Exception ex)
     {
-        const int sqliteBusy = 5;
-        const int sqliteLocked = 6;
         for (var e = ex; e != null; e = e.InnerException)
         {
             if (e is SqliteException sqliteEx)
             {
                 var code = (int)sqliteEx.SqliteErrorCode;
-                if (code == sqliteBusy || code == sqliteLocked)
+                if (code is 5 or 6)
                 {
                     return true;
                 }

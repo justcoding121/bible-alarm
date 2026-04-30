@@ -143,8 +143,6 @@ public class Program
             var languageCodeToInfoMappings = new ConcurrentDictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
             var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
-            IReadOnlyDictionary<(string LanguageCode, string PublicationCode), string>? localizedPublicationNames = null;
-
             // Get DbSeeder to use as IDataPersister (same instance will be used for seeding later)
             // Create it directly from serviceProvider to keep it alive
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
@@ -222,9 +220,6 @@ public class Program
 
                 await Task.WhenAll([.. bibleTasks, .. musicTasks, .. mediatorTasks, .. videoTasks]);
                 logger.Information("=== CATALOGING PHASE COMPLETED ===\n");
-
-                // Capture localized publication names from Bible cataloger
-                localizedPublicationNames = bibleCataloger.LocalizedPublicationNames;
             }
 
             // Use the same DbSeeder instance that was used as dataPersister

@@ -19,7 +19,7 @@ public sealed class MessageHandler
     /// <summary>
     /// Handles playback position changed messages.
     /// </summary>
-    public void HandlePlaybackPositionMessage(
+    public static void HandlePlaybackPositionMessage(
         PlaybackPositionChangedMessage message,
         TimeSpan currentDuration,
         Func<double, bool> shouldIgnorePositionUpdate,

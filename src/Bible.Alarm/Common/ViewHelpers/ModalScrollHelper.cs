@@ -135,12 +135,7 @@ public static class ModalScrollHelper
                     {
                         viewModelItemCount = await MainThread.InvokeOnMainThreadAsync(() => getItemCountFromViewModel(viewModel));
                     }
-                    if (viewModelItemCount > 0)
-                    {
-                        // ViewModel has items but CollectionView binding is delayed (e.g. reopen on Windows) - reveal and continue
-                        hasItems = true;
-                    }
-                    else
+                    if (viewModelItemCount <= 0)
                     {
                         Log.Warning(AppConstants.Logging.ModalUiDiagnosticsLog.NoItemsLoadedIntoCollectionViewAfterRefresh);
                         if (onFetchFailed != null)
@@ -149,6 +144,7 @@ public static class ModalScrollHelper
                         }
                         return ModalAppearingResult.FetchFailed;
                     }
+                    // ViewModel has items but CollectionView binding is delayed — proceed below.
                 }
             }
 

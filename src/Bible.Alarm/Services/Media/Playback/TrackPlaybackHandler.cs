@@ -131,21 +131,20 @@ public sealed class TrackPlaybackHandler
         var shouldCheckSeek = !startFromBeginning
             && isFirstEncounter
             && isBibleTrack
-            && track.PlayItem?.Metadata != null
             && inMemoryFinishedDuration != TimeSpan.Zero;
 
         if (shouldCheckSeek)
         {
             var shouldResume = await trackPreparationHandler.ShouldResumeFromLastPositionAsync(currentScheduleId);
 
-            if (shouldResume && track.PlayItem?.Metadata != null)
+            if (shouldResume)
             {
                 seekPosition = inMemoryFinishedDuration;
                 logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekFromInMemoryFinishedDuration,
                     seekPosition.Value, currentScheduleId);
             }
         }
-        else if (!startFromBeginning && isFirstEncounter && isBibleTrack && track.PlayItem?.Metadata != null
+        else if (!startFromBeginning && isFirstEncounter && isBibleTrack
             && inMemoryFinishedDuration == TimeSpan.Zero && currentScheduleId.HasValue
             && playedBibleTrackKeys.Count == 0)
         {
