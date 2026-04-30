@@ -13,7 +13,7 @@ public sealed class DatabaseSeedService(
     IAlarmScheduleService alarmScheduleService,
     IBiblePublicationService BiblePublicationService,
     IMelodyMusicService melodyMusicService)
-    : IDatabaseSeedService, IDisposable
+    : IDatabaseSeedService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;

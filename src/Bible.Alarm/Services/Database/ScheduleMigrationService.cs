@@ -7,7 +7,7 @@ namespace Bible.Alarm.Services.Database;
 
 public sealed class ScheduleMigrationService(
     ILogger logger)
-    : IScheduleMigrationService, IDisposable
+    : IScheduleMigrationService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;

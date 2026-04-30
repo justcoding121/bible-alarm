@@ -15,7 +15,7 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class AudioPlayer : IAudioPlayer, IDisposable
+public sealed class AudioPlayer : IAudioPlayer
 {
     private readonly ILogger logger;
     private readonly IMediaElementService mediaElementService;

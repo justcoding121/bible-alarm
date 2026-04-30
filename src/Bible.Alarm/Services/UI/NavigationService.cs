@@ -22,7 +22,7 @@ public sealed class NavigationService(
     IServiceProvider serviceProvider,
     ILogger logger,
     IDispatcher dispatcher)
-    : INavigationService, IDisposable
+    : INavigationService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
 

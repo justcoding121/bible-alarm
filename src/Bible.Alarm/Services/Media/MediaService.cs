@@ -19,7 +19,7 @@ using Serilog;
 namespace Bible.Alarm.Services.Media;
 
 public sealed class MediaService(MediaServiceDependencies dependencies)
-    : IMediaService, IDisposable
+    : IMediaService
 {
     private readonly IMediaIndexService mediaIndexService = dependencies.MediaIndexService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.MediaIndexService)} is required.");
     private readonly IBiblePublicationService BiblePublicationService = dependencies.BiblePublicationService ?? throw new ArgumentNullException(nameof(dependencies), $"{nameof(MediaServiceDependencies.BiblePublicationService)} is required.");

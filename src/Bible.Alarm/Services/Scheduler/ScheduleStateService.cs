@@ -37,7 +37,7 @@ public sealed class ScheduleStateService(
     INavigationService navigationService,
     IServiceProvider serviceProvider)
 #pragma warning restore CS9113
-    : IScheduleStateService, IDisposable
+    : IScheduleStateService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;

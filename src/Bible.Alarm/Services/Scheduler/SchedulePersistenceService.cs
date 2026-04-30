@@ -18,7 +18,7 @@ public sealed class SchedulePersistenceService(
     IDispatcher dispatcher,
     IMediaCacheService mediaCacheService,
     IAlarmScheduleService alarmScheduleService)
-    : ISchedulePersistenceService, IDisposable
+    : ISchedulePersistenceService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;

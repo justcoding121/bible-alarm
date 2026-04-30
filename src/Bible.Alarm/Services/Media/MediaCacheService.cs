@@ -23,7 +23,7 @@ public sealed class MediaCacheService(
     IMediaUrlRefreshService urlRefreshService,
     IAlarmScheduleService alarmScheduleService,
     ITrackCdnUrlRefresher trackCdnUrlRefresher)
-    : IMediaCacheService, IDisposable
+    : IMediaCacheService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;

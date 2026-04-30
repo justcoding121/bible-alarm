@@ -5,7 +5,7 @@ using Bible.Alarm.Shared.Models.Schedule;
 namespace Bible.Alarm.Services.Scheduler;
 
 public sealed class ScheduleSelectionService
-    : IScheduleSelectionService, IDisposable
+    : IScheduleSelectionService
 {
     private bool isDisposed;
 

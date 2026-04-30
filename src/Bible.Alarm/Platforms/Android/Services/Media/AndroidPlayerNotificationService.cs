@@ -15,7 +15,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 /// by creating a multi-item queue in ExoPlayer using ConcatenatingMediaSource.
 /// Uses three items: dummy previous, current, and dummy next to enable both navigation buttons.
 /// </summary>
-public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNotificationService, IDisposable
+public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNotificationService
 {
     // Helper classes
     private readonly MediaSourceBuilder mediaSourceBuilder = new(logger);

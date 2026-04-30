@@ -15,7 +15,7 @@ public sealed class SchedulerService(
     IMediaCacheService mediaCacheService,
     IAlarmService alarmService,
     INotificationService notificationService,
-    IStorageService storageService) : ISchedulerService, IDisposable
+    IStorageService storageService) : ISchedulerService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
 

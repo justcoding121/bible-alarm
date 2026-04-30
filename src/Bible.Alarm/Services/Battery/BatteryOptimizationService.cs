@@ -10,7 +10,7 @@ public sealed class BatteryOptimizationService(
     ILogger logger,
     IGeneralSettingsService generalSettingsService,
     IBatteryOptimizationManager batteryOptimizationManager)
-    : IBatteryOptimizationService, IDisposable
+    : IBatteryOptimizationService
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
