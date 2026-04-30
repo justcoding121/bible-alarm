@@ -119,7 +119,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
                     }
                 }
             }
-            catch (System.Net.Http.HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+            catch (System.Net.Http.HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
             {
                 Logger.Warning(ex, "Book {BookNum}: HTTP error during language discovery. Skipping.", bookNum);
             }

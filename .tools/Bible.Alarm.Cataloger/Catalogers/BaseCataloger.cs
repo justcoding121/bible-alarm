@@ -181,6 +181,6 @@ internal abstract class BaseCataloger
         }
 
         var lowerName = languageName.ToLowerInvariant();
-        return lowerName.Contains("sign language");
+        return lowerName.Contains("sign language", StringComparison.Ordinal);
     }
 }

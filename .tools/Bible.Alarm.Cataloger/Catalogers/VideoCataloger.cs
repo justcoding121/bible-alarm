@@ -168,7 +168,7 @@ internal class VideoCataloger : BaseCataloger
             var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp4}&{AppConstants.Media.GetPubQueryAllLangsOn}&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}";
             jsonString = await DownloadUtility.GetAsync(catalogLink);
         }
-        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
         {
             Logger.Warning(ex, "No languages found for Video publication: {PublicationName} ({PublicationCode})",
                 publicationName, publicationCode);

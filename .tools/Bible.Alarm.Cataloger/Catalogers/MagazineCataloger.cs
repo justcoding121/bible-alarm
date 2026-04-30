@@ -159,7 +159,7 @@ internal sealed class MagazineCataloger : BaseCataloger
 
             return discoveredLanguages;
         }
-        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
         {
             Logger.Debug(ex, "Issue {ApiPub}/{IssueCode}: not available (HTTP error)", apiPubCode, issueCode);
             return null;

@@ -169,7 +169,7 @@ internal class MusicCataloger : BaseCataloger
             var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOn}&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}";
             jsonString = await DownloadUtility.GetAsync(catalogLink);
         }
-        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
         {
             return null;
         }
@@ -386,7 +386,7 @@ internal class MusicCataloger : BaseCataloger
             var catalogLink = MusicTrackCatalogParsing.BuildMusicCatalogLink(publicationDownloadCode, languageCode);
             jsonString = await DownloadUtility.GetAsync(catalogLink);
         }
-        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
         {
             return (trackCode, null, null);
         }

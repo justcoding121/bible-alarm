@@ -22,8 +22,8 @@ internal class DownloadUtility
         this.logger = logger;
         retryPolicy = Policy<string>
             .Handle<HttpRequestException>(ex =>
-                ex.Message.Contains("Server busy") ||
-                !ex.Message.Contains("Response status code"))
+                ex.Message.Contains("Server busy", StringComparison.Ordinal) ||
+                !ex.Message.Contains("Response status code", StringComparison.Ordinal))
             .Or<TaskCanceledException>()
             .Or<IOException>()
             .WaitAndRetryAsync(
@@ -61,7 +61,7 @@ internal class DownloadUtility
                 return await SendRequestWithFallbackAsync(client, catalogLink);
             });
         }
-        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
         {
             throw;
         }
@@ -87,8 +87,8 @@ internal class DownloadUtility
                 return await SendRequestWithFallbackAsync(client, attempts[i]);
             }
             catch (HttpRequestException ex) when (
-                ex.Message.Contains("Response status code") &&
-                !ex.Message.Contains("Server busy"))
+                ex.Message.Contains("Response status code", StringComparison.Ordinal) &&
+                !ex.Message.Contains("Server busy", StringComparison.Ordinal))
             {
                 throw;
             }
@@ -108,13 +108,13 @@ internal class DownloadUtility
 
     private static bool TryGetAlternateJwCdnUrl(string url, out string alternateUrl)
     {
-        if (url.Contains(AppConstants.ApiEndpoints.JwCdnHostB))
+        if (url.Contains(AppConstants.ApiEndpoints.JwCdnHostB, StringComparison.OrdinalIgnoreCase))
         {
             alternateUrl = url.Replace(AppConstants.ApiEndpoints.JwCdnOriginHttpsB, AppConstants.ApiEndpoints.JwCdnOriginHttpsApp);
             return true;
         }
 
-        if (url.Contains(AppConstants.ApiEndpoints.JwCdnHostApp))
+        if (url.Contains(AppConstants.ApiEndpoints.JwCdnHostApp, StringComparison.OrdinalIgnoreCase))
         {
             alternateUrl = url.Replace(AppConstants.ApiEndpoints.JwCdnOriginHttpsApp, AppConstants.ApiEndpoints.JwCdnOriginHttpsB);
             return true;
@@ -147,7 +147,7 @@ internal class DownloadUtility
         {
             return await SendHttpRequestAsync(client, catalogLink, new Version(2, 0), HttpVersionPolicy.RequestVersionOrHigher);
         }
-        catch (HttpRequestException ex) when (!ex.Message.Contains("Server busy") && !ex.Message.Contains("Response status code"))
+        catch (HttpRequestException ex) when (!ex.Message.Contains("Server busy", StringComparison.Ordinal) && !ex.Message.Contains("Response status code", StringComparison.Ordinal))
         {
             return await SendHttpRequestAsync(client, catalogLink, new Version(1, 1), HttpVersionPolicy.RequestVersionExact);
         }
