@@ -95,7 +95,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                     .ThenInclude(s => s.Tracks)
                 .Where(x => x.PublicationCode == publicationCode &&
                            x.Language != null &&
-                           x.Language.LanguageCode == languageCode.ToUpperInvariant())
+                           string.Equals(x.Language.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase))
                 .FirstOrDefaultAsync();
 
             SortedDictionary<string, BiblePublicationTrack>? foundTracks = null;

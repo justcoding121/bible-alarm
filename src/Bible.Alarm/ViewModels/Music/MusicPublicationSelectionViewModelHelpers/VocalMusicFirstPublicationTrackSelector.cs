@@ -82,7 +82,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                     var publicationLanguages = (await db.PublicationLanguages
                         .AsNoTracking()
                         .Where(pl => pl.Language != null &&
-                                   pl.Language.LanguageCode == language.Code.ToUpperInvariant() &&
+                                   string.Equals(pl.Language.LanguageCode, language.Code, StringComparison.OrdinalIgnoreCase) &&
                                    pl.Category != null &&
                                    pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                         .ToListAsync())

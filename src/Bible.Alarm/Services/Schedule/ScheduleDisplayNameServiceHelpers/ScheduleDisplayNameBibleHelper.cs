@@ -166,10 +166,9 @@ public sealed class ScheduleDisplayNameBibleHelper
                     var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
                     using var scope = scopeFactory.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                    var sectionCodeLower = normalizedSectionCode.ToLowerInvariant();
                     var sectionName = await dbContext.BiblePublicationSections
                         .AsNoTracking()
-                        .Where(x => x.BiblePublication.PublicationCode == publicationCode && x.BiblePublication.LanguageId == null && x.SectionCode != null && x.SectionCode.ToLowerInvariant() == sectionCodeLower)
+                        .Where(x => x.BiblePublication.PublicationCode == publicationCode && x.BiblePublication.LanguageId == null && x.SectionCode != null && string.Equals(x.SectionCode, normalizedSectionCode, StringComparison.OrdinalIgnoreCase))
                         .Select(x => x.Name)
                         .FirstOrDefaultAsync();
                     if (!string.IsNullOrWhiteSpace(sectionName))

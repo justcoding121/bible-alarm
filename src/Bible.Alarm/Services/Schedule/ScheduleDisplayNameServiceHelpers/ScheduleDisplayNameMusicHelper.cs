@@ -140,10 +140,9 @@ public sealed class ScheduleDisplayNameMusicHelper
                     var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
                     using var scope = scopeFactory.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                    var sectionCodeLower = music.SectionCode.ToLowerInvariant();
                     var section = await dbContext.BiblePublicationSections
                         .AsNoTracking()
-                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode && x.BiblePublication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) && x.BiblePublication.LanguageId == null && x.SectionCode != null && x.SectionCode.ToLowerInvariant() == sectionCodeLower)
+                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode && x.BiblePublication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) && x.BiblePublication.LanguageId == null && x.SectionCode != null && string.Equals(x.SectionCode, music.SectionCode, StringComparison.OrdinalIgnoreCase))
                         .Select(x => x.Name)
                         .FirstOrDefaultAsync();
                     if (!string.IsNullOrWhiteSpace(section))

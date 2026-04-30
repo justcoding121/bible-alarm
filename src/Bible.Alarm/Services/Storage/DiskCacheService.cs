@@ -60,7 +60,7 @@ public sealed class DiskCacheService : IDiskCacheService
                         logger.Warning(deserializeEx, "Deserialization failed for key: {Key}, removing corrupted cache entry and calling factory", key);
                         try
                         {
-                            await preferencesService.RemoveAsync(cacheKey);
+                            await preferencesService.RemoveAsync(cacheKey, cancellationToken: cancellationToken);
                         }
                         catch (Exception)
                         {
@@ -119,7 +119,7 @@ public sealed class DiskCacheService : IDiskCacheService
             logger.Warning(ex, "Error deserializing cached value for key: {Key}", key);
             try
             {
-                await preferencesService.RemoveAsync(cacheKey);
+                await preferencesService.RemoveAsync(cacheKey, cancellationToken: cancellationToken);
             }
             catch (Exception)
             {

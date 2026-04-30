@@ -647,7 +647,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 {
                     logger.Debug(ex, AppConstants.Logging.PlaybackServiceDiagnosticsLog.BackgroundPreDownloadNextTrackFailedNonCritical);
                 }
-            });
+            }, cancellationToken);
         }
         finally
         {

@@ -19,7 +19,7 @@ public static class PlaylistMetadataHelper
             return;
         }
 
-        if (!sectionCode.Contains("-", StringComparison.Ordinal))
+        if (!sectionCode.Contains('-'))
         {
             return;
         }
