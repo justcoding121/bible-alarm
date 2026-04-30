@@ -22,7 +22,7 @@ namespace Bible.Alarm.Shared.Models.Schedule;
 [Table("AlarmSchedules")]
 [Index(nameof(IsEnabled))]
 [Index(nameof(Hour), nameof(Minute))]
-public sealed class AlarmSchedule : IComparable
+public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
 {
     [Key]
     public int Id { get; set; }

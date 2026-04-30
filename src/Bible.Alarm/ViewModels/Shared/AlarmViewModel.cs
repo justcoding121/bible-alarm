@@ -708,6 +708,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             MessageHandler.HandlePlaybackPositionMessage(
                 message,
                 currentDuration,
+                Progress,
                 (progress) => sliderHandler.ShouldIgnorePositionUpdate(progress),
                 (time) => CurrentTime = time,
                 (progress) => Progress = progress,

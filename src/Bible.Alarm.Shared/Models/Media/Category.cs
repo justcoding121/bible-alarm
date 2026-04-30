@@ -10,7 +10,7 @@ namespace Bible.Alarm.Shared.Models.Media;
 
 [Table("Categories")]
 [Index(nameof(CategoryCode), IsUnique = true)]
-public sealed class Category : IComparable
+public sealed class Category : IComparable, IEquatable<Category>
 {
     [Key]
     public int Id { get; set; }

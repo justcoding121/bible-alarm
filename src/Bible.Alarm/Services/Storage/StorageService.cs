@@ -105,10 +105,10 @@ public abstract class StorageService : IStorageService, IDisposable
         }
     }
 
-    private static Task CreateDirectoryInternal(string path)
+    private static Task<bool> CreateDirectoryInternal(string path)
     {
         Directory.CreateDirectory(path);
-        return Task.FromResult(false);
+        return Task.FromResult(true);
     }
 
     public Task<DateTimeOffset> GetFileCreationDate(string path)

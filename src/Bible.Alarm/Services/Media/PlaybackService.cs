@@ -652,7 +652,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
     }
 
-    private IFetchProgress CreateSectionFetchProgressReporter()
+    private SectionFetchProgressReporter CreateSectionFetchProgressReporter()
     {
         var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
         return new SectionFetchProgressReporter(token);

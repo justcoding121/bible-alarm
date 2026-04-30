@@ -12,7 +12,7 @@ namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
 
 [Table("BiblePublicationSections")]
 [Index(nameof(BiblePublicationId), IsUnique = false)]
-public sealed class BiblePublicationSection : IComparable
+public sealed class BiblePublicationSection : IComparable, IEquatable<BiblePublicationSection>
 {
     [Key]
     public int Id { get; set; }

@@ -22,6 +22,7 @@ public sealed class MessageHandler
     public static void HandlePlaybackPositionMessage(
         PlaybackPositionChangedMessage message,
         TimeSpan currentDuration,
+        double currentUiProgress,
         Func<double, bool> shouldIgnorePositionUpdate,
         Action<string> setCurrentTime,
         Action<double> setProgress,
@@ -41,7 +42,7 @@ public sealed class MessageHandler
         PositionManager.UpdatePositionFromMessage(
             message,
             currentDuration,
-            () => false,
+            currentUiProgress,
             setCurrentTime,
             setProgress);
 

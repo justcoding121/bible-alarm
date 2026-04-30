@@ -18,7 +18,7 @@ public sealed class PositionManager()
     public static void UpdatePositionFromMessage(
         PlaybackPositionChangedMessage message,
         TimeSpan currentDuration,
-        Func<bool> shouldIgnorePositionUpdate,
+        double currentUiProgress,
         Action<string> setCurrentTime,
         Action<double> setProgress)
     {
@@ -30,7 +30,7 @@ public sealed class PositionManager()
             if (currentDuration.TotalSeconds > 0)
             {
                 var newProgress = position.TotalSeconds / currentDuration.TotalSeconds;
-                if (Math.Abs(newProgress - GetCurrentProgress()) > 0.001)
+                if (Math.Abs(newProgress - currentUiProgress) > 0.001)
                 {
                     setProgress(newProgress);
                 }
@@ -133,16 +133,6 @@ public sealed class PositionManager()
         var actualProgress = newProgress;
         // Small threshold for ignoring
         return Math.Abs(actualProgress - currentProgress) < 0.01;
-    }
-
-    /// <summary>
-    /// Gets the current progress value (this would need to be passed in from the main class).
-    /// </summary>
-    private static double GetCurrentProgress()
-    {
-        // This would need to be passed in or accessed differently
-        // For now, returning 0 as a placeholder
-        return 0.0;
     }
 
     /// <summary>

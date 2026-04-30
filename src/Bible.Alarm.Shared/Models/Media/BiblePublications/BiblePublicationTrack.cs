@@ -19,7 +19,7 @@ namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
 [Table("BiblePublicationTracks")]
 [Index(nameof(BiblePublicationId), nameof(TrackCode))]
 [Index(nameof(BiblePublicationSectionId), nameof(TrackCode), IsUnique = true)]
-public sealed class BiblePublicationTrack : IComparable
+public sealed class BiblePublicationTrack : IComparable, IEquatable<BiblePublicationTrack>
 {
     [Key]
     public int Id { get; set; }

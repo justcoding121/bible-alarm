@@ -230,11 +230,10 @@ public sealed class BiblePublicationDisplayTextProvider
     }
 
     /// <summary>
-    /// Determines if the language row should be visible.
     /// Language row is always visible. When LanguageCode is null (non-language publications like "iam"),
     /// it defaults to "E" (English) for display purposes.
     /// </summary>
-    public static bool GetIsLanguageVisible() => true;
+    public const bool IsLanguageVisible = true;
 
     /// <summary>
     /// Checks if there are multiple languages available for the current category.
@@ -252,12 +251,6 @@ public sealed class BiblePublicationDisplayTextProvider
         if (string.IsNullOrWhiteSpace(categoryName))
         {
             // No category selected, can't determine
-            return false;
-        }
-
-        // If the row itself is hidden (e.g., selected publication has no language), it isn't selectable.
-        if (!GetIsLanguageVisible())
-        {
             return false;
         }
 

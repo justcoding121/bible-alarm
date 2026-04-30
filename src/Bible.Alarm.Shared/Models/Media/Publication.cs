@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Bible.Alarm.Shared.Models.Media;
 
-public class Publication : IComparable
+public class Publication : IComparable, IEquatable<Publication>
 {
     [Required]
     [MaxLength(255)]

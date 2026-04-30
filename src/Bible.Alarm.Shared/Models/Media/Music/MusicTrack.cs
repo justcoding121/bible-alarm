@@ -11,7 +11,7 @@ namespace Bible.Alarm.Shared.Models.Media.Music;
 /// Maps from BiblePublicationTrack for music publications.
 /// Order by TrackCode (numeric when both parse as int, otherwise string).
 /// </summary>
-public class MusicTrack : IComparable
+public class MusicTrack : IComparable, IEquatable<MusicTrack>
 {
     /// <summary>
     /// Track code from the source (e.g. "1", "110", "jwb-201708"). Use for schedule persistence, lookup and ordering.

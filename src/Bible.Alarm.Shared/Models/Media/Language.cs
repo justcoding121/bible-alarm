@@ -11,7 +11,7 @@ namespace Bible.Alarm.Shared.Models.Media;
 
 [Table("Languages")]
 [Index(nameof(LanguageCode), IsUnique = true)]
-public sealed class Language : IComparable
+public sealed class Language : IComparable, IEquatable<Language>
 {
     [Key]
     public int Id { get; set; }
