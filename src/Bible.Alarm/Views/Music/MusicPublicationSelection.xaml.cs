@@ -65,12 +65,11 @@ public partial class MusicPublicationSelection : BaseContentPage, IDisposable
 
             try
             {
-                if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
+                if (ViewModel != null
+                    && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand
+                    && asyncCommand.CanExecute(publicationItem))
                 {
-                    if (asyncCommand.CanExecute(publicationItem))
-                    {
-                        await asyncCommand.ExecuteAsync(publicationItem);
-                    }
+                    await asyncCommand.ExecuteAsync(publicationItem);
                 }
             }
             finally

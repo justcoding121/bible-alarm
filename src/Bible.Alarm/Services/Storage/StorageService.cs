@@ -42,24 +42,24 @@ public abstract class StorageService : IStorageService, IDisposable
 
     public Task<string> ReadFile(string path) => Task.FromResult(File.ReadAllText(path));
 
-    public async Task SaveFile(string directoryPath, string name, string contents)
+    public async Task SaveFile(string directoryPath, string fileName, string contents)
     {
         if (!await DirectoryExists(directoryPath))
         {
             await CreateDirectoryInternal(directoryPath);
         }
 
-        await File.WriteAllTextAsync(Path.Combine(directoryPath, name), contents);
+        await File.WriteAllTextAsync(Path.Combine(directoryPath, fileName), contents);
     }
 
-    public async Task SaveFile(string directoryPath, string name, byte[] contents)
+    public async Task SaveFile(string directoryPath, string fileName, byte[] contents)
     {
         if (!await DirectoryExists(directoryPath))
         {
             await CreateDirectoryInternal(directoryPath);
         }
 
-        await File.WriteAllBytesAsync(Path.Combine(directoryPath, name), contents);
+        await File.WriteAllBytesAsync(Path.Combine(directoryPath, fileName), contents);
     }
 
     public async Task CopyResourceFile(string resourceFileName,

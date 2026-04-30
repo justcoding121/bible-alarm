@@ -49,14 +49,14 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         }
     }
 
-    public async Task ScheduleNotificationAsync(AlarmSchedule schedule,
+    public async Task ScheduleNotificationAsync(AlarmSchedule alarmSchedule,
         string title, string body)
     {
-        var time = schedule.NextFireDate();
+        var time = alarmSchedule.NextFireDate();
 
         try
         {
-            AlarmSetupService.ScheduleNotification(AndroidApplication.Context, schedule.Id, time, title, body);
+            AlarmSetupService.ScheduleNotification(AndroidApplication.Context, alarmSchedule.Id, time, title, body);
         }
         catch (SecurityException ex)
         {
@@ -76,7 +76,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
             }
 
             throw new InvalidOperationException(
-                $"Exact alarm scheduling failed for schedule {schedule.Id}.",
+                $"Exact alarm scheduling failed for schedule {alarmSchedule.Id}.",
                 ex);
         }
     }

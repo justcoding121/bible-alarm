@@ -95,9 +95,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return await scheduleManager.GetRelevantScheduleToPlay();
     }
 
-    public async Task SaveLastPlayed(int scheduleId)
+    public async Task SaveLastPlayed(int currentScheduleId)
     {
-        await scheduleManager.SaveLastPlayed(scheduleId);
+        await scheduleManager.SaveLastPlayed(currentScheduleId);
     }
 
     public async Task MarkTrackAsPlayed(TrackMetadata trackMetadata)

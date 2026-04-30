@@ -100,12 +100,11 @@ public partial class BiblePublicationSelection : BaseContentPage, IDisposable
 
             try
             {
-                if (ViewModel != null && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
+                if (ViewModel != null
+                    && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand
+                    && asyncCommand.CanExecute(publicationItem))
                 {
-                    if (asyncCommand.CanExecute(publicationItem))
-                    {
-                        await asyncCommand.ExecuteAsync(publicationItem);
-                    }
+                    await asyncCommand.ExecuteAsync(publicationItem);
                 }
             }
             finally

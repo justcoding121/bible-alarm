@@ -17,12 +17,12 @@ public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory 
         await iosAlarmHandler.HandleAsync(scheduleId, true);
     }
 
-    public async Task ScheduleNotificationAsync(AlarmSchedule schedule,
+    public async Task ScheduleNotificationAsync(AlarmSchedule alarmSchedule,
         string title, string body)
     {
-        var scheduleId = schedule.Id;
-        var time = schedule.NextFireDate();
-        var daysOfWeek = schedule.DaysOfWeek;
+        var scheduleId = alarmSchedule.Id;
+        var time = alarmSchedule.NextFireDate();
+        var daysOfWeek = alarmSchedule.DaysOfWeek;
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {

@@ -91,12 +91,11 @@ public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposab
 
         try
         {
-            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
+            if (ViewModel != null
+                && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand
+                && asyncCommand.CanExecute(publicationItem))
             {
-                if (asyncCommand.CanExecute(publicationItem))
-                {
-                    await asyncCommand.ExecuteAsync(publicationItem);
-                }
+                await asyncCommand.ExecuteAsync(publicationItem);
             }
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))

@@ -95,12 +95,11 @@ public partial class BiblePublicationTrackSelection : BaseContentPage, IDisposab
 
             try
             {
-                if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand)
+                if (ViewModel != null
+                    && ViewModel.SetTrackCommand is IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand
+                    && asyncCommand.CanExecute(trackItem))
                 {
-                    if (asyncCommand.CanExecute(trackItem))
-                    {
-                        await asyncCommand.ExecuteAsync(trackItem);
-                    }
+                    await asyncCommand.ExecuteAsync(trackItem);
                 }
             }
             finally

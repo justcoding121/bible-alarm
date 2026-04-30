@@ -28,12 +28,12 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         await windowsAlarmHandler.HandleAsync(scheduleId, true);
     }
 
-    public Task ScheduleNotificationAsync(AlarmSchedule schedule,
+    public Task ScheduleNotificationAsync(AlarmSchedule alarmSchedule,
         string title, string body)
     {
         try
         {
-            var scheduleId = schedule.Id;
+            var scheduleId = alarmSchedule.Id;
 
             var notifier = WindowsToastNotifierFactory.GetToastNotifier();
             if (notifier == null)
@@ -55,7 +55,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
             for (int i = 0; i < maxOccurrences; i++)
             {
-                var fireDate = schedule.NextFireDate(currentDate);
+                var fireDate = alarmSchedule.NextFireDate(currentDate);
 
                 // Stop if beyond our 90-day window
                 if (fireDate > maxDate)
@@ -102,12 +102,12 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 // Log additional diagnostic information
                 var scheduledToasts = notifier.GetScheduledToastNotifications();
                 logger.Warning(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ScheduledToastTotalsWithPriorNextFireDate,
-                    scheduledToasts.Count, schedule.NextFireDate(DateTimeOffset.Now));
+                    scheduledToasts.Count, alarmSchedule.NextFireDate(DateTimeOffset.Now));
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ErrorSchedulingNotificationsForSchedule, schedule.Id);
+            logger.Error(ex, AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.ErrorSchedulingNotificationsForSchedule, alarmSchedule.Id);
         }
 
         return Task.CompletedTask;

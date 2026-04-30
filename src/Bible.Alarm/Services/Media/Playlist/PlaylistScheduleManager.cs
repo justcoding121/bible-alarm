@@ -67,11 +67,11 @@ public class PlaylistScheduleManager
         return schedule.Id;
     }
 
-    public async Task SaveLastPlayed(int scheduleId)
+    public async Task SaveLastPlayed(int currentScheduleId)
     {
         await generalSettingsService.SetGeneralSettingAsync(
             AppConstants.GeneralSettingsKeys.LastPlayedScheduleId,
-            scheduleId.ToString(),
+            currentScheduleId.ToString(),
             cancellationToken);
     }
 
