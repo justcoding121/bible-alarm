@@ -125,7 +125,7 @@ public sealed class AsyncQueue<T> : IDisposable
             consumer.TrySetCanceled();
         }
 
-        consumerQueueLock?.Dispose();
+        consumerQueueLock.Dispose();
         disposed = true;
     }
 }

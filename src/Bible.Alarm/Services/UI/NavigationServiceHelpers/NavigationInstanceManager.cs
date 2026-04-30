@@ -24,7 +24,7 @@ public sealed class NavigationInstanceManager(ILogger logger)
             sleepDurationProvider: _ => TimeSpan.FromMilliseconds(200),
             onRetry: (exception, timeSpan, retryCount, _) =>
             {
-                logger?.Debug(
+                logger.Debug(
                     "Navigation not available yet, retrying in {DelayMs}ms (attempt {RetryCount}/10). Error: {Message}",
                     timeSpan.TotalMilliseconds,
                     retryCount,
@@ -48,7 +48,7 @@ public sealed class NavigationInstanceManager(ILogger logger)
             catch (Exception ex)
             {
                 // Cached navigation is invalid, clear it and try to get a new one
-                logger?.Debug(ex, "Cached navigation is invalid, clearing cache");
+                logger.Debug(ex, "Cached navigation is invalid, clearing cache");
                 cachedNavigation = null;
             }
         }
@@ -83,22 +83,22 @@ public sealed class NavigationInstanceManager(ILogger logger)
         if (app is null)
         {
             var errorMsg = "Application.Current is null. Cannot get INavigation.";
-            logger?.Error(errorMsg);
+            logger.Error(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
 
-        logger?.Debug("Application.Current found. Windows count: {WindowsCount}", app.Windows.Count);
+        logger.Debug("Application.Current found. Windows count: {WindowsCount}", app.Windows.Count);
 
         // Try to get navigation from windows
         if (app.Windows.Count > 0)
         {
             var window = app.Windows[0];
-            logger?.Debug("Window found. Page type: {PageType}", window?.Page?.GetType().Name ?? "null");
+            logger.Debug("Window found. Page type: {PageType}", window?.Page?.GetType().Name ?? "null");
 
             // Check if window.Page is NavigationPage
             if (window?.Page is NavigationPage navPage)
             {
-                logger?.Debug("Found NavigationPage in window.Page");
+                logger.Debug("Found NavigationPage in window.Page");
                 var navigation = navPage.Navigation;
 
                 // Verify navigation is accessible before caching
@@ -109,20 +109,20 @@ public sealed class NavigationInstanceManager(ILogger logger)
                 }
                 catch (Exception ex)
                 {
-                    logger?.Debug(ex, "Navigation is not accessible yet, will retry");
+                    logger.Debug(ex, "Navigation is not accessible yet, will retry");
                     throw new InvalidOperationException("Navigation is not accessible yet", ex);
                 }
             }
         }
         else
         {
-            logger?.Warning("Application.Current.Windows.Count is 0 - window may not be initialized yet");
+            logger.Warning("Application.Current.Windows.Count is 0 - window may not be initialized yet");
         }
 
         var mainPageType = app.Windows.Count > 0 ? app.Windows[0].Page?.GetType().Name ?? "null" : "null (no windows)";
         var finalErrorMsg =
             $"INavigation is not available. Application.Current.Windows.Count={app.Windows.Count}, MainPage type={mainPageType}";
-        logger?.Error(
+        logger.Error(
             "INavigation is not available. Application.Current.Windows.Count={WindowsCount}, MainPage type={MainPageType}",
             app.Windows.Count,
             mainPageType);
@@ -135,6 +135,6 @@ public sealed class NavigationInstanceManager(ILogger logger)
     public void ClearCache()
     {
         cachedNavigation = null;
-        logger?.Debug("Navigation cache cleared");
+        logger.Debug("Navigation cache cleared");
     }
 }

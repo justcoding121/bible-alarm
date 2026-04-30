@@ -236,14 +236,14 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
                     {
                         // Bootstrap timed out - proceed anyway, operation may still work
                         // (e.g. PlaybackService falls back to Preferences for schedule ID)
-                        logger?.Warning(timeoutEx, "Bootstrap wait timed out in MediaSessionCallback - proceeding with operation anyway");
+                        logger.Warning(timeoutEx, "Bootstrap wait timed out in MediaSessionCallback - proceeding with operation anyway");
                     }
 
                     await asyncOperation();
                 }
                 catch (Exception ex)
                 {
-                    logger?.Error(ex, "Error executing async operation in MediaSessionCallback");
+                    logger.Error(ex, "Error executing async operation in MediaSessionCallback");
                 }
             });
         }

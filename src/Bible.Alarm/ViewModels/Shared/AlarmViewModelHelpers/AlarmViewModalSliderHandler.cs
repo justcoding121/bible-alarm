@@ -43,7 +43,7 @@ public class AlarmViewModalSliderHandler
 
     public void OnSliderTapped(double targetValue)
     {
-        logger?.Debug("[Slider] Tap detected - TargetValue: {TargetValue}", targetValue);
+        logger.Debug("[Slider] Tap detected - TargetValue: {TargetValue}", targetValue);
 
         if (!areControlsEnabled() || getCurrentDuration().TotalSeconds <= 0)
         {
@@ -63,12 +63,12 @@ public class AlarmViewModalSliderHandler
     public void OnSliderDragStarted()
     {
         isUserInteracting = true;
-        logger?.Debug("[Slider] Drag started");
+        logger.Debug("[Slider] Drag started");
     }
 
     public void OnSliderDragCompleted(double finalValue)
     {
-        logger?.Debug("[Slider] Drag completed - FinalValue: {FinalValue}", finalValue);
+        logger.Debug("[Slider] Drag completed - FinalValue: {FinalValue}", finalValue);
 
         if (!areControlsEnabled() || getCurrentDuration().TotalSeconds <= 0)
         {
@@ -119,7 +119,7 @@ public class AlarmViewModalSliderHandler
         try
         {
             var seekPosition = TimeSpan.FromSeconds(getCurrentDuration().TotalSeconds * targetSeekProgress.Value);
-            logger?.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}",
+            logger.Debug("[Slider] Performing seek to position: {Position}, Progress: {Progress}",
                 seekPosition, targetSeekProgress.Value);
 
             if (seekCommand != null)
@@ -130,7 +130,7 @@ public class AlarmViewModalSliderHandler
                 }
                 else
                 {
-                    logger?.Warning("[Slider] SeekCommand.CanExecute returned false - command may still be running from a previous invocation");
+                    logger.Warning("[Slider] SeekCommand.CanExecute returned false - command may still be running from a previous invocation");
                 }
             }
 
@@ -138,12 +138,12 @@ public class AlarmViewModalSliderHandler
             {
                 isUserInteracting = false;
                 targetSeekProgress = null;
-                logger?.Debug("[Slider] User interaction ended");
+                logger.Debug("[Slider] User interaction ended");
             });
         }
         catch (Exception ex)
         {
-            logger?.Error(ex, "[Slider] Error performing seek");
+            logger.Error(ex, "[Slider] Error performing seek");
             isUserInteracting = false;
             targetSeekProgress = null;
         }

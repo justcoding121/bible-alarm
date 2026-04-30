@@ -425,7 +425,7 @@ public sealed class NavigationService(
             }
             catch (Exception ex)
             {
-                logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorDisposingPlaybackModalNonFatal);
+                logger.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorDisposingPlaybackModalNonFatal);
             }
         }
 
@@ -436,7 +436,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorCleaningUpIosNativeViewsPlaybackModalNonFatal);
+            logger.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorCleaningUpIosNativeViewsPlaybackModalNonFatal);
         }
 #endif
     }
@@ -484,17 +484,17 @@ public sealed class NavigationService(
         catch (Exception ex)
         {
             // Ignore errors during cancellation/disposal
-            logger?.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
+            logger.Warning(ex, AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
         }
 
         // Dispose navigation lock
         try
         {
-            navigationLock?.Dispose();
+            navigationLock.Dispose();
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorDuringNavigationLockDisposal);
+            logger.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.ErrorDuringNavigationLockDisposal);
         }
 
         // Clear the navigation cache
@@ -525,12 +525,12 @@ public sealed class NavigationService(
             DisposePages(modalStack, "modal");
             DisposePages(navigationStack, "page");
 
-            logger?.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesFinishedDisposing,
+            logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesFinishedDisposing,
                 modalStack.Count, navigationStack.Count);
         }
         catch (Exception ex)
         {
-            logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorDuringCleanup);
+            logger.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorDuringCleanup);
         }
     }
 
@@ -542,7 +542,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotGetNavigation);
+            logger.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotGetNavigation);
             return null;
         }
     }
@@ -555,7 +555,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotAccessModalStack);
+            logger.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotAccessModalStack);
             return [];
         }
     }
@@ -568,7 +568,7 @@ public sealed class NavigationService(
         }
         catch (Exception ex)
         {
-            logger?.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotAccessNavigationStack);
+            logger.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesCouldNotAccessNavigationStack);
             return [];
         }
     }
@@ -582,12 +582,12 @@ public sealed class NavigationService(
                 if (page is IDisposable disposable)
                 {
                     disposable.Dispose();
-                    logger?.Debug(AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesDisposedPage, pageType, page.GetType().Name);
+                    logger.Debug(AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesDisposedPage, pageType, page.GetType().Name);
                 }
             }
             catch (Exception ex)
             {
-                logger?.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorDisposingPage, pageType, page.GetType().Name);
+                logger.Warning(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorDisposingPage, pageType, page.GetType().Name);
             }
 
 #if IOS
@@ -597,7 +597,7 @@ public sealed class NavigationService(
             }
             catch (Exception ex)
             {
-                logger?.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorCleaningUpIosNativeViews, pageType, page.GetType().Name);
+                logger.Debug(ex, AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesErrorCleaningUpIosNativeViews, pageType, page.GetType().Name);
             }
 #endif
         }
