@@ -41,10 +41,10 @@ public sealed class NavigationInstanceManager(ILogger logger)
                 _ = cachedNavigation.NavigationStack;
                 return cachedNavigation;
             }
-            catch
+            catch (Exception ex)
             {
                 // Cached navigation is invalid, clear it and try to get a new one
-                logger?.Debug("Cached navigation is invalid, clearing cache");
+                logger?.Debug(ex, "Cached navigation is invalid, clearing cache");
                 cachedNavigation = null;
             }
         }

@@ -152,7 +152,7 @@ internal class MediatorCataloger : BaseCataloger
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
         {
-            Logger.Warning("Publication {PublicationCode} not available for language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
+            Logger.Warning(ex, "Publication {PublicationCode} not available for language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
             return;
         }
         catch (Exception ex)

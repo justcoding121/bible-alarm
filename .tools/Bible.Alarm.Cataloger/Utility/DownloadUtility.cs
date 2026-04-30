@@ -97,7 +97,7 @@ internal class DownloadUtility
                 lastException = ex;
                 if (i < attempts.Length - 1)
                 {
-                    logger.Warning("Request failed for {Url}, retrying with alternate host: {Error}",
+                    logger.Warning(ex, "Request failed for {Url}, retrying with alternate host: {Error}",
                         attempts[i], ex.Message);
                 }
             }

@@ -286,7 +286,7 @@ public sealed class TrackNavigatorSectionCataloger
 
                 if (isBusyOrLocked)
                 {
-                    logger?.Debug("SaveChanges locked (attempt {Attempt}/{Max}) for {Context}, retrying",
+                    logger?.Debug(ex, "SaveChanges locked (attempt {Attempt}/{Max}) for {Context}, retrying",
                         attempt, maxAttempts, context);
                     await Task.Delay(100 * attempt);
                     continue;

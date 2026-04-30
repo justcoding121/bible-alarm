@@ -161,7 +161,7 @@ internal sealed class MagazineCataloger : BaseCataloger
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
-            Logger.Debug("Issue {ApiPub}/{IssueCode}: not available (HTTP error)", apiPubCode, issueCode);
+            Logger.Debug(ex, "Issue {ApiPub}/{IssueCode}: not available (HTTP error)", apiPubCode, issueCode);
             return null;
         }
         catch (Exception ex)

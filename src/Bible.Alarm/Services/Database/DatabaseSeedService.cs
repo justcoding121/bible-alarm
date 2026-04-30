@@ -46,7 +46,7 @@ public sealed class DatabaseSeedService(
                 // Bible publications not yet available (Media database may still be initializing)
                 // This is expected during early bootstrap or when test data doesn't include sectioned publications
                 // The schedule will be seeded later when publications are available
-                logger.Warning(AppConstants.Logging.DatabaseSeedDiagnosticsLog.CannotSeedDefaultAlarmPublicationsNotYetAvailable);
+                logger.Warning(ex, AppConstants.Logging.DatabaseSeedDiagnosticsLog.CannotSeedDefaultAlarmPublicationsNotYetAvailable);
                 return false; // No seeding occurred, will retry later
             }
         }

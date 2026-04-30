@@ -64,9 +64,9 @@ public sealed class CdnPlaybackUrlProbe(HttpClient httpClient, ILogger logger) :
                 return CdnUrlProbeOutcome.Indeterminate;
             }
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.Debug(AppConstants.Logging.CdnPlaybackUrlProbeDiagnosticsLog.ProbeTimedOutForUrl);
+            logger.Debug(ex, AppConstants.Logging.CdnPlaybackUrlProbeDiagnosticsLog.ProbeTimedOutForUrl);
             return CdnUrlProbeOutcome.Indeterminate;
         }
         catch (Exception ex)

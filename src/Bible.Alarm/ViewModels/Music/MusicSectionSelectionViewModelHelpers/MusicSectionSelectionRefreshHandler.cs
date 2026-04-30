@@ -70,9 +70,9 @@ public sealed class MusicSectionSelectionRefreshHandler
                 }
             });
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            logger.Debug("[MusicSectionSelection] RefreshFromState - Fetch cancelled by user");
+            logger.Debug(ex, "[MusicSectionSelection] RefreshFromState - Fetch cancelled by user");
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

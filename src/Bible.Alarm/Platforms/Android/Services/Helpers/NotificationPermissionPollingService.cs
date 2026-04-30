@@ -156,9 +156,9 @@ public sealed class NotificationPermissionPollingService : IDisposable
                     await Task.Delay(1000, cancellationToken);
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckTaskCancelled);
+                logger.Debug(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckTaskCancelled);
             }
             catch (Exception ex)
             {

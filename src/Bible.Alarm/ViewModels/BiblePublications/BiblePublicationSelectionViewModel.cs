@@ -238,10 +238,10 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             // Set the selected publication after population so scroll-to-selected works
             propertyManager.SetSelectedPublication();
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             // Fetch was cancelled - data saved so far is preserved
-            Serilog.Log.Debug(AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchCancelledByUser);
+            Serilog.Log.Debug(ex, AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchCancelledByUser);
             // Hide progress overlay when cancelled
             propertyManager.ShowProgress = false;
         }

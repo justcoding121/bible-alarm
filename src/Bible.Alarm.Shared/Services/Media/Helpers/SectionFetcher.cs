@@ -290,7 +290,7 @@ internal sealed class SectionFetcher
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
-                logger.Debug("Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
+                logger.Debug(ex, "Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                 completedSections++;
                 continue;
@@ -350,7 +350,7 @@ internal sealed class SectionFetcher
             {
                 if (IsSqliteBusyOrLocked(ex))
                 {
-                    logger.Debug("SaveChanges failed with database locked (attempt {Attempt}/{Max}), retrying",
+                    logger.Debug(ex, "SaveChanges failed with database locked (attempt {Attempt}/{Max}), retrying",
                         attempt, maxAttempts);
                     await Task.Delay(100 * attempt, cancellationToken);
                     continue;

@@ -327,13 +327,13 @@ internal sealed class SectionFetcherSectionTracksLoader
             }
             catch (DbUpdateException ex) when (attempt < maxAttempts && IsSqliteBusyOrLocked(ex))
             {
-                logger.Debug("SaveChanges locked (attempt {Attempt}/{Max}) for section {SectionCode}, retrying",
+                logger.Debug(ex, "SaveChanges locked (attempt {Attempt}/{Max}) for section {SectionCode}, retrying",
                     attempt, maxAttempts, sectionCode);
                 await Task.Delay(100 * attempt, cancellationToken);
             }
             catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
             {
-                logger.Warning("Unique constraint on tracks for section {SectionCode} in {PublicationCode}/{LanguageCode} " +
+                logger.Warning(ex, "Unique constraint on tracks for section {SectionCode} in {PublicationCode}/{LanguageCode} " +
                     "- another operation likely inserted them concurrently",
                     sectionCode, publicationCode, languageCode);
                 await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);

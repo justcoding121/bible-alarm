@@ -81,9 +81,9 @@ public sealed class SchedulePlaybackService(
             // Note: ShowNotificationAsync is not called here because it triggers AlarmRingerReceiver
             // which would cause duplicate playback. Notifications are only shown when alarms actually fire.
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            logger.Debug(AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlaybackCancelledForSchedule, scheduleId);
+            logger.Debug(ex, AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlaybackCancelledForSchedule, scheduleId);
         }
         catch (Exception e)
         {

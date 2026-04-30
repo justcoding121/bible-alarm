@@ -92,10 +92,10 @@ public sealed class WindowsPeriodicBackgroundTasks : IDisposable
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             // Expected when timer is stopped
-            logger.Debug("Windows scheduler timer stopped");
+            logger.Debug(ex, "Windows scheduler timer stopped");
         }
         catch (Exception e)
         {

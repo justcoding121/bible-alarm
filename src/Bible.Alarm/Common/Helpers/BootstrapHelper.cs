@@ -133,12 +133,12 @@ public static class BootstrapHelper
             await waitTask.WaitAsync(timeoutCts.Token);
             Log.Logger.Information("Bootstrap wait completed successfully");
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             // Timeout — log warning and return gracefully (don't throw).
             // During phone boot or heavy system load, bootstrap can take longer than expected.
             // Callers should proceed anyway; most operations have their own fallback behavior.
-            Log.Logger.Warning(
+            Log.Logger.Warning(ex,
                 "Bootstrap wait timed out after {TimeoutMs}ms - proceeding anyway (bootstrapCompleted={BootstrapCompleted})",
                 timeoutMs, bootstrapCompleted);
         }

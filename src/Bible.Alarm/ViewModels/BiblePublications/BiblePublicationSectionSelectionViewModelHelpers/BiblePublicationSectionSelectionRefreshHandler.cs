@@ -82,9 +82,9 @@ public sealed class BiblePublicationSectionSelectionRefreshHandler
                 }
             });
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            logger.Debug("BiblePublicationSectionSelectionViewModel: Fetch cancelled by user");
+            logger.Debug(ex, "BiblePublicationSectionSelectionViewModel: Fetch cancelled by user");
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

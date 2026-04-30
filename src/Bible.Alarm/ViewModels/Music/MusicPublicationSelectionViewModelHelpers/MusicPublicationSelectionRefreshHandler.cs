@@ -110,9 +110,9 @@ public sealed class MusicPublicationSelectionRefreshHandler
 
             setSelectedSongPublication();
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            Serilog.Log.Debug(AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchCancelledByUser);
+            Serilog.Log.Debug(ex, AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchCancelledByUser);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)

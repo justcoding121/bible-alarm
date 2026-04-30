@@ -186,7 +186,7 @@ internal class VideoCataloger : BaseCataloger
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
-            Logger.Warning("No languages found for Video publication: {PublicationName} ({PublicationCode})", 
+            Logger.Warning(ex, "No languages found for Video publication: {PublicationName} ({PublicationCode})",
                 publicationName, publicationCode);
             return null;
         }

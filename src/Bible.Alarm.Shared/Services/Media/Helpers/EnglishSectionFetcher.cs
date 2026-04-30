@@ -97,7 +97,7 @@ internal sealed class EnglishSectionFetcher
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
-                logger.Debug("Section {SectionCode} not available for publication {PublicationCode} in English",
+                logger.Debug(ex, "Section {SectionCode} not available for publication {PublicationCode} in English",
                     sectionCode, normalizedPublicationCode);
                 continue;
             }

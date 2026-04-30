@@ -58,9 +58,9 @@ public sealed class PlaybackInitializer
         {
             return await Task.Run(async () => await preparePlaybackService.PrepareTracksAsync(scheduleId, cancellationToken));
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            logger.Information("Track preparation cancelled for schedule {ScheduleId}", scheduleId);
+            logger.Information(ex, "Track preparation cancelled for schedule {ScheduleId}", scheduleId);
             return null;
         }
     }

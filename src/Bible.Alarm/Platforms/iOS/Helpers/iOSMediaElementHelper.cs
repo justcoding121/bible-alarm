@@ -80,7 +80,7 @@ public static class IosMediaElementHelper
             // Fallback: use original path if normalization fails
             if (File.Exists(filePath))
             {
-                logger.Warning(AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.UsingOriginalPathAsFallback, filePath);
+                logger.Warning(ex, AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.UsingOriginalPathAsFallback, filePath);
                 return filePath;
             }
 
