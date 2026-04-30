@@ -1,8 +1,10 @@
 #nullable enable
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Bible.Alarm.Shared.Helpers;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -71,6 +73,43 @@ public sealed class BiblePublicationTrack : IComparable
             return 1;
         }
 
-        return Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Compare(TrackCode, other.TrackCode);
+        return CompareTo(other);
     }
+
+    public int CompareTo(BiblePublicationTrack? other)
+    {
+        if (other is null)
+        {
+            return 1;
+        }
+
+        return CodeComparisonHelper.Compare(TrackCode, other.TrackCode);
+    }
+
+    public bool Equals(BiblePublicationTrack? other) =>
+        other is not null &&
+        (Id != 0 ? Id == other.Id : ReferenceEquals(this, other));
+
+    public override bool Equals(object? obj) => Equals(obj as BiblePublicationTrack);
+
+    public override int GetHashCode() =>
+        Id != 0 ? Id.GetHashCode() : RuntimeHelpers.GetHashCode(this);
+
+    public static bool operator ==(BiblePublicationTrack? left, BiblePublicationTrack? right) =>
+        ReferenceEquals(left, right) ||
+        left is not null && right is not null && left.Equals(right);
+
+    public static bool operator !=(BiblePublicationTrack? left, BiblePublicationTrack? right) => !(left == right);
+
+    public static bool operator <(BiblePublicationTrack? left, BiblePublicationTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(BiblePublicationTrack? left, BiblePublicationTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(BiblePublicationTrack? left, BiblePublicationTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(BiblePublicationTrack? left, BiblePublicationTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

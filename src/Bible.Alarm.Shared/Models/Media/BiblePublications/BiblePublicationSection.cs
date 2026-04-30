@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -45,9 +46,46 @@ public sealed class BiblePublicationSection : IComparable
             return 1;
         }
 
+        return CompareTo(other);
+    }
+
+    public int CompareTo(BiblePublicationSection? other)
+    {
+        if (other is null)
+        {
+            return 1;
+        }
+
         // IMPORTANT:
         // Section codes are stored/treated as strings throughout the app.
         // The only place we interpret them numerically is for ordering (natural sort).
         return SectionCodeHelper.SectionCodeComparer.Compare(SectionCode, other.SectionCode);
     }
+
+    public bool Equals(BiblePublicationSection? other) =>
+        other is not null &&
+        (Id != 0 ? Id == other.Id : ReferenceEquals(this, other));
+
+    public override bool Equals(object? obj) => Equals(obj as BiblePublicationSection);
+
+    public override int GetHashCode() =>
+        Id != 0 ? Id.GetHashCode() : RuntimeHelpers.GetHashCode(this);
+
+    public static bool operator ==(BiblePublicationSection? left, BiblePublicationSection? right) =>
+        ReferenceEquals(left, right) ||
+        left is not null && right is not null && left.Equals(right);
+
+    public static bool operator !=(BiblePublicationSection? left, BiblePublicationSection? right) => !(left == right);
+
+    public static bool operator <(BiblePublicationSection? left, BiblePublicationSection? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(BiblePublicationSection? left, BiblePublicationSection? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(BiblePublicationSection? left, BiblePublicationSection? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(BiblePublicationSection? left, BiblePublicationSection? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

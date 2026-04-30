@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -38,10 +39,18 @@ public sealed class AlarmSchedule : IComparable
     [Range(0, 23)]
     public int Hour { get; set; }
 
-    public int MeridianHour => Meridian == Meridian.Am ? Hour == 0
-            ? 12
-            : Hour :
-        Hour == 12 ? 12 : Hour % 12;
+    public int MeridianHour
+    {
+        get
+        {
+            if (Meridian == Meridian.Am)
+            {
+                return Hour == 0 ? 12 : Hour;
+            }
+
+            return Hour == 12 ? 12 : Hour % 12;
+        }
+    }
 
     [Required]
     [Range(0, 59)]
@@ -135,28 +144,30 @@ public sealed class AlarmSchedule : IComparable
     {
         if (Minute is < 0 or >= 60)
         {
-            throw new Exception("Invalid minute.");
+            throw new InvalidOperationException("Invalid minute.");
         }
 
         if (Hour is < 0 or >= 24)
         {
-            throw new Exception("Invalid hour.");
+            throw new InvalidOperationException("Invalid hour.");
         }
 
         if (DaysOfWeek == 0)
         {
-            throw new Exception("DaysOfWeek is empty.");
+            throw new InvalidOperationException("DaysOfWeek is empty.");
         }
     }
 
     private static void ValidateNextFire(CronExpression expression)
     {
-        _ = expression.GetNextValidTimeAfter(DateTimeOffset.Now) ?? throw new Exception("Invalid alarm time.");
+        _ = expression.GetNextValidTimeAfter(DateTimeOffset.Now) ?? throw new InvalidOperationException("Invalid alarm time.");
     }
 
-    public int CompareTo(object? obj)
+    public int CompareTo(object? obj) => CompareTo(obj as AlarmSchedule);
+
+    public int CompareTo(AlarmSchedule? other)
     {
-        if (obj is not AlarmSchedule other)
+        if (other is null)
         {
             return 1;
         }
@@ -164,15 +175,42 @@ public sealed class AlarmSchedule : IComparable
         return Id.CompareTo(other.Id);
     }
 
+    public bool Equals(AlarmSchedule? other) =>
+        other is not null &&
+        (Id != 0 ? Id == other.Id : ReferenceEquals(this, other));
+
+    public override bool Equals(object? obj) => Equals(obj as AlarmSchedule);
+
+    public override int GetHashCode() =>
+        Id != 0 ? Id.GetHashCode() : RuntimeHelpers.GetHashCode(this);
+
+    public static bool operator ==(AlarmSchedule? left, AlarmSchedule? right) =>
+        ReferenceEquals(left, right) ||
+        left is not null && right is not null && left.Equals(right);
+
+    public static bool operator !=(AlarmSchedule? left, AlarmSchedule? right) => !(left == right);
+
+    public static bool operator <(AlarmSchedule? left, AlarmSchedule? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(AlarmSchedule? left, AlarmSchedule? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(AlarmSchedule? left, AlarmSchedule? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(AlarmSchedule? left, AlarmSchedule? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
+
     public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, IBiblePublicationService biblePublicationService, IMelodyMusicService melodyMusicService)
     {
         var startTime = DateTime.UtcNow;
-        Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
+        Log.Debug("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
 
         // Get first available Bible language and publication from database
         var languagesQueryStart = DateTime.UtcNow;
         var bibleLanguages = await biblePublicationService.GetDistinctLanguagesAsync();
-        Log.Information("[PERF] GetSampleSchedule: Bible languages query took {ElapsedMs}ms", (DateTime.UtcNow - languagesQueryStart).TotalMilliseconds);
+        Log.Debug("[PERF] GetSampleSchedule: Bible languages query took {ElapsedMs}ms", (DateTime.UtcNow - languagesQueryStart).TotalMilliseconds);
 
         if (bibleLanguages == null || bibleLanguages.Count == 0)
         {
@@ -218,15 +256,16 @@ public sealed class AlarmSchedule : IComparable
                 // Sort publications by priority: nwt first, then bi12, then others
                 var sortedPublications = PublicationSortHelper.SortByPriority(englishPublications, pub => pub.Name);
                 
-                foreach (var pub in sortedPublications.Where(p => PublicationTypeHelper.HasSectionStructure(p.Key)))
+                foreach (var publicationCode in sortedPublications.Where(p =>
+                             PublicationTypeHelper.HasSectionStructure(p.Key)).Select(p => p.Key))
                 {
                     // Load with sections in one call - this includes Category
                     var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                        DefaultLanguageCode, pub.Key);
+                        DefaultLanguageCode, publicationCode);
                     if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
                     {
                         bibleLanguageCode = DefaultLanguageCode;
-                        biblePublicationCode = pub.Key;
+                        biblePublicationCode = publicationCode;
                         selectedBible = biblePub;
                         break;
                     }
@@ -237,9 +276,9 @@ public sealed class AlarmSchedule : IComparable
         // Fallback: find any language with a sectioned publication
         if (selectedBible == null)
         {
-            foreach (var lang in bibleLanguages)
+            foreach (var languageCode in bibleLanguages.Keys)
             {
-                var publications = await biblePublicationService.GetByLanguageCodeAsync(lang.Key);
+                var publications = await biblePublicationService.GetByLanguageCodeAsync(languageCode);
                 if (publications == null || publications.Count == 0)
                 {
                     continue;
@@ -248,15 +287,16 @@ public sealed class AlarmSchedule : IComparable
                 // Sort publications by priority: nwt first, then bi12, then others
                 var sortedPublications = PublicationSortHelper.SortByPriority(publications, pub => pub.Name);
                 
-                foreach (var pub in sortedPublications.Where(p => PublicationTypeHelper.HasSectionStructure(p.Key)))
+                foreach (var publicationCode in sortedPublications.Where(p =>
+                             PublicationTypeHelper.HasSectionStructure(p.Key)).Select(p => p.Key))
                 {
                     // Load with sections in one call - this includes Category
                     var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                        lang.Key, pub.Key);
+                        languageCode, publicationCode);
                     if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
                     {
-                        bibleLanguageCode = lang.Key;
-                        biblePublicationCode = pub.Key;
+                        bibleLanguageCode = languageCode;
+                        biblePublicationCode = publicationCode;
                         selectedBible = biblePub;
                         break;
                     }
@@ -277,7 +317,7 @@ public sealed class AlarmSchedule : IComparable
         // Get first available melody music from database that has tracks
         var melodyQueryStart = DateTime.UtcNow;
         var melodyReleases = await melodyMusicService.GetAllAsync();
-        Log.Information("[PERF] GetSampleSchedule: Melody releases query took {ElapsedMs}ms", (DateTime.UtcNow - melodyQueryStart).TotalMilliseconds);
+        Log.Debug("[PERF] GetSampleSchedule: Melody releases query took {ElapsedMs}ms", (DateTime.UtcNow - melodyQueryStart).TotalMilliseconds);
 
         if (melodyReleases == null || melodyReleases.Count == 0)
         {
@@ -310,12 +350,12 @@ public sealed class AlarmSchedule : IComparable
 
         if (melodyPublicationCode == null)
         {
-            foreach (var melody in melodyReleases)
+            foreach (var melodyKey in melodyReleases.Keys)
             {
-                var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melody.Key);
+                var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melodyKey);
                 if (musicWithTracks?.Tracks != null && musicWithTracks.Tracks.Count > 0)
                 {
-                    melodyPublicationCode = melody.Key;
+                    melodyPublicationCode = melodyKey;
                     break;
                 }
             }
@@ -391,7 +431,7 @@ public sealed class AlarmSchedule : IComparable
         var musicQueryStartTime = DateTime.UtcNow;
         var music = await melodyMusicService.GetByCodeWithTracksAsync(sample.Music.PublicationCode);
         var musicQueryElapsed = (DateTime.UtcNow - musicQueryStartTime).TotalMilliseconds;
-        Log.Information("[PERF] GetSampleSchedule: Music tracks query took {ElapsedMs}ms", musicQueryElapsed);
+        Log.Debug("[PERF] GetSampleSchedule: Music tracks query took {ElapsedMs}ms", musicQueryElapsed);
 
         if (music == null || music.Publication == null)
         {

@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Runtime.CompilerServices;
 using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Shared.Models.Media.Music;
@@ -27,10 +28,41 @@ public class MusicTrack : IComparable
     /// </summary>
     public string? DownloadCode { get; set; }
 
-    public int CompareTo(object? obj)
+    public int CompareTo(MusicTrack? other)
     {
-        if (obj is not MusicTrack other)
-            return 0;
+        if (other is null)
+        {
+            return 1;
+        }
+
         return CodeComparisonHelper.Compare(TrackCode, other.TrackCode);
     }
+
+    public int CompareTo(object? obj) => obj is MusicTrack other ? CompareTo(other) : 1;
+
+    public bool Equals(MusicTrack? other) =>
+        other is not null && CompareTo(other) == 0;
+
+    public override bool Equals(object? obj) => Equals(obj as MusicTrack);
+
+    public override int GetHashCode() =>
+        TrackCode is null ? RuntimeHelpers.GetHashCode(this) : StringComparer.Ordinal.GetHashCode(TrackCode);
+
+    public static bool operator ==(MusicTrack? left, MusicTrack? right) =>
+        ReferenceEquals(left, right) ||
+        left is not null && right is not null && left.Equals(right);
+
+    public static bool operator !=(MusicTrack? left, MusicTrack? right) => !(left == right);
+
+    public static bool operator <(MusicTrack? left, MusicTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(MusicTrack? left, MusicTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(MusicTrack? left, MusicTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(MusicTrack? left, MusicTrack? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }

@@ -577,36 +577,31 @@ public static class JwSourceHelper
     /// Excludes melody (iam) which has no language.
     /// Used by EnglishSeeder and E-seed validation so every listed publication has E content with &gt;0 tracks.
     /// </summary>
-    public static HashSet<string> AllPublicationCodesForEnglishSeeding
-    {
-        get
-        {
-            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var code in BiblePublicationCodes) set.Add(code);
-            foreach (var code in VocalMusicPublicationCodes) set.Add(code);
-            foreach (var code in MusicMediatorPublicationCodes) set.Add(code);
-            foreach (var code in DramaCategoryCodes) set.Add(code);
-            foreach (var code in VideoPublicationCodes) set.Add(code);
-            foreach (var code in ChildrenPublicationCodes) set.Add(code);
-            foreach (var code in SeriesPublicationCodes) set.Add(code);
-            foreach (var code in BroadcastingPublicationCodes) set.Add(code);
-            foreach (var code in TeenagersPublicationCodes) set.Add(code);
-            foreach (var code in FamilyPublicationCodes) set.Add(code);
-            foreach (var code in ProgramsAndEventsPublicationCodes) set.Add(code);
-            foreach (var code in ActivitiesPublicationCodes) set.Add(code);
-            foreach (var code in MeetingsAndMinistryPublicationCodes) set.Add(code);
-            foreach (var code in OrganizationPublicationCodes) set.Add(code);
-            foreach (var code in FaithAndBiblePublicationCodes) set.Add(code);
-            foreach (var code in InterviewsAndExperiencesPublicationCodes) set.Add(code);
-            foreach (var code in ArticleSeriesPublicationCodes) set.Add(code);
-            foreach (var code in BooksPublicationCodes) set.Add(code);
-            foreach (var code in YearbooksPublicationCodes) set.Add(code);
-            foreach (var code in BrochuresAndBookletsPublicationCodes) set.Add(code);
-            foreach (var code in WatchtowerMagazinePublicationCodes) set.Add(code);
-            foreach (var code in AwakeMagazinePublicationCodes) set.Add(code);
-            return set;
-        }
-    }
+    public static readonly HashSet<string> AllPublicationCodesForEnglishSeeding =
+        new(
+            BiblePublicationCodes
+                .Concat(VocalMusicPublicationCodes)
+                .Concat(MusicMediatorPublicationCodes)
+                .Concat(DramaCategoryCodes)
+                .Concat(VideoPublicationCodes)
+                .Concat(ChildrenPublicationCodes)
+                .Concat(SeriesPublicationCodes)
+                .Concat(BroadcastingPublicationCodes)
+                .Concat(TeenagersPublicationCodes)
+                .Concat(FamilyPublicationCodes)
+                .Concat(ProgramsAndEventsPublicationCodes)
+                .Concat(ActivitiesPublicationCodes)
+                .Concat(MeetingsAndMinistryPublicationCodes)
+                .Concat(OrganizationPublicationCodes)
+                .Concat(FaithAndBiblePublicationCodes)
+                .Concat(InterviewsAndExperiencesPublicationCodes)
+                .Concat(ArticleSeriesPublicationCodes)
+                .Concat(BooksPublicationCodes)
+                .Concat(YearbooksPublicationCodes)
+                .Concat(BrochuresAndBookletsPublicationCodes)
+                .Concat(WatchtowerMagazinePublicationCodes)
+                .Concat(AwakeMagazinePublicationCodes),
+            StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Centralized mapping of category names to their publication codes.

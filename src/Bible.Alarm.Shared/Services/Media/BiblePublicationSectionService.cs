@@ -46,10 +46,9 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
         }
         catch (Exception ex)
         {
-            logger.Error(ex,
-                "Error getting BiblePublicationSection name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
-                languageCode, publicationCode, sectionCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting BiblePublicationSection name. LanguageCode={languageCode}, PublicationCode={publicationCode}, SectionCode={sectionCode}",
+                ex);
         }
     }
 
@@ -93,9 +92,9 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationSections by publication. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
-                languageCode, publicationCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting BiblePublicationSections by publication. LanguageCode={languageCode}, PublicationCode={publicationCode}",
+                ex);
         }
     }
 
@@ -121,10 +120,9 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
         }
         catch (Exception ex)
         {
-            logger.Error(ex,
-                "Error getting BiblePublicationSection. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
-                languageCode, publicationCode, sectionCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting BiblePublicationSection. LanguageCode={languageCode}, PublicationCode={publicationCode}, SectionCode={sectionCode}",
+                ex);
         }
     }
 
@@ -170,9 +168,9 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting sections for publication without language. PublicationCode={PublicationCode}",
-                publicationCode);
-            throw;
+            throw new InvalidOperationException(
+                $"Error getting sections for publication without language. PublicationCode={publicationCode}",
+                ex);
         }
     }
 

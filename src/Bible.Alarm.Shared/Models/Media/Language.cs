@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -39,6 +40,43 @@ public sealed class Language : IComparable
             return 1;
         }
 
+        return CompareTo(other);
+    }
+
+    public int CompareTo(Language? other)
+    {
+        if (other is null)
+        {
+            return 1;
+        }
+
         return string.Compare(LanguageCode, other.LanguageCode, StringComparison.Ordinal);
     }
+
+    public bool Equals(Language? other) =>
+        other is not null &&
+        (Id != 0 ? Id == other.Id : ReferenceEquals(this, other));
+
+    public override bool Equals(object? obj) => Equals(obj as Language);
+
+    public override int GetHashCode() =>
+        Id != 0 ? Id.GetHashCode() : RuntimeHelpers.GetHashCode(this);
+
+    public static bool operator ==(Language? left, Language? right) =>
+        ReferenceEquals(left, right) ||
+        left is not null && right is not null && left.Equals(right);
+
+    public static bool operator !=(Language? left, Language? right) => !(left == right);
+
+    public static bool operator <(Language? left, Language? right) =>
+        left is not null && right is not null && left.CompareTo(right) < 0;
+
+    public static bool operator >(Language? left, Language? right) =>
+        left is not null && right is not null && left.CompareTo(right) > 0;
+
+    public static bool operator <=(Language? left, Language? right) =>
+        left is not null && right is not null && left.CompareTo(right) <= 0;
+
+    public static bool operator >=(Language? left, Language? right) =>
+        left is not null && right is not null && left.CompareTo(right) >= 0;
 }
