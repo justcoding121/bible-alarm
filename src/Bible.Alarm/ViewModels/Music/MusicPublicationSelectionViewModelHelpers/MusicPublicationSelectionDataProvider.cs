@@ -71,7 +71,7 @@ public sealed class MusicPublicationSelectionDataProvider(
                 }
             }
 
-            languageVMs = languageVMs.OrderBy(x => x.Name).ToList();
+            languageVMs = languageVMs.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
             // Add items in small batches with frequent yields for smooth spinner animation
             const int batchSize = 15;

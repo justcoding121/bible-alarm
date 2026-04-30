@@ -169,7 +169,7 @@ internal static class MediatorSectionCodeExtractor
                 var naturalKey = naturalKeyElement.GetString() ?? "";
                 if (naturalKey.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdNaturalKeyPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    var parts = naturalKey.Split('_', StringSplitOptions.TrimEntries);
+                    var parts = naturalKey.Split('_', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length < 3)
                     {
                         continue;
@@ -195,7 +195,7 @@ internal static class MediatorSectionCodeExtractor
                     continue;
                 }
 
-                var pubParts = naturalKey.Split('_', StringSplitOptions.TrimEntries);
+                var pubParts = naturalKey.Split('_', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 if (pubParts.Length < 3)
                 {
                     continue;

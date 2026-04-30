@@ -162,7 +162,7 @@ internal static class MediaCacheCleanup
                     {
                         // Delete all files in the folder first
                         var filesInFolder = await storageService.GetAllFiles(folderPath);
-                        await deleteFilesAsync(new HashSet<string>(filesInFolder));
+                        await deleteFilesAsync(new HashSet<string>(filesInFolder, StringComparer.Ordinal));
 
                         // Delete the folder itself
                         await storageService.DeleteDirectory(folderPath);
@@ -261,7 +261,7 @@ internal static class MediaCacheCleanup
                 if (await storageService.DirectoryExists(scheduleCacheFolder))
                 {
                     var filesToDelete = await storageService.GetAllFiles(scheduleCacheFolder);
-                    await DeleteFilesAsync(logger, storageService, inProgressDownloads, getCacheFileName, new HashSet<string>(filesToDelete));
+                    await DeleteFilesAsync(logger, storageService, inProgressDownloads, getCacheFileName, new HashSet<string>(filesToDelete, StringComparer.Ordinal));
                     await storageService.DeleteDirectory(scheduleCacheFolder);
                     logger.Information("Deleted entire cache folder for deleted schedule {ScheduleId} ({Count} files)",
                         scheduleId,

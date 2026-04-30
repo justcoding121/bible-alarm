@@ -174,7 +174,7 @@ public class PlaylistBiblePublicationTrackBuilder
     private static void ApplyDiscStyleDisplayMetadata(TrackMetadata trackMetadata, string? sectionCode, string trackCode)
     {
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
-        if (string.IsNullOrWhiteSpace(normalizedSectionCode) || !normalizedSectionCode.Contains('-'))
+        if (string.IsNullOrWhiteSpace(normalizedSectionCode) || !normalizedSectionCode.Contains("-", StringComparison.Ordinal))
         {
             return;
         }

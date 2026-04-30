@@ -187,7 +187,7 @@ internal sealed class SectionFetcherSectionTracksLoader
                     var separators = new[] { " - ", " – ", " — ", " -", "- " };
                     foreach (var separator in separators.Where(sep => title.Contains(sep, StringComparison.Ordinal)))
                     {
-                        var parts = title.Split(new[] { separator }, StringSplitOptions.TrimEntries);
+                        var parts = title.Split(new[] { separator }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                         if (parts.Length > 1)
                         {
                             title = parts[parts.Length - 1].Trim();

@@ -378,7 +378,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 uniqueCodes[code] = code;
             }
 
-            var result = uniqueCodes.Values.OrderBy(x => x).ToList();
+            var result = uniqueCodes.Values.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
 
             logger.Debug("GetAvailablePublicationCodesAsync: Found {Count} available publication codes (deduplicated from {OriginalCount}) for language={LanguageCode}, category={CategoryName}",
                 result.Count, publicationCodes.Count, languageCode, categoryName ?? "all");
