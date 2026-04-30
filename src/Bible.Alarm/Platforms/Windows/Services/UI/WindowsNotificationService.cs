@@ -18,6 +18,8 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
     /// </summary>
     internal const string AlarmToastGroup = "BibleAlarmSchedule";
 
+    private const string MediaPlaybackToastTagGroup = "MediaPlayback";
+
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task ShowNotificationAsync(int scheduleId)
@@ -194,7 +196,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             // This removes it from both the action center and dismisses it from the screen if still visible
             try
             {
-                ToastNotificationManager.History.Remove("MediaPlayback", "MediaPlayback");
+                ToastNotificationManager.History.Remove(MediaPlaybackToastTagGroup, MediaPlaybackToastTagGroup);
                 logger.Debug(AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.MediaToastDismissedRemovedFromScreen);
             }
             catch (Exception ex)
@@ -231,8 +233,8 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
             // Use the same Tag and Group - Windows will automatically replace any existing toast with these values
             // This allows seamless updates when track changes or play/pause state changes
-            toast.Tag = "MediaPlayback";
-            toast.Group = "MediaPlayback";
+            toast.Tag = MediaPlaybackToastTagGroup;
+            toast.Group = MediaPlaybackToastTagGroup;
 
             // Sound is suppressed via silent audio element in the toast XML
             toast.SuppressPopup = false;

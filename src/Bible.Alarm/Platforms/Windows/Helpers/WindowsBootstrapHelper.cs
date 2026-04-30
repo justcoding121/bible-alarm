@@ -5,7 +5,13 @@ namespace Bible.Alarm.Platforms.Windows.Helpers;
 
 public static class WindowsBootstrapHelper
 {
-    public static bool IsBackgroundTaskEnabled { get; set; } = true;
+    private static volatile bool backgroundTaskEnabled = true;
+
+    public static bool IsBackgroundTaskEnabled
+    {
+        get => backgroundTaskEnabled;
+        set => backgroundTaskEnabled = value;
+    }
 
     /// <summary>
     /// Main entry point for Windows platform initialization

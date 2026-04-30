@@ -14,6 +14,8 @@ namespace Bible.Alarm.Cataloger.Utility;
 
 internal class DownloadUtility
 {
+    private const string HttpResponseStatusCodeMessageMarker = "Response status code";
+
     private readonly ILogger logger;
     private readonly AsyncRetryPolicy<string> retryPolicy;
 
@@ -23,7 +25,7 @@ internal class DownloadUtility
         retryPolicy = Policy<string>
             .Handle<HttpRequestException>(ex =>
                 ex.Message.Contains("Server busy", StringComparison.Ordinal) ||
-                !ex.Message.Contains("Response status code", StringComparison.Ordinal))
+                !ex.Message.Contains(HttpResponseStatusCodeMessageMarker, StringComparison.Ordinal))
             .Or<TaskCanceledException>()
             .Or<IOException>()
             .WaitAndRetryAsync(
@@ -61,7 +63,7 @@ internal class DownloadUtility
                 return await SendRequestWithFallbackAsync(client, catalogLink);
             });
         }
-        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
+        catch (HttpRequestException ex) when (ex.Message.Contains(HttpResponseStatusCodeMessageMarker, StringComparison.Ordinal))
         {
             throw;
         }
@@ -87,7 +89,7 @@ internal class DownloadUtility
                 return await SendRequestWithFallbackAsync(client, attempts[i]);
             }
             catch (HttpRequestException ex) when (
-                ex.Message.Contains("Response status code", StringComparison.Ordinal) &&
+                ex.Message.Contains(HttpResponseStatusCodeMessageMarker, StringComparison.Ordinal) &&
                 !ex.Message.Contains("Server busy", StringComparison.Ordinal))
             {
                 throw;
@@ -147,7 +149,7 @@ internal class DownloadUtility
         {
             return await SendHttpRequestAsync(client, catalogLink, new Version(2, 0), HttpVersionPolicy.RequestVersionOrHigher);
         }
-        catch (HttpRequestException ex) when (!ex.Message.Contains("Server busy", StringComparison.Ordinal) && !ex.Message.Contains("Response status code", StringComparison.Ordinal))
+        catch (HttpRequestException ex) when (!ex.Message.Contains("Server busy", StringComparison.Ordinal) && !ex.Message.Contains(HttpResponseStatusCodeMessageMarker, StringComparison.Ordinal))
         {
             return await SendHttpRequestAsync(client, catalogLink, new Version(1, 1), HttpVersionPolicy.RequestVersionExact);
         }
@@ -188,7 +190,7 @@ internal class DownloadUtility
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new HttpRequestException($"Response status code does not indicate success: {(int)response.StatusCode} ({response.StatusCode}).");
+            throw new HttpRequestException($"{HttpResponseStatusCodeMessageMarker} does not indicate success: {(int)response.StatusCode} ({response.StatusCode}).");
         }
     }
 }

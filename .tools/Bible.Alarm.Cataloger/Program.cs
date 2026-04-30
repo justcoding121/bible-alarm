@@ -287,7 +287,7 @@ public static class Program
             if (!isTestRun && newIndexFileSize < originalIndexFileSize &&
                 (originalIndexFileSize - newIndexFileSize) > (1024 * 1024)) // 1 MB threshold
             {
-                throw new ApplicationException($"New index file size ({newIndexFileSize / 1024}kb) is significantly smaller than old index file size ({originalIndexFileSize / 1024}kb). This could indicate data loss.");
+                throw new InvalidOperationException($"New index file size ({newIndexFileSize / 1024}kb) is significantly smaller than old index file size ({originalIndexFileSize / 1024}kb). This could indicate data loss.");
             }
 
             // Media index is now packaged with the app only, updated on app updates

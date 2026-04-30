@@ -130,7 +130,7 @@ public class MauiMediaElement : UIView
         {
             case > 1:
                 // We are unable to determine which ItemsView contains the MediaElement when multiple ItemsView are being used in the same page
-                // TODO: Add support for MediaElement in an ItemsView on a Page containing multiple ItemsViews 
+                // Future: support MediaElement in an ItemsView on a page containing multiple ItemsViews.
                 throw new NotSupportedException("MediaElement does not currently support pages containing multiple ItemsViews (eg multiple CarouselViews + CollectionViews)");
             case 1:
                 itemsView = itemsViewsOnPage[0];
@@ -158,7 +158,7 @@ public class MauiMediaElement : UIView
         if (Application.Current.Windows.Count > 1)
         {
             // We are unable to determine which Window contains the ItemsView that contains the MediaElement when multiple ItemsView are being used in the same page
-            // TODO: Add support for MediaElement in an ItemsView in a multi-window application
+            // Future: support MediaElement in an ItemsView in a multi-window application.
             throw new NotSupportedException("MediaElement is not currently supported in multi-window applications");
         }
         if (Application.Current.Windows[0].Page is Page page)

@@ -20,10 +20,11 @@ public class AlarmSetupService : Service
 {
     private static readonly ILogger logger = Log.ForContext<AlarmSetupService>();
 
+    private static volatile bool alarmSetupServiceRunning;
 
-    public static bool IsRunning { get; private set; }
+    public static bool IsRunning => alarmSetupServiceRunning;
 
-    private static void SetIsRunningState(bool value) => IsRunning = value;
+    private static void SetIsRunningState(bool value) => alarmSetupServiceRunning = value;
 
     public AlarmSetupService()
     {

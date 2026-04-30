@@ -20,6 +20,8 @@ static class Program
 {
     private static readonly string[] GenerateEmptyScheduleDbArgs = ["generate-empty-schedule-db"];
 
+    private const string SharedMigrationsAssemblyName = "Bible.Alarm.Shared";
+
     private static void TryDeleteFileBestEffort(string path)
     {
         if (!File.Exists(path))
@@ -274,7 +276,7 @@ static class Program
                 AppConstants.Database.ScheduleDatabaseConnectionStringFormat,
                 resourcesDbPath);
             var resourcesOptionsBuilder = new DbContextOptionsBuilder<ScheduleDbContext>();
-            resourcesOptionsBuilder.UseSqlite(resourcesConnectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+            resourcesOptionsBuilder.UseSqlite(resourcesConnectionString, b => b.MigrationsAssembly(SharedMigrationsAssemblyName));
             
             using (var resourcesContext = new ScheduleDbContext(resourcesOptionsBuilder.Options))
             {
@@ -392,7 +394,7 @@ static class Program
                 tempDbPath);
 
             var tempOptionsBuilder = new DbContextOptionsBuilder<ScheduleDbContext>();
-            tempOptionsBuilder.UseSqlite(tempConnectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+            tempOptionsBuilder.UseSqlite(tempConnectionString, b => b.MigrationsAssembly(SharedMigrationsAssemblyName));
             tempOptionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 
             using (var tempContext = new ScheduleDbContext(tempOptionsBuilder.Options))
@@ -459,7 +461,7 @@ static class Program
                 AppConstants.Database.ScheduleDatabaseConnectionStringFormat,
                 outputPath);
             var verifyOptionsBuilder = new DbContextOptionsBuilder<ScheduleDbContext>();
-            verifyOptionsBuilder.UseSqlite(verifyConnectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+            verifyOptionsBuilder.UseSqlite(verifyConnectionString, b => b.MigrationsAssembly(SharedMigrationsAssemblyName));
             using (var verifyContext = new ScheduleDbContext(verifyOptionsBuilder.Options))
             {
                 var verifyApplied = await verifyContext.Database.GetAppliedMigrationsAsync();
@@ -592,7 +594,7 @@ extractZip:
             AppConstants.Database.MediaIndexDatabaseConnectionStringFormat,
             dbPath);
         var optionsBuilder = new DbContextOptionsBuilder<MediaDbContext>();
-        optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+        optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly(SharedMigrationsAssemblyName));
 
         using var context = new MediaDbContext(optionsBuilder.Options);
         var languages = await context.PublicationLanguages

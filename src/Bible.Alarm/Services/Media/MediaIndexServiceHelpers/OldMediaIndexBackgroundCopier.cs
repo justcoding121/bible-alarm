@@ -15,6 +15,8 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
 {
     private const string SqlParamPubCode = "@pubCode";
     private const string SqlParamLangCode = "@langCode";
+    private const string SqlParamSectionCode = "@sectionCode";
+    private const string SqlParamTrackCode = "@trackCode";
 
     public async Task CopyRemainingDataAsync(
         string oldMediaIndexDbPath,
@@ -254,13 +256,13 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
     {
         using var findCmd = connection.CreateCommand();
         findCmd.Transaction = transaction;
-        findCmd.CommandText = """
+        findCmd.CommandText = $"""
             SELECT Id FROM BiblePublicationSections
-            WHERE BiblePublicationId = @pubId AND SectionCode = @sectionCode
+            WHERE BiblePublicationId = @pubId AND SectionCode = {SqlParamSectionCode}
             LIMIT 1
             """;
         findCmd.Parameters.AddWithValue("@pubId", newPubId);
-        findCmd.Parameters.AddWithValue("@sectionCode", sectionCode);
+        findCmd.Parameters.AddWithValue(SqlParamSectionCode, sectionCode);
         var existing = await findCmd.ExecuteScalarAsync();
         if (existing is long existingId)
         {
@@ -274,12 +276,12 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
             FROM old_media.BiblePublicationSections os
             JOIN old_media.BiblePublications op ON os.BiblePublicationId = op.Id
             JOIN old_media.Languages ol ON op.LanguageId = ol.Id
-            WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode} AND os.SectionCode = @sectionCode
+            WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode} AND os.SectionCode = {SqlParamSectionCode}
             LIMIT 1
             """;
         readCmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
         readCmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
-        readCmd.Parameters.AddWithValue("@sectionCode", sectionCode);
+        readCmd.Parameters.AddWithValue(SqlParamSectionCode, sectionCode);
 
         using var reader = await readCmd.ExecuteReaderAsync();
         if (!await reader.ReadAsync())
@@ -293,13 +295,13 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
 
         using var insertCmd = connection.CreateCommand();
         insertCmd.Transaction = transaction;
-        insertCmd.CommandText = """
+        insertCmd.CommandText = $"""
             INSERT INTO BiblePublicationSections (Name, SectionCode, BiblePublicationId)
-            VALUES (@name, @sectionCode, @newPubId);
+            VALUES (@name, {SqlParamSectionCode}, @newPubId);
             SELECT last_insert_rowid();
             """;
         insertCmd.Parameters.AddWithValue("@name", name);
-        insertCmd.Parameters.AddWithValue("@sectionCode", readSectionCode);
+        insertCmd.Parameters.AddWithValue(SqlParamSectionCode, readSectionCode);
         insertCmd.Parameters.AddWithValue("@newPubId", newPubId);
 
         var result = await insertCmd.ExecuteScalarAsync();
@@ -356,11 +358,11 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
             JOIN old_media.BiblePublicationSections os ON ot.BiblePublicationSectionId = os.Id
             JOIN old_media.BiblePublications op ON os.BiblePublicationId = op.Id
             JOIN old_media.Languages ol ON op.LanguageId = ol.Id
-            WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode} AND os.SectionCode = @sectionCode
+            WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode} AND os.SectionCode = {SqlParamSectionCode}
             """;
         cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
         cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
-        cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
+        cmd.Parameters.AddWithValue(SqlParamSectionCode, sectionCode);
 
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -412,23 +414,23 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
 
         if (string.IsNullOrEmpty(sectionCode))
         {
-            cmd.CommandText = """
+            cmd.CommandText = $"""
                 SELECT COUNT(1) FROM BiblePublicationTracks
-                WHERE BiblePublicationId = @pubId AND BiblePublicationSectionId IS NULL AND TrackCode = @trackCode
+                WHERE BiblePublicationId = @pubId AND BiblePublicationSectionId IS NULL AND TrackCode = {SqlParamTrackCode}
                 """;
         }
         else
         {
-            cmd.CommandText = """
+            cmd.CommandText = $"""
                 SELECT COUNT(1) FROM BiblePublicationTracks t
                 JOIN BiblePublicationSections s ON t.BiblePublicationSectionId = s.Id
-                WHERE t.BiblePublicationId = @pubId AND s.SectionCode = @sectionCode AND t.TrackCode = @trackCode
+                WHERE t.BiblePublicationId = @pubId AND s.SectionCode = {SqlParamSectionCode} AND t.TrackCode = {SqlParamTrackCode}
                 """;
-            cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
+            cmd.Parameters.AddWithValue(SqlParamSectionCode, sectionCode);
         }
 
         cmd.Parameters.AddWithValue("@pubId", newPubId);
-        cmd.Parameters.AddWithValue("@trackCode", trackCode);
+        cmd.Parameters.AddWithValue(SqlParamTrackCode, trackCode);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
     }
 
@@ -442,12 +444,12 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
     {
         using var cmd = connection.CreateCommand();
         cmd.Transaction = transaction;
-        cmd.CommandText = """
+        cmd.CommandText = $"""
             INSERT INTO BiblePublicationTracks (TrackCode, Title, BiblePublicationId, BiblePublicationSectionId)
-            VALUES (@trackCode, @title, @pubId, @sectionId);
+            VALUES ({SqlParamTrackCode}, @title, @pubId, @sectionId);
             SELECT last_insert_rowid();
             """;
-        cmd.Parameters.AddWithValue("@trackCode", trackCode);
+        cmd.Parameters.AddWithValue(SqlParamTrackCode, trackCode);
         cmd.Parameters.AddWithValue("@title", title);
         cmd.Parameters.AddWithValue("@pubId", newPubId);
         cmd.Parameters.AddWithValue("@sectionId", newSectionId.HasValue ? (object)newSectionId.Value : DBNull.Value);
@@ -478,7 +480,7 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
                 JOIN old_media.BiblePublications op ON ot.BiblePublicationId = op.Id
                 JOIN old_media.Languages ol ON op.LanguageId = ol.Id
                 WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode}
-                  AND ot.BiblePublicationSectionId IS NULL AND ot.TrackCode = @trackCode
+                  AND ot.BiblePublicationSectionId IS NULL AND ot.TrackCode = {SqlParamTrackCode}
                 LIMIT 1
                 """;
         }
@@ -493,16 +495,16 @@ internal sealed class OldMediaIndexBackgroundCopier(ILogger logger)
                 JOIN old_media.BiblePublications op ON os.BiblePublicationId = op.Id
                 JOIN old_media.Languages ol ON op.LanguageId = ol.Id
                 WHERE op.PublicationCode = {SqlParamPubCode} AND ol.LanguageCode = {SqlParamLangCode}
-                  AND os.SectionCode = @sectionCode AND ot.TrackCode = @trackCode
+                  AND os.SectionCode = {SqlParamSectionCode} AND ot.TrackCode = {SqlParamTrackCode}
                 LIMIT 1
                 """;
-            cmd.Parameters.AddWithValue("@sectionCode", sectionCode);
+            cmd.Parameters.AddWithValue(SqlParamSectionCode, sectionCode);
         }
 
         cmd.Parameters.AddWithValue("@newTrackId", newTrackId);
         cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
         cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
-        cmd.Parameters.AddWithValue("@trackCode", trackCode);
+        cmd.Parameters.AddWithValue(SqlParamTrackCode, trackCode);
         await cmd.ExecuteNonQueryAsync();
     }
 }

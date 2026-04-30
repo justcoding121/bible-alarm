@@ -21,7 +21,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
     /// <inheritdoc/>
     protected override MauiMediaElement CreatePlatformView()
     {
-        MediaManager ??= new(MauiContext ?? throw new NullReferenceException(),
+        MediaManager ??= new(MauiContext ?? throw new InvalidOperationException($"{nameof(MauiContext)} cannot be null"),
                                 VirtualView,
                                 Dispatcher.GetForCurrentThread() ?? throw new InvalidOperationException($"{nameof(IDispatcher)} cannot be null"));
 
@@ -75,5 +75,9 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
             mediaElement.Unloaded -= OnPlatformViewUnloaded;
             mediaElement.Dispose();
         }
+    }
+
+    partial void PlatformDispose()
+    {
     }
 }

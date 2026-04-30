@@ -28,6 +28,8 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelper
 /// </summary>
 public sealed class BiblePublicationSelectionCommandHandler
 {
+    private const string LogNullPlaceholder = "(null)";
+
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService? biblePublicationService;
     private readonly ILanguageContentService? languageContentService;
@@ -64,7 +66,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         return new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
             Log.Debug(AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionStarting,
-                x?.Code ?? "(null)", biblePublicationService != null);
+                x?.Code ?? LogNullPlaceholder, biblePublicationService != null);
 
             if (x == null)
             {
@@ -166,7 +168,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             // trackCode must be valid; sectionCode can be null/empty for non-sectioned publications (dramas)
             if (string.IsNullOrWhiteSpace(trackCode))
             {
-                Log.Warning(AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionInvalidTrackCodeReturning, trackCode ?? "(null)");
+                Log.Warning(AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionInvalidTrackCodeReturning, trackCode ?? LogNullPlaceholder);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("This content is not available at the moment"));
                 return;
             }
@@ -186,7 +188,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionCode, trackCode, sectionName, trackTitle, currentLanguage, currentSchedule);
 
             Log.Information(AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionDispatchingSelection,
-                x.Code, sectionCode ?? "(null)", trackCode, sectionName, trackTitle);
+                x.Code, sectionCode ?? LogNullPlaceholder, trackCode, sectionName, trackTitle);
 
             var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
@@ -287,7 +289,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                 if (string.IsNullOrWhiteSpace(trackCode))
                 {
                     Log.Warning(AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.SelectLanguageInvalidTrackForLanguage, 
-                        trackCode ?? "(null)", x.Code);
+                        trackCode ?? LogNullPlaceholder, x.Code);
                     await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                     return;
                 }

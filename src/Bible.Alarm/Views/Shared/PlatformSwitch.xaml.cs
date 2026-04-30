@@ -17,12 +17,8 @@ public partial class PlatformSwitch : ContentView
             propertyChanged: OnIsToggledChanged);
 
     // Platform-specific switch controls (only one will be non-null at runtime)
-#pragma warning disable CS0649 // Field is never assigned to (platform-specific, assigned only on Windows)
-    private Switch? winUISwitch;
-#pragma warning restore CS0649
-#pragma warning disable CS0649 // Field is never assigned to (platform-specific, assigned only on Android/iOS)
-    private SfSwitch? sfSwitch;
-#pragma warning restore CS0649
+    private Switch? winUISwitch = null;
+    private SfSwitch? sfSwitch = null;
 
 
     public PlatformSwitch()

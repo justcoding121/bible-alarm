@@ -5,6 +5,8 @@ namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
 public class PathService : IPathService
 {
+    private const string MainAppProjectFolderSegment = "Bible.Alarm";
+
     private static string GetRepositoryRoot()
     {
         var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -25,11 +27,11 @@ public class PathService : IPathService
     
     private static readonly string RepositoryRoot = GetRepositoryRoot();
 
-    public string GetAndroidManifestPath() => Path.Combine(RepositoryRoot, "src", "Bible.Alarm", "Platforms", "Android", "AndroidManifest.xml");
+    public string GetAndroidManifestPath() => Path.Combine(RepositoryRoot, "src", MainAppProjectFolderSegment, "Platforms", "Android", "AndroidManifest.xml");
 
-    public string GetIosInfoPlistPath() => Path.Combine(RepositoryRoot, "src", "Bible.Alarm", "Platforms", "iOS", "Info.plist");
+    public string GetIosInfoPlistPath() => Path.Combine(RepositoryRoot, "src", MainAppProjectFolderSegment, "Platforms", "iOS", "Info.plist");
 
-    public string GetWindowsManifestPath() => Path.Combine(RepositoryRoot, "src", "Bible.Alarm", "Platforms", "Windows", "Package.appxmanifest");
+    public string GetWindowsManifestPath() => Path.Combine(RepositoryRoot, "src", MainAppProjectFolderSegment, "Platforms", "Windows", "Package.appxmanifest");
 
-    public string GetCsprojPath() => Path.Combine(RepositoryRoot, "src", "Bible.Alarm", "Bible.Alarm.csproj");
+    public string GetCsprojPath() => Path.Combine(RepositoryRoot, "src", MainAppProjectFolderSegment, "Bible.Alarm.csproj");
 }

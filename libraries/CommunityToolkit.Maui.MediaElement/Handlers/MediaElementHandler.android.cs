@@ -122,4 +122,8 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
         // This works for both UI mode and headless mode
         Dispose();
     }
+
+    partial void PlatformDispose()
+    {
+    }
 }

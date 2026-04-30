@@ -5,6 +5,7 @@ using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -140,11 +141,8 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                 await scheduleDb.Database.CloseConnectionAsync();
                 await scheduleDb.DisposeAsync();
 
-                // Force garbage collection to ensure connection is fully released
-                // SQLite connections can hold file locks even after Dispose()
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
+                // Release SQLite file locks before delete (preferred over GC.Collect triplet)
+                SqliteConnection.ClearAllPools();
 
                 // Delete the corrupted database file and any WAL/SHM files with retry logic
                 // SQLite may take a moment to fully release the file lock
