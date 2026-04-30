@@ -253,6 +253,7 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
                 }
                 catch (Exception)
                 {
+                    // Best-effort ObjC/native cleanup during MediaElement teardown; continue if runtime throws.
                 }
             }
 

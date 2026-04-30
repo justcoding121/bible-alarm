@@ -189,57 +189,6 @@ internal class MusicCataloger : BaseCataloger
         return FilterLanguageEntriesForTestRun(languageEntries, isTestRun);
     }
 
-    private async Task ProcessLanguageEntries(
-        List<(string LanguageCode, string Name, string Direction)> languageEntries,
-        string publicationCode,
-        string publicationName,
-        Dictionary<string, LanguageInfo> languageCodeToInfo,
-        Dictionary<string, List<string>> languageCodeToPublications)
-    {
-        using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
-        var languageTasks = languageEntries.Select(async entry =>
-        {
-            await semaphore.WaitAsync();
-            try
-            {
-                await ProcessLanguageEntry(
-                    entry,
-                    publicationCode,
-                    publicationName,
-                    languageCodeToInfo,
-                    languageCodeToPublications);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
-
-        await Task.WhenAll(languageTasks);
-    }
-
-    private async Task ProcessLanguageEntry(
-        (string LanguageCode, string Name, string Direction) entry,
-        string publicationCode,
-        string publicationName,
-        Dictionary<string, LanguageInfo> languageCodeToInfo,
-        Dictionary<string, List<string>> languageCodeToPublications)
-    {
-        var (languageCode, language, direction) = entry;
-        Logger.Information("Cataloging Music track links for {PublicationName} of {Language} language.", publicationName, language);
-
-        try
-        {
-            await CatalogMusicLinks(publicationCode, [publicationCode], languageCode);
-            languageCodeToInfo[languageCode] = new LanguageInfo(language, direction);
-            AddPublicationToLanguage(languageCode, publicationCode, languageCodeToPublications);
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "Failed: Cataloging Music track links for {PublicationName} of {Language} language.", publicationName, language);
-        }
-    }
-
     private static void AddPublicationToLanguage(
         string languageCode,
         string publicationCode,

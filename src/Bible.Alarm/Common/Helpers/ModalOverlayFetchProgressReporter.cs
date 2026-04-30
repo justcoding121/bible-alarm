@@ -38,6 +38,7 @@ public sealed class ModalOverlayFetchProgressReporter : IFetchProgress
         }
         catch
         {
+            // Progress messaging is non-critical when subscribers are torn down; ignore messenger failures.
         }
     }
 
@@ -55,6 +56,7 @@ public sealed class ModalOverlayFetchProgressReporter : IFetchProgress
         }
         catch
         {
+            // Progress messaging is non-critical when subscribers are torn down; ignore messenger failures.
         }
     }
 
@@ -72,6 +74,7 @@ public sealed class ModalOverlayFetchProgressReporter : IFetchProgress
         }
         catch
         {
+            // Progress messaging is non-critical when subscribers are torn down; ignore messenger failures.
         }
     }
 }

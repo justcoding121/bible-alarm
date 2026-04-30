@@ -756,6 +756,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         }
         catch
         {
+            // Seek debounce timer dispose is best-effort during modal teardown.
         }
         finally
         {

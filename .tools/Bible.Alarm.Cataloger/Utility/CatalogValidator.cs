@@ -19,19 +19,6 @@ namespace Bible.Alarm.Cataloger.Utility;
 /// </summary>
 internal static class CatalogValidator
 {
-    private static bool IsSectionedOrMediatorPublication(string publicationCode)
-    {
-        var c = publicationCode.ToLowerInvariant();
-        return c == AppConstants.Media.BiblePublicationCodeNwt.ToLowerInvariant()
-               || c == AppConstants.Media.BiblePublicationCodeBi12.ToLowerInvariant()
-               || c == AppConstants.Media.MelodyMusicPublicationCodeIam.ToLowerInvariant()
-               || c == AppConstants.Media.BiblePublicationCategoryDramas.ToLowerInvariant()
-               || c == AppConstants.Media.BiblePublicationCodeDramaticBibleReadings.ToLowerInvariant()
-               || c.StartsWith("vod", StringComparison.Ordinal)
-               || c == AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures.ToLowerInvariant()
-               || c == AppConstants.Media.BiblePublicationCodeSeriesBJFLessons.ToLowerInvariant();
-    }
-
     public static async Task ValidateAsync(MediaDbContext db, HttpClient httpClient, ILogger logger)
     {
         logger.Information("=== Validating catalog: sample track/section/publication vs API ===");
@@ -72,59 +59,6 @@ internal static class CatalogValidator
         }
 
         logger.Information("CatalogValidator: Done. Passed: {Passed}, Failed: {Failed}", passed, failed);
-    }
-
-    private static (string? Title, string? Url) GetFirstTrackFromResponse(JsonElement root, string languageCode)
-    {
-        if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var files) ||
-            !files.TryGetProperty(languageCode, out var langFiles))
-        {
-            return (null, null);
-        }
-
-        if (langFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp3, out var mp3) && mp3.GetArrayLength() > 0)
-        {
-            var first = mp3[0];
-            var title = first.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var t) ? t.GetString() : null;
-            var url = GetUrlFromTrackElement(first);
-            return (title, url);
-        }
-
-        if (langFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp4, out var mp4) && mp4.GetArrayLength() > 0)
-        {
-            var first = mp4[0];
-            var title = first.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var t) ? t.GetString() : null;
-            var url = GetUrlFromTrackElement(first);
-            return (title, url);
-        }
-
-        return (null, null);
-    }
-
-    private static string? GetUrlFromTrackElement(JsonElement trackElement)
-    {
-        if (!trackElement.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileEl))
-        {
-            return null;
-        }
-
-        if (fileEl.ValueKind == JsonValueKind.String)
-        {
-            return fileEl.GetString();
-        }
-
-        if (fileEl.ValueKind == JsonValueKind.Object && fileEl.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlEl))
-        {
-            return urlEl.GetString();
-        }
-
-        return null;
-    }
-
-    private static (string? SectionName, string? PubName) GetSectionNameFromResponse(JsonElement root)
-    {
-        var pubName = root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pn) ? pn.GetString() : null;
-        return (pubName, pubName);
     }
 
     private static async Task<List<SampleTrack>> GetSampleTracksAsync(MediaDbContext db, ILogger logger)

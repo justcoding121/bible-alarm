@@ -55,6 +55,7 @@ public class AlarmSetupService : Service, IDisposable
         }
         catch
         {
+            // Best-effort Serilog flush during crash path; suppress so delay still runs for log drain.
         }
 
         System.Threading.Thread.Sleep(CrashFlushDelayMs);

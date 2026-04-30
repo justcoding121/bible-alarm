@@ -71,6 +71,7 @@ public partial class App : MauiWinUIApplication
         }
         catch
         {
+            // Best-effort Serilog flush during crash path; suppress so delay still runs for log drain.
         }
 
         Thread.Sleep(CrashFlushDelayMs);

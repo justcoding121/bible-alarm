@@ -215,68 +215,6 @@ internal class VideoCataloger : BaseCataloger
         return filteredEntries;
     }
 
-    private async Task ProcessLanguageEntries(
-        List<(string Code, string Name, string Direction)> languageEntries,
-        string publicationCode,
-        string publicationName,
-        Dictionary<string, LanguageInfo> languageCodeToInfo,
-        Dictionary<string, List<string>> languageCodeToPublications)
-    {
-        using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
-        var languageTasks = languageEntries.Select(async entry =>
-        {
-            await semaphore.WaitAsync();
-            try
-            {
-                await ProcessLanguageEntry(
-                    entry,
-                    publicationCode,
-                    publicationName,
-                    languageCodeToInfo,
-                    languageCodeToPublications);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
-
-        await Task.WhenAll(languageTasks);
-    }
-
-    private async Task ProcessLanguageEntry(
-        (string Code, string Name, string Direction) entry,
-        string publicationCode,
-        string publicationName,
-        Dictionary<string, LanguageInfo> languageCodeToInfo,
-        Dictionary<string, List<string>> languageCodeToPublications)
-    {
-        var (languageCode, language, direction) = entry;
-        Logger.Information("Cataloging Video episode links for {PublicationName} in {Language} language.",
-            publicationName, language);
-
-        try
-        {
-            var success = await CatalogVideoEpisodes(publicationCode, languageCode, publicationName);
-            if (success)
-            {
-                lock (languageCodeToInfo)
-                {
-                    languageCodeToInfo[languageCode] = new LanguageInfo(language, direction);
-                }
-                AddPublicationToLanguage(languageCode, publicationCode, languageCodeToPublications);
-
-                // Fetch localized publication name from Mediator API
-                await FetchLocalizedPublicationName(publicationCode, languageCode);
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "Failed: Cataloging Video episode links for {PublicationName} in {Language} language.",
-                publicationName, language);
-        }
-    }
-
     private async Task FetchLocalizedPublicationName(string publicationCode, string languageCode)
     {
         if (!PublicationCodeToCategoryKey.TryGetValue(publicationCode, out var categoryKey))

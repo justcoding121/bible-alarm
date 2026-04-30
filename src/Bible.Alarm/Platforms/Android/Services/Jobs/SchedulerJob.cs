@@ -51,6 +51,7 @@ public class SchedulerJob : JobService
         }
         catch
         {
+            // Best-effort Serilog flush during crash path; suppress so delay still runs for log drain.
         }
 
         Thread.Sleep(CrashFlushDelayMs);
