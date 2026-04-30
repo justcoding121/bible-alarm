@@ -111,43 +111,40 @@ internal sealed class IosMediaManagerObserverCoordinator
 
     internal static void ReleaseTokens(Tokens tokens)
     {
-        DisposeAndSuppressFinalize(tokens.RateObserver);
+        DisposeQuietly(tokens.RateObserver);
         tokens.RateObserver = null;
 
-        DisposeAndSuppressFinalize(tokens.StatusObserver);
+        DisposeQuietly(tokens.StatusObserver);
         tokens.StatusObserver = null;
 
-        DisposeAndSuppressFinalize(tokens.TimeControlStatusObserver);
+        DisposeQuietly(tokens.TimeControlStatusObserver);
         tokens.TimeControlStatusObserver = null;
 
-        DisposeAndSuppressFinalize(tokens.VolumeObserver);
+        DisposeQuietly(tokens.VolumeObserver);
         tokens.VolumeObserver = null;
 
-        DisposeAndSuppressFinalize(tokens.MutedObserver);
+        DisposeQuietly(tokens.MutedObserver);
         tokens.MutedObserver = null;
 
-        DisposeAndSuppressFinalize(tokens.ItemFailedToPlayToEndTimeObserver);
+        DisposeQuietly(tokens.ItemFailedToPlayToEndTimeObserver);
         tokens.ItemFailedToPlayToEndTimeObserver = null;
 
-        DisposeAndSuppressFinalize(tokens.PlaybackStalledObserver);
+        DisposeQuietly(tokens.PlaybackStalledObserver);
         tokens.PlaybackStalledObserver = null;
 
-        DisposeAndSuppressFinalize(tokens.ErrorObserver);
+        DisposeQuietly(tokens.ErrorObserver);
         tokens.ErrorObserver = null;
 
-        DisposeAndSuppressFinalize(tokens.PlayedToEndObserver);
+        DisposeQuietly(tokens.PlayedToEndObserver);
         tokens.PlayedToEndObserver = null;
     }
 
     /// <summary>
-    /// Disposes an observer and suppresses its GC finalizer to prevent
-    /// SIGSEGV crashes from objc_msgSend to freed native objects.
-    /// KVO observers (IDisposable) and notification observers (NSObject)
-    /// both wrap native ObjC objects that can be deallocated before finalization.
+    /// Disposes KVO observers and notification observers; native teardown is handled by <see cref="IDisposable.Dispose"/>.
     /// </summary>
-    private static void DisposeAndSuppressFinalize(IDisposable? obj)
+    private static void DisposeQuietly(IDisposable? obj)
     {
-        if (obj == null)
+        if (obj is null)
         {
             return;
         }
@@ -159,8 +156,6 @@ internal sealed class IosMediaManagerObserverCoordinator
         catch (ObjectDisposedException)
         {
         }
-
-        GC.SuppressFinalize(obj);
     }
 
     private static void ErrorOccurred(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? _, NSNotificationEventArgs args)

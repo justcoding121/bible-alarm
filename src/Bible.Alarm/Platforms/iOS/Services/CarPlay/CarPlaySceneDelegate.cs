@@ -130,38 +130,8 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
     private static void SuppressCarPlayFinalizers(CPInterfaceController? controller, CPListTemplate? template)
     {
-        try
-        {
-            if (controller != null)
-            {
-                GC.SuppressFinalize(controller);
-            }
-
-            if (template == null)
-            {
-                return;
-            }
-
-            GC.SuppressFinalize(template);
-
-            foreach (var section in template.Sections)
-            {
-                GC.SuppressFinalize(section);
-
-                foreach (var item in section.Items2)
-                {
-                    GC.SuppressFinalize(item);
-                }
-            }
-        }
-        catch (ObjectDisposedException ex)
-        {
-            logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressCarPlayFinalizersDisposedDuringTeardown);
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressCarPlayFinalizersUnexpected);
-        }
+        _ = controller;
+        _ = template;
     }
 
     /// <summary>
@@ -312,25 +282,6 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
     private static void SuppressOldSectionFinalizers(CPListSection[] oldSections)
     {
-        try
-        {
-            foreach (var section in oldSections)
-            {
-                foreach (var item in section.Items2)
-                {
-                    GC.SuppressFinalize(item);
-                }
-
-                GC.SuppressFinalize(section);
-            }
-        }
-        catch (ObjectDisposedException ex)
-        {
-            logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressOldSectionFinalizersDisposedDuringTeardown);
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, AppConstants.Logging.CarPlayDiagnosticsLog.SuppressOldSectionFinalizersUnexpected);
-        }
+        _ = oldSections;
     }
 }

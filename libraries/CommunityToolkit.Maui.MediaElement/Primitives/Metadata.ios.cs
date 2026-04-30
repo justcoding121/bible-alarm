@@ -64,10 +64,7 @@ sealed class Metadata
         NowPlayingInfo.Artwork = newArtwork;
         MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = NowPlayingInfo;
 
-        if (oldArtwork is not null)
-        {
-            GC.SuppressFinalize(oldArtwork);
-        }
+        _ = oldArtwork;
     }
 
     private UIImage GetOrLoadCachedImage(string? imageUri)
@@ -91,11 +88,6 @@ sealed class Metadata
                 var url = new NSUrl(imageUri);
                 var data = NSData.FromUrl(url);
                 cachedArtworkImage = data is not null ? UIImage.LoadFromData(data) ?? defaultUiImage : defaultUiImage;
-                GC.SuppressFinalize(url);
-                if (data is not null)
-                {
-                    GC.SuppressFinalize(data);
-                }
             }
             else
             {
@@ -109,25 +101,17 @@ sealed class Metadata
 
         cachedArtworkUri = imageUri;
 
-        if (oldCachedImage is not null && oldCachedImage != defaultUiImage)
-        {
-            GC.SuppressFinalize(oldCachedImage);
-        }
+        _ = oldCachedImage;
 
         return cachedArtworkImage;
     }
 
     public void Cleanup()
     {
-        if (lastArtwork is not null)
-        {
-            GC.SuppressFinalize(lastArtwork);
-            lastArtwork = null;
-        }
+        lastArtwork = null;
 
         if (cachedArtworkImage is not null && cachedArtworkImage != defaultUiImage)
         {
-            GC.SuppressFinalize(cachedArtworkImage);
             cachedArtworkImage = null;
         }
 

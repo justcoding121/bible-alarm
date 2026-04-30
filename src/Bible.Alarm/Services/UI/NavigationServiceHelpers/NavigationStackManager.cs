@@ -246,13 +246,10 @@ public static class NavigationStackManager
     /// <summary>
     /// Two-phase cleanup for popped iOS pages:
     /// 1. Collect native UIView references from the MAUI visual tree (must happen BEFORE
-    ///    DisconnectHandler nulls out Handler.PlatformView).
-    /// 2. Disconnect MAUI handlers (releases managed-to-native bindings, calls
-    ///    GC.SuppressFinalize on handler-owned objects).
-    /// 3. Walk the collected native views' CALayer hierarchy and suppress finalization
-    ///    on every layer. This catches objects like StaticCAShapeLayer that
-    ///    DisconnectHandler does NOT clean up — preventing the GC finalizer from
-    ///    sending objc_msgSend to already-deallocated native objects (SIGSEGV).
+    ///    <see cref="IElement.DisconnectHandler"/> nulls out <c>Handler.PlatformView</c>).
+    /// 2. Disconnect MAUI handlers (releases managed-to-native bindings).
+    /// 3. Walk the collected views and sublayers using <see cref="IOSNativeViewCleanupHelper"/>
+    ///    (best-effort; logs ObjectDisposed paths).
     /// </summary>
     internal static void CleanupIOSNativeViews(IVisualTreeElement element)
     {
@@ -335,10 +332,6 @@ public static class NavigationStackManager
 
                 handler.DisconnectHandler();
 
-                // After disconnection the handler's native references are released by iOS.
-                // Suppress the managed finalizer so it won't send objc_msgSend to freed objects.
-                GC.SuppressFinalize(handler);
-
                 if (handler is IPlatformViewHandler pvh)
                 {
                     SuppressViewControllerFinalizer(pvh);
@@ -360,8 +353,6 @@ public static class NavigationStackManager
             {
                 return;
             }
-
-            GC.SuppressFinalize(vc);
 
             if (vc.View != null)
             {

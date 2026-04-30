@@ -183,9 +183,7 @@ public sealed class MediaElementService : IMediaElementService
 
 #if IOS
             // Collect native views BEFORE disposing the handler, because disposal
-            // nulls out PlatformView. We need these references to suppress finalization
-            // and prevent SIGSEGV crashes from the GC finalizer sending objc_msgSend
-            // to deallocated native objects (e.g. during rapid CarPlay schedule switching).
+            // nulls out PlatformView (used for best-effort teardown walks).
             UIView? nativePlatformView = null;
             try
             {
@@ -220,13 +218,6 @@ public sealed class MediaElementService : IMediaElementService
                 disposableHandler.Dispose();
             }
 
-#if IOS
-            if (handler != null)
-            {
-                GC.SuppressFinalize(handler);
-            }
-#endif
-
             // Clear handler reference
             var handlerField = typeof(Element).GetField("_handler",
                 BindingFlags.NonPublic | BindingFlags.Instance);
@@ -249,7 +240,6 @@ public sealed class MediaElementService : IMediaElementService
             {
                 try
                 {
-                    GC.SuppressFinalize(viewController);
                     if (viewController.View != null)
                     {
                         IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(viewController.View);
@@ -264,8 +254,6 @@ public sealed class MediaElementService : IMediaElementService
                     logger.Debug(ex, "MediaElement disposal: view controller cleanup failed");
                 }
             }
-
-            GC.SuppressFinalize(mediaElement);
 #endif
         }
         catch (Exception ex)

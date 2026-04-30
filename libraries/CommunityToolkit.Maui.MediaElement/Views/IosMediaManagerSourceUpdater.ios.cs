@@ -42,7 +42,7 @@ internal static class IosMediaManagerSourceUpdater
             mediaElement.Duration = TimeSpan.Zero;
             mediaElement.Position = TimeSpan.Zero;
             mediaElement.CurrentStateChanged(MediaElementState.None);
-            SuppressOldPlayerItem(existingPlayerItem);
+            _ = existingPlayerItem;
             return new(metaData, null, DisposeAndClear(currentItemErrorObserver));
         }
 
@@ -77,7 +77,6 @@ internal static class IosMediaManagerSourceUpdater
 
         var nsUrl = new NSUrl(uri.AbsoluteUri);
         var asset = AVAsset.FromUrl(nsUrl);
-        GC.SuppressFinalize(nsUrl);
         return asset;
     }
 
@@ -91,7 +90,6 @@ internal static class IosMediaManagerSourceUpdater
 
         var nsUrl = NSUrl.CreateFileUrl(uri);
         var asset = AVAsset.FromUrl(nsUrl);
-        GC.SuppressFinalize(nsUrl);
         return asset;
     }
 
@@ -105,7 +103,6 @@ internal static class IosMediaManagerSourceUpdater
             string extension = Path.GetExtension(path)[1..];
             var url = NSBundle.MainBundle.GetUrlForResource(filename, extension, directory);
             var asset = AVAsset.FromUrl(url);
-            GC.SuppressFinalize(url);
             return asset;
         }
 
@@ -122,11 +119,11 @@ internal static class IosMediaManagerSourceUpdater
         NSKeyValueObservingOptions valueObserverOptions,
         ILogger logger)
     {
-        DisposeAndSuppressFinalize(currentItemErrorObserver);
+        DisposeQuietly(currentItemErrorObserver);
 
         var oldPlayerItem = player.CurrentItem;
         player.ReplaceCurrentItemWithPlayerItem(playerItem);
-        SuppressOldPlayerItem(oldPlayerItem);
+        _ = oldPlayerItem;
 
         currentItemErrorObserver = playerItem.AddObserver("error", valueObserverOptions, _ =>
         {
@@ -262,11 +259,11 @@ internal static class IosMediaManagerSourceUpdater
 
     private static IDisposable? DisposeAndClear(IDisposable? disposable)
     {
-        DisposeAndSuppressFinalize(disposable);
+        DisposeQuietly(disposable);
         return null;
     }
 
-    private static void DisposeAndSuppressFinalize(IDisposable? obj)
+    private static void DisposeQuietly(IDisposable? obj)
     {
         if (obj is null)
         {
@@ -280,30 +277,6 @@ internal static class IosMediaManagerSourceUpdater
         catch (ObjectDisposedException)
         {
         }
-
-        GC.SuppressFinalize(obj);
-    }
-
-    private static void SuppressOldPlayerItem(AVPlayerItem? oldItem)
-    {
-        if (oldItem is null)
-        {
-            return;
-        }
-
-        try
-        {
-            var asset = oldItem.Asset;
-            if (asset is not null)
-            {
-                GC.SuppressFinalize(asset);
-            }
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-
-        GC.SuppressFinalize(oldItem);
     }
 }
 

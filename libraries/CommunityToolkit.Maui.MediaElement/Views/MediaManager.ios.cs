@@ -420,8 +420,6 @@ public partial class MediaManager : IDisposable
                     catch (ObjectDisposedException)
                     {
                     }
-
-                    GC.SuppressFinalize(errorObserver);
                 }
 
                 if (observerTokens is not null)
@@ -429,9 +427,6 @@ public partial class MediaManager : IDisposable
                     IosMediaManagerObserverCoordinator.ReleaseTokens(observerTokens);
                     observerTokens = null;
                 }
-
-                // Suppress the AVAsset before replacing the current item
-                SuppressPlayerItemAsset(player.CurrentItem);
 
                 player.ReplaceCurrentItemWithPlayerItem(null);
                 player.Dispose();
@@ -441,44 +436,6 @@ public partial class MediaManager : IDisposable
             PlayerItem = null;
             playerViewController?.Dispose();
             PlayerViewController = null;
-
-            // Suppress finalizers on all native AVFoundation objects to prevent
-            // SIGSEGV from the GC finalizer sending objc_msgSend to freed objects.
-            if (player is not null)
-            {
-                GC.SuppressFinalize(player);
-            }
-
-            if (playerItem is not null)
-            {
-                SuppressPlayerItemAsset(playerItem);
-                GC.SuppressFinalize(playerItem);
-            }
-
-            if (playerViewController is not null)
-            {
-                GC.SuppressFinalize(playerViewController);
-            }
-        }
-    }
-
-    private static void SuppressPlayerItemAsset(AVPlayerItem? item)
-    {
-        if (item is null)
-        {
-            return;
-        }
-
-        try
-        {
-            var asset = item.Asset;
-            if (asset is not null)
-            {
-                GC.SuppressFinalize(asset);
-            }
-        }
-        catch (ObjectDisposedException)
-        {
         }
     }
 
