@@ -231,9 +231,8 @@ public sealed class BiblePublicationSelectionStateHandler
         // If still null after fallback, this is an error condition
         if (string.IsNullOrWhiteSpace(newCategoryName))
         {
-            Log.Error(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.HandleBiblePublicationChangedCategoryNullOrEmpty,
-                newLanguageCode, currentSchedule.BiblePublicationCode);
-            throw new InvalidOperationException($"Category must always be selected. No category found in state. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
+            throw new InvalidOperationException(
+                $"HandleBiblePublicationChangedAsync: Category is null or empty. Category must always be selected. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
         }
 
         // Check if language code or category changed (need to repopulate publications)
@@ -408,9 +407,8 @@ public sealed class BiblePublicationSelectionStateHandler
         // A category should always be selected - if it's still null after all fallbacks, this is an error condition
         if (string.IsNullOrWhiteSpace(newCategoryName))
         {
-            Log.Error(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateCategoryNullOrEmptyAfterFallbacks,
-                newLanguageCode, currentSchedule.BiblePublicationCode);
-            throw new InvalidOperationException($"Category must always be selected. No category found in state or database. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
+            throw new InvalidOperationException(
+                $"RefreshFromStateAsync: Category is null or empty after all fallbacks. Category must always be selected. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
         }
 
         // Check if language code or category changed (need to repopulate publications)

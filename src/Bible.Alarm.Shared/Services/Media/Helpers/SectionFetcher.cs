@@ -286,8 +286,6 @@ internal sealed class SectionFetcher
             catch (OperationCanceledException)
             {
                 // Re-throw cancellation - data saved so far is preserved
-                logger.Information("Section fetch cancelled at {CompletedSections}/{TotalSections} for publication {PublicationCode} in language {LanguageCode}",
-                    completedSections, totalSections, normalizedPublicationCode, normalizedLanguageCode);
                 throw;
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))

@@ -125,7 +125,6 @@ internal static class MediaCacheDownloadCoordinator
         }
         catch (OperationCanceledException)
         {
-            logger.Information("Download cancelled for track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
             downloadTaskSource.SetCanceled(cancellationToken);
             throw;
         }

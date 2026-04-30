@@ -137,9 +137,8 @@ public sealed class BiblePublicationSelectionDataProvider
         // A category should always be selected - if it's null, this is an error condition
         if (string.IsNullOrWhiteSpace(currentCategoryName))
         {
-            Log.Error(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsCategoryNullOrEmpty,
-                languageCode, currentPublicationCode);
-            throw new InvalidOperationException($"Category must always be selected. No category found in state or provided parameter. LanguageCode={languageCode}, PublicationCode={currentPublicationCode}");
+            throw new InvalidOperationException(
+                $"PopulatePublicationsAsync: Category is null or empty. Category must always be selected. LanguageCode={languageCode}, PublicationCode={currentPublicationCode}");
         }
 
         // Do ALL processing on background thread to avoid blocking spinner animation

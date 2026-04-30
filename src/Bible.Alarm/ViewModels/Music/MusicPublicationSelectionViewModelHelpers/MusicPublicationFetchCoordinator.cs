@@ -216,8 +216,6 @@ internal sealed class MusicPublicationFetchCoordinator
                 catch (OperationCanceledException)
                 {
                     // Re-throw cancellation - data saved so far is preserved
-                    Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.FetchCancelledAtAttempt,
-                        attempt, languageCode);
                     throw;
                 }
                 catch (System.Net.Http.HttpRequestException)

@@ -122,8 +122,9 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                     }
                     catch (Exception altEx)
                     {
-                        logger.Error(altEx, AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadAlternativeUrl, alternativeUrl);
-                        throw; // Throw the alternative URL exception
+                        throw new InvalidOperationException(
+                            $"Failed to download from alternative URL: {alternativeUrl}",
+                            altEx);
                     }
                 }
 

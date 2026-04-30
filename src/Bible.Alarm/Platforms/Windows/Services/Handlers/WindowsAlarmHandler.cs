@@ -44,8 +44,7 @@ public sealed class WindowsAlarmHandler(
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, AppConstants.Logging.AlarmDiagnostics.RingingAlarmFailed);
-                        throw;
+                        throw new InvalidOperationException(AppConstants.Logging.AlarmDiagnostics.RingingAlarmFailed, e);
                     }
                 });
             });
