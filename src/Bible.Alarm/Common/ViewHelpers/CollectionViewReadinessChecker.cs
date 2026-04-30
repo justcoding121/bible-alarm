@@ -62,7 +62,7 @@ internal static class CollectionViewReadinessChecker
 
             return await CheckPlatformSpecificReady(collectionView, cancellationToken);
         }
-        catch
+        catch (Exception)
         {
             return false;
         }
@@ -136,7 +136,7 @@ internal static class CollectionViewReadinessChecker
                 }
             }
         }
-        catch
+        catch (Exception)
         {
             return false;
         }
@@ -172,7 +172,7 @@ internal static class CollectionViewReadinessChecker
                 }
             }
         }
-        catch
+        catch (Exception)
         {
             return false;
         }

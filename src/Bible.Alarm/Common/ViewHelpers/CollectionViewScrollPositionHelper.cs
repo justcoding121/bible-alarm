@@ -79,7 +79,7 @@ internal static class CollectionViewScrollPositionHelper
             // Middle items: center with equal items visible above and below
             return ScrollToPosition.Center;
         }
-        catch
+        catch (Exception)
         {
             // If we can't determine position, fall back to requested position
             return requestedPosition;

@@ -480,7 +480,7 @@ class Program
                 {
                     File.Delete(tempDbPath);
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore cleanup errors
                 }

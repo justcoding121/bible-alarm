@@ -45,7 +45,7 @@ public sealed class PlaybackSessionContextInitializer
                 var preAnchor = await playlistService.GetPreviousPlayItemAsync(anchorBible);
                 setPreAnchorBibleMetadata(preAnchor.Metadata);
             }
-            catch
+            catch (Exception)
             {
                 setPreAnchorBibleMetadata(null);
             }

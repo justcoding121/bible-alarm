@@ -119,7 +119,7 @@ public class MediaReader(string indexRoot)
                             discName = nameElement.GetString() ?? discCode;
                         }
                     }
-                    catch
+                    catch (Exception)
                     {
                         // If disc.json parsing fails, use disc code as name
                     }

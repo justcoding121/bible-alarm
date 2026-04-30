@@ -116,7 +116,7 @@ public class SerilogSetup
                     var fallbackLogger = loggerConfig.CreateLogger();
                     fallbackLogger.Error(ex, "Failed to configure iOS file logging");
                 }
-                catch
+                catch (Exception)
                 {
                     // Fallback logger creation can fail if Serilog isn't ready; nothing else to do.
                 }
@@ -148,7 +148,7 @@ public class SerilogSetup
                     var fallbackLogger = loggerConfig.CreateLogger();
                     fallbackLogger.Error(ex, "Failed to configure file logging");
                 }
-                catch
+                catch (Exception)
                 {
                     // Fallback logger creation can fail if Serilog isn't ready; nothing else to do.
                 }
@@ -269,7 +269,7 @@ public class SerilogSetup
 
             return Path.Combine(cacheBasePath, AppConstants.FilePaths.LogsDirectoryName);
         }
-        catch
+        catch (Exception)
         {
             // Fallback when ApplicationData fails (e.g. unpackaged exe from bin\Release\...\win-x64)
 #if WINDOWS
@@ -326,7 +326,7 @@ public class SerilogSetup
                 {
                     Log.Logger?.Debug("Deleted today's log file: {LogFilePath}", logFilePath);
                 }
-                catch
+                catch (Exception)
                 {
                     // Serilog not initialized yet or failed - silently continue
                 }
@@ -340,7 +340,7 @@ public class SerilogSetup
             {
                 Log.Logger?.Warning(ex, "Failed to delete today's log file");
             }
-            catch
+            catch (Exception)
             {
                 // Serilog not initialized yet or failed - silently continue
             }

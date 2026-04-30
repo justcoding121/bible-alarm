@@ -21,7 +21,7 @@ internal static class IOsBootstrapLogger
             var line = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z Exception: {text}{Environment.NewLine}";
             File.AppendAllText(path, line);
         }
-        catch
+        catch (Exception)
         {
             // Must not throw
         }
@@ -38,7 +38,7 @@ internal static class IOsBootstrapLogger
             var line = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z {message}{Environment.NewLine}";
             File.AppendAllText(path, line);
         }
-        catch
+        catch (Exception)
         {
             // Must not throw
         }

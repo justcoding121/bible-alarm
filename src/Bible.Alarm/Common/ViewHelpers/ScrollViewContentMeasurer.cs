@@ -28,7 +28,7 @@ internal static class ScrollViewContentMeasurer
                     layout.InvalidateMeasure();
                     await Task.Delay(50, cancellationToken);
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore errors
                 }
@@ -50,7 +50,7 @@ internal static class ScrollViewContentMeasurer
                     scrollView.Content.SizeChanged -= OnSizeChanged;
                     sizeChangedTcs.TrySetResult(true);
                 }
-                catch
+                catch (Exception)
                 {
                     sizeChangedTcs.TrySetResult(false);
                 }
@@ -60,7 +60,7 @@ internal static class ScrollViewContentMeasurer
             {
                 scrollView.Content.SizeChanged += OnSizeChanged;
             }
-            catch
+            catch (Exception)
             {
                 return false;
             }
@@ -76,7 +76,7 @@ internal static class ScrollViewContentMeasurer
                 {
                     scrollView.Content.SizeChanged -= OnSizeChanged;
                 }
-                catch
+                catch (Exception)
                 {
                     // Ignore cleanup errors
                 }
@@ -85,7 +85,7 @@ internal static class ScrollViewContentMeasurer
 
             return await sizeChangedTcs.Task;
         }
-        catch
+        catch (Exception)
         {
             return false;
         }

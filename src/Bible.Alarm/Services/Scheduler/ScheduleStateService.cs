@@ -186,7 +186,7 @@ public sealed class ScheduleStateService(
                     {
                         granted = await tcs.Task;
                     }
-                    catch
+                    catch (Exception)
                     {
                         granted = false;
                     }

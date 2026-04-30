@@ -18,7 +18,7 @@ public sealed class PlaybackViewModelLandscapeHandler
             autoHideCts?.Cancel();
             autoHideCts?.Dispose();
         }
-        catch
+        catch (Exception)
         {
             // ignore
         }
@@ -49,7 +49,7 @@ public sealed class PlaybackViewModelLandscapeHandler
             {
                 await Task.Delay(AutoHideMs, token);
             }
-            catch
+            catch (OperationCanceledException)
             {
                 return;
             }

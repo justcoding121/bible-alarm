@@ -20,7 +20,7 @@ internal static class WindowsBootstrapLogger
                 var line = $"{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z Exception: {text}{Environment.NewLine}";
                 File.AppendAllText(path, line);
             }
-            catch
+            catch (Exception)
             {
                 // Must not throw
             }
@@ -36,7 +36,7 @@ internal static class WindowsBootstrapLogger
                 var line = $"{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z {message}{Environment.NewLine}";
                 File.AppendAllText(path, line);
             }
-            catch
+            catch (Exception)
             {
                 // Must not throw
             }
@@ -54,7 +54,7 @@ internal static class WindowsBootstrapLogger
             logFilePath = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
             return true;
         }
-        catch
+        catch (Exception)
         {
             // Unpackaged (exe from bin\Release\...\win-x64): ApplicationData can fail; use exe directory\logs
             try
@@ -65,7 +65,7 @@ internal static class WindowsBootstrapLogger
                 logFilePath = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
                 return true;
             }
-            catch
+            catch (Exception)
             {
                 return false;
             }
