@@ -290,11 +290,19 @@ public sealed class DefaultScheduleService(
             };
         }
 
-        var title = firstPlayItem.Metadata?.PlayType == PlayType.Bible
-            ? $"Section {firstPlayItem.Metadata.SectionCode} Track {firstPlayItem.Metadata.TrackCode}"
-            : firstPlayItem.Metadata?.TrackCode != null
-                ? $"Track {firstPlayItem.Metadata.TrackCode}"
-                : string.Empty;
+        string title;
+        if (firstPlayItem.Metadata?.PlayType == PlayType.Bible)
+        {
+            title = $"Section {firstPlayItem.Metadata.SectionCode} Track {firstPlayItem.Metadata.TrackCode}";
+        }
+        else if (firstPlayItem.Metadata?.TrackCode != null)
+        {
+            title = $"Track {firstPlayItem.Metadata.TrackCode}";
+        }
+        else
+        {
+            title = string.Empty;
+        }
 
         return new ScheduleTrackMetadata
         {

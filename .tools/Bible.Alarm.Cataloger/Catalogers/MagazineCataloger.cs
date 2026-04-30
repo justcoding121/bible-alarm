@@ -210,8 +210,15 @@ internal sealed class MagazineCataloger : BaseCataloger
         {
             foreach (var element in languages.EnumerateArray())
             {
-                var languageCode = element.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var lc) ? lc.GetString()?.ToUpperInvariant()
-                    : element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Symbol, out var sym) ? sym.GetString()?.ToUpperInvariant() : null;
+                string? languageCode = null;
+                if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var lc))
+                {
+                    languageCode = lc.GetString()?.ToUpperInvariant();
+                }
+                else if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Symbol, out var sym))
+                {
+                    languageCode = sym.GetString()?.ToUpperInvariant();
+                }
                 if (string.IsNullOrEmpty(languageCode))
                     continue;
 

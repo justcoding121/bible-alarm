@@ -26,9 +26,14 @@ public static class CategorySelectionAutoPopulateCatalogCheck
             string publicationCodeForDb;
             if (isDrama)
             {
-                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? AppConstants.Media.BiblePublicationCategoryDramas
-                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
+                if (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase))
+                {
+                    publicationCodeForDb = AppConstants.Media.BiblePublicationCategoryDramas;
+                }
+                else
+                {
+                    publicationCodeForDb = AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
+                }
             }
             else
             {

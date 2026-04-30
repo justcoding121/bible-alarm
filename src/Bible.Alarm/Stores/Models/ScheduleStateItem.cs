@@ -34,7 +34,28 @@ public sealed class ScheduleStateItem : IComparable
     public DateTime? LastPlayedAtUtc { get; set; }
 
     // Computed properties
-    public int MeridianHour => Meridian == Meridian.Am ? Hour == 0 ? 12 : Hour : Hour == 12 ? 12 : Hour % 12;
+    public int MeridianHour
+    {
+        get
+        {
+            if (Meridian == Meridian.Am)
+            {
+                if (Hour == 0)
+                {
+                    return 12;
+                }
+
+                return Hour;
+            }
+
+            if (Hour == 12)
+            {
+                return 12;
+            }
+
+            return Hour % 12;
+        }
+    }
     public Meridian Meridian => Hour < 12 ? Meridian.Am : Meridian.Pm;
     public string TimeText => $"{MeridianHour:D2}:{Minute:D2}";
 

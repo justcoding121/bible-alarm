@@ -192,11 +192,22 @@ public sealed class BiblePublicationCascadeHandler
             // For others, preserve exact case from discovery (usually lower-case codes).
             var lowerCode = pl.PublicationCode.ToLowerInvariant();
             var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
-            var publicationCodeForDb = isDrama
-                ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? AppConstants.Media.BiblePublicationCategoryDramas
-                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings)
-                : pl.PublicationCode;
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                if (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase))
+                {
+                    publicationCodeForDb = AppConstants.Media.BiblePublicationCategoryDramas;
+                }
+                else
+                {
+                    publicationCodeForDb = AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
+                }
+            }
+            else
+            {
+                publicationCodeForDb = pl.PublicationCode;
+            }
 
             var isCataloged = await languageContentService.EnsurePublicationExistsAsync(pl.PublicationCode, languageCode);
             if (!isCataloged)

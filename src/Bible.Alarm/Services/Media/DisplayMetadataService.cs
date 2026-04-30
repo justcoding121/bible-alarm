@@ -512,12 +512,20 @@ public sealed class DisplayMetadataService(
 
     private static MetaData ExtractBasicMetadata(TagLib.Tag tag)
     {
+        string? artistMeta = null;
+        if (!string.IsNullOrEmpty(tag.FirstPerformer))
+        {
+            artistMeta = tag.FirstPerformer;
+        }
+        else if (!string.IsNullOrEmpty(tag.FirstAlbumArtist))
+        {
+            artistMeta = tag.FirstAlbumArtist;
+        }
+
         return new MetaData
         {
             Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : FallbackUnknownTitle,
-            Artist = !string.IsNullOrEmpty(tag.FirstPerformer) ? tag.FirstPerformer :
-                     !string.IsNullOrEmpty(tag.FirstAlbumArtist) ? tag.FirstAlbumArtist :
-                     null,
+            Artist = artistMeta,
             Album = !string.IsNullOrEmpty(tag.Album) ? tag.Album : null
         };
     }

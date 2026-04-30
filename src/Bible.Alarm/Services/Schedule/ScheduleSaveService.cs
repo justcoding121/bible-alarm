@@ -48,7 +48,18 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         var pubCode = currentSchedule?.BiblePublicationCode;
         var isMusicPublication = (currentSchedule?.BiblePublicationIsMusic ?? false) ||
             (!string.IsNullOrWhiteSpace(pubCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(pubCode));
-        model.CategoryCode = isMusicPublication ? null : (string.IsNullOrWhiteSpace(currentSchedule?.BiblePublicationCategoryName) ? null : currentSchedule.BiblePublicationCategoryName);
+        if (isMusicPublication)
+        {
+            model.CategoryCode = null;
+        }
+        else if (string.IsNullOrWhiteSpace(currentSchedule?.BiblePublicationCategoryName))
+        {
+            model.CategoryCode = null;
+        }
+        else
+        {
+            model.CategoryCode = currentSchedule.BiblePublicationCategoryName;
+        }
 
         // For Bible/Music schedule content, always keep the selected language (even for no-language pubs) so the schedule page can show language + pubs. Only normalize begin-with-music (AlarmMusic) for no-language.
         await NormalizeLanguageCodeForNoLanguagePublicationsAsync();

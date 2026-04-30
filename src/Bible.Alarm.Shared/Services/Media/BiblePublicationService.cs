@@ -260,7 +260,18 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         {
             // Fast path: return cached result if available (cache key includes filter for Music so music container vs Bible container don't share)
             var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
-            var cacheKey = normalizedCategory == null ? null : (filterIsMusicWhenMusicCategory && string.Equals(normalizedCategory, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase) ? $"{AppConstants.Media.BiblePublicationCategoryMusic}~IsMusicOnly" : normalizedCategory);
+            string? cacheKey = null;
+            if (normalizedCategory != null)
+            {
+                if (filterIsMusicWhenMusicCategory && string.Equals(normalizedCategory, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
+                {
+                    cacheKey = $"{AppConstants.Media.BiblePublicationCategoryMusic}~IsMusicOnly";
+                }
+                else
+                {
+                    cacheKey = normalizedCategory;
+                }
+            }
             lock (distinctLanguagesCacheLock)
             {
                 if (cacheKey == null && cachedDistinctLanguagesAll != null)

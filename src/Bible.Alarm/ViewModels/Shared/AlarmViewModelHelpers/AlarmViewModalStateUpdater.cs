@@ -147,9 +147,11 @@ public class AlarmViewModalStateUpdater
         var artworkUrl = inPlayback
             ? state.ArtworkUrl
             : (state.ArtworkUrl ?? state.DefaultScheduleArtworkUrl);
-        var fallbackUrl = inPlayback
-            ? null
-            : (state.ArtworkUrl != null ? state.DefaultScheduleArtworkUrl : null);
+        string? fallbackUrl = null;
+        if (!inPlayback && state.ArtworkUrl != null)
+        {
+            fallbackUrl = state.DefaultScheduleArtworkUrl;
+        }
 
         // Re-apply artwork when: track changed, URL changed, transition just ended, or status first became Playing.
         // - Transition ended: async artwork may have arrived during IsTransitioningTrack when the UI missed it.

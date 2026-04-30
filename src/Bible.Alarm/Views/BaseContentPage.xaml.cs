@@ -146,7 +146,11 @@ public partial class BaseContentPage : ContentPage
         double barHeight = 0;
         if (vm != null && vm.IsVisible)
         {
-            barHeight = MiniPlaybackBar.LastMeasuredHeight > 0 ? MiniPlaybackBar.LastMeasuredHeight : 75;
+            barHeight = MiniPlaybackBar.LastMeasuredHeight;
+            if (barHeight <= 0)
+            {
+                barHeight = 75;
+            }
         }
 
         double totalBottom = barHeight + navBarDip;

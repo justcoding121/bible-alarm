@@ -238,9 +238,21 @@ public sealed class ScheduleDisplayNameBibleHelper
             if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {
                 var categoryName = scheduleStateItem.BiblePublicationCategoryName ?? JwSourceHelper.GetCategoryName(publicationCode) ?? string.Empty;
-                scheduleStateItem.BiblePublicationTrackTitle = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)
-                    ? $"Track {biblePublicationSchedule.TrackCode}"
-                    : PublicationTypeHelper.HasSectionStructure(publicationCode) ? $"Chapter {biblePublicationSchedule.TrackCode}" : $"Track {biblePublicationSchedule.TrackCode}";
+                string fallbackTitle;
+                if (string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
+                {
+                    fallbackTitle = $"Track {biblePublicationSchedule.TrackCode}";
+                }
+                else if (PublicationTypeHelper.HasSectionStructure(publicationCode))
+                {
+                    fallbackTitle = $"Chapter {biblePublicationSchedule.TrackCode}";
+                }
+                else
+                {
+                    fallbackTitle = $"Track {biblePublicationSchedule.TrackCode}";
+                }
+
+                scheduleStateItem.BiblePublicationTrackTitle = fallbackTitle;
             }
         }
     }

@@ -365,9 +365,20 @@ public sealed class TrackSelectionSyncHandler
     {
         // If language code changed or Id is 0 (new selection), set MusicId to null or action's Id
         // Otherwise preserve the existing MusicId
-        updatedSchedule.MusicId = (languageCodeChanged || actionMusic.Id == 0)
-            ? (actionMusic.Id > 0 ? (int?)actionMusic.Id : null)
-            : currentSchedule.MusicId;
+        int? musicIdFromAction = null;
+        if (actionMusic.Id > 0)
+        {
+            musicIdFromAction = actionMusic.Id;
+        }
+
+        if (languageCodeChanged || actionMusic.Id == 0)
+        {
+            updatedSchedule.MusicId = musicIdFromAction;
+        }
+        else
+        {
+            updatedSchedule.MusicId = currentSchedule.MusicId;
+        }
         updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
         var useScheduleLanguage = string.IsNullOrWhiteSpace(actionMusic.LanguageCode);
         // For melody (no-language pub), preserve existing music display language (e.g. MY) so it is saved and restored on view schedule.

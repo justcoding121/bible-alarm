@@ -470,11 +470,20 @@ internal sealed class RemoteMp4ArtworkExtractor
             using (tagFile)
             {
                 var tag = tagFile.Tag;
+                string? artistMeta = null;
+                if (!string.IsNullOrEmpty(tag.FirstPerformer))
+                {
+                    artistMeta = tag.FirstPerformer;
+                }
+                else if (!string.IsNullOrEmpty(tag.FirstAlbumArtist))
+                {
+                    artistMeta = tag.FirstAlbumArtist;
+                }
+
                 var meta = new MetaData
                 {
                     Title = !string.IsNullOrEmpty(tag.Title) ? tag.Title : null,
-                    Artist = !string.IsNullOrEmpty(tag.FirstPerformer) ? tag.FirstPerformer :
-                             !string.IsNullOrEmpty(tag.FirstAlbumArtist) ? tag.FirstAlbumArtist : null,
+                    Artist = artistMeta,
                     Album = !string.IsNullOrEmpty(tag.Album) ? tag.Album : null
                 };
 
