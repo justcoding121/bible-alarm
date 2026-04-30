@@ -16,10 +16,10 @@ internal static class LookupDataCollector
         var publicationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, string SectionCode)>();
         var bibleTrackKeys = new HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode)>();
-        var vocalMusicLanguageCodes = new HashSet<string>();
+        var vocalMusicLanguageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
-        var melodyPublicationCodes = new HashSet<string>();
+        var melodyPublicationCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var melodySectionKeys = new HashSet<(string PublicationCode, string SectionCode)>();
 
         foreach (var schedule in alarmSchedules)

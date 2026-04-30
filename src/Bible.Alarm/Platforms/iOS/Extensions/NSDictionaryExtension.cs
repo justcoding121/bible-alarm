@@ -10,5 +10,6 @@ public static class NsDictionaryExtension
             , input.Keys.ToArray<object>());
     }
 
-    public static Dictionary<string, string> ToDictionary(this NSDictionary input) => input.ToDictionary(x => x.Key.ToString(), x => x.Value.ToString());
+    public static Dictionary<string, string> ToDictionary(this NSDictionary input) =>
+        input.ToDictionary(x => x.Key.ToString(), x => x.Value.ToString(), StringComparer.Ordinal);
 }

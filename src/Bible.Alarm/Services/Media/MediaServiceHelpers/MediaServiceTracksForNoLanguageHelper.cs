@@ -73,6 +73,6 @@ public static class MediaServiceTracksForNoLanguageHelper
 
         var orderedTracksList = tracksList.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
         return new SortedDictionary<string, BiblePublicationTrack>(
-            orderedTracksList.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
+            orderedTracksList.ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal), TrackCodeComparer.Comparer);
     }
 }

@@ -60,7 +60,7 @@ internal static class MediaCacheCleanup
         CancellationToken cancellationToken,
         List<AlarmSchedule> schedules)
     {
-        var filePathsToDelete = new HashSet<string>();
+        var filePathsToDelete = new HashSet<string>(StringComparer.Ordinal);
 
         // For each schedule, check for unused files in its folder
         foreach (var schedule in schedules)
@@ -324,7 +324,7 @@ internal static class MediaCacheCleanup
             var allFiles = await storageService.GetAllFiles(scheduleCacheFolder);
 
             // Delete files that don't match the new schedule's lookup paths
-            var filePathsToDelete = new HashSet<string>();
+            var filePathsToDelete = new HashSet<string>(StringComparer.Ordinal);
             foreach (var filePath in allFiles)
             {
                 var fileName = Path.GetFileName(filePath);

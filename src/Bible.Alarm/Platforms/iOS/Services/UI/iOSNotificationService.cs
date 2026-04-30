@@ -26,7 +26,7 @@ public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory 
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            var @params = new Dictionary<string, string>
+            var @params = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 { "ScheduleId", scheduleId.ToString() }
             };

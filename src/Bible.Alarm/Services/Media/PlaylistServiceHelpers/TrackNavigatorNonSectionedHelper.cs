@@ -52,7 +52,7 @@ public sealed class TrackNavigatorNonSectionedHelper
         }
 
         var orderedTracks = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-        var tracksDict = new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
+        var tracksDict = new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal), TrackCodeComparer.Comparer);
         var currentKey = ResolveTrackCodeToKey(tracksDict, trackCode);
 
         var nextTrack = orderedTracks.FirstOrDefault(t => TrackCodeComparer.Comparer.Compare(t.TrackCode, currentKey) > 0);
@@ -117,7 +117,7 @@ public sealed class TrackNavigatorNonSectionedHelper
         }
 
         var orderedTracks = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-        var tracksDict = new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
+        var tracksDict = new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal), TrackCodeComparer.Comparer);
         var currentKey = ResolveTrackCodeToKey(tracksDict, trackCode);
 
         var previousTrack = orderedTracks.LastOrDefault(t => TrackCodeComparer.Comparer.Compare(t.TrackCode, currentKey) < 0);

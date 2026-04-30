@@ -70,7 +70,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                 {
                     var tracksDict = section.Tracks
                         .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
-                        .ToDictionary(t => t.TrackCode, t => t);
+                        .ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal);
                     tracks = new SortedDictionary<string, BiblePublicationTrack>(tracksDict, TrackCodeComparer.Comparer);
                 }
                 else
@@ -113,7 +113,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                         section.SectionCode);
                     var tracksDict = section.Tracks
                         .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
-                        .ToDictionary(t => t.TrackCode, t => t);
+                        .ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal);
                     foundTracks = new SortedDictionary<string, BiblePublicationTrack>(tracksDict, TrackCodeComparer.Comparer);
                 }
                 else

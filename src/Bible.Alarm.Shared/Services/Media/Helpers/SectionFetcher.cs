@@ -80,11 +80,12 @@ internal sealed class SectionFetcher
                 effectiveToken);
 
         var existingSectionCodes = existingPublication?.Sections
-            .Select(s => s.SectionCode.ToLowerInvariant())
-            .ToHashSet() ?? new HashSet<string>();
+            .Where(s => !string.IsNullOrEmpty(s.SectionCode))
+            .Select(s => s.SectionCode!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var missingSectionCodes = sectionCodes
-            .Where(sc => !existingSectionCodes.Contains(sc.ToLowerInvariant()))
+            .Where(sc => !existingSectionCodes.Contains(sc))
             .ToList();
 
         if (missingSectionCodes.Count == 0 && existingPublication != null)
