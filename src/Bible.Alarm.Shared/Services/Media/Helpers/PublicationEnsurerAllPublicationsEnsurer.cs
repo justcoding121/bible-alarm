@@ -71,8 +71,10 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
+                var existingPublicationSet = existingPublications.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
                 missingPublications = availablePublications
-                    .Where(pub => !existingPublications.Contains(pub))
+                    .Where(pub => !existingPublicationSet.Contains(pub))
                     .ToList();
             }
 

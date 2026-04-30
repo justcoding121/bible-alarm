@@ -7,7 +7,7 @@ public class VersionService : IVersionService
 {
     public string IncrementVersion(string currentVersion)
     {
-        var versionParts = currentVersion.Split('.');
+        var versionParts = currentVersion.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         if (versionParts.Length < 2)
         {

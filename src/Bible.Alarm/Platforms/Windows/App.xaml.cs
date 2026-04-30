@@ -282,7 +282,7 @@ public partial class App : MauiWinUIApplication
             // Format could be: "scheduleId=123" or just "123"
             if (int.TryParse(arguments.Trim(), out var scheduleId) ||
                 (arguments.Contains("scheduleId=", StringComparison.OrdinalIgnoreCase) &&
-                 int.TryParse(arguments.Split('=').LastOrDefault(), out scheduleId)))
+                 int.TryParse(arguments.Split('=', StringSplitOptions.TrimEntries).LastOrDefault(), out scheduleId)))
             {
             Task.Run(async () =>
             {

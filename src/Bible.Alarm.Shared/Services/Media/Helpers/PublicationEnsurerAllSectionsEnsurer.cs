@@ -77,14 +77,15 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
-                // Get existing section codes
+                // Get existing section codes (case-insensitive match vs SectionLanguages)
                 var existingSectionCodes = publication.Sections
-                    .Select(s => s.SectionCode.ToLowerInvariant())
+                    .Where(s => !string.IsNullOrEmpty(s.SectionCode))
+                    .Select(s => s.SectionCode!)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
                 // Find missing sections
                 var missingSectionCodes = availableSectionCodes
-                    .Where(sc => !existingSectionCodes.Contains(sc.ToLowerInvariant()))
+                    .Where(sc => !existingSectionCodes.Contains(sc))
                     .ToList();
 
                 missingCount = missingSectionCodes.Count;

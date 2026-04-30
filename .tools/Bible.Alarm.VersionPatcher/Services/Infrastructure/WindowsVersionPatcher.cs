@@ -59,7 +59,7 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
         }
 
         // Store requirement: manifest Version must have revision (4th component) = 0 (e.g. 2.1.1.0, not 2.1.0.1)
-        var versionParts = versionName.Split('.');
+        var versionParts = versionName.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (versionParts.Length < 2)
         {
             Console.WriteLine("Windows version format is invalid");

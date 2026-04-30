@@ -60,7 +60,7 @@ public sealed class PlatformShadowExtension : IMarkupExtension<Shadow?>
 
     private static Point? ParseOffset(string offset)
     {
-        var parts = offset.Split(',');
+        var parts = offset.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length != 2)
         {
             return null;

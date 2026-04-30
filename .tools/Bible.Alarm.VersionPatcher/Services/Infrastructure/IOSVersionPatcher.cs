@@ -25,7 +25,7 @@ public partial class IosVersionPatcher(IVersionService versionService, IFileServ
         }
 
         var content = await fileService.ReadFileAsync(manifestFile);
-        var lines = content.Split('\n');
+        var lines = content.Split('\n', StringSplitOptions.None);
         var output = new StringBuilder();
         var versionFound = false;
         string? newVersion = null;
