@@ -40,7 +40,6 @@ public sealed class ScheduleStateService(
     : IScheduleStateService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
-    private readonly INotificationService notificationService = notificationService;
     private bool isDisposed;
 
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)

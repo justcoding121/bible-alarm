@@ -115,7 +115,6 @@ public sealed class NotificationPermissionPollingService : IDisposable
                                 // Permission granted and toggle already ON - task is no longer needed
                                 logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionGrantedNotificationEnabledAlreadyTrueStoppingTask);
                                 cancellationTokenSource?.Cancel();
-                                return;
                             }
                         }
                         else

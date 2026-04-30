@@ -25,9 +25,11 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     // - Schedule details: margins(32) + 7 day buttons(7×48=336) + spacing(24) = 392px  
     // - Alarm modal: margins(48) + 5 media buttons(48+48+64+48+48=256) + spacing(60) = 364px
     // - Selection pages: margins(32) + text(200) + icon(40) = 272px
-    // Widest is ~400px, add padding for comfort = 450px base
+    // Widest is ~400px, add padding for comfort = 450px base (used by Windows window sizing only)
+#if WINDOWS
     private const double BaseWidth = 450;
     private const double BaseHeight = 850;
+#endif
 
     public Window CreateWindow(IActivationState? activationState)
     {

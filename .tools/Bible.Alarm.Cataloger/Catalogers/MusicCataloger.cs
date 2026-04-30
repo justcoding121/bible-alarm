@@ -213,7 +213,6 @@ internal class MusicCataloger : BaseCataloger
 
     internal async Task CatalogMusicMelodyLinks(bool isTestRun = false, IReadOnlySet<string>? publicationFilter = null)
     {
-        var discs = new List<string>();
         var downloadCodes = new List<string>();
 
         var melodyCodes = SharedHelpers.JwSourceHelper.MelodyMusicPublicationCodes;

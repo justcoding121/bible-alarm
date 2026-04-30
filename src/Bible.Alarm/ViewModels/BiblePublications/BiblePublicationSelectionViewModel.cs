@@ -427,7 +427,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsCancelBusy))
             {
                 OnPropertyChanged(nameof(IsCancelBusy));
-                return;
             }
         };
 

@@ -115,7 +115,7 @@ internal sealed class SectionLanguageSeeder
             // Seed ALL discovered languages for this section (including E)
             // The discovery phase already found which languages are available, so we save all of them
             // Pass the original publicationCode (from dataStore) so SeedLanguageForSection can determine case-sensitive code
-            foreach (var (languageCode, languageInfo) in languages)
+            foreach (var (languageCode, _) in languages)
             {
                 await SeedLanguageForSection(db, publicationCode, normalizedSectionCode, languageCode);
             }

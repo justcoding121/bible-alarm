@@ -35,7 +35,7 @@ public sealed class CategoryFetchProgressReporter : IFetchProgress
                 HasError = false
             }));
         }
-        catch
+        catch (Exception)
         {
             // Progress messaging is non-critical when subscribers are torn down; ignore messenger failures.
         }

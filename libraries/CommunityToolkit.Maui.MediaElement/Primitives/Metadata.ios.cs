@@ -9,18 +9,6 @@ namespace CommunityToolkit.Maui.Primitives;
 sealed class Metadata
 {
     static readonly UIImage defaultUiImage = new();
-    static readonly MPNowPlayingInfo nowPlayingInfoDefault = new()
-    {
-        AlbumTitle = string.Empty,
-        Title = string.Empty,
-        Artist = string.Empty,
-        PlaybackDuration = 0,
-        IsLiveStream = false,
-        PlaybackRate = 0,
-        ElapsedPlaybackTime = 0,
-        Artwork = new(boundsSize: new(0, 0), requestHandler: _ => defaultUiImage)
-    };
-
     private MPMediaItemArtwork? lastArtwork;
     private UIImage? cachedArtworkImage;
     private string? cachedArtworkUri;

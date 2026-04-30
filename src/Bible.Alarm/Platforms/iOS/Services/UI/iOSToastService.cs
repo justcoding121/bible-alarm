@@ -225,7 +225,6 @@ public class IOsToastService : ToastService, IDisposable
 
     private static UILabel CreateToastLabel(string message)
     {
-        var theme = Application.Current?.RequestedTheme ?? AppTheme.Light;
         var textColor = GetToastTextColor();
 
         return new UILabel

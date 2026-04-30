@@ -36,7 +36,7 @@ internal sealed class PublicationLanguageSeeder
         var allDiscoveredLanguageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         
         // Add all languages from PublicationLanguages
-        foreach (var (publicationCode, languages) in dataStore.PublicationLanguages)
+        foreach (var (_, languages) in dataStore.PublicationLanguages)
         {
             foreach (var languageCode in languages.Keys)
             {
@@ -45,7 +45,7 @@ internal sealed class PublicationLanguageSeeder
         }
 
         // Add all languages from SectionLanguages
-        foreach (var ((publicationCode, sectionCode), languages) in dataStore.SectionLanguages)
+        foreach (var ((_, _), languages) in dataStore.SectionLanguages)
         {
             foreach (var languageCode in languages.Keys)
             {
@@ -85,7 +85,7 @@ internal sealed class PublicationLanguageSeeder
         var addedInBatch = new HashSet<(string PublicationCode, int? LanguageId)>();
         foreach (var (publicationCode, languages) in dataStore.PublicationLanguages)
         {
-            foreach (var (languageCode, languageInfo) in languages)
+            foreach (var (languageCode, _) in languages)
             {
                 await SeedLanguageForPublication(db, publicationCode, languageCode, addedInBatch);
             }

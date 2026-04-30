@@ -176,7 +176,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
             {
                 IsNotificationPermissionGranted = permissionService.IsGranted;
-                CanShowSystemPrompt = permissionService.CanShowSystemPrompt;
+                UpdateCanShowSystemPrompt(permissionService.CanShowSystemPrompt);
             }
 #elif IOS
             if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
@@ -239,7 +239,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             var canShow = await permissionService.CanShowSystemPromptAsync();
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                CanShowSystemPrompt = canShow;
+                UpdateCanShowSystemPrompt(canShow);
             });
         }
         catch (Exception ex)
@@ -272,7 +272,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         IsNotificationPermissionGranted = result;
-                        CanShowSystemPrompt = canShow;
+                        UpdateCanShowSystemPrompt(canShow);
                         logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckAsyncCompletedGrantedCanShowWasGranted,
                             IsNotificationPermissionGranted, canShow, wasGranted);
                         if (!wasGranted && IsNotificationPermissionGranted)
@@ -438,15 +438,13 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
     /// True if the OS may still show the system permission prompt (iOS: not yet denied; Android: not permanently denied).
     /// When false, the "Request permission" button is hidden and the user must use "Open Settings".
     /// </summary>
-    public bool CanShowSystemPrompt
+    public bool CanShowSystemPrompt => canShowSystemPrompt;
+
+    private void UpdateCanShowSystemPrompt(bool value)
     {
-        get => canShowSystemPrompt;
-        private set
+        if (SetProperty(ref canShowSystemPrompt, value))
         {
-            if (SetProperty(ref canShowSystemPrompt, value))
-            {
-                OnPropertyChanged(nameof(IsRequestButtonVisible));
-            }
+            OnPropertyChanged(nameof(IsRequestButtonVisible));
         }
     }
 

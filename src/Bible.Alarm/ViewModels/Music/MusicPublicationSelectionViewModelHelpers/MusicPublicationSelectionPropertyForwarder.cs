@@ -54,7 +54,6 @@ public static class MusicPublicationSelectionPropertyForwarder
             if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsCancelBusy))
             {
                 onPropertyChanged("IsCancelBusy");
-                return;
             }
         };
     }
