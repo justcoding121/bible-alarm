@@ -60,31 +60,7 @@ internal sealed class MediatorApiClient
             return (null, new List<MediatorTrack>());
         }
 
-        string? localizedPubName = null;
-        string? categoryName = null;
-        string? parentCategoryName = null;
-
-        if (categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
-        {
-            var rawName = nameElement.GetString();
-            categoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-        }
-
-        if (categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.ParentCategory, out var parentCategoryElement) &&
-            parentCategoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var parentNameElement))
-        {
-            var rawParentName = parentNameElement.GetString();
-            parentCategoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawParentName);
-        }
-
-        if (!string.IsNullOrEmpty(categoryName))
-        {
-            var pubNameEqualsCategoryName = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryDramas, StringComparison.OrdinalIgnoreCase);
-            if (pubNameEqualsCategoryName && !string.IsNullOrEmpty(parentCategoryName))
-                localizedPubName = $"{parentCategoryName} {categoryName}";
-            else
-                localizedPubName = categoryName;
-        }
+        var localizedPubName = ResolveLocalizedMediatorPublicationName(categoryElement);
 
         if (!categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.CategoryMedia, out var mediaArray) || mediaArray.ValueKind != JsonValueKind.Array)
         {
@@ -92,6 +68,42 @@ internal sealed class MediatorApiClient
             return (localizedPubName, new List<MediatorTrack>());
         }
 
+        var tracks = ParseMediatorTracksFromCategoryMedia(mediaArray, categoryKey);
+        return (localizedPubName, tracks);
+    }
+
+    private static string? ResolveLocalizedMediatorPublicationName(JsonElement categoryElement)
+    {
+        string? categoryName = null;
+        string? parentCategoryName = null;
+
+        if (categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
+        {
+            categoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(nameElement.GetString());
+        }
+
+        if (categoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.ParentCategory, out var parentCategoryElement) &&
+            parentCategoryElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var parentNameElement))
+        {
+            parentCategoryName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(parentNameElement.GetString());
+        }
+
+        if (string.IsNullOrEmpty(categoryName))
+        {
+            return null;
+        }
+
+        var pubNameEqualsCategoryName = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryDramas, StringComparison.OrdinalIgnoreCase);
+        if (pubNameEqualsCategoryName && !string.IsNullOrEmpty(parentCategoryName))
+        {
+            return $"{parentCategoryName} {categoryName}";
+        }
+
+        return categoryName;
+    }
+
+    private List<MediatorTrack> ParseMediatorTracksFromCategoryMedia(JsonElement mediaArray, string categoryKey)
+    {
         var tracks = new List<MediatorTrack>();
         var index = 0;
         foreach (var mediaItem in mediaArray.EnumerateArray())
@@ -129,11 +141,10 @@ internal sealed class MediatorApiClient
             }
 
             index++;
-            var trackCode = index.ToString();
-            tracks.Add(new MediatorTrack(trackCode, title, url));
+            tracks.Add(new MediatorTrack(index.ToString(), title, url));
         }
 
-        return (localizedPubName, tracks);
+        return tracks;
     }
 
     internal sealed record MediatorTrack(string TrackCode, string Title, string Url);

@@ -94,68 +94,91 @@ public sealed partial class ProgressTracker : IDisposable
 
         var track = playlist[currentTrackIndex];
 
-        // Handle music tracks: mark as finished on first progress update
-        if (track.PlayItem.Metadata.PlayType == PlayType.Music)
+        if (await TryHandleMusicProgressAsync(track))
         {
-            // Only mark as finished once per track
-            if (!hasMarkedCurrentMusicTrackAsFinished && audioPlayer.Status == PlayStatus.Playing)
-            {
-                try
-                {
-                    var currentPosition = audioPlayer.CurrentPosition;
-                    if (currentPosition.HasValue && currentPosition.Value > TimeSpan.Zero)
-                    {
-                        logger.Information(
-                            "Marking music track as finished on first progress update - ScheduleId: {ScheduleId}, TrackCode: {TrackCode}, Position: {Position}",
-                            track.PlayItem.Metadata.ScheduleId,
-                            track.PlayItem.Metadata.TrackCode,
-                            currentPosition.Value);
-
-                        await playlistService.MarkTrackAsFinished(track.PlayItem.Metadata);
-                        hasMarkedCurrentMusicTrackAsFinished = true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error marking music track as finished on progress update");
-                }
-            }
             return;
         }
 
-        // Only save progress for Bible tracks
         if (track.PlayItem.Metadata.PlayType != PlayType.Bible)
         {
             return;
         }
 
+        if (!ShouldPersistProgressThisCycle(track, forceSave))
+        {
+            return;
+        }
+
+        await PersistBibleTrackProgressAsync(track, forceSave);
+    }
+
+    private async Task<bool> TryHandleMusicProgressAsync(AudioPlayerTrack track)
+    {
+        if (track.PlayItem.Metadata.PlayType != PlayType.Music)
+        {
+            return false;
+        }
+
+        if (!hasMarkedCurrentMusicTrackAsFinished && audioPlayer.Status == PlayStatus.Playing)
+        {
+            await TryMarkMusicTrackFinishedOnceAsync(track);
+        }
+
+        return true;
+    }
+
+    private async Task TryMarkMusicTrackFinishedOnceAsync(AudioPlayerTrack track)
+    {
+        try
+        {
+            var currentPosition = audioPlayer.CurrentPosition;
+            if (currentPosition.HasValue && currentPosition.Value > TimeSpan.Zero)
+            {
+                logger.Information(
+                    "Marking music track as finished on first progress update - ScheduleId: {ScheduleId}, TrackCode: {TrackCode}, Position: {Position}",
+                    track.PlayItem.Metadata.ScheduleId,
+                    track.PlayItem.Metadata.TrackCode,
+                    currentPosition.Value);
+
+                await playlistService.MarkTrackAsFinished(track.PlayItem.Metadata);
+                hasMarkedCurrentMusicTrackAsFinished = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error marking music track as finished on progress update");
+        }
+    }
+
+    private bool ShouldPersistProgressThisCycle(AudioPlayerTrack track, bool forceSave)
+    {
         if (forceSave)
         {
             hasAutoSavedOnPause = true;
-        }
-        else
-        {
-            var status = audioPlayer.Status;
-            if (status == PlayStatus.Playing)
-            {
-                hasAutoSavedOnPause = false;
-            }
-            else if (status == PlayStatus.Paused && !hasAutoSavedOnPause)
-            {
-                // Auto-pause detected (BT disconnect, audio focus loss) without
-                // PlaybackService.PauseAsync() being called. Save once so the DB
-                // has the latest position and resume works after process kill.
-                hasAutoSavedOnPause = true;
-                logger.Information(
-                    "Auto-pause detected: saving progress for resume (ScheduleId={ScheduleId})",
-                    track.PlayItem.Metadata.ScheduleId);
-            }
-            else
-            {
-                return;
-            }
+            return true;
         }
 
+        var status = audioPlayer.Status;
+        if (status == PlayStatus.Playing)
+        {
+            hasAutoSavedOnPause = false;
+            return true;
+        }
+
+        if (status == PlayStatus.Paused && !hasAutoSavedOnPause)
+        {
+            hasAutoSavedOnPause = true;
+            logger.Information(
+                "Auto-pause detected: saving progress for resume (ScheduleId={ScheduleId})",
+                track.PlayItem.Metadata.ScheduleId);
+            return true;
+        }
+
+        return false;
+    }
+
+    private async Task PersistBibleTrackProgressAsync(AudioPlayerTrack track, bool forceSave)
+    {
         try
         {
             var currentPosition = audioPlayer.CurrentPosition;
@@ -168,11 +191,11 @@ public sealed partial class ProgressTracker : IDisposable
                     logger.Debug("Force-saved progress: ScheduleId={ScheduleId}, Position={Position}",
                         track.PlayItem.Metadata.ScheduleId, currentPosition.Value);
                 }
+                return;
             }
-            else if ((forceSave || hasAutoSavedOnPause) && track.PlayItem.Metadata.FinishedDuration > TimeSpan.Zero)
+
+            if ((forceSave || hasAutoSavedOnPause) && track.PlayItem.Metadata.FinishedDuration > TimeSpan.Zero)
             {
-                // Player position unavailable (e.g. resources released) but in-memory
-                // metadata still holds the position from the last timer tick. Persist it.
                 await playlistService.MarkTrackAsPlayed(track.PlayItem.Metadata);
                 logger.Debug("Saved in-memory progress (player position unavailable): ScheduleId={ScheduleId}, Position={Position}",
                     track.PlayItem.Metadata.ScheduleId, track.PlayItem.Metadata.FinishedDuration);

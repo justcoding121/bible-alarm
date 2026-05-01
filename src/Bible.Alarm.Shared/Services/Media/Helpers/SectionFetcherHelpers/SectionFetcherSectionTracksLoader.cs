@@ -72,20 +72,13 @@ internal sealed class SectionFetcherSectionTracksLoader
         var isVideoDrama = !isBible && !isIssueSectioned && publication.IsVideo;
         var dramaFileFormat = isVideoDrama ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
 
-        string queryString;
-        if (isIssueSectioned)
-        {
-            var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(normalizedSectionCode);
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={apiPubCode}&{AppConstants.Media.GetPubQueryParamName.Issue}={issueCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-        }
-        else if (isBible)
-        {
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={normalizedPublicationCode}&{AppConstants.Media.GetPubQueryParamName.BookNum}={normalizedSectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-        }
-        else
-        {
-            queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={normalizedSectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={dramaFileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-        }
+        var queryString = BuildSectionTracksPubQuery(
+            isIssueSectioned,
+            isBible,
+            normalizedPublicationCode,
+            normalizedSectionCode,
+            normalizedLanguageCode,
+            dramaFileFormat);
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
         var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
@@ -305,6 +298,28 @@ internal sealed class SectionFetcherSectionTracksLoader
             tracks.Count, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode, persistedSectionName);
 
         return true;
+    }
+
+    private static string BuildSectionTracksPubQuery(
+        bool isIssueSectioned,
+        bool isBible,
+        string normalizedPublicationCode,
+        string normalizedSectionCode,
+        string normalizedLanguageCode,
+        string dramaFileFormat)
+    {
+        if (isIssueSectioned)
+        {
+            var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(normalizedSectionCode);
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={apiPubCode}&{AppConstants.Media.GetPubQueryParamName.Issue}={issueCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
+        }
+
+        if (isBible)
+        {
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={normalizedPublicationCode}&{AppConstants.Media.GetPubQueryParamName.BookNum}={normalizedSectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
+        }
+
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={normalizedSectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={dramaFileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
     }
 
     private async Task SaveTracksWithRetryAsync(SaveSectionTracksPersistenceRequest request)

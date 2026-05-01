@@ -181,53 +181,7 @@ public sealed class ScheduleListItemViewModel(
 
     private void EnsureScheduleCommands()
     {
-        PlayCommand ??= new AsyncRelayCommand(async () =>
-        {
-            if (Schedule?.Id is not > 0 || isPlayCommandRunning)
-            {
-                return;
-            }
-
-            isPlayCommandRunning = true;
-            IsBusy = true;
-            StartSpinnerTimeout();
-            try
-            {
-                await Task.Delay(50);
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    try
-                    {
-                        OnPlayStarted?.Invoke();
-                        WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule!.Id });
-                        await playbackService.PlayScheduleAsync(Schedule!.Id);
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        logger.Warning(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedForSchedule, Schedule!.Id);
-                    }
-                    finally
-                    {
-                        isPlayCommandRunning = false;
-                        ClearShowModalPendingIfPlaybackNotStarted();
-                        SyncIsBusyWithPlaybackState();
-                    }
-                });
-            }
-            catch (OperationCanceledException)
-            {
-                isPlayCommandRunning = false;
-                ClearShowModalPendingIfPlaybackNotStarted();
-                SyncIsBusyWithPlaybackState();
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedBeforeSchedulingPlaybackForSchedule, Schedule?.Id ?? 0);
-                isPlayCommandRunning = false;
-                ClearShowModalPendingIfPlaybackNotStarted();
-                SyncIsBusyWithPlaybackState();
-            }
-        }, AsyncRelayCommandOptions.AllowConcurrentExecutions);
+        PlayCommand ??= new AsyncRelayCommand(ExecutePlayScheduleCommandAsync, AsyncRelayCommandOptions.AllowConcurrentExecutions);
 
         ToggleEnabledCommand ??= new RelayCommand(() =>
         {
@@ -260,6 +214,54 @@ public sealed class ScheduleListItemViewModel(
 
             dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
         });
+    }
+
+    private async Task ExecutePlayScheduleCommandAsync()
+    {
+        if (Schedule?.Id is not > 0 || isPlayCommandRunning)
+        {
+            return;
+        }
+
+        isPlayCommandRunning = true;
+        IsBusy = true;
+        StartSpinnerTimeout();
+        try
+        {
+            await Task.Delay(50);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    OnPlayStarted?.Invoke();
+                    WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule!.Id });
+                    await playbackService.PlayScheduleAsync(Schedule!.Id);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.Warning(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedForSchedule, Schedule!.Id);
+                }
+                finally
+                {
+                    isPlayCommandRunning = false;
+                    ClearShowModalPendingIfPlaybackNotStarted();
+                    SyncIsBusyWithPlaybackState();
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            isPlayCommandRunning = false;
+            ClearShowModalPendingIfPlaybackNotStarted();
+            SyncIsBusyWithPlaybackState();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedBeforeSchedulingPlaybackForSchedule, Schedule?.Id ?? 0);
+            isPlayCommandRunning = false;
+            ClearShowModalPendingIfPlaybackNotStarted();
+            SyncIsBusyWithPlaybackState();
+        }
     }
 
     public int ScheduleId => Schedule?.Id ?? 0;

@@ -319,9 +319,11 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
         set
         {
 #if IOS
-            if (IsEnabledIosPermissionChecker.TryHandleToggleOnWhenNotGranted(
+            if (IsEnabledIosPermissionChecker.TryHandleToggleOnWhenNotGranted(new IosReminderToggleGuardRequest(
                 value, isUpdatingFromPermissionCheck, isSyncingFromState,
-                () => isEnabled, permissionService, logger,
+                () => isEnabled,
+                permissionService,
+                logger,
                 () =>
                 {
                     isEnabled = true;
@@ -335,7 +337,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                     DispatchScheduleUpdate(s => s.IsEnabled = false);
                 },
                 x => isUpdatingFromPermissionCheck = x,
-                x => isWaitingForPermissionResponse = x))
+                x => isWaitingForPermissionResponse = x)))
             {
                 return;
             }

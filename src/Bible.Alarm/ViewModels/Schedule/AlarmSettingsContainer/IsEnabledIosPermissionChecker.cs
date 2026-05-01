@@ -9,24 +9,29 @@ using Serilog;
 namespace Bible.Alarm.ViewModels.Schedule.AlarmSettingsContainer;
 
 /// <summary>
+/// Inputs for iOS reminder enable guard when toggling IsEnabled while permission state is uncertain.
+/// </summary>
+public sealed record IosReminderToggleGuardRequest(
+    bool Value,
+    bool IsUpdatingFromPermissionCheck,
+    bool IsSyncingFromState,
+    Func<bool> GetIsEnabled,
+    IOSNotificationPermissionService? PermissionService,
+    ILogger Logger,
+    Action SetOnAndNotify,
+    Action SetOffAndNotify,
+    Action<bool> SetIsUpdatingFromPermissionCheck,
+    Action<bool> SetIsWaitingForPermissionResponse);
+
+/// <summary>
 /// Handles iOS IsEnabled (reminder) toggle when permission may not be granted.
 /// On iOS, reminders require notification permission; there is no separate "Tap to Play" toggle.
 /// </summary>
 public static class IsEnabledIosPermissionChecker
 {
-    public static bool TryHandleToggleOnWhenNotGranted(
-        bool value,
-        bool isUpdatingFromPermissionCheck,
-        bool isSyncingFromState,
-        Func<bool> getIsEnabled,
-        IOSNotificationPermissionService? permissionService,
-        ILogger logger,
-        Action setOnAndNotify,
-        Action setOffAndNotify,
-        Action<bool> setIsUpdatingFromPermissionCheck,
-        Action<bool> setIsWaitingForPermissionResponse)
+    public static bool TryHandleToggleOnWhenNotGranted(IosReminderToggleGuardRequest r)
     {
-        if (!value || isUpdatingFromPermissionCheck || isSyncingFromState)
+        if (!r.Value || r.IsUpdatingFromPermissionCheck || r.IsSyncingFromState)
         {
             return false;
         }
@@ -34,9 +39,9 @@ public static class IsEnabledIosPermissionChecker
         var isGranted = false;
         try
         {
-            if (permissionService != null)
+            if (r.PermissionService != null)
             {
-                permissionService.InvalidateCache();
+                r.PermissionService.InvalidateCache();
                 _ = Task.Run(async () =>
                 {
                     try
@@ -44,40 +49,40 @@ public static class IsEnabledIosPermissionChecker
                         var result = await IOSNotificationPermissionService.IsGrantedAsync();
                         MainThread.BeginInvokeOnMainThread(() =>
                         {
-                            if (result && !getIsEnabled())
+                            if (result && !r.GetIsEnabled())
                             {
-                                setIsUpdatingFromPermissionCheck(true);
+                                r.SetIsUpdatingFromPermissionCheck(true);
                                 try
                                 {
-                                    setOnAndNotify();
-                                    logger.Information("IsEnabled setter (iOS): Permission granted - enabling reminder");
+                                    r.SetOnAndNotify();
+                                    r.Logger.Information("IsEnabled setter (iOS): Permission granted - enabling reminder");
                                 }
                                 finally
                                 {
-                                    setIsUpdatingFromPermissionCheck(false);
+                                    r.SetIsUpdatingFromPermissionCheck(false);
                                 }
                             }
                         });
                     }
                     catch (Exception asyncEx)
                     {
-                        logger.Error(asyncEx, "IsEnabled setter (iOS): Exception in async permission check");
+                        r.Logger.Error(asyncEx, "IsEnabled setter (iOS): Exception in async permission check");
                     }
                 });
-                isGranted = permissionService.IsGranted;
+                isGranted = r.PermissionService.IsGranted;
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "IsEnabled setter (iOS): Exception checking permission - assuming not granted");
+            r.Logger.Error(ex, "IsEnabled setter (iOS): Exception checking permission - assuming not granted");
         }
 
         if (!isGranted)
         {
-            logger.Debug("Cannot enable reminder on iOS - notification permission not granted; requesting OS prompt");
-            setIsWaitingForPermissionResponse(true);
-            setOffAndNotify();
-            permissionService?.RequestPermissionIfNeeded();
+            r.Logger.Debug("Cannot enable reminder on iOS - notification permission not granted; requesting OS prompt");
+            r.SetIsWaitingForPermissionResponse(true);
+            r.SetOffAndNotify();
+            r.PermissionService?.RequestPermissionIfNeeded();
             return true;
         }
 

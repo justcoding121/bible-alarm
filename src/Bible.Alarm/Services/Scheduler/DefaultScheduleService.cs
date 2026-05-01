@@ -44,53 +44,8 @@ public sealed partial class DefaultScheduleService(
         // Note: CurrentScheduleId is not used here as it should be cleared after playback ends/resets
         // Note: CurrentSchedule is intentionally not used here as it should be null after navigating back to home
 
-        int? scheduleId = null;
+        var scheduleId = await ResolveScheduleIdPreferringLastPlayedAsync();
 
-        // Check preferences for last played schedule ID
-        var lastPlayedMetadata = LastPlayedMetadataHelper.GetLastPlayedMetadata();
-        if (lastPlayedMetadata.HasValue && lastPlayedMetadata.Value.ScheduleId.HasValue)
-        {
-            var lastPlayedScheduleId = lastPlayedMetadata.Value.ScheduleId.Value;
-            // Verify the schedule still exists in state
-            if (applicationState.Value.Schedules?.Any(s => s.Id == lastPlayedScheduleId) is true)
-            {
-                scheduleId = lastPlayedScheduleId;
-                logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInState, scheduleId);
-            }
-            else
-            {
-                // State may not be loaded yet (early bootstrap after process restart).
-                // Verify the last played schedule directly against the DB before falling
-                // back to the first schedule, so we don't lose the user's context.
-                try
-                {
-                    if (await alarmScheduleService.ScheduleExistsAsync(lastPlayedScheduleId, cancellationTokenSource.Token))
-                    {
-                        scheduleId = lastPlayedScheduleId;
-                        logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInDbStateNotLoaded, scheduleId);
-                    }
-                    else
-                    {
-                        logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleLastPlayedNoLongerInDbQueryingFirst, lastPlayedScheduleId);
-                        var firstSchedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
-                            includeMusic: false,
-                            includeBiblePublication: false,
-                            cancellationTokenSource.Token);
-                        if (firstSchedule != null)
-                        {
-                            scheduleId = firstSchedule.Id;
-                            logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleFoundFirstScheduleFromDatabase, scheduleId);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning(ex, AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleTrackMetaDataFailedVerifyLastPlayedInDb);
-                }
-            }
-        }
-
-        // Final fallback to first schedule in state
         if (!scheduleId.HasValue)
         {
             scheduleId = applicationState.Value.Schedules?.FirstOrDefault()?.Id;
@@ -125,6 +80,49 @@ public sealed partial class DefaultScheduleService(
             metadata.Title, metadata.Artist, metadata.ScheduleId);
 
         return metadata;
+    }
+
+    private async Task<int?> ResolveScheduleIdPreferringLastPlayedAsync()
+    {
+        var lastPlayedMetadata = LastPlayedMetadataHelper.GetLastPlayedMetadata();
+        if (!lastPlayedMetadata.HasValue || !lastPlayedMetadata.Value.ScheduleId.HasValue)
+        {
+            return null;
+        }
+
+        var lastPlayedScheduleId = lastPlayedMetadata.Value.ScheduleId.Value;
+
+        if (applicationState.Value.Schedules?.Any(s => s.Id == lastPlayedScheduleId) is true)
+        {
+            logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInState, lastPlayedScheduleId);
+            return lastPlayedScheduleId;
+        }
+
+        try
+        {
+            if (await alarmScheduleService.ScheduleExistsAsync(lastPlayedScheduleId, cancellationTokenSource.Token))
+            {
+                logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInDbStateNotLoaded, lastPlayedScheduleId);
+                return lastPlayedScheduleId;
+            }
+
+            logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleLastPlayedNoLongerInDbQueryingFirst, lastPlayedScheduleId);
+            var firstSchedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
+                includeMusic: false,
+                includeBiblePublication: false,
+                cancellationTokenSource.Token);
+            if (firstSchedule != null)
+            {
+                logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleFoundFirstScheduleFromDatabase, firstSchedule.Id);
+                return firstSchedule.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleTrackMetaDataFailedVerifyLastPlayedInDb);
+        }
+
+        return null;
     }
 
     public async Task<ScheduleTrackMetadata> GetNextScheduleInRotationMetadataAsync()

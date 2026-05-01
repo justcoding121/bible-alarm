@@ -28,53 +28,34 @@ public static class ScheduleDisplayMetadataHelper
 
         if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            var scheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
-                ? scheduleItem.Name
-                : string.Empty;
-
-            if (string.IsNullOrWhiteSpace(scheduleName))
-            {
-                return scheduleItem.MusicEnabled ? sym : AppConstants.Media.ScheduleUiUnnamedPlaceholder;
-            }
-
-            return scheduleItem.MusicEnabled ? scheduleName + " " + sym : scheduleName;
+            return BuildMusicScheduleTitle(scheduleItem, sym);
         }
 
-        var categoryName = scheduleItem.BiblePublicationCategoryName
-            ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
-        var isBibleCategory = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
-
-        string? title = null;
-        if (isBibleCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+        var resolvedTitle = ResolveBiblePublicationScheduleTitle(scheduleItem);
+        if (!string.IsNullOrWhiteSpace(resolvedTitle))
         {
-            var sectionName = scheduleItem.BiblePublicationSectionName;
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackCode))
-            {
-                title = $"{sectionName} {scheduleItem.BiblePublicationTrackCode}";
-            }
-            else
-            {
-                title = sectionName;
-            }
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
-        {
-            title = scheduleItem.BiblePublicationTrackTitle;
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
-        {
-            title = scheduleItem.BiblePublicationName;
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
-        {
-            title = scheduleItem.Name;
+            return scheduleItem.MusicEnabled ? resolvedTitle + " " + sym : resolvedTitle;
         }
 
-        if (!string.IsNullOrWhiteSpace(title))
+        return BuildFallbackNameTitle(scheduleItem, sym);
+    }
+
+    private static string BuildMusicScheduleTitle(ScheduleStateItem scheduleItem, string sym)
+    {
+        var scheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
+            ? scheduleItem.Name
+            : string.Empty;
+
+        if (string.IsNullOrWhiteSpace(scheduleName))
         {
-            return scheduleItem.MusicEnabled ? title + " " + sym : title;
+            return scheduleItem.MusicEnabled ? sym : AppConstants.Media.ScheduleUiUnnamedPlaceholder;
         }
 
+        return scheduleItem.MusicEnabled ? scheduleName + " " + sym : scheduleName;
+    }
+
+    private static string BuildFallbackNameTitle(ScheduleStateItem scheduleItem, string sym)
+    {
         var fallbackScheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
             ? scheduleItem.Name
             : string.Empty;
@@ -85,6 +66,36 @@ public static class ScheduleDisplayMetadataHelper
         }
 
         return scheduleItem.MusicEnabled ? fallbackScheduleName + " " + sym : fallbackScheduleName;
+    }
+
+    private static string? ResolveBiblePublicationScheduleTitle(ScheduleStateItem scheduleItem)
+    {
+        var categoryName = scheduleItem.BiblePublicationCategoryName
+            ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
+        var isBibleCategory = string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
+
+        if (isBibleCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+        {
+            var sectionName = scheduleItem.BiblePublicationSectionName;
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackCode))
+            {
+                return $"{sectionName} {scheduleItem.BiblePublicationTrackCode}";
+            }
+
+            return sectionName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
+        {
+            return scheduleItem.BiblePublicationTrackTitle;
+        }
+
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
+        {
+            return scheduleItem.BiblePublicationName;
+        }
+
+        return !string.IsNullOrWhiteSpace(scheduleItem.Name) ? scheduleItem.Name : null;
     }
 
     /// <summary>

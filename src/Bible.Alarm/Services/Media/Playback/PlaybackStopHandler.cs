@@ -48,99 +48,20 @@ public sealed class PlaybackStopHandler
 
         try
         {
-            // Cancel any ongoing preparation/downloads
-            try
-            {
-                preparationCancellationTokenSource?.CancelAsync();
-                logger.Debug(AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.CancelledPreparationCancellationToken);
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorCancellingPreparationToken);
-            }
+            await CancelPreparationTokenBestEffortAsync(preparationCancellationTokenSource);
 
-            // Stop progress timer FIRST to prevent in-flight timer callbacks from racing with state reset.
-            // System.Timers.Timer.Stop() doesn't cancel in-flight callbacks, but it prevents new ones.
-            try
-            {
-                stopProgressTimer();
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorStoppingProgressTimer);
-            }
+            WarnIfFailure(stopProgressTimer, ex => logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorStoppingProgressTimer));
 
-            // Reset state to ensure PlayCurrentTrackAsync checks detect stop immediately.
-            // This is especially important for the gap between downloads completing and playback starting.
-            try
-            {
-                resetState();
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorResettingPlaybackState);
-            }
+            WarnIfFailure(resetState, ex => logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorResettingPlaybackState));
 
-            // Stop player immediately for responsive user experience
-            try
-            {
-                await audioPlayer.StopAsync();
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorStoppingPlayerWillContinueWithReset);
-            }
+            await RunIgnoringWarningAsync(audioPlayer.StopAsync, ex =>
+                logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorStoppingPlayerWillContinueWithReset));
 
-            // Skip marking as played if track was already marked as finished (e.g., when last track ends naturally)
-            // This prevents overwriting the database update that MarkTrackAsFinished() already made
-            if (!skipMarkAsPlayed && trackMetadataToMark != null)
-            {
-                try
-                {
-                    // Music tracks are handled by ProgressTracker on first progress update
-                    // Only mark Bible tracks as played here (saves current position)
-                    if (trackMetadataToMark.PlayType != PlayType.Music)
-                    {
-                        // For Bible tracks, mark as played (which saves current position)
-                        await playlistService.MarkTrackAsPlayed(trackMetadataToMark);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorMarkingCurrentTrackAsPlayedOrFinished);
-                }
-            }
+            await TryMarkStoppedTrackPlayedWhenApplicableAsync(skipMarkAsPlayed, trackMetadataToMark);
 
-            if (scheduleIdToSave.HasValue && !skipSaveLastPlayed)
-            {
-                try
-                {
-                    await playlistService.SaveLastPlayed(scheduleIdToSave.Value);
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorSavingLastPlayed);
-                }
-            }
+            await TrySaveLastPlayedWhenApplicableAsync(scheduleIdToSave, skipSaveLastPlayed);
 
-            // Reset player - state was already reset above, but ensure player is fully reset
-            // This resets the player and dispatches actions to close modal
-            try
-            {
-                await audioPlayer.ResetAsync();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorInAudioPlayerResetAttemptingMinimalCleanup);
-                try
-                {
-                    await audioPlayer.ResetAsync();
-                }
-                catch (Exception resetEx)
-                {
-                    logger.Warning(resetEx, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorResettingPlayerInFallback);
-                }
-            }
+            await ResetAudioPlayerWithFallbackAsync();
 
             if (!skipDispatchStopped)
             {
@@ -169,6 +90,106 @@ public sealed class PlaybackStopHandler
                     logger.Error(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.FailedToDispatchPlaybackStoppedActionInFinallyBlock);
                 }
             }
+        }
+    }
+
+    private async Task CancelPreparationTokenBestEffortAsync(CancellationTokenSource? preparationCancellationTokenSource)
+    {
+        try
+        {
+            if (preparationCancellationTokenSource != null)
+            {
+                await preparationCancellationTokenSource.CancelAsync();
+            }
+
+            logger.Debug(AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.CancelledPreparationCancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorCancellingPreparationToken);
+        }
+    }
+
+    private static void WarnIfFailure(Action step, Action<Exception> warn)
+    {
+        try
+        {
+            step();
+        }
+        catch (Exception ex)
+        {
+            warn(ex);
+        }
+    }
+
+    private async Task RunIgnoringWarningAsync(Func<Task> asyncStep, Action<Exception> warn)
+    {
+        try
+        {
+            await asyncStep();
+        }
+        catch (Exception ex)
+        {
+            warn(ex);
+        }
+    }
+
+    private async Task TryMarkStoppedTrackPlayedWhenApplicableAsync(bool skipMarkAsPlayed, TrackMetadata? trackMetadataToMark)
+    {
+        if (skipMarkAsPlayed || trackMetadataToMark == null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (trackMetadataToMark.PlayType != PlayType.Music)
+            {
+                await playlistService.MarkTrackAsPlayed(trackMetadataToMark);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorMarkingCurrentTrackAsPlayedOrFinished);
+        }
+    }
+
+    private async Task TrySaveLastPlayedWhenApplicableAsync(int? scheduleIdToSave, bool skipSaveLastPlayed)
+    {
+        if (!scheduleIdToSave.HasValue || skipSaveLastPlayed)
+        {
+            return;
+        }
+
+        try
+        {
+            await playlistService.SaveLastPlayed(scheduleIdToSave.Value);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorSavingLastPlayed);
+        }
+    }
+
+    private async Task ResetAudioPlayerWithFallbackAsync()
+    {
+        try
+        {
+            await audioPlayer.ResetAsync();
+            return;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorInAudioPlayerResetAttemptingMinimalCleanup);
+        }
+
+        try
+        {
+            await audioPlayer.ResetAsync();
+        }
+        catch (Exception resetEx)
+        {
+            logger.Warning(resetEx, AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.ErrorResettingPlayerInFallback);
         }
     }
 }

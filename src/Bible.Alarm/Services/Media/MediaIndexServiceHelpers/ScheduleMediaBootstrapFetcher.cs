@@ -38,27 +38,10 @@ internal sealed class ScheduleMediaBootstrapFetcher(
     /// </summary>
     public async Task FetchMissingAsync(string scheduleDbPath, string? mediaIndexDbPath = null)
     {
-        if (!File.Exists(scheduleDbPath))
+        var references = await PrepareReferencesReadyForBootstrapFetchAsync(scheduleDbPath, mediaIndexDbPath);
+        if (references == null || references.Count == 0)
         {
-            logger.Debug("Schedule DB not found at {Path}, skipping schedule media bootstrap fetch", scheduleDbPath);
             return;
-        }
-
-        var references = await ReadNonEnglishSpanishReferencesAsync(scheduleDbPath);
-        if (references.Count == 0)
-        {
-            logger.Information("No non-EnglishSpanish schedule references found; skipping schedule media bootstrap fetch");
-            return;
-        }
-
-        if (!string.IsNullOrEmpty(mediaIndexDbPath) && File.Exists(mediaIndexDbPath))
-        {
-            references = await FilterToValidPubAndSectionInDiscoveryAsync(mediaIndexDbPath, references);
-            if (references.Count == 0)
-            {
-                logger.Information("No non-EnglishSpanish references with valid (discovery) pub/section; skipping fetch");
-                return;
-            }
         }
 
         logger.Information(
@@ -131,6 +114,36 @@ internal sealed class ScheduleMediaBootstrapFetcher(
         }
 
         logger.Information("Schedule media bootstrap fetch completed");
+    }
+
+    private async Task<List<ScheduleMediaReference>?> PrepareReferencesReadyForBootstrapFetchAsync(
+        string scheduleDbPath,
+        string? mediaIndexDbPath)
+    {
+        if (!File.Exists(scheduleDbPath))
+        {
+            logger.Debug("Schedule DB not found at {Path}, skipping schedule media bootstrap fetch", scheduleDbPath);
+            return null;
+        }
+
+        var references = await ReadNonEnglishSpanishReferencesAsync(scheduleDbPath);
+        if (references.Count == 0)
+        {
+            logger.Information("No non-EnglishSpanish schedule references found; skipping schedule media bootstrap fetch");
+            return null;
+        }
+
+        if (!string.IsNullOrEmpty(mediaIndexDbPath) && File.Exists(mediaIndexDbPath))
+        {
+            references = await FilterToValidPubAndSectionInDiscoveryAsync(mediaIndexDbPath, references);
+            if (references.Count == 0)
+            {
+                logger.Information("No non-EnglishSpanish references with valid (discovery) pub/section; skipping fetch");
+                return null;
+            }
+        }
+
+        return references;
     }
 
     internal static async Task<List<ScheduleMediaReference>> ReadNonEnglishSpanishReferencesAsync(
