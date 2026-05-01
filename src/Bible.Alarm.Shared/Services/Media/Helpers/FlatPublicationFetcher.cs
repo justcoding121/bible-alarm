@@ -157,7 +157,7 @@ internal sealed class FlatPublicationFetcher
         return resolved;
     }
 
-    private async Task<List<Category>> LoadCategoriesForPublicationAsync(
+    private static async Task<List<Category>> LoadCategoriesForPublicationAsync(
         MediaDbContext db,
         string normalizedPublicationCode,
         CancellationToken cancellationToken)

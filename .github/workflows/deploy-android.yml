@@ -19,7 +19,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -27,7 +27,7 @@ jobs:
       run: cp -f global.ci.json global.json
         
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         # global.ci.json (copied to global.json) pins 10.0.1xx so ubuntu-latest’s newer 10.x SDK is not used (NU1102 Mono.linux-x64).
         global-json-file: global.json
@@ -129,7 +129,7 @@ jobs:
     # Artifacts only when store publish succeeded.
     - name: Upload Build Artifacts
       if: steps.store_upload.outcome == 'success'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: BibleAlarm-${{ github.ref_name }}-android
         path: |

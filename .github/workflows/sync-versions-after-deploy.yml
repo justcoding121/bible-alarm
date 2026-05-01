@@ -63,7 +63,7 @@ jobs:
 
       - name: Checkout repo
         if: steps.check.outputs.all_ready == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.REPO_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0

@@ -33,7 +33,7 @@ jobs:
       && !startsWith(github.event.head_commit.message, '[Version sync]')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.REPO_TOKEN }}
 
@@ -41,7 +41,7 @@ jobs:
         run: cp -f global.ci.json global.json
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 

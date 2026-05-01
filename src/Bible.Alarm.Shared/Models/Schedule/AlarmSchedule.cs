@@ -242,6 +242,81 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
 
     private readonly record struct SampleBibleSelection(string LanguageCode, string PublicationCode, BiblePublication Publication);
 
+    private static async Task<SampleBibleSelection?> TrySelectPreferredEnglishNwtAsync(
+        IBiblePublicationService biblePublicationService,
+        string defaultLanguageCode,
+        string preferredPublicationCode)
+    {
+        if (!PublicationTypeHelper.HasSectionStructure(preferredPublicationCode))
+        {
+            return null;
+        }
+
+        var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+            defaultLanguageCode, preferredPublicationCode);
+        if (biblePub == null || biblePub.Sections == null || biblePub.Sections.Count == 0)
+        {
+            return null;
+        }
+
+        return new SampleBibleSelection(defaultLanguageCode, preferredPublicationCode, biblePub);
+    }
+
+    private static async Task<SampleBibleSelection?> TrySelectEnglishSectionedPublicationAsync(
+        IBiblePublicationService biblePublicationService,
+        string defaultLanguageCode)
+    {
+        var englishPublications = await biblePublicationService.GetByLanguageCodeAsync(defaultLanguageCode);
+        if (englishPublications == null)
+        {
+            englishPublications = new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var sortedPublications = PublicationSortHelper.SortByPriority(englishPublications, pub => pub.Name);
+
+        foreach (var publicationCode in sortedPublications.Where(p =>
+                     PublicationTypeHelper.HasSectionStructure(p.Key)).Select(p => p.Key))
+        {
+            var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                defaultLanguageCode, publicationCode);
+            if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
+            {
+                return new SampleBibleSelection(defaultLanguageCode, publicationCode, biblePub);
+            }
+        }
+
+        return null;
+    }
+
+    private static async Task<SampleBibleSelection?> TrySelectSectionedBibleFromAnyLanguageAsync(
+        IBiblePublicationService biblePublicationService,
+        Dictionary<string, Language> bibleLanguages)
+    {
+        foreach (var languageCode in bibleLanguages.Keys)
+        {
+            var publications = await biblePublicationService.GetByLanguageCodeAsync(languageCode);
+            if (publications == null || publications.Count == 0)
+            {
+                continue;
+            }
+
+            var sortedPublications = PublicationSortHelper.SortByPriority(publications, pub => pub.Name);
+
+            foreach (var publicationCode in sortedPublications.Where(p =>
+                         PublicationTypeHelper.HasSectionStructure(p.Key)).Select(p => p.Key))
+            {
+                var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                    languageCode, publicationCode);
+                if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
+                {
+                    return new SampleBibleSelection(languageCode, publicationCode, biblePub);
+                }
+            }
+        }
+
+        return null;
+    }
+
     private static async Task<SampleBibleSelection> SelectSectionedBibleForSampleAsync(
         IBiblePublicationService biblePublicationService,
         Dictionary<string, Language> bibleLanguages)
@@ -249,89 +324,25 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
         const string DefaultLanguageCode = AppConstants.Media.DefaultLanguageCode;
         const string PreferredPublicationCode = AppConstants.Media.BiblePublicationCodeNwt;
 
-        string? bibleLanguageCode = null;
-        string? biblePublicationCode = null;
-        BiblePublication? selectedBible = null;
+        SampleBibleSelection? selected = null;
 
         if (bibleLanguages.ContainsKey(DefaultLanguageCode))
         {
-            if (PublicationTypeHelper.HasSectionStructure(PreferredPublicationCode))
-            {
-                var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                    DefaultLanguageCode, PreferredPublicationCode);
-                if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
-                {
-                    bibleLanguageCode = DefaultLanguageCode;
-                    biblePublicationCode = PreferredPublicationCode;
-                    selectedBible = biblePub;
-                }
-            }
+            selected = await TrySelectPreferredEnglishNwtAsync(
+                biblePublicationService, DefaultLanguageCode, PreferredPublicationCode);
 
-            if (selectedBible == null)
-            {
-                var englishPublications = await biblePublicationService.GetByLanguageCodeAsync(DefaultLanguageCode);
-                if (englishPublications == null)
-                {
-                    englishPublications = new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase);
-                }
-
-                var sortedPublications = PublicationSortHelper.SortByPriority(englishPublications, pub => pub.Name);
-
-                foreach (var publicationCode in sortedPublications.Where(p =>
-                             PublicationTypeHelper.HasSectionStructure(p.Key)).Select(p => p.Key))
-                {
-                    var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                        DefaultLanguageCode, publicationCode);
-                    if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
-                    {
-                        bibleLanguageCode = DefaultLanguageCode;
-                        biblePublicationCode = publicationCode;
-                        selectedBible = biblePub;
-                        break;
-                    }
-                }
-            }
+            selected ??= await TrySelectEnglishSectionedPublicationAsync(
+                biblePublicationService, DefaultLanguageCode);
         }
 
-        if (selectedBible == null)
-        {
-            foreach (var languageCode in bibleLanguages.Keys)
-            {
-                var publications = await biblePublicationService.GetByLanguageCodeAsync(languageCode);
-                if (publications == null || publications.Count == 0)
-                {
-                    continue;
-                }
+        selected ??= await TrySelectSectionedBibleFromAnyLanguageAsync(biblePublicationService, bibleLanguages);
 
-                var sortedPublications = PublicationSortHelper.SortByPriority(publications, pub => pub.Name);
-
-                foreach (var publicationCode in sortedPublications.Where(p =>
-                             PublicationTypeHelper.HasSectionStructure(p.Key)).Select(p => p.Key))
-                {
-                    var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                        languageCode, publicationCode);
-                    if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
-                    {
-                        bibleLanguageCode = languageCode;
-                        biblePublicationCode = publicationCode;
-                        selectedBible = biblePub;
-                        break;
-                    }
-                }
-
-                if (selectedBible != null)
-                {
-                    break;
-                }
-            }
-        }
-
-        if (selectedBible == null || bibleLanguageCode == null || biblePublicationCode == null)
+        if (selected == null)
         {
             throw new InvalidOperationException(AppConstants.SampleScheduleDiagnostics.NoSectionedPublicationForSampleScheduleMessage);
         }
 
-        return new SampleBibleSelection(bibleLanguageCode, biblePublicationCode, selectedBible);
+        return selected.Value;
     }
 
     private static async Task<string> ResolveMelodyPublicationCodeForSampleAsync(

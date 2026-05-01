@@ -61,6 +61,9 @@ public class TranslatedPublication : Publication
     [Required]
     public virtual Language Language { get; set; } = null!;
 
+    public override bool Equals(object? obj) =>
+        ReferenceEquals(this, obj) || obj is TranslatedPublication other && Equals(other);
+
     public override bool Equals(Publication? other) =>
         other is TranslatedPublication tp &&
         LanguageId == tp.LanguageId &&

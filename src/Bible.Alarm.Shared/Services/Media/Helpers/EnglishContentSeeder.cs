@@ -107,7 +107,7 @@ internal sealed class EnglishContentSeeder
                 return true;
             }
 
-            return await SeedEnglishByCatalogTypeAsync(
+            return await SeedEnglishByCatalogTypeAsync(new SeedEnglishByCatalogTypeRequest(
                 db,
                 catalogType,
                 publicationCode,
@@ -118,7 +118,7 @@ internal sealed class EnglishContentSeeder
                 category,
                 categoryName,
                 isVideo,
-                cancellationToken);
+                cancellationToken));
         }
         catch (Exception ex)
         {
@@ -239,67 +239,56 @@ internal sealed class EnglishContentSeeder
         return (tempCategory, createdCatalogType);
     }
 
-    private async Task<bool> SeedEnglishByCatalogTypeAsync(
-        MediaDbContext db,
-        CatalogType catalogType,
-        string publicationCode,
-        string publicationCodeForDb,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        Language language,
-        Category category,
-        string categoryName,
-        bool isVideo,
-        CancellationToken cancellationToken)
+    private async Task<bool> SeedEnglishByCatalogTypeAsync(SeedEnglishByCatalogTypeRequest req)
     {
-        switch (catalogType)
+        switch (req.CatalogType)
         {
             case CatalogType.Sectioned:
                 var sectionCodes = await ResolveEnglishSectionCodesForSectionedCatalogAsync(
-                    db,
-                    publicationCode,
-                    publicationCodeForDb,
-                    normalizedPublicationCode,
-                    normalizedLanguageCode,
-                    categoryName,
-                    cancellationToken);
+                    req.Db,
+                    req.PublicationCode,
+                    req.PublicationCodeForDb,
+                    req.NormalizedPublicationCode,
+                    req.NormalizedLanguageCode,
+                    req.CategoryName,
+                    req.CancellationToken);
 
                 return await FetchEnglishPublicationSectionsAsync(new FetchEnglishPublicationSectionsRequest(
-                    db, publicationCodeForDb, normalizedLanguageCode, language,
-                    categoryName, isVideo, sectionCodes, cancellationToken));
+                    req.Db, req.PublicationCodeForDb, req.NormalizedLanguageCode, req.Language,
+                    req.CategoryName, req.IsVideo, sectionCodes, req.CancellationToken));
 
             case CatalogType.IssueSectioned:
-                var issueSectionCodes = await db.SectionLanguages
+                var issueSectionCodes = await req.Db.SectionLanguages
                     .AsNoTracking()
-                    .Where(sl => sl.PublicationCode == publicationCodeForDb &&
+                    .Where(sl => sl.PublicationCode == req.PublicationCodeForDb &&
                                  sl.Language != null &&
-                                 sl.Language.LanguageCode == normalizedLanguageCode)
+                                 sl.Language.LanguageCode == req.NormalizedLanguageCode)
                     .Select(sl => sl.SectionCode)
                     .OrderBy(sc => sc)
-                    .ToListAsync(cancellationToken);
+                    .ToListAsync(req.CancellationToken);
 
                 if (issueSectionCodes.Count == 0)
                 {
-                    logger.Information("No SectionLanguage entries found for IssueSectioned publication {PublicationCode} in English (no issues discovered for this year). Skipping.", publicationCode);
+                    logger.Information("No SectionLanguage entries found for IssueSectioned publication {PublicationCode} in English (no issues discovered for this year). Skipping.", req.PublicationCode);
                     return true;
                 }
 
                 logger.Information("Found {Count} issue section codes for {PublicationCode} from SectionLanguages",
-                    issueSectionCodes.Count, publicationCode);
+                    issueSectionCodes.Count, req.PublicationCode);
 
                 return await FetchEnglishPublicationSectionsAsync(new FetchEnglishPublicationSectionsRequest(
-                    db, publicationCodeForDb, normalizedLanguageCode, language,
-                    categoryName, isVideo, issueSectionCodes, cancellationToken));
+                    req.Db, req.PublicationCodeForDb, req.NormalizedLanguageCode, req.Language,
+                    req.CategoryName, req.IsVideo, issueSectionCodes, req.CancellationToken));
 
             case CatalogType.MediatorSectioned:
                 return await mediatorFetcher.FetchEnglishMediatorPublicationAsync(
-                    db, publicationCodeForDb, normalizedLanguageCode, language, cancellationToken);
+                    req.Db, req.PublicationCodeForDb, req.NormalizedLanguageCode, req.Language, req.CancellationToken);
 
             case CatalogType.Flat:
             default:
                 return await FetchEnglishPublicationTracksAsync(new FetchEnglishPublicationTracksRequest(
-                    db, publicationCodeForDb, normalizedLanguageCode, language, category,
-                    categoryName, isVideo, cancellationToken));
+                    req.Db, req.PublicationCodeForDb, req.NormalizedLanguageCode, req.Language, req.Category,
+                    req.CategoryName, req.IsVideo, req.CancellationToken));
         }
     }
 

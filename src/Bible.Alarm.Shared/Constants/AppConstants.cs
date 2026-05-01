@@ -57,10 +57,17 @@ public static class AppConstants
             JwCdnOriginHttpsApp + MediatorApisV1Path
         };
 
+        /// <summary>HTTPS origin for JW.org public website (no trailing slash).</summary>
+        public const string JwOrgPublicWebsiteHttpsOrigin = "https://www.jw.org";
+
+        /// <summary>Path segment for published languages index (<c>/en/languages</c>).</summary>
+        public const string JwOrgLanguagesListPath = "/en/languages";
+
         /// <summary>
         /// JW.org public languages list JSON (<c>/en/languages</c>). Catalog seeding and sign-language detection.
         /// </summary>
-        public const string JwOrgLanguagesListUrl = "https://www.jw.org/en/languages"; // NOSONAR S1075 - centralized JW.org catalog URI
+        public static readonly string JwOrgLanguagesListUrl =
+            JwOrgPublicWebsiteHttpsOrigin + JwOrgLanguagesListPath;
 
         /// <summary>
         /// Media index file name prefix for new format (v2+)
