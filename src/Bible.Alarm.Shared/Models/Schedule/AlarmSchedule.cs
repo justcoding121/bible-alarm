@@ -351,38 +351,51 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
     {
         const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
 
-        string? melodyPublicationCode = melodyReleases.ContainsKey(PreferredMelodyPublicationCode)
+        var preferredOrFirst = melodyReleases.ContainsKey(PreferredMelodyPublicationCode)
             ? PreferredMelodyPublicationCode
             : melodyReleases.Keys.FirstOrDefault();
 
-        if (!string.IsNullOrEmpty(melodyPublicationCode))
+        var fromPreferred =
+            await TryGetMelodyKeyWithTracksAsync(melodyMusicService, preferredOrFirst);
+
+        if (fromPreferred != null)
         {
-            var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melodyPublicationCode);
-            if (musicWithTracks?.Tracks == null || musicWithTracks.Tracks.Count == 0)
+            return fromPreferred;
+        }
+
+        return await FindMelodyPublicationCodeWithTracksFromKeysAsync(melodyMusicService, melodyReleases)
+            ?? throw new InvalidOperationException("No melody music with tracks found in database");
+    }
+
+    private static async Task<string?> TryGetMelodyKeyWithTracksAsync(
+        IMelodyMusicService melodyMusicService,
+        string? melodyPublicationCode)
+    {
+        if (string.IsNullOrEmpty(melodyPublicationCode))
+        {
+            return null;
+        }
+
+        var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melodyPublicationCode);
+        return musicWithTracks?.Tracks != null && musicWithTracks.Tracks.Count > 0
+            ? melodyPublicationCode
+            : null;
+    }
+
+    private static async Task<string?> FindMelodyPublicationCodeWithTracksFromKeysAsync(
+        IMelodyMusicService melodyMusicService,
+        Dictionary<string, MelodyMusic> melodyReleases)
+    {
+        foreach (var melodyKey in melodyReleases.Keys)
+        {
+            var resolved = await TryGetMelodyKeyWithTracksAsync(melodyMusicService, melodyKey);
+            if (resolved != null)
             {
-                melodyPublicationCode = null;
+                return resolved;
             }
         }
 
-        if (melodyPublicationCode == null)
-        {
-            foreach (var melodyKey in melodyReleases.Keys)
-            {
-                var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melodyKey);
-                if (musicWithTracks?.Tracks != null && musicWithTracks.Tracks.Count > 0)
-                {
-                    melodyPublicationCode = melodyKey;
-                    break;
-                }
-            }
-        }
-
-        if (melodyPublicationCode == null)
-        {
-            throw new InvalidOperationException("No melody music with tracks found in database");
-        }
-
-        return melodyPublicationCode;
+        return null;
     }
 
     private static AlarmSchedule CreateSampleScheduleShell(
@@ -461,24 +474,36 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
 
         if (music.Publication.Sections == null || music.Publication.Sections.Count == 0)
         {
-            if (music.Tracks == null || music.Tracks.Count == 0)
-            {
-                throw new InvalidOperationException($"No sections or tracks found for melody music publication {sample.Music.PublicationCode}");
-            }
-
-            var track = music.Tracks[Random.Shared.Next(music.Tracks.Count)];
-            sample.Music.TrackCode = GetTrackCodeFromTrack(track);
+            ApplyRandomMelodyFromFlatTrackList(sample, music);
             return;
         }
 
-        var randomSection = music.Publication.Sections[Random.Shared.Next(music.Publication.Sections.Count)];
+        ApplyRandomMelodyFromRandomSection(sample, music);
+    }
+
+    private static void ApplyRandomMelodyFromFlatTrackList(AlarmSchedule sample, MelodyMusic music)
+    {
+        if (music.Tracks == null || music.Tracks.Count == 0)
+        {
+            throw new InvalidOperationException(
+                $"No sections or tracks found for melody music publication {sample.Music!.PublicationCode}");
+        }
+
+        var track = music.Tracks[Random.Shared.Next(music.Tracks.Count)];
+        sample.Music!.TrackCode = GetTrackCodeFromTrack(track);
+    }
+
+    private static void ApplyRandomMelodyFromRandomSection(AlarmSchedule sample, MelodyMusic music)
+    {
+        var randomSection = music.Publication!.Sections![Random.Shared.Next(music.Publication.Sections.Count)];
 
         if (randomSection.Tracks == null || randomSection.Tracks.Count == 0)
         {
-            throw new InvalidOperationException($"No tracks found in section {randomSection.SectionCode} for melody music publication {sample.Music.PublicationCode}");
+            throw new InvalidOperationException(
+                $"No tracks found in section {randomSection.SectionCode} for melody music publication {sample.Music!.PublicationCode}");
         }
 
-        sample.Music.SectionCode = randomSection.SectionCode;
+        sample.Music!.SectionCode = randomSection.SectionCode;
 
         var randomTrack = randomSection.Tracks[Random.Shared.Next(randomSection.Tracks.Count)];
         sample.Music.TrackCode = GetTrackCodeFromTrack(randomTrack);

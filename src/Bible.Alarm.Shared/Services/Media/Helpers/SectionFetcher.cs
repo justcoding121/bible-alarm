@@ -98,46 +98,113 @@ internal sealed class SectionFetcher
             return true;
         }
 
-        var isBible = category.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
-        var isIssueSectioned = MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
-        var determinedCatalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
-        var localizedPubNameSlot = new LocalizedPublicationNameSlot();
+        var publication = await GetOrCreatePublicationForSectionFetchAsync(
+            db,
+            existingPublication,
+            normalizedPublicationCode,
+            englishPublication,
+            language,
+            categoriesForPub,
+            effectiveToken);
 
-        var isMusicPub = categoriesForPub.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
-            JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
-        BiblePublication publication;
+        var (isBible, isIssueSectioned) = ComputeSectionFetchFlags(normalizedPublicationCode, category);
+
+        var localizedPubNameSlot = new LocalizedPublicationNameSlot();
+        await ProcessMissingPublicationSectionsAsync(
+            db,
+            publication,
+            normalizedPublicationCode,
+            normalizedLanguageCode,
+            missingSectionCodes,
+            isBible,
+            isIssueSectioned,
+            localizedPubNameSlot,
+            effectiveToken,
+            progress);
+
+        if (publication.Sections.Count == 0)
+        {
+            logger.Warning("No sections found for publication {PublicationCode} in language {LanguageCode}",
+                normalizedPublicationCode, normalizedLanguageCode);
+            // Clean up the empty publication
+            db.BiblePublications.Remove(publication);
+            await SaveChangesWithRetryAsync(db, effectiveToken);
+            return false;
+        }
+
+        logger.Information("Successfully fetched {Count} sections for publication {PublicationCode} in language {LanguageCode}",
+            publication.Sections.Count, normalizedPublicationCode, normalizedLanguageCode);
+
+        progress?.UpdateProgress(1.0);
+        return true;
+    }
+
+    private static (bool IsBible, bool IsIssueSectioned) ComputeSectionFetchFlags(
+        string normalizedPublicationCode,
+        Category category) =>
+        (category.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase),
+            MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode));
+
+    private async Task<BiblePublication> GetOrCreatePublicationForSectionFetchAsync(
+        MediaDbContext db,
+        BiblePublication? existingPublication,
+        string normalizedPublicationCode,
+        BiblePublication englishPublication,
+        Language language,
+        List<Category> categoriesForPub,
+        CancellationToken effectiveToken)
+    {
+        var determinedCatalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
+        var isMusicPub = categoriesForPub.Any(c =>
+                            c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic,
+                                StringComparison.OrdinalIgnoreCase)) ||
+                        JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
+
         if (existingPublication != null)
         {
-            publication = existingPublication;
-            publication.IsMusic = isMusicPub;
-            if (publication.CatalogType == null)
+            existingPublication.IsMusic = isMusicPub;
+            if (existingPublication.CatalogType == null)
             {
-                publication.CatalogType = determinedCatalogType;
+                existingPublication.CatalogType = determinedCatalogType;
             }
-            SyncPublicationCategories(publication, categoriesForPub);
-        }
-        else
-        {
-            var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
-            publication = new BiblePublication
-            {
-                PublicationCode = normalizedPublicationCode,
-                Name = englishPublication.Name,
-                Language = language,
-                BiblePublicationCategories = categoriesForPub
-                    .Select(cat => new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = cat.Id, Category = cat })
-                    .ToList(),
-                LanguageId = language.Id,
-                IsVideo = isVideoDrama,
-                IsMusic = isMusicPub,
-                CatalogType = determinedCatalogType,
-                Tracks = new List<BiblePublicationTrack>(),
-                Sections = new List<BiblePublicationSection>()
-            };
-            db.BiblePublications.Add(publication);
-            await SaveChangesWithRetryAsync(db, effectiveToken);
+
+            SyncPublicationCategories(existingPublication, categoriesForPub);
+            return existingPublication;
         }
 
+        var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
+        var publication = new BiblePublication
+        {
+            PublicationCode = normalizedPublicationCode,
+            Name = englishPublication.Name,
+            Language = language,
+            BiblePublicationCategories = categoriesForPub
+                .Select(cat => new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = cat.Id, Category = cat })
+                .ToList(),
+            LanguageId = language.Id,
+            IsVideo = isVideoDrama,
+            IsMusic = isMusicPub,
+            CatalogType = determinedCatalogType,
+            Tracks = new List<BiblePublicationTrack>(),
+            Sections = new List<BiblePublicationSection>()
+        };
+        db.BiblePublications.Add(publication);
+        await SaveChangesWithRetryAsync(db, effectiveToken);
+        return publication;
+    }
+
+    private async Task ProcessMissingPublicationSectionsAsync(
+        MediaDbContext db,
+        BiblePublication publication,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        List<string> missingSectionCodes,
+        bool isBible,
+        bool isIssueSectioned,
+        LocalizedPublicationNameSlot localizedPubNameSlot,
+        CancellationToken effectiveToken,
+        IFetchProgress? progress)
+    {
         var totalSections = missingSectionCodes.Count;
         var completedSections = 0;
 
@@ -173,7 +240,8 @@ internal sealed class SectionFetcher
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
             {
-                logger.Debug(ex, "Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
+                logger.Debug(ex,
+                    "Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                 completedSections++;
             }
@@ -184,29 +252,12 @@ internal sealed class SectionFetcher
                     throw;
                 }
 
-                logger.Warning(ex, "Failed to fetch section {SectionCode} for publication {PublicationCode} in language {LanguageCode}",
+                logger.Warning(ex,
+                    "Failed to fetch section {SectionCode} for publication {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                 completedSections++;
             }
         }
-
-        // Check if we have at least one section
-        var totalSectionCount = publication.Sections.Count;
-        if (totalSectionCount == 0)
-        {
-            logger.Warning("No sections found for publication {PublicationCode} in language {LanguageCode}",
-                normalizedPublicationCode, normalizedLanguageCode);
-            // Clean up the empty publication
-            db.BiblePublications.Remove(publication);
-            await SaveChangesWithRetryAsync(db, effectiveToken);
-            return false;
-        }
-
-        logger.Information("Successfully fetched {Count} sections for publication {PublicationCode} in language {LanguageCode}",
-            totalSectionCount, normalizedPublicationCode, normalizedLanguageCode);
-
-        progress?.UpdateProgress(1.0);
-        return true;
     }
 
     private sealed class LocalizedPublicationNameSlot

@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
@@ -167,39 +170,14 @@ public sealed class BiblePublicationSelectionDataProvider
             publicationVMsMapping[kvp.Key] = kvp.Value;
         }
 
-        // Handle language change default selection
         // IMPORTANT: Only dispatch default publication if user hasn't already selected a publication
         // This prevents overwriting user's selection (e.g., when switching from "melodies" to "original songs")
-        if (languageChanged && defaultPublication != null)
-            {
-                var currentSchedule = state.Value.CurrentSchedule;
-                
-                // Check if user has already selected a publication for this language
-                // If so, don't dispatch default publication - preserve user's selection
-                var userHasSelectedPublication = currentSchedule != null &&
-                                                !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode) &&
-                                                currentSchedule.BiblePublicationLanguageCode == languageCode;
-                
-                if (userHasSelectedPublication)
-                {
-                    // User has already selected a publication - don't dispatch default
-                    // Don't set IsSelected here - SetSelectedPublication() will handle it based on current schedule
-                }
-            else
-            {
-                var currentSectionCode = currentSchedule?.BiblePublicationSectionCode;
-                var alreadyMatches = currentSchedule != null &&
-                                     currentSchedule.BiblePublicationLanguageCode == languageCode &&
-                                     currentSchedule.BiblePublicationCode == defaultPublication.Code &&
-                                     string.Equals(currentSectionCode, "1", StringComparison.OrdinalIgnoreCase) &&
-                                     string.Equals(currentSchedule.BiblePublicationTrackCode, "1", StringComparison.Ordinal);
-
-                if (!alreadyMatches)
-                {
-                    _ = DispatchDefaultPublicationAsync(languageCode, defaultPublication, currentLanguageName, currentLanguageDirection);
-                }
-            }
-        }
+        MaybeDispatchDefaultPublicationAfterLanguageChange(
+            languageChanged,
+            defaultPublication,
+            languageCode,
+            currentLanguageName,
+            currentLanguageDirection);
 
         // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -210,6 +188,42 @@ public sealed class BiblePublicationSelectionDataProvider
                 publications.Add(trans);
             }
         });
+    }
+
+    private void MaybeDispatchDefaultPublicationAfterLanguageChange(
+        bool languageChanged,
+        PublicationListViewItemModel? defaultPublication,
+        string languageCode,
+        string? currentLanguageName,
+        string? currentLanguageDirection)
+    {
+        if (!languageChanged || defaultPublication == null) return;
+
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (UserHasPublicationSelectedForLanguage(currentSchedule, languageCode)) return;
+
+        if (ScheduleAlreadyReflectsDefaultPublicationStart(currentSchedule, languageCode, defaultPublication)) return;
+
+        _ = DispatchDefaultPublicationAsync(languageCode, defaultPublication, currentLanguageName, currentLanguageDirection);
+    }
+
+    private static bool UserHasPublicationSelectedForLanguage(ScheduleStateItem? schedule, string languageCode) =>
+        schedule != null &&
+        !string.IsNullOrWhiteSpace(schedule.BiblePublicationCode) &&
+        schedule.BiblePublicationLanguageCode == languageCode;
+
+    private static bool ScheduleAlreadyReflectsDefaultPublicationStart(
+        ScheduleStateItem? schedule,
+        string languageCode,
+        PublicationListViewItemModel defaultPublication)
+    {
+        if (schedule == null) return false;
+
+        var sectionCode = schedule.BiblePublicationSectionCode;
+        return schedule.BiblePublicationLanguageCode == languageCode &&
+               schedule.BiblePublicationCode == defaultPublication.Code &&
+               string.Equals(sectionCode, "1", StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(schedule.BiblePublicationTrackCode, "1", StringComparison.Ordinal);
     }
 
     private async Task<(List<PublicationListViewItemModel> Vms, Dictionary<string, PublicationListViewItemModel> Mapping, PublicationListViewItemModel?
@@ -230,20 +244,7 @@ public sealed class BiblePublicationSelectionDataProvider
             return (vms, mapping, null);
         }
 
-        var unfetchableCodes = publicationsData
-            .Where(kvp => !IsPublicationFullyCataloged(kvp.Value))
-            .Select(kvp => kvp.Key)
-            .ToList();
-        if (unfetchableCodes.Count > 0)
-        {
-            foreach (var code in unfetchableCodes)
-            {
-                publicationsData.Remove(code);
-            }
-
-            Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsRemovedUnfetchablePlaceholders,
-                unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
-        }
+        RemoveIncompleteCatalogPlaceholders(publicationsData);
 
         foreach (var publication in publicationsData.Values)
         {
@@ -268,7 +269,28 @@ public sealed class BiblePublicationSelectionDataProvider
         return (vms, mapping, preferredDefault);
     }
 
-    private async Task<Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>?>
+    private void RemoveIncompleteCatalogPlaceholders(Dictionary<string, BiblePublication> publicationsData)
+    {
+        var unfetchableCodes = publicationsData
+            .Where(kvp => !IsPublicationFullyCataloged(kvp.Value))
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        if (unfetchableCodes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var code in unfetchableCodes)
+        {
+            publicationsData.Remove(code);
+        }
+
+        Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsRemovedUnfetchablePlaceholders,
+            unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
+    }
+
+    private async Task<Dictionary<string, BiblePublication>?>
         LoadPublicationsDictionaryForPopulateAsync(
             string languageCode,
             string currentCategoryName,
@@ -299,7 +321,7 @@ public sealed class BiblePublicationSelectionDataProvider
             progress, cancellationToken);
     }
 
-    private async Task<Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>?>
+    private async Task<Dictionary<string, BiblePublication>?>
         RetryFetchBiblePublicationsUntilCatalogedAsync(
             string languageCode,
             string currentCategoryName,
@@ -321,7 +343,7 @@ public sealed class BiblePublicationSelectionDataProvider
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.0);
 
-        Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? publicationsData = null;
+        Dictionary<string, BiblePublication>? publicationsData = null;
 
         try
         {
@@ -360,17 +382,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 }
                 catch (Exception ex)
                 {
-                    switch (ex)
-                    {
-                        case OperationCanceledException:
-                            throw;
-                        case System.Net.Http.HttpRequestException:
-                            throw;
-                        case System.Net.Sockets.SocketException:
-                            throw;
-                    }
-
-                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                    if (ShouldRethrowPublicationRetryExceptionImmediately(ex))
                     {
                         throw;
                     }
@@ -393,24 +405,39 @@ public sealed class BiblePublicationSelectionDataProvider
             Log.Warning(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsTimeoutWaitingForCatalog,
                 attempt, languageCode);
 
-            if (publicationsData == null || publicationsData.Count == 0)
-            {
-                try
-                {
-                    publicationsData =
-                        await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false,
-                            progress);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex,
-                        AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsFinalFetchAttemptFailed,
-                        languageCode);
-                }
-            }
+            publicationsData = await TryFetchPublicationListWhenSnapshotEmptyAsync(
+                languageCode, currentCategoryName, publicationsData, progress);
         }
 
         return publicationsData;
+    }
+
+    private static bool ShouldRethrowPublicationRetryExceptionImmediately(Exception ex) =>
+        ex is OperationCanceledException or HttpRequestException or SocketException ||
+        NetworkExceptionHelper.IsNetworkFailure(ex);
+
+    private async Task<Dictionary<string, BiblePublication>?> TryFetchPublicationListWhenSnapshotEmptyAsync(
+        string languageCode,
+        string currentCategoryName,
+        Dictionary<string, BiblePublication>? publicationsData,
+        IFetchProgress? progress)
+    {
+        if (publicationsData != null && publicationsData.Count > 0)
+        {
+            return publicationsData;
+        }
+
+        try
+        {
+            return await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, progress);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex,
+                AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsFinalFetchAttemptFailed,
+                languageCode);
+            return publicationsData;
+        }
     }
 
     private async Task<BiblePublicationRetryIterationOutcome> RunBiblePublicationRetryIterationAsync(
@@ -462,7 +489,7 @@ public sealed class BiblePublicationSelectionDataProvider
 
     private void LogBiblePublicationRetryAttemptDiagnostics(
         int attempt,
-        Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? reQueriedData,
+        Dictionary<string, BiblePublication>? reQueriedData,
         bool retryHasAllExpected,
         int retryActualCount,
         int retryExpectedCount)
@@ -495,28 +522,32 @@ public sealed class BiblePublicationSelectionDataProvider
         bool Completed,
         bool LogSuccess,
         bool BreakRetries,
-        Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? NextSnapshot,
+        Dictionary<string, BiblePublication>? NextSnapshot,
         int ExpectedCountForLog,
         int UpdatedCatalogedCount)
     {
         public static BiblePublicationRetryIterationOutcome ForSuccess(
-            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication> reQueried,
+            Dictionary<string, BiblePublication> reQueried,
             int expectedCount) =>
             new(true, LogSuccess: true, BreakRetries: false, NextSnapshot: reQueried, ExpectedCountForLog: expectedCount,
                 UpdatedCatalogedCount: -1);
 
         public static BiblePublicationRetryIterationOutcome ForStagnation(
-            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? reQueried) =>
+            Dictionary<string, BiblePublication>? reQueried) =>
             new(false, LogSuccess: false, BreakRetries: true, NextSnapshot: reQueried, ExpectedCountForLog: 0,
                 UpdatedCatalogedCount: -1);
 
         public static BiblePublicationRetryIterationOutcome ForContinue(
-            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? fetchedWithProgress,
+            Dictionary<string, BiblePublication>? fetchedWithProgress,
             int updatedCatalogedCount) =>
             new(false, LogSuccess: false, BreakRetries: false, NextSnapshot: fetchedWithProgress,
                 ExpectedCountForLog: 0,
                 UpdatedCatalogedCount: updatedCatalogedCount);
     }
+
+    private sealed record DispatchDefaultPublicationFirstPick(
+        BiblePublicationSection Section,
+        BiblePublicationTrack Track);
 
     private async Task DispatchDefaultPublicationAsync(
         string languageCode,
@@ -529,40 +560,14 @@ public sealed class BiblePublicationSelectionDataProvider
             Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationStarting,
                 languageCode, defaultPublication.Code);
 
-            var sections = await mediaService.GetBiblePublicationSections(languageCode, defaultPublication.Code);
-            if (sections == null || sections.Count == 0)
-            {
-                Log.Warning(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationNoSectionsMayBeFlat,
-                    languageCode, defaultPublication.Code);
-                return;
-            }
+            var pick =
+                await TryGetDispatchDefaultPublicationFirstPickAsync(languageCode, defaultPublication.Code);
 
-            using var sectionEnumerator = sections.GetEnumerator();
-            _ = sectionEnumerator.MoveNext();
-            var firstSectionKvp = sectionEnumerator.Current;
-            var firstSection = firstSectionKvp.Value;
-            // Use the dictionary key (parsed from SectionCode)
-            var firstSectionIndex = firstSectionKvp.Key;
-            Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationFirstSectionIndexAndName,
-                firstSectionIndex, firstSection.Name);
-
-            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, defaultPublication.Code, firstSectionIndex);
-            if (tracks == null || tracks.Count == 0)
-            {
-                Log.Warning(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationNoTracksForSection,
-                    languageCode, defaultPublication.Code, firstSectionIndex);
-                return;
-            }
-
-            using var trackEnumerator = tracks.Values.GetEnumerator();
-            _ = trackEnumerator.MoveNext();
-            var firstTrack = trackEnumerator.Current;
-            Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationFirstTrackCodeAndTitle,
-                firstTrack.TrackCode, firstTrack.Title);
+            if (pick == null) return;
 
             // IMPORTANT: Always preserve category from current schedule - category can only be changed via CategorySelectionAction
             var currentSchedule = state.Value.CurrentSchedule;
-            var firstSectionCode = firstSection.SectionCode;
+            var firstSectionCode = pick.Section.SectionCode;
             var biblePublicationItem = new BiblePublicationStateItem
             {
                 CategoryId = currentSchedule?.BiblePublicationCategoryId,
@@ -570,17 +575,17 @@ public sealed class BiblePublicationSelectionDataProvider
                 LanguageCode = languageCode,
                 PublicationCode = defaultPublication.Code,
                 SectionCode = firstSectionCode,
-                TrackCode = TrackCodeHelper.GetFromTrack(firstTrack),
+                TrackCode = TrackCodeHelper.GetFromTrack(pick.Track),
                 LanguageName = languageName,
                 LanguageDirection = languageDirection,
                 PublicationName = defaultPublication.Name,
-                SectionName = firstSection.Name,
-                TrackTitle = firstTrack.Title
+                SectionName = pick.Section.Name,
+                TrackTitle = pick.Track.Title
             };
 
             Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationDispatchingTrackSelected,
-                defaultPublication.Code, firstSectionCode, firstSection.Name, firstTrack.TrackCode, firstTrack.Title);
-            
+                defaultPublication.Code, firstSectionCode, pick.Section.Name, pick.Track.TrackCode, pick.Track.Title);
+
             dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
         }
         catch (Exception ex)
@@ -590,7 +595,44 @@ public sealed class BiblePublicationSelectionDataProvider
         }
     }
 
-    private static bool IsPublicationFullyCataloged(Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication p) =>
+    private async Task<DispatchDefaultPublicationFirstPick?> TryGetDispatchDefaultPublicationFirstPickAsync(
+        string languageCode,
+        string publicationCode)
+    {
+        var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
+        if (sections == null || sections.Count == 0)
+        {
+            Log.Warning(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationNoSectionsMayBeFlat,
+                languageCode, publicationCode);
+            return null;
+        }
+
+        using var sectionEnumerator = sections.GetEnumerator();
+        _ = sectionEnumerator.MoveNext();
+        var firstSectionKvp = sectionEnumerator.Current;
+        var firstSection = firstSectionKvp.Value;
+        var firstSectionIndex = firstSectionKvp.Key;
+        Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationFirstSectionIndexAndName,
+            firstSectionIndex, firstSection.Name);
+
+        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionIndex);
+        if (tracks == null || tracks.Count == 0)
+        {
+            Log.Warning(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationNoTracksForSection,
+                languageCode, publicationCode, firstSectionIndex);
+            return null;
+        }
+
+        using var trackEnumerator = tracks.Values.GetEnumerator();
+        _ = trackEnumerator.MoveNext();
+        var firstTrack = trackEnumerator.Current;
+        Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationFirstTrackCodeAndTitle,
+            firstTrack.TrackCode, firstTrack.Title);
+
+        return new DispatchDefaultPublicationFirstPick(firstSection, firstTrack);
+    }
+
+    private static bool IsPublicationFullyCataloged(BiblePublication p) =>
         !string.IsNullOrEmpty(p.Name) &&
         !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) &&
         p.Id > 0;
