@@ -135,30 +135,13 @@ public class MusicEnabledHandler
             return;
         }
 
-        var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
-
-        var melodyReleases = await melodyMusicService.GetAllAsync();
-        if (melodyReleases == null || melodyReleases.Count == 0)
-        {
-            logger.Warning("MusicEnabled: No melody music publications found in database");
-            return;
-        }
-
-        if (!TryResolvePreferredOrFirstMelodyPublication(
-                melodyReleases,
-                AppConstants.Media.MelodyMusicPublicationCodeIam,
-                out var defaultPublicationCode,
-                out var defaultPublicationName))
+        var melodyPick = await TryLoadDefaultMelodyPublicationWithTracksAsync().ConfigureAwait(false);
+        if (melodyPick == null)
         {
             return;
         }
 
-        var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
-
-        if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
-        {
-            return;
-        }
+        var (defaultPublicationCode, defaultPublicationName, melodyMusic) = melodyPick.Value;
 
         ChooseRandomMelodyTrack(melodyMusic, out var chosenSection, out var chosenTrack);
 
@@ -179,6 +162,36 @@ public class MusicEnabledHandler
 
         DispatchChosenMelodyOnSchedule(latestSchedule, defaultPublicationCode, defaultPublicationName, chosenSection,
             chosenTrack);
+    }
+
+    private async Task<(string Code, string Name, MelodyMusic Music)?> TryLoadDefaultMelodyPublicationWithTracksAsync()
+    {
+        var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
+
+        var melodyReleases = await melodyMusicService.GetAllAsync();
+        if (melodyReleases == null || melodyReleases.Count == 0)
+        {
+            logger.Warning("MusicEnabled: No melody music publications found in database");
+            return null;
+        }
+
+        if (!TryResolvePreferredOrFirstMelodyPublication(
+                melodyReleases,
+                AppConstants.Media.MelodyMusicPublicationCodeIam,
+                out var defaultPublicationCode,
+                out var defaultPublicationName))
+        {
+            return null;
+        }
+
+        var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
+
+        if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
+        {
+            return null;
+        }
+
+        return (defaultPublicationCode, defaultPublicationName, melodyMusic);
     }
 
     private static bool TryResolvePreferredOrFirstMelodyPublication(

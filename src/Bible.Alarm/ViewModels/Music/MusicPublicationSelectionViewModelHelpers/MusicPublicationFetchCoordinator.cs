@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -193,38 +194,21 @@ internal sealed class MusicPublicationFetchCoordinator
                     await RunMusicPublicationRetryIterationAsync(languageCode, progress, cancellationToken, attempt,
                         retryDelay, previousCatalogedCount);
 
-                publicationsData = outcome.NextSnapshot;
-                if (outcome.Completed)
-                {
-                    allCataloged = true;
-                    if (outcome.LogSuccess)
-                    {
-                        Serilog.Log.Information(
-                            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
-                            outcome.ExpectedCount, attempt, languageCode);
-                    }
-                }
-                else if (outcome.BreakRetries)
+                if (ApplyMusicPublicationCatalogIterationOutcome(
+                        outcome,
+                        ref publicationsData,
+                        ref allCataloged,
+                        ref previousCatalogedCount,
+                        languageCode,
+                        attempt))
                 {
                     break;
-                }
-                else
-                {
-                    previousCatalogedCount = outcome.UpdatedCatalogedCount;
                 }
             }
             catch (Exception ex)
             {
-                if (NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(ex))
-                {
-                    throw;
-                }
-
-                Serilog.Log.Warning(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry,
-                    attempt, languageCode);
-
-                var delay = Math.Min(retryDelay * attempt, 5000);
-                await Task.Delay(delay, cancellationToken);
+                await HandleMusicPublicationCatalogRetryExceptionAsync(
+                    ex, attempt, languageCode, retryDelay, cancellationToken);
             }
         }
 
@@ -234,6 +218,56 @@ internal sealed class MusicPublicationFetchCoordinator
             Attempt = attempt,
             PublicationsData = publicationsData
         };
+    }
+
+    private static bool ApplyMusicPublicationCatalogIterationOutcome(
+        MusicPublicationRetryIterationOutcome outcome,
+        ref Dictionary<string, BiblePublication>? publicationsData,
+        ref bool allCataloged,
+        ref int previousCatalogedCount,
+        string languageCode,
+        int attempt)
+    {
+        publicationsData = outcome.NextSnapshot;
+        if (outcome.Completed)
+        {
+            allCataloged = true;
+            if (outcome.LogSuccess)
+            {
+                Serilog.Log.Information(
+                    AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
+                    outcome.ExpectedCount, attempt, languageCode);
+            }
+
+            return false;
+        }
+
+        if (outcome.BreakRetries)
+        {
+            return true;
+        }
+
+        previousCatalogedCount = outcome.UpdatedCatalogedCount;
+        return false;
+    }
+
+    private static async Task HandleMusicPublicationCatalogRetryExceptionAsync(
+        Exception ex,
+        int attempt,
+        string languageCode,
+        int retryDelay,
+        CancellationToken cancellationToken)
+    {
+        if (NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(ex))
+        {
+            ExceptionDispatchInfo.Capture(ex).Throw();
+        }
+
+        Serilog.Log.Warning(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry,
+            attempt, languageCode);
+
+        var delay = Math.Min(retryDelay * attempt, 5000);
+        await Task.Delay(delay, cancellationToken);
     }
 
     private async Task<Dictionary<string, BiblePublication>?> TryRecoverMusicPublicationsAfterCatalogRetryTimeoutAsync(

@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -254,37 +255,21 @@ internal sealed class MusicInstrumentalSectionListLoader
                     retryDelay,
                     previousCatalogedCount);
 
-                sectionsData = iterationOutcome.NextSectionsSnapshot;
-                if (iterationOutcome.Completed)
-                {
-                    allCataloged = true;
-                    if (iterationOutcome.LogSuccess)
-                    {
-                        logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}",
-                            iterationOutcome.ExpectedSectionCount, attempt, publicationCode);
-                    }
-                }
-                else if (iterationOutcome.BreakRetries)
+                if (ApplyInstrumentalCatalogIterationOutcome(
+                        iterationOutcome,
+                        ref sectionsData,
+                        ref allCataloged,
+                        ref previousCatalogedCount,
+                        publicationCode,
+                        attempt))
                 {
                     break;
-                }
-                else
-                {
-                    previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
                 }
             }
             catch (Exception ex)
             {
-                if (NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(ex))
-                {
-                    throw;
-                }
-
-                logger.Warning(ex, "MusicInstrumentalSectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, will retry",
-                    attempt, publicationCode);
-
-                var delay = Math.Min(retryDelay * attempt, 5000);
-                await Task.Delay(delay, cancellationToken);
+                await HandleInstrumentalCatalogRetryExceptionAsync(
+                    ex, attempt, publicationCode, retryDelay, cancellationToken);
             }
         }
 
@@ -294,6 +279,55 @@ internal sealed class MusicInstrumentalSectionListLoader
             Attempt = attempt,
             SectionsData = sectionsData
         };
+    }
+
+    private bool ApplyInstrumentalCatalogIterationOutcome(
+        InstrumentalCatalogRetryIterationOutcome iterationOutcome,
+        ref SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData,
+        ref bool allCataloged,
+        ref int previousCatalogedCount,
+        string publicationCode,
+        int attempt)
+    {
+        sectionsData = iterationOutcome.NextSectionsSnapshot;
+        if (iterationOutcome.Completed)
+        {
+            allCataloged = true;
+            if (iterationOutcome.LogSuccess)
+            {
+                logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}",
+                    iterationOutcome.ExpectedSectionCount, attempt, publicationCode);
+            }
+
+            return false;
+        }
+
+        if (iterationOutcome.BreakRetries)
+        {
+            return true;
+        }
+
+        previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
+        return false;
+    }
+
+    private async Task HandleInstrumentalCatalogRetryExceptionAsync(
+        Exception ex,
+        int attempt,
+        string publicationCode,
+        int retryDelay,
+        CancellationToken cancellationToken)
+    {
+        if (NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(ex))
+        {
+            ExceptionDispatchInfo.Capture(ex).Throw();
+        }
+
+        logger.Warning(ex, "MusicInstrumentalSectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, will retry",
+            attempt, publicationCode);
+
+        var delay = Math.Min(retryDelay * attempt, 5000);
+        await Task.Delay(delay, cancellationToken);
     }
 
     private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> TryRecoverInstrumentalSectionsAfterTimeoutAsync(

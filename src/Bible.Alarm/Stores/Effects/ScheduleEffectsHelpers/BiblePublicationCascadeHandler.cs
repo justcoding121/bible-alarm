@@ -110,67 +110,9 @@ public sealed class BiblePublicationCascadeHandler
             return;
         }
 
-        // Get first publication - try publications with LanguageId for selected language, then publications without LanguageId
-        // Publications list will show both publications for selected language + null language ID
-        string? publicationCode = null;
-        bool publicationWithoutLanguage = false;
-        var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
-        
-        var query = db.PublicationLanguages
-            .AsNoTracking()
-            .Include(pl => pl.Language)
-            .Include(pl => pl.Category)
-            .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode);
-        
-        // Filter by category if provided (try current category first)
-        if (!string.IsNullOrWhiteSpace(categoryName))
-        {
-            query = query.Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
-        }
-        
-        // Get publications, then sort by priority (nwt first, then bi12, then others)
-        var publicationLanguages = await query
-            .ToListAsync();
-        
-        // Sort by category-specific priority (Bible: nwt first; Magazine: latest year first; etc.)
-        publicationLanguages = publicationLanguages
-            .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName))
-            .ThenBy(pl => pl.Id)
-            .ToList();
+        var (publicationCode, publicationWithoutLanguage) =
+            await ResolvePublicationCodeForLanguageCascadeAsync(languageCode, categoryName).ConfigureAwait(false);
 
-        // Cascade must fetch MINIMUM data:
-        // - catalog ONLY the first viable publication (first section + tracks for first section)
-        // - never ensure ALL publications or ALL sections here
-        var pickedPublication = await TryPickFirstQueryablePublicationAfterLanguageCascadeAsync(
-            publicationLanguages,
-            languageCode,
-            normalizedLanguageCode,
-            categoryName,
-            db).ConfigureAwait(false);
-        if (pickedPublication.HasValue)
-        {
-            publicationCode = pickedPublication.Value.PublicationCode;
-            publicationWithoutLanguage = pickedPublication.Value.PublicationWithoutLanguage;
-        }
-        
-        if (string.IsNullOrEmpty(publicationCode) &&
-            !string.IsNullOrWhiteSpace(categoryName) &&
-            await db.BiblePublications
-                .AsNoTracking()
-                .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
-                            bp.LanguageId == null)
-                .OrderBy(bp => bp.Id)
-                .FirstOrDefaultAsync() is { } pubWithoutLanguage)
-        {
-            publicationCode = pubWithoutLanguage.PublicationCode;
-            publicationWithoutLanguage = true;
-            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId,
-                publicationCode);
-        }
-        
         if (string.IsNullOrEmpty(publicationCode))
         {
             logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoPublicationFoundForLanguageCategory,
@@ -200,24 +142,87 @@ public sealed class BiblePublicationCascadeHandler
             return;
         }
 
-        var sectionModalCount = await GetBiblePublicationSectionModalItemCountAsync(db, publicationCode, languageCode);
-        var tracksForCount = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, SectionCodeHelper.Normalize(sectionCode));
-        var trackModalItemCount = tracksForCount?.Count;
-        BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
-            logger,
-            currentSchedule,
-            new BiblePublicationCascadeScheduleMutation(
-                publicationCode,
-                publicationName,
-                sectionCode,
-                sectionName,
-                trackCode,
-                trackTitle,
-                publicationModalItemCount,
-                sectionModalCount,
-                trackModalItemCount,
-                publicationWithoutLanguage),
-            dispatcher);
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            var sectionModalCount = await GetBiblePublicationSectionModalItemCountAsync(db, publicationCode, languageCode);
+            var tracksForCount = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, SectionCodeHelper.Normalize(sectionCode));
+            var trackModalItemCount = tracksForCount?.Count;
+            BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
+                logger,
+                currentSchedule,
+                new BiblePublicationCascadeScheduleMutation(
+                    publicationCode,
+                    publicationName,
+                    sectionCode,
+                    sectionName,
+                    trackCode,
+                    trackTitle,
+                    publicationModalItemCount,
+                    sectionModalCount,
+                    trackModalItemCount,
+                    publicationWithoutLanguage),
+                dispatcher);
+        }
+    }
+
+    private async Task<(string? PublicationCode, bool PublicationWithoutLanguage)> ResolvePublicationCodeForLanguageCascadeAsync(
+        string languageCode,
+        string? categoryName)
+    {
+        string? publicationCode = null;
+        var publicationWithoutLanguage = false;
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var query = db.PublicationLanguages
+            .AsNoTracking()
+            .Include(pl => pl.Language)
+            .Include(pl => pl.Category)
+            .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode);
+
+        if (!string.IsNullOrWhiteSpace(categoryName))
+        {
+            query = query.Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
+        }
+
+        var publicationLanguages = await query.ToListAsync();
+
+        publicationLanguages = publicationLanguages
+            .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName))
+            .ThenBy(pl => pl.Id)
+            .ToList();
+
+        var pickedPublication = await TryPickFirstQueryablePublicationAfterLanguageCascadeAsync(
+            publicationLanguages,
+            languageCode,
+            normalizedLanguageCode,
+            categoryName,
+            db).ConfigureAwait(false);
+        if (pickedPublication.HasValue)
+        {
+            publicationCode = pickedPublication.Value.PublicationCode;
+            publicationWithoutLanguage = pickedPublication.Value.PublicationWithoutLanguage;
+        }
+
+        if (string.IsNullOrEmpty(publicationCode) &&
+            !string.IsNullOrWhiteSpace(categoryName) &&
+            await db.BiblePublications
+                .AsNoTracking()
+                .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
+                            bp.LanguageId == null)
+                .OrderBy(bp => bp.Id)
+                .FirstOrDefaultAsync() is { } pubWithoutLanguage)
+        {
+            publicationCode = pubWithoutLanguage.PublicationCode;
+            publicationWithoutLanguage = true;
+            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId,
+                publicationCode);
+        }
+
+        return (publicationCode, publicationWithoutLanguage);
     }
 
     private async Task<(string? SectionCode, string? TrackCode, string SectionName, string PublicationName, string TrackTitle)?>

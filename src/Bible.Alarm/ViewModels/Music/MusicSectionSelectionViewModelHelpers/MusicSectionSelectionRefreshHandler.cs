@@ -49,25 +49,33 @@ public sealed class MusicSectionSelectionRefreshHandler
         {
             await RunRepopulationSuccessPathAsync(ctx, publicationCode, progressReporter);
         }
-        catch (OperationCanceledException ex)
+        catch (Exception ex)
         {
-            logger.Debug(ex, "[MusicSectionSelection] RefreshFromState - Fetch cancelled by user");
-            await OnRepopulateFailedClearUiAsync(ctx);
+            await HandleRepopulationFailureAsync(ex, ctx);
         }
-        catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
+    }
+
+    private async Task HandleRepopulationFailureAsync(Exception ex, MusicSectionSelectionRefreshContext ctx)
+    {
+        if (ex is OperationCanceledException oce)
         {
+            logger.Debug(oce, "[MusicSectionSelection] RefreshFromState - Fetch cancelled by user");
             await OnRepopulateFailedClearUiAsync(ctx);
+            return;
+        }
+
+        await OnRepopulateFailedClearUiAsync(ctx);
+
+        if (ex is HttpRequestException or SocketException or TaskCanceledException)
+        {
             throw new InvalidOperationException(
                 "[MusicSectionSelection] RefreshFromState - Network error during repopulation",
                 ex);
         }
-        catch (Exception ex)
-        {
-            await OnRepopulateFailedClearUiAsync(ctx);
-            throw new InvalidOperationException(
-                "[MusicSectionSelection] RefreshFromState - Error during repopulation",
-                ex);
-        }
+
+        throw new InvalidOperationException(
+            "[MusicSectionSelection] RefreshFromState - Error during repopulation",
+            ex);
     }
 
     private static async Task RunRepopulationSuccessPathAsync(

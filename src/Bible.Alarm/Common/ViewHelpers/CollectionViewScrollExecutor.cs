@@ -380,40 +380,12 @@ internal static class CollectionViewScrollExecutor
     {
         for (int i = 0; i < itemsList.Count; i++)
         {
-            // First try reference equality (fastest)
             if (ReferenceEquals(itemsList[i], item))
             {
                 return i;
             }
 
-            // For virtual scrolling scenarios, also try value equality for known model types
-            if (item is LanguageListViewItemModel langItem &&
-                itemsList[i] is LanguageListViewItemModel listLangItem &&
-                string.Equals(langItem.Code, listLangItem.Code, StringComparison.OrdinalIgnoreCase))
-            {
-                return i;
-            }
-            else if (item is PublicationListViewItemModel pubItem &&
-                     itemsList[i] is PublicationListViewItemModel listPubItem &&
-                     string.Equals(pubItem.Code, listPubItem.Code, StringComparison.OrdinalIgnoreCase))
-            {
-                return i;
-            }
-            else if (item is BiblePublicationSectionListViewItemModel sectionItem &&
-                     itemsList[i] is BiblePublicationSectionListViewItemModel listSectionItem &&
-                     string.Equals(sectionItem.SectionCode, listSectionItem.SectionCode, StringComparison.OrdinalIgnoreCase))
-            {
-                return i;
-            }
-            else if (item is BiblePublicationTrackListViewItemModel trackItem &&
-                     itemsList[i] is BiblePublicationTrackListViewItemModel listTrackItem &&
-                     CodeComparisonHelper.Equals(trackItem.TrackCode, listTrackItem.TrackCode))
-            {
-                return i;
-            }
-            else if (item is MusicTrackListViewItemModel musicTrackItem &&
-                     itemsList[i] is MusicTrackListViewItemModel listMusicTrackItem &&
-                     Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Equals(musicTrackItem.TrackCode, listMusicTrackItem.TrackCode))
+            if (ValueEqualsCollectionItem(itemsList[i], item))
             {
                 return i;
             }
@@ -421,4 +393,20 @@ internal static class CollectionViewScrollExecutor
 
         return -1;
     }
+
+    private static bool ValueEqualsCollectionItem(object? listItem, object item) =>
+        item switch
+        {
+            LanguageListViewItemModel langItem when listItem is LanguageListViewItemModel listLangItem =>
+                string.Equals(langItem.Code, listLangItem.Code, StringComparison.OrdinalIgnoreCase),
+            PublicationListViewItemModel pubItem when listItem is PublicationListViewItemModel listPubItem =>
+                string.Equals(pubItem.Code, listPubItem.Code, StringComparison.OrdinalIgnoreCase),
+            BiblePublicationSectionListViewItemModel sectionItem when listItem is BiblePublicationSectionListViewItemModel listSectionItem =>
+                string.Equals(sectionItem.SectionCode, listSectionItem.SectionCode, StringComparison.OrdinalIgnoreCase),
+            BiblePublicationTrackListViewItemModel trackItem when listItem is BiblePublicationTrackListViewItemModel listTrackItem =>
+                CodeComparisonHelper.Equals(trackItem.TrackCode, listTrackItem.TrackCode),
+            MusicTrackListViewItemModel musicTrackItem when listItem is MusicTrackListViewItemModel listMusicTrackItem =>
+                Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Equals(musicTrackItem.TrackCode, listMusicTrackItem.TrackCode),
+            _ => false
+        };
 }

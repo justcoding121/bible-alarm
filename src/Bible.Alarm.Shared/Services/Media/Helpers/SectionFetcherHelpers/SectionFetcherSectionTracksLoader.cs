@@ -27,6 +27,12 @@ internal sealed class SectionFetcherSectionTracksLoader
         string NormalizedPublicationCode,
         string NormalizedLanguageCode);
 
+    private readonly record struct SectionTracksCatalogMode(
+        bool IsBible,
+        bool IsIssueSectioned,
+        bool IsVideoDrama,
+        string DramaFileFormat);
+
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
 
@@ -47,12 +53,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         var cancellationToken = request.CancellationToken;
         var replaceExisting = request.ReplaceExisting;
 
-        var entry = db.Entry(section);
-        if (entry.State == EntityState.Detached)
-        {
-            logger.Debug("Section entity is detached, attaching to DbContext: sectionCode={SectionCode}", normalizedSectionCode);
-            db.BiblePublicationSections.Attach(section);
-        }
+        AttachSectionIfDetached(db, section, normalizedSectionCode);
 
         await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);
         if (!replaceExisting && section.Tracks != null && section.Tracks.Count > 0)
@@ -62,32 +63,18 @@ internal sealed class SectionFetcherSectionTracksLoader
             return true;
         }
 
-        var existingTracksToReplace = new List<BiblePublicationTrack>();
-        if (replaceExisting)
-        {
-            existingTracksToReplace = await db.BiblePublicationTracks
-                .Include(t => t.TrackUrl)
-                .Where(t => t.BiblePublicationSectionId == section.Id)
-                .ToListAsync(cancellationToken);
-        }
+        var existingTracksToReplace = await LoadExistingTracksForReplaceAsync(db, section, replaceExisting, cancellationToken);
 
-        var categoryCode = publication.PrimaryCategory?.CategoryCode ?? "";
-        var isBible = categoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
-        var isIssueSectioned = publication.CatalogType == CatalogType.IssueSectioned ||
-            MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
-        var isVideoDrama = !isBible && !isIssueSectioned && publication.IsVideo;
-        var dramaFileFormat = isVideoDrama ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
-
+        var mode = GetSectionTracksCatalogMode(publication, normalizedPublicationCode);
         var queryString = BuildSectionTracksPubQuery(
-            isIssueSectioned,
-            isBible,
+            mode.IsIssueSectioned,
+            mode.IsBible,
             normalizedPublicationCode,
             normalizedSectionCode,
             normalizedLanguageCode,
-            dramaFileFormat);
+            mode.DramaFileFormat);
 
-        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
-        var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
+        var jsonString = await FetchSectionTracksPubMediaJsonAsync(queryString, cancellationToken);
         if (jsonString == null)
         {
             logger.Warning("Failed to fetch tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
@@ -95,6 +82,50 @@ internal sealed class SectionFetcherSectionTracksLoader
             return false;
         }
         return await PersistFetchedSectionTracksAsync(request, existingTracksToReplace, jsonString);
+    }
+
+    private void AttachSectionIfDetached(MediaDbContext db, BiblePublicationSection section, string normalizedSectionCode)
+    {
+        var entry = db.Entry(section);
+        if (entry.State == EntityState.Detached)
+        {
+            logger.Debug("Section entity is detached, attaching to DbContext: sectionCode={SectionCode}", normalizedSectionCode);
+            db.BiblePublicationSections.Attach(section);
+        }
+    }
+
+    private static async Task<List<BiblePublicationTrack>> LoadExistingTracksForReplaceAsync(
+        MediaDbContext db,
+        BiblePublicationSection section,
+        bool replaceExisting,
+        CancellationToken cancellationToken)
+    {
+        if (!replaceExisting)
+        {
+            return new List<BiblePublicationTrack>();
+        }
+
+        return await db.BiblePublicationTracks
+            .Include(t => t.TrackUrl)
+            .Where(t => t.BiblePublicationSectionId == section.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    private static SectionTracksCatalogMode GetSectionTracksCatalogMode(BiblePublication publication, string normalizedPublicationCode)
+    {
+        var categoryCode = publication.PrimaryCategory?.CategoryCode ?? "";
+        var isBible = categoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
+        var isIssueSectioned = publication.CatalogType == CatalogType.IssueSectioned ||
+            MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
+        var isVideoDrama = !isBible && !isIssueSectioned && publication.IsVideo;
+        var dramaFileFormat = isVideoDrama ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
+        return new SectionTracksCatalogMode(isBible, isIssueSectioned, isVideoDrama, dramaFileFormat);
+    }
+
+    private async Task<string?> FetchSectionTracksPubMediaJsonAsync(string queryString, CancellationToken cancellationToken)
+    {
+        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
+        return await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
     }
 
     private async Task<bool> PersistFetchedSectionTracksAsync(
@@ -110,11 +141,10 @@ internal sealed class SectionFetcherSectionTracksLoader
         var section = request.Section;
         var cancellationToken = request.CancellationToken;
 
-        var categoryCode = publication.PrimaryCategory?.CategoryCode ?? "";
-        var isBible = categoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
-        var isIssueSectioned = publication.CatalogType == CatalogType.IssueSectioned ||
-            MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
-        var isVideoDrama = !isBible && !isIssueSectioned && publication.IsVideo;
+        var mode = GetSectionTracksCatalogMode(publication, normalizedPublicationCode);
+        var isBible = mode.IsBible;
+        var isIssueSectioned = mode.IsIssueSectioned;
+        var isVideoDrama = mode.IsVideoDrama;
 
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;

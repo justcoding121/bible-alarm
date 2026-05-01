@@ -157,23 +157,56 @@ internal sealed class SectionFetcher
         CancellationToken effectiveToken)
     {
         var determinedCatalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
-        var isMusicPub = categoriesForPub.Any(c =>
-                            c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic,
-                                StringComparison.OrdinalIgnoreCase)) ||
-                        JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
+        var isMusicPub = ComputeIsMusicPublication(categoriesForPub, normalizedPublicationCode);
 
         if (existingPublication != null)
         {
-            existingPublication.IsMusic = isMusicPub;
-            if (existingPublication.CatalogType == null)
-            {
-                existingPublication.CatalogType = determinedCatalogType;
-            }
-
-            SyncPublicationCategories(existingPublication, categoriesForPub);
-            return existingPublication;
+            return PrepareExistingPublicationForSectionFetch(existingPublication, categoriesForPub, isMusicPub, determinedCatalogType);
         }
 
+        return await InsertNewPublicationForSectionFetchAsync(
+            db,
+            normalizedPublicationCode,
+            englishPublication,
+            language,
+            categoriesForPub,
+            isMusicPub,
+            determinedCatalogType,
+            effectiveToken);
+    }
+
+    private static bool ComputeIsMusicPublication(List<Category> categoriesForPub, string normalizedPublicationCode) =>
+        categoriesForPub.Any(c =>
+            c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic,
+                StringComparison.OrdinalIgnoreCase)) ||
+        JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
+
+    private static BiblePublication PrepareExistingPublicationForSectionFetch(
+        BiblePublication existingPublication,
+        List<Category> categoriesForPub,
+        bool isMusicPub,
+        CatalogType? determinedCatalogType)
+    {
+        existingPublication.IsMusic = isMusicPub;
+        if (existingPublication.CatalogType == null)
+        {
+            existingPublication.CatalogType = determinedCatalogType;
+        }
+
+        SyncPublicationCategories(existingPublication, categoriesForPub);
+        return existingPublication;
+    }
+
+    private async Task<BiblePublication> InsertNewPublicationForSectionFetchAsync(
+        MediaDbContext db,
+        string normalizedPublicationCode,
+        BiblePublication englishPublication,
+        Language language,
+        List<Category> categoriesForPub,
+        bool isMusicPub,
+        CatalogType? determinedCatalogType,
+        CancellationToken effectiveToken)
+    {
         var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
         var publication = new BiblePublication
         {
