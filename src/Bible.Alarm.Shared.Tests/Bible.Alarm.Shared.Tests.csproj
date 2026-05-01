@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
+    <ProjectReference Include="..\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
   </ItemGroup>
 
 </Project>
