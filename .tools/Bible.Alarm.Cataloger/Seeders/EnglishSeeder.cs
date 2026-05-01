@@ -44,35 +44,7 @@ internal sealed class EnglishSeeder
             ? publicationFilter
             : (IEnumerable<string>)JwSourceHelper.AllPublicationCodesForEnglishSeeding;
 
-        // Filter out publications that already have English or have LanguageId == null (e.g. iam)
-        var publicationsNeedingEnglish = new List<string>();
-        foreach (var publicationCode in allPublicationCodes)
-        {
-            var normalizedCode = publicationCode.ToLowerInvariant();
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedCode) ?? normalizedCode;
-
-            var hasNullLanguage = await db.BiblePublications
-                .AsNoTracking()
-                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.LanguageId == null);
-
-            if (hasNullLanguage)
-            {
-                logger.Debug("Skipping publication {PublicationCode} - has LanguageId == null (no English content)", publicationCode);
-                continue;
-            }
-
-            var hasEnglish = await db.BiblePublications
-                .AsNoTracking()
-                .Include(bp => bp.Language)
-                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
-                               bp.Language != null &&
-                               bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
-
-            if (!hasEnglish)
-            {
-                publicationsNeedingEnglish.Add(publicationCode);
-            }
-        }
+        var publicationsNeedingEnglish = await CollectPublicationCodesNeedingEnglishAsync(db, allPublicationCodes);
 
         if (publicationsNeedingEnglish.Count == 0)
         {
@@ -100,18 +72,67 @@ internal sealed class EnglishSeeder
             }
         }
 
-        if (failed.Count > 0 && !string.IsNullOrEmpty(failedListPath))
-        {
-            var dir = Path.GetDirectoryName(failedListPath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-            }
-            await File.WriteAllLinesAsync(failedListPath, failed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
-            logger.Information("Wrote {Count} failed publication code(s) to {Path} for use with --retry-failed", failed.Count, failedListPath);
-        }
+        await WriteFailedPublicationCodesAsync(failedListPath, failed);
 
         logger.Information("=== English seeding completed ===");
+    }
+
+    private async Task<List<string>> CollectPublicationCodesNeedingEnglishAsync(
+        MediaDbContext db,
+        IEnumerable<string> allPublicationCodes)
+    {
+        var publicationsNeedingEnglish = new List<string>();
+        foreach (var publicationCode in allPublicationCodes)
+        {
+            if (await PublicationNeedsEnglishSeedingAsync(db, publicationCode))
+            {
+                publicationsNeedingEnglish.Add(publicationCode);
+            }
+        }
+
+        return publicationsNeedingEnglish;
+    }
+
+    private async Task<bool> PublicationNeedsEnglishSeedingAsync(MediaDbContext db, string publicationCode)
+    {
+        var normalizedCode = publicationCode.ToLowerInvariant();
+        var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedCode) ?? normalizedCode;
+
+        var hasNullLanguage = await db.BiblePublications
+            .AsNoTracking()
+            .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.LanguageId == null);
+
+        if (hasNullLanguage)
+        {
+            logger.Debug("Skipping publication {PublicationCode} - has LanguageId == null (no English content)", publicationCode);
+            return false;
+        }
+
+        var hasEnglish = await db.BiblePublications
+            .AsNoTracking()
+            .Include(bp => bp.Language)
+            .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
+                           bp.Language != null &&
+                           bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
+
+        return !hasEnglish;
+    }
+
+    private async Task WriteFailedPublicationCodesAsync(string? failedListPath, List<string> failed)
+    {
+        if (failed.Count == 0 || string.IsNullOrEmpty(failedListPath))
+        {
+            return;
+        }
+
+        var dir = Path.GetDirectoryName(failedListPath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        await File.WriteAllLinesAsync(failedListPath, failed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+        logger.Information("Wrote {Count} failed publication code(s) to {Path} for use with --retry-failed", failed.Count, failedListPath);
     }
 }
 

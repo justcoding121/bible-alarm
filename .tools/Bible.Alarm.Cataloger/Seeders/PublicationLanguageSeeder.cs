@@ -232,63 +232,68 @@ internal sealed class PublicationLanguageSeeder
 
         foreach (var publicationCode in englishPublications)
         {
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-
-            // Preserve actual publication code from BiblePublications (VODMoviesBibleTimes, Dramas, DramasGoodNews, etc.)
-            var publicationCodeForDb = publicationCode;
-
-            var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
-            var categoryCode = JwSourceHelper.GetCategoryCode(normalizedPublicationCode);
-
-            if (string.IsNullOrEmpty(categoryCode))
-            {
-                logger.Warning("Category not found for publication code {PublicationCode}, defaulting to 'Bible'", publicationCode);
-                categoryCode = "Bible";
-            }
-
-            var category = await db.Categories.FirstOrDefaultAsync(c => c.CategoryCode == categoryCode);
-            if (category == null)
-            {
-                logger.Warning("Category '{CategoryCode}' not found in database for publication {PublicationCode}", categoryCode, publicationCode);
-                continue;
-            }
-
-            var isMusic = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCode) &&
-                (string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
-                 JwSourceHelper.IsMusicPublicationCode(publicationCode));
-
-            var exists = await db.PublicationLanguages
-                .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
-
-            if (!exists)
-            {
-                var publicationLanguage = new PublicationLanguage
-                {
-                    PublicationCode = publicationCodeForDb,
-                    Language = englishLanguage,
-                    CatalogType = catalogType,
-                    Category = category,
-                    CategoryId = category.Id,
-                    IsMusic = isMusic
-                };
-                db.PublicationLanguages.Add(publicationLanguage);
-            }
-            else
-            {
-                var existing = await db.PublicationLanguages
-                    .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
-
-                if (existing != null)
-                {
-                    existing.CatalogType = catalogType;
-                    existing.Category = category;
-                    existing.CategoryId = category.Id;
-                    existing.IsMusic = isMusic;
-                }
-            }
+            await EnsureEnglishPublicationLanguageRowAsync(db, publicationCode, englishLanguage);
         }
 
         await EnsureDramasCategoryEntriesForDramaPublicationsAsync(db, englishPublications, englishLanguage);
+    }
+
+    private async Task EnsureEnglishPublicationLanguageRowAsync(MediaDbContext db, string publicationCode, Bible.Alarm.Shared.Models.Media.Language englishLanguage)
+    {
+        var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+
+        // Preserve actual publication code from BiblePublications (VODMoviesBibleTimes, Dramas, DramasGoodNews, etc.)
+        var publicationCodeForDb = publicationCode;
+
+        var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
+        var categoryCode = JwSourceHelper.GetCategoryCode(normalizedPublicationCode);
+
+        if (string.IsNullOrEmpty(categoryCode))
+        {
+            logger.Warning("Category not found for publication code {PublicationCode}, defaulting to 'Bible'", publicationCode);
+            categoryCode = "Bible";
+        }
+
+        var category = await db.Categories.FirstOrDefaultAsync(c => c.CategoryCode == categoryCode);
+        if (category == null)
+        {
+            logger.Warning("Category '{CategoryCode}' not found in database for publication {PublicationCode}", categoryCode, publicationCode);
+            return;
+        }
+
+        var isMusic = !JwSourceHelper.IsMusicExcludedPublicationCodes.Contains(publicationCode) &&
+            (string.Equals(categoryCode, "Music", StringComparison.OrdinalIgnoreCase) ||
+             JwSourceHelper.IsMusicPublicationCode(publicationCode));
+
+        var exists = await db.PublicationLanguages
+            .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
+
+        if (!exists)
+        {
+            var publicationLanguage = new PublicationLanguage
+            {
+                PublicationCode = publicationCodeForDb,
+                Language = englishLanguage,
+                CatalogType = catalogType,
+                Category = category,
+                CategoryId = category.Id,
+                IsMusic = isMusic
+            };
+            db.PublicationLanguages.Add(publicationLanguage);
+        }
+        else
+        {
+            var existing = await db.PublicationLanguages
+                .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
+
+            if (existing != null)
+            {
+                existing.CatalogType = catalogType;
+                existing.Category = category;
+                existing.CategoryId = category.Id;
+                existing.IsMusic = isMusic;
+            }
+        }
     }
 
     /// <summary>

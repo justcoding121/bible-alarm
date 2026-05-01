@@ -142,100 +142,102 @@ public partial class MediaManager : IDisposable
 
         var ranges = Player.CurrentItem.SeekableTimeRanges;
         var seekToTime = new CMTime(Convert.ToInt64(position.TotalMilliseconds), 1000);
-        bool seekPerformed = false;
+        var rangeValues = ranges.Select(r => r.CMTimeRangeValue).ToArray();
 
-        foreach (var range in ranges.Select(r => r.CMTimeRangeValue))
+        var seekPerformed = TrySeekInsideSeekableRanges(Player, seekToTime, rangeValues, seekTaskCompletionSource);
+
+        if (!seekPerformed && rangeValues.Length > 0)
         {
-            if (seekToTime >= range.Start && seekToTime < (range.Start + range.Duration))
-            {
-                Player.Seek(seekToTime, complete =>
-                {
-                    // Seek can return !complete for non-fatal reasons (interrupted by
-                    // another seek, media still loading, etc.). Treat as success to
-                    // avoid crashing the app with an unhandled exception.
-                    seekTaskCompletionSource.SetResult();
-                });
-                seekPerformed = true;
-                break;
-            }
-        }
-
-        // If position is outside all seekable ranges, clamp to the nearest valid position
-        if (!seekPerformed && ranges.Length > 0)
-        {
-            var firstRange = ranges[0].CMTimeRangeValue;
-            var lastRange = ranges[ranges.Length - 1].CMTimeRangeValue;
-            var lastRangeEnd = lastRange.Start + lastRange.Duration;
-
-            CMTime clampedTime;
-            if (seekToTime < firstRange.Start)
-            {
-                // Position is before first range - seek to start of first range
-                clampedTime = firstRange.Start;
-            }
-            else if (seekToTime >= lastRangeEnd)
-            {
-                // Position is after last range - seek to end of last range
-                clampedTime = lastRangeEnd;
-            }
-            else
-            {
-                // Position is between ranges - find the nearest range
-                CMTime? nearestStart = null;
-                CMTime? nearestEnd = null;
-                double minDistance = double.MaxValue;
-
-                foreach (var range in ranges.Select(r => r.CMTimeRangeValue))
-                {
-                    var rangeStart = range.Start;
-                    var rangeEnd = range.Start + range.Duration;
-
-                    if (seekToTime < rangeStart)
-                    {
-                        // Calculate distance in seconds using CMTime.Seconds property
-                        var distance = seekToTime.Seconds - rangeStart.Seconds;
-                        if (Math.Abs(distance) < Math.Abs(minDistance))
-                        {
-                            minDistance = distance;
-                            nearestStart = rangeStart;
-                        }
-                    }
-                    else if (seekToTime >= rangeEnd)
-                    {
-                        // Calculate distance in seconds using CMTime.Seconds property
-                        var distance = seekToTime.Seconds - rangeEnd.Seconds;
-                        if (Math.Abs(distance) < Math.Abs(minDistance))
-                        {
-                            minDistance = distance;
-                            nearestEnd = rangeEnd;
-                        }
-                    }
-                }
-
-                clampedTime = nearestStart ?? nearestEnd ?? firstRange.Start;
-            }
-
-            Player.Seek(clampedTime, complete =>
-            {
-                seekTaskCompletionSource.SetResult();
-            });
+            var clampedTime = ComputeClampedSeekTime(seekToTime, rangeValues);
+            SeekAndComplete(Player, clampedTime, seekTaskCompletionSource);
             seekPerformed = true;
         }
 
         if (!seekPerformed)
         {
-            // No seekable ranges available - this can happen when media is still loading
-            // Instead of throwing, just complete the seek task (effectively a no-op)
-            // The caller can check the position after if needed
-            // This allows playback to start from the beginning if seek isn't possible yet
             seekTaskCompletionSource.SetResult();
         }
 
-        // Wait for seek to complete (or already completed if no ranges available)
         await seekTaskCompletionSource.Task.WaitAsync(token);
 
-        // Always call SeekCompleted to notify listeners, even if seek was a no-op
         MediaElement.SeekCompleted();
+    }
+
+    static bool TrySeekInsideSeekableRanges(
+        AVPlayer player,
+        CMTime seekToTime,
+        CMTimeRange[] rangeValues,
+        TaskCompletionSource seekTaskCompletionSource)
+    {
+        foreach (var range in rangeValues)
+        {
+            if (seekToTime >= range.Start && seekToTime < (range.Start + range.Duration))
+            {
+                SeekAndComplete(player, seekToTime, seekTaskCompletionSource);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static void SeekAndComplete(AVPlayer player, CMTime time, TaskCompletionSource seekTaskCompletionSource)
+    {
+        player.Seek(time, complete =>
+        {
+            // Seek can return !complete for non-fatal reasons (interrupted by
+            // another seek, media still loading, etc.). Treat as success to
+            // avoid crashing the app with an unhandled exception.
+            seekTaskCompletionSource.SetResult();
+        });
+    }
+
+    static CMTime ComputeClampedSeekTime(CMTime seekToTime, CMTimeRange[] ranges)
+    {
+        var firstRange = ranges[0];
+        var lastRange = ranges[ranges.Length - 1];
+        var lastRangeEnd = lastRange.Start + lastRange.Duration;
+
+        if (seekToTime < firstRange.Start)
+        {
+            return firstRange.Start;
+        }
+
+        if (seekToTime >= lastRangeEnd)
+        {
+            return lastRangeEnd;
+        }
+
+        CMTime? nearestStart = null;
+        CMTime? nearestEnd = null;
+        double minDistance = double.MaxValue;
+
+        foreach (var range in ranges)
+        {
+            var rangeStart = range.Start;
+            var rangeEnd = range.Start + range.Duration;
+
+            if (seekToTime < rangeStart)
+            {
+                var distance = seekToTime.Seconds - rangeStart.Seconds;
+                if (Math.Abs(distance) < Math.Abs(minDistance))
+                {
+                    minDistance = distance;
+                    nearestStart = rangeStart;
+                }
+            }
+            else if (seekToTime >= rangeEnd)
+            {
+                var distance = seekToTime.Seconds - rangeEnd.Seconds;
+                if (Math.Abs(distance) < Math.Abs(minDistance))
+                {
+                    minDistance = distance;
+                    nearestEnd = rangeEnd;
+                }
+            }
+        }
+
+        return nearestStart ?? nearestEnd ?? firstRange.Start;
     }
 
     protected virtual partial void PlatformStop()
@@ -392,50 +394,63 @@ public partial class MediaManager : IDisposable
     /// <param name="disposing"><see langword="true"/> to release both managed and unmanaged resources; <see langword="false"/> to release only unmanaged resources.</param>
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
+        if (!disposing)
         {
-            var player = Player;
-            var playerItem = PlayerItem;
-            var playerViewController = PlayerViewController;
+            return;
+        }
 
-            metaData?.Cleanup();
-            metaData = null;
+        var player = Player;
+        var playerViewController = PlayerViewController;
 
-            if (player is not null)
-            {
-                player.Pause();
-                player.InvokeOnMainThread(UIApplication.SharedApplication.EndReceivingRemoteControlEvents);
-                UIApplication.SharedApplication.IdleTimerDisabled = false;
-                AVAudioSession.SharedInstance().SetActive(false);
+        metaData?.Cleanup();
+        metaData = null;
 
-                var errorObserver = currentItemErrorObserver;
-                currentItemErrorObserver = null;
-                if (errorObserver is not null)
-                {
-                    try
-                    {
-                        errorObserver.Dispose();
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // KVO teardown can throw if already finalized; intentional no-op.
-                    }
-                }
+        if (player is not null)
+        {
+            TearDownPlayerForDispose(player);
+            Player = null;
+        }
 
-                if (observerTokens is not null)
-                {
-                    IosMediaManagerObserverCoordinator.ReleaseTokens(observerTokens);
-                    observerTokens = null;
-                }
+        PlayerItem = null;
+        playerViewController?.Dispose();
+        PlayerViewController = null;
+    }
 
-                player.ReplaceCurrentItemWithPlayerItem(null);
-                player.Dispose();
-                Player = null;
-            }
+    void TearDownPlayerForDispose(AVPlayer player)
+    {
+        player.Pause();
+        player.InvokeOnMainThread(UIApplication.SharedApplication.EndReceivingRemoteControlEvents);
+        UIApplication.SharedApplication.IdleTimerDisabled = false;
+        AVAudioSession.SharedInstance().SetActive(false);
 
-            PlayerItem = null;
-            playerViewController?.Dispose();
-            PlayerViewController = null;
+        DisposeCurrentItemErrorObserverSafely();
+
+        if (observerTokens is not null)
+        {
+            IosMediaManagerObserverCoordinator.ReleaseTokens(observerTokens);
+            observerTokens = null;
+        }
+
+        player.ReplaceCurrentItemWithPlayerItem(null);
+        player.Dispose();
+    }
+
+    void DisposeCurrentItemErrorObserverSafely()
+    {
+        var errorObserver = currentItemErrorObserver;
+        currentItemErrorObserver = null;
+        if (errorObserver is null)
+        {
+            return;
+        }
+
+        try
+        {
+            errorObserver.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // KVO teardown can throw if already finalized; intentional no-op.
         }
     }
 
