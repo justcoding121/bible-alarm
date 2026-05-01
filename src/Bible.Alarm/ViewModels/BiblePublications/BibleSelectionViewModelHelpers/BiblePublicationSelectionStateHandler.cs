@@ -5,6 +5,7 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
@@ -56,72 +57,30 @@ public sealed class BiblePublicationSelectionStateHandler
 
         try
         {
-            // Use CurrentSchedule as the source of truth, not CurrentBiblePublicationSchedule
-            string? newLanguageCode = null;
-            string? newCategoryName = null;
-            if (stateValue.CurrentSchedule != null)
-            {
-                newLanguageCode = stateValue.CurrentSchedule.BiblePublicationLanguageCode;
-                newCategoryName = stateValue.CurrentSchedule.BiblePublicationCategoryName;
-            }
+            ExtractLanguageAndCategoryFromSchedule(stateValue, out var newLanguageCode, out var newCategoryName);
 
-            // Check if category changed (need to repopulate languages since they're filtered by category)
             var categoryChanged = newCategoryName != lastCategoryName;
 
-            // If already initialized and languages are populated AND category hasn't changed, skip
-            // Note: Do NOT set IsBusy = false here - the modal controls this
             if (initComplete && languages != null && languages.Count > 0 && !categoryChanged)
             {
                 return;
             }
 
-            // Update tracking variables
             if (!string.IsNullOrEmpty(newLanguageCode))
             {
                 lastLanguageCode = newLanguageCode;
             }
+
             if (newCategoryName != null)
             {
                 lastCategoryName = newCategoryName;
             }
 
-            // Derive from CurrentSchedule (single source of truth)
             var currentSchedule = stateValue.CurrentSchedule;
-            if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
-            {
-                // Create BiblePublicationSchedule from CurrentSchedule
-                current = new BiblePublicationSchedule
-                {
-                    LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                    PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                    SectionCode = currentSchedule.BiblePublicationSectionCode,
-                    TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
-                    FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
-                };
-                if (string.IsNullOrEmpty(lastLanguageCode))
-                {
-                    lastLanguageCode = current.LanguageCode;
-                }
-            }
-            else if (currentSchedule != null && !string.IsNullOrEmpty(newLanguageCode))
-            {
-                // Create a minimal BiblePublicationSchedule from CurrentSchedule
-                current = new BiblePublicationSchedule
-                {
-                    LanguageCode = newLanguageCode,
-                    PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
-                    SectionCode = currentSchedule?.BiblePublicationSectionCode,
-                    TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
-                };
-            }
+            UpdateCurrentScheduleModelFromState(currentSchedule, newLanguageCode);
 
-            // Check if languages are already populated before setting IsBusy to true
-            // This avoids unnecessary busy overlay toggling when languages are already loaded
-            // Also repopulate if category changed (languages are filtered by category)
             var needsLanguagePopulation = languages == null || languages.Count == 0 || categoryChanged;
 
-            // Only set IsBusy to true if we actually need to populate languages
-            // This prevents the quick show/hide toggle when languages are already populated
             if (needsLanguagePopulation)
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
@@ -129,16 +88,10 @@ public sealed class BiblePublicationSelectionStateHandler
 
             if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
             {
-                // Initialize with current language code if we have a current schedule
-                // Note: publications collection is not available here, will be populated in RefreshFromStateAsync
                 await InitializeAsync(current.LanguageCode, languages, null);
             }
             else
             {
-                // For language modal use case, just populate languages without publications
-                // Pass the languages collection so it gets populated and displayed
-                // Ensure languages collection is not null - it should be initialized by property manager
-                // Note: Do NOT set IsBusy = false here - the modal controls this
                 if (languages == null)
                 {
                     return;
@@ -147,49 +100,15 @@ public sealed class BiblePublicationSelectionStateHandler
                 await dataProvider.PopulateLanguagesAsync(null, languages);
             }
 
-            // Update CurrentLanguage after languages are populated
             updateCurrentLanguage?.Invoke();
 
-            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
-            // The modal will set IsBusy = false after verifying the list is rendered
-
-            // Set initComplete to true only after languages are successfully populated
             initComplete = true;
 
-            // Set CurrentLanguage to the selected language for scrolling to work
-            if (languages != null)
-            {
-                var selectedLanguage = languages.FirstOrDefault(l => l.IsSelected);
-                if (selectedLanguage != null)
-                {
-                    // We need to set the CurrentLanguage property through the property manager
-                    // But we don't have direct access to it here. The property manager should be updated
-                    // when the state changes, but for the modal, we need to set it explicitly.
-                    // For now, let's set current to have the correct language code so SelectedItem works
-                    if (current == null)
-                    {
-                        current = new BiblePublicationSchedule
-                        {
-                            LanguageCode = selectedLanguage.Code,
-                            PublicationCode = string.Empty,
-                            SectionCode = "1",
-                            TrackCode = "1"
-                        };
-                    }
-                    else
-                    {
-                        current.LanguageCode = selectedLanguage.Code;
-                    }
-                }
-            }
-
-            // Note: IsBusy was already set to false above (line 168) after languages were populated
-            // This duplicate check is removed to avoid confusion
+            AlignCurrentWithSelectedLanguage(languages);
         }
         catch (Exception ex)
         {
             Serilog.Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.ErrorInHandleBiblePublicationInitializedAsync);
-            // Note: Do NOT set IsBusy = false here - the modal controls this
         }
     }
 
@@ -285,19 +204,139 @@ public sealed class BiblePublicationSelectionStateHandler
     /// </summary>
     public async Task RefreshFromStateAsync(Action<bool> setIsBusy, ObservableCollection<PublicationListViewItemModel>? publications, IFetchProgress? progress = null)
     {
-        // Wait for state to be updated (in case language was just changed)
-        // This handles the race condition where the modal opens before state is fully updated
-        // Use CurrentSchedule as primary source, but fall back to CurrentBiblePublicationSchedule if CurrentSchedule isn't updated yet
         const int maxWaitAttempts = 10;
         const int delayMs = 100;
+
+        var (newLanguageCode, newCategoryName) = await WaitForScheduleLanguageAndCategoryAsync(maxWaitAttempts, delayMs);
+
+        if (string.IsNullOrEmpty(newLanguageCode))
+        {
+            return;
+        }
+
+        var finalStateValue = state.Value;
+        var currentSchedule = finalStateValue.CurrentSchedule!;
+
+        newCategoryName = CoalesceCategoryName(currentSchedule.BiblePublicationCategoryName, newCategoryName);
+
+        newCategoryName = await TryAugmentCategoryFromDatabaseAsync(newCategoryName, currentSchedule);
+
+        if (string.IsNullOrWhiteSpace(newCategoryName))
+        {
+            throw new InvalidOperationException(
+                $"RefreshFromStateAsync: Category is null or empty after all fallbacks. Category must always be selected. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
+        }
+
+        var languageChanged = lastLanguageCode != newLanguageCode;
+        var categoryChanged = newCategoryName != lastCategoryName;
+
+        lastLanguageCode = newLanguageCode;
+        lastCategoryName = newCategoryName;
+
+        RefreshCurrentModelFromSchedule(currentSchedule, newLanguageCode);
+
+        if (!initComplete || publications == null || publications.Count == 0 || languageChanged || categoryChanged)
+        {
+            initComplete = true;
+            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
+            if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
+            {
+                if (languageChanged || categoryChanged)
+                {
+                    dataProvider.ClearPublicationVMsMapping();
+                }
+
+                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged, downloadAll: true, newCategoryName, progress);
+            }
+        }
+    }
+
+    private static void ExtractLanguageAndCategoryFromSchedule(
+        ApplicationState stateValue,
+        out string? newLanguageCode,
+        out string? newCategoryName)
+    {
+        newLanguageCode = null;
+        newCategoryName = null;
+        if (stateValue.CurrentSchedule == null)
+        {
+            return;
+        }
+
+        newLanguageCode = stateValue.CurrentSchedule.BiblePublicationLanguageCode;
+        newCategoryName = stateValue.CurrentSchedule.BiblePublicationCategoryName;
+    }
+
+    private void UpdateCurrentScheduleModelFromState(ScheduleStateItem? currentSchedule, string? newLanguageCode)
+    {
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        {
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionCode = currentSchedule.BiblePublicationSectionCode,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
+
+            if (string.IsNullOrEmpty(lastLanguageCode))
+            {
+                lastLanguageCode = current.LanguageCode;
+            }
+        }
+        else if (currentSchedule != null && !string.IsNullOrEmpty(newLanguageCode))
+        {
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = newLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionCode = currentSchedule.BiblePublicationSectionCode,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty
+            };
+        }
+    }
+
+    private void AlignCurrentWithSelectedLanguage(ObservableCollection<LanguageListViewItemModel>? languages)
+    {
+        if (languages == null)
+        {
+            return;
+        }
+
+        var selectedLanguage = languages.FirstOrDefault(l => l.IsSelected);
+        if (selectedLanguage == null)
+        {
+            return;
+        }
+
+        if (current == null)
+        {
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = selectedLanguage.Code,
+                PublicationCode = string.Empty,
+                SectionCode = "1",
+                TrackCode = "1"
+            };
+        }
+        else
+        {
+            current.LanguageCode = selectedLanguage.Code;
+        }
+    }
+
+    private async Task<(string? LangCode, string? CategoryName)> WaitForScheduleLanguageAndCategoryAsync(
+        int maxWaitAttempts,
+        int delayMs)
+    {
         string? newLanguageCode = null;
         string? newCategoryName = null;
 
-        for (int i = 0; i < maxWaitAttempts; i++)
+        for (var i = 0; i < maxWaitAttempts; i++)
         {
             var stateValue = state.Value;
 
-            // Use CurrentSchedule as the source of truth
             if (stateValue.CurrentSchedule != null)
             {
                 newLanguageCode = stateValue.CurrentSchedule.BiblePublicationLanguageCode;
@@ -308,92 +347,69 @@ public sealed class BiblePublicationSelectionStateHandler
                 }
             }
 
-            // Wait a bit and retry if language code is not set yet
             await Task.Delay(delayMs);
         }
 
-        // If language code is still null after waiting, return early
-        if (string.IsNullOrEmpty(newLanguageCode))
+        return (newLanguageCode, newCategoryName);
+    }
+
+    private string? CoalesceCategoryName(string? fromSchedule, string? fromWaitLoop)
+    {
+        return fromSchedule ?? fromWaitLoop ?? lastCategoryName;
+    }
+
+    private async Task<string?> TryAugmentCategoryFromDatabaseAsync(string? newCategoryName, ScheduleStateItem currentSchedule)
+    {
+        if (!string.IsNullOrWhiteSpace(newCategoryName) || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
-            return;
+            return newCategoryName;
         }
 
-        var finalStateValue = state.Value;
-        var currentSchedule = finalStateValue.CurrentSchedule!;
-
-        // Use category from final state, but fall back to category from wait loop, then last known category
-        // This ensures we always filter by the correct category even if state is temporarily null
-        // Priority: finalState > waitLoop > lastKnown > database lookup
-        var finalCategoryName = currentSchedule.BiblePublicationCategoryName;
-        newCategoryName = finalCategoryName ?? newCategoryName ?? lastCategoryName;
-
-        // If still null, try to get category from the publication code in the database
-        if (string.IsNullOrWhiteSpace(newCategoryName) && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        try
         {
-            try
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var publication = await db.BiblePublications
+                .AsNoTracking()
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bpc => bpc.Category)
+                .Where(bp => bp.PublicationCode == currentSchedule.BiblePublicationCode)
+                .FirstOrDefaultAsync();
+
+            if (publication?.PrimaryCategory != null)
             {
-                using var scope = scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                
-                // Try to get category from BiblePublications first (for downloaded publications)
-                var publication = await db.BiblePublications
-                    .AsNoTracking()
-                    .Include(bp => bp.BiblePublicationCategories)
-                    .ThenInclude(bpc => bpc.Category)
-                    .Where(bp => bp.PublicationCode == currentSchedule.BiblePublicationCode)
-                    .FirstOrDefaultAsync();
-                
-                if (publication?.PrimaryCategory != null)
-                {
-                    newCategoryName = publication.PrimaryCategory.CategoryCode;
-                    Log.Debug(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateGotCategoryFromBiblePublications,
-                        newCategoryName, currentSchedule.BiblePublicationCode);
-                }
-                else
-                {
-                    // Try PublicationLanguages (for publications not yet downloaded)
-                    var publicationLanguage = await db.PublicationLanguages
-                        .AsNoTracking()
-                        .Include(pl => pl.Category)
-                        .Where(pl => pl.PublicationCode == currentSchedule.BiblePublicationCode)
-                        .FirstOrDefaultAsync();
-                    
-                    if (publicationLanguage?.Category != null)
-                    {
-                        newCategoryName = publicationLanguage.Category.CategoryCode;
-                        Log.Debug(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateGotCategoryFromPublicationLanguages,
-                            newCategoryName, currentSchedule.BiblePublicationCode);
-                    }
-                }
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateGotCategoryFromBiblePublications,
+                    publication.PrimaryCategory.CategoryCode, currentSchedule.BiblePublicationCode);
+                return publication.PrimaryCategory.CategoryCode;
             }
-            catch (Exception ex)
+
+            var publicationLanguage = await db.PublicationLanguages
+                .AsNoTracking()
+                .Include(pl => pl.Category)
+                .Where(pl => pl.PublicationCode == currentSchedule.BiblePublicationCode)
+                .FirstOrDefaultAsync();
+
+            if (publicationLanguage?.Category != null)
             {
-                Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateFailedToGetCategoryFromDatabase,
-                    currentSchedule.BiblePublicationCode);
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateGotCategoryFromPublicationLanguages,
+                    publicationLanguage.Category.CategoryCode, currentSchedule.BiblePublicationCode);
+                return publicationLanguage.Category.CategoryCode;
             }
         }
-
-        // Ensure we always have a valid category - never null or "all"
-        // A category should always be selected - if it's still null after all fallbacks, this is an error condition
-        if (string.IsNullOrWhiteSpace(newCategoryName))
+        catch (Exception ex)
         {
-            throw new InvalidOperationException(
-                $"RefreshFromStateAsync: Category is null or empty after all fallbacks. Category must always be selected. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
+            Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateFailedToGetCategoryFromDatabase,
+                currentSchedule.BiblePublicationCode);
         }
 
-        // Check if language code or category changed (need to repopulate publications)
-        var languageChanged = lastLanguageCode != newLanguageCode;
-        var categoryChanged = newCategoryName != lastCategoryName;
+        return newCategoryName;
+    }
 
-        // Update tracking variables
-        lastLanguageCode = newLanguageCode;
-        // Always update lastCategoryName - a category should always be selected
-        lastCategoryName = newCategoryName;
-
-        // Update current from CurrentSchedule (single source of truth)
+    private void RefreshCurrentModelFromSchedule(ScheduleStateItem currentSchedule, string newLanguageCode)
+    {
         if (!string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            // Create BiblePublicationSchedule from CurrentSchedule
             current = new BiblePublicationSchedule
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
@@ -408,33 +424,10 @@ public sealed class BiblePublicationSelectionStateHandler
             current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule?.BiblePublicationSectionCode,
-                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionCode = currentSchedule.BiblePublicationSectionCode,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty
             };
-        }
-
-        // Always repopulate publications if:
-        // 1. Not initialized yet
-        // 2. Publications collection is null or empty
-        // 3. Language code changed (cascade effect)
-        // 4. Category changed (cascade effect - filter needs to be reapplied)
-        if (!initComplete || publications == null || publications.Count == 0 || languageChanged || categoryChanged)
-        {
-            initComplete = true;
-            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
-            if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
-            {
-                // Clear the mapping dictionary before repopulating if language or category changed
-                if (languageChanged || categoryChanged)
-                {
-                    dataProvider.ClearPublicationVMsMapping();
-                }
-                // When publication modal opens, download all publications with first sections and tracks
-                // Pass the category name explicitly to ensure correct filtering
-                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged, downloadAll: true, newCategoryName, progress);
-            }
-            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
         }
     }
 
