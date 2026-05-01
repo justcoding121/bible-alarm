@@ -34,45 +34,52 @@ public partial class IosVersionPatcher(IVersionService versionService, IFileServ
         {
             var line = lines[i];
 
-            if (line.Trim() == "<key>CFBundleVersion</key>")
+            if (line.Trim() != "<key>CFBundleVersion</key>")
             {
                 output.AppendLine(line);
-
-                if (i + 1 < lines.Length)
-                {
-                    var nextLine = lines[i + 1];
-                    var oldVersion = ExtractVersionFromLine(nextLine);
-
-                    if (!string.IsNullOrEmpty(oldVersion))
-                    {
-                        newVersion = versionService.IncrementVersion(oldVersion);
-                        var matchRegex = MatchRegexGenerated();
-                        var newLine = matchRegex.Replace(nextLine, $"<string>{newVersion}</string>");
-                        output.AppendLine(newLine);
-                        i++;
-                        versionFound = true;
-
-                        Console.WriteLine($"iOS version updated: {oldVersion} -> {newVersion}");
-                    }
-                    else
-                    {
-                        output.AppendLine(nextLine);
-                        i++;
-                    }
-                }
+                continue;
             }
-            else
-            {
-                output.AppendLine(line);
-            }
+
+            ProcessCfBundleVersionKey(lines, ref i, output, ref versionFound, ref newVersion);
         }
 
         if (versionFound)
         {
             await fileService.WriteFileAsync(manifestFile, output.ToString());
             if (!string.IsNullOrEmpty(newVersion))
+            {
                 await PatchCsprojForIosAsync(newVersion);
+            }
         }
+    }
+
+    private void ProcessCfBundleVersionKey(string[] lines, ref int i, StringBuilder output, ref bool versionFound, ref string? newVersion)
+    {
+        output.AppendLine(lines[i]);
+
+        if (i + 1 >= lines.Length)
+        {
+            return;
+        }
+
+        var nextLine = lines[i + 1];
+        var oldVersion = ExtractVersionFromLine(nextLine);
+
+        if (string.IsNullOrEmpty(oldVersion))
+        {
+            output.AppendLine(nextLine);
+            i++;
+            return;
+        }
+
+        newVersion = versionService.IncrementVersion(oldVersion);
+        var matchRegex = MatchRegexGenerated();
+        var newLine = matchRegex.Replace(nextLine, $"<string>{newVersion}</string>");
+        output.AppendLine(newLine);
+        i++;
+        versionFound = true;
+
+        Console.WriteLine($"iOS version updated: {oldVersion} -> {newVersion}");
     }
 
     private async Task PatchCsprojForIosAsync(string newDisplayVersion)

@@ -41,97 +41,70 @@ internal class VideoCataloger : BaseCataloger
         var languageCodeToInfo = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
         var languageCodeToPublications = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
-        // Only catalog here publications that use GETPUBMEDIALINKS for language discovery.
-        // All video/drama (DramasGoodNews, VOD*, etc.) use the Mediator API and are cataloged by MediatorCataloger.
         var videoCodes = publicationFilter != null
             ? SharedHelpers.JwSourceHelper.VideoPublicationCodes.Where(c => publicationFilter.Contains(c)).ToList()
             : SharedHelpers.JwSourceHelper.VideoPublicationCodes.ToList();
         videoCodes = videoCodes
             .Where(c => SharedHelpers.JwSourceHelper.MediatorValidationExclusionCodes.Contains(c))
             .ToList();
+
         foreach (var publicationCode in videoCodes)
         {
-            var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
-            Logger.Information("Starting catalog for Video publication: {PublicationName} ({PublicationCode})", 
-                publicationName, publicationCode);
-            
-            var languageEntries = await GetLanguageEntries(publicationCode, publicationName, isTestRun);
-            if (languageEntries == null || languageEntries.Count == 0)
-            {
-                Logger.Warning("No languages found for Video publication: {PublicationName} ({PublicationCode})", 
-                    publicationName, publicationCode);
-                continue;
-            }
-
-            // Filter out sign languages
-            languageEntries = await signLanguageChecker.FilterSignLanguagesAsync(languageEntries);
-
-            if (languageEntries.Count == 0)
-            {
-                Logger.Warning("No non-sign languages found for Video publication: {PublicationName} ({PublicationCode})", 
-                    publicationName, publicationCode);
-                continue;
-            }
-
-            // Save discovered languages for on-demand fetching (excluding English)
-            // The alllangs=1 response already lists only available languages, so no verification needed
-            await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
-
-            // Verify English (E) is available (it will be seeded separately after discovery)
-            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
-            if (englishEntry == default)
-            {
-                Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
-                continue;
-            }
-
-            // Add English to language mappings (for reference, but don't process it here)
-            languageCodeToInfo[englishEntry.Code] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
-            AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
+            await TryCatalogVideoOrSeriesPublicationAsync(publicationCode, "Video", languageCodeToInfo, languageCodeToPublications, isTestRun);
         }
 
-        // Only use GETPUBMEDIALINKS for series that are not Mediator-only (e.g. thv). Mediator series are cataloged by MediatorCataloger.
         var seriesCodes = publicationFilter != null
             ? SharedHelpers.JwSourceHelper.SeriesPublicationCodes.Where(c => publicationFilter.Contains(c)).ToList()
             : SharedHelpers.JwSourceHelper.SeriesPublicationCodes.ToList();
         seriesCodes = seriesCodes
             .Where(c => !SharedHelpers.JwSourceHelper.AllMediatorPublicationCodes.Contains(c))
             .ToList();
+
         foreach (var publicationCode in seriesCodes)
         {
-            var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
-            Logger.Information("Starting catalog for Series publication: {PublicationName} ({PublicationCode})",
-                publicationName, publicationCode);
-
-            var languageEntries = await GetLanguageEntries(publicationCode, publicationName, isTestRun);
-            if (languageEntries == null || languageEntries.Count == 0)
-            {
-                Logger.Warning("No languages found for Series publication: {PublicationName} ({PublicationCode})",
-                    publicationName, publicationCode);
-                continue;
-            }
-
-            languageEntries = await signLanguageChecker.FilterSignLanguagesAsync(languageEntries);
-
-            if (languageEntries.Count == 0)
-            {
-                Logger.Warning("No non-sign languages found for Series publication: {PublicationName} ({PublicationCode})",
-                    publicationName, publicationCode);
-                continue;
-            }
-
-            await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
-
-            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
-            if (englishEntry == default)
-            {
-                Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
-                continue;
-            }
-
-            languageCodeToInfo[englishEntry.Code] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
-            AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
+            await TryCatalogVideoOrSeriesPublicationAsync(publicationCode, "Series", languageCodeToInfo, languageCodeToPublications, isTestRun);
         }
+    }
+
+    private async Task TryCatalogVideoOrSeriesPublicationAsync(
+        string publicationCode,
+        string publicationKindLabel,
+        Dictionary<string, LanguageInfo> languageCodeToInfo,
+        Dictionary<string, List<string>> languageCodeToPublications,
+        bool isTestRun)
+    {
+        var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
+        Logger.Information("Starting catalog for {PublicationKind} publication: {PublicationName} ({PublicationCode})",
+            publicationKindLabel, publicationName, publicationCode);
+
+        var languageEntries = await GetLanguageEntries(publicationCode, publicationName, isTestRun);
+        if (languageEntries == null || languageEntries.Count == 0)
+        {
+            Logger.Warning("No languages found for {PublicationKind} publication: {PublicationName} ({PublicationCode})",
+                publicationKindLabel, publicationName, publicationCode);
+            return;
+        }
+
+        languageEntries = await signLanguageChecker.FilterSignLanguagesAsync(languageEntries);
+
+        if (languageEntries.Count == 0)
+        {
+            Logger.Warning("No non-sign languages found for {PublicationKind} publication: {PublicationName} ({PublicationCode})",
+                publicationKindLabel, publicationName, publicationCode);
+            return;
+        }
+
+        await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
+
+        var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
+        if (englishEntry == default)
+        {
+            Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
+            return;
+        }
+
+        languageCodeToInfo[englishEntry.Code] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
+        AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
     }
 
     private async Task SaveDiscoveredNonEnglishPublicationLanguagesAsync(

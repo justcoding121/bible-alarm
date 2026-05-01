@@ -76,74 +76,95 @@ internal abstract class BaseCataloger
 
         if (languages.ValueKind == JsonValueKind.Array)
         {
-            foreach (var element in languages.EnumerateArray())
-            {
-                string? languageCode = null;
-                if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var lc))
-                {
-                    languageCode = lc.GetString()?.ToUpperInvariant();
-                }
-                else if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Symbol, out var sym))
-                {
-                    languageCode = sym.GetString()?.ToUpperInvariant();
-                }
-
-                if (string.IsNullOrEmpty(languageCode))
-                {
-                    continue;
-                }
-
-                if (!element.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
-                {
-                    continue;
-                }
-
-                var rawLanguage = nameElement.GetString();
-                var language = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawLanguage);
-                if (string.IsNullOrEmpty(language))
-                {
-                    continue;
-                }
-
-                var direction = AppConstants.Media.TextDirectionLeftToRight;
-                if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
-                {
-                    direction = directionElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
-                }
-
-                languageEntries.Add((languageCode, language, direction));
-            }
+            AppendLanguageEntriesFromLanguagesArray(languages, languageEntries);
         }
         else if (languages.ValueKind == JsonValueKind.Object)
         {
-            foreach (var item in languages.EnumerateObject())
-            {
-                var languageCode = item.Name.ToUpperInvariant();
-
-                if (!item.Value.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
-                {
-                    continue;
-                }
-
-                var rawLanguage = nameElement.GetString();
-                var language = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawLanguage);
-                if (string.IsNullOrEmpty(language))
-                {
-                    continue;
-                }
-
-                var direction = AppConstants.Media.TextDirectionLeftToRight;
-                if (item.Value.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
-                {
-                    direction = directionElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
-                }
-
-                languageEntries.Add((languageCode, language, direction));
-            }
+            AppendLanguageEntriesFromLanguagesObject(languages, languageEntries);
         }
 
         var hasEntries = languageEntries.Count > 0;
         return hasEntries ? languageEntries : null;
+    }
+
+    private static void AppendLanguageEntriesFromLanguagesArray(
+        JsonElement languages,
+        List<(string Code, string Name, string Direction)> languageEntries)
+    {
+        foreach (var element in languages.EnumerateArray())
+        {
+            var languageCode = ResolveLanguageCodeFromArrayElement(element);
+            if (string.IsNullOrEmpty(languageCode))
+            {
+                continue;
+            }
+
+            if (!element.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
+            {
+                continue;
+            }
+
+            var rawLanguage = nameElement.GetString();
+            var language = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawLanguage);
+            if (string.IsNullOrEmpty(language))
+            {
+                continue;
+            }
+
+            var direction = ReadLanguageDirection(element);
+            languageEntries.Add((languageCode, language, direction));
+        }
+    }
+
+    private static void AppendLanguageEntriesFromLanguagesObject(
+        JsonElement languages,
+        List<(string Code, string Name, string Direction)> languageEntries)
+    {
+        foreach (var item in languages.EnumerateObject())
+        {
+            var languageCode = item.Name.ToUpperInvariant();
+
+            if (!item.Value.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
+            {
+                continue;
+            }
+
+            var rawLanguage = nameElement.GetString();
+            var language = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawLanguage);
+            if (string.IsNullOrEmpty(language))
+            {
+                continue;
+            }
+
+            var direction = ReadLanguageDirection(item.Value);
+            languageEntries.Add((languageCode, language, direction));
+        }
+    }
+
+    private static string? ResolveLanguageCodeFromArrayElement(JsonElement element)
+    {
+        if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var lc))
+        {
+            return lc.GetString()?.ToUpperInvariant();
+        }
+
+        if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Symbol, out var sym))
+        {
+            return sym.GetString()?.ToUpperInvariant();
+        }
+
+        return null;
+    }
+
+    private static string ReadLanguageDirection(JsonElement element)
+    {
+        var direction = AppConstants.Media.TextDirectionLeftToRight;
+        if (element.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
+        {
+            direction = directionElement.GetString() ?? AppConstants.Media.TextDirectionLeftToRight;
+        }
+
+        return direction;
     }
 
     /// <summary>

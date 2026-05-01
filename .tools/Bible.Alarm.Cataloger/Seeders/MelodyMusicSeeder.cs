@@ -60,128 +60,142 @@ internal sealed class MelodyMusicSeeder
 
         foreach (var kvp in dataStore.MelodyMusic)
         {
-            var publicationCode = kvp.Key;
-            var (discTracksMap, discNamesMap) = kvp.Value;
-
-            if (discTracksMap.Count == 0)
-            {
-                logger.Warning("No discs found for MelodyMusic publication {PublicationCode}", publicationCode);
-                continue;
-            }
-
-            // Check if publication already exists
-            var existingPublication = await db.BiblePublications
-                .Include(bp => bp.Sections)
-                .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCode && bp.LanguageId == null);
-
-            if (existingPublication != null)
-            {
-                logger.Information("MelodyMusic publication {PublicationCode} already exists, skipping", publicationCode);
-                continue;
-            }
-
-            // Get publication name - try to get it from the first disc name, or use publication code
-            var publicationName = publicationCode.ToUpperInvariant();
-            if (discNamesMap.Count > 0)
-            {
-                var firstDiscName = discNamesMap.Values.First();
-                if (!string.IsNullOrEmpty(firstDiscName))
-                {
-                    // For iam, the disc name might be something like "Kingdom Melodies 1"
-                    // Try to extract a better publication name
-                    if (firstDiscName.Contains(AppConstants.Media.PublicationDisplayNameKingdomMelodies, StringComparison.OrdinalIgnoreCase))
-                    {
-                        publicationName = AppConstants.Media.PublicationDisplayNameKingdomMelodies;
-                    }
-                    else
-                    {
-                        publicationName = firstDiscName;
-                    }
-                }
-            }
-
-            // Create BiblePublication using shared model
-            var biblePublication = new BiblePublication
-            {
-                PublicationCode = publicationCode.ToLowerInvariant(),
-                Name = publicationName,
-                LanguageId = null,
-                BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { CategoryId = musicCategory.Id, Category = musicCategory } },
-                IsVideo = false,
-                IsMusic = true,
-                Sections = new List<SharedBiblePublicationSection>(),
-                Tracks = new List<SharedBiblePublicationTrack>()
-            };
-
-            // Create sections from discs
-            foreach (var discEntry in discTracksMap.OrderBy(d => d.Key))
-            {
-                var discCode = discEntry.Key;
-                var discTracks = discEntry.Value;
-
-                if (discTracks.Count == 0)
-                {
-                    continue;
-                }
-
-                // Get section name from discNamesMap, or use disc code
-                var sectionName = discNamesMap.TryGetValue(discCode, out var name) && !string.IsNullOrEmpty(name)
-                    ? name
-                    : discCode;
-
-                // Create section using shared model
-                var section = new SharedBiblePublicationSection
-                {
-                    Name = sectionName,
-                    SectionCode = discCode.ToLowerInvariant(),
-                    BiblePublication = biblePublication,
-                    BiblePublicationId = 0, // Will be set after publication is saved
-                    Tracks = new List<SharedBiblePublicationTrack>()
-                };
-
-                // Create tracks for this section
-                foreach (var musicTrack in discTracks.OrderBy(t => t.Number))
-                {
-                    var trackCode = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-                    var trackTitle = musicTrack.Title;
-                    if (publicationCode.Equals(AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase))
-                    {
-                        trackTitle = $"Melody Number(s) {trackTitle}";
-                    }
-
-                    var track = new SharedBiblePublicationTrack
-                    {
-                        TrackCode = trackCode,
-                        Title = trackTitle,
-                        Section = section,
-                        BiblePublicationSectionId = 0,
-                        Publication = biblePublication,
-                        BiblePublicationId = 0,
-                        TrackUrl = !string.IsNullOrEmpty(musicTrack.Url) ? new TrackUrl { Url = musicTrack.Url } : null
-                    };
-
-                    section.Tracks.Add(track);
-                }
-
-                biblePublication.Sections.Add(section);
-            }
-
-            if (biblePublication.Sections.Count == 0)
-            {
-                logger.Warning("No sections created for MelodyMusic publication {PublicationCode}", publicationCode);
-                continue;
-            }
-
-            // Save to database
-            db.BiblePublications.Add(biblePublication);
-            await db.SaveChangesAsync();
-
-            logger.Information("✓ Successfully seeded MelodyMusic publication {PublicationCode} with {SectionCount} sections and {TrackCount} total tracks",
-                publicationCode, biblePublication.Sections.Count, biblePublication.Sections.Sum(s => s.Tracks.Count));
+            await TrySeedMelodyMusicPublicationAsync(db, musicCategory, kvp.Key, kvp.Value);
         }
 
         logger.Information("=== MelodyMusic seeding completed ===");
+    }
+
+    private async Task TrySeedMelodyMusicPublicationAsync(
+        MediaDbContext db,
+        Bible.Alarm.Shared.Models.Media.Category musicCategory,
+        string publicationCode,
+        (Dictionary<string, List<MusicTrack>> DiscTracksMap, Dictionary<string, string> DiscNamesMap) melodyData)
+    {
+        var (discTracksMap, discNamesMap) = melodyData;
+
+        if (discTracksMap.Count == 0)
+        {
+            logger.Warning("No discs found for MelodyMusic publication {PublicationCode}", publicationCode);
+            return;
+        }
+
+        var existingPublication = await db.BiblePublications
+            .Include(bp => bp.Sections)
+            .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCode && bp.LanguageId == null);
+
+        if (existingPublication != null)
+        {
+            logger.Information("MelodyMusic publication {PublicationCode} already exists, skipping", publicationCode);
+            return;
+        }
+
+        var publicationName = ResolveMelodyPublicationDisplayName(publicationCode, discNamesMap);
+
+        var biblePublication = new BiblePublication
+        {
+            PublicationCode = publicationCode.ToLowerInvariant(),
+            Name = publicationName,
+            LanguageId = null,
+            BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { CategoryId = musicCategory.Id, Category = musicCategory } },
+            IsVideo = false,
+            IsMusic = true,
+            Sections = new List<SharedBiblePublicationSection>(),
+            Tracks = new List<SharedBiblePublicationTrack>()
+        };
+
+        foreach (var discEntry in discTracksMap.OrderBy(d => d.Key))
+        {
+            AppendMelodyDiscSection(publicationCode, biblePublication, discEntry, discNamesMap);
+        }
+
+        if (biblePublication.Sections.Count == 0)
+        {
+            logger.Warning("No sections created for MelodyMusic publication {PublicationCode}", publicationCode);
+            return;
+        }
+
+        db.BiblePublications.Add(biblePublication);
+        await db.SaveChangesAsync();
+
+        logger.Information("✓ Successfully seeded MelodyMusic publication {PublicationCode} with {SectionCount} sections and {TrackCount} total tracks",
+            publicationCode, biblePublication.Sections.Count, biblePublication.Sections.Sum(s => s.Tracks.Count));
+    }
+
+    private static string ResolveMelodyPublicationDisplayName(string publicationCode, Dictionary<string, string> discNamesMap)
+    {
+        var publicationName = publicationCode.ToUpperInvariant();
+        if (discNamesMap.Count == 0)
+        {
+            return publicationName;
+        }
+
+        var firstDiscName = discNamesMap.Values.First();
+        if (string.IsNullOrEmpty(firstDiscName))
+        {
+            return publicationName;
+        }
+
+        if (firstDiscName.Contains(AppConstants.Media.PublicationDisplayNameKingdomMelodies, StringComparison.OrdinalIgnoreCase))
+        {
+            return AppConstants.Media.PublicationDisplayNameKingdomMelodies;
+        }
+
+        return firstDiscName;
+    }
+
+    private static void AppendMelodyDiscSection(
+        string publicationCode,
+        BiblePublication biblePublication,
+        KeyValuePair<string, List<MusicTrack>> discEntry,
+        Dictionary<string, string> discNamesMap)
+    {
+        var discCode = discEntry.Key;
+        var discTracks = discEntry.Value;
+
+        if (discTracks.Count == 0)
+        {
+            return;
+        }
+
+        var sectionName = discNamesMap.TryGetValue(discCode, out var name) && !string.IsNullOrEmpty(name)
+            ? name
+            : discCode;
+
+        var section = new SharedBiblePublicationSection
+        {
+            Name = sectionName,
+            SectionCode = discCode.ToLowerInvariant(),
+            BiblePublication = biblePublication,
+            BiblePublicationId = 0,
+            Tracks = new List<SharedBiblePublicationTrack>()
+        };
+
+        foreach (var musicTrack in discTracks.OrderBy(t => t.Number))
+        {
+            var trackCode = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            var trackTitle = musicTrack.Title;
+            if (publicationCode.Equals(AppConstants.Media.MelodyMusicPublicationCodeIam, StringComparison.OrdinalIgnoreCase))
+            {
+                trackTitle = $"Melody Number(s) {trackTitle}";
+            }
+
+            var track = new SharedBiblePublicationTrack
+            {
+                TrackCode = trackCode,
+                Title = trackTitle,
+                Section = section,
+                BiblePublicationSectionId = 0,
+                Publication = biblePublication,
+                BiblePublicationId = 0,
+                TrackUrl = !string.IsNullOrEmpty(musicTrack.Url) ? new TrackUrl { Url = musicTrack.Url } : null
+            };
+
+            section.Tracks.Add(track);
+        }
+
+        biblePublication.Sections.Add(section);
     }
 }
 
