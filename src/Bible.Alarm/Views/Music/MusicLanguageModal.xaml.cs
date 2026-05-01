@@ -132,35 +132,36 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
         await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
-            BusyOverlay,
-            LanguageCollectionView,
-            getSelectedItem: () =>
-            {
-                var languages = musicPublicationViewModel?.Languages;
-                if (languages == null || languages.Count == 0)
-                    return null;
-                return languages.FirstOrDefault(l => l.IsSelected);
-            },
-            refreshAction: musicPublicationViewModel != null
-                ? async () => await musicPublicationViewModel.RefreshLanguagesAsync()
-                : null,
-            onFetchFailed: async (errorMessage) =>
-            {
-                await this.Dispatcher.DispatchAsync(async () =>
+            new ListModalAppearOptions(
+                BusyOverlay,
+                LanguageCollectionView,
+                GetSelectedItem: () =>
                 {
-                    try
+                    var languages = musicPublicationViewModel?.Languages;
+                    if (languages == null || languages.Count == 0)
+                        return null;
+                    return languages.FirstOrDefault(l => l.IsSelected);
+                },
+                RefreshAction: musicPublicationViewModel != null
+                    ? async () => await musicPublicationViewModel.RefreshLanguagesAsync()
+                    : null,
+                OnFetchFailed: async (errorMessage) =>
+                {
+                    await this.Dispatcher.DispatchAsync(async () =>
                     {
-                        await Task.Delay(500);
-                        await navigationService.PopModalAsync();
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        Log.Logger.Debug(ex, "MusicLanguageModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
-                    }
-                });
-                await toastService.ShowMessage(errorMessage);
-            },
-            cancellationToken: cancellationTokenSource.Token);
+                        try
+                        {
+                            await Task.Delay(500);
+                            await navigationService.PopModalAsync();
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            Log.Logger.Debug(ex, "MusicLanguageModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
+                        }
+                    });
+                    await toastService.ShowMessage(errorMessage);
+                },
+                CancellationToken: cancellationTokenSource.Token));
     }
 
     private void Dispose(bool disposing)

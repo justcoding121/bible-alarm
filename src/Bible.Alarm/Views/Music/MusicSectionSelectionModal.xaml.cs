@@ -36,28 +36,29 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
 
         await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
-            BusyOverlay,
-            sectionCollectionView,
-            getSelectedItem: () => ViewModel?.SelectedSection,
-            refreshAction: ViewModel != null ? async () => await ViewModel.RefreshFromState() : null,
-            getItemCountFromViewModel: vm => (vm as MusicSectionSelectionViewModel)?.Sections?.Count ?? 0,
-            onFetchFailed: async (errorMessage) =>
-            {
-                await this.Dispatcher.DispatchAsync(async () =>
+            new ListModalAppearOptions(
+                BusyOverlay,
+                sectionCollectionView,
+                GetSelectedItem: () => ViewModel?.SelectedSection,
+                RefreshAction: ViewModel != null ? async () => await ViewModel.RefreshFromState() : null,
+                GetItemCountFromViewModel: vm => (vm as MusicSectionSelectionViewModel)?.Sections?.Count ?? 0,
+                OnFetchFailed: async (errorMessage) =>
                 {
-                    try
+                    await this.Dispatcher.DispatchAsync(async () =>
                     {
-                        await Task.Delay(500);
-                        await navigationService.PopModalAsync();
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        Log.Logger.Debug(ex, "MusicSectionSelectionModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
-                    }
-                });
-                await toastService.ShowMessage(errorMessage);
-            },
-            cancellationToken: cancellationTokenSource.Token);
+                        try
+                        {
+                            await Task.Delay(500);
+                            await navigationService.PopModalAsync();
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            Log.Logger.Debug(ex, "MusicSectionSelectionModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
+                        }
+                    });
+                    await toastService.ShowMessage(errorMessage);
+                },
+                CancellationToken: cancellationTokenSource.Token));
     }
 
     private void Dispose(bool disposing)

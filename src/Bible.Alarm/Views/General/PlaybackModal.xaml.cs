@@ -327,6 +327,66 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         }
     }
 
+    private static void InvalidatePortraitMetadataMeasures(PlaybackModal modal)
+    {
+        if (modal.MetadataGrid != null)
+        {
+            modal.MetadataGrid.InvalidateMeasure();
+        }
+
+        if (modal.MainContentArea != null)
+        {
+            modal.MainContentArea.InvalidateMeasure();
+        }
+    }
+
+    private void ScheduleDeferredPortraitMetadataInvalidate()
+    {
+        Task.Delay(100).ContinueWith(_ =>
+        {
+            if (isDisposed)
+            {
+                return;
+            }
+
+            try
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try
+                    {
+                        if (isDisposed)
+                        {
+                            return;
+                        }
+
+                        InvalidatePortraitMetadataMeasures(this);
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during ForceIOSLayoutMeasurement");
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Log.Logger.Debug(ex, "PlaybackModal: Dispatcher/view no longer available during ForceIOSLayoutMeasurement");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Logger.Debug(ex, "PlaybackModal: Native bridge or transitional-state exception during ForceIOSLayoutMeasurement");
+                    }
+                });
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during delayed ForceIOSLayoutMeasurement");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Log.Logger.Debug(ex, "PlaybackModal: Dispatcher no longer available during delayed ForceIOSLayoutMeasurement");
+            }
+        });
+    }
+
     private void ForceIOSLayoutMeasurement()
     {
         if (isDisposed)
@@ -345,68 +405,10 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
                 // Force layout measurement by invalidating the metadata grid and parent containers
                 // This ensures iOS properly measures the Auto-height row containing metadata labels
-                if (MetadataGrid != null)
-                {
-                    MetadataGrid.InvalidateMeasure();
-                }
-
-                if (MainContentArea != null)
-                {
-                    MainContentArea.InvalidateMeasure();
-                }
+                InvalidatePortraitMetadataMeasures(this);
 
                 // Force a second layout update after a short delay to ensure it happens after render
-                Task.Delay(100).ContinueWith(_ =>
-                {
-                    if (isDisposed)
-                    {
-                        return;
-                    }
-
-                    try
-                    {
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            try
-                            {
-                                if (isDisposed)
-                                {
-                                    return;
-                                }
-
-                                if (MetadataGrid != null)
-                                {
-                                    MetadataGrid.InvalidateMeasure();
-                                }
-
-                                if (MainContentArea != null)
-                                {
-                                    MainContentArea.InvalidateMeasure();
-                                }
-                            }
-                            catch (ObjectDisposedException ex)
-                            {
-                                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during ForceIOSLayoutMeasurement");
-                            }
-                            catch (InvalidOperationException ex)
-                            {
-                                Log.Logger.Debug(ex, "PlaybackModal: Dispatcher/view no longer available during ForceIOSLayoutMeasurement");
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Logger.Debug(ex, "PlaybackModal: Native bridge or transitional-state exception during ForceIOSLayoutMeasurement");
-                            }
-                        });
-                    }
-                    catch (ObjectDisposedException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during delayed ForceIOSLayoutMeasurement");
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Dispatcher no longer available during delayed ForceIOSLayoutMeasurement");
-                    }
-                });
+                ScheduleDeferredPortraitMetadataInvalidate();
             }
             catch (ObjectDisposedException ex)
             {
@@ -556,68 +558,66 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 
         // Set up debounce timer - seek when user stops interacting
         seekDebounceTimer = new System.Timers.Timer(SeekDebounceDelayMs);
-        seekDebounceTimer.Elapsed += (s, args) =>
-        {
-            // Capture the timer that fired - it may differ from seekDebounceTimer if a new timer was created
-            var timer = s as System.Timers.Timer;
-            timer?.Stop();
-            timer?.Dispose();
-            
-            // Only clear the field reference if it still points to this timer
-            if (ReferenceEquals(seekDebounceTimer, timer))
-            {
-                seekDebounceTimer = null;
-            }
-
-            // User has stopped interacting - perform seek
-            // Check if disposed before dispatching to main thread
-            if (isDisposed)
-            {
-                return;
-            }
-
-            try
-            {
-                var pendingValue = pendingSeekValue;
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try
-                    {
-                        if (isDisposed || ViewModel == null || !pendingValue.HasValue)
-                        {
-                            return;
-                        }
-
-                        var value = pendingValue.Value;
-                        pendingSeekValue = null;
-                        isDragging = false;
-                        ViewModel.OnSliderDragCompleted(value);
-                    }
-                    catch (ObjectDisposedException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during seek debounce callback");
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: View no longer available during seek debounce callback");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Exception during seek debounce callback (e.g. CarPlay modal close)");
-                    }
-                });
-            }
-            catch (ObjectDisposedException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed before seek debounce callback");
-            }
-            catch (InvalidOperationException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: Dispatcher/main thread no longer available for seek debounce callback");
-            }
-        };
+        seekDebounceTimer.Elapsed += OnSeekDebounceTimerElapsed;
         seekDebounceTimer.AutoReset = false;
         seekDebounceTimer.Start();
+    }
+
+    private void OnSeekDebounceTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        var timer = sender as System.Timers.Timer;
+        timer?.Stop();
+        timer?.Dispose();
+
+        if (ReferenceEquals(seekDebounceTimer, timer))
+        {
+            seekDebounceTimer = null;
+        }
+
+        if (isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            var pendingValue = pendingSeekValue;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    if (isDisposed || ViewModel == null || !pendingValue.HasValue)
+                    {
+                        return;
+                    }
+
+                    var value = pendingValue.Value;
+                    pendingSeekValue = null;
+                    isDragging = false;
+                    ViewModel.OnSliderDragCompleted(value);
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during seek debounce callback");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Log.Logger.Debug(ex, "PlaybackModal: View no longer available during seek debounce callback");
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Debug(ex, "PlaybackModal: Exception during seek debounce callback (e.g. CarPlay modal close)");
+                }
+            });
+        }
+        catch (ObjectDisposedException ex)
+        {
+            Log.Logger.Debug(ex, "PlaybackModal: Modal disposed before seek debounce callback");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Logger.Debug(ex, "PlaybackModal: Dispatcher/main thread no longer available for seek debounce callback");
+        }
     }
 
     private void OnSliderDragStarted(object? sender, EventArgs e)
@@ -658,6 +658,73 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
     }
 
 #if IOS
+    private static double? ComputeSliderTapProgressFraction(Slider slider, TappedEventArgs e)
+    {
+        var tapPosition = e.GetPosition(slider);
+        if (!tapPosition.HasValue)
+        {
+            return null;
+        }
+
+        var sliderWidth = slider.Width;
+        if (sliderWidth <= 0)
+        {
+            sliderWidth = slider.Bounds.Width;
+            if (sliderWidth <= 0)
+            {
+                return null;
+            }
+        }
+
+        var x = tapPosition.Value.X;
+        return Math.Max(0.0, Math.Min(1.0, x / sliderWidth));
+    }
+
+    private void ScheduleIsHandlingTapResetAfterSliderTap()
+    {
+        Task.Delay(100).ContinueWith(_ =>
+        {
+            if (isDisposed)
+            {
+                return;
+            }
+
+            try
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try
+                    {
+                        if (!isDisposed)
+                        {
+                            isHandlingTap = false;
+                        }
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during OnSliderTapped isHandlingTap reset");
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Log.Logger.Debug(ex, "PlaybackModal: View no longer available during OnSliderTapped isHandlingTap reset");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Logger.Debug(ex, "PlaybackModal: Exception during OnSliderTapped isHandlingTap reset (transitional state)");
+                    }
+                });
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed before OnSliderTapped isHandlingTap reset");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Log.Logger.Debug(ex, "PlaybackModal: Main thread invocation no longer available for OnSliderTapped isHandlingTap reset");
+            }
+        });
+    }
+
     private void OnSliderTapped(object? sender, TappedEventArgs e)
     {
         if (isDisposed || ViewModel == null || sender is not Slider slider)
@@ -669,76 +736,19 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         isHandlingTap = true;
         try
         {
-            // On iOS, tapping the slider track doesn't automatically update the value
-            // We need to calculate the progress based on tap position
-            var tapPosition = e.GetPosition(slider);
-            if (!tapPosition.HasValue)
+            // On iOS, tapping the slider track doesn't automatically update the value — progress is derived from tap position.
+            var progress = ComputeSliderTapProgressFraction(slider, e);
+            if (!progress.HasValue)
             {
                 return;
             }
 
-            // Get slider width and calculate progress (0.0 to 1.0)
-            var sliderWidth = slider.Width;
-            if (sliderWidth <= 0)
-            {
-                // Slider width not available yet, try to get it from the bounds
-                sliderWidth = slider.Bounds.Width;
-                if (sliderWidth <= 0)
-                {
-                    return;
-                }
-            }
-
-            var x = tapPosition.Value.X;
-            var progress = Math.Max(0.0, Math.Min(1.0, x / sliderWidth));
-
-            // Use the ViewModel's tap handler to perform the seek
-            ViewModel.OnSliderTapped(progress);
+            ViewModel.OnSliderTapped(progress.Value);
         }
         finally
         {
             // Reset flag after a short delay to allow ValueChanged to process normally for drags
-            Task.Delay(100).ContinueWith(_ =>
-            {
-                if (isDisposed)
-                {
-                    return;
-                }
-
-                try
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        try
-                        {
-                            if (!isDisposed)
-                            {
-                                isHandlingTap = false;
-                            }
-                        }
-                        catch (ObjectDisposedException ex)
-                        {
-                            Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during OnSliderTapped isHandlingTap reset");
-                        }
-                        catch (InvalidOperationException ex)
-                        {
-                            Log.Logger.Debug(ex, "PlaybackModal: View no longer available during OnSliderTapped isHandlingTap reset");
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Logger.Debug(ex, "PlaybackModal: Exception during OnSliderTapped isHandlingTap reset (transitional state)");
-                        }
-                    });
-                }
-                catch (ObjectDisposedException ex)
-                {
-                    Log.Logger.Debug(ex, "PlaybackModal: Modal disposed before OnSliderTapped isHandlingTap reset");
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Log.Logger.Debug(ex, "PlaybackModal: Main thread invocation no longer available for OnSliderTapped isHandlingTap reset");
-                }
-            });
+            ScheduleIsHandlingTapResetAfterSliderTap();
         }
     }
 #endif

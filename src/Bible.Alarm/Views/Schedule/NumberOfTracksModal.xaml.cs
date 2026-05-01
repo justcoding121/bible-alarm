@@ -61,14 +61,14 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
 
         await ModalScrollHelper.HandleModalAppearingAsync(
             ListViewModel,
-            BusyOverlay,
-            TracksCollectionView,
-            getSelectedItem: () => ViewModel?.CurrentNumberOfTracks,
-            refreshAction: ViewModel != null
-                ? () => ViewModel.PopulateNumberOfTracksListViewAsync()
-                : null,
-            onFetchFailed: null,
-            cancellationToken: cancellationTokenSource.Token);
+            new ListModalAppearOptions(
+                BusyOverlay,
+                TracksCollectionView,
+                GetSelectedItem: () => ViewModel?.CurrentNumberOfTracks,
+                RefreshAction: ViewModel != null
+                    ? () => ViewModel.PopulateNumberOfTracksListViewAsync()
+                    : null,
+                CancellationToken: cancellationTokenSource.Token));
     }
 
     public void Dispose()

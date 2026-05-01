@@ -38,16 +38,16 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
 
         await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
-            BusyOverlay,
-            CategoryCollectionView,
-            getSelectedItem: () => categoryViewModel?.Categories?.FirstOrDefault(c => c.IsSelected),
-            refreshAction: null,
-            onFetchFailed: async (errorMessage) =>
-            {
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(errorMessage);
-            },
-            cancellationToken: cancellationTokenSource.Token);
+            new ListModalAppearOptions(
+                BusyOverlay,
+                CategoryCollectionView,
+                GetSelectedItem: () => categoryViewModel?.Categories?.FirstOrDefault(c => c.IsSelected),
+                OnFetchFailed: async (errorMessage) =>
+                {
+                    await navigationService.PopModalAsync();
+                    await toastService.ShowMessage(errorMessage);
+                },
+                CancellationToken: cancellationTokenSource.Token));
     }
 
     private async void OnCategoryItemTapped(object? sender, TappedEventArgs e)

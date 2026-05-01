@@ -34,18 +34,19 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
 
         await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
-            BusyOverlay,
-            trackCollectionView,
-            getSelectedItem: () => ViewModel?.SelectedTrack,
-            refreshAction: ViewModel != null
-                ? async () => await ViewModel.RefreshFromState()
-                : null,
-            onFetchFailed: async (errorMessage) =>
-            {
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(errorMessage);
-            },
-            cancellationToken: cancellationTokenSource.Token);
+            new ListModalAppearOptions(
+                BusyOverlay,
+                trackCollectionView,
+                GetSelectedItem: () => ViewModel?.SelectedTrack,
+                RefreshAction: ViewModel != null
+                    ? async () => await ViewModel.RefreshFromState()
+                    : null,
+                OnFetchFailed: async (errorMessage) =>
+                {
+                    await navigationService.PopModalAsync();
+                    await toastService.ShowMessage(errorMessage);
+                },
+                CancellationToken: cancellationTokenSource.Token));
     }
 
     private void Dispose(bool disposing)

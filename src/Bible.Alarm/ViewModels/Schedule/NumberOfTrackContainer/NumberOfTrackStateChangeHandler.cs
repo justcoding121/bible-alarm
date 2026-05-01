@@ -12,49 +12,57 @@ namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 /// </summary>
 public static class NumberOfTrackStateChangeHandler
 {
-    public static void ApplyPropertyChanges(
-        ScheduleStateItem currentSchedule,
-        ref bool notificationEnabled,
-        ref bool alwaysPlayFromStart,
-        ref bool playIndefinitely,
-        ref string? lastCategoryName,
-        bool isWaitingForPermissionResponse,
-        Func<bool> getIsGranted,
-        Action dispatchNotificationEnabledOff,
-        Func<int, Task> populateListViewAsync,
-        Action dispatchNumberOfTracksToPlay,
-        ILogger logger)
+    /// <summary>Mutable VM fields mirrored from schedule state within <see cref="ApplyPropertyChanges"/>.</summary>
+    public sealed class SyncTargets
     {
-        if (!isWaitingForPermissionResponse && notificationEnabled != currentSchedule.NotificationEnabled)
+        public bool NotificationEnabled { get; set; }
+        public bool AlwaysPlayFromStart { get; set; }
+        public bool PlayIndefinitely { get; set; }
+        public string? LastCategoryName { get; set; }
+    }
+
+    public sealed record ApplyContext(
+        ScheduleStateItem CurrentSchedule,
+        bool IsWaitingForPermissionResponse,
+        Func<bool> GetIsGranted,
+        Action DispatchNotificationEnabledOff,
+        Func<int, Task> PopulateListViewAsync,
+        Action DispatchNumberOfTracksToPlay,
+        ILogger Logger);
+
+    public static void ApplyPropertyChanges(ApplyContext context, SyncTargets targets)
+    {
+        var currentSchedule = context.CurrentSchedule;
+        if (!context.IsWaitingForPermissionResponse && targets.NotificationEnabled != currentSchedule.NotificationEnabled)
         {
             var newValue = currentSchedule.NotificationEnabled;
 #if ANDROID || IOS
             newValue = NotificationPermissionSyncHelper.SyncValueWithPermission(
                 newValue,
-                getIsGranted,
-                logger,
+                context.GetIsGranted,
+                context.Logger,
                 "OnStateChanged: NotificationEnabled is true in state but permission is not granted - syncing to OFF",
                 "OnStateChanged: Exception checking notification permission",
-                dispatchNotificationEnabledOff);
+                context.DispatchNotificationEnabledOff);
 #endif
-            notificationEnabled = newValue;
+            targets.NotificationEnabled = newValue;
         }
 
-        alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+        targets.AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
 
-        playIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
+        targets.PlayIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
 
         var newCategoryName = currentSchedule.BiblePublicationCategoryName;
-        if (!string.Equals(lastCategoryName, newCategoryName, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(targets.LastCategoryName, newCategoryName, StringComparison.OrdinalIgnoreCase))
         {
             const int newDefault = 1;
-            _ = populateListViewAsync(newDefault);
-            if (!playIndefinitely)
+            _ = context.PopulateListViewAsync(newDefault);
+            if (!targets.PlayIndefinitely)
             {
-                dispatchNumberOfTracksToPlay();
+                context.DispatchNumberOfTracksToPlay();
             }
         }
 
-        lastCategoryName = newCategoryName;
+        targets.LastCategoryName = newCategoryName;
     }
 }

@@ -22,6 +22,18 @@ public enum ModalAppearingResult
 }
 
 /// <summary>
+/// Inputs for modal list appearing when the page ViewModel implements <see cref="IListViewModel"/>.
+/// </summary>
+public sealed record ListModalAppearOptions(
+    View? BusyOverlay,
+    MauiCollectionView? CollectionView,
+    Func<object?>? GetSelectedItem = null,
+    Func<Task>? RefreshAction = null,
+    Func<string, Task>? OnFetchFailed = null,
+    Func<IListViewModel, int>? GetItemCountFromViewModel = null,
+    CancellationToken CancellationToken = default);
+
+/// <summary>
 /// Helper class for common modal scroll-to-selected behavior.
 /// Provides a standard pattern for:
 /// - Loading data with spinner visible
@@ -54,249 +66,79 @@ public static class ModalScrollHelper
     /// If fetch fails, calls onFetchFailed callback to close modal and show toast.
     /// NOTE: There is no hard timeout - the modal stays open until fetch completes or fails.
     /// </summary>
-    /// <param name="viewModel">The ViewModel with IsBusy property</param>
-    /// <param name="busyOverlay">The busy overlay element (unused, kept for API compatibility)</param>
-    /// <param name="collectionView">The CollectionView to monitor and scroll</param>
-    /// <param name="getSelectedItem">Function to get the selected item (called AFTER refresh to get fresh reference)</param>
-    /// <param name="refreshAction">Optional async action to refresh/load data</param>
-    /// <param name="onFetchFailed">Callback when fetch fails - should close modal and show toast</param>
-    /// <param name="getItemCountFromViewModel">Optional: return list count from ViewModel; used when CollectionView binding is delayed (e.g. reopen modal on Windows).</param>
-    /// <param name="cancellationToken">Cancellation token</param>
+    /// <param name="viewModel">Host list ViewModel implementing <see cref="IListViewModel"/>.</param>
+    /// <param name="options">Busy overlay reference (unused; kept for call-site clarity), CollectionView and workflow callbacks.</param>
     /// <returns>Result indicating success, failure, or cancellation</returns>
     public static async Task<ModalAppearingResult> HandleModalAppearingAsync(
         IListViewModel? viewModel,
-        View? busyOverlay,
-        MauiCollectionView? collectionView,
-        Func<object?>? getSelectedItem,
-        Func<Task>? refreshAction = null,
-        Func<string, Task>? onFetchFailed = null,
-        Func<IListViewModel, int>? getItemCountFromViewModel = null,
-        CancellationToken cancellationToken = default)
+        ListModalAppearOptions options)
     {
         if (viewModel == null) return ModalAppearingResult.Success;
+
         try
         {
-            // Ensure spinner is showing
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                viewModel.IsBusy = true;
-            });
+            await EnsureBusyShowingAndHideCollectionOpacityAsync(viewModel, options.CollectionView);
 
-            // Hide CollectionView during loading/scrolling (prevents visual jump)
-            // Skip on Windows - causes issues when handler isn't ready
-            if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
+            var refreshAbort = await RunOptionalRefreshForListModalAsync(options.RefreshAction, options.OnFetchFailed, options.CancellationToken);
+            if (refreshAbort != null)
+                return refreshAbort.Value;
+
+            if (options.CollectionView is { } cv)
             {
-                await MainThread.InvokeOnMainThreadAsync(() => collectionView.Opacity = 0);
+                var missingItemsAbort = await RequireItemsOrFailListModalAsync(
+                    viewModel, cv, options.GetItemCountFromViewModel, options.OnFetchFailed, options.CancellationToken);
+                if (missingItemsAbort != null)
+                    return missingItemsAbort.Value;
+
+                await WaitForItemsRenderedAsync(cv, options.CancellationToken);
             }
 
-            // Load data - this is where network failures can occur
-            if (refreshAction != null)
-            {
-                try
-                {
-                    await refreshAction();
-                }
-                catch (Exception ex) when (IsFetchFailure(ex))
-                {
-                    Log.Warning(ex, AppConstants.Logging.ProcessDiagnosticsLog.FetchFailedDuringModalAppearing);
-                    if (onFetchFailed != null)
-                    {
-                        var msg = GetFetchErrorMessage(ex);
-                        await onFetchFailed(msg);
-                    }
-                    return ModalAppearingResult.FetchFailed;
-                }
+            await ScrollSelectedIntoViewAsync(options.CollectionView, options.GetSelectedItem, options.CancellationToken);
 
-                // Yield to let bindings/layout propagate after data load
-                await Task.Yield();
-                await MainThread.InvokeOnMainThreadAsync(() => { });
-                await Task.Delay(100, cancellationToken);
-            }
-
-            // Wait for CollectionView to have items in its ItemsSource
-            if (collectionView != null)
-            {
-                var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken: cancellationToken);
-                var viewModelItemCountForRetry = 0;
-                if (!hasItems && getItemCountFromViewModel != null && viewModel != null)
-                {
-                    viewModelItemCountForRetry = await MainThread.InvokeOnMainThreadAsync(() => getItemCountFromViewModel(viewModel));
-                }
-                if (!hasItems && viewModelItemCountForRetry > 0)
-                {
-                    await Task.Delay(500, cancellationToken);
-                    hasItems = await WaitForItemsInSourceAsync(collectionView, maxWaitMs: 3000, cancellationToken: cancellationToken);
-                }
-                if (!hasItems)
-                {
-                    // Use count from retry path if we have it; otherwise read on main thread so we see ViewModel state after any ObservableCollection updates
-                    var viewModelItemCount = viewModelItemCountForRetry;
-                    if (viewModelItemCount == 0 && getItemCountFromViewModel != null && viewModel != null)
-                    {
-                        viewModelItemCount = await MainThread.InvokeOnMainThreadAsync(() => getItemCountFromViewModel(viewModel));
-                    }
-                    if (viewModelItemCount <= 0)
-                    {
-                        Log.Warning(AppConstants.Logging.ModalUiDiagnosticsLog.NoItemsLoadedIntoCollectionViewAfterRefresh);
-                        if (onFetchFailed != null)
-                        {
-                            await onFetchFailed(DefaultFetchErrorMessage);
-                        }
-                        return ModalAppearingResult.FetchFailed;
-                    }
-                    // ViewModel has items but CollectionView binding is delayed — proceed below.
-                }
-            }
-
-            if (collectionView != null)
-            {
-                await WaitForItemsRenderedAsync(collectionView, cancellationToken);
-            }
-
-            var selectedItem = getSelectedItem?.Invoke();
-            if (selectedItem != null && collectionView != null)
-            {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    collectionView,
-                    selectedItem,
-                    animated: false,
-                    cancellationToken: cancellationToken);
-                await Task.Delay(PostScrollDelayMs, cancellationToken);
-            }
-
-            // Reveal list and hide spinner
-            var vm = viewModel;
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
-                    collectionView.Opacity = 1;
-
-                if (vm != null)
-                    vm.IsBusy = false;
-            });
+            await RevealListAndSetBusyAsync(viewModel, options.CollectionView);
 
             return ModalAppearingResult.Success;
         }
         catch (OperationCanceledException)
         {
-            // User cancelled (e.g., tapped an item) - reveal immediately
-            await CleanupOnCancelOrError(viewModel, collectionView);
+            await CleanupOnCancelOrError(viewModel, options.CollectionView);
             return ModalAppearingResult.Cancelled;
         }
         catch (Exception ex) when (IsFetchFailure(ex))
         {
             Log.Warning(ex, AppConstants.Logging.ProcessDiagnosticsLog.FetchFailedDuringModalAppearing);
-            if (onFetchFailed != null)
+            if (options.OnFetchFailed != null)
             {
                 var msg = GetFetchErrorMessage(ex);
-                await onFetchFailed(msg);
+                await options.OnFetchFailed(msg);
             }
             return ModalAppearingResult.FetchFailed;
         }
         catch (Exception ex)
         {
             Log.Warning(ex, AppConstants.Logging.ModalUiDiagnosticsLog.HandleModalAppearingAsyncError);
-            await CleanupOnCancelOrError(viewModel, collectionView);
+            await CleanupOnCancelOrError(viewModel, options.CollectionView);
             return ModalAppearingResult.Success; // Don't close modal for non-fetch errors
         }
     }
 
-    /// <summary>
-    /// Overload for ViewModels that don't implement IListViewModel.
-    /// Uses a custom IsBusy getter function.
-    /// NOTE: There is no hard timeout - the modal stays open until fetch completes or fails.
-    /// </summary>
-    public static async Task<ModalAppearingResult> HandleModalAppearingAsync(
-        Func<bool> isBusyGetter,
-        View? busyOverlay,
-        MauiCollectionView? collectionView,
-        Func<object?>? getSelectedItem,
-        Func<Task>? refreshAction = null,
-        Func<string, Task>? onFetchFailed = null,
-        CancellationToken cancellationToken = default)
+    private static async Task EnsureBusyShowingAndHideCollectionOpacityAsync(IListViewModel viewModel, MauiCollectionView? collectionView)
     {
+        await MainThread.InvokeOnMainThreadAsync(() => { viewModel.IsBusy = true; });
+
+        if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
+            await MainThread.InvokeOnMainThreadAsync(() => collectionView.Opacity = 0);
+    }
+
+    private static async Task<ModalAppearingResult?> RunOptionalRefreshForListModalAsync(
+        Func<Task>? refreshAction, Func<string, Task>? onFetchFailed, CancellationToken cancellationToken)
+    {
+        if (refreshAction == null)
+            return null;
+
         try
         {
-            // Hide CollectionView during loading/scrolling
-            if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
-            {
-                await MainThread.InvokeOnMainThreadAsync(() => collectionView.Opacity = 0);
-            }
-
-            // Load data - this is where network failures can occur
-            if (refreshAction != null)
-            {
-                try
-                {
-                    await refreshAction();
-                }
-                catch (Exception ex) when (IsFetchFailure(ex))
-                {
-                    Log.Warning(ex, AppConstants.Logging.ProcessDiagnosticsLog.FetchFailedDuringModalAppearing);
-                    if (onFetchFailed != null)
-                    {
-                        var msg = GetFetchErrorMessage(ex);
-                        await onFetchFailed(msg);
-                    }
-                    return ModalAppearingResult.FetchFailed;
-                }
-            }
-
-            // Yield to let bindings propagate after refresh
-            await Task.Yield();
-            await MainThread.InvokeOnMainThreadAsync(() => { });
-            await Task.Delay(100, cancellationToken);
-
-            if (collectionView != null)
-            {
-                var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken: cancellationToken);
-                if (!hasItems)
-                {
-                    Log.Warning(AppConstants.Logging.ModalUiDiagnosticsLog.NoItemsLoadedIntoCollectionViewAfterRefresh);
-                    if (onFetchFailed != null)
-                    {
-                        await onFetchFailed(DefaultFetchErrorMessage);
-                    }
-                    return ModalAppearingResult.FetchFailed;
-                }
-            }
-
-            if (collectionView != null)
-            {
-                await WaitForItemsRenderedAsync(collectionView, cancellationToken);
-            }
-
-            var selectedItem = getSelectedItem?.Invoke();
-            if (selectedItem != null && collectionView != null)
-            {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    collectionView,
-                    selectedItem,
-                    animated: false,
-                    cancellationToken: cancellationToken);
-                await Task.Delay(PostScrollDelayMs, cancellationToken);
-            }
-
-            // Reveal
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
-                    collectionView.Opacity = 1;
-
-                if (busyOverlay != null)
-                {
-                    busyOverlay.IsVisible = false;
-                    busyOverlay.InputTransparent = true;
-                }
-            });
-
-            return ModalAppearingResult.Success;
-        }
-        catch (OperationCanceledException)
-        {
-            ForceHideBusyOverlay(busyOverlay);
-            RevealCollectionView(collectionView);
-            return ModalAppearingResult.Cancelled;
+            await refreshAction();
         }
         catch (Exception ex) when (IsFetchFailure(ex))
         {
@@ -308,13 +150,75 @@ public static class ModalScrollHelper
             }
             return ModalAppearingResult.FetchFailed;
         }
-        catch (Exception ex)
+
+        await Task.Yield();
+        await MainThread.InvokeOnMainThreadAsync(() => { });
+        await Task.Delay(100, cancellationToken);
+        return null;
+    }
+
+    private static async Task<ModalAppearingResult?> RequireItemsOrFailListModalAsync(
+        IListViewModel viewModel,
+        MauiCollectionView collectionView,
+        Func<IListViewModel, int>? getItemCountFromViewModel,
+        Func<string, Task>? onFetchFailed,
+        CancellationToken cancellationToken)
+    {
+        var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken: cancellationToken);
+        var viewModelItemCountForRetry = 0;
+        if (!hasItems && getItemCountFromViewModel != null)
         {
-            Log.Warning(ex, AppConstants.Logging.ModalUiDiagnosticsLog.HandleModalAppearingAsyncError);
-            ForceHideBusyOverlay(busyOverlay);
-            RevealCollectionView(collectionView);
-            return ModalAppearingResult.Success; // Don't close modal for non-fetch errors
+            viewModelItemCountForRetry = await MainThread.InvokeOnMainThreadAsync(() => getItemCountFromViewModel(viewModel));
         }
+
+        if (!hasItems && viewModelItemCountForRetry > 0)
+        {
+            await Task.Delay(500, cancellationToken);
+            hasItems = await WaitForItemsInSourceAsync(collectionView, maxWaitMs: 3000, cancellationToken: cancellationToken);
+        }
+
+        if (hasItems)
+            return null;
+
+        var viewModelItemCount = viewModelItemCountForRetry;
+        if (viewModelItemCount == 0 && getItemCountFromViewModel != null)
+        {
+            viewModelItemCount = await MainThread.InvokeOnMainThreadAsync(() => getItemCountFromViewModel(viewModel));
+        }
+
+        if (viewModelItemCount <= 0)
+        {
+            Log.Warning(AppConstants.Logging.ModalUiDiagnosticsLog.NoItemsLoadedIntoCollectionViewAfterRefresh);
+            if (onFetchFailed != null)
+                await onFetchFailed(DefaultFetchErrorMessage);
+            return ModalAppearingResult.FetchFailed;
+        }
+
+        return null;
+    }
+
+    private static async Task ScrollSelectedIntoViewAsync(
+        MauiCollectionView? collectionView, Func<object?>? getSelectedItem, CancellationToken cancellationToken)
+    {
+        var selectedItem = getSelectedItem?.Invoke();
+        if (selectedItem == null || collectionView == null)
+            return;
+
+        await CollectionViewHelper.ScrollToWhenReadyAsync(collectionView, selectedItem, animated: false, cancellationToken: cancellationToken);
+        await Task.Delay(PostScrollDelayMs, cancellationToken);
+    }
+
+    private static Task RevealListAndSetBusyAsync(IListViewModel viewModel, MauiCollectionView? collectionView)
+    {
+        var vmRef = viewModel;
+        var cvRef = collectionView;
+
+        return MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (cvRef != null && DeviceInfo.Platform != DevicePlatform.WinUI)
+                cvRef.Opacity = 1;
+            vmRef.IsBusy = false;
+        });
     }
 
     /// <summary>

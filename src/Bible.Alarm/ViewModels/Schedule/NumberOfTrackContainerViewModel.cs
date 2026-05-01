@@ -274,26 +274,38 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
 #endif
         {
             var categoryBefore = lastCategoryName;
+
+            var syncTargets = new NumberOfTrackStateChangeHandler.SyncTargets
+            {
+                NotificationEnabled = notificationEnabled,
+                AlwaysPlayFromStart = alwaysPlayFromStart,
+                PlayIndefinitely = playIndefinitely,
+                LastCategoryName = lastCategoryName
+            };
+
             NumberOfTrackStateChangeHandler.ApplyPropertyChanges(
-                currentSchedule,
-                ref notificationEnabled,
-                ref alwaysPlayFromStart,
-                ref playIndefinitely,
-                ref lastCategoryName,
+                new NumberOfTrackStateChangeHandler.ApplyContext(
+                    currentSchedule,
 #if ANDROID || IOS
-                isWaitingForPermissionResponse,
+                    isWaitingForPermissionResponse,
 #else
-                false,
+                    false,
 #endif
 #if ANDROID || IOS
-                () => permissionService != null && permissionService.IsGranted,
+                    () => permissionService != null && permissionService.IsGranted,
 #else
-                () => true,
+                    () => true,
 #endif
-                () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
-                forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
-                () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1),
-                logger);
+                    () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
+                    forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
+                    () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1),
+                    logger),
+                syncTargets);
+
+            notificationEnabled = syncTargets.NotificationEnabled;
+            alwaysPlayFromStart = syncTargets.AlwaysPlayFromStart;
+            playIndefinitely = syncTargets.PlayIndefinitely;
+            lastCategoryName = syncTargets.LastCategoryName;
 
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));

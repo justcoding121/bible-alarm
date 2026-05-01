@@ -305,9 +305,7 @@ public partial class BusyOverlay : ContentView
         {
             if (overlay.Window == null)
             {
-                overlay.CancelHardTimeout();
-                overlay.StopSpinnerAfterDelay();
-                overlay.isProcessingVisibilityChange = false;
+                FinishDeferredHideTeardownWithoutWindow(overlay);
                 return;
             }
 
@@ -317,9 +315,7 @@ public partial class BusyOverlay : ContentView
                 overlay.overlayGrid.Opacity = 0;
                 overlay.overlayGrid.InputTransparent = true;
             }
-            overlay.CancelHardTimeout();
-            overlay.StopSpinnerAfterDelay();
-            overlay.isProcessingVisibilityChange = false;
+            FinishDeferredHideTeardownFull(overlay);
             logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideApplied);
         }
 
@@ -333,22 +329,15 @@ public partial class BusyOverlay : ContentView
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideObjectDisposedSkippingUpdate);
-                    overlay.CancelHardTimeout();
-                    overlay.StopSpinnerAfterDelay();
-                    overlay.isProcessingVisibilityChange = false;
+                    WarnRecoverDeferredHide(overlay, ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideObjectDisposedSkippingUpdate);
                 }
                 catch (InvalidOperationException ex)
                 {
-                    logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideInvalidOperationSkippingUpdate);
-                    overlay.CancelHardTimeout();
-                    overlay.StopSpinnerAfterDelay();
-                    overlay.isProcessingVisibilityChange = false;
+                    WarnRecoverDeferredHide(overlay, ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideInvalidOperationSkippingUpdate);
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideFailedToApplyHide);
-                    overlay.isProcessingVisibilityChange = false;
+                    RecoverDeferredHideAfterUnknownFailure(overlay, ex);
                 }
             });
         }
@@ -365,6 +354,103 @@ public partial class BusyOverlay : ContentView
             }
             catch (Exception)
             {
+                overlay.isProcessingVisibilityChange = false;
+            }
+        }
+    }
+
+    private static void FinishDeferredHideTeardownWithoutWindow(BusyOverlay overlay)
+    {
+        overlay.CancelHardTimeout();
+        overlay.StopSpinnerAfterDelay();
+        overlay.isProcessingVisibilityChange = false;
+    }
+
+    private static void FinishDeferredHideTeardownFull(BusyOverlay overlay)
+    {
+        overlay.CancelHardTimeout();
+        overlay.StopSpinnerAfterDelay();
+        overlay.isProcessingVisibilityChange = false;
+    }
+
+    private static void WarnRecoverDeferredHide(BusyOverlay overlay, Exception ex, string diagnosticsLogConstant)
+    {
+        logger.Warning(ex, diagnosticsLogConstant);
+        FinishDeferredHideTeardownFull(overlay);
+    }
+
+    private static void RecoverDeferredHideAfterUnknownFailure(BusyOverlay overlay, Exception ex)
+    {
+        logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideFailedToApplyHide);
+        overlay.isProcessingVisibilityChange = false;
+    }
+
+    private static void LogWarnCancelTimeoutAndSpinnerIfHiding(BusyOverlay overlay, bool visible, Exception ex, string diagnosticsLogConstant)
+    {
+        logger.Warning(ex, diagnosticsLogConstant);
+        overlay.CancelHardTimeout();
+        if (!visible)
+        {
+            overlay.StopSpinnerAfterDelay();
+        }
+    }
+
+    private static void RunIsVisibleChangedApplyDispatch(BusyOverlay overlay, bool newBoolValue, Action apply)
+    {
+        try
+        {
+            overlay.Dispatcher.Dispatch(() =>
+            {
+                try
+                {
+                    apply();
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    LogWarnCancelTimeoutAndSpinnerIfHiding(overlay, newBoolValue, ex,
+                        AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedObjectDisposedDuringVisibilityApply);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    LogWarnCancelTimeoutAndSpinnerIfHiding(overlay, newBoolValue, ex,
+                        AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedInvalidOperationDuringVisibilityApply);
+                }
+                finally
+                {
+                    overlay.isProcessingVisibilityChange = false;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedFailedDispatchFallingBackMainThread);
+            try
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try
+                    {
+                        apply();
+                    }
+                    catch (ObjectDisposedException ex2)
+                    {
+                        LogWarnCancelTimeoutAndSpinnerIfHiding(overlay, newBoolValue, ex2,
+                            AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedObjectDisposedDuringVisibilityApplyMainThreadFallback);
+                    }
+                    catch (InvalidOperationException ex2)
+                    {
+                        LogWarnCancelTimeoutAndSpinnerIfHiding(overlay, newBoolValue, ex2,
+                            AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedInvalidOperationDuringVisibilityApplyMainThreadFallback);
+                    }
+                    finally
+                    {
+                        overlay.isProcessingVisibilityChange = false;
+                    }
+                });
+            }
+            catch (Exception ex2)
+            {
+                logger.Warning(ex2, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedFailedToApplyOnMainThread);
                 overlay.isProcessingVisibilityChange = false;
             }
         }
@@ -464,72 +550,7 @@ public partial class BusyOverlay : ContentView
                     overlay.busyIndicator.IsRunning = true;
             }
 
-            try
-            {
-                // WinUI can throw if the dispatcher is not ready/disposed. Be defensive to avoid crashes.
-                overlay.Dispatcher.Dispatch(() =>
-                {
-                    try
-                    {
-                        Apply();
-                    }
-                    catch (ObjectDisposedException ex)
-                    {
-                        logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedObjectDisposedDuringVisibilityApply);
-                        overlay.CancelHardTimeout();
-                        if (!newBoolValue)
-                            overlay.StopSpinnerAfterDelay();
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedInvalidOperationDuringVisibilityApply);
-                        overlay.CancelHardTimeout();
-                        if (!newBoolValue)
-                            overlay.StopSpinnerAfterDelay();
-                    }
-                    finally
-                    {
-                        overlay.isProcessingVisibilityChange = false;
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedFailedDispatchFallingBackMainThread);
-                try
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        try
-                        {
-                            Apply();
-                        }
-                        catch (ObjectDisposedException ex2)
-                        {
-                            logger.Warning(ex2, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedObjectDisposedDuringVisibilityApplyMainThreadFallback);
-                            overlay.CancelHardTimeout();
-                            if (!newBoolValue)
-                                overlay.StopSpinnerAfterDelay();
-                        }
-                        catch (InvalidOperationException ex2)
-                        {
-                            logger.Warning(ex2, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedInvalidOperationDuringVisibilityApplyMainThreadFallback);
-                            overlay.CancelHardTimeout();
-                            if (!newBoolValue)
-                                overlay.StopSpinnerAfterDelay();
-                        }
-                        finally
-                        {
-                            overlay.isProcessingVisibilityChange = false;
-                        }
-                    });
-                }
-                catch (Exception ex2)
-                {
-                    logger.Warning(ex2, AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedFailedToApplyOnMainThread);
-                    overlay.isProcessingVisibilityChange = false;
-                }
-            }
+            RunIsVisibleChangedApplyDispatch(overlay, newBoolValue, Apply);
         }
     }
 

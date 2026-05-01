@@ -35,30 +35,31 @@ public partial class BiblePublicationSectionSelectionModal : BaseContentPage, ID
 
         await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
-            BusyOverlay,
-            sectionCollectionView,
-            getSelectedItem: () => ViewModel?.SelectedSection,
-            refreshAction: ViewModel != null ? async () => await ViewModel.RefreshFromState() : null,
-            onFetchFailed: async (errorMessage) =>
-            {
-                await this.Dispatcher.DispatchAsync(async () =>
+            new ListModalAppearOptions(
+                BusyOverlay,
+                sectionCollectionView,
+                GetSelectedItem: () => ViewModel?.SelectedSection,
+                RefreshAction: ViewModel != null ? async () => await ViewModel.RefreshFromState() : null,
+                OnFetchFailed: async (errorMessage) =>
                 {
-                    try
+                    await this.Dispatcher.DispatchAsync(async () =>
                     {
-                        // Wait for WinUI to finish presenting the modal before popping.
-                        // Popping during the modal presentation transition leaves WinUI's
-                        // visual tree in a broken state (blank screen).
-                        await Task.Delay(500);
-                        await navigationService.PopModalAsync();
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        Log.Logger.Debug(ex, "BiblePublicationSectionSelectionModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
-                    }
-                });
-                await toastService.ShowMessage(errorMessage);
-            },
-            cancellationToken: cancellationTokenSource.Token);
+                        try
+                        {
+                            // Wait for WinUI to finish presenting the modal before popping.
+                            // Popping during the modal presentation transition leaves WinUI's
+                            // visual tree in a broken state (blank screen).
+                            await Task.Delay(500);
+                            await navigationService.PopModalAsync();
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            Log.Logger.Debug(ex, "BiblePublicationSectionSelectionModal: PopModalAsync failed (modal may already be closed or platform stack out of sync)");
+                        }
+                    });
+                    await toastService.ShowMessage(errorMessage);
+                },
+                CancellationToken: cancellationTokenSource.Token));
     }
 
     private void Dispose(bool disposing)
