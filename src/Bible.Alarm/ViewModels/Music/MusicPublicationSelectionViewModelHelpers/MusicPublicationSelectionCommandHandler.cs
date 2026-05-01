@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Net.Http;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.ViewHelpers;
@@ -7,6 +8,7 @@ using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -68,107 +70,26 @@ public sealed class MusicPublicationSelectionCommandHandler(
         try
         {
             var progressReporter = new Bible.Alarm.Common.Helpers.ListItemFetchProgressReporter("MusicPublication", songPublication.Code);
-            
-            // Get track based on music type
+
             string trackCode;
             string trackName;
             string? sectionCode = null;
             string? sectionName = null;
             if (isMelodyMusic)
             {
-                // Melody publications are usually flat, but some (e.g. "iam") are sectioned (discs).
-                // Progress will be set by fetch methods if a fetch is needed (DB queries don't set progress).
-                // For sectioned publications we MUST pick section + track so Schedule always has section data.
-                var isSectionedMelody = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.HasSectionStructure(songPublication.Code);
-                if (isSectionedMelody)
+                var melody = await TryResolveMelodyMusicSelectionAsync(songPublication, currentSchedule);
+                if (melody == null)
                 {
-                    var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(songPublication.Code);
-                    if (sections == null || sections.Count == 0)
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
-                        return;
-                    }
-
-                    // Prefer preserving current section if same publication; otherwise take first section.
-                    using var sectionsEnumerator = sections.GetEnumerator();
-                    _ = sectionsEnumerator.MoveNext();
-                    var selectedSection = sectionsEnumerator.Current;
-                    var isCurrentMelody = !string.IsNullOrWhiteSpace(currentSchedule?.MusicPublicationCode)
-                        && Bible.Alarm.Shared.Helpers.JwSourceHelper.MelodyMusicPublicationCodes.Contains(currentSchedule.MusicPublicationCode);
-                    if (isCurrentMelody &&
-                        currentSchedule?.MusicPublicationCode == songPublication.Code &&
-                        !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
-                    {
-                        var match = sections.FirstOrDefault(kvp =>
-                            kvp.Value != null &&
-                            Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(kvp.Value.SectionCode, currentSchedule.MusicSectionCode));
-                        if (!EqualityComparer<KeyValuePair<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>>.Default.Equals(match, default))
-                        {
-                            selectedSection = match;
-                        }
-                    }
-
-                    var selectedSectionCode = selectedSection.Value.SectionCode;
-                    sectionName = selectedSection.Value.Name;
-                    sectionCode = selectedSectionCode;
-
-                    var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, songPublication.Code, selectedSectionCode);
-                    if (sectionTracks == null || sectionTracks.Count == 0)
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
-                        return;
-                    }
-
-                    // Preserve current track if it's valid for this section; otherwise pick random track within the section.
-                    if (isCurrentMelody &&
-                        currentSchedule?.MusicPublicationCode == songPublication.Code &&
-                        Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSchedule.MusicSectionCode, selectedSectionCode) &&
-                        !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
-                        sectionTracks.TryGetValue(currentSchedule.MusicTrackCode, out var existingTrack))
-                    {
-                        trackCode = TrackCodeHelper.GetFromTrack(existingTrack);
-                        trackName = existingTrack.Title ?? string.Empty;
-                    }
-                    else
-                    {
-                        var tracksList = sectionTracks.Values.ToList();
-                        var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                        trackCode = TrackCodeHelper.GetFromTrack(randomTrack);
-                        trackName = randomTrack.Title ?? string.Empty;
-                    }
+                    return;
                 }
-                else
-                {
-                    // Flat melody music
-                    var tracks = await mediaService.GetMelodyMusicTracks(songPublication.Code);
-                    if (tracks == null || tracks.Count == 0)
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
-                        return;
-                    }
 
-                    var isCurrentMelodyFlat = !string.IsNullOrWhiteSpace(currentSchedule?.MusicPublicationCode)
-                        && Bible.Alarm.Shared.Helpers.JwSourceHelper.MelodyMusicPublicationCodes.Contains(currentSchedule.MusicPublicationCode);
-                    if (isCurrentMelodyFlat &&
-                        currentSchedule?.MusicPublicationCode == songPublication.Code &&
-                        !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
-                        Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, currentSchedule.MusicTrackCode, out var flatPair))
-                    {
-                        trackCode = TrackCodeHelper.GetFromTrack(flatPair.Track);
-                        trackName = flatPair.Track.Title;
-                    }
-                    else
-                    {
-                        var tracksList = tracks.Values.ToList();
-                        var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                        trackCode = TrackCodeHelper.GetFromTrack(randomTrack);
-                        trackName = randomTrack.Title;
-                    }
-                }
+                trackCode = melody.TrackCode;
+                trackName = melody.TrackName;
+                sectionCode = melody.SectionCode;
+                sectionName = melody.SectionName;
             }
             else
             {
-                // For vocal music, use existing logic
                 progressReporter.UpdateProgress(0.3);
                 var result = await dataProvider.GetTrackForSongPublicationAsync(songPublication, languageCode, currentSchedule, progressReporter);
                 if (string.IsNullOrWhiteSpace(result.TrackCode))
@@ -176,25 +97,15 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
                     return;
                 }
+
                 trackCode = result.TrackCode;
                 trackName = result.TrackName;
             }
 
             progressReporter.UpdateProgress(0.7);
 
-            // For vocal music when currentLanguage is null (e.g. tapped osg from merged list in melody mode),
-            // resolve language name/direction so the reducer can set them and the UI shows "English" not "E".
-            string? resolvedLanguageName = null;
-            string? resolvedLanguageDirection = null;
-            if (!isMelodyMusic && !string.IsNullOrEmpty(languageCode) && currentLanguage == null)
-            {
-                var languages = await mediaService.GetVocalMusicLanguages();
-                if (languages.TryGetValue(languageCode, out var lang))
-                {
-                    resolvedLanguageName = languageNameService.GetNameCached(lang.Id) ?? languageCode;
-                    resolvedLanguageDirection = lang.Direction;
-                }
-            }
+            var (resolvedLanguageName, resolvedLanguageDirection) =
+                await ResolveVocalLanguageDisplayOverridesAsync(isMelodyMusic, languageCode, currentLanguage);
 
             // For melody music, LanguageCode is null (stored as null in DB)
             // For vocal music, LanguageCode is the selected language
@@ -212,21 +123,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     resolvedLanguageName,
                     resolvedLanguageDirection));
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
-            
-            // Wait for cascade to complete - check for the SPECIFIC publication we just dispatched
-            const int maxWaitAttempts = 30;
-            const int delayMs = 200;
-            for (int i = 0; i < maxWaitAttempts; i++)
-            {
-                var currentState = state.Value.CurrentSchedule;
-                if (currentState != null && 
-                    currentState.MusicPublicationCode == songPublication.Code &&
-                    !string.IsNullOrWhiteSpace(currentState.MusicTrackCode))
-                {
-                    break;
-                }
-                await Task.Delay(delayMs);
-            }
+
+            await WaitForMusicPublicationCascadeAsync(songPublication.Code);
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {
@@ -250,6 +148,157 @@ public sealed class MusicPublicationSelectionCommandHandler(
         }
         
         await navigationService.PopModalAsync();
+    }
+
+    private sealed record MelodyMusicSelectionResult(string TrackCode, string TrackName, string? SectionCode, string? SectionName);
+
+    private async Task<MelodyMusicSelectionResult?> TryResolveMelodyMusicSelectionAsync(
+        PublicationListViewItemModel songPublication,
+        ScheduleStateItem? currentSchedule)
+    {
+        if (PublicationTypeHelper.HasSectionStructure(songPublication.Code))
+        {
+            return await TryResolveSectionedMelodyMusicAsync(songPublication, currentSchedule);
+        }
+
+        return await TryResolveFlatMelodyMusicAsync(songPublication, currentSchedule);
+    }
+
+    private async Task<MelodyMusicSelectionResult?> TryResolveSectionedMelodyMusicAsync(
+        PublicationListViewItemModel songPublication,
+        ScheduleStateItem? currentSchedule)
+    {
+        var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(songPublication.Code);
+        if (sections == null || sections.Count == 0)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
+            return null;
+        }
+
+        using var sectionsEnumerator = sections.GetEnumerator();
+        _ = sectionsEnumerator.MoveNext();
+        var selectedSection = sectionsEnumerator.Current;
+        var isCurrentMelody = IsCurrentScheduleMelodyPublication(currentSchedule);
+        if (isCurrentMelody &&
+            currentSchedule?.MusicPublicationCode == songPublication.Code &&
+            !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
+        {
+            var match = sections.FirstOrDefault(kvp =>
+                kvp.Value != null &&
+                SectionCodeHelper.CodeEquals(kvp.Value.SectionCode, currentSchedule.MusicSectionCode));
+            if (!EqualityComparer<KeyValuePair<string, BiblePublicationSection>>.Default.Equals(match, default))
+            {
+                selectedSection = match;
+            }
+        }
+
+        var selectedSectionCode = selectedSection.Value.SectionCode;
+        var resolvedSectionName = selectedSection.Value.Name;
+
+        var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, songPublication.Code, selectedSectionCode);
+        if (sectionTracks == null || sectionTracks.Count == 0)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
+            return null;
+        }
+
+        string trackCode;
+        string trackName;
+        if (isCurrentMelody &&
+            currentSchedule?.MusicPublicationCode == songPublication.Code &&
+            SectionCodeHelper.CodeEquals(currentSchedule.MusicSectionCode, selectedSectionCode) &&
+            !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
+            sectionTracks.TryGetValue(currentSchedule.MusicTrackCode, out var existingTrack))
+        {
+            trackCode = TrackCodeHelper.GetFromTrack(existingTrack);
+            trackName = existingTrack.Title ?? string.Empty;
+        }
+        else
+        {
+            var tracksList = sectionTracks.Values.ToList();
+            var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+            trackCode = TrackCodeHelper.GetFromTrack(randomTrack);
+            trackName = randomTrack.Title ?? string.Empty;
+        }
+
+        return new MelodyMusicSelectionResult(trackCode, trackName, selectedSectionCode, resolvedSectionName);
+    }
+
+    private async Task<MelodyMusicSelectionResult?> TryResolveFlatMelodyMusicAsync(
+        PublicationListViewItemModel songPublication,
+        ScheduleStateItem? currentSchedule)
+    {
+        var tracks = await mediaService.GetMelodyMusicTracks(songPublication.Code);
+        if (tracks == null || tracks.Count == 0)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
+            return null;
+        }
+
+        var isCurrentMelodyFlat = IsCurrentScheduleMelodyPublication(currentSchedule);
+        string trackCode;
+        string trackName;
+        if (isCurrentMelodyFlat &&
+            currentSchedule?.MusicPublicationCode == songPublication.Code &&
+            !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
+            MusicTrackLookupHelper.TryGetByCode(tracks, currentSchedule.MusicTrackCode, out var flatPair))
+        {
+            trackCode = TrackCodeHelper.GetFromTrack(flatPair.Track);
+            trackName = flatPair.Track.Title;
+        }
+        else
+        {
+            var tracksList = tracks.Values.ToList();
+            var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+            trackCode = TrackCodeHelper.GetFromTrack(randomTrack);
+            trackName = randomTrack.Title;
+        }
+
+        return new MelodyMusicSelectionResult(trackCode, trackName, null, null);
+    }
+
+    private static bool IsCurrentScheduleMelodyPublication(ScheduleStateItem? currentSchedule)
+    {
+        return !string.IsNullOrWhiteSpace(currentSchedule?.MusicPublicationCode)
+               && JwSourceHelper.MelodyMusicPublicationCodes.Contains(currentSchedule.MusicPublicationCode);
+    }
+
+    private async Task<(string? Name, string? Direction)> ResolveVocalLanguageDisplayOverridesAsync(
+        bool isMelodyMusic,
+        string languageCode,
+        LanguageListViewItemModel? currentLanguage)
+    {
+        if (isMelodyMusic || string.IsNullOrEmpty(languageCode) || currentLanguage != null)
+        {
+            return (null, null);
+        }
+
+        var languages = await mediaService.GetVocalMusicLanguages();
+        if (!languages.TryGetValue(languageCode, out var lang))
+        {
+            return (null, null);
+        }
+
+        var resolvedLanguageName = languageNameService.GetNameCached(lang.Id) ?? languageCode;
+        return (resolvedLanguageName, lang.Direction);
+    }
+
+    private async Task WaitForMusicPublicationCascadeAsync(string publicationCode)
+    {
+        const int maxWaitAttempts = 30;
+        const int delayMs = 200;
+        for (var i = 0; i < maxWaitAttempts; i++)
+        {
+            var currentState = state.Value.CurrentSchedule;
+            if (currentState != null &&
+                currentState.MusicPublicationCode == publicationCode &&
+                !string.IsNullOrWhiteSpace(currentState.MusicTrackCode))
+            {
+                break;
+            }
+
+            await Task.Delay(delayMs);
+        }
     }
 
 

@@ -40,32 +40,20 @@ internal sealed class SectionListLoader
         // For non-English languages, sections need to be fetched, so we retry with increasing delays
         if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
-            // First, check if sections are already cataloged (without showing progress)
-            // This prevents progress bar from flashing at 0% when data is already available
             var initialSections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
-            
-            // Get expected section count from SectionLanguages discovery table
+
             var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
             var actualSectionCount = initialSections?.Values.Count ?? 0;
-            
-            // Check if we have ALL expected sections AND they're all cataloged (not placeholders)
-            // A section is cataloged if it has a non-empty name and a persisted Id.
-            // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
             var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-            var allSectionsCataloged = hasAllExpectedSections && initialSections != null && initialSections.Values.Count > 0 && initialSections.Values.All(s =>
-                !string.IsNullOrEmpty(s.Name) &&
-                s.Id > 0);
 
-            if (allSectionsCataloged)
+            if (AreAllSectionsFullyCataloged(initialSections, expectedSectionCount))
             {
-                // All expected sections are already cataloged - use the initial query result, no need to show progress
                 logger.Debug("SectionListLoader: All {ExpectedCount} expected sections already cataloged for publication={PublicationCode}, language={LanguageCode}, skipping fetch",
                     expectedSectionCount, publicationCode, languageCode);
                 sectionsFromDb = initialSections;
             }
             else
             {
-                // Not all sections are cataloged - show progress and cancel as soon as fetch is decided, then retry fetching
                 progress?.SetIsVisible(true);
                 progress?.UpdateProgress(0.0);
 
@@ -79,6 +67,7 @@ internal sealed class SectionListLoader
                     logger.Debug("SectionListLoader: Only {ActualCount}/{ExpectedCount} sections found, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
                         actualSectionCount, expectedSectionCount, publicationCode, languageCode);
                 }
+
                 sectionsFromDb = await RetryFetchUntilCatalogedAsync(languageCode, publicationCode, progress, cancellationToken);
             }
         }
@@ -199,19 +188,11 @@ internal sealed class SectionListLoader
                     // Re-query to check if sections are now cataloged (no progress needed for re-query)
                     var reQueriedData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
 
-                    // Get expected section count to verify we have all sections
                     var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
                     var actualSectionCount = reQueriedData?.Values.Count ?? 0;
-                    
-                    // Check if we have ALL expected sections AND they're all cataloged (not placeholders)
-                    // A section is cataloged if it has a non-empty name and a persisted Id.
-                    // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
-                    var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-                    var allSectionsCataloged = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
-                        !string.IsNullOrEmpty(s.Name) &&
-                        s.Id > 0);
 
-                    if (allSectionsCataloged)
+                    var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+                    if (AreAllSectionsFullyCataloged(reQueriedData, expectedSectionCount))
                     {
                         sectionsData = reQueriedData;
                         allCataloged = true;
@@ -232,31 +213,8 @@ internal sealed class SectionListLoader
                         }
                         previousCatalogedCount = currentCatalogedCount;
 
-                        // Log which sections are still placeholders or missing for debugging
-                        if (reQueriedData != null)
-                        {
-                            var placeholders = reQueriedData.Values.Where(s =>
-                                string.IsNullOrEmpty(s.Name) ||
-                                s.Id == 0).Select(s => s.SectionCode).ToList();
+                        LogSectionRetryIterationDiagnostics(attempt, reQueriedData, hasAllExpectedSections, actualSectionCount, expectedSectionCount);
 
-                            if (placeholders.Count > 0)
-                            {
-                                logger.Debug("SectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be cataloged: {Placeholders}",
-                                    attempt, placeholders.Count, string.Join(", ", placeholders));
-                            }
-                            else if (!hasAllExpectedSections)
-                            {
-                                logger.Debug("SectionListLoader: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} sections found, will retry",
-                                    attempt, actualSectionCount, expectedSectionCount);
-                            }
-                            else if (actualSectionCount == 0)
-                            {
-                                logger.Debug("SectionListLoader: Attempt {Attempt}: No sections found yet, will retry",
-                                    attempt);
-                            }
-                        }
-
-                        // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
                         var delay = Math.Min(retryDelay * attempt, 5000);
                         await Task.Delay(delay, cancellationToken);
                     }
@@ -318,6 +276,65 @@ internal sealed class SectionListLoader
         }
 
         return sectionsData;
+    }
+
+    private static bool AreAllSectionsFullyCataloged(
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sections,
+        int expectedSectionCount)
+    {
+        var actualSectionCount = sections?.Values.Count ?? 0;
+        if (actualSectionCount < expectedSectionCount)
+        {
+            return false;
+        }
+
+        if (sections == null || sections.Values.Count == 0)
+        {
+            return false;
+        }
+
+        return sections.Values.All(s =>
+            !string.IsNullOrEmpty(s.Name) &&
+            s.Id > 0);
+    }
+
+    private void LogSectionRetryIterationDiagnostics(
+        int attempt,
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? reQueriedData,
+        bool hasAllExpectedSections,
+        int actualSectionCount,
+        int expectedSectionCount)
+    {
+        if (reQueriedData == null)
+        {
+            return;
+        }
+
+        var placeholders = reQueriedData.Values.Where(s =>
+                string.IsNullOrEmpty(s.Name) ||
+                s.Id == 0)
+            .Select(s => s.SectionCode)
+            .ToList();
+
+        if (placeholders.Count > 0)
+        {
+            logger.Debug("SectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be cataloged: {Placeholders}",
+                attempt, placeholders.Count, string.Join(", ", placeholders));
+            return;
+        }
+
+        if (!hasAllExpectedSections)
+        {
+            logger.Debug("SectionListLoader: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} sections found, will retry",
+                attempt, actualSectionCount, expectedSectionCount);
+            return;
+        }
+
+        if (actualSectionCount == 0)
+        {
+            logger.Debug("SectionListLoader: Attempt {Attempt}: No sections found yet, will retry",
+                attempt);
+        }
     }
 }
 
