@@ -202,30 +202,8 @@ internal sealed class SignLanguageChecker
         var signLanguageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var root = cache.RootElement;
 
-        JsonElement languagesArray;
-        if (root.ValueKind == JsonValueKind.Array)
+        if (!TryGetLanguagesArrayElement(root, out var languagesArray))
         {
-            languagesArray = root;
-        }
-        else if (root.ValueKind == JsonValueKind.Object)
-        {
-            if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
-            {
-                languagesArray = languagesProp;
-            }
-            else if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
-            {
-                languagesArray = dataProp;
-            }
-            else
-            {
-                logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint");
-                return signLanguageCodes;
-            }
-        }
-        else
-        {
-            logger.Warning("Expected JSON array or object from /en/languages endpoint, got {ValueKind}", root.ValueKind);
             return signLanguageCodes;
         }
 
@@ -257,5 +235,37 @@ internal sealed class SignLanguageChecker
 
         logger.Information("Loaded {Count} sign language codes from /en/languages endpoint", signLanguageCodes.Count);
         return signLanguageCodes;
+    }
+
+    private bool TryGetLanguagesArrayElement(JsonElement root, out JsonElement languagesArray)
+    {
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            languagesArray = root;
+            return true;
+        }
+
+        if (root.ValueKind == JsonValueKind.Object)
+        {
+            if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
+            {
+                languagesArray = languagesProp;
+                return true;
+            }
+
+            if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
+            {
+                languagesArray = dataProp;
+                return true;
+            }
+
+            logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint");
+            languagesArray = default;
+            return false;
+        }
+
+        logger.Warning("Expected JSON array or object from /en/languages endpoint, got {ValueKind}", root.ValueKind);
+        languagesArray = default;
+        return false;
     }
 }

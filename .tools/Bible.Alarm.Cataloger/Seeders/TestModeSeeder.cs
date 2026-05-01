@@ -207,13 +207,18 @@ internal sealed class TestModeSeeder
         }
 
         var totalElapsed = DateTime.UtcNow - totalStartTime;
+        LogOnDemandFetchingSummary(testLanguages, publicationStats, totalElapsed);
+    }
 
-        // Log summary statistics
-        logger.Debug("=== TEST MODE: On-Demand Fetching Summary ===");
-        logger.Debug("Total time: {TotalSeconds:F2}s", totalElapsed.TotalSeconds);
-        logger.Debug("Publications tested: {Count}", publicationStats.Count);
+    private void LogOnDemandFetchingSummary(
+        string[] testLanguages,
+        List<(string PublicationCode, Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)> LanguageTimes)> publicationStats,
+        TimeSpan totalElapsed)
+    {
+        logger.Debug(
+            "=== TEST MODE: On-Demand Fetching Summary | Total time: {TotalSeconds:F2}s | Publications tested: {Count} ===",
+            totalElapsed.TotalSeconds, publicationStats.Count);
 
-        // Calculate averages per language
         foreach (var testLanguageCode in testLanguages)
         {
             var times = publicationStats
@@ -230,15 +235,13 @@ internal sealed class TestModeSeeder
             }
         }
 
-        // Calculate separate averages for different operation types
         var sectionsTimes = publicationStats
             .SelectMany(ps => ps.LanguageTimes.Values.Where(v => v.Sections.HasValue).Select(v => v.Sections!.Value))
             .ToList();
         if (sectionsTimes.Count > 0)
         {
             var avgSections = TimeSpan.FromMilliseconds(sectionsTimes.Average(t => t.TotalMilliseconds));
-            logger.Debug("=== Fetching Sections Statistics ===");
-            logger.Debug("  Count: {Count}, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
+            logger.Debug("=== Fetching Sections Statistics ===\n  Count: {Count}, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
                 sectionsTimes.Count, avgSections.TotalMilliseconds, sectionsTimes.Min().TotalMilliseconds, sectionsTimes.Max().TotalMilliseconds);
         }
 
@@ -251,11 +254,14 @@ internal sealed class TestModeSeeder
             var avgSectionTracks = TimeSpan.FromMilliseconds(sectionTracksTimes.Average(t => t.Time.TotalMilliseconds));
             var totalSections = sectionTracksTimes.Sum(t => t.Count);
             var avgPerSection = TimeSpan.FromMilliseconds(sectionTracksTimes.Average(t => t.Time.TotalMilliseconds / Math.Max(1, t.Count)));
-            logger.Debug("=== Fetching Section Tracks Statistics ===");
-            logger.Debug("  Publications: {Count}, Total Sections: {TotalSections}, Avg per publication: {AvgMs:F0}ms, Avg per section: {AvgPerSectionMs:F0}ms",
-                sectionTracksTimes.Count, totalSections, avgSectionTracks.TotalMilliseconds, avgPerSection.TotalMilliseconds);
-            logger.Debug("  Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
-                sectionTracksTimes.Min(t => t.Time).TotalMilliseconds, sectionTracksTimes.Max(t => t.Time).TotalMilliseconds);
+            logger.Debug(
+                "=== Fetching Section Tracks Statistics ===\n  Publications: {Count}, Total Sections: {TotalSections}, Avg per publication: {AvgMs:F0}ms, Avg per section: {AvgPerSectionMs:F0}ms\n  Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
+                sectionTracksTimes.Count,
+                totalSections,
+                avgSectionTracks.TotalMilliseconds,
+                avgPerSection.TotalMilliseconds,
+                sectionTracksTimes.Min(t => t.Time).TotalMilliseconds,
+                sectionTracksTimes.Max(t => t.Time).TotalMilliseconds);
         }
 
         var publicationTracksTimes = publicationStats
@@ -264,12 +270,11 @@ internal sealed class TestModeSeeder
         if (publicationTracksTimes.Count > 0)
         {
             var avgPubTracks = TimeSpan.FromMilliseconds(publicationTracksTimes.Average(t => t.TotalMilliseconds));
-            logger.Debug("=== Fetching Publication Tracks Statistics (non-sectioned) ===");
-            logger.Debug("  Count: {Count}, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
+            logger.Debug(
+                "=== Fetching Publication Tracks Statistics (non-sectioned) ===\n  Count: {Count}, Avg: {AvgMs:F0}ms, Min: {MinMs:F0}ms, Max: {MaxMs:F0}ms",
                 publicationTracksTimes.Count, avgPubTracks.TotalMilliseconds, publicationTracksTimes.Min().TotalMilliseconds, publicationTracksTimes.Max().TotalMilliseconds);
         }
 
-        // Log per-publication statistics with breakdown
         logger.Debug("=== Per-Publication Statistics ===");
         foreach (var (pubCode, langTimes) in publicationStats.OrderBy(ps => ps.PublicationCode))
         {
@@ -297,6 +302,66 @@ internal sealed class TestModeSeeder
         }
     }
 
+    private async Task FetchSectionedPublicationForTestAsync(
+        MediaDbContext db,
+        LanguageContentService languageContentService,
+        string publicationCode,
+        string testLanguageCode,
+        string normalizedPublicationCode,
+        string normalizedTestLanguageCode,
+        Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)> languageTimes,
+        DateTime languageStartTime)
+    {
+        logger.Debug("Fetching sections for publication {PublicationCode} in language {LanguageCode}...",
+            publicationCode, testLanguageCode);
+
+        var sectionsStartTime = DateTime.UtcNow;
+        var success = await languageContentService.FetchPublicationSectionsAsync(
+            normalizedPublicationCode, normalizedTestLanguageCode);
+        var sectionsElapsed = DateTime.UtcNow - sectionsStartTime;
+
+        if (!success)
+        {
+            languageTimes[testLanguageCode] = (DateTime.UtcNow - languageStartTime, sectionsElapsed, null, null, null);
+            return;
+        }
+
+        logger.Debug("✓ Fetched sections for {PublicationCode} in {LanguageCode} in {ElapsedMs}ms",
+            publicationCode, testLanguageCode, sectionsElapsed.TotalMilliseconds);
+
+        var sectionCodes = await db.SectionLanguages
+            .Include(sl => sl.Language)
+            .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
+                       sl.Language != null &&
+                       sl.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)
+            .Select(sl => sl.SectionCode)
+            .Distinct()
+            .OrderBy(sc => sc)
+            .ToListAsync();
+
+        logger.Debug("Fetching tracks for {Count} section(s) in publication {PublicationCode} for language {LanguageCode}...",
+            sectionCodes.Count, publicationCode, testLanguageCode);
+
+        var tracksStartTime = DateTime.UtcNow;
+        var sectionsFetched = 0;
+        foreach (var sectionCode in sectionCodes)
+        {
+            var sectionSuccess = await languageContentService.FetchSectionTracksAsync(
+                normalizedPublicationCode, sectionCode, normalizedTestLanguageCode);
+            if (sectionSuccess)
+            {
+                sectionsFetched++;
+            }
+        }
+
+        var tracksElapsed = DateTime.UtcNow - tracksStartTime;
+
+        logger.Debug("✓ Fetched tracks for {Fetched}/{Total} section(s) in {ElapsedMs}ms",
+            sectionsFetched, sectionCodes.Count, tracksElapsed.TotalMilliseconds);
+
+        languageTimes[testLanguageCode] = (DateTime.UtcNow - languageStartTime, sectionsElapsed, tracksElapsed, sectionCodes.Count, null);
+    }
+
     private async Task TryRunOnDemandFetchForTestLanguageAsync(
         MediaDbContext db,
         LanguageContentService languageContentService,
@@ -317,54 +382,15 @@ internal sealed class TestModeSeeder
 
             if (hasSections)
             {
-                logger.Debug("Fetching sections for publication {PublicationCode} in language {LanguageCode}...",
-                    publicationCode, testLanguageCode);
-
-                var sectionsStartTime = DateTime.UtcNow;
-                var success = await languageContentService.FetchPublicationSectionsAsync(
-                    normalizedPublicationCode, normalizedTestLanguageCode);
-                var sectionsElapsed = DateTime.UtcNow - sectionsStartTime;
-
-                if (!success)
-                {
-                    languageTimes[testLanguageCode] = (DateTime.UtcNow - languageStartTime, sectionsElapsed, null, null, null);
-                    return;
-                }
-
-                logger.Debug("✓ Fetched sections for {PublicationCode} in {LanguageCode} in {ElapsedMs}ms",
-                    publicationCode, testLanguageCode, sectionsElapsed.TotalMilliseconds);
-
-                var sectionCodes = await db.SectionLanguages
-                    .Include(sl => sl.Language)
-                    .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
-                               sl.Language != null &&
-                               sl.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)
-                    .Select(sl => sl.SectionCode)
-                    .Distinct()
-                    .OrderBy(sc => sc)
-                    .ToListAsync();
-
-                logger.Debug("Fetching tracks for {Count} section(s) in publication {PublicationCode} for language {LanguageCode}...",
-                    sectionCodes.Count, publicationCode, testLanguageCode);
-
-                var tracksStartTime = DateTime.UtcNow;
-                var sectionsFetched = 0;
-                foreach (var sectionCode in sectionCodes)
-                {
-                    var sectionSuccess = await languageContentService.FetchSectionTracksAsync(
-                        normalizedPublicationCode, sectionCode, normalizedTestLanguageCode);
-                    if (sectionSuccess)
-                    {
-                        sectionsFetched++;
-                    }
-                }
-
-                var tracksElapsed = DateTime.UtcNow - tracksStartTime;
-
-                logger.Debug("✓ Fetched tracks for {Fetched}/{Total} section(s) in {ElapsedMs}ms",
-                    sectionsFetched, sectionCodes.Count, tracksElapsed.TotalMilliseconds);
-
-                languageTimes[testLanguageCode] = (DateTime.UtcNow - languageStartTime, sectionsElapsed, tracksElapsed, sectionCodes.Count, null);
+                await FetchSectionedPublicationForTestAsync(
+                    db,
+                    languageContentService,
+                    publicationCode,
+                    testLanguageCode,
+                    normalizedPublicationCode,
+                    normalizedTestLanguageCode,
+                    languageTimes,
+                    languageStartTime);
                 return;
             }
 

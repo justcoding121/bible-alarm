@@ -380,62 +380,67 @@ internal sealed class PublicationLanguageSeeder
 
         foreach (var publication in publicationsWithoutLanguage)
         {
-            if (publication.PrimaryCategory == null)
-            {
-                logger.Warning("Category not found for publication {PublicationCode} without language, skipping", publication.PublicationCode);
-                continue;
-            }
+            await TrySeedOnePublicationWithoutLanguageAsync(db, publication);
+        }
+    }
 
-            var normalizedPublicationCode = publication.PublicationCode.ToLowerInvariant();
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? AppConstants.Media.BiblePublicationCategoryDramas
-                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
-            }
-            else
-            {
-                publicationCodeForDb = normalizedPublicationCode;
-            }
+    private async Task TrySeedOnePublicationWithoutLanguageAsync(MediaDbContext db, BiblePublication publication)
+    {
+        if (publication.PrimaryCategory == null)
+        {
+            logger.Warning("Category not found for publication {PublicationCode} without language, skipping", publication.PublicationCode);
+            return;
+        }
 
-            // Determine catalog type based on publication code
-            var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
+        var normalizedPublicationCode = publication.PublicationCode.ToLowerInvariant();
+        var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+        string publicationCodeForDb;
+        if (isDrama)
+        {
+            publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                ? AppConstants.Media.BiblePublicationCategoryDramas
+                : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
+        }
+        else
+        {
+            publicationCodeForDb = normalizedPublicationCode;
+        }
 
-            // Check if already exists (with LanguageId == null)
-            var exists = await db.PublicationLanguages
-                .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+        // Determine catalog type based on publication code
+        var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
 
-            if (!exists)
+        // Check if already exists (with LanguageId == null)
+        var exists = await db.PublicationLanguages
+            .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+
+        if (!exists)
+        {
+            var category = publication.PrimaryCategory;
+            var publicationLanguage = new PublicationLanguage
             {
-                var category = publication.PrimaryCategory;
-                var publicationLanguage = new PublicationLanguage
-                {
-                    PublicationCode = publicationCodeForDb,
-                    LanguageId = null,
-                    Language = null,
-                    CatalogType = catalogType,
-                    Category = category,
-                    CategoryId = category.Id,
-                    IsMusic = publication.IsMusic
-                };
-                db.PublicationLanguages.Add(publicationLanguage);
-                logger.Debug("Added PublicationLanguage entry for {PublicationCode} without language (Category: {CategoryCode})",
-                    publicationCodeForDb, category.CategoryCode);
-            }
-            else
-            {
-                var existing = await db.PublicationLanguages
-                    .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+                PublicationCode = publicationCodeForDb,
+                LanguageId = null,
+                Language = null,
+                CatalogType = catalogType,
+                Category = category,
+                CategoryId = category.Id,
+                IsMusic = publication.IsMusic
+            };
+            db.PublicationLanguages.Add(publicationLanguage);
+            logger.Debug("Added PublicationLanguage entry for {PublicationCode} without language (Category: {CategoryCode})",
+                publicationCodeForDb, category.CategoryCode);
+        }
+        else
+        {
+            var existing = await db.PublicationLanguages
+                .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
 
-                if (existing != null)
-                {
-                    existing.CatalogType = catalogType;
-                    existing.Category = publication.PrimaryCategory;
-                    existing.CategoryId = publication.PrimaryCategoryId;
-                    existing.IsMusic = publication.IsMusic;
-                }
+            if (existing != null)
+            {
+                existing.CatalogType = catalogType;
+                existing.Category = publication.PrimaryCategory;
+                existing.CategoryId = publication.PrimaryCategoryId;
+                existing.IsMusic = publication.IsMusic;
             }
         }
     }

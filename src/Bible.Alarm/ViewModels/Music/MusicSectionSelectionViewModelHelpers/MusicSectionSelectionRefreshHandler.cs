@@ -47,39 +47,7 @@ public sealed class MusicSectionSelectionRefreshHandler
     {
         try
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
-                {
-                    ctx.SetScreenOn(true);
-                }
-            });
-            if (ctx.IsDisposed() || ctx.IsSelectingSection())
-                return;
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
-                {
-                    ctx.SetCanCancelFetch(true);
-                }
-            });
-
-            await ctx.PopulateSections(publicationCode, progressReporter);
-
-            if (ctx.IsSelectingSection())
-            {
-                await HideFetchChromeAsync(ctx);
-                return;
-            }
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
-                    ctx.SetSelectedSection();
-            });
-
-            await HideFetchChromeAsync(ctx);
+            await RunRepopulationSuccessPathAsync(ctx, publicationCode, progressReporter);
         }
         catch (OperationCanceledException ex)
         {
@@ -100,5 +68,49 @@ public sealed class MusicSectionSelectionRefreshHandler
                 "[MusicSectionSelection] RefreshFromState - Error during repopulation",
                 ex);
         }
+    }
+
+    private static async Task RunRepopulationSuccessPathAsync(
+        MusicSectionSelectionRefreshContext ctx,
+        string publicationCode,
+        IFetchProgress progressReporter)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
+            {
+                ctx.SetScreenOn(true);
+            }
+        });
+        if (ctx.IsDisposed() || ctx.IsSelectingSection())
+        {
+            return;
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
+            {
+                ctx.SetCanCancelFetch(true);
+            }
+        });
+
+        await ctx.PopulateSections(publicationCode, progressReporter);
+
+        if (ctx.IsSelectingSection())
+        {
+            await HideFetchChromeAsync(ctx);
+            return;
+        }
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
+            {
+                ctx.SetSelectedSection();
+            }
+        });
+
+        await HideFetchChromeAsync(ctx);
     }
 }
