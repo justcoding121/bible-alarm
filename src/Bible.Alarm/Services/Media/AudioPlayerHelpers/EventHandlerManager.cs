@@ -28,30 +28,19 @@ public class EventHandlerManager
     private readonly Func<TaskCompletionSource<bool>?> getMediaOpenedCompletionSource;
     private readonly Func<AudioPlayerTrack?> getCurrentTrack;
 
-    public EventHandlerManager(
-        ILogger logger,
-        AudioPlayerStateManager stateManager,
-        AudioPlayerMetadataHandler metadataHandler,
-        AudioPlayerPositionTracker positionTracker,
-        Func<TimeSpan?> getCurrentPosition,
-        Func<TimeSpan> getDuration,
-        Action<PlayStatus> setStatus,
-        Action<EventArgs>? onMediaEnded,
-        Action<EventArgs>? onMediaFailed,
-        Func<TaskCompletionSource<bool>?> getMediaOpenedCompletionSource,
-        Func<AudioPlayerTrack?> getCurrentTrack)
+    public EventHandlerManager(EventHandlerManagerDeps deps, EventHandlerManagerCallbacks callbacks)
     {
-        this.logger = logger;
-        this.stateManager = stateManager;
-        this.metadataHandler = metadataHandler;
-        this.positionTracker = positionTracker;
-        this.getCurrentPosition = getCurrentPosition;
-        this.getDuration = getDuration;
-        this.setStatus = setStatus;
-        this.onMediaEnded = onMediaEnded;
-        this.onMediaFailed = onMediaFailed;
-        this.getMediaOpenedCompletionSource = getMediaOpenedCompletionSource;
-        this.getCurrentTrack = getCurrentTrack;
+        logger = deps.Logger;
+        stateManager = deps.StateManager;
+        metadataHandler = deps.MetadataHandler;
+        positionTracker = deps.PositionTracker;
+        getCurrentPosition = callbacks.GetCurrentPosition;
+        getDuration = callbacks.GetDuration;
+        setStatus = callbacks.SetStatus;
+        onMediaEnded = callbacks.OnMediaEnded;
+        onMediaFailed = callbacks.OnMediaFailed;
+        getMediaOpenedCompletionSource = callbacks.GetMediaOpenedCompletionSource;
+        getCurrentTrack = callbacks.GetCurrentTrack;
     }
 
     public void SubscribeToMediaElement(MediaElement mediaElement)

@@ -13,24 +13,38 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed partial class MediaCacheService(
-    ILogger logger,
-    IStorageService storageService,
-    IDownloadService downloadService,
-    IPlaylistService mediaPlayService,
-    IMediaService mediaService,
-    INetworkStatusService networkStatusService,
-    IMediaUrlRefreshService urlRefreshService,
-    IAlarmScheduleService alarmScheduleService,
-    ITrackCdnUrlRefresher trackCdnUrlRefresher)
-    : IMediaCacheService
+public sealed partial class MediaCacheService : IMediaCacheService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
+    private readonly ILogger logger;
+    private readonly IStorageService storageService;
+    private readonly IDownloadService downloadService;
+    private readonly IPlaylistService mediaPlayService;
+    private readonly IMediaService mediaService;
+    private readonly INetworkStatusService networkStatusService;
+    private readonly IMediaUrlRefreshService urlRefreshService;
+    private readonly IAlarmScheduleService alarmScheduleService;
+    private readonly ITrackCdnUrlRefresher trackCdnUrlRefresher;
+
     // Use StorageRoot instead of CacheRoot to ensure media cache is in a permanent location
     // that the OS won't delete. We manage the cache ourselves.
-    private readonly string cacheRoot = Path.Combine(storageService.StorageRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
+    private readonly string cacheRoot;
+
+    public MediaCacheService(MediaCacheServiceDeps deps)
+    {
+        logger = deps.Logger;
+        storageService = deps.StorageService;
+        downloadService = deps.DownloadService;
+        mediaPlayService = deps.MediaPlayService;
+        mediaService = deps.MediaService;
+        networkStatusService = deps.NetworkStatusService;
+        urlRefreshService = deps.UrlRefreshService;
+        alarmScheduleService = deps.AlarmScheduleService;
+        trackCdnUrlRefresher = deps.TrackCdnUrlRefresher;
+        cacheRoot = Path.Combine(storageService.StorageRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
+    }
     
     /// <summary>
     /// Gets the cache folder path for a specific schedule.

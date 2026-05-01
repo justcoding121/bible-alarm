@@ -95,17 +95,15 @@ public sealed partial class AudioPlayer : IAudioPlayer
         var positionTracker = new AudioPlayerPositionTracker(dispatcher);
 
         eventHandlerManager = new EventHandlerManager(
-            logger,
-            stateManager,
-            metadataHandler,
-            positionTracker,
-            () => CurrentPosition,
-            () => Duration,
-            (status) => stateManager.Status = status,
-            (e) => MediaEnded?.Invoke(this, e),
-            (e) => MediaFailed?.Invoke(this, e),
-            () => mediaOpenedCompletionSource,
-            () => currentTrack);
+            new EventHandlerManagerDeps(logger, stateManager, metadataHandler, positionTracker),
+            new EventHandlerManagerCallbacks(
+                () => CurrentPosition,
+                () => Duration,
+                (status) => stateManager.Status = status,
+                (e) => MediaEnded?.Invoke(this, e),
+                (e) => MediaFailed?.Invoke(this, e),
+                () => mediaOpenedCompletionSource,
+                () => currentTrack));
 
         playbackController = new PlaybackController(logger, stateManager, () => mediaElement);
 

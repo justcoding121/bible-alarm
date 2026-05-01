@@ -50,36 +50,24 @@ public sealed partial class PlaylistService : IPlaylistService
 
     private readonly IUrlConstructionService urlConstructionService;
 
-    public PlaylistService(
-        ILogger logger,
-        IMediaService mediaService,
-        IDispatcher dispatcher,
-        IState<ApplicationState> applicationState,
-        IAlarmScheduleService alarmScheduleService,
-        IGeneralSettingsService generalSettingsService,
-        IBiblePublicationService BiblePublicationService,
-        IMediaUrlRefreshService urlRefreshService,
-        IUrlConstructionService urlConstructionService,
-        ILanguageContentService? languageContentService = null,
-        IServiceScopeFactory? scopeFactory = null,
-        IScheduleDisplayNameService? scheduleDisplayNameService = null)
+    public PlaylistService(PlaylistServiceDeps deps)
     {
-        this.logger = logger;
-        this.dispatcher = dispatcher;
-        this.applicationState = applicationState;
-        this.alarmScheduleService = alarmScheduleService;
-        this.generalSettingsService = generalSettingsService;
-        this.BiblePublicationService = BiblePublicationService;
-        this.urlConstructionService = urlConstructionService ?? throw new ArgumentNullException(nameof(urlConstructionService));
-        biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, urlRefreshService, urlConstructionService, BiblePublicationService);
-        musicTrackBuilder = new PlaylistMusicTrackBuilder(mediaService, urlRefreshService, urlConstructionService);
+        logger = deps.Logger;
+        dispatcher = deps.Dispatcher;
+        applicationState = deps.ApplicationState;
+        alarmScheduleService = deps.AlarmScheduleService;
+        generalSettingsService = deps.GeneralSettingsService;
+        BiblePublicationService = deps.BiblePublicationService;
+        urlConstructionService = deps.UrlConstructionService ?? throw new ArgumentNullException(nameof(deps.UrlConstructionService));
+        biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, deps.MediaService, deps.UrlRefreshService, urlConstructionService, BiblePublicationService);
+        musicTrackBuilder = new PlaylistMusicTrackBuilder(deps.MediaService, deps.UrlRefreshService, urlConstructionService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
-        trackNavigator = new TrackNavigator(mediaService, BiblePublicationService, logger, languageContentService, scopeFactory);
+        trackNavigator = new TrackNavigator(deps.MediaService, BiblePublicationService, logger, deps.LanguageContentService, deps.ScopeFactory);
         scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);
-        scheduleDisplayRefresher = scheduleDisplayNameService != null && alarmScheduleService != null
-            ? new PlaylistScheduleDisplayRefresher(alarmScheduleService, scheduleDisplayNameService, applicationState, dispatcher, logger)
+        scheduleDisplayRefresher = deps.ScheduleDisplayNameService is not null
+            ? new PlaylistScheduleDisplayRefresher(deps.AlarmScheduleService, deps.ScheduleDisplayNameService, applicationState, dispatcher, logger)
             : null;
-        biblePlayItemBuilder = new PlaylistBiblePlayItemBuilder(urlConstructionService, urlRefreshService);
+        biblePlayItemBuilder = new PlaylistBiblePlayItemBuilder(urlConstructionService, deps.UrlRefreshService);
     }
 
     public async Task<int> GetRelevantScheduleToPlay()

@@ -21,18 +21,11 @@ internal sealed class ScheduleStatePopulator
     private readonly LookupDataLoader dataLoader;
     private readonly DefaultMusicPopulator defaultMusicPopulator;
 
-    public ScheduleStatePopulator(
-        IBiblePublicationService? BiblePublicationService,
-        IBiblePublicationSectionService? biblePublicationSectionService,
-        IMapper mapper,
-        IMediaService? mediaService,
-        IMelodyMusicService? melodyMusicService,
-        IVocalMusicService? vocalMusicService,
-        IServiceScopeFactory? scopeFactory)
+    public ScheduleStatePopulator(ScheduleStatePopulatorDeps deps)
     {
-        this.mapper = mapper;
-        dataLoader = new LookupDataLoader(BiblePublicationService, biblePublicationSectionService, mediaService, vocalMusicService, scopeFactory);
-        defaultMusicPopulator = new DefaultMusicPopulator(melodyMusicService);
+        mapper = deps.Mapper;
+        dataLoader = new LookupDataLoader(deps.BiblePublicationService, deps.BiblePublicationSectionService, deps.MediaService, deps.VocalMusicService, deps.ScopeFactory);
+        defaultMusicPopulator = new DefaultMusicPopulator(deps.MelodyMusicService);
     }
 
     public async Task<ObservableHashSet<ScheduleStateItem>> PopulateAsync(

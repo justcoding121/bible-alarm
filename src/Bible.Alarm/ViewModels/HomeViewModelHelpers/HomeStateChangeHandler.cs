@@ -36,30 +36,19 @@ public class HomeStateChangeHandler
     private ObservableHashSet<ScheduleListItemViewModel>? deferredNewSchedules;
     private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, WeekDays DaysOfWeek, DateTime? LastPlayedAtUtc)>? deferredScheduleProperties;
 
-    public HomeStateChangeHandler(
-        ILogger logger,
-        ScheduleDataPreparer dataPreparer,
-        ScheduleViewModelManager viewModelManager,
-        Action<bool> setIsBusy,
-        Func<bool> getIsBusy,
-        Func<ObservableHashSet<ScheduleListItemViewModel>?> getSchedules,
-        Action<ObservableHashSet<ScheduleListItemViewModel>> setSchedules,
-        Action? notifySchedulesChanged,
-        Action updateProgressBarVisibility,
-        Func<Task> fadeOutProgressBarAsync,
-        Func<bool> isPlaybackModalVisible)
+    public HomeStateChangeHandler(HomeStateChangeHandlerDeps deps, HomeStateChangeHandlerCallbacks callbacks)
     {
-        this.logger = logger;
-        this.dataPreparer = dataPreparer;
-        this.viewModelManager = viewModelManager;
-        this.setIsBusy = setIsBusy;
-        this.getIsBusy = getIsBusy;
-        this.getSchedules = getSchedules;
-        this.setSchedules = setSchedules;
-        this.notifySchedulesChanged = notifySchedulesChanged;
-        this.updateProgressBarVisibility = updateProgressBarVisibility;
-        this.fadeOutProgressBarAsync = fadeOutProgressBarAsync;
-        this.isPlaybackModalVisible = isPlaybackModalVisible;
+        logger = deps.Logger;
+        dataPreparer = deps.DataPreparer;
+        viewModelManager = deps.ViewModelManager;
+        setIsBusy = callbacks.SetIsBusy;
+        getIsBusy = callbacks.GetIsBusy;
+        getSchedules = callbacks.GetSchedules;
+        setSchedules = callbacks.SetSchedules;
+        notifySchedulesChanged = callbacks.NotifySchedulesChanged;
+        updateProgressBarVisibility = callbacks.UpdateProgressBarVisibility;
+        fadeOutProgressBarAsync = callbacks.FadeOutProgressBarAsync;
+        isPlaybackModalVisible = callbacks.IsPlaybackModalVisible;
     }
 
     public async Task HandleStateChangedAsync(ApplicationState stateValue)

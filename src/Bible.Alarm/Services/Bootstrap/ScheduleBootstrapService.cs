@@ -1,6 +1,5 @@
 #nullable enable
 
-using AutoMapper;
 using System;
 
 using Bible.Alarm.Services.Bootstrap.Interfaces;
@@ -43,28 +42,15 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         IDatabaseSeedService databaseSeedService,
         IAlarmScheduleService alarmScheduleService,
         IDispatcher dispatcher,
-        IBiblePublicationService? BiblePublicationService,
-        IBiblePublicationSectionService? biblePublicationSectionService,
-        IMapper mapper,
-        IMediaService? mediaService,
-        IMelodyMusicService? melodyMusicService,
-        IVocalMusicService? vocalMusicService,
-        IServiceScopeFactory scopeFactory,
+        ScheduleStatePopulatorDeps scheduleStatePopulatorDeps,
         ILanguageNameService? languageNameService = null)
     {
         this.databaseSeedService = databaseSeedService;
         this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
-        this.BiblePublicationService = BiblePublicationService;
+        BiblePublicationService = scheduleStatePopulatorDeps.BiblePublicationService;
         this.languageNameService = languageNameService;
-        statePopulator = new ScheduleStatePopulator(
-            BiblePublicationService,
-            biblePublicationSectionService,
-            mapper,
-            mediaService,
-            melodyMusicService,
-            vocalMusicService,
-            scopeFactory);
+        statePopulator = new ScheduleStatePopulator(scheduleStatePopulatorDeps);
     }
 
     public async Task<bool> SeedAndMigrateAsync()

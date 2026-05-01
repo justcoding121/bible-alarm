@@ -162,9 +162,30 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<IVocalMusicService>(),
             sp.GetRequiredService<ILanguageContentService>(),
             sp.GetRequiredService<IServiceScopeFactory>())));
-        services.AddSingleton<IMediaCacheService, MediaCacheService>();
+        services.AddSingleton<IMediaCacheService>(sp => new MediaCacheService(new MediaCacheServiceDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<Bible.Alarm.Services.Storage.Interfaces.IStorageService>(),
+            sp.GetRequiredService<IDownloadService>(),
+            sp.GetRequiredService<IPlaylistService>(),
+            sp.GetRequiredService<IMediaService>(),
+            sp.GetRequiredService<INetworkStatusService>(),
+            sp.GetRequiredService<IMediaUrlRefreshService>(),
+            sp.GetRequiredService<IAlarmScheduleService>(),
+            sp.GetRequiredService<ITrackCdnUrlRefresher>())));
         services.AddSingleton<IMediaUrlRefreshService, MediaUrlRefreshService>();
-        services.AddSingleton<IPlaylistService, PlaylistService>();
+        services.AddSingleton<IPlaylistService>(sp => new PlaylistService(new PlaylistServiceDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<IMediaService>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<IState<Bible.Alarm.Stores.ApplicationState>>(),
+            sp.GetRequiredService<IAlarmScheduleService>(),
+            sp.GetRequiredService<IGeneralSettingsService>(),
+            sp.GetRequiredService<IBiblePublicationService>(),
+            sp.GetRequiredService<IMediaUrlRefreshService>(),
+            sp.GetRequiredService<IUrlConstructionService>(),
+            sp.GetService<ILanguageContentService>(),
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetService<IScheduleDisplayNameService>())));
         services.AddSingleton<IPreparePlaybackService, PreparePlaybackService>();
         services.AddSingleton<IFallbackAlarmSoundService, FallbackAlarmSoundService>();
         services.AddSingleton<IAlarmService, AlarmService>();
@@ -288,7 +309,19 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IDatabaseBootstrapService, DatabaseBootstrapService>();
         services.AddSingleton<IFluxorBootstrapService, FluxorBootstrapService>();
         services.AddSingleton<IResourceBootstrapService, ResourceBootstrapService>();
-        services.AddSingleton<IScheduleBootstrapService, ScheduleBootstrapService>();
+        services.AddSingleton<IScheduleBootstrapService>(sp => new ScheduleBootstrapService(
+            sp.GetRequiredService<IDatabaseSeedService>(),
+            sp.GetRequiredService<IAlarmScheduleService>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            new ScheduleStatePopulatorDeps(
+                sp.GetService<IBiblePublicationService>(),
+                sp.GetService<IBiblePublicationSectionService>(),
+                sp.GetRequiredService<AutoMapper.IMapper>(),
+                sp.GetService<IMediaService>(),
+                sp.GetService<IMelodyMusicService>(),
+                sp.GetService<IVocalMusicService>(),
+                sp.GetRequiredService<IServiceScopeFactory>()),
+            sp.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>()));
         services.AddSingleton<IBootstrapOrchestrator>(sp => new BootstrapOrchestrator(new BootstrapOrchestratorDeps(
             sp.GetRequiredService<IDatabaseBootstrapService>(),
             sp.GetRequiredService<IFluxorBootstrapService>(),

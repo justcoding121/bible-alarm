@@ -96,22 +96,21 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
         // Initialize state change handler
         stateChangeHandler = new HomeStateChangeHandler(
-            logger,
-            scheduleDataPreparer,
-            scheduleViewModelManager,
-            (isBusy) => propertyManager.IsBusy = isBusy,
-            () => propertyManager.IsBusy,
-            () => propertyManager.Schedules,
-            (schedules) => propertyManager.Schedules = schedules,
-            () =>
-            {
-                OnPropertyChanged(nameof(Schedules));
-                progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
-                bootstrapReadyManager.CheckSchedulesLoaded(propertyManager.Schedules);
-            },
-            () => progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count),
-            async () => await progressBarManager.FadeOutAsync(),
-            () => this.navigationService.IsPlaybackModalOnScreen() || playbackModalService.IsModalOpenOrPending);
+            new HomeStateChangeHandlerDeps(logger, scheduleDataPreparer, scheduleViewModelManager),
+            new HomeStateChangeHandlerCallbacks(
+                (isBusy) => propertyManager.IsBusy = isBusy,
+                () => propertyManager.IsBusy,
+                () => propertyManager.Schedules,
+                (schedules) => propertyManager.Schedules = schedules,
+                () =>
+                {
+                    OnPropertyChanged(nameof(Schedules));
+                    progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
+                    bootstrapReadyManager.CheckSchedulesLoaded(propertyManager.Schedules);
+                },
+                () => progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count),
+                async () => await progressBarManager.FadeOutAsync(),
+                () => this.navigationService.IsPlaybackModalOnScreen() || playbackModalService.IsModalOpenOrPending));
 
         state.StateChanged += OnStateChanged;
         playbackState.StateChanged += OnPlaybackStateChanged;
