@@ -1,8 +1,10 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
@@ -124,73 +126,23 @@ internal sealed class MusicPublicationFetchCoordinator
             return initialPublications;
         }
 
-        const int maxRetries = 10;
-        var retryDelay = 1000;
-        var maxWaitTime = TimeSpan.FromSeconds(60);
-        var startTime = DateTime.UtcNow;
-        var allCataloged = false;
-        var attempt = 0;
-        var previousCatalogedCount = -1;
-
         Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.StartingFetchWithRetries,
             languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
 
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.0);
 
+        var retryDelay = 1000;
+        var allCataloged = false;
+        var attempt = 0;
         Dictionary<string, BiblePublication>? publicationsData = null;
 
         try
         {
-            while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                attempt++;
-
-                try
-                {
-                    var outcome =
-                        await RunMusicPublicationRetryIterationAsync(languageCode, progress, cancellationToken, attempt,
-                            retryDelay, previousCatalogedCount);
-
-                    publicationsData = outcome.NextSnapshot;
-                    if (outcome.Completed)
-                    {
-                        allCataloged = true;
-                        if (outcome.LogSuccess)
-                        {
-                            Serilog.Log.Information(
-                                AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
-                                outcome.ExpectedCount, attempt, languageCode);
-                        }
-                    }
-                    else if (outcome.BreakRetries)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        previousCatalogedCount = outcome.UpdatedCatalogedCount;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (ex is OperationCanceledException
-                        or System.Net.Http.HttpRequestException
-                        or System.Net.Sockets.SocketException
-                        || NetworkExceptionHelper.IsNetworkFailure(ex))
-                    {
-                        throw;
-                    }
-
-                    Serilog.Log.Warning(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry,
-                        attempt, languageCode);
-
-                    var delay = Math.Min(retryDelay * attempt, 5000);
-                    await Task.Delay(delay, cancellationToken);
-                }
-            }
+            var loopOutcome = await RunMusicPublicationCatalogRetryLoopAsync(languageCode, progress, cancellationToken, retryDelay);
+            publicationsData = loopOutcome.PublicationsData;
+            allCataloged = loopOutcome.AllCataloged;
+            attempt = loopOutcome.Attempt;
         }
         finally
         {
@@ -202,24 +154,110 @@ internal sealed class MusicPublicationFetchCoordinator
             Serilog.Log.Warning(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.TimeoutAfterAttemptsWaitingForCatalog,
                 attempt, languageCode);
 
-            if (publicationsData == null || publicationsData.Count == 0)
-            {
-                try
-                {
-                    publicationsData =
-                        await mediaService.GetBiblePublications(languageCode,
-                            AppConstants.Media.BiblePublicationCategoryMusic,
-                            downloadAll: false, progress, requireIsMusicForMusicCategory: true);
-                }
-                catch (Exception ex)
-                {
-                    Serilog.Log.Error(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.FinalFetchAttemptFailed,
-                        languageCode);
-                }
-            }
+            publicationsData = await TryRecoverMusicPublicationsAfterCatalogRetryTimeoutAsync(languageCode, progress, publicationsData);
         }
 
         return publicationsData;
+    }
+
+    private sealed class MusicPublicationCatalogRetryLoopOutcome
+    {
+        public bool AllCataloged { get; init; }
+        public int Attempt { get; init; }
+        public Dictionary<string, BiblePublication>? PublicationsData { get; init; }
+    }
+
+    private async Task<MusicPublicationCatalogRetryLoopOutcome> RunMusicPublicationCatalogRetryLoopAsync(
+        string languageCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken,
+        int retryDelay)
+    {
+        const int maxRetries = 10;
+        var maxWaitTime = TimeSpan.FromSeconds(60);
+        var startTime = DateTime.UtcNow;
+        var allCataloged = false;
+        var attempt = 0;
+        var previousCatalogedCount = -1;
+        Dictionary<string, BiblePublication>? publicationsData = null;
+
+        while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            attempt++;
+
+            try
+            {
+                var outcome =
+                    await RunMusicPublicationRetryIterationAsync(languageCode, progress, cancellationToken, attempt,
+                        retryDelay, previousCatalogedCount);
+
+                publicationsData = outcome.NextSnapshot;
+                if (outcome.Completed)
+                {
+                    allCataloged = true;
+                    if (outcome.LogSuccess)
+                    {
+                        Serilog.Log.Information(
+                            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
+                            outcome.ExpectedCount, attempt, languageCode);
+                    }
+                }
+                else if (outcome.BreakRetries)
+                {
+                    break;
+                }
+                else
+                {
+                    previousCatalogedCount = outcome.UpdatedCatalogedCount;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(ex))
+                {
+                    throw;
+                }
+
+                Serilog.Log.Warning(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry,
+                    attempt, languageCode);
+
+                var delay = Math.Min(retryDelay * attempt, 5000);
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
+
+        return new MusicPublicationCatalogRetryLoopOutcome
+        {
+            AllCataloged = allCataloged,
+            Attempt = attempt,
+            PublicationsData = publicationsData
+        };
+    }
+
+    private async Task<Dictionary<string, BiblePublication>?> TryRecoverMusicPublicationsAfterCatalogRetryTimeoutAsync(
+        string languageCode,
+        IFetchProgress? progress,
+        Dictionary<string, BiblePublication>? publicationsData)
+    {
+        if (publicationsData != null && publicationsData.Count > 0)
+        {
+            return publicationsData;
+        }
+
+        try
+        {
+            return await mediaService.GetBiblePublications(languageCode,
+                AppConstants.Media.BiblePublicationCategoryMusic,
+                downloadAll: false, progress, requireIsMusicForMusicCategory: true);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.FinalFetchAttemptFailed,
+                languageCode);
+            return publicationsData;
+        }
     }
 
     private async Task<MusicPublicationRetryIterationOutcome> RunMusicPublicationRetryIterationAsync(

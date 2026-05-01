@@ -60,6 +60,17 @@ public static class NetworkExceptionHelper
     }
 
     /// <summary>
+    /// True when a catalog/media retry loop should stop retrying and propagate the exception immediately.
+    /// </summary>
+    public static bool ShouldRethrowFromCatalogRetryLoop(Exception ex)
+    {
+        return ex is OperationCanceledException
+            or HttpRequestException
+            or SocketException
+            || IsNetworkFailure(ex);
+    }
+
+    /// <summary>
     /// Throws HttpRequestException if checker indicates no internet.
     /// Use when fetch has been decided, right before starting the network call.
     /// </summary>

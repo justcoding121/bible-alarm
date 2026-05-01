@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 
@@ -10,6 +11,27 @@ namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 /// </summary>
 public class AlarmViewModalStateUpdater
 {
+    /// <summary>Constructor dependencies for <see cref="AlarmViewModalStateUpdater"/> (avoids excessive parameter lists).</summary>
+    public sealed class Options
+    {
+        public required Action<string> SetTitle { get; init; }
+        public required Action<string> SetSubTitle { get; init; }
+        public required Action<string> SetDescription { get; init; }
+        public required Action<string> SetEndTime { get; init; }
+        public required Action<string> SetErrorMessage { get; init; }
+        public required Action<bool> SetNextEnabled { get; init; }
+        public required Action<bool> SetPreviousEnabled { get; init; }
+        public required Action<bool> SetPlayVisible { get; init; }
+        public required Action<bool> SetPauseVisible { get; init; }
+        public required Action<TimeSpan> SetCurrentDuration { get; init; }
+        public required Action<string?, string?, bool> UpdateArtwork { get; init; }
+        public required Action<bool> SetWaitingForArtwork { get; init; }
+        public required Action NotifyControlsEnabledChanged { get; init; }
+        public required Action NotifyProgressTextChanged { get; init; }
+        public required Action NotifyPreparationProgressChanged { get; init; }
+        public required Action NotifyHasErrorChanged { get; init; }
+    }
+
     private readonly Action<string> setTitle;
     private readonly Action<string> setSubTitle;
     private readonly Action<string> setDescription;
@@ -35,40 +57,24 @@ public class AlarmViewModalStateUpdater
     private PlayStatus previousStatus;
     private bool hasReachedPlayingForCurrentTrack;
 
-    public AlarmViewModalStateUpdater(
-        Action<string> setTitle,
-        Action<string> setSubTitle,
-        Action<string> setDescription,
-        Action<string> setEndTime,
-        Action<string> setErrorMessage,
-        Action<bool> setNextEnabled,
-        Action<bool> setPreviousEnabled,
-        Action<bool> setPlayVisible,
-        Action<bool> setPauseVisible,
-        Action<TimeSpan> setCurrentDuration,
-        Action<string?, string?, bool> updateArtwork,
-        Action<bool> setWaitingForArtwork,
-        Action notifyControlsEnabledChanged,
-        Action notifyProgressTextChanged,
-        Action notifyPreparationProgressChanged,
-        Action notifyHasErrorChanged)
+    public AlarmViewModalStateUpdater(Options options)
     {
-        this.setTitle = setTitle;
-        this.setSubTitle = setSubTitle;
-        this.setDescription = setDescription;
-        this.setEndTime = setEndTime;
-        this.setErrorMessage = setErrorMessage;
-        this.setNextEnabled = setNextEnabled;
-        this.setPreviousEnabled = setPreviousEnabled;
-        this.setPlayVisible = setPlayVisible;
-        this.setPauseVisible = setPauseVisible;
-        this.setCurrentDuration = setCurrentDuration;
-        this.updateArtwork = updateArtwork;
-        this.setWaitingForArtwork = setWaitingForArtwork;
-        this.notifyControlsEnabledChanged = notifyControlsEnabledChanged;
-        this.notifyProgressTextChanged = notifyProgressTextChanged;
-        this.notifyPreparationProgressChanged = notifyPreparationProgressChanged;
-        this.notifyHasErrorChanged = notifyHasErrorChanged;
+        setTitle = options.SetTitle;
+        setSubTitle = options.SetSubTitle;
+        setDescription = options.SetDescription;
+        setEndTime = options.SetEndTime;
+        setErrorMessage = options.SetErrorMessage;
+        setNextEnabled = options.SetNextEnabled;
+        setPreviousEnabled = options.SetPreviousEnabled;
+        setPlayVisible = options.SetPlayVisible;
+        setPauseVisible = options.SetPauseVisible;
+        setCurrentDuration = options.SetCurrentDuration;
+        updateArtwork = options.UpdateArtwork;
+        setWaitingForArtwork = options.SetWaitingForArtwork;
+        notifyControlsEnabledChanged = options.NotifyControlsEnabledChanged;
+        notifyProgressTextChanged = options.NotifyProgressTextChanged;
+        notifyPreparationProgressChanged = options.NotifyPreparationProgressChanged;
+        notifyHasErrorChanged = options.NotifyHasErrorChanged;
     }
 
     public bool HasReceivedInitialState { get; set; }

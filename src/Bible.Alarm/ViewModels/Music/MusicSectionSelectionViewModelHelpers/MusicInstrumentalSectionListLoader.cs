@@ -186,82 +186,22 @@ internal sealed class MusicInstrumentalSectionListLoader
         IFetchProgress? progress,
         CancellationToken cancellationToken)
     {
-        const int maxRetries = 10;
-        var retryDelay = 1000;
-        var maxWaitTime = TimeSpan.FromSeconds(60);
-        var startTime = DateTime.UtcNow;
-        var allCataloged = false;
-        var attempt = 0;
-        var previousCatalogedCount = -1;
-
         logger.Information("MusicInstrumentalSectionListLoader: Starting fetch with retries for publication={PublicationCode}",
             publicationCode);
 
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.0);
 
+        var allCataloged = false;
+        var attempt = 0;
         SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData = null;
 
         try
         {
-            while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                attempt++;
-
-                try
-                {
-                    var iterationOutcome = await RunInstrumentalCatalogRetryIterationAsync(
-                        publicationCode,
-                        cancellationToken,
-                        attempt,
-                        retryDelay,
-                        previousCatalogedCount);
-
-                    sectionsData = iterationOutcome.NextSectionsSnapshot;
-                    if (iterationOutcome.Completed)
-                    {
-                        allCataloged = true;
-                        if (iterationOutcome.LogSuccess)
-                        {
-                            logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}",
-                                iterationOutcome.ExpectedSectionCount, attempt, publicationCode);
-                        }
-                    }
-                    else if (iterationOutcome.BreakRetries)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    switch (ex)
-                    {
-                        case OperationCanceledException:
-                            throw;
-                        case System.Net.Http.HttpRequestException:
-                            throw;
-                        case System.Net.Sockets.SocketException:
-                            throw;
-                    }
-
-                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
-                    {
-                        throw;
-                    }
-
-                    logger.Warning(ex, "MusicInstrumentalSectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, will retry",
-                        attempt, publicationCode);
-
-                    var delay = Math.Min(retryDelay * attempt, 5000);
-                    await Task.Delay(delay, cancellationToken);
-                }
-            }
+            var loopOutcome = await RunInstrumentalCatalogRetryLoopAsync(publicationCode, cancellationToken, retryDelay: 1000);
+            sectionsData = loopOutcome.SectionsData;
+            allCataloged = loopOutcome.AllCataloged;
+            attempt = loopOutcome.Attempt;
         }
         finally
         {
@@ -273,21 +213,108 @@ internal sealed class MusicInstrumentalSectionListLoader
             logger.Warning("MusicInstrumentalSectionListLoader: Timeout after {Attempts} attempts waiting for all sections to be cataloged for publication {PublicationCode}. Some may still be placeholders.",
                 attempt, publicationCode);
 
-            if (sectionsData == null || sectionsData.Count == 0)
-            {
-                try
-                {
-                    sectionsData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "MusicInstrumentalSectionListLoader: Final fetch attempt failed for publication={PublicationCode}",
-                        publicationCode);
-                }
-            }
+            sectionsData = await TryRecoverInstrumentalSectionsAfterTimeoutAsync(publicationCode, sectionsData);
         }
 
         return sectionsData;
+    }
+
+    private sealed class InstrumentalCatalogRetryLoopOutcome
+    {
+        public bool AllCataloged { get; init; }
+        public int Attempt { get; init; }
+        public SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? SectionsData { get; init; }
+    }
+
+    private async Task<InstrumentalCatalogRetryLoopOutcome> RunInstrumentalCatalogRetryLoopAsync(
+        string publicationCode,
+        CancellationToken cancellationToken,
+        int retryDelay)
+    {
+        const int maxRetries = 10;
+        var maxWaitTime = TimeSpan.FromSeconds(60);
+        var startTime = DateTime.UtcNow;
+        var allCataloged = false;
+        var attempt = 0;
+        var previousCatalogedCount = -1;
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData = null;
+
+        while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            attempt++;
+
+            try
+            {
+                var iterationOutcome = await RunInstrumentalCatalogRetryIterationAsync(
+                    publicationCode,
+                    cancellationToken,
+                    attempt,
+                    retryDelay,
+                    previousCatalogedCount);
+
+                sectionsData = iterationOutcome.NextSectionsSnapshot;
+                if (iterationOutcome.Completed)
+                {
+                    allCataloged = true;
+                    if (iterationOutcome.LogSuccess)
+                    {
+                        logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}",
+                            iterationOutcome.ExpectedSectionCount, attempt, publicationCode);
+                    }
+                }
+                else if (iterationOutcome.BreakRetries)
+                {
+                    break;
+                }
+                else
+                {
+                    previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(ex))
+                {
+                    throw;
+                }
+
+                logger.Warning(ex, "MusicInstrumentalSectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, will retry",
+                    attempt, publicationCode);
+
+                var delay = Math.Min(retryDelay * attempt, 5000);
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
+
+        return new InstrumentalCatalogRetryLoopOutcome
+        {
+            AllCataloged = allCataloged,
+            Attempt = attempt,
+            SectionsData = sectionsData
+        };
+    }
+
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> TryRecoverInstrumentalSectionsAfterTimeoutAsync(
+        string publicationCode,
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData)
+    {
+        if (sectionsData != null && sectionsData.Count > 0)
+        {
+            return sectionsData;
+        }
+
+        try
+        {
+            return await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "MusicInstrumentalSectionListLoader: Final fetch attempt failed for publication={PublicationCode}",
+                publicationCode);
+            return sectionsData;
+        }
     }
 
     private async Task<InstrumentalCatalogRetryIterationOutcome> RunInstrumentalCatalogRetryIterationAsync(

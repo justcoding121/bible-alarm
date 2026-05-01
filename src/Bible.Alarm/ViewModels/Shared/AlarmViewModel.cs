@@ -69,23 +69,25 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
             reviewHandler.HandleReviewRequestAsync,
             () => PlaybackViewModelStoppingHandler.BeginStoppingUi(ApplyBeginStopping),
             () => PlaybackViewModelStoppingHandler.ResetProgressUi(() => IsUserInteracting, ApplyResetProgress));
-        stateUpdater = new AlarmViewModalStateUpdater(
-            (t) => Title = t,
-            (s) => SubTitle = s,
-            (d) => Description = d,
-            (e) => EndTime = e,
-            (e) => ErrorMessage = e,
-            (n) => NextEnabled = n,
-            (p) => PreviousEnabled = p,
-            (p) => PlayVisible = p,
-            (p) => PauseVisible = p,
-            (d) => currentDuration = d,
-            (url, fallbackUrl, force) => UpdateArtwork(url, force, fallbackUrl),
-            (waiting) => IsWaitingForArtwork = waiting,
-            () => { OnPropertyChanged(nameof(AreControlsEnabled)); OnPropertyChanged(nameof(IsBuffering)); OnPropertyChanged(nameof(IsShowProgressBarAnimation)); OnPropertyChanged(nameof(ShowArtworkSpinner)); },
-            () => OnPropertyChanged(nameof(ProgressText)),
-            () => OnPropertyChanged(nameof(PreparationProgress)),
-            () => OnPropertyChanged(nameof(HasError)));
+        stateUpdater = new AlarmViewModalStateUpdater(new AlarmViewModalStateUpdater.Options
+        {
+            SetTitle = (t) => Title = t,
+            SetSubTitle = (s) => SubTitle = s,
+            SetDescription = (d) => Description = d,
+            SetEndTime = (e) => EndTime = e,
+            SetErrorMessage = (e) => ErrorMessage = e,
+            SetNextEnabled = (n) => NextEnabled = n,
+            SetPreviousEnabled = (p) => PreviousEnabled = p,
+            SetPlayVisible = (p) => PlayVisible = p,
+            SetPauseVisible = (p) => PauseVisible = p,
+            SetCurrentDuration = (d) => currentDuration = d,
+            UpdateArtwork = (url, fallbackUrl, force) => UpdateArtwork(url, force, fallbackUrl),
+            SetWaitingForArtwork = (waiting) => IsWaitingForArtwork = waiting,
+            NotifyControlsEnabledChanged = () => { OnPropertyChanged(nameof(AreControlsEnabled)); OnPropertyChanged(nameof(IsBuffering)); OnPropertyChanged(nameof(IsShowProgressBarAnimation)); OnPropertyChanged(nameof(ShowArtworkSpinner)); },
+            NotifyProgressTextChanged = () => OnPropertyChanged(nameof(ProgressText)),
+            NotifyPreparationProgressChanged = () => OnPropertyChanged(nameof(PreparationProgress)),
+            NotifyHasErrorChanged = () => OnPropertyChanged(nameof(HasError))
+        });
         sliderHandler = new AlarmViewModalSliderHandler(
             logger,
             () => AreControlsEnabled,

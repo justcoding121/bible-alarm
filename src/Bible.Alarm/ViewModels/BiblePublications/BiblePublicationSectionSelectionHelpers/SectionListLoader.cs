@@ -183,94 +183,34 @@ internal sealed class SectionListLoader
         IFetchProgress? progress,
         CancellationToken cancellationToken)
     {
-        // Up to 10 retries
-        const int maxRetries = 10;
-        // Start with 1 second
         var retryDelay = 1000;
-        // Total max wait time of 60 seconds
-        var maxWaitTime = TimeSpan.FromSeconds(60);
-        var startTime = DateTime.UtcNow;
-        var allCataloged = false;
-        var attempt = 0;
-        var previousCatalogedCount = -1;
 
         logger.Information("SectionListLoader: Starting fetch with retries for publication={PublicationCode}, language={LanguageCode}",
             publicationCode, languageCode);
 
-        // Show progress overlay at the start of retry loop and keep it visible throughout all retries
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.0);
 
         await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetChecker);
 
+        var allCataloged = false;
+        var attempt = 0;
         SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData = null;
 
         try
         {
-            while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                attempt++;
-
-                try
-                {
-                    var iterationOutcome = await RunCatalogRetryIterationAsync(
-                        languageCode,
-                        publicationCode,
-                        progress,
-                        cancellationToken,
-                        attempt,
-                        retryDelay,
-                        previousCatalogedCount);
-
-                    sectionsData = iterationOutcome.NextSectionsSnapshot;
-                    if (iterationOutcome.Completed)
-                    {
-                        allCataloged = true;
-                        if (iterationOutcome.LogSuccess)
-                        {
-                            logger.Information("SectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
-                                iterationOutcome.ExpectedSectionCount, attempt, publicationCode, languageCode);
-                        }
-                    }
-                    else if (iterationOutcome.BreakRetries)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    switch (ex)
-                    {
-                        case OperationCanceledException:
-                            throw;
-                        case System.Net.Http.HttpRequestException:
-                            throw;
-                        case System.Net.Sockets.SocketException:
-                            throw;
-                    }
-
-                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
-                    {
-                        throw;
-                    }
-
-                    logger.Warning(ex, "SectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, language={LanguageCode}, will retry",
-                        attempt, publicationCode, languageCode);
-
-                    var delay = Math.Min(retryDelay * attempt, 5000);
-                    await Task.Delay(delay, cancellationToken);
-                }
-            }
+            var loopOutcome = await RunBibleSectionCatalogRetryLoopAsync(
+                languageCode,
+                publicationCode,
+                progress,
+                cancellationToken,
+                retryDelay);
+            sectionsData = loopOutcome.SectionsData;
+            allCataloged = loopOutcome.AllCataloged;
+            attempt = loopOutcome.Attempt;
         }
         finally
         {
-            // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
             progress?.SetIsVisible(false);
         }
 
@@ -279,23 +219,113 @@ internal sealed class SectionListLoader
             logger.Warning("SectionListLoader: Timeout after {Attempts} attempts waiting for all sections to be cataloged for publication {PublicationCode}, language {LanguageCode}. Some may still be placeholders.",
                 attempt, publicationCode, languageCode);
 
-            // Use the last fetched data even if not all are cataloged
-            if (sectionsData == null || sectionsData.Count == 0)
-            {
-                // Final attempt to get at least some data
-                try
-                {
-                    sectionsData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "SectionListLoader: Final fetch attempt failed for publication={PublicationCode}, language={LanguageCode}",
-                        publicationCode, languageCode);
-                }
-            }
+            sectionsData = await TryRecoverSectionsAfterCatalogRetryTimeoutAsync(languageCode, publicationCode, sectionsData);
         }
 
         return sectionsData;
+    }
+
+    private sealed class BibleSectionCatalogRetryLoopOutcome
+    {
+        public bool AllCataloged { get; init; }
+        public int Attempt { get; init; }
+        public SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? SectionsData { get; init; }
+    }
+
+    private async Task<BibleSectionCatalogRetryLoopOutcome> RunBibleSectionCatalogRetryLoopAsync(
+        string languageCode,
+        string publicationCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken,
+        int retryDelay)
+    {
+        const int maxRetries = 10;
+        var maxWaitTime = TimeSpan.FromSeconds(60);
+        var startTime = DateTime.UtcNow;
+        var allCataloged = false;
+        var attempt = 0;
+        var previousCatalogedCount = -1;
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData = null;
+
+        while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            attempt++;
+
+            try
+            {
+                var iterationOutcome = await RunCatalogRetryIterationAsync(
+                    languageCode,
+                    publicationCode,
+                    progress,
+                    cancellationToken,
+                    attempt,
+                    retryDelay,
+                    previousCatalogedCount);
+
+                sectionsData = iterationOutcome.NextSectionsSnapshot;
+                if (iterationOutcome.Completed)
+                {
+                    allCataloged = true;
+                    if (iterationOutcome.LogSuccess)
+                    {
+                        logger.Information("SectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
+                            iterationOutcome.ExpectedSectionCount, attempt, publicationCode, languageCode);
+                    }
+                }
+                else if (iterationOutcome.BreakRetries)
+                {
+                    break;
+                }
+                else
+                {
+                    previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(ex))
+                {
+                    throw;
+                }
+
+                logger.Warning(ex, "SectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, language={LanguageCode}, will retry",
+                    attempt, publicationCode, languageCode);
+
+                var delay = Math.Min(retryDelay * attempt, 5000);
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
+
+        return new BibleSectionCatalogRetryLoopOutcome
+        {
+            AllCataloged = allCataloged,
+            Attempt = attempt,
+            SectionsData = sectionsData
+        };
+    }
+
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> TryRecoverSectionsAfterCatalogRetryTimeoutAsync(
+        string languageCode,
+        string publicationCode,
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData)
+    {
+        if (sectionsData != null && sectionsData.Count > 0)
+        {
+            return sectionsData;
+        }
+
+        try
+        {
+            return await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "SectionListLoader: Final fetch attempt failed for publication={PublicationCode}, language={LanguageCode}",
+                publicationCode, languageCode);
+            return sectionsData;
+        }
     }
 
     private async Task<CatalogRetryIterationOutcome> RunCatalogRetryIterationAsync(
