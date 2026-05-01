@@ -250,111 +250,116 @@ internal class MusicCataloger : BaseCataloger
     {
         var dir = GetMusicDirectory(publicationCode, languageCode);
 
-        // For iam (Kingdom Melodies), save tracks grouped by disc
         if (publicationCode == AppConstants.Media.MelodyMusicPublicationCodeIam && languageCode == null)
         {
-            var discTracksMap = new Dictionary<string, List<MusicTrack>>(StringComparer.OrdinalIgnoreCase);
-            var discNamesMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            return await CatalogIamMelodyDiscsAsync(publicationCode, publicationDownloadCodes, dir);
+        }
 
-            foreach (var publicationDownloadCode in publicationDownloadCodes)
+        return await CatalogMusicLinksNonIamAsync(publicationCode, publicationDownloadCodes, languageCode, dir);
+    }
+
+    private async Task<bool> CatalogIamMelodyDiscsAsync(
+        string publicationCode,
+        List<string> publicationDownloadCodes,
+        string dir)
+    {
+        var discTracksMap = new Dictionary<string, List<MusicTrack>>(StringComparer.OrdinalIgnoreCase);
+        var discNamesMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var publicationDownloadCode in publicationDownloadCodes)
+        {
+            var discTracks = new List<MusicTrack>();
+            var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, null, 1, discTracks);
+
+            if (discTracks.Count > 0)
             {
-                var discTracks = new List<MusicTrack>();
-                var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, 1, discTracks);
-                
-                if (discTracks.Count > 0)
+                discTracksMap[publicationDownloadCode] = discTracks;
+
+                if (result.DiscName != null)
                 {
-                    discTracksMap[publicationDownloadCode] = discTracks;
-                    
-                    // Store disc name if available
-                    if (result.DiscName != null)
-                    {
-                        discNamesMap[publicationDownloadCode] = result.DiscName;
-                    }
+                    discNamesMap[publicationDownloadCode] = result.DiscName;
                 }
             }
+        }
 
-            if (discTracksMap.Count == 0)
-            {
-                return false;
-            }
+        if (discTracksMap.Count == 0)
+        {
+            return false;
+        }
 
-            // Save to database via persister if available, otherwise save to files
-            if (dataPersister != null)
-            {
-                await dataPersister.SaveMelodyMusicTracks(publicationCode, discTracksMap, discNamesMap);
-            }
-            else
-            {
-                // Save each disc's tracks separately
-                foreach (var disc in discTracksMap)
-                {
-                    var discDir = $"{dir}/{disc.Key}";
-                    var discFile = $"{discDir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}";
-                    MusicTrackCatalogParsing.SaveMusicTracks(discDir, discFile, disc.Value);
-                    
-                    // Save disc info (name) if available
-                    if (discNamesMap.TryGetValue(disc.Key, out var discName))
-                    {
-                        var discInfoFile = $"{discDir}/{AppConstants.ApiEndpoints.MediaIndexMelodyDiscInfoFileName}";
-                        var discInfo = new { Code = disc.Key, Name = discName };
-                        await File.WriteAllTextAsync(discInfoFile, JsonSerializer.Serialize(discInfo));
-                    }
-                }
-
-                // Also save a main tracks.json with all tracks for backward compatibility
-                var allTracks = discTracksMap.Values.SelectMany(t => t).OrderBy(t => t.Number).ToList();
-                MusicTrackCatalogParsing.SaveMusicTracks(dir, $"{dir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}", allTracks);
-            }
-            
-            return true;
+        if (dataPersister != null)
+        {
+            await dataPersister.SaveMelodyMusicTracks(publicationCode, discTracksMap, discNamesMap);
         }
         else
         {
-            // Original logic for other publications
-            var file = $"{dir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}";
-            var trackCode = 1;
-            var musicTracks = new List<MusicTrack>();
-            string? localizedPubName = null;
-
-            foreach (var publicationDownloadCode in publicationDownloadCodes)
+            foreach (var disc in discTracksMap)
             {
-                var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, trackCode, musicTracks);
-                trackCode = result.TrackCode;
+                var discDir = $"{dir}/{disc.Key}";
+                var discFile = $"{discDir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}";
+                MusicTrackCatalogParsing.SaveMusicTracks(discDir, discFile, disc.Value);
 
-                // Capture localized publication name (only need it once per publication/language combo)
-                if (localizedPubName == null && result.LocalizedPubName != null)
+                if (discNamesMap.TryGetValue(disc.Key, out var discName))
                 {
-                    localizedPubName = result.LocalizedPubName;
+                    var discInfoFile = $"{discDir}/{AppConstants.ApiEndpoints.MediaIndexMelodyDiscInfoFileName}";
+                    var discInfo = new { Code = disc.Key, Name = discName };
+                    await File.WriteAllTextAsync(discInfoFile, JsonSerializer.Serialize(discInfo));
                 }
             }
 
-            if (musicTracks.Count == 0)
-            {
-                return false;
-            }
-
-            // Store localized publication name for vocal music
-            if (languageCode != null && !string.IsNullOrEmpty(localizedPubName))
-            {
-                lock (localizedVocalNames)
-                {
-                    localizedVocalNames[(languageCode, publicationCode)] = localizedPubName;
-                }
-            }
-
-            // Save to database via persister if available, otherwise save to files
-            if (dataPersister != null)
-            {
-                // Use localized publication name from API response, fallback to publication code
-                var finalPublicationName = localizedPubName ?? publicationCode;
-                await dataPersister.SaveMusicTracks(publicationCode, languageCode, finalPublicationName, musicTracks);
-            }
-            else
-            {
-                MusicTrackCatalogParsing.SaveMusicTracks(dir, file, musicTracks);
-            }
-            return true;
+            var allTracks = discTracksMap.Values.SelectMany(t => t).OrderBy(t => t.Number).ToList();
+            MusicTrackCatalogParsing.SaveMusicTracks(dir, $"{dir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}", allTracks);
         }
+
+        return true;
+    }
+
+    private async Task<bool> CatalogMusicLinksNonIamAsync(
+        string publicationCode,
+        List<string> publicationDownloadCodes,
+        string? languageCode,
+        string dir)
+    {
+        var file = $"{dir}/{AppConstants.ApiEndpoints.MediaIndexTracksFileName}";
+        var trackCode = 1;
+        var musicTracks = new List<MusicTrack>();
+        string? localizedPubName = null;
+
+        foreach (var publicationDownloadCode in publicationDownloadCodes)
+        {
+            var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, trackCode, musicTracks);
+            trackCode = result.TrackCode;
+
+            if (localizedPubName == null && result.LocalizedPubName != null)
+            {
+                localizedPubName = result.LocalizedPubName;
+            }
+        }
+
+        if (musicTracks.Count == 0)
+        {
+            return false;
+        }
+
+        if (languageCode != null && !string.IsNullOrEmpty(localizedPubName))
+        {
+            lock (localizedVocalNames)
+            {
+                localizedVocalNames[(languageCode, publicationCode)] = localizedPubName;
+            }
+        }
+
+        if (dataPersister != null)
+        {
+            var finalPublicationName = localizedPubName ?? publicationCode;
+            await dataPersister.SaveMusicTracks(publicationCode, languageCode, finalPublicationName, musicTracks);
+        }
+        else
+        {
+            MusicTrackCatalogParsing.SaveMusicTracks(dir, file, musicTracks);
+        }
+
+        return true;
     }
 
     private static string GetMusicDirectory(string publicationCode, string? languageCode)

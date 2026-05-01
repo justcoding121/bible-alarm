@@ -70,6 +70,146 @@ internal sealed class LanguageSeeder
         return language;
     }
 
+    private async Task<JsonDocument> GetOrAwaitLanguagesCacheDocumentAsync()
+    {
+        Task<JsonDocument>? loadTask = null;
+        var useExistingCache = false;
+
+        lock (languagesCacheLock)
+        {
+            if (languagesCache != null)
+            {
+                useExistingCache = true;
+            }
+            else if (languagesCacheTask != null)
+            {
+                loadTask = languagesCacheTask;
+            }
+            else
+            {
+                loadTask = LoadLanguagesCacheAsync();
+                languagesCacheTask = loadTask;
+            }
+        }
+
+        JsonDocument cache;
+        if (useExistingCache)
+        {
+            lock (languagesCacheLock)
+            {
+                cache = languagesCache!;
+            }
+        }
+        else
+        {
+            cache = await loadTask!;
+
+            lock (languagesCacheLock)
+            {
+                languagesCache ??= cache;
+            }
+        }
+
+        return cache;
+    }
+
+    private bool TryResolveLanguagesArrayFromRoot(
+        JsonElement root,
+        out JsonElement languagesArray,
+        bool logUnexpectedObjectPropertyNames)
+    {
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            languagesArray = root;
+            return true;
+        }
+
+        if (root.ValueKind == JsonValueKind.Object)
+        {
+            if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
+            {
+                languagesArray = languagesProp;
+                return true;
+            }
+
+            if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
+            {
+                languagesArray = dataProp;
+                return true;
+            }
+
+            if (logUnexpectedObjectPropertyNames)
+            {
+                var properties = root.EnumerateObject().Select(p => p.Name).ToList();
+                logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint. Got object with properties: {Properties}", string.Join(", ", properties));
+            }
+            else
+            {
+                logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint");
+            }
+
+            languagesArray = default;
+            return false;
+        }
+
+        logger.Warning("Expected JSON array or object from /en/languages endpoint, got {ValueKind}", root.ValueKind);
+        languagesArray = default;
+        return false;
+    }
+
+    private static (string Name, string Direction) ReadDisplayNameAndDirectionFromLangElement(JsonElement langElement, string defaultName)
+    {
+        var name = defaultName;
+        if (langElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
+        {
+            var rawName = nameElement.GetString();
+            if (!string.IsNullOrWhiteSpace(rawName))
+            {
+                name = MediaTrackTitleHelper.DecodeHtmlTitle(rawName);
+                if (name.Length > 100)
+                {
+                    name = name[..100];
+                }
+            }
+        }
+
+        var direction = AppConstants.Media.TextDirectionLeftToRight;
+        if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
+        {
+            var dirValue = directionElement.GetString();
+            if (!string.IsNullOrWhiteSpace(dirValue))
+            {
+                direction = dirValue;
+            }
+        }
+
+        return (name, direction);
+    }
+
+    private (string? Name, string Direction) FindLanguageEntryInArray(JsonElement languagesArray, string languageCode)
+    {
+        foreach (var langElement in languagesArray.EnumerateArray())
+        {
+            if (!langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var langcodeElement))
+            {
+                continue;
+            }
+
+            var langcode = langcodeElement.GetString();
+            if (string.IsNullOrWhiteSpace(langcode) ||
+                !langcode.Equals(languageCode, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var (name, direction) = ReadDisplayNameAndDirectionFromLangElement(langElement, languageCode);
+            return (name, direction);
+        }
+
+        logger.Debug("Language {LanguageCode} not found in /en/languages API response", languageCode);
+        return (null, AppConstants.Media.TextDirectionLeftToRight);
+    }
+
     /// <summary>
     /// Fetches language name and direction from JW.org /en/languages endpoint.
     /// Caches the response to avoid multiple API calls. Thread-safe and async-safe implementation.
@@ -78,135 +218,13 @@ internal sealed class LanguageSeeder
     {
         try
         {
-            // Thread-safe and async-safe cache loading using Task-based pattern
-            Task<JsonDocument>? loadTask = null;
-            bool useExistingCache = false;
-            
-            lock (languagesCacheLock)
+            var cache = await GetOrAwaitLanguagesCacheDocumentAsync();
+            if (!TryResolveLanguagesArrayFromRoot(cache.RootElement, out var languagesArray, logUnexpectedObjectPropertyNames: true))
             {
-                if (languagesCache != null)
-                {
-                    // Cache already loaded, use it directly
-                    useExistingCache = true;
-                }
-                else if (languagesCacheTask != null)
-                {
-                    // Another thread is loading, reuse the same task
-                    loadTask = languagesCacheTask;
-                }
-                else
-                {
-                    // We need to load the cache
-                    loadTask = LoadLanguagesCacheAsync();
-                    languagesCacheTask = loadTask;
-                }
-            }
-
-            // Wait for cache to be loaded (either by us or another thread)
-            JsonDocument cache;
-            if (useExistingCache)
-            {
-                // Cache was already loaded, use it directly
-                lock (languagesCacheLock)
-                {
-                    cache = languagesCache!; // Safe because we checked it's not null above
-                }
-            }
-            else
-            {
-                // Wait for the loading task (either ours or another thread's)
-                cache = await loadTask!;
-                
-                // Store in synchronous cache for faster access next time
-                lock (languagesCacheLock)
-                {
-                    if (languagesCache == null)
-                    {
-                        languagesCache = cache;
-                    }
-                }
-            }
-
-            var root = cache.RootElement;
-            
-            // Handle both array and object responses
-            JsonElement languagesArray;
-            if (root.ValueKind == JsonValueKind.Array)
-            {
-                languagesArray = root;
-            }
-            else if (root.ValueKind == JsonValueKind.Object)
-            {
-                // Try common property names that might contain the languages array
-                if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
-                {
-                    languagesArray = languagesProp;
-                }
-                else if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
-                {
-                    languagesArray = dataProp;
-                }
-                else
-                {
-                    // Log available properties for debugging
-                    var properties = root.EnumerateObject().Select(p => p.Name).ToList();
-                    logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint. Got object with properties: {Properties}", string.Join(", ", properties));
-                    return (null, AppConstants.Media.TextDirectionLeftToRight);
-                }
-            }
-            else
-            {
-                logger.Warning("Expected JSON array or object from /en/languages endpoint, got {ValueKind}", root.ValueKind);
                 return (null, AppConstants.Media.TextDirectionLeftToRight);
             }
 
-            // Search for the language by langcode
-            foreach (var langElement in languagesArray.EnumerateArray())
-            {
-                if (!langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var langcodeElement))
-                {
-                    continue;
-                }
-
-                var langcode = langcodeElement.GetString();
-                if (string.IsNullOrWhiteSpace(langcode) || 
-                    !langcode.Equals(languageCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                // Found the language - extract name and direction
-                var name = languageCode; // Default to code if name not found
-                if (langElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
-                {
-                    var rawName = nameElement.GetString();
-                    if (!string.IsNullOrWhiteSpace(rawName))
-                    {
-                        name = MediaTrackTitleHelper.DecodeHtmlTitle(rawName);
-                        // Truncate if too long (max 100 characters)
-                        if (name.Length > 100)
-                        {
-                            name = name[..100];
-                        }
-                    }
-                }
-
-                var direction = AppConstants.Media.TextDirectionLeftToRight;
-                if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
-                {
-                    var dirValue = directionElement.GetString();
-                    if (!string.IsNullOrWhiteSpace(dirValue))
-                    {
-                        direction = dirValue;
-                    }
-                }
-
-                return (name, direction);
-            }
-
-            // Language not found in the API response
-            logger.Debug("Language {LanguageCode} not found in /en/languages API response", languageCode);
-            return (null, AppConstants.Media.TextDirectionLeftToRight);
+            return FindLanguageEntryInArray(languagesArray, languageCode);
         }
         catch (Exception ex)
         {
@@ -227,6 +245,63 @@ internal sealed class LanguageSeeder
         return JsonDocument.Parse(jsonString);
     }
 
+    private readonly record struct SeedAllLangDeltas(int SeededDelta, int SkippedDelta, int SignSkippedDelta);
+
+    private async Task<SeedAllLangDeltas> TryProcessSeedAllLanguagesElementAsync(MediaDbContext db, JsonElement langElement)
+    {
+        if (!langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var langcodeElement))
+        {
+            return default;
+        }
+
+        var langcode = langcodeElement.GetString();
+        if (string.IsNullOrWhiteSpace(langcode))
+        {
+            return default;
+        }
+
+        var isSignLanguage = false;
+        if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.IsSignLanguage, out var isSignLanguageElement))
+        {
+            isSignLanguage = isSignLanguageElement.GetBoolean();
+        }
+
+        if (isSignLanguage)
+        {
+            logger.Debug("Skipping sign language: {LanguageCode}", langcode);
+            return new SeedAllLangDeltas(0, 0, 1);
+        }
+
+        var normalizedCode = langcode.ToUpperInvariant();
+
+        var existingLanguage = await db.Languages
+            .FirstOrDefaultAsync(l => l.LanguageCode == normalizedCode);
+
+        if (existingLanguage != null)
+        {
+            return new SeedAllLangDeltas(0, 1, 0);
+        }
+
+        var (name, direction) = ReadDisplayNameAndDirectionFromLangElement(langElement, normalizedCode);
+
+        var language = new Language
+        {
+            LanguageCode = normalizedCode,
+            Direction = direction
+        };
+        db.Languages.Add(language);
+        await db.SaveChangesAsync();
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = language.Id,
+            DisplayLanguageCode = AppConstants.Media.DefaultLanguageCode,
+            Name = name
+        });
+
+        return new SeedAllLangDeltas(1, 0, 0);
+    }
+
     /// <summary>
     /// Seeds ALL languages from jw.org /en/languages API to the Languages table.
     /// This ensures all languages are available in the database, not just discovered ones.
@@ -238,36 +313,9 @@ internal sealed class LanguageSeeder
 
         try
         {
-            // Load the languages cache (this will fetch from API if not already cached)
             var cache = await LoadLanguagesCacheAsync();
-            var root = cache.RootElement;
-
-            // Handle both array and object responses
-            JsonElement languagesArray;
-            if (root.ValueKind == JsonValueKind.Array)
+            if (!TryResolveLanguagesArrayFromRoot(cache.RootElement, out var languagesArray, logUnexpectedObjectPropertyNames: false))
             {
-                languagesArray = root;
-            }
-            else if (root.ValueKind == JsonValueKind.Object)
-            {
-                // Try common property names that might contain the languages array
-                if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
-                {
-                    languagesArray = languagesProp;
-                }
-                else if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
-                {
-                    languagesArray = dataProp;
-                }
-                else
-                {
-                    logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint");
-                    return;
-                }
-            }
-            else
-            {
-                logger.Warning("Expected JSON array or object from /en/languages endpoint, got {ValueKind}", root.ValueKind);
                 return;
             }
 
@@ -275,88 +323,12 @@ internal sealed class LanguageSeeder
             var languagesSkipped = 0;
             var signLanguagesSkipped = 0;
 
-            // Process all languages from the API response
             foreach (var langElement in languagesArray.EnumerateArray())
             {
-                if (!langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var langcodeElement))
-                {
-                    continue;
-                }
-
-                var langcode = langcodeElement.GetString();
-                if (string.IsNullOrWhiteSpace(langcode))
-                {
-                    continue;
-                }
-
-                // Check if this is a sign language
-                var isSignLanguage = false;
-                if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.IsSignLanguage, out var isSignLanguageElement))
-                {
-                    isSignLanguage = isSignLanguageElement.GetBoolean();
-                }
-
-                if (isSignLanguage)
-                {
-                    signLanguagesSkipped++;
-                    logger.Debug("Skipping sign language: {LanguageCode}", langcode);
-                    continue;
-                }
-
-                var normalizedCode = langcode.ToUpperInvariant();
-
-                // Check if language already exists
-                var existingLanguage = await db.Languages
-                    .FirstOrDefaultAsync(l => l.LanguageCode == normalizedCode);
-
-                if (existingLanguage != null)
-                {
-                    languagesSkipped++;
-                    continue;
-                }
-
-                // Extract name and direction
-                var name = normalizedCode; // Default to code if name not found
-                if (langElement.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
-                {
-                    var rawName = nameElement.GetString();
-                    if (!string.IsNullOrWhiteSpace(rawName))
-                    {
-                        name = MediaTrackTitleHelper.DecodeHtmlTitle(rawName);
-                        // Truncate if too long (max 100 characters)
-                        if (name.Length > 100)
-                        {
-                            name = name[..100];
-                        }
-                    }
-                }
-
-                var direction = AppConstants.Media.TextDirectionLeftToRight;
-                if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
-                {
-                    var dirValue = directionElement.GetString();
-                    if (!string.IsNullOrWhiteSpace(dirValue))
-                    {
-                        direction = dirValue;
-                    }
-                }
-
-                // Create and add language (name goes to LanguageNamesByLanguage for "E")
-                var language = new Language
-                {
-                    LanguageCode = normalizedCode,
-                    Direction = direction
-                };
-                db.Languages.Add(language);
-                await db.SaveChangesAsync();
-
-                db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
-                {
-                    LanguageId = language.Id,
-                    DisplayLanguageCode = AppConstants.Media.DefaultLanguageCode,
-                    Name = name
-                });
-                languagesSeeded++;
+                var d = await TryProcessSeedAllLanguagesElementAsync(db, langElement);
+                languagesSeeded += d.SeededDelta;
+                languagesSkipped += d.SkippedDelta;
+                signLanguagesSkipped += d.SignSkippedDelta;
             }
 
             await db.SaveChangesAsync();
