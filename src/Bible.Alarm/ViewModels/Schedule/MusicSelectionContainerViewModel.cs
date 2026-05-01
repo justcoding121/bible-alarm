@@ -90,7 +90,9 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
         musicEnabledHandler = new MusicEnabledHandler(deps.Logger, deps.Dispatcher, deps.ServiceProvider, deps.ApplicationState);
         stateTracker = new MusicStateTracker();
         stateInitializer = new MusicStateInitializer(deps.ApplicationState, deps.Dispatcher, displayTextProvider, propertyNotifier);
-        stateChangeHandler = new MusicStateChangeHandler(deps.Logger, deps.ApplicationState, deps.Dispatcher, deps.Mapper, deps.ServiceProvider, stateTracker, propertyNotifier, displayTextProvider);
+        stateChangeHandler = new MusicStateChangeHandler(
+            new MusicStateChangeHandlerServices(deps.Logger, deps.ApplicationState, deps.Dispatcher, deps.Mapper, deps.ServiceProvider),
+            new MusicStateChangeHandlerCollaborators(stateTracker, propertyNotifier, displayTextProvider));
 
         state.StateChanged += OnStateChanged;
 

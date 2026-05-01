@@ -136,7 +136,6 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
             isWaitingForPermissionResponse,
             logger,
             this.navigationService,
-            this.serviceProvider,
             () =>
             {
                 notificationEnabled = false;

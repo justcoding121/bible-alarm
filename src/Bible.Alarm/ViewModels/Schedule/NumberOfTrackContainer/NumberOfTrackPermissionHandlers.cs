@@ -46,7 +46,6 @@ public static class NumberOfTrackPermissionHandlers
         bool isWaitingForPermissionResponse,
         ILogger logger,
         INavigationService navigationService,
-        IServiceProvider serviceProvider,
         Action setNotificationEnabledOff,
         Action onGrantedFromModal,
         Action<bool> setIsUpdatingFromPermissionCheck,

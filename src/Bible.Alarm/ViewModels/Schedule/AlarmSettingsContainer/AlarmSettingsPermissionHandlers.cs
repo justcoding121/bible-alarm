@@ -46,7 +46,6 @@ public static class AlarmSettingsPermissionHandlers
         bool isWaitingForPermissionResponse,
         ILogger logger,
         INavigationService navigationService,
-        IServiceProvider serviceProvider,
         Action setOff,
         Action onGrantedFromModal,
         Action<bool> setIsUpdatingFromPermissionCheck,

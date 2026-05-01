@@ -19,6 +19,16 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
     private const string SqlParamSectionCode = "@sectionCode";
     private const string SqlParamTrackCode = "@trackCode";
 
+    private sealed record CopyTrackSql(SqliteConnection Connection, SqliteTransaction Transaction);
+
+    private sealed record CopyTrackKeys(
+        string PubCode,
+        string LangCode,
+        int NewPubId,
+        int? NewSectionId,
+        string? SectionCode,
+        string TrackCode);
+
     public async Task CopyMissingAsync(
         string oldMediaIndexDbPath,
         string newMediaIndexDbPath,
@@ -288,7 +298,8 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
         }
 
         var newTrackId = await CopyTrackFromOldAsync(
-            connection, transaction, pubCode, langCode, newPubId, newSectionId, sectionCode, trackCode);
+            new CopyTrackSql(connection, transaction),
+            new CopyTrackKeys(pubCode, langCode, newPubId, newSectionId, sectionCode, trackCode));
 
         if (newTrackId == null)
         {
@@ -402,20 +413,12 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
     /// Copies a single track from old DB, remapping publication and section FKs.
     /// Returns the new track Id, or null if not found in old DB.
     /// </summary>
-    private static async Task<int?> CopyTrackFromOldAsync(
-        SqliteConnection connection,
-        SqliteTransaction transaction,
-        string pubCode,
-        string langCode,
-        int newPubId,
-        int? newSectionId,
-        string? sectionCode,
-        string trackCode)
+    private static async Task<int?> CopyTrackFromOldAsync(CopyTrackSql sql, CopyTrackKeys keys)
     {
-        using var cmd = connection.CreateCommand();
-        cmd.Transaction = transaction;
+        using var cmd = sql.Connection.CreateCommand();
+        cmd.Transaction = sql.Transaction;
 
-        if (string.IsNullOrEmpty(sectionCode))
+        if (string.IsNullOrEmpty(keys.SectionCode))
         {
             cmd.CommandText = $"""
                 SELECT ot.TrackCode, ot.Title
@@ -439,12 +442,12 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
                   AND os.SectionCode = {SqlParamSectionCode} AND ot.TrackCode = {SqlParamTrackCode}
                 LIMIT 1
                 """;
-            cmd.Parameters.AddWithValue(SqlParamSectionCode, sectionCode);
+            cmd.Parameters.AddWithValue(SqlParamSectionCode, keys.SectionCode);
         }
 
-        cmd.Parameters.AddWithValue(SqlParamPubCode, pubCode);
-        cmd.Parameters.AddWithValue(SqlParamLangCode, langCode);
-        cmd.Parameters.AddWithValue(SqlParamTrackCode, trackCode);
+        cmd.Parameters.AddWithValue(SqlParamPubCode, keys.PubCode);
+        cmd.Parameters.AddWithValue(SqlParamLangCode, keys.LangCode);
+        cmd.Parameters.AddWithValue(SqlParamTrackCode, keys.TrackCode);
 
         using var reader = await cmd.ExecuteReaderAsync();
         if (!await reader.ReadAsync())
@@ -456,8 +459,8 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
         var title = reader.GetString(1);
         await reader.CloseAsync();
 
-        using var insertCmd = connection.CreateCommand();
-        insertCmd.Transaction = transaction;
+        using var insertCmd = sql.Connection.CreateCommand();
+        insertCmd.Transaction = sql.Transaction;
         insertCmd.CommandText = $"""
             INSERT INTO BiblePublicationTracks (TrackCode, Title, BiblePublicationId, BiblePublicationSectionId)
             VALUES ({SqlParamTrackCode}, @title, @pubId, @sectionId);
@@ -465,8 +468,8 @@ internal sealed class OldMediaIndexDataCopier(ILogger logger)
             """;
         insertCmd.Parameters.AddWithValue(SqlParamTrackCode, readTrackCode);
         insertCmd.Parameters.AddWithValue("@title", title);
-        insertCmd.Parameters.AddWithValue("@pubId", newPubId);
-        insertCmd.Parameters.AddWithValue("@sectionId", newSectionId.HasValue ? (object)newSectionId.Value : DBNull.Value);
+        insertCmd.Parameters.AddWithValue("@pubId", keys.NewPubId);
+        insertCmd.Parameters.AddWithValue("@sectionId", keys.NewSectionId.HasValue ? (object)keys.NewSectionId.Value : DBNull.Value);
 
         var result = await insertCmd.ExecuteScalarAsync();
         return result is long id ? (int)id : null;

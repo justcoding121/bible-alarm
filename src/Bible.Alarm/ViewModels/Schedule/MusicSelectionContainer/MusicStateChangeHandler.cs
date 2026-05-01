@@ -35,24 +35,16 @@ public sealed class MusicStateChangeHandler
     private readonly MusicPropertyNotifier propertyNotifier;
     private readonly MusicDisplayTextProvider displayTextProvider;
 
-    public MusicStateChangeHandler(
-        ILogger logger,
-        IState<ApplicationState> state,
-        IDispatcher dispatcher,
-        IMapper mapper,
-        IServiceProvider serviceProvider,
-        MusicStateTracker stateTracker,
-        MusicPropertyNotifier propertyNotifier,
-        MusicDisplayTextProvider displayTextProvider)
+    public MusicStateChangeHandler(MusicStateChangeHandlerServices services, MusicStateChangeHandlerCollaborators collaborators)
     {
-        this.logger = logger;
-        this.state = state;
-        this.dispatcher = dispatcher;
-        this.mapper = mapper;
-        this.serviceProvider = serviceProvider;
-        this.stateTracker = stateTracker;
-        this.propertyNotifier = propertyNotifier;
-        this.displayTextProvider = displayTextProvider;
+        logger = services.Logger;
+        state = services.State;
+        dispatcher = services.Dispatcher;
+        mapper = services.Mapper;
+        serviceProvider = services.ServiceProvider;
+        stateTracker = collaborators.StateTracker;
+        propertyNotifier = collaborators.PropertyNotifier;
+        displayTextProvider = collaborators.DisplayTextProvider;
     }
 
     public void HandleStateChanged(

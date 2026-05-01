@@ -3,6 +3,7 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
@@ -54,14 +55,14 @@ public sealed class MusicCommandInitializer
             // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
-            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(new LoadMusicForSelectionArgs(
                 scheduleId,
                 isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackCode,
-                currentSchedule?.MusicRepeat);
+                currentSchedule?.MusicRepeat));
 
             setMusic(loadedMusic);
 
@@ -100,14 +101,14 @@ public sealed class MusicCommandInitializer
             // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
-            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(new LoadMusicForSelectionArgs(
                 scheduleId,
                 isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackCode,
-                currentSchedule?.MusicRepeat);
+                currentSchedule?.MusicRepeat));
 
             setMusic(loadedMusic);
 
@@ -135,14 +136,14 @@ public sealed class MusicCommandInitializer
             }
 
             var currentSchedule = state.Value.CurrentSchedule;
-            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(new LoadMusicForSelectionArgs(
                 scheduleId,
                 isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackCode,
-                currentSchedule?.MusicRepeat);
+                currentSchedule?.MusicRepeat));
 
             setMusic(loadedMusic);
 
@@ -170,14 +171,14 @@ public sealed class MusicCommandInitializer
             }
 
             var currentSchedule = state.Value.CurrentSchedule;
-            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(new LoadMusicForSelectionArgs(
                 scheduleId,
                 isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackCode,
-                currentSchedule?.MusicRepeat);
+                currentSchedule?.MusicRepeat));
 
             setMusic(loadedMusic);
 
@@ -205,14 +206,14 @@ public sealed class MusicCommandInitializer
             }
 
             var currentSchedule = state.Value.CurrentSchedule;
-            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(new LoadMusicForSelectionArgs(
                 scheduleId,
                 isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackCode,
-                currentSchedule?.MusicRepeat);
+                currentSchedule?.MusicRepeat));
 
             setMusic(loadedMusic);
 

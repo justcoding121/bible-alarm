@@ -2,6 +2,7 @@
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
@@ -105,14 +106,16 @@ public sealed class BiblePublicationCommandInitializer
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedBiblePublication = scheduleSelectionService.LoadBiblePublicationForSelection(
-                scheduleId,
-                isNewSchedule,
-                getBiblePublication(),
-                currentSchedule?.BiblePublicationLanguageCode,
-                currentSchedule?.BiblePublicationCode,
-                currentSchedule?.BiblePublicationSectionCode,
-                currentSchedule?.BiblePublicationTrackCode,
-                currentSchedule?.BiblePublicationFinishedDuration);
+                new LoadBiblePublicationForSelectionArgs(
+                    scheduleId,
+                    isNewSchedule,
+                    getBiblePublication(),
+                    new LoadBiblePublicationScheduleCodes(
+                        currentSchedule?.BiblePublicationLanguageCode,
+                        currentSchedule?.BiblePublicationCode,
+                        currentSchedule?.BiblePublicationSectionCode,
+                        currentSchedule?.BiblePublicationTrackCode),
+                    currentSchedule?.BiblePublicationFinishedDuration));
 
             setBiblePublication(loadedBiblePublication);
 
@@ -145,14 +148,16 @@ public sealed class BiblePublicationCommandInitializer
 
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedBiblePublication = scheduleSelectionService.LoadBiblePublicationForSelection(
-                scheduleId,
-                isNewSchedule,
-                getBiblePublication(),
-                currentSchedule?.BiblePublicationLanguageCode,
-                currentSchedule?.BiblePublicationCode,
-                currentSchedule?.BiblePublicationSectionCode,
-                currentSchedule?.BiblePublicationTrackCode,
-                currentSchedule?.BiblePublicationFinishedDuration);
+                new LoadBiblePublicationForSelectionArgs(
+                    scheduleId,
+                    isNewSchedule,
+                    getBiblePublication(),
+                    new LoadBiblePublicationScheduleCodes(
+                        currentSchedule?.BiblePublicationLanguageCode,
+                        currentSchedule?.BiblePublicationCode,
+                        currentSchedule?.BiblePublicationSectionCode,
+                        currentSchedule?.BiblePublicationTrackCode),
+                    currentSchedule?.BiblePublicationFinishedDuration));
 
             setBiblePublication(loadedBiblePublication);
 
@@ -185,14 +190,16 @@ public sealed class BiblePublicationCommandInitializer
 
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedBiblePublication = scheduleSelectionService.LoadBiblePublicationForSelection(
-                scheduleId,
-                isNewSchedule,
-                getBiblePublication(),
-                currentSchedule?.BiblePublicationLanguageCode,
-                currentSchedule?.BiblePublicationCode,
-                currentSchedule?.BiblePublicationSectionCode,
-                currentSchedule?.BiblePublicationTrackCode,
-                currentSchedule?.BiblePublicationFinishedDuration);
+                new LoadBiblePublicationForSelectionArgs(
+                    scheduleId,
+                    isNewSchedule,
+                    getBiblePublication(),
+                    new LoadBiblePublicationScheduleCodes(
+                        currentSchedule?.BiblePublicationLanguageCode,
+                        currentSchedule?.BiblePublicationCode,
+                        currentSchedule?.BiblePublicationSectionCode,
+                        currentSchedule?.BiblePublicationTrackCode),
+                    currentSchedule?.BiblePublicationFinishedDuration));
 
             setBiblePublication(loadedBiblePublication);
 
