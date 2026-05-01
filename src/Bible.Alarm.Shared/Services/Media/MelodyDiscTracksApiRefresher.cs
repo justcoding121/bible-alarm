@@ -61,16 +61,18 @@ public sealed class MelodyDiscTracksApiRefresher(
             }
 
             var sectionFetcher = new SectionFetcher(httpClient, logger);
-            return await sectionFetcher.FetchSectionTracksAsync(new FetchSectionTracksRequest(
-                db,
-                normPub.ToLowerInvariant(),
-                normSection,
-                AppConstants.Media.DefaultLanguageCode,
-                normPub,
-                publication,
-                section,
-                cancellationToken,
-                ReplaceExisting: true));
+            return await sectionFetcher.FetchSectionTracksAsync(new FetchSectionTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = normPub.ToLowerInvariant(),
+                NormalizedSectionCode = normSection,
+                NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                PublicationCodeForDb = normPub,
+                Publication = publication,
+                Section = section,
+                CancellationToken = cancellationToken,
+                ReplaceExisting = true
+            });
         }
         catch (Exception ex)
         {

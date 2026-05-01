@@ -119,15 +119,17 @@ internal sealed class LanguageContentPublicationSectionsFetcher
             // DO NOT delete existing publication - SectionFetcher handles incremental section fetching
             // This preserves partial downloads and allows proper resume on retry
             // Progress is reported per-section (divided equally among sections)
-            return await sectionFetcher.FetchPublicationSectionsAsync(new FetchPublicationSectionsRequest(
-                db,
-                publicationCodeForDb,
-                normalizedLanguageCode,
-                publicationCodeForDb,
-                englishPublication,
-                sectionCodes,
-                cancellationToken,
-                progress));
+            return await sectionFetcher.FetchPublicationSectionsAsync(new FetchPublicationSectionsRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = publicationCodeForDb,
+                NormalizedLanguageCode = normalizedLanguageCode,
+                PublicationCodeForDb = publicationCodeForDb,
+                EnglishPublication = englishPublication,
+                SectionCodes = sectionCodes,
+                CancellationToken = cancellationToken,
+                Progress = progress
+            });
         }
         catch (Exception ex)
         {

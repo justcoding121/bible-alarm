@@ -125,14 +125,16 @@ internal sealed class LanguageContentFirstSectionFetcher
 
             // Fetch only the first section - pass only firstSectionCode to section fetcher
             var sectionCodes = new List<string> { firstSectionCode };
-            return await sectionFetcher.FetchPublicationSectionsAsync(new FetchPublicationSectionsRequest(
-                db,
-                publicationCodeForDb,
-                normalizedLanguageCode,
-                publicationCodeForDb,
-                englishPublication,
-                sectionCodes,
-                cancellationToken));
+            return await sectionFetcher.FetchPublicationSectionsAsync(new FetchPublicationSectionsRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = publicationCodeForDb,
+                NormalizedLanguageCode = normalizedLanguageCode,
+                PublicationCodeForDb = publicationCodeForDb,
+                EnglishPublication = englishPublication,
+                SectionCodes = sectionCodes,
+                CancellationToken = cancellationToken
+            });
         }
         catch (Exception ex)
         {

@@ -8,27 +8,31 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
-internal readonly record struct EnglishPublicationUpdateRequest(
-    MediaDbContext Db,
-    BiblePublication ExistingPublication,
-    List<Category> Categories,
-    List<BiblePublicationSection> Sections,
-    string FinalPublicationName,
-    bool IsVideo,
-    bool IsBible,
-    bool PublicationWithoutLanguage,
-    string NormalizedPublicationCode,
-    CancellationToken CancellationToken);
+internal sealed class EnglishPublicationUpdateRequest
+{
+    public required MediaDbContext Db { get; init; }
+    public required BiblePublication ExistingPublication { get; init; }
+    public required List<Category> Categories { get; init; }
+    public required List<BiblePublicationSection> Sections { get; init; }
+    public required string FinalPublicationName { get; init; }
+    public required bool IsVideo { get; init; }
+    public required bool IsBible { get; init; }
+    public required bool PublicationWithoutLanguage { get; init; }
+    public required string NormalizedPublicationCode { get; init; }
+    public required CancellationToken CancellationToken { get; init; }
+}
 
-internal readonly record struct EnglishPublicationInsertRequest(
-    MediaDbContext Db,
-    List<Category> Categories,
-    List<BiblePublicationSection> Sections,
-    string NormalizedPublicationCode,
-    string FinalPublicationName,
-    Language? Language,
-    int? LanguageId,
-    bool IsVideo,
-    bool IsBible,
-    bool PublicationWithoutLanguage,
-    CancellationToken CancellationToken);
+internal sealed class EnglishPublicationInsertRequest
+{
+    public required MediaDbContext Db { get; init; }
+    public required List<Category> Categories { get; init; }
+    public required List<BiblePublicationSection> Sections { get; init; }
+    public required string NormalizedPublicationCode { get; init; }
+    public required string FinalPublicationName { get; init; }
+    public Language? Language { get; init; }
+    public int? LanguageId { get; init; }
+    public required bool IsVideo { get; init; }
+    public required bool IsBible { get; init; }
+    public required bool PublicationWithoutLanguage { get; init; }
+    public required CancellationToken CancellationToken { get; init; }
+}

@@ -113,9 +113,18 @@ internal sealed class LanguageContentPublicationTracksFetcher
                 case Models.Enums.CatalogType.Flat:
                     var isMusic = categoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
                     var fileFormat = isVideo ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
-                    return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(new FetchFlatPublicationTracksRequest(
-                        db, publicationCodeForDb, normalizedLanguageCode, englishPublication,
-                        isVideo, isMusic, fileFormat, Language: null, cancellationToken));
+                    return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(new FetchFlatPublicationTracksRequest
+                    {
+                        Db = db,
+                        NormalizedPublicationCode = publicationCodeForDb,
+                        NormalizedLanguageCode = normalizedLanguageCode,
+                        EnglishPublication = englishPublication,
+                        IsVideo = isVideo,
+                        IsMusic = isMusic,
+                        FileFormat = fileFormat,
+                        Language = null,
+                        CancellationToken = cancellationToken
+                    });
 
                 default:
                     // Sectioned and other catalogs use FetchPublicationSectionsAsync; unsupported by this helper.

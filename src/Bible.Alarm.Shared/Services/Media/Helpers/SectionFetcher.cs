@@ -110,17 +110,19 @@ internal sealed class SectionFetcher
         var (isBible, isIssueSectioned) = ComputeSectionFetchFlags(normalizedPublicationCode, category);
 
         var localizedPubNameSlot = new LocalizedPublicationNameSlot();
-        await ProcessMissingPublicationSectionsAsync(
-            db,
-            publication,
-            normalizedPublicationCode,
-            normalizedLanguageCode,
-            missingSectionCodes,
-            isBible,
-            isIssueSectioned,
-            localizedPubNameSlot,
-            effectiveToken,
-            progress);
+        await ProcessMissingPublicationSectionsAsync(new MissingPublicationSectionsProcessArgs
+        {
+            Db = db,
+            Publication = publication,
+            NormalizedPublicationCode = normalizedPublicationCode,
+            NormalizedLanguageCode = normalizedLanguageCode,
+            MissingSectionCodes = missingSectionCodes,
+            IsBible = isBible,
+            IsIssueSectioned = isIssueSectioned,
+            LocalizedPubNameSlot = localizedPubNameSlot,
+            EffectiveToken = effectiveToken,
+            Progress = progress
+        });
 
         if (publication.Sections.Count == 0)
         {
@@ -193,18 +195,19 @@ internal sealed class SectionFetcher
         return publication;
     }
 
-    private async Task ProcessMissingPublicationSectionsAsync(
-        MediaDbContext db,
-        BiblePublication publication,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        List<string> missingSectionCodes,
-        bool isBible,
-        bool isIssueSectioned,
-        LocalizedPublicationNameSlot localizedPubNameSlot,
-        CancellationToken effectiveToken,
-        IFetchProgress? progress)
+    private async Task ProcessMissingPublicationSectionsAsync(MissingPublicationSectionsProcessArgs args)
     {
+        var db = args.Db;
+        var publication = args.Publication;
+        var normalizedPublicationCode = args.NormalizedPublicationCode;
+        var normalizedLanguageCode = args.NormalizedLanguageCode;
+        var missingSectionCodes = args.MissingSectionCodes;
+        var isBible = args.IsBible;
+        var isIssueSectioned = args.IsIssueSectioned;
+        var localizedPubNameSlot = args.LocalizedPubNameSlot;
+        var effectiveToken = args.EffectiveToken;
+        var progress = args.Progress;
+
         var totalSections = missingSectionCodes.Count;
         var completedSections = 0;
 
@@ -212,16 +215,18 @@ internal sealed class SectionFetcher
         {
             effectiveToken.ThrowIfCancellationRequested();
 
-            var outcome = await ProcessSingleMissingSectionAsync(new MissingSectionFetchRequest(
-                db,
-                publication,
-                normalizedPublicationCode,
-                normalizedLanguageCode,
-                sectionCode,
-                isBible,
-                isIssueSectioned,
-                localizedPubNameSlot,
-                effectiveToken));
+            var outcome = await ProcessSingleMissingSectionAsync(new MissingSectionFetchRequest
+            {
+                Db = db,
+                Publication = publication,
+                NormalizedPublicationCode = normalizedPublicationCode,
+                NormalizedLanguageCode = normalizedLanguageCode,
+                SectionCode = sectionCode,
+                IsBible = isBible,
+                IsIssueSectioned = isIssueSectioned,
+                LocalizedPubName = localizedPubNameSlot,
+                EffectiveToken = effectiveToken
+            });
 
             if (outcome.CompletedDelta > 0)
             {
@@ -234,18 +239,34 @@ internal sealed class SectionFetcher
         }
     }
 
+    private sealed class MissingPublicationSectionsProcessArgs
+    {
+        public required MediaDbContext Db { get; init; }
+        public required BiblePublication Publication { get; init; }
+        public required string NormalizedPublicationCode { get; init; }
+        public required string NormalizedLanguageCode { get; init; }
+        public required List<string> MissingSectionCodes { get; init; }
+        public required bool IsBible { get; init; }
+        public required bool IsIssueSectioned { get; init; }
+        public required LocalizedPublicationNameSlot LocalizedPubNameSlot { get; init; }
+        public required CancellationToken EffectiveToken { get; init; }
+        public IFetchProgress? Progress { get; init; }
+    }
+
     private readonly record struct MissingSectionProcessOutcome(int CompletedDelta, bool UpdateProgress);
 
-    private readonly record struct MissingSectionFetchRequest(
-        MediaDbContext Db,
-        BiblePublication Publication,
-        string NormalizedPublicationCode,
-        string NormalizedLanguageCode,
-        string SectionCode,
-        bool IsBible,
-        bool IsIssueSectioned,
-        LocalizedPublicationNameSlot LocalizedPubName,
-        CancellationToken EffectiveToken);
+    private sealed class MissingSectionFetchRequest
+    {
+        public required MediaDbContext Db { get; init; }
+        public required BiblePublication Publication { get; init; }
+        public required string NormalizedPublicationCode { get; init; }
+        public required string NormalizedLanguageCode { get; init; }
+        public required string SectionCode { get; init; }
+        public required bool IsBible { get; init; }
+        public required bool IsIssueSectioned { get; init; }
+        public required LocalizedPublicationNameSlot LocalizedPubName { get; init; }
+        public required CancellationToken EffectiveToken { get; init; }
+    }
 
     private async Task<MissingSectionProcessOutcome> ProcessSingleMissingSectionAsync(MissingSectionFetchRequest request)
     {

@@ -10,13 +10,15 @@ namespace Bible.Alarm.Shared.Services.Media.Helpers;
 /// <summary>
 /// Parameters for <see cref="FlatPublicationFetcher.FetchFlatPublicationTracksAsync"/>.
 /// </summary>
-internal readonly record struct FetchFlatPublicationTracksRequest(
-    MediaDbContext Db,
-    string NormalizedPublicationCode,
-    string NormalizedLanguageCode,
-    BiblePublication EnglishPublication,
-    bool IsVideo,
-    bool IsMusic,
-    string FileFormat,
-    Language? Language,
-    CancellationToken CancellationToken);
+internal sealed class FetchFlatPublicationTracksRequest
+{
+    public required MediaDbContext Db { get; init; }
+    public required string NormalizedPublicationCode { get; init; }
+    public required string NormalizedLanguageCode { get; init; }
+    public required BiblePublication EnglishPublication { get; init; }
+    public required bool IsVideo { get; init; }
+    public required bool IsMusic { get; init; }
+    public required string FileFormat { get; init; }
+    public Language? Language { get; init; }
+    public required CancellationToken CancellationToken { get; init; }
+}

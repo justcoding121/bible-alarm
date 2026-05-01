@@ -10,13 +10,15 @@ namespace Bible.Alarm.Shared.Services.Media.Helpers;
 /// Parameters for <see cref="SectionFetcher.FetchSectionTracksAsync"/> and
 /// <see cref="SectionFetcherHelpers.SectionFetcherSectionTracksLoader.FetchSectionTracksAsync"/>.
 /// </summary>
-internal readonly record struct FetchSectionTracksRequest(
-    MediaDbContext Db,
-    string NormalizedPublicationCode,
-    string NormalizedSectionCode,
-    string NormalizedLanguageCode,
-    string PublicationCodeForDb,
-    BiblePublication Publication,
-    BiblePublicationSection Section,
-    CancellationToken CancellationToken,
-    bool ReplaceExisting = false);
+internal sealed class FetchSectionTracksRequest
+{
+    public required MediaDbContext Db { get; init; }
+    public required string NormalizedPublicationCode { get; init; }
+    public required string NormalizedSectionCode { get; init; }
+    public required string NormalizedLanguageCode { get; init; }
+    public required string PublicationCodeForDb { get; init; }
+    public required BiblePublication Publication { get; init; }
+    public required BiblePublicationSection Section { get; init; }
+    public required CancellationToken CancellationToken { get; init; }
+    public bool ReplaceExisting { get; init; }
+}

@@ -33,30 +33,34 @@ internal sealed class FlatPublicationFetcher
         this.videoLocalizedNameFetcher = videoLocalizedNameFetcher ?? throw new ArgumentNullException(nameof(videoLocalizedNameFetcher));
     }
 
-    private readonly record struct ExistingFlatPublicationUpdateContext(
-        MediaDbContext Db,
-        BiblePublication ExistingPublication,
-        List<BiblePublicationTrack> Tracks,
-        string? LocalizedPubName,
-        string EnglishPublicationName,
-        bool IsVideo,
-        bool IsMusic,
-        List<Category> Categories,
-        string NormalizedPublicationCode,
-        string NormalizedLanguageCode,
-        CancellationToken CancellationToken);
+    private sealed class ExistingFlatPublicationUpdateContext
+    {
+        public required MediaDbContext Db { get; init; }
+        public required BiblePublication ExistingPublication { get; init; }
+        public required List<BiblePublicationTrack> Tracks { get; init; }
+        public string? LocalizedPubName { get; init; }
+        public required string EnglishPublicationName { get; init; }
+        public required bool IsVideo { get; init; }
+        public required bool IsMusic { get; init; }
+        public required List<Category> Categories { get; init; }
+        public required string NormalizedPublicationCode { get; init; }
+        public required string NormalizedLanguageCode { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
+    }
 
-    private readonly record struct NewFlatPublicationInsertContext(
-        MediaDbContext Db,
-        string NormalizedPublicationCode,
-        string? LocalizedPubName,
-        string EnglishPublicationName,
-        Language ResolvedLanguage,
-        bool IsVideo,
-        bool IsMusic,
-        List<Category> Categories,
-        List<BiblePublicationTrack> Tracks,
-        CancellationToken CancellationToken);
+    private sealed class NewFlatPublicationInsertContext
+    {
+        public required MediaDbContext Db { get; init; }
+        public required string NormalizedPublicationCode { get; init; }
+        public string? LocalizedPubName { get; init; }
+        public required string EnglishPublicationName { get; init; }
+        public required Language ResolvedLanguage { get; init; }
+        public required bool IsVideo { get; init; }
+        public required bool IsMusic { get; init; }
+        public required List<Category> Categories { get; init; }
+        public required List<BiblePublicationTrack> Tracks { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
+    }
 
     /// <summary>
     /// Unified method for fetching flat-track publications (Music and Video).
@@ -110,32 +114,36 @@ internal sealed class FlatPublicationFetcher
 
         if (existingPublication != null)
         {
-            await UpdateExistingPublicationTracksAsync(new ExistingFlatPublicationUpdateContext(
-                db,
-                existingPublication,
-                tracks,
-                localizedPubName,
-                englishPublication.Name,
-                isVideo,
-                isMusic,
-                categories,
-                normalizedPublicationCode,
-                normalizedLanguageCode,
-                cancellationToken));
+            await UpdateExistingPublicationTracksAsync(new ExistingFlatPublicationUpdateContext
+            {
+                Db = db,
+                ExistingPublication = existingPublication,
+                Tracks = tracks,
+                LocalizedPubName = localizedPubName,
+                EnglishPublicationName = englishPublication.Name,
+                IsVideo = isVideo,
+                IsMusic = isMusic,
+                Categories = categories,
+                NormalizedPublicationCode = normalizedPublicationCode,
+                NormalizedLanguageCode = normalizedLanguageCode,
+                CancellationToken = cancellationToken
+            });
         }
         else
         {
-            await InsertNewFlatPublicationAsync(new NewFlatPublicationInsertContext(
-                db,
-                normalizedPublicationCode,
-                localizedPubName,
-                englishPublication.Name,
-                resolvedLanguage,
-                isVideo,
-                isMusic,
-                categories,
-                tracks,
-                cancellationToken));
+            await InsertNewFlatPublicationAsync(new NewFlatPublicationInsertContext
+            {
+                Db = db,
+                NormalizedPublicationCode = normalizedPublicationCode,
+                LocalizedPubName = localizedPubName,
+                EnglishPublicationName = englishPublication.Name,
+                ResolvedLanguage = resolvedLanguage,
+                IsVideo = isVideo,
+                IsMusic = isMusic,
+                Categories = categories,
+                Tracks = tracks,
+                CancellationToken = cancellationToken
+            });
         }
 
         logger.Information("Successfully fetched {Count} tracks for publication {PublicationCode} in language {LanguageCode}",

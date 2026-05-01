@@ -65,31 +65,35 @@ internal sealed class EnglishPublicationBuilder
 
         if (existingPublication != null)
         {
-            return await UpdateExistingPublicationAsync(new EnglishPublicationUpdateRequest(
-                db,
-                existingPublication,
-                categories,
-                sections,
-                finalPublicationName,
-                isVideo,
-                isBible,
-                publicationWithoutLanguage,
-                normalizedPublicationCode,
-                cancellationToken));
+            return await UpdateExistingPublicationAsync(new EnglishPublicationUpdateRequest
+            {
+                Db = db,
+                ExistingPublication = existingPublication,
+                Categories = categories,
+                Sections = sections,
+                FinalPublicationName = finalPublicationName,
+                IsVideo = isVideo,
+                IsBible = isBible,
+                PublicationWithoutLanguage = publicationWithoutLanguage,
+                NormalizedPublicationCode = normalizedPublicationCode,
+                CancellationToken = cancellationToken
+            });
         }
 
-        return await InsertNewPublicationAsync(new EnglishPublicationInsertRequest(
-            db,
-            categories,
-            sections,
-            normalizedPublicationCode,
-            finalPublicationName,
-            language,
-            languageId,
-            isVideo,
-            isBible,
-            publicationWithoutLanguage,
-            cancellationToken));
+        return await InsertNewPublicationAsync(new EnglishPublicationInsertRequest
+        {
+            Db = db,
+            Categories = categories,
+            Sections = sections,
+            NormalizedPublicationCode = normalizedPublicationCode,
+            FinalPublicationName = finalPublicationName,
+            Language = language,
+            LanguageId = languageId,
+            IsVideo = isVideo,
+            IsBible = isBible,
+            PublicationWithoutLanguage = publicationWithoutLanguage,
+            CancellationToken = cancellationToken
+        });
     }
 
     private static bool PublicationIndicatesMusic(List<Category> categories, string publicationCode) =>

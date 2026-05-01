@@ -402,8 +402,17 @@ internal sealed class EnglishContentSeeder
             IsVideo = isVideo
         };
 
-        return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(new FetchFlatPublicationTracksRequest(
-            db, normalizedPublicationCode, normalizedLanguageCode, tempEnglishPublication,
-            isVideo, isMusic, fileFormat, language, cancellationToken));
+        return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(new FetchFlatPublicationTracksRequest
+        {
+            Db = db,
+            NormalizedPublicationCode = normalizedPublicationCode,
+            NormalizedLanguageCode = normalizedLanguageCode,
+            EnglishPublication = tempEnglishPublication,
+            IsVideo = isVideo,
+            IsMusic = isMusic,
+            FileFormat = fileFormat,
+            Language = language,
+            CancellationToken = cancellationToken
+        });
     }
 }

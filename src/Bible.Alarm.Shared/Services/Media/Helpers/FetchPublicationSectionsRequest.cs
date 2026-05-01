@@ -11,12 +11,14 @@ namespace Bible.Alarm.Shared.Services.Media.Helpers;
 /// <summary>
 /// Parameters for <see cref="SectionFetcher.FetchPublicationSectionsAsync"/> (keeps call sites under Sonar parameter limits).
 /// </summary>
-internal readonly record struct FetchPublicationSectionsRequest(
-    MediaDbContext Db,
-    string NormalizedPublicationCode,
-    string NormalizedLanguageCode,
-    string PublicationCodeForDb,
-    BiblePublication EnglishPublication,
-    IReadOnlyList<string> SectionCodes,
-    CancellationToken CancellationToken,
-    IFetchProgress? Progress = null);
+internal sealed class FetchPublicationSectionsRequest
+{
+    public required MediaDbContext Db { get; init; }
+    public required string NormalizedPublicationCode { get; init; }
+    public required string NormalizedLanguageCode { get; init; }
+    public required string PublicationCodeForDb { get; init; }
+    public required BiblePublication EnglishPublication { get; init; }
+    public required IReadOnlyList<string> SectionCodes { get; init; }
+    public required CancellationToken CancellationToken { get; init; }
+    public IFetchProgress? Progress { get; init; }
+}
