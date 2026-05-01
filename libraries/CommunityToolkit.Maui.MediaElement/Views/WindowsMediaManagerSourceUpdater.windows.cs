@@ -24,7 +24,6 @@ internal static class WindowsMediaManagerSourceUpdater
         WindowsMediaElement mediaPlayer,
         PlatformMediaElement? playerElement)
     {
-        // Update poster source only if we have a Player (UI mode)
         if (playerElement is not null)
         {
             await dispatcher.DispatchAsync(() => playerElement.PosterSource = new BitmapImage());
@@ -32,20 +31,7 @@ internal static class WindowsMediaManagerSourceUpdater
 
         if (mediaElement.Source is null)
         {
-            // In headless mode, we set source directly on MediaPlayer
-            // In UI mode, we set source on MediaPlayerElement
-            if (playerElement is not null)
-            {
-                playerElement.Source = null;
-            }
-            else
-            {
-                mediaPlayer.Source = null;
-            }
-
-            mediaElement.MediaWidth = 0;
-            mediaElement.MediaHeight = 0;
-            mediaElement.CurrentStateChanged(MediaElementState.None);
+            ClearWindowsMediaWhenSourceNull(mediaElement, mediaPlayer, playerElement);
             return;
         }
 
@@ -55,107 +41,143 @@ internal static class WindowsMediaManagerSourceUpdater
         switch (mediaElement.Source)
         {
             case UriMediaSource uriMediaSource:
-                await UpdateFromUriAsync(uriMediaSource);
+                await ApplyUriMediaSourceAsync(mediaElement, logger, mediaPlayer, playerElement, uriMediaSource);
                 break;
 
             case FileMediaSource fileMediaSource:
-                await UpdateFromFileAsync(fileMediaSource);
+                await ApplyFileMediaSourceAsync(mediaElement, logger, mediaPlayer, playerElement, fileMediaSource);
                 break;
 
             case ResourceMediaSource resourceMediaSource:
-                await UpdateFromResourceAsync(resourceMediaSource);
+                ApplyResourceMediaSource(mediaElement, logger, mediaPlayer, playerElement, resourceMediaSource);
                 break;
         }
+    }
 
-        async ValueTask UpdateFromUriAsync(UriMediaSource uriMediaSource)
+    private static void ClearWindowsMediaWhenSourceNull(
+        IMediaElement mediaElement,
+        WindowsMediaElement mediaPlayer,
+        PlatformMediaElement? playerElement)
+    {
+        if (playerElement is not null)
         {
-            var uri = uriMediaSource.Uri?.AbsoluteUri;
-            if (string.IsNullOrWhiteSpace(uri))
-            {
-                return;
-            }
-
-            var source = WinMediaSource.CreateFromUri(new Uri(uri));
-            var playbackItem = new MediaPlaybackItem(source);
-
-            // Set metadata on MediaPlaybackItem for SMTC integration
-            await ApplyPlaybackItemMetadataAsync(playbackItem, mediaElement, logger);
-
-            if (playerElement is not null)
-            {
-                playerElement.AutoPlay = mediaElement.ShouldAutoPlay;
-                playerElement.Source = playbackItem;
-            }
-            else
-            {
-                mediaPlayer.Source = playbackItem;
-                if (mediaElement.ShouldAutoPlay)
-                {
-                    mediaPlayer.Play();
-                }
-            }
+            playerElement.Source = null;
+        }
+        else
+        {
+            mediaPlayer.Source = null;
         }
 
-        async ValueTask UpdateFromFileAsync(FileMediaSource fileMediaSource)
+        mediaElement.MediaWidth = 0;
+        mediaElement.MediaHeight = 0;
+        mediaElement.CurrentStateChanged(MediaElementState.None);
+    }
+
+    private static async ValueTask ApplyUriMediaSourceAsync(
+        IMediaElement mediaElement,
+        ILogger logger,
+        WindowsMediaElement mediaPlayer,
+        PlatformMediaElement? playerElement,
+        UriMediaSource uriMediaSource)
+    {
+        var uri = uriMediaSource.Uri?.AbsoluteUri;
+        if (string.IsNullOrWhiteSpace(uri))
         {
-            var filename = fileMediaSource.Path;
-            if (string.IsNullOrWhiteSpace(filename))
-            {
-                return;
-            }
-
-            StorageFile storageFile = await StorageFile.GetFileFromPathAsync(filename);
-            var source = WinMediaSource.CreateFromStorageFile(storageFile);
-            var playbackItem = new MediaPlaybackItem(source);
-
-            // Set metadata on MediaPlaybackItem for SMTC integration
-            await ApplyPlaybackItemMetadataAsync(playbackItem, mediaElement, logger);
-
-            if (playerElement is not null)
-            {
-                playerElement.AutoPlay = mediaElement.ShouldAutoPlay;
-                playerElement.Source = playbackItem;
-            }
-            else
-            {
-                mediaPlayer.Source = playbackItem;
-                if (mediaElement.ShouldAutoPlay)
-                {
-                    mediaPlayer.Play();
-                }
-            }
+            return;
         }
 
-        ValueTask UpdateFromResourceAsync(ResourceMediaSource resourceMediaSource)
+        var source = WinMediaSource.CreateFromUri(new Uri(uri));
+        var playbackItem = new MediaPlaybackItem(source);
+
+        await ApplyPlaybackItemMetadataAsync(playbackItem, mediaElement, logger);
+
+        AssignPlaybackItemToWindowsSurface(mediaElement, mediaPlayer, playerElement, playbackItem);
+    }
+
+    private static async ValueTask ApplyFileMediaSourceAsync(
+        IMediaElement mediaElement,
+        ILogger logger,
+        WindowsMediaElement mediaPlayer,
+        PlatformMediaElement? playerElement,
+        FileMediaSource fileMediaSource)
+    {
+        var filename = fileMediaSource.Path;
+        if (string.IsNullOrWhiteSpace(filename))
         {
-            if (string.IsNullOrWhiteSpace(resourceMediaSource.Path))
-            {
-                logger.LogInformation("ResourceMediaSource Path is null or empty");
-                return ValueTask.CompletedTask;
-            }
+            return;
+        }
 
-            string path = GetFullAppPackageFilePath(resourceMediaSource.Path);
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return ValueTask.CompletedTask;
-            }
+        StorageFile storageFile = await StorageFile.GetFileFromPathAsync(filename);
+        var source = WinMediaSource.CreateFromStorageFile(storageFile);
+        var playbackItem = new MediaPlaybackItem(source);
 
-            var source = WinMediaSource.CreateFromUri(new Uri(path));
-            if (playerElement is not null)
-            {
-                playerElement.AutoPlay = mediaElement.ShouldAutoPlay;
-                playerElement.Source = source;
-            }
-            else
-            {
-                mediaPlayer.Source = source;
-                if (mediaElement.ShouldAutoPlay)
-                {
-                    mediaPlayer.Play();
-                }
-            }
+        await ApplyPlaybackItemMetadataAsync(playbackItem, mediaElement, logger);
 
-            return ValueTask.CompletedTask;
+        AssignPlaybackItemToWindowsSurface(mediaElement, mediaPlayer, playerElement, playbackItem);
+    }
+
+    private static void ApplyResourceMediaSource(
+        IMediaElement mediaElement,
+        ILogger logger,
+        WindowsMediaElement mediaPlayer,
+        PlatformMediaElement? playerElement,
+        ResourceMediaSource resourceMediaSource)
+    {
+        if (string.IsNullOrWhiteSpace(resourceMediaSource.Path))
+        {
+            logger.LogInformation("ResourceMediaSource Path is null or empty");
+            return;
+        }
+
+        string path = GetFullAppPackageFilePath(resourceMediaSource.Path);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        var source = WinMediaSource.CreateFromUri(new Uri(path));
+        AssignUriMediaSourceToWindowsSurface(mediaElement, mediaPlayer, playerElement, source);
+    }
+
+    private static void AssignPlaybackItemToWindowsSurface(
+        IMediaElement mediaElement,
+        WindowsMediaElement mediaPlayer,
+        PlatformMediaElement? playerElement,
+        MediaPlaybackItem playbackItem)
+    {
+        if (playerElement is not null)
+        {
+            playerElement.AutoPlay = mediaElement.ShouldAutoPlay;
+            playerElement.Source = playbackItem;
+        }
+        else
+        {
+            mediaPlayer.Source = playbackItem;
+            if (mediaElement.ShouldAutoPlay)
+            {
+                mediaPlayer.Play();
+            }
+        }
+    }
+
+    private static void AssignUriMediaSourceToWindowsSurface(
+        IMediaElement mediaElement,
+        WindowsMediaElement mediaPlayer,
+        PlatformMediaElement? playerElement,
+        WinMediaSource source)
+    {
+        if (playerElement is not null)
+        {
+            playerElement.AutoPlay = mediaElement.ShouldAutoPlay;
+            playerElement.Source = source;
+        }
+        else
+        {
+            mediaPlayer.Source = source;
+            if (mediaElement.ShouldAutoPlay)
+            {
+                mediaPlayer.Play();
+            }
         }
     }
 
@@ -218,4 +240,3 @@ internal static class WindowsMediaManagerSourceUpdater
         static string NormalizePath(string filename) => filename.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
     }
 }
-

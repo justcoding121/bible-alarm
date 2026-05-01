@@ -35,11 +35,7 @@ internal static class MediatorTrackParser
                 return (null, null);
             }
 
-            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
-            {
-                var rawName = pubNameElement.GetString();
-                sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-            }
+            sectionName = TryResolveSectionNameFromPubMediaRoot(root);
 
             if (!filesElement.TryGetProperty(languageCode, out var languageFiles) ||
                 !languageFiles.TryGetProperty(formatKey, out var formatFiles))
@@ -48,73 +44,29 @@ internal static class MediatorTrackParser
             }
 
             var fileFormat = isVideo ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
-            string lookUpPathBase;
-            if (useDocidParam && sectionCode.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                var docidValue = sectionCode[AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length..];
-                lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.DocId}={docidValue}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
-            }
-            else
-            {
-                lookUpPathBase = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
-            }
+            var lookUpPathBase = BuildLookUpPathBase(sectionCode, languageCode, fileFormat, useDocidParam);
 
             foreach (var trackFile in formatFiles.EnumerateArray())
             {
-                if (!trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileElement))
+                if (!TryExtractTrackUrl(trackFile, out var url) || string.IsNullOrEmpty(url))
                 {
                     continue;
                 }
 
-                string? url = null;
-                if (fileElement.ValueKind == JsonValueKind.String)
-                {
-                    url = fileElement.GetString();
-                }
-                else if (fileElement.ValueKind == JsonValueKind.Object && fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
-                {
-                    url = urlElement.GetString();
-                }
-
-                if (string.IsNullOrEmpty(url))
-                {
-                    continue;
-                }
-
-                var title = MediaTrackTitleHelper.UnknownTitle;
-                if (trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
-                {
-                    if (titleElement.ValueKind == JsonValueKind.String)
-                    {
-                        title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
-                    }
-                    else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty(AppConstants.Media.PubMediaJson.Text, out var titleTextElement))
-                    {
-                        title = MediaTrackTitleHelper.DecodeHtmlTitle(titleTextElement.GetString());
-                    }
-                }
-
+                var title = ResolveTrackTitle(trackFile);
                 if (AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(languageCode, title))
                 {
                     continue;
                 }
 
-                string trackCode;
-                if (useDocidParam && sectionCode.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    var docidSuffix = sectionCode[AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length..];
-                    trackCode = trackNumber.HasValue ? $"{docidSuffix}-{trackNumber.Value}" : docidSuffix;
-                }
-                else
-                    trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
-                var lookUpPath = lookUpPathBase;
+                var trackCode = ResolveMediatorTrackCode(sectionCode, trackNumber, useDocidParam);
 
                 tracks.Add(new MediatorTrack
                 {
                     TrackCode = trackCode,
                     Title = title,
                     Url = url,
-                    LookUpPath = lookUpPath
+                    LookUpPath = lookUpPathBase
                 });
             }
         }
@@ -125,6 +77,84 @@ internal static class MediatorTrackParser
         }
 
         return tracks.Count > 0 ? (tracks, sectionName) : (null, sectionName);
+    }
+
+    private static string? TryResolveSectionNameFromPubMediaRoot(JsonElement root)
+    {
+        if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
+        {
+            return null;
+        }
+
+        var rawName = pubNameElement.GetString();
+        return MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
+    }
+
+    private static string BuildLookUpPathBase(string sectionCode, string languageCode, string fileFormat, bool useDocidParam)
+    {
+        if (useDocidParam && sectionCode.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var docidValue = sectionCode[AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length..];
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.DocId}={docidValue}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
+        }
+
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={languageCode}";
+    }
+
+    private static bool TryExtractTrackUrl(JsonElement trackFile, out string? url)
+    {
+        url = null;
+        if (!trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileElement))
+        {
+            return false;
+        }
+
+        if (fileElement.ValueKind == JsonValueKind.String)
+        {
+            url = fileElement.GetString();
+            return true;
+        }
+
+        if (fileElement.ValueKind == JsonValueKind.Object &&
+            fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
+        {
+            url = urlElement.GetString();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string ResolveTrackTitle(JsonElement trackFile)
+    {
+        if (!trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
+        {
+            return MediaTrackTitleHelper.UnknownTitle;
+        }
+
+        if (titleElement.ValueKind == JsonValueKind.String)
+        {
+            return MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
+        }
+
+        if (titleElement.ValueKind == JsonValueKind.Object &&
+            titleElement.TryGetProperty(AppConstants.Media.PubMediaJson.Text, out var titleTextElement))
+        {
+            return MediaTrackTitleHelper.DecodeHtmlTitle(titleTextElement.GetString());
+        }
+
+        return MediaTrackTitleHelper.UnknownTitle;
+    }
+
+    private static string ResolveMediatorTrackCode(string sectionCode, int? trackNumber, bool useDocidParam)
+    {
+        if (useDocidParam && sectionCode.StartsWith(AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var docidSuffix = sectionCode[AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix.Length..];
+            return trackNumber.HasValue ? $"{docidSuffix}-{trackNumber.Value}" : docidSuffix;
+        }
+
+        return trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
     }
 }
 

@@ -21,48 +21,16 @@ internal static class AndroidArtworkBytesFetcher
 
         try
         {
-            byte[] artworkData = [];
-            long? contentLength = null;
-
-            // HTTP or HTTPS URL
-            if (uri is not null &&
-                (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            var opened = await TryOpenArtworkStreamAsync(url, uri, cancellationToken).ConfigureAwait(false);
+            stream = opened.Stream;
+            if (stream is null)
             {
-                var request = new HttpRequestMessage(HttpMethod.Head, url);
-                var contentLengthResponse = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                contentLength = contentLengthResponse.Content.Headers.ContentLength ?? 0;
-
-                var response = await client.GetAsync(url, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-                stream = response.IsSuccessStatusCode ? await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false) : null;
-            }
-            // file:// URI or absolute filesystem path (e.g. app data path on Android)
-            else if ((uri is not null && uri.Scheme == Uri.UriSchemeFile) || IsAbsoluteFilePath(url))
-            {
-                var normalizedFilePath = NormalizeFilePath(
-                    uri is not null && uri.Scheme == Uri.UriSchemeFile ? uri.LocalPath : url);
-
-                if (File.Exists(normalizedFilePath))
-                {
-                    stream = File.OpenRead(normalizedFilePath);
-                    contentLength = await GetByteCountFromStream(stream, cancellationToken);
-                }
-            }
-            // Relative File Path (asset)
-            else if (Uri.TryCreate(url, UriKind.Relative, out _))
-            {
-                var normalizedFilePath = NormalizeFilePath(url);
-
-                stream = Platform.AppContext.Assets?.Open(normalizedFilePath) ?? throw new InvalidOperationException("Assets cannot be null");
-                contentLength = await GetByteCountFromStream(stream, cancellationToken);
+                return [];
             }
 
-            if (stream is not null)
-            {
-                // contentLength is always set when stream is not null (set in the conditions above)
-                artworkData = new byte[contentLength!.Value];
-                using var memoryStream = new MemoryStream(artworkData);
-                await stream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
-            }
+            var artworkData = new byte[opened.ByteLength];
+            using var memoryStream = new MemoryStream(artworkData);
+            await stream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
 
             return artworkData;
         }
@@ -91,21 +59,63 @@ internal static class AndroidArtworkBytesFetcher
                 await stream.DisposeAsync();
             }
         }
+    }
 
-        static string NormalizeFilePath(string filePath) => filePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+    private static async Task<(Stream? Stream, long ByteLength)> TryOpenArtworkStreamAsync(string url, Uri? uri, CancellationToken cancellationToken)
+    {
+        if (uri is not null &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        {
+            var request = new HttpRequestMessage(HttpMethod.Head, url);
+            var contentLengthResponse = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            var contentLength = contentLengthResponse.Content.Headers.ContentLength ?? 0;
 
-        static bool IsAbsoluteFilePath(string path)
+            var response = await client.GetAsync(url, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+            var stream = response.IsSuccessStatusCode ? await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false) : null;
+            return (stream, contentLength);
+        }
+
+        if ((uri is not null && uri.Scheme == Uri.UriSchemeFile) || IsAbsoluteFilePathLocal(url))
+        {
+            var normalizedFilePath = NormalizeFilePathLocal(
+                uri is not null && uri.Scheme == Uri.UriSchemeFile ? uri.LocalPath : url);
+
+            if (!File.Exists(normalizedFilePath))
+            {
+                return (null, 0);
+            }
+
+            var fileStream = File.OpenRead(normalizedFilePath);
+            var length = await GetByteCountFromStreamLocal(fileStream, cancellationToken).ConfigureAwait(false);
+            return (fileStream, length);
+        }
+
+        if (Uri.TryCreate(url, UriKind.Relative, out _))
+        {
+            var normalizedFilePath = NormalizeFilePathLocal(url);
+
+            var assetStream = Platform.AppContext.Assets?.Open(normalizedFilePath) ?? throw new InvalidOperationException("Assets cannot be null");
+            var assetLength = await GetByteCountFromStreamLocal(assetStream, cancellationToken).ConfigureAwait(false);
+            return (assetStream, assetLength);
+        }
+
+        return (null, 0);
+
+        static string NormalizeFilePathLocal(string filePath) =>
+            filePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+
+        static bool IsAbsoluteFilePathLocal(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
             {
                 return false;
             }
 
-            var normalized = NormalizeFilePath(path);
+            var normalized = NormalizeFilePathLocal(path);
             return Path.IsPathRooted(normalized) && File.Exists(normalized);
         }
 
-        static async ValueTask<long> GetByteCountFromStream(Stream stream, CancellationToken token)
+        static async ValueTask<long> GetByteCountFromStreamLocal(Stream stream, CancellationToken token)
         {
             if (stream.CanSeek)
             {
@@ -117,7 +127,7 @@ internal static class AndroidArtworkBytesFetcher
             var buffer = new byte[8192];
             int bytesRead;
 
-            while ((bytesRead = await stream.ReadAsync(buffer, token)) > 0)
+            while ((bytesRead = await stream.ReadAsync(buffer, token).ConfigureAwait(false)) > 0)
             {
                 countedStreamBytes += bytesRead;
             }
