@@ -100,7 +100,7 @@ public sealed partial class DownloadService(HttpMessageHandler handler, ILogger 
 
             try
             {
-                return await DownloadWithStallTimeoutAsync(url, combinedCts.Token, progressCallback);
+                return await DownloadWithStallTimeoutAsync(url, progressCallback, combinedCts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -117,7 +117,7 @@ public sealed partial class DownloadService(HttpMessageHandler handler, ILogger 
                     logger.Warning(ex, AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadPrimaryTryingAlternative, url, alternativeUrl);
                     try
                     {
-                        return await DownloadWithStallTimeoutAsync(alternativeUrl, combinedCts.Token, progressCallback);
+                        return await DownloadWithStallTimeoutAsync(alternativeUrl, progressCallback, combinedCts.Token);
                     }
                     catch (Exception altEx)
                     {
@@ -188,7 +188,7 @@ public sealed partial class DownloadService(HttpMessageHandler handler, ILogger 
     /// Downloads a file with a stall timeout - only times out if no data is received for X seconds.
     /// This prevents canceling slow but active downloads while still detecting stalled connections.
     /// </summary>
-    private async Task<byte[]> DownloadWithStallTimeoutAsync(string url, CancellationToken cancellationToken, Action<long, long?>? progressCallback = null)
+    private async Task<byte[]> DownloadWithStallTimeoutAsync(string url, Action<long, long?>? progressCallback, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);

@@ -52,60 +52,10 @@ public static class ConcurrencyHelper
     }
 
     /// <summary>
-    /// Executes an async action within a SemaphoreSlim lock, automatically releasing the lock in a finally block.
-    /// Handles ObjectDisposedException gracefully when releasing the lock.
-    /// </summary>
-    public static async Task ExecuteAsync(SemaphoreSlim @lock, Func<Task> action, Action<ObjectDisposedException>? onDisposedException = null)
-    {
-        await @lock.WaitAsync();
-        try
-        {
-            await action();
-        }
-        finally
-        {
-            try
-            {
-                @lock.Release();
-            }
-            catch (ObjectDisposedException ex)
-            {
-                Log.Logger.Debug(ex, LogMessageSemaphoreReleaseDisposed);
-                onDisposedException?.Invoke(ex);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Executes an async function within a SemaphoreSlim lock, automatically releasing the lock in a finally block.
-    /// Handles ObjectDisposedException gracefully when releasing the lock.
-    /// </summary>
-    public static async Task<T> ExecuteAsync<T>(SemaphoreSlim @lock, Func<Task<T>> func, Action<ObjectDisposedException>? onDisposedException = null)
-    {
-        await @lock.WaitAsync();
-        try
-        {
-            return await func();
-        }
-        finally
-        {
-            try
-            {
-                @lock.Release();
-            }
-            catch (ObjectDisposedException ex)
-            {
-                Log.Logger.Debug(ex, LogMessageSemaphoreReleaseDisposed);
-                onDisposedException?.Invoke(ex);
-            }
-        }
-    }
-
-    /// <summary>
     /// Executes an async action within a SemaphoreSlim lock with cancellation token support, automatically releasing the lock in a finally block.
     /// Handles ObjectDisposedException gracefully when releasing the lock.
     /// </summary>
-    public static async Task ExecuteAsync(SemaphoreSlim @lock, Func<Task> action, CancellationToken cancellationToken, Action<ObjectDisposedException>? onDisposedException = null)
+    public static async Task ExecuteAsync(SemaphoreSlim @lock, Func<Task> action, Action<ObjectDisposedException>? onDisposedException = null, CancellationToken cancellationToken = default)
     {
         await @lock.WaitAsync(cancellationToken);
         try
@@ -130,7 +80,7 @@ public static class ConcurrencyHelper
     /// Executes an async function within a SemaphoreSlim lock with cancellation token support, automatically releasing the lock in a finally block.
     /// Handles ObjectDisposedException gracefully when releasing the lock.
     /// </summary>
-    public static async Task<T> ExecuteAsync<T>(SemaphoreSlim @lock, Func<Task<T>> func, CancellationToken cancellationToken, Action<ObjectDisposedException>? onDisposedException = null)
+    public static async Task<T> ExecuteAsync<T>(SemaphoreSlim @lock, Func<Task<T>> func, Action<ObjectDisposedException>? onDisposedException = null, CancellationToken cancellationToken = default)
     {
         await @lock.WaitAsync(cancellationToken);
         try
