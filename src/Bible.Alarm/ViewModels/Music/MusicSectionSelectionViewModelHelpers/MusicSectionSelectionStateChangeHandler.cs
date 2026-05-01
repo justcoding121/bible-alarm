@@ -24,22 +24,15 @@ public class MusicSectionSelectionStateChangeHandler
     private string? lastPublicationCode;
     private string? lastSectionCode;
 
-    public MusicSectionSelectionStateChangeHandler(
-        ILogger logger,
-        Action<string?> setLastPublicationCode,
-        Action<string?> setLastSectionCode,
-        Func<bool> getInitComplete,
-        Action<bool> setIsBusy,
-        Action<string> initialize,
-        Action setSelectedSection)
+    public MusicSectionSelectionStateChangeHandler(ILogger logger, MusicSectionSelectionStateChangeHandlerCallbacks callbacks)
     {
         this.logger = logger;
-        this.setLastPublicationCode = setLastPublicationCode;
-        this.setLastSectionCode = setLastSectionCode;
-        this.getInitComplete = getInitComplete;
-        this.setIsBusy = setIsBusy;
-        this.initialize = initialize;
-        this.setSelectedSection = setSelectedSection;
+        setLastPublicationCode = callbacks.SetLastPublicationCode;
+        setLastSectionCode = callbacks.SetLastSectionCode;
+        getInitComplete = callbacks.GetInitComplete;
+        setIsBusy = callbacks.SetIsBusy;
+        initialize = callbacks.Initialize;
+        setSelectedSection = callbacks.SetSelectedSection;
     }
 
     public void HandleStateChanged(ApplicationState stateValue)

@@ -43,26 +43,22 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IHasF
     // Semaphore to serialize RefreshFromState/Initialize calls - ensures concurrent calls wait for each other
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
 
-    public MusicPublicationSelectionViewModel(
-        IMediaService mediaService,
-        IServiceScopeFactory scopeFactory,
-        IState<ApplicationState> state,
-        IDispatcher dispatcher,
-        INavigationService navigationService,        IServiceProvider serviceProvider)
+    public MusicPublicationSelectionViewModel(MusicPublicationSelectionViewModelDeps deps)
     {
-        this.state = state;
-        this.navigationService = navigationService;
+        state = deps.ApplicationState;
+        navigationService = deps.NavigationService;
 
         // Initialize helper classes
         stateManager = new MusicPublicationSelectionStateManager();
+        var serviceProvider = deps.ServiceProvider;
         var languageNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
         var biblePublicationService = serviceProvider.GetService<IBiblePublicationService>();
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
-        dataProvider = new MusicPublicationSelectionDataProvider(mediaService, languageNameService, biblePublicationService, languageContentService, scopeFactory);
-        commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, dispatcher, mediaService, languageNameService);
+        dataProvider = new MusicPublicationSelectionDataProvider(deps.MediaService, languageNameService, biblePublicationService, languageContentService, deps.ScopeFactory);
+        commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, deps.Dispatcher, deps.MediaService, languageNameService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
         refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, propertyManager);
-        initHandler = new MusicPublicationSelectionInitHandler(mediaService, stateManager, dataProvider, propertyManager);
+        initHandler = new MusicPublicationSelectionInitHandler(deps.MediaService, stateManager, dataProvider, propertyManager);
         SetupPropertyManagerForwarding();
 
         state.StateChanged += OnMusicInitialized;
@@ -83,14 +79,15 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IHasF
         {
             if (x != null)
             {
-                await commandHandler.HandleTrackSelectionAsync(
+                await commandHandler.HandleTrackSelectionAsync(new HandleMusicPublicationTrackSelectionArgs(
                     x,
                     propertyManager.CurrentLanguage,
                     dataProvider,
                     stateManager.Current,
-                    isVisible => propertyManager.ShowProgress = isVisible,
-                    progress => propertyManager.ProgressPercent = progress,
-                    text => propertyManager.ProgressText = text);
+                    new TrackSelectionProgressBindings(
+                        isVisible => propertyManager.ShowProgress = isVisible,
+                        progress => propertyManager.ProgressPercent = progress,
+                        text => propertyManager.ProgressText = text)));
             }
         });
 
@@ -145,12 +142,13 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IHasF
                 await commandHandler.HandleLanguageSelectionAsync(
                     x,
                     dataProvider,
-                    lang => propertyManager.CurrentLanguage = lang,
-                    UpdateSelectedLanguage,
-                    isVisible => propertyManager.ShowProgress = isVisible,
-                    progress => propertyManager.ProgressPercent = progress,
-                    text => propertyManager.ProgressText = text,
-                    busy => propertyManager.IsBusy = busy);
+                    new HandleMusicLanguageSelectionUiCallbacks(
+                        lang => propertyManager.CurrentLanguage = lang,
+                        UpdateSelectedLanguage,
+                        isVisible => propertyManager.ShowProgress = isVisible,
+                        progress => propertyManager.ProgressPercent = progress,
+                        text => propertyManager.ProgressText = text,
+                        busy => propertyManager.IsBusy = busy));
             }
         });
 

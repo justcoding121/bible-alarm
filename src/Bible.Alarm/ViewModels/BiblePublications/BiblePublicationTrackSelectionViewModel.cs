@@ -41,10 +41,7 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
     public BiblePublicationTrackSelectionViewModel(
         ILogger logger,
         IMediaService mediaService,
-        IToastService toastService,
         INavigationService navigationService,
-        IDownloadService downloadService,
-        IMediaUrlRefreshService urlRefreshService,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
         IBiblePublicationService? biblePublicationService = null)

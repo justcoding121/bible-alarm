@@ -103,12 +103,13 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
         // Initialize helper
         stateChangeHandler = new MusicSectionSelectionStateChangeHandler(
             logger,
+            new MusicSectionSelectionStateChangeHandlerCallbacks(
             (code) => lastPublicationCode = code,
             (code) => lastSectionCode = code,
             () => initComplete,
             (b) => IsBusy = b,
             (pub) => _ = Initialize(pub),
-            SetSelectedSection);
+            SetSelectedSection));
 
         // Only subscribe OnMusicSectionChanged to state changes.
         // Do NOT fire-and-forget RefreshFromState here - let the modal's HandleModalAppearingAsync

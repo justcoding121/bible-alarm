@@ -271,14 +271,13 @@ public partial class MediaManager : IDisposable
             return ValueTask.CompletedTask;
         }
         var result = IosMediaManagerSourceUpdater.UpdateSource(
-            MediaElement,
-            Player,
-            PlayerViewController,
-            metaData,
-            PlayerItem,
-            currentItemErrorObserver,
-            NSKeyValueObservingOptions.Initial | NSKeyValueObservingOptions.New,
-            Logger);
+            new IosMediaSourcePlayerContext(MediaElement, Player, PlayerViewController),
+            new IosMediaSourceItemState(
+                metaData,
+                PlayerItem,
+                currentItemErrorObserver,
+                NSKeyValueObservingOptions.Initial | NSKeyValueObservingOptions.New,
+                Logger));
 
         metaData = result.MetaData;
         PlayerItem = result.PlayerItem;

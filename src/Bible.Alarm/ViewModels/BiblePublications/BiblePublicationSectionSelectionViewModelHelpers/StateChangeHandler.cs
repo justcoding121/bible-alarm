@@ -23,22 +23,15 @@ public class StateChangeHandler
     private string? lastLanguageCode;
     private string? lastPublicationCode;
 
-    public StateChangeHandler(
-        ILogger logger,
-        Action<BiblePublicationSchedule> setCurrent,
-        Action<BiblePublicationSchedule> setLastCurrent,
-        Func<bool> getInitComplete,
-        Action<bool> setIsBusy,
-        Action<string, string> initialize,
-        Action setSelectedSection)
+    public StateChangeHandler(ILogger logger, BiblePublicationSectionStateChangeCallbacks callbacks)
     {
         this.logger = logger;
-        this.setCurrent = setCurrent;
-        this.setLastCurrent = setLastCurrent;
-        this.getInitComplete = getInitComplete;
-        this.setIsBusy = setIsBusy;
-        this.initialize = initialize;
-        this.setSelectedSection = setSelectedSection;
+        setCurrent = callbacks.SetCurrent;
+        setLastCurrent = callbacks.SetLastCurrent;
+        getInitComplete = callbacks.GetInitComplete;
+        setIsBusy = callbacks.SetIsBusy;
+        initialize = callbacks.Initialize;
+        setSelectedSection = callbacks.SetSelectedSection;
     }
 
     public void HandleStateChanged(ApplicationState stateValue)

@@ -53,15 +53,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         this.navigationService = navigationService;
     }
 
-    public ICommand CreateSectionSelectionCommand(
-        Func<LanguageListViewItemModel?> getCurrentLanguage,
-        Func<ObservableCollection<PublicationListViewItemModel>> getPublications,
-        Func<Dictionary<string, PublicationListViewItemModel>> getPublicationVMsMapping,
-        Func<BiblePublicationSchedule?> getCurrent,
-        Action<bool> setShowProgress,
-        Action<double> setProgressPercent,
-        Action<string> setProgressText,
-        Action<bool> setIsBusy)
+    public ICommand CreateSectionSelectionCommand(SectionSelectionSelectors selectors, SectionSelectionUiBindings _)
     {
         return new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
@@ -92,7 +84,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             var languageCode = x.IsPublicationWithoutLanguage
                 ? (currentSchedule.BiblePublicationLanguageCode ?? AppConstants.Media.DefaultLanguageCode)
                 : (currentSchedule.BiblePublicationLanguageCode ??
-                   getCurrentLanguage()?.Code ??
+                   selectors.GetCurrentLanguage()?.Code ??
                    x.PublicationLanguageCode ??
                    AppConstants.Media.DefaultLanguageCode);
 

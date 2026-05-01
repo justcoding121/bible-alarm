@@ -445,9 +445,22 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<IScheduleMediaCacheService>(),
             sp.GetRequiredService<IScheduleContainerService>(),
             sp.GetRequiredService<IScheduleStateChangeHandler>())));
-        services.AddTransient<MusicPublicationSelectionViewModel>();
+        services.AddTransient<MusicPublicationSelectionViewModel>(sp => new MusicPublicationSelectionViewModel(new MusicPublicationSelectionViewModelDeps(
+            sp.GetRequiredService<IMediaService>(),
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetRequiredService<IState<ApplicationState>>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<INavigationService>(),
+            sp)));
         services.AddTransient<ViewModels.Music.MusicTrackSelectionViewModel>();
-        services.AddTransient<BiblePublicationSelectionViewModel>();
+        services.AddTransient<BiblePublicationSelectionViewModel>(sp => new BiblePublicationSelectionViewModel(new BiblePublicationSelectionViewModelDeps(
+            sp.GetRequiredService<IMediaService>(),
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetRequiredService<IState<ApplicationState>>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<INavigationService>(),
+            sp,
+            sp.GetService<IBiblePublicationService>())));
         services.AddTransient<CategorySelectionViewModel>();
         services.AddTransient<BiblePublicationSectionSelectionViewModel>();
         services.AddTransient<ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModel>();

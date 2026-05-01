@@ -60,15 +60,17 @@ partial class MediaManager : IDisposable
     public PlatformMediaElement? CreatePlatformView()
     {
         var (mediaPlayer, smtc) = WindowsMediaManagerHeadlessInitializer.CreateHeadlessMediaPlayer(
-            OnMediaElementMediaOpened,
-            OnMediaElementMediaFailed,
-            OnMediaElementMediaEnded,
-            OnMediaElementVolumeChanged,
-            OnMediaElementIsMutedChanged,
-            OnNaturalVideoSizeChanged,
-            OnPlaybackSessionPlaybackRateChanged,
-            OnPlaybackSessionPlaybackStateChanged,
-            OnPlaybackSessionSeekCompleted);
+            new HeadlessMediaPlayerCallbacks(
+                OnMediaElementMediaOpened,
+                OnMediaElementMediaFailed,
+                OnMediaElementMediaEnded,
+                OnMediaElementVolumeChanged,
+                OnMediaElementIsMutedChanged),
+            new HeadlessPlaybackSessionCallbacks(
+                OnNaturalVideoSizeChanged,
+                OnPlaybackSessionPlaybackRateChanged,
+                OnPlaybackSessionPlaybackStateChanged,
+                OnPlaybackSessionSeekCompleted));
 
         Player = null; // No MediaPlayerElement in headless mode
         headlessMediaPlayer = mediaPlayer; // Store the MediaPlayer directly for headless mode

@@ -109,12 +109,13 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         // Initialize helper
         stateChangeHandler = new StateChangeHandler(
             logger,
-            (c) => current = c,
-            (c) => lastCurrent = c,
-            () => initComplete,
-            (b) => IsBusy = b,
-            (lang, pub) => ObserveFaultedTask(Initialize(lang, pub), "Section list Initialize from state change"),
-            SetSelectedSection);
+            new BiblePublicationSectionStateChangeCallbacks(
+                (c) => current = c,
+                (c) => lastCurrent = c,
+                () => initComplete,
+                (b) => IsBusy = b,
+                (lang, pub) => ObserveFaultedTask(Initialize(lang, pub), "Section list Initialize from state change"),
+                SetSelectedSection));
 
         // Only subscribe OnBiblePublicationChanged to state changes
         // OnBiblePublicationInitialized will only be called once manually in the constructor

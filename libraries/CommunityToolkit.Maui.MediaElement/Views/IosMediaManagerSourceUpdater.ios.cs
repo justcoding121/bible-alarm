@@ -14,43 +14,49 @@ using MediaSourceType = CommunityToolkit.Maui.MediaSource.MediaSource;
 
 namespace CommunityToolkit.Maui.Views;
 
+internal readonly record struct IosMediaSourcePlayerContext(
+    IMediaElement MediaElement,
+    AVPlayer Player,
+    AVPlayerViewController? PlayerViewController);
+
+internal readonly record struct IosMediaSourceItemState(
+    Metadata? MetaData,
+    AVPlayerItem? ExistingPlayerItem,
+    IDisposable? CurrentItemErrorObserver,
+    NSKeyValueObservingOptions ValueObserverOptions,
+    ILogger Logger);
+
 internal static class IosMediaManagerSourceUpdater
 {
     internal readonly record struct UpdateResult(Metadata? MetaData, AVPlayerItem? PlayerItem, IDisposable? CurrentItemErrorObserver);
 
-    internal static UpdateResult UpdateSource(
-        IMediaElement mediaElement,
-        AVPlayer player,
-        AVPlayerViewController? playerViewController,
-        Metadata? metaData,
-        AVPlayerItem? existingPlayerItem,
-        IDisposable? currentItemErrorObserver,
-        NSKeyValueObservingOptions valueObserverOptions,
-        ILogger logger)
+    internal static UpdateResult UpdateSource(IosMediaSourcePlayerContext player, IosMediaSourceItemState itemState)
     {
-        metaData ??= new(player);
-        playerViewController?.ContentOverlayView?.Subviews.FirstOrDefault()?.RemoveFromSuperview();
+        var metaData = itemState.MetaData;
+        metaData ??= new(player.Player);
+        player.PlayerViewController?.ContentOverlayView?.Subviews.FirstOrDefault()?.RemoveFromSuperview();
 
-        var asset = CreateAssetFromMediaSource(mediaElement.Source, logger);
+        var asset = CreateAssetFromMediaSource(player.MediaElement.Source, itemState.Logger);
 
         var playerItem = asset is not null ? new AVPlayerItem(asset) : null;
 
         if (playerItem is null)
         {
-            mediaElement.MediaWidth = 0;
-            mediaElement.MediaHeight = 0;
-            mediaElement.Duration = TimeSpan.Zero;
-            mediaElement.Position = TimeSpan.Zero;
-            mediaElement.CurrentStateChanged(MediaElementState.None);
-            _ = existingPlayerItem;
-            return new(metaData, null, DisposeAndClear(currentItemErrorObserver));
+            player.MediaElement.MediaWidth = 0;
+            player.MediaElement.MediaHeight = 0;
+            player.MediaElement.Duration = TimeSpan.Zero;
+            player.MediaElement.Position = TimeSpan.Zero;
+            player.MediaElement.CurrentStateChanged(MediaElementState.None);
+            _ = itemState.ExistingPlayerItem;
+            return new(metaData, null, DisposeAndClear(itemState.CurrentItemErrorObserver));
         }
 
-        (metaData, currentItemErrorObserver) = SetupMetadataAndObservers(metaData, mediaElement, player, playerItem, currentItemErrorObserver, valueObserverOptions, logger);
+        IDisposable? currentItemErrorObserver = itemState.CurrentItemErrorObserver;
+        (metaData, currentItemErrorObserver) = SetupMetadataAndObservers(metaData, player.MediaElement, player.Player, playerItem, currentItemErrorObserver, itemState.ValueObserverOptions, itemState.Logger);
 
         if (playerItem.Error is null)
         {
-            HandleMediaOpened(mediaElement, player, playerItem, metaData, playerViewController);
+            HandleMediaOpened(player.MediaElement, player.Player, playerItem, metaData, player.PlayerViewController);
         }
 
         return new(metaData, playerItem, currentItemErrorObserver);

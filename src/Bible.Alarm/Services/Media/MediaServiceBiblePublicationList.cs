@@ -15,19 +15,35 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
+internal sealed record GetBiblePublicationsServices(
+    IBiblePublicationService BiblePublicationService,
+    ILanguageContentService LanguageContentService,
+    IServiceScopeFactory ScopeFactory);
+
+internal sealed record GetBiblePublicationsOptions(
+    string LanguageCode,
+    string? CategoryName = null,
+    bool DownloadAll = false,
+    IFetchProgress? Progress = null,
+    bool RequireIsMusicForMusicCategory = false,
+    CancellationToken CancellationToken = default);
+
 internal static class MediaServiceBiblePublicationList
 {
     internal static async Task<Dictionary<string, BiblePublication>> GetBiblePublicationsAsync(
-        IBiblePublicationService biblePublicationService,
-        ILanguageContentService languageContentService,
-        IServiceScopeFactory scopeFactory,
-        string languageCode,
-        string? categoryName = null,
-        bool downloadAll = false,
-        IFetchProgress? progress = null,
-        bool requireIsMusicForMusicCategory = false,
-        CancellationToken cancellationToken = default)
+        GetBiblePublicationsServices services,
+        GetBiblePublicationsOptions options)
     {
+        var biblePublicationService = services.BiblePublicationService;
+        var languageContentService = services.LanguageContentService;
+        var scopeFactory = services.ScopeFactory;
+        var languageCode = options.LanguageCode;
+        var categoryName = options.CategoryName;
+        var downloadAll = options.DownloadAll;
+        var progress = options.Progress;
+        var requireIsMusicForMusicCategory = options.RequireIsMusicForMusicCategory;
+        var cancellationToken = options.CancellationToken;
+
         // Step 1: Get all available publication codes from PublicationLanguages (discovery table)
         var availablePublicationCodes = await biblePublicationService.GetAvailablePublicationCodesAsync(
             languageCode, categoryName, requireIsMusicForMusicCategory, cancellationToken);

@@ -85,15 +85,14 @@ public sealed partial class MediaService(MediaServiceDependencies dependencies)
             // This allows cancellation from the UI (e.g., cancel button) to propagate through the call chain
             var cancellationToken = progress?.CancellationToken ?? cancellationTokenSource.Token;
             var result = await MediaServiceBiblePublicationList.GetBiblePublicationsAsync(
-                BiblePublicationService,
-                languageContentService,
-                scopeFactory,
-                languageCode,
-                categoryName,
-                downloadAll,
-                progress,
-                requireIsMusicForMusicCategory,
-                cancellationToken);
+                new GetBiblePublicationsServices(BiblePublicationService, languageContentService, scopeFactory),
+                new GetBiblePublicationsOptions(
+                    languageCode,
+                    categoryName,
+                    downloadAll,
+                    progress,
+                    requireIsMusicForMusicCategory,
+                    cancellationToken));
             
             // Invalidate cache after downloading to ensure selectability checks use fresh data
             if (downloadAll)
@@ -142,15 +141,14 @@ public sealed partial class MediaService(MediaServiceDependencies dependencies)
     {
         await mediaIndexService.Verify();
         return await MediaServiceBiblePublicationList.GetBiblePublicationsAsync(
-            BiblePublicationService,
-            languageContentService,
-            scopeFactory,
-            languageCode,
-            categoryName,
-            downloadAll: false,
-            progress: null,
-            requireIsMusicForMusicCategory,
-            cancellationTokenSource.Token);
+            new GetBiblePublicationsServices(BiblePublicationService, languageContentService, scopeFactory),
+            new GetBiblePublicationsOptions(
+                languageCode,
+                categoryName,
+                DownloadAll: false,
+                Progress: null,
+                RequireIsMusicForMusicCategory: requireIsMusicForMusicCategory,
+                CancellationToken: cancellationTokenSource.Token));
     }
 
     /// <summary>

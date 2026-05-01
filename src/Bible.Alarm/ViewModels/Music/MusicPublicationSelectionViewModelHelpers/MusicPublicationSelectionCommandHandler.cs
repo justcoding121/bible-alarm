@@ -29,15 +29,15 @@ public sealed class MusicPublicationSelectionCommandHandler(
     IMediaService mediaService,
     ILanguageNameService languageNameService)
 {
-    public async Task HandleTrackSelectionAsync(
-        PublicationListViewItemModel songPublication,
-        LanguageListViewItemModel? currentLanguage,
-        MusicPublicationSelectionDataProvider dataProvider,
-        AlarmMusic? current,
-        Action<bool> setShowProgress,
-        Action<double> setProgressPercent,
-        Action<string> setProgressText)
+    public async Task HandleTrackSelectionAsync(HandleMusicPublicationTrackSelectionArgs args)
     {
+        var songPublication = args.SongPublication;
+        var currentLanguage = args.CurrentLanguage;
+        var dataProvider = args.DataProvider;
+        var setShowProgress = args.Progress.SetShowProgress;
+        var setProgressPercent = args.Progress.SetProgressPercent;
+        var setProgressText = args.Progress.SetProgressText;
+
         if (songPublication == null)
         {
             return;
@@ -199,16 +199,18 @@ public sealed class MusicPublicationSelectionCommandHandler(
             // For melody music, LanguageCode is null (stored as null in DB)
             // For vocal music, LanguageCode is the selected language
             var trackSelectedItem = CreateMusicStateItemForSongPublication(
-                songPublication,
-                isMelodyMusic ? null : languageCode,
-                trackCode,
-                trackName,
-                isMelodyMusic ? null : currentLanguage,
-                currentSchedule,
-                sectionCode,
-                sectionName,
-                resolvedLanguageName,
-                resolvedLanguageDirection);
+                new SongPublicationMusicStateCore(
+                    songPublication,
+                    isMelodyMusic ? null : languageCode,
+                    trackCode,
+                    trackName,
+                    isMelodyMusic ? null : currentLanguage,
+                    currentSchedule),
+                new SongPublicationMusicStateExtras(
+                    sectionCode,
+                    sectionName,
+                    resolvedLanguageName,
+                    resolvedLanguageDirection));
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
             
             // Wait for cascade to complete - check for the SPECIFIC publication we just dispatched
@@ -254,13 +256,15 @@ public sealed class MusicPublicationSelectionCommandHandler(
     public async Task HandleLanguageSelectionAsync(
         LanguageListViewItemModel language,
         MusicPublicationSelectionDataProvider dataProvider,
-        Action<LanguageListViewItemModel?> setCurrentLanguage,
-        Action<LanguageListViewItemModel> updateSelectedLanguage,
-        Action<bool> setShowProgress,
-        Action<double> setProgressPercent,
-        Action<string> setProgressText,
-        Action<bool> setIsBusy)
+        HandleMusicLanguageSelectionUiCallbacks ui)
     {
+        var setCurrentLanguage = ui.SetCurrentLanguage;
+        var updateSelectedLanguage = ui.UpdateSelectedLanguage;
+        var setShowProgress = ui.SetShowProgress;
+        var setProgressPercent = ui.SetProgressPercent;
+        var setProgressText = ui.SetProgressText;
+        var setIsBusy = ui.SetIsBusy;
+
         if (language == null)
         {
             return;
@@ -342,37 +346,43 @@ public sealed class MusicPublicationSelectionCommandHandler(
         await navigationService.PopModalAsync();
     }
 
+    private sealed record SongPublicationMusicStateCore(
+        PublicationListViewItemModel SongPublication,
+        string? LanguageCode,
+        string TrackCode,
+        string TrackName,
+        LanguageListViewItemModel? CurrentLanguage,
+        ScheduleStateItem? CurrentSchedule);
+
+    private sealed record SongPublicationMusicStateExtras(
+        string? SectionCode,
+        string? SectionName,
+        string? LanguageNameOverride,
+        string? LanguageDirectionOverride);
+
     private static MusicStateItem CreateMusicStateItemForSongPublication(
-        PublicationListViewItemModel songPublication,
-        string? languageCode,
-        string trackCode,
-        string trackName,
-        LanguageListViewItemModel? currentLanguage,
-        ScheduleStateItem? currentSchedule,
-        string? sectionCode = null,
-        string? sectionName = null,
-        string? languageNameOverride = null,
-        string? languageDirectionOverride = null)
+        SongPublicationMusicStateCore core,
+        SongPublicationMusicStateExtras extras)
     {
-        string? languageName = languageNameOverride;
-        if (currentLanguage != null)
+        string? languageName = extras.LanguageNameOverride;
+        if (core.CurrentLanguage != null)
         {
-            languageName = currentLanguage.Name;
+            languageName = core.CurrentLanguage.Name;
         }
 
-        var languageDirection = currentLanguage?.Direction ?? languageDirectionOverride;
+        var languageDirection = core.CurrentLanguage?.Direction ?? extras.LanguageDirectionOverride;
         return new MusicStateItem
         {
-            Repeat = currentSchedule?.MusicRepeat ?? false,
-            LanguageCode = languageCode,
-            PublicationCode = songPublication.Code,
-            SectionCode = sectionCode,
-            TrackCode = trackCode,
+            Repeat = core.CurrentSchedule?.MusicRepeat ?? false,
+            LanguageCode = core.LanguageCode,
+            PublicationCode = core.SongPublication.Code,
+            SectionCode = extras.SectionCode,
+            TrackCode = core.TrackCode,
             LanguageName = languageName,
             LanguageDirection = languageDirection,
-            PublicationName = songPublication.Name,
-            SectionName = sectionName,
-            TrackName = trackName
+            PublicationName = core.SongPublication.Name,
+            SectionName = extras.SectionName,
+            TrackName = core.TrackName
         };
     }
 

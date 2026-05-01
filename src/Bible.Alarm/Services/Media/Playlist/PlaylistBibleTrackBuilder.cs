@@ -42,6 +42,19 @@ public class PlaylistBiblePublicationTrackBuilder
 
     public record TrackInfo(string PublicationCode, string? SectionCode, BiblePublicationTrack Track, string Url);
 
+    private sealed record CreateTrackMetadataScheduleContext(
+        int ScheduleId,
+        BiblePublicationSchedule BiblePublicationSchedule,
+        AlarmSchedule Schedule,
+        int RemainingTracks,
+        bool MarkedSeekTrack,
+        bool IsIndefinite);
+
+    private sealed record CreateTrackMetadataIdentity(
+        string PublicationCode,
+        string? SectionCode,
+        string TrackCode);
+
     public async Task<List<PlayItem>> BuildBiblePublicationTracks(
         int scheduleId,
         AlarmSchedule schedule,
@@ -64,15 +77,17 @@ public class PlaylistBiblePublicationTrackBuilder
         while (numberOfTracksToRead > 0)
         {
             var (trackMetadata, updatedMarkedSeekTrack) = await CreateTrackMetadataAsync(
-                scheduleId,
-                biblePublicationSchedule,
-                currentPublicationCode,
-                currentSectionCode,
-                TrackCodeHelper.GetFromTrack(currentTrack),
-                numberOfTracksToRead,
-                schedule,
-                markedSeekTrack,
-                isIndefinite);
+                new CreateTrackMetadataScheduleContext(
+                    scheduleId,
+                    biblePublicationSchedule,
+                    schedule,
+                    numberOfTracksToRead,
+                    markedSeekTrack,
+                    isIndefinite),
+                new CreateTrackMetadataIdentity(
+                    currentPublicationCode,
+                    currentSectionCode,
+                    TrackCodeHelper.GetFromTrack(currentTrack)));
             markedSeekTrack = updatedMarkedSeekTrack;
 
             result.Add(new PlayItem(trackMetadata, currentUrl));
@@ -269,70 +284,64 @@ public class PlaylistBiblePublicationTrackBuilder
     }
 
     private async Task<(TrackMetadata TrackMetadata, bool MarkedSeekTrack)> CreateTrackMetadataAsync(
-        int scheduleId,
-        BiblePublicationSchedule biblePublicationSchedule,
-        string publicationCode,
-        string? sectionCode,
-        string trackCode,
-        int remainingTracks,
-        AlarmSchedule schedule,
-        bool markedSeekTrack,
-        bool isIndefinite)
+        CreateTrackMetadataScheduleContext ctx,
+        CreateTrackMetadataIdentity id)
     {
         // Check if this is a no-language publication (e.g., instrumental music)
         var isNoLanguagePublication = biblePublicationService != null &&
-            await biblePublicationService.IsNoLanguagePublicationAsync(publicationCode);
-        var effectiveLanguageCode = ResolvePlaybackLanguageCode(isNoLanguagePublication, biblePublicationSchedule.LanguageCode);
+            await biblePublicationService.IsNoLanguagePublicationAsync(id.PublicationCode);
+        var effectiveLanguageCode = ResolvePlaybackLanguageCode(isNoLanguagePublication, ctx.BiblePublicationSchedule.LanguageCode);
 
         var trackMetadata = new TrackMetadata
         {
-            ScheduleId = scheduleId,
+            ScheduleId = ctx.ScheduleId,
             IsBibleContent = true,
-            PublicationCode = publicationCode,
+            PublicationCode = id.PublicationCode,
             LanguageCode = effectiveLanguageCode,
-            SectionCode = sectionCode,
-            TrackCode = trackCode,
+            SectionCode = id.SectionCode,
+            TrackCode = id.TrackCode,
             // In finite mode, mark the last track so playback stops/dismisses after the session.
             // In indefinite mode, never mark a track as last.
-            IsLastTrack = !isIndefinite && remainingTracks == 1
+            IsLastTrack = !ctx.IsIndefinite && ctx.RemainingTracks == 1
         };
 
         // Lookup path from media index only (we only play cataloged tracks)
         var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-            publicationCode,
+            id.PublicationCode,
             effectiveLanguageCode,
-            sectionCode,
-            trackCode);
+            id.SectionCode,
+            id.TrackCode);
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
-                $"Track not found in media index: pub={publicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? MissingSectionDiagnosticToken}, track={trackCode}. Only cataloged tracks can be played.");
+                $"Track not found in media index: pub={id.PublicationCode}, lang={effectiveLanguageCode}, section={id.SectionCode ?? MissingSectionDiagnosticToken}, track={id.TrackCode}. Only cataloged tracks can be played.");
         }
         trackMetadata.LookUpPath = lookUpPath;
 
         // So alarm modal shows full track title for disc-style melody (e.g. iam): DisplayMetadataService needs DownloadCode/OriginalTrackCode.
-        ApplyDiscStyleDisplayMetadata(trackMetadata, sectionCode, trackCode);
+        ApplyDiscStyleDisplayMetadata(trackMetadata, id.SectionCode, id.TrackCode);
 
-        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata, sectionCode, isNoLanguagePublication);
+        var markedSeekTrack = ctx.MarkedSeekTrack;
+        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, ctx.Schedule, ctx.BiblePublicationSchedule, trackMetadata, id.SectionCode, isNoLanguagePublication);
         logger.Information(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.ShouldSetFinishedDurationDetails,
             shouldSet,
             markedSeekTrack,
-            schedule.AlwaysPlayFromStart,
-            biblePublicationSchedule.FinishedDuration,
-            scheduleId,
-            trackCode,
-            sectionCode ?? LogNullPlaceholder);
+            ctx.Schedule.AlwaysPlayFromStart,
+            ctx.BiblePublicationSchedule.FinishedDuration,
+            ctx.ScheduleId,
+            id.TrackCode,
+            id.SectionCode ?? LogNullPlaceholder);
 
         if (shouldSet)
         {
-            trackMetadata.FinishedDuration = biblePublicationSchedule.FinishedDuration;
+            trackMetadata.FinishedDuration = ctx.BiblePublicationSchedule.FinishedDuration;
             markedSeekTrack = true;
-            logger.Information(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.SetTrackFinishedDurationForSchedule, trackMetadata.FinishedDuration, scheduleId);
+            logger.Information(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.SetTrackFinishedDurationForSchedule, trackMetadata.FinishedDuration, ctx.ScheduleId);
         }
-        else if (!markedSeekTrack && biblePublicationSchedule.FinishedDuration > TimeSpan.Zero)
+        else if (!markedSeekTrack && ctx.BiblePublicationSchedule.FinishedDuration > TimeSpan.Zero)
         {
             logger.Warning(AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.FinishedDurationInDbButShouldSetFalse,
-                biblePublicationSchedule.FinishedDuration, scheduleId, schedule.AlwaysPlayFromStart);
+                ctx.BiblePublicationSchedule.FinishedDuration, ctx.ScheduleId, ctx.Schedule.AlwaysPlayFromStart);
         }
 
         return (trackMetadata, markedSeekTrack);

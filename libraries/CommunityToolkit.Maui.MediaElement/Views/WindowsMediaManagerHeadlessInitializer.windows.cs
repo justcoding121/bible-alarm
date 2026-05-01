@@ -9,25 +9,31 @@ using WindowsMediaElement = Windows.Media.Playback.MediaPlayer;
 
 namespace CommunityToolkit.Maui.Views;
 
+internal readonly record struct HeadlessMediaPlayerCallbacks(
+    TypedEventHandler<WindowsMediaElement, object> MediaOpened,
+    TypedEventHandler<WindowsMediaElement, MediaPlayerFailedEventArgs> MediaFailed,
+    TypedEventHandler<WindowsMediaElement, object> MediaEnded,
+    TypedEventHandler<WindowsMediaElement, object> VolumeChanged,
+    TypedEventHandler<WindowsMediaElement, object> IsMutedChanged);
+
+internal readonly record struct HeadlessPlaybackSessionCallbacks(
+    TypedEventHandler<MediaPlaybackSession, object> NaturalVideoSizeChanged,
+    TypedEventHandler<MediaPlaybackSession, object> PlaybackRateChanged,
+    TypedEventHandler<MediaPlaybackSession, object> PlaybackStateChanged,
+    TypedEventHandler<MediaPlaybackSession, object> SeekCompleted);
+
 internal static class WindowsMediaManagerHeadlessInitializer
 {
     internal static (WindowsMediaElement MediaPlayer, SystemMediaTransportControls SystemMediaControls) CreateHeadlessMediaPlayer(
-        TypedEventHandler<WindowsMediaElement, object> mediaOpened,
-        TypedEventHandler<WindowsMediaElement, MediaPlayerFailedEventArgs> mediaFailed,
-        TypedEventHandler<WindowsMediaElement, object> mediaEnded,
-        TypedEventHandler<WindowsMediaElement, object> volumeChanged,
-        TypedEventHandler<WindowsMediaElement, object> isMutedChanged,
-        TypedEventHandler<MediaPlaybackSession, object> naturalVideoSizeChanged,
-        TypedEventHandler<MediaPlaybackSession, object> playbackRateChanged,
-        TypedEventHandler<MediaPlaybackSession, object> playbackStateChanged,
-        TypedEventHandler<MediaPlaybackSession, object> seekCompleted)
+        HeadlessMediaPlayerCallbacks playerCallbacks,
+        HeadlessPlaybackSessionCallbacks sessionCallbacks)
     {
         WindowsMediaElement mediaPlayer = new();
-        mediaPlayer.MediaOpened += mediaOpened;
-        mediaPlayer.MediaFailed += mediaFailed;
-        mediaPlayer.MediaEnded += mediaEnded;
-        mediaPlayer.VolumeChanged += volumeChanged;
-        mediaPlayer.IsMutedChanged += isMutedChanged;
+        mediaPlayer.MediaOpened += playerCallbacks.MediaOpened;
+        mediaPlayer.MediaFailed += playerCallbacks.MediaFailed;
+        mediaPlayer.MediaEnded += playerCallbacks.MediaEnded;
+        mediaPlayer.VolumeChanged += playerCallbacks.VolumeChanged;
+        mediaPlayer.IsMutedChanged += playerCallbacks.IsMutedChanged;
 
         // Set up system media transport controls for headless mode
         // Enable SMTC to show native Windows media controls (taskbar, lock screen, volume flyout)
@@ -43,10 +49,10 @@ internal static class WindowsMediaManagerHeadlessInitializer
         systemMediaControls.PlaybackStatus = MediaPlaybackStatus.Stopped;
 
         // Set up event handlers for headless mode
-        mediaPlayer.PlaybackSession.NaturalVideoSizeChanged += naturalVideoSizeChanged;
-        mediaPlayer.PlaybackSession.PlaybackRateChanged += playbackRateChanged;
-        mediaPlayer.PlaybackSession.PlaybackStateChanged += playbackStateChanged;
-        mediaPlayer.PlaybackSession.SeekCompleted += seekCompleted;
+        mediaPlayer.PlaybackSession.NaturalVideoSizeChanged += sessionCallbacks.NaturalVideoSizeChanged;
+        mediaPlayer.PlaybackSession.PlaybackRateChanged += sessionCallbacks.PlaybackRateChanged;
+        mediaPlayer.PlaybackSession.PlaybackStateChanged += sessionCallbacks.PlaybackStateChanged;
+        mediaPlayer.PlaybackSession.SeekCompleted += sessionCallbacks.SeekCompleted;
 
         return (mediaPlayer, systemMediaControls);
     }

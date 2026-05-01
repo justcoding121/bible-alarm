@@ -45,24 +45,18 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IHasF
     public ICommand SelectLanguageCommand { get; set; }
     public ICommand CancelFetchCommand { get; }
 
-    public BiblePublicationSelectionViewModel(
-        IMediaService mediaService,
-        IServiceScopeFactory scopeFactory,
-        IState<ApplicationState> state,
-        IDispatcher dispatcher,
-        INavigationService navigationService,
-        IServiceProvider serviceProvider,
-        IBiblePublicationService? biblePublicationService = null)
+    public BiblePublicationSelectionViewModel(BiblePublicationSelectionViewModelDeps deps)
     {
-        this.state = state;
-        this.navigationService = navigationService;
+        state = deps.ApplicationState;
+        navigationService = deps.NavigationService;
 
         // Initialize services
+        var serviceProvider = deps.ServiceProvider;
         var languageNameService = serviceProvider.GetRequiredService<ILanguageNameService>();
-        dataProvider = new BiblePublicationSelectionDataProvider(mediaService, languageNameService, state, dispatcher);
-        stateHandler = new BiblePublicationSelectionStateHandler(state, dataProvider, scopeFactory);
+        dataProvider = new BiblePublicationSelectionDataProvider(deps.MediaService, languageNameService, state, deps.Dispatcher);
+        stateHandler = new BiblePublicationSelectionStateHandler(state, dataProvider, deps.ScopeFactory);
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
-        var commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, biblePublicationService, languageContentService);
+        var commandHandler = new BiblePublicationSelectionCommandHandler(deps.MediaService, state, deps.Dispatcher, navigationService, deps.BiblePublicationService, languageContentService);
         propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);
         SetupPropertyManagerForwarding();
 
@@ -103,14 +97,16 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IHasF
 
         // Initialize commands
         SectionSelectionCommand = commandHandler.CreateSectionSelectionCommand(
-            () => propertyManager.CurrentLanguage,
-            () => propertyManager.Publications,
-            () => dataProvider.GetPublicationVMsMapping(),
-            () => stateHandler.Current,
-            isVisible => propertyManager.ShowProgress = isVisible,
-            progress => propertyManager.ProgressPercent = progress,
-            text => propertyManager.ProgressText = text,
-            busy => propertyManager.IsBusy = busy);
+            new SectionSelectionSelectors(
+                () => propertyManager.CurrentLanguage,
+                () => propertyManager.Publications,
+                () => dataProvider.GetPublicationVMsMapping(),
+                () => stateHandler.Current),
+            new SectionSelectionUiBindings(
+                isVisible => propertyManager.ShowProgress = isVisible,
+                progress => propertyManager.ProgressPercent = progress,
+                text => propertyManager.ProgressText = text,
+                busy => propertyManager.IsBusy = busy));
 
         BackCommand = commandHandler.CreateBackCommand();
         CloseModalCommand = commandHandler.CreateCloseModalCommand();
