@@ -94,36 +94,11 @@ public class CommandHandler
                 // Run on the UI thread so overlay, navigation, and Schedule page creation (Syncfusion/WinUI) run on the correct thread.
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    try
-                    {
-                        if (shouldSkipNavigation(x))
-                        {
-                            return;
-                        }
-
-                        await showOverlayAndNavigateAsync(x);
-
 #if DEBUG
-                        var commandEndTime = DateTime.UtcNow;
-                        Log.Information(AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.PerfNavigationCompletedTotalMs,
-                            (commandEndTime - commandStartTime).TotalMilliseconds);
+                    await ExecuteViewScheduleOnMainThreadAsync(x, hideProgressBar, commandStartTime);
+#else
+                    await ExecuteViewScheduleOnMainThreadAsync(x, hideProgressBar);
 #endif
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Cancellation is expected (e.g. user navigated away)
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.ViewScheduleFailedForScheduleId, x.Schedule?.Id);
-                        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-                    }
-                    finally
-                    {
-                        x.IsNavigating = false;
-                        if (hideProgressBar != null)
-                            await hideProgressBar();
-                    }
                 });
             }
             catch (Exception ex)
@@ -137,6 +112,49 @@ public class CommandHandler
                 });
             }
         });
+    }
+
+#if DEBUG
+    private async Task ExecuteViewScheduleOnMainThreadAsync(
+        ScheduleListItemViewModel x,
+        Func<Task>? hideProgressBar,
+        DateTime commandStartTime)
+#else
+    private async Task ExecuteViewScheduleOnMainThreadAsync(
+        ScheduleListItemViewModel x,
+        Func<Task>? hideProgressBar)
+#endif
+    {
+        try
+        {
+            if (shouldSkipNavigation(x))
+            {
+                return;
+            }
+
+            await showOverlayAndNavigateAsync(x);
+
+#if DEBUG
+            var commandEndTime = DateTime.UtcNow;
+            Log.Information(AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.PerfNavigationCompletedTotalMs,
+                (commandEndTime - commandStartTime).TotalMilliseconds);
+#endif
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is expected (e.g. user navigated away)
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.ViewScheduleFailedForScheduleId, x.Schedule?.Id);
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+        }
+        finally
+        {
+            x.IsNavigating = false;
+            if (hideProgressBar != null)
+                await hideProgressBar();
+        }
     }
 
     public ICommand CreateOpenAlarmSettingsCommand()

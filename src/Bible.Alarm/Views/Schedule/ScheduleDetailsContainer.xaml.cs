@@ -33,28 +33,46 @@ public partial class ScheduleDetailsContainer : ContentView
 
     private void WireUpButtonHandlers()
     {
-        // Find all buttons in the day selection FlexLayout and add Clicked handlers
-        if (Content is Grid mainGrid)
+        if (Content is not Grid mainGrid)
         {
-            foreach (var child in mainGrid.Children)
+            return;
+        }
+
+        foreach (var child in mainGrid.Children)
+        {
+            if (child is FlexLayout flexLayout)
             {
-                if (child is FlexLayout flexLayout)
-                {
-                    foreach (var flexChild in flexLayout.Children)
-                    {
-                        if (flexChild is Border border && border.Content is Button button)
-                        {
-                            button.Clicked -= OnDayButtonClicked; // Remove first to avoid duplicates
-                            button.Clicked += OnDayButtonClicked;
-                        }
-                        else if (flexChild is Border borderWithLayout && borderWithLayout.Content is Layout borderLayout)
-                        {
-                            FindButtonsInLayout(borderLayout);
-                        }
-                    }
-                }
+                WireDayButtonsInFlexLayout(flexLayout);
             }
         }
+    }
+
+    private void WireDayButtonsInFlexLayout(FlexLayout flexLayout)
+    {
+        foreach (var flexChild in flexLayout.Children)
+        {
+            WireDayButtonFromFlexChild(flexChild);
+        }
+    }
+
+    private void WireDayButtonFromFlexChild(IView flexChild)
+    {
+        if (flexChild is Border border && border.Content is Button button)
+        {
+            AttachDayButtonHandler(button);
+            return;
+        }
+
+        if (flexChild is Border borderWithLayout && borderWithLayout.Content is Layout borderLayout)
+        {
+            FindButtonsInLayout(borderLayout);
+        }
+    }
+
+    private void AttachDayButtonHandler(Button button)
+    {
+        button.Clicked -= OnDayButtonClicked;
+        button.Clicked += OnDayButtonClicked;
     }
 
     private void FindButtonsInLayout(Layout layout)
@@ -63,8 +81,7 @@ public partial class ScheduleDetailsContainer : ContentView
         {
             if (child is Button button)
             {
-                button.Clicked -= OnDayButtonClicked; // Remove first to avoid duplicates
-                button.Clicked += OnDayButtonClicked;
+                AttachDayButtonHandler(button);
             }
             else if (child is Layout childLayout)
             {

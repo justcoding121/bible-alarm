@@ -124,7 +124,6 @@ public sealed partial class ScheduleDetailsContainerViewModel : ObservableObject
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        // Prevent re-entrant calls to avoid cycles
         if (isProcessingStateChange)
         {
             return;
@@ -136,82 +135,111 @@ public sealed partial class ScheduleDetailsContainerViewModel : ObservableObject
             var stateValue = state.Value;
             var currentSchedule = stateValue.CurrentSchedule;
 
-            // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
-            // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-            if (hasSignaledReady && !stateValue.ContainerReadiness.ScheduleDetails && currentSchedule != null)
+            if (TryHandleContainerReadinessReset(currentSchedule, stateValue))
             {
-                hasSignaledReady = false;
-                isReadyActionQueued = false; // Reset queued flag as well
-                // Re-initialize and signal ready again
-                InitializeFromState();
                 return;
             }
 
-            // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
-            // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
-            if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
+            if (TryInitializeWhenScheduleAppears(currentSchedule))
             {
-                InitializeFromState();
                 return;
             }
 
-            // Reset hasSignaledReady when schedule ID changes to a different positive ID (existing schedule opened)
-            if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
+            if (TryReinitializeWhenScheduleIdChanges(currentSchedule))
             {
-                hasSignaledReady = false;
-                // Reset queued flag as well
-                isReadyActionQueued = false;
-                InitializeFromState();
                 return;
             }
 
-            // Only update properties if they changed (don't re-initialize)
             if (currentSchedule != null)
             {
-                if (!hasSignaledReady)
-                {
-                    // Handle case where InitializeFromState hasn't been called yet
-                    InitializeFromState();
-                }
-                else
-                {
-                    // Update individual properties when they change (after initialization)
-                    if (isEnabled != currentSchedule.IsEnabled)
-                    {
-                        isEnabled = currentSchedule.IsEnabled;
-                        OnPropertyChanged(nameof(IsEnabled));
-                    }
-                    if (time != new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second))
-                    {
-                        time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
-                        OnPropertyChanged(nameof(Time));
-                    }
-                    // Preserve WeekDays if state has it as 0 but local has a valid value
-                    // This prevents state updates from clearing WeekDays after page load
-                    if (currentSchedule.DaysOfWeek == 0 && daysOfWeek != 0)
-                    {
-                        // State has invalid WeekDays, preserve local value
-                        // Dispatch update to fix state (but don't save)
-                        logger.Warning("ScheduleDetailsContainerViewModel: State has DaysOfWeek=0 but local has {LocalDaysOfWeek}. Preserving local value and fixing state.",
-                            daysOfWeek);
-                        DispatchScheduleUpdate(s => s.DaysOfWeek = daysOfWeek);
-                    }
-                    else if (daysOfWeek != currentSchedule.DaysOfWeek)
-                    {
-                        daysOfWeek = currentSchedule.DaysOfWeek;
-                        OnPropertyChanged(nameof(DaysOfWeek));
-                    }
-                    if (name != currentSchedule.Name)
-                    {
-                        name = currentSchedule.Name;
-                        OnPropertyChanged(nameof(Name));
-                    }
-                }
+                SyncFromCurrentSchedule(currentSchedule);
             }
         }
         finally
         {
             isProcessingStateChange = false;
+        }
+    }
+
+    private bool TryHandleContainerReadinessReset(ScheduleStateItem? currentSchedule, ApplicationState stateValue)
+    {
+        if (!(hasSignaledReady && !stateValue.ContainerReadiness.ScheduleDetails && currentSchedule != null))
+        {
+            return false;
+        }
+
+        hasSignaledReady = false;
+        isReadyActionQueued = false;
+        InitializeFromState();
+        return true;
+    }
+
+    private bool TryInitializeWhenScheduleAppears(ScheduleStateItem? currentSchedule)
+    {
+        if (!(scheduleId == 0 && currentSchedule != null && !hasSignaledReady))
+        {
+            return false;
+        }
+
+        InitializeFromState();
+        return true;
+    }
+
+    private bool TryReinitializeWhenScheduleIdChanges(ScheduleStateItem? currentSchedule)
+    {
+        if (currentSchedule == null || currentSchedule.Id == scheduleId || currentSchedule.Id <= 0)
+        {
+            return false;
+        }
+
+        hasSignaledReady = false;
+        isReadyActionQueued = false;
+        InitializeFromState();
+        return true;
+    }
+
+    private void SyncFromCurrentSchedule(ScheduleStateItem currentSchedule)
+    {
+        if (!hasSignaledReady)
+        {
+            InitializeFromState();
+            return;
+        }
+
+        SyncScheduleFieldsAfterInitialization(currentSchedule);
+    }
+
+    private void SyncScheduleFieldsAfterInitialization(ScheduleStateItem currentSchedule)
+    {
+        if (isEnabled != currentSchedule.IsEnabled)
+        {
+            isEnabled = currentSchedule.IsEnabled;
+            OnPropertyChanged(nameof(IsEnabled));
+        }
+
+        var scheduleTime = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
+        if (time != scheduleTime)
+        {
+            time = scheduleTime;
+            OnPropertyChanged(nameof(Time));
+        }
+
+        if (currentSchedule.DaysOfWeek == 0 && daysOfWeek != 0)
+        {
+            logger.Warning("ScheduleDetailsContainerViewModel: State has DaysOfWeek=0 but local has {LocalDaysOfWeek}. Preserving local value and fixing state.",
+                daysOfWeek);
+            DispatchScheduleUpdate(s => s.DaysOfWeek = daysOfWeek);
+        }
+        else if (daysOfWeek != currentSchedule.DaysOfWeek)
+        {
+            daysOfWeek = currentSchedule.DaysOfWeek;
+            OnPropertyChanged(nameof(DaysOfWeek));
+        }
+
+        if (name != currentSchedule.Name)
+        {
+            name = currentSchedule.Name;
+            OnPropertyChanged(nameof(Name));
         }
     }
 

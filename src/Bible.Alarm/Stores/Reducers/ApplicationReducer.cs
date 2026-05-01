@@ -54,61 +54,16 @@ public static class ApplicationReducer
 
         LogUpdateStart(action);
 
-        // Only update the Schedules collection if shouldSave is true (changes are being saved)
-        // When shouldSave is false, only update CurrentSchedule to avoid triggering Android Auto updates
-        // IMPORTANT: Create new collection to maintain immutability
-        ObservableHashSet<ScheduleStateItem>? newSchedules = null;
-        if (action.ShouldSave)
-        {
-            newSchedules = new ObservableHashSet<ScheduleStateItem>();
-            if (state.Schedules != null)
-            {
-                foreach (var scheduleItem in state.Schedules)
-                {
-                    if (scheduleItem.Id == action.Schedule.Id)
-                    {
-                        // Create new schedule item with updated properties (immutable update)
-                        DisplayNamePreservationHelper.PreserveDisplayNamesFromExisting(action.Schedule, scheduleItem);
-                        var updatedSchedule = action.Schedule.DeepClone();
-                        newSchedules.Add(updatedSchedule);
-                    }
-                    else
-                    {
-                        // Keep existing schedule unchanged
-                        newSchedules.Add(scheduleItem);
-                    }
-                }
-            }
-
-            // If schedule not found in collection and has valid ID, add it
-            if (!newSchedules.Any(s => s.Id == action.Schedule.Id))
-            {
-                // Only add to Schedules collection if the schedule has a valid ID (Id > 0)
-                // Unsaved schedules (Id=0) should not be in the Schedules collection
-                // They should only exist in CurrentSchedule until saved
-                if (action.Schedule.Id > 0)
-                {
-                    newSchedules.Add(action.Schedule.DeepClone());
-                }
-                else
-                {
-                    Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelSkippingAddUnsavedScheduleIdZero);
-                }
-            }
-        }
-        // else: ShouldSave=false means only update CurrentSchedule, not Schedules collection
+        var newSchedules = BuildUpdatedSchedulesCollectionIfSaving(state, action.Schedule, action.ShouldSave);
 
         var updatedCurrentSchedule = ScheduleStateSyncHelper.UpdateCurrentScheduleIfMatches(state, action.Schedule);
 
-        // Check if state actually changed to prevent unnecessary state updates and cycles
-        // If CurrentSchedule wasn't updated (same reference), return existing state
         if (newSchedules == null && ReferenceEquals(updatedCurrentSchedule, state.CurrentSchedule))
         {
             Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelCurrentScheduleValuesUnchangedReturningExisting, action.Schedule.Id);
             return state;
         }
 
-        // Create new state with new Schedules collection if it was updated, otherwise use existing
         if (newSchedules != null)
         {
             return new ApplicationState(
@@ -119,10 +74,8 @@ public static class ApplicationReducer
                 containerReadiness: state.ContainerReadiness,
                 pendingScheduleLoad: state.PendingScheduleLoad);
         }
-        else
-        {
-            return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
-        }
+
+        return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
     }
 
     private static void LogUpdateStart(UpdateScheduleFromViewModelAction action)
@@ -133,6 +86,45 @@ public static class ApplicationReducer
             action.Schedule.BiblePublicationLanguageName ?? "null",
             action.Schedule.BiblePublicationCode ?? "null",
             action.Schedule.BiblePublicationName ?? "null");
+    }
+
+    private static ObservableHashSet<ScheduleStateItem>? BuildUpdatedSchedulesCollectionIfSaving(
+        ApplicationState state,
+        ScheduleStateItem scheduleFromAction,
+        bool shouldSave)
+    {
+        if (!shouldSave)
+        {
+            return null;
+        }
+
+        var newSchedules = new ObservableHashSet<ScheduleStateItem>();
+        foreach (var scheduleItem in state.Schedules!)
+        {
+            if (scheduleItem.Id == scheduleFromAction.Id)
+            {
+                DisplayNamePreservationHelper.PreserveDisplayNamesFromExisting(scheduleFromAction, scheduleItem);
+                newSchedules.Add(scheduleFromAction.DeepClone());
+            }
+            else
+            {
+                newSchedules.Add(scheduleItem);
+            }
+        }
+
+        if (!newSchedules.Any(s => s.Id == scheduleFromAction.Id))
+        {
+            if (scheduleFromAction.Id > 0)
+            {
+                newSchedules.Add(scheduleFromAction.DeepClone());
+            }
+            else
+            {
+                Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelSkippingAddUnsavedScheduleIdZero);
+            }
+        }
+
+        return newSchedules;
     }
 
     // REMOVED: UpdateScheduleInCollection - This method was mutating existing state objects.
@@ -390,128 +382,118 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnBiblePublicationTrackSelected(ApplicationState state, Actions.BiblePublications.TrackSelectedAction action)
     {
-        // IMPORTANT: Update CurrentSchedule synchronously here to ensure schedule page shows
+        // IMPORTANT: Update CurrentSchedule synchronously here so the schedule page shows
         // the new selection immediately when modal closes. The async effect runs too late.
-        // Must update ALL bible publication fields to prevent ViewModels from reading stale state
-        // and dispatching actions that revert the user's selection (causing state cycles).
         var updatedCurrentSchedule = state.CurrentSchedule;
         if (updatedCurrentSchedule != null && action.CurrentBiblePublicationSchedule != null)
         {
-            var biblePub = action.CurrentBiblePublicationSchedule;
-            var previous = updatedCurrentSchedule;
-            updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
-            
-            var publicationChanged = !string.Equals(previous.BiblePublicationCode, biblePub.PublicationCode, StringComparison.OrdinalIgnoreCase);
-            var sectionChanged = !string.Equals(previous.BiblePublicationSectionCode, biblePub.SectionCode, StringComparison.OrdinalIgnoreCase);
-            var trackChanged = previous.BiblePublicationTrackCode != biblePub.TrackCode;
-
-            // Update ALL bible publication fields to ensure CurrentSchedule is fully in sync
-            // This prevents ViewModels from reading stale values when they dispatch updates
-            updatedCurrentSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : updatedCurrentSchedule.BiblePublicationScheduleId;
-            
-            // Language code can be changed by:
-            // 1. Category change (will default language to E)
-            // 2. User explicitly changing the language
-            //
-            // When a no-language publication is selected (e.g. "iam"), preserve the current schedule language
-            // so the language row stays at the user's choice (e.g. MY) after the publication modal closes.
-            var isNoLanguagePublication = string.IsNullOrEmpty(biblePub.LanguageCode);
-            var languageChanged = !isNoLanguagePublication && 
-                                  !string.IsNullOrEmpty(updatedCurrentSchedule.BiblePublicationLanguageCode) &&
-                                  biblePub.LanguageCode != updatedCurrentSchedule.BiblePublicationLanguageCode;
-            
-            if (isNoLanguagePublication)
-            {
-                // No-language publication selected - preserve current language (code, name, direction).
-                // DeepClone already copied them; do not overwrite so the language row stays e.g. MY.
-            }
-            else if (languageChanged)
-            {
-                // Language changed - update language code and display names
-                // This happens when: category change or user explicitly changed the language
-                updatedCurrentSchedule.BiblePublicationLanguageCode = biblePub.LanguageCode;
-                updatedCurrentSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
-                    ? biblePub.LanguageName 
-                    : updatedCurrentSchedule.BiblePublicationLanguageName;
-                updatedCurrentSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
-                    ? biblePub.LanguageDirection 
-                    : updatedCurrentSchedule.BiblePublicationLanguageDirection;
-            }
-            // else: Language did not change - preserve language (code, name, direction)
-            
-            updatedCurrentSchedule.BiblePublicationCode = !string.IsNullOrEmpty(biblePub.PublicationCode) 
-                ? biblePub.PublicationCode 
-                : updatedCurrentSchedule.BiblePublicationCode;
-            updatedCurrentSchedule.BiblePublicationSectionCode = !string.IsNullOrWhiteSpace(biblePub.SectionCode)
-                ? biblePub.SectionCode
-                : null;
-            updatedCurrentSchedule.BiblePublicationTrackCode = biblePub.TrackCode;
-            // Do NOT reset progress here. Progress reset is applied only on Save.
-            
-            // Update other display names - use action values if provided, otherwise keep existing
-            updatedCurrentSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName) 
-                ? biblePub.PublicationName 
-                : updatedCurrentSchedule.BiblePublicationName;
-            updatedCurrentSchedule.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName) 
-                ? biblePub.SectionName 
-                : updatedCurrentSchedule.BiblePublicationSectionName;
-            // If the selection changed but the action didn't provide a title, clear it to avoid stale titles
-            // (e.g. switching from Bible → Music, or between sections/tracks).
-            if (!string.IsNullOrEmpty(biblePub.TrackTitle))
-            {
-                updatedCurrentSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle;
-            }
-            else if (publicationChanged || sectionChanged || trackChanged)
-            {
-                updatedCurrentSchedule.BiblePublicationTrackTitle = null;
-            }
-            
-            // ALWAYS preserve category - category can only be changed via CategorySelectionAction
-            // DeepClone() already preserves the category, but explicitly ensure it's never null/empty
-            // EXCEPTION: If category is null in current schedule but BiblePublicationStateItem has one, use it
-            // This handles cases where DispatchDefaultPublicationAsync is called and the category needs to be set
-            if (string.IsNullOrWhiteSpace(updatedCurrentSchedule.BiblePublicationCategoryName))
-            {
-                // Category is null - try to get it from BiblePublicationStateItem
-                if (!string.IsNullOrWhiteSpace(biblePub.CategoryName))
-                {
-                    updatedCurrentSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
-                    updatedCurrentSchedule.BiblePublicationCategoryName = biblePub.CategoryName;
-                    Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedSetCategoryFromStateItem,
-                        biblePub.CategoryName);
-                }
-                else
-                {
-                    // Category is null in both - this should not happen, but preserve what we can
-                    // Try to preserve category ID if it exists
-                    if (updatedCurrentSchedule.BiblePublicationCategoryId.HasValue)
-                    {
-                        Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedCategoryNameNullCategoryIdExists,
-                            updatedCurrentSchedule.BiblePublicationCategoryId.Value);
-                    }
-                    else
-                    {
-                        Log.Error(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedCategoryNullInBoth);
-                    }
-                }
-            }
-            else
-            {
-                // Category exists - ALWAYS preserve it (DeepClone already did this, but be explicit)
-                // Category can only be changed via CategorySelectionAction
-                // Ensure CategoryId is also preserved
-                if (!updatedCurrentSchedule.BiblePublicationCategoryId.HasValue && biblePub.CategoryId.HasValue)
-                {
-                    // CategoryId might be missing even though CategoryName exists - preserve it
-                    updatedCurrentSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
-                }
-            }
-
-            Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedUpdatedCurrentSchedule,
-                updatedCurrentSchedule.BiblePublicationLanguageCode, updatedCurrentSchedule.BiblePublicationCode,
-                updatedCurrentSchedule.BiblePublicationSectionCode ?? "null", biblePub.TrackCode, updatedCurrentSchedule.BiblePublicationCategoryName);
+            updatedCurrentSchedule = MergeBiblePublicationTrackSelection(
+                updatedCurrentSchedule,
+                action.CurrentBiblePublicationSchedule);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
+    }
+
+    private static ScheduleStateItem MergeBiblePublicationTrackSelection(
+        ScheduleStateItem previous,
+        BiblePublicationStateItem biblePub)
+    {
+        var updated = previous.DeepClone();
+
+        var publicationChanged = !string.Equals(previous.BiblePublicationCode, biblePub.PublicationCode, StringComparison.OrdinalIgnoreCase);
+        var sectionChanged = !string.Equals(previous.BiblePublicationSectionCode, biblePub.SectionCode, StringComparison.OrdinalIgnoreCase);
+        var trackChanged = previous.BiblePublicationTrackCode != biblePub.TrackCode;
+
+        updated.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : updated.BiblePublicationScheduleId;
+
+        ApplyLanguageFieldsFromBiblePublicationSelection(updated, biblePub);
+
+        updated.BiblePublicationCode = !string.IsNullOrEmpty(biblePub.PublicationCode)
+            ? biblePub.PublicationCode
+            : updated.BiblePublicationCode;
+        updated.BiblePublicationSectionCode = !string.IsNullOrWhiteSpace(biblePub.SectionCode)
+            ? biblePub.SectionCode
+            : null;
+        updated.BiblePublicationTrackCode = biblePub.TrackCode;
+
+        updated.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName)
+            ? biblePub.PublicationName
+            : updated.BiblePublicationName;
+        updated.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName)
+            ? biblePub.SectionName
+            : updated.BiblePublicationSectionName;
+
+        if (!string.IsNullOrEmpty(biblePub.TrackTitle))
+        {
+            updated.BiblePublicationTrackTitle = biblePub.TrackTitle;
+        }
+        else if (publicationChanged || sectionChanged || trackChanged)
+        {
+            updated.BiblePublicationTrackTitle = null;
+        }
+
+        ApplyCategoryFieldsFromBiblePublicationSelection(updated, biblePub);
+
+        Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedUpdatedCurrentSchedule,
+            updated.BiblePublicationLanguageCode, updated.BiblePublicationCode,
+            updated.BiblePublicationSectionCode ?? "null", biblePub.TrackCode, updated.BiblePublicationCategoryName);
+
+        return updated;
+    }
+
+    private static void ApplyLanguageFieldsFromBiblePublicationSelection(
+        ScheduleStateItem updated,
+        BiblePublicationStateItem biblePub)
+    {
+        var isNoLanguagePublication = string.IsNullOrEmpty(biblePub.LanguageCode);
+        var languageChanged = !isNoLanguagePublication &&
+                              !string.IsNullOrEmpty(updated.BiblePublicationLanguageCode) &&
+                              biblePub.LanguageCode != updated.BiblePublicationLanguageCode;
+
+        if (isNoLanguagePublication || !languageChanged)
+        {
+            return;
+        }
+
+        updated.BiblePublicationLanguageCode = biblePub.LanguageCode;
+        updated.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName)
+            ? biblePub.LanguageName
+            : updated.BiblePublicationLanguageName;
+        updated.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection)
+            ? biblePub.LanguageDirection
+            : updated.BiblePublicationLanguageDirection;
+    }
+
+    private static void ApplyCategoryFieldsFromBiblePublicationSelection(
+        ScheduleStateItem updated,
+        BiblePublicationStateItem biblePub)
+    {
+        if (string.IsNullOrWhiteSpace(updated.BiblePublicationCategoryName))
+        {
+            if (!string.IsNullOrWhiteSpace(biblePub.CategoryName))
+            {
+                updated.BiblePublicationCategoryId = biblePub.CategoryId;
+                updated.BiblePublicationCategoryName = biblePub.CategoryName;
+                Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedSetCategoryFromStateItem,
+                    biblePub.CategoryName);
+            }
+            else if (updated.BiblePublicationCategoryId.HasValue)
+            {
+                Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedCategoryNameNullCategoryIdExists,
+                    updated.BiblePublicationCategoryId.Value);
+            }
+            else
+            {
+                Log.Error(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedCategoryNullInBoth);
+            }
+
+            return;
+        }
+
+        if (!updated.BiblePublicationCategoryId.HasValue && biblePub.CategoryId.HasValue)
+        {
+            updated.BiblePublicationCategoryId = biblePub.CategoryId;
+        }
     }
 }

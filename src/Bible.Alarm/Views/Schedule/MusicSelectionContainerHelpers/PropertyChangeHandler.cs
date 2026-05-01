@@ -42,91 +42,89 @@ public partial class PropertyChangeHandler : IDisposable
 
         if (e.PropertyName == nameof(MusicSelectionContainerViewModel.MusicEnabled))
         {
-            var newState = vm.MusicEnabled;
+            HandleMusicEnabledPropertyChanged(vm);
+            return;
+        }
+
+        if (e.PropertyName == nameof(MusicSelectionContainerViewModel.ShouldScrollToBottom) && vm.ShouldScrollToBottom)
+        {
+            HandleShouldScrollToBottomPropertyChanged(vm, viewModel);
+        }
+    }
+
+    private void HandleMusicEnabledPropertyChanged(MusicSelectionContainerViewModel vm)
+    {
+        var newState = vm.MusicEnabled;
 
 #if DEBUG
-            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangedMusicEnabledState, newState, LastMusicEnabledState, IsInitialLoad);
+        Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangedMusicEnabledState, newState, LastMusicEnabledState, IsInitialLoad);
 #endif
 
-            // Debounce rapid changes (but not during initial load - always update during initial load)
-            if (!IsInitialLoad && newState == LastMusicEnabledState)
-            {
+        if (!IsInitialLoad && newState == LastMusicEnabledState)
+        {
 #if DEBUG
-                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.StateUnchangedIgnoring);
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.StateUnchangedIgnoring);
 #endif
-                return; // Ignore if state hasn't actually changed (but only after initial load)
-            }
+            return;
+        }
 
-            // During initial load, still update visibility but without animation
-            // This ensures the UI reflects the correct state even during initialization
-            if (IsInitialLoad)
-            {
+        if (IsInitialLoad)
+        {
 #if DEBUG
-                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangeDuringInitialLoadUpdatingVisibility, newState, LastMusicEnabledState);
+            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangeDuringInitialLoadUpdatingVisibility, newState, LastMusicEnabledState);
 #endif
-                LastMusicEnabledState = newState; // Update last state
-                // Still update visibility, just without animation
-                container.Dispatcher.Dispatch(() =>
-                {
-                    if (container.Handler != null)
-                    {
-                        updateVisibility(newState, false);
-                    }
-                });
-                return;
-            }
-
-            // Only scroll if user is toggling from false to true (user-initiated expand)
-            ShouldScrollOnExpand = !LastMusicEnabledState && newState;
-
             LastMusicEnabledState = newState;
-
-#if DEBUG
-            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.TriggeringAnimationMusicEnabled, newState, ShouldScrollOnExpand);
-#endif
-
-            // Cancel and dispose any pending debounce
-            debounceTokenSource?.Cancel();
-            debounceTokenSource?.Dispose();
-            debounceTokenSource = new CancellationTokenSource();
-            var token = debounceTokenSource.Token;
-
-            // Use animation for user-initiated changes (not initial load)
-            // This provides better UX and ensures scroll callback is triggered
-            var shouldAnimate = true;
-
-            // Small delay to debounce rapid changes, but trigger update immediately on UI thread
             container.Dispatcher.Dispatch(() =>
             {
-                if (!token.IsCancellationRequested && container.Handler != null)
+                if (container.Handler != null)
                 {
-#if DEBUG
-                    Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.CallingUpdateCollapsibleContentVisibility, shouldAnimate, newState);
-#endif
-                    updateVisibility(newState, shouldAnimate);
+                    updateVisibility(newState, false);
                 }
             });
+            return;
         }
-        else if (e.PropertyName == nameof(MusicSelectionContainerViewModel.ShouldScrollToBottom) && vm.ShouldScrollToBottom)
+
+        ShouldScrollOnExpand = !LastMusicEnabledState && newState;
+        LastMusicEnabledState = newState;
+
+#if DEBUG
+        Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.TriggeringAnimationMusicEnabled, newState, ShouldScrollOnExpand);
+#endif
+
+        debounceTokenSource?.Cancel();
+        debounceTokenSource?.Dispose();
+        debounceTokenSource = new CancellationTokenSource();
+        var token = debounceTokenSource.Token;
+        const bool shouldAnimate = true;
+
+        container.Dispatcher.Dispatch(() =>
         {
-            // Scroll to bottom when ViewModel signals it
+            if (!token.IsCancellationRequested && container.Handler != null)
+            {
 #if DEBUG
-            Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ShouldScrollToBottomScrolling);
+                Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.CallingUpdateCollapsibleContentVisibility, shouldAnimate, newState);
+#endif
+                updateVisibility(newState, shouldAnimate);
+            }
+        });
+    }
+
+    private void HandleShouldScrollToBottomPropertyChanged(MusicSelectionContainerViewModel vm, MusicSelectionContainerViewModel? viewModel)
+    {
+#if DEBUG
+        Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ShouldScrollToBottomScrolling);
 #endif
 
-            // Small delay to ensure layout is complete
-            container.Dispatcher.DispatchAsync(async () =>
-            {
-                await Task.Delay(200); // Delay to allow UI to update
-                scrollToBottom();
+        container.Dispatcher.DispatchAsync(async () =>
+        {
+            await Task.Delay(200);
+            scrollToBottom();
 
-                // Reset the flag after scrolling
-                if (viewModel != null)
-                {
-                    viewModel.ShouldScrollToBottom = false;
-                }
-            });
-        }
+            if (viewModel != null)
+            {
+                viewModel.ShouldScrollToBottom = false;
+            }
+        });
     }
 
     public void Dispose()
