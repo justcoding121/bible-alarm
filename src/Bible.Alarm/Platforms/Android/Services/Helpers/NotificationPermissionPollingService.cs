@@ -101,54 +101,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
                             return;
                         }
 
-                        if (granted)
-                        {
-                            // Permission granted - toggle ON (internal update, not user action)
-                            if (!currentValue)
-                            {
-                                logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.NotificationPermissionGrantedUpdatingToggleOnCurrentValue, currentValue);
-                                OnPermissionGranted?.Invoke(currentValue);
-                                SetValue?.Invoke(true);
-                            }
-                            else
-                            {
-                                // Permission granted and toggle already ON - task is no longer needed
-                                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionGrantedNotificationEnabledAlreadyTrueStoppingTask);
-                                cancellationTokenSource?.Cancel();
-                            }
-                        }
-                        else
-                        {
-                            // Permission denied - toggle OFF (internal update, not user action)
-                            if (currentValue)
-                            {
-                                // Don't flip toggle or show toast if we just requested permission
-                                // Give the user time to respond to the permission dialog
-                                if (justRequestedPermission)
-                                {
-                                    logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionDeniedJustRequestedWaitingBeforeFlipToggle);
-                                }
-                                else
-                                {
-                                    logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.NotificationPermissionDeniedUpdatingToggleOffCurrentValue, currentValue);
-                                    OnPermissionDenied?.Invoke(currentValue);
-                                    
-                                    // Only show toast when we actually flip the toggle back to OFF
-                                    SetValue?.Invoke(false);
-                                    
-                                    // Show toast message to inform user (only shown when toggle is flipped from ON to OFF)
-                                    var toastService = GetToastService?.Invoke();
-                                    if (toastService != null)
-                                    {
-                                        _ = toastService.ShowMessage(AppConstants.ToastMessages.NotificationPermissionDeniedByAndroid, 5);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionDeniedNotificationEnabledAlreadyFalseNoUpdateNeeded);
-                            }
-                        }
+                        ApplyPermissionPollOnMainThread(granted, currentValue);
                     });
 
                     // Wait before next check (increased delay to reduce CPU usage)
@@ -171,6 +124,48 @@ public sealed class NotificationPermissionPollingService : IDisposable
                 });
             }
         }, cancellationToken);
+    }
+
+    private void ApplyPermissionPollOnMainThread(bool granted, bool currentValue)
+    {
+        if (granted)
+        {
+            if (!currentValue)
+            {
+                logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.NotificationPermissionGrantedUpdatingToggleOnCurrentValue, currentValue);
+                OnPermissionGranted?.Invoke(currentValue);
+                SetValue?.Invoke(true);
+            }
+            else
+            {
+                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionGrantedNotificationEnabledAlreadyTrueStoppingTask);
+                cancellationTokenSource?.Cancel();
+            }
+
+            return;
+        }
+
+        if (!currentValue)
+        {
+            logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionDeniedNotificationEnabledAlreadyFalseNoUpdateNeeded);
+            return;
+        }
+
+        if (justRequestedPermission)
+        {
+            logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionDeniedJustRequestedWaitingBeforeFlipToggle);
+            return;
+        }
+
+        logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.NotificationPermissionDeniedUpdatingToggleOffCurrentValue, currentValue);
+        OnPermissionDenied?.Invoke(currentValue);
+        SetValue?.Invoke(false);
+
+        var toastService = GetToastService?.Invoke();
+        if (toastService != null)
+        {
+            _ = toastService.ShowMessage(AppConstants.ToastMessages.NotificationPermissionDeniedByAndroid, 5);
+        }
     }
 
     /// <summary>

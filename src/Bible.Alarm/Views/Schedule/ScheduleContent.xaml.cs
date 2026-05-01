@@ -84,22 +84,30 @@ public partial class ScheduleContent : ContentView
         // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
         // Buttons use FlexLayout with wrapping to handle narrow widths with large fonts
         // On WinUI, buttons are inside SfEffectsView; on Android/iOS, they're separate buttons
+        ApplyCancelSaveButtonStyling(platform);
+
+        // Platform-specific styling for Delete button
+        // FontSize is now set via XAML using ButtonFontSize resource which scales with accessibility settings
+        // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
+        // On WinUI, button is inside SfEffectsView; on Android/iOS, it's a separate button
+        ApplyDeleteButtonStyling(platform);
+
+        // Ensure DeleteButtonNoEffects is only visible on Android/iOS
+        if (DeleteButtonNoEffects != null && platform == DevicePlatform.WinUI)
+        {
+            DeleteButtonNoEffects.IsVisible = false;
+        }
+    }
+
+    private void ApplyCancelSaveButtonStyling(DevicePlatform platform)
+    {
         Border? cancelButton = platform == DevicePlatform.WinUI ? CancelButton : CancelButtonNoEffects;
         Border? saveButton = platform == DevicePlatform.WinUI ? SaveButton : SaveButtonNoEffects;
 
         void StyleCancelSave(Thickness padding, LayoutOptions verticalOptions)
         {
-            if (cancelButton != null)
-            {
-                cancelButton.Padding = padding;
-                cancelButton.VerticalOptions = verticalOptions;
-            }
-
-            if (saveButton != null)
-            {
-                saveButton.Padding = padding;
-                saveButton.VerticalOptions = verticalOptions;
-            }
+            ApplyBorderPaddingAndVerticalOptions(cancelButton, padding, verticalOptions);
+            ApplyBorderPaddingAndVerticalOptions(saveButton, padding, verticalOptions);
         }
 
         if (platform == DevicePlatform.WinUI)
@@ -118,22 +126,15 @@ public partial class ScheduleContent : ContentView
         {
             StyleCancelSave(new Thickness(10, 8), LayoutOptions.Fill);
         }
+    }
 
-        // Platform-specific styling for Delete button
-        // FontSize is now set via XAML using ButtonFontSize resource which scales with accessibility settings
-        // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
-        // On WinUI, button is inside SfEffectsView; on Android/iOS, it's a separate button
+    private void ApplyDeleteButtonStyling(DevicePlatform platform)
+    {
         Border? deleteButton = platform == DevicePlatform.WinUI ? DeleteButton : DeleteButtonNoEffectsBorder;
 
         void StyleDelete(Thickness padding, LayoutOptions verticalOptions)
         {
-            if (deleteButton == null)
-            {
-                return;
-            }
-
-            deleteButton.Padding = padding;
-            deleteButton.VerticalOptions = verticalOptions;
+            ApplyBorderPaddingAndVerticalOptions(deleteButton, padding, verticalOptions);
         }
 
         if (platform == DevicePlatform.WinUI)
@@ -152,12 +153,17 @@ public partial class ScheduleContent : ContentView
         {
             StyleDelete(new Thickness(10, 8), LayoutOptions.Fill);
         }
-        
-        // Ensure DeleteButtonNoEffects is only visible on Android/iOS
-        if (DeleteButtonNoEffects != null && platform == DevicePlatform.WinUI)
+    }
+
+    private static void ApplyBorderPaddingAndVerticalOptions(Border? border, Thickness padding, LayoutOptions verticalOptions)
+    {
+        if (border == null)
         {
-            DeleteButtonNoEffects.IsVisible = false;
+            return;
         }
+
+        border.Padding = padding;
+        border.VerticalOptions = verticalOptions;
     }
 
     private void OnScrollViewTapped(object? sender, TappedEventArgs e)

@@ -38,31 +38,10 @@ public sealed class MusicTrackListManager(
             {
                 tracks.Clear();
 
-                // Run database operations off UI thread
-                SortedDictionary<int, MusicTrack> tracksFromDb;
-                if (isMelodyMusic)
+                var tracksFromDb = await LoadTracksDictionaryAsync(isMelodyMusic, languageCode, publicationCode, sectionCode);
+                if (tracksFromDb == null)
                 {
-                    // IMPORTANT: Some melody publications (notably "iam") are sectioned by disc.
-                    // For those, the track list must be loaded for the currently selected section code.
-                    if (PublicationTypeHelper.HasSectionStructure(publicationCode) && !string.IsNullOrWhiteSpace(sectionCode))
-                    {
-                        tracksFromDb = await Task.Run(async () =>
-                            await mediaService.GetMelodyMusicTracksBySection(publicationCode, sectionCode));
-                    }
-                    else
-                    {
-                        tracksFromDb = await Task.Run(async () =>
-                            await mediaService.GetMelodyMusicTracks(publicationCode));
-                    }
-                }
-                else
-                {
-                    if (string.IsNullOrEmpty(languageCode))
-                    {
-                        return;
-                    }
-                    tracksFromDb = await Task.Run(async () =>
-                        await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
+                    return;
                 }
 
                 var trackVMs = new List<MusicTrackListViewItemModel>();
@@ -88,6 +67,33 @@ public sealed class MusicTrackListManager(
                     languageCode, publicationCode);
             }
         });
+    }
+
+    private async Task<SortedDictionary<int, MusicTrack>?> LoadTracksDictionaryAsync(
+        bool isMelodyMusic,
+        string? languageCode,
+        string publicationCode,
+        string? sectionCode)
+    {
+        if (isMelodyMusic)
+        {
+            if (PublicationTypeHelper.HasSectionStructure(publicationCode) && !string.IsNullOrWhiteSpace(sectionCode))
+            {
+                return await Task.Run(async () =>
+                    await mediaService.GetMelodyMusicTracksBySection(publicationCode, sectionCode));
+            }
+
+            return await Task.Run(async () =>
+                await mediaService.GetMelodyMusicTracks(publicationCode));
+        }
+
+        if (string.IsNullOrEmpty(languageCode))
+        {
+            return null;
+        }
+
+        return await Task.Run(async () =>
+            await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
     }
 
     public void SubscribeToTrackEvents(MusicTrackListViewItemModel track, ObservableCollection<MusicTrackListViewItemModel> tracks)

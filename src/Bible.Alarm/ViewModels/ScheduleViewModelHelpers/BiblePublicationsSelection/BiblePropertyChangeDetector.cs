@@ -105,15 +105,99 @@ public sealed class BiblePublicationPropertyChangeDetector
         var notifyIsSectionVisible = sectionVisibilityTypeChanged || isSectionVisibleChanged;
         var notifyIsLanguageVisible = categoryIdChanged || categoryNameChanged || isLanguageVisibleChanged;
 
-        var displayTextOnlyChanged = (categoryDisplayChanged && !categoryIdChanged && !categoryNameChanged) ||
-                                    (languageDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged) ||
-                                    (publicationDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged) ||
-                                    (sectionDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged) ||
-                                    (trackDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackCodeChanged);
+        var displayTextOnlyChanged = ComputeDisplayTextOnlyChanged(
+            categoryDisplayChanged, categoryIdChanged, categoryNameChanged,
+            languageDisplayChanged, languageCodeChanged,
+            publicationDisplayChanged, publicationCodeChanged,
+            sectionDisplayChanged, sectionCodeChanged,
+            trackDisplayChanged, trackCodeChanged);
 
         var cascadeChangeOccurred = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackCodeChanged;
 
-        var changeInfo = new PropertyChangeInfo
+        var changeInfo = CreatePropertyChangeInfo(
+            currentCategoryId,
+            currentCategoryName,
+            currentLanguageCode,
+            currentPublicationCode,
+            currentSectionCode,
+            currentTrackCode,
+            newCategoryDisplayText,
+            newLanguageDisplayText,
+            newPublicationDisplayText,
+            newSectionDisplayText,
+            newTrackDisplayText,
+            newIsSectionVisible,
+            newIsLanguageVisible,
+            notifyCategory,
+            notifyLanguage,
+            notifyPublication,
+            notifySection,
+            notifyTrack,
+            notifyIsSectionVisible,
+            notifyIsLanguageVisible,
+            displayTextOnlyChanged,
+            cascadeChangeOccurred,
+            categoryDisplayChanged,
+            languageDisplayChanged,
+            publicationDisplayChanged,
+            sectionDisplayChanged,
+            trackDisplayChanged);
+
+        CommitLastKnownState(changeInfo);
+
+        return changeInfo;
+    }
+
+    private static bool ComputeDisplayTextOnlyChanged(
+        bool categoryDisplayChanged,
+        bool categoryIdChanged,
+        bool categoryNameChanged,
+        bool languageDisplayChanged,
+        bool languageCodeChanged,
+        bool publicationDisplayChanged,
+        bool publicationCodeChanged,
+        bool sectionDisplayChanged,
+        bool sectionCodeChanged,
+        bool trackDisplayChanged,
+        bool trackCodeChanged)
+    {
+        return (categoryDisplayChanged && !categoryIdChanged && !categoryNameChanged) ||
+               (languageDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged) ||
+               (publicationDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged) ||
+               (sectionDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged) ||
+               (trackDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackCodeChanged);
+    }
+
+    private PropertyChangeInfo CreatePropertyChangeInfo(
+        int? currentCategoryId,
+        string? currentCategoryName,
+        string? currentLanguageCode,
+        string? currentPublicationCode,
+        string? currentSectionCode,
+        string? currentTrackCode,
+        string newCategoryDisplayText,
+        string newLanguageDisplayText,
+        string newPublicationDisplayText,
+        string newSectionDisplayText,
+        string newTrackDisplayText,
+        bool newIsSectionVisible,
+        bool newIsLanguageVisible,
+        bool notifyCategory,
+        bool notifyLanguage,
+        bool notifyPublication,
+        bool notifySection,
+        bool notifyTrack,
+        bool notifyIsSectionVisible,
+        bool notifyIsLanguageVisible,
+        bool displayTextOnlyChanged,
+        bool cascadeChangeOccurred,
+        bool categoryDisplayChanged,
+        bool languageDisplayChanged,
+        bool publicationDisplayChanged,
+        bool sectionDisplayChanged,
+        bool trackDisplayChanged)
+    {
+        return new PropertyChangeInfo
         {
             CurrentCategoryId = currentCategoryId,
             CurrentCategoryName = currentCategoryName,
@@ -144,23 +228,23 @@ public sealed class BiblePublicationPropertyChangeDetector
             TrackDisplayChanged = trackDisplayChanged,
             HasChanges = notifyCategory || notifyLanguage || notifyPublication || notifySection || notifyTrack || notifyIsSectionVisible || notifyIsLanguageVisible || displayTextOnlyChanged
         };
+    }
 
-        // Update last values
-        lastCategoryId = currentCategoryId;
-        lastCategoryName = currentCategoryName;
-        lastLanguageCode = currentLanguageCode;
-        lastPublicationCode = currentPublicationCode;
-        lastSectionCode = currentSectionCode;
-        lastTrackCode = currentTrackCode;
-        lastCategoryDisplayText = newCategoryDisplayText;
-        lastLanguageDisplayText = newLanguageDisplayText;
-        lastPublicationDisplayText = newPublicationDisplayText;
-        lastSectionDisplayText = newSectionDisplayText;
-        lastTrackDisplayText = newTrackDisplayText;
-        lastIsSectionVisible = newIsSectionVisible;
-        lastIsLanguageVisible = newIsLanguageVisible;
-
-        return changeInfo;
+    private void CommitLastKnownState(PropertyChangeInfo changeInfo)
+    {
+        lastCategoryId = changeInfo.CurrentCategoryId;
+        lastCategoryName = changeInfo.CurrentCategoryName;
+        lastLanguageCode = changeInfo.CurrentLanguageCode;
+        lastPublicationCode = changeInfo.CurrentPublicationCode;
+        lastSectionCode = changeInfo.CurrentSectionCode;
+        lastTrackCode = changeInfo.CurrentTrackCode;
+        lastCategoryDisplayText = changeInfo.NewCategoryDisplayText;
+        lastLanguageDisplayText = changeInfo.NewLanguageDisplayText;
+        lastPublicationDisplayText = changeInfo.NewPublicationDisplayText;
+        lastSectionDisplayText = changeInfo.NewSectionDisplayText;
+        lastTrackDisplayText = changeInfo.NewTrackDisplayText;
+        lastIsSectionVisible = changeInfo.NewIsSectionVisible;
+        lastIsLanguageVisible = changeInfo.NewIsLanguageVisible;
     }
 
     public record PropertyChangeInfo

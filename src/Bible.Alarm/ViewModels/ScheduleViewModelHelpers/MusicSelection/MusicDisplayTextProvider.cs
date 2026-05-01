@@ -111,60 +111,45 @@ public sealed class MusicDisplayTextProvider
             return string.Empty;
         }
 
-        // Prefer display name (populated during bootstrap/effects), otherwise fall back to the language code.
         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageName))
         {
             return currentSchedule.MusicLanguageName;
         }
 
-        // When LanguageCode is "E" (default) but LanguageName is missing, load the name to show "English" instead of "E"
-        // This handles cases where instrumental music (non-language publications like "iam") has LanguageCode="E" but no name
         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode) &&
             currentSchedule.MusicLanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
-            // Return cached value if available
-            if (!string.IsNullOrEmpty(cachedDefaultLanguageName))
-            {
-                return cachedDefaultLanguageName;
-            }
-
-            // Trigger async load if not already loading
-            if (!isLoadingDefaultLanguageName)
-            {
-                _ = LoadDefaultLanguageNameAsync(propertyChangeNotifier != null 
-                    ? (propName) => propertyChangeNotifier(propName) 
-                    : null);
-            }
-
-            // Return default language code as fallback while loading (will be replaced with "English" once loaded)
-            return AppConstants.Media.DefaultLanguageCode;
+            return ResolveDefaultEnglishLabelWhileLoading();
         }
 
-        // For other language codes, return the code if name is not available
         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
         {
             return currentSchedule.MusicLanguageCode!;
         }
 
-        // When music is enabled but LanguageCode is null (no-language publications like "iam"), use default (English) only.
         if (currentSchedule.MusicEnabled)
         {
-            if (!string.IsNullOrEmpty(cachedDefaultLanguageName))
-            {
-                return cachedDefaultLanguageName;
-            }
-
-            if (!isLoadingDefaultLanguageName)
-            {
-                _ = LoadDefaultLanguageNameAsync(propertyChangeNotifier != null 
-                    ? (propName) => propertyChangeNotifier(propName) 
-                    : null);
-            }
-
-            return AppConstants.Media.DefaultLanguageCode;
+            return ResolveDefaultEnglishLabelWhileLoading();
         }
 
         return string.Empty;
+    }
+
+    private string ResolveDefaultEnglishLabelWhileLoading()
+    {
+        if (!string.IsNullOrEmpty(cachedDefaultLanguageName))
+        {
+            return cachedDefaultLanguageName;
+        }
+
+        if (!isLoadingDefaultLanguageName)
+        {
+            _ = LoadDefaultLanguageNameAsync(propertyChangeNotifier != null
+                ? propertyChangeNotifier
+                : null);
+        }
+
+        return AppConstants.Media.DefaultLanguageCode;
     }
 
     private async Task LoadDefaultLanguageNameAsync(Action<string>? onPropertyChanged = null)

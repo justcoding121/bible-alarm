@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -43,82 +44,8 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         IFetchProgress? progress = null)
     {
         progress?.UpdateProgress(0.0);
-        
-        // Step 1: Get the first publication code by ID order from PublicationLanguages for Music category
-        // This is the publication that should be downloaded when language is selected
-        // Filter out publications without LanguageId (instrumental/melody music) - data-driven, not hard-coded
-        string? firstPublicationCode = null;
-        if (biblePublicationService != null)
-        {
-            var availablePublicationCodes =
-                await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, AppConstants.Media.BiblePublicationCategoryMusic, true);
 
-            // Get publications without LanguageId from BiblePublications (data-driven)
-            if (scopeFactory == null)
-            {
-                Serilog.Log.Warning(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.ScopeFactoryNullCannotFilterPublicationsWithoutLanguageId);
-                return (null, string.Empty, string.Empty, string.Empty);
-            }
-
-            using (var scope = scopeFactory.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-                var publicationsWithoutLanguage = await db.BiblePublications
-                    .AsNoTracking()
-                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
-                                bp.LanguageId == null)
-                    .Select(bp => bp.PublicationCode)
-                    .Distinct()
-                    .ToListAsync();
-
-                var vocalPublicationCodes = availablePublicationCodes
-                    .Where(code => !publicationsWithoutLanguage.Contains(code, StringComparer.OrdinalIgnoreCase))
-                    .ToList();
-
-                if (vocalPublicationCodes.Count > 0)
-                {
-                    var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
-                    var publicationLanguages = (await db.PublicationLanguages
-                        .AsNoTracking()
-                        .Where(pl => pl.Language != null &&
-                                   string.Equals(pl.Language.LanguageCode, language.Code, StringComparison.OrdinalIgnoreCase) &&
-                                   pl.Category != null &&
-                                   pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
-                        .ToListAsync())
-                        .OrderBy(pl => pl.PublicationCode, musicComparer)
-                        .ThenBy(pl => pl.Id)
-                        .ToList();
-
-                    var normalizedLanguageCode = language.Code.ToUpperInvariant();
-                    var candidateCodes = publicationLanguages
-                        .Select(pl => pl.PublicationCode)
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToList();
-
-                    var codesWithLanguageId = await db.BiblePublications
-                        .AsNoTracking()
-                        .Where(bp => candidateCodes.Contains(bp.PublicationCode) &&
-                                     bp.LanguageId != null &&
-                                     bp.Language != null &&
-                                     bp.Language.LanguageCode == normalizedLanguageCode)
-                        .Select(bp => bp.PublicationCode)
-                        .Distinct()
-                        .ToListAsync();
-
-                    var codesWithLanguageIdSet = codesWithLanguageId.ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                    firstPublicationCode = publicationLanguages
-                        .Select(pl => pl.PublicationCode)
-                        .FirstOrDefault(code => codesWithLanguageIdSet.Contains(code));
-
-                    if (string.IsNullOrEmpty(firstPublicationCode))
-                    {
-                        firstPublicationCode = vocalPublicationCodes[0];
-                    }
-                }
-            }
-        }
+        var firstPublicationCode = await ResolveFirstSongPublicationCodeAsync(language);
 
         if (string.IsNullOrEmpty(firstPublicationCode))
         {
@@ -262,6 +189,84 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         }
 
         return (publicationCode, trackCode, trackName, firstSongPublication.Name);
+    }
+
+    private async Task<string?> ResolveFirstSongPublicationCodeAsync(LanguageListViewItemModel language)
+    {
+        if (biblePublicationService == null)
+        {
+            return null;
+        }
+
+        var availablePublicationCodes =
+            await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, AppConstants.Media.BiblePublicationCategoryMusic, true);
+
+        if (scopeFactory == null)
+        {
+            Serilog.Log.Warning(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.ScopeFactoryNullCannotFilterPublicationsWithoutLanguageId);
+            return null;
+        }
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var publicationsWithoutLanguage = await db.BiblePublications
+            .AsNoTracking()
+            .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
+                        bp.LanguageId == null)
+            .Select(bp => bp.PublicationCode)
+            .Distinct()
+            .ToListAsync();
+
+        var vocalPublicationCodes = availablePublicationCodes
+            .Where(code => !publicationsWithoutLanguage.Contains(code, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        if (vocalPublicationCodes.Count == 0)
+        {
+            return null;
+        }
+
+        var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
+        var publicationLanguages = (await db.PublicationLanguages
+                .AsNoTracking()
+                .Where(pl => pl.Language != null &&
+                           string.Equals(pl.Language.LanguageCode, language.Code, StringComparison.OrdinalIgnoreCase) &&
+                           pl.Category != null &&
+                           pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
+                .ToListAsync())
+            .OrderBy(pl => pl.PublicationCode, musicComparer)
+            .ThenBy(pl => pl.Id)
+            .ToList();
+
+        var normalizedLanguageCode = language.Code.ToUpperInvariant();
+        var candidateCodes = publicationLanguages
+            .Select(pl => pl.PublicationCode)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var codesWithLanguageId = await db.BiblePublications
+            .AsNoTracking()
+            .Where(bp => candidateCodes.Contains(bp.PublicationCode) &&
+                         bp.LanguageId != null &&
+                         bp.Language != null &&
+                         bp.Language.LanguageCode == normalizedLanguageCode)
+            .Select(bp => bp.PublicationCode)
+            .Distinct()
+            .ToListAsync();
+
+        var codesWithLanguageIdSet = codesWithLanguageId.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var firstPublicationCode = publicationLanguages
+            .Select(pl => pl.PublicationCode)
+            .FirstOrDefault(code => codesWithLanguageIdSet.Contains(code));
+
+        if (string.IsNullOrEmpty(firstPublicationCode))
+        {
+            firstPublicationCode = vocalPublicationCodes[0];
+        }
+
+        return firstPublicationCode;
     }
 
     private static bool IsSameLanguageAndSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
