@@ -49,18 +49,17 @@ internal sealed class FlatPublicationFetcher
         var language = request.Language;
         var cancellationToken = request.CancellationToken;
 
-        string? localizedPubName = null;
-        if (isVideo && !normalizedLanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-        {
-            localizedPubName = await videoLocalizedNameFetcher.FetchVideoLocalizedNameFromMediatorAsync(
-                normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
-        }
+        var localizedPubName = await TryGetVideoLocalizedPublicationNameAsync(
+            isVideo, normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants().ToList();
         var (tracks, fetchedPubName) = await TryFetchAllTracksInOneRequestAsync(
             baseUrls, normalizedPublicationCode, normalizedLanguageCode, fileFormat, cancellationToken);
+
         if (fetchedPubName != null)
+        {
             localizedPubName = fetchedPubName;
+        }
 
         if (tracks.Count == 0)
         {
@@ -69,34 +68,115 @@ internal sealed class FlatPublicationFetcher
             return false;
         }
 
-        // Get or create language and category
-        Language? resolvedLanguage = language;
+        var resolvedLanguage = await ResolveLanguageForRequestAsync(db, language, normalizedLanguageCode, cancellationToken);
         if (resolvedLanguage == null)
         {
-            resolvedLanguage = await db.Languages
-                .FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, cancellationToken);
-            
-            if (resolvedLanguage == null)
-            {
-                logger.Warning("Language {LanguageCode} not found in database", normalizedLanguageCode);
-                return false;
-            }
+            return false;
         }
 
-        var categoryCodes = JwSourceHelper.GetCategoryCodesForPublication(normalizedPublicationCode);
-        var categories = await db.Categories
-            .Where(c => categoryCodes.Contains(c.CategoryCode))
-            .ToListAsync(cancellationToken);
+        var categories = await LoadCategoriesForPublicationAsync(db, normalizedPublicationCode, cancellationToken);
         if (categories.Count == 0)
         {
             logger.Warning("No categories found for publication {PublicationCode}", normalizedPublicationCode);
             return false;
         }
 
-        BiblePublication? existingPublication;
+        var existingPublication = await FindExistingPublicationAsync(
+            db, normalizedPublicationCode, resolvedLanguage, cancellationToken);
+
+        if (existingPublication != null)
+        {
+            await UpdateExistingPublicationTracksAsync(
+                db,
+                existingPublication,
+                tracks,
+                localizedPubName,
+                englishPublication.Name,
+                isVideo,
+                isMusic,
+                categories,
+                normalizedPublicationCode,
+                normalizedLanguageCode,
+                cancellationToken);
+        }
+        else
+        {
+            await InsertNewFlatPublicationAsync(
+                db,
+                normalizedPublicationCode,
+                localizedPubName,
+                englishPublication.Name,
+                resolvedLanguage,
+                isVideo,
+                isMusic,
+                categories,
+                tracks,
+                cancellationToken);
+        }
+
+        logger.Information("Successfully fetched {Count} tracks for publication {PublicationCode} in language {LanguageCode}",
+            tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
+
+        return true;
+    }
+
+    private async Task<string?> TryGetVideoLocalizedPublicationNameAsync(
+        bool isVideo,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        CancellationToken cancellationToken)
+    {
+        if (!isVideo || normalizedLanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return await videoLocalizedNameFetcher.FetchVideoLocalizedNameFromMediatorAsync(
+            normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
+    }
+
+    private async Task<Language?> ResolveLanguageForRequestAsync(
+        MediaDbContext db,
+        Language? language,
+        string normalizedLanguageCode,
+        CancellationToken cancellationToken)
+    {
+        if (language != null)
+        {
+            return language;
+        }
+
+        var resolved = await db.Languages
+            .FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, cancellationToken);
+
+        if (resolved == null)
+        {
+            logger.Warning("Language {LanguageCode} not found in database", normalizedLanguageCode);
+        }
+
+        return resolved;
+    }
+
+    private async Task<List<Category>> LoadCategoriesForPublicationAsync(
+        MediaDbContext db,
+        string normalizedPublicationCode,
+        CancellationToken cancellationToken)
+    {
+        var categoryCodes = JwSourceHelper.GetCategoryCodesForPublication(normalizedPublicationCode);
+        return await db.Categories
+            .Where(c => categoryCodes.Contains(c.CategoryCode))
+            .ToListAsync(cancellationToken);
+    }
+
+    private async Task<BiblePublication?> FindExistingPublicationAsync(
+        MediaDbContext db,
+        string normalizedPublicationCode,
+        Language? resolvedLanguage,
+        CancellationToken cancellationToken)
+    {
         if (resolvedLanguage != null)
         {
-            existingPublication = await db.BiblePublications
+            return await db.BiblePublications
                 .Include(bp => bp.Tracks)
                 .ThenInclude(t => t.TrackUrl)
                 .Include(bp => bp.BiblePublicationCategories)
@@ -106,74 +186,97 @@ internal sealed class FlatPublicationFetcher
                           bp.LanguageId == resolvedLanguage.Id,
                     cancellationToken);
         }
-        else
+
+        return await db.BiblePublications
+            .Include(bp => bp.Tracks)
+            .ThenInclude(t => t.TrackUrl)
+            .Include(bp => bp.BiblePublicationCategories)
+            .ThenInclude(bpc => bpc.Category)
+            .FirstOrDefaultAsync(
+                bp => bp.PublicationCode == normalizedPublicationCode &&
+                      bp.LanguageId == null,
+                cancellationToken);
+    }
+
+    private static bool ComputePublicationIsMusic(bool isMusic, List<Category> categories, string normalizedPublicationCode)
+    {
+        return isMusic || categories.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
+               JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
+    }
+
+    private async Task UpdateExistingPublicationTracksAsync(
+        MediaDbContext db,
+        BiblePublication existingPublication,
+        List<BiblePublicationTrack> tracks,
+        string? localizedPubName,
+        string englishPublicationName,
+        bool isVideo,
+        bool isMusic,
+        List<Category> categories,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        CancellationToken cancellationToken)
+    {
+        logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, updating tracks and categories",
+            normalizedPublicationCode, normalizedLanguageCode ?? "(null)");
+
+        foreach (var track in existingPublication.Tracks.Where(t => t.TrackUrl != null))
         {
-            existingPublication = await db.BiblePublications
-                .Include(bp => bp.Tracks)
-                .ThenInclude(t => t.TrackUrl)
-                .Include(bp => bp.BiblePublicationCategories)
-                .ThenInclude(bpc => bpc.Category)
-                .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == normalizedPublicationCode &&
-                          bp.LanguageId == null,
-                    cancellationToken);
+            db.TrackUrls.Remove(track.TrackUrl!);
         }
 
-        if (existingPublication != null)
+        db.BiblePublicationTracks.RemoveRange(existingPublication.Tracks);
+        existingPublication.Tracks.Clear();
+        existingPublication.Name = localizedPubName ?? englishPublicationName;
+        existingPublication.IsVideo = isVideo;
+        existingPublication.IsMusic = ComputePublicationIsMusic(isMusic, categories, normalizedPublicationCode);
+        SyncPublicationCategories(existingPublication, categories);
+        foreach (var track in tracks)
         {
-            logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, updating tracks and categories",
-                normalizedPublicationCode, normalizedLanguageCode ?? "(null)");
-            foreach (var track in existingPublication.Tracks.Where(t => t.TrackUrl != null))
-            {
-                db.TrackUrls.Remove(track.TrackUrl!);
-            }
-            db.BiblePublicationTracks.RemoveRange(existingPublication.Tracks);
-            existingPublication.Tracks.Clear();
-            existingPublication.Name = localizedPubName ?? englishPublication.Name;
-            existingPublication.IsVideo = isVideo;
-            existingPublication.IsMusic = isMusic || categories.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
-                JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
-            SyncPublicationCategories(existingPublication, categories);
-            foreach (var track in tracks)
-            {
-                track.Publication = existingPublication;
-                track.BiblePublicationId = existingPublication.Id;
-                existingPublication.Tracks.Add(track);
-            }
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        else
-        {
-            var publicationName = localizedPubName ?? englishPublication.Name;
-            var isMusicCategory = categories.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
-                JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
-            var publication = new BiblePublication
-            {
-                PublicationCode = normalizedPublicationCode,
-                Name = publicationName,
-                Language = resolvedLanguage,
-                BiblePublicationCategories = categories
-                    .Select(cat => new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = cat.Id, Category = cat })
-                    .ToList(),
-                LanguageId = resolvedLanguage?.Id,
-                IsVideo = isVideo,
-                IsMusic = isMusic || isMusicCategory,
-                CatalogType = CatalogType.Flat,
-                Tracks = tracks,
-                Sections = new List<BiblePublicationSection>()
-            };
-            foreach (var track in tracks)
-            {
-                track.Publication = publication;
-            }
-            db.BiblePublications.Add(publication);
-            await db.SaveChangesAsync(cancellationToken);
+            track.Publication = existingPublication;
+            track.BiblePublicationId = existingPublication.Id;
+            existingPublication.Tracks.Add(track);
         }
 
-        logger.Information("Successfully fetched {Count} tracks for publication {PublicationCode} in language {LanguageCode}",
-            tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
+        await db.SaveChangesAsync(cancellationToken);
+    }
 
-        return true;
+    private async Task InsertNewFlatPublicationAsync(
+        MediaDbContext db,
+        string normalizedPublicationCode,
+        string? localizedPubName,
+        string englishPublicationName,
+        Language resolvedLanguage,
+        bool isVideo,
+        bool isMusic,
+        List<Category> categories,
+        List<BiblePublicationTrack> tracks,
+        CancellationToken cancellationToken)
+    {
+        var publicationName = localizedPubName ?? englishPublicationName;
+        var publication = new BiblePublication
+        {
+            PublicationCode = normalizedPublicationCode,
+            Name = publicationName,
+            Language = resolvedLanguage,
+            BiblePublicationCategories = categories
+                .Select(cat => new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = cat.Id, Category = cat })
+                .ToList(),
+            LanguageId = resolvedLanguage.Id,
+            IsVideo = isVideo,
+            IsMusic = ComputePublicationIsMusic(isMusic, categories, normalizedPublicationCode),
+            CatalogType = CatalogType.Flat,
+            Tracks = tracks,
+            Sections = new List<BiblePublicationSection>()
+        };
+
+        foreach (var track in tracks)
+        {
+            track.Publication = publication;
+        }
+
+        db.BiblePublications.Add(publication);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static void SyncPublicationCategories(BiblePublication publication, List<Category> categories)
@@ -206,85 +309,18 @@ internal sealed class FlatPublicationFetcher
             {
                 return (new List<BiblePublicationTrack>(), null);
             }
+
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement) ||
-                !filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
-                !languageFiles.TryGetProperty(fileFormat, out var formatFiles) ||
-                formatFiles.ValueKind != JsonValueKind.Array)
+            if (!TryGetFormatFilesFromPubMediaRoot(root, normalizedLanguageCode, fileFormat, out var formatFiles))
             {
                 return (new List<BiblePublicationTrack>(), null);
             }
 
-            string? fetchedPubName = null;
-            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
-            {
-                var rawName = pubNameElement.GetString();
-                fetchedPubName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-            }
-
-            var byTrack = new Dictionary<int, JsonElement>();
-            foreach (var file in formatFiles.EnumerateArray())
-            {
-                if (!file.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var trackEl))
-                {
-                    continue;
-                }
-
-                var trackNum = trackEl.GetInt32();
-                if (trackNum == 0)
-                {
-                    continue;
-                }
-
-                if (!byTrack.TryGetValue(trackNum, out _))
-                {
-                    byTrack[trackNum] = file;
-                    continue;
-                }
-
-                var prefer240p = file.TryGetProperty(AppConstants.Media.PubMediaJson.Label, out var labelEl) && labelEl.GetString() == AppConstants.Media.VideoQualityLabel240p;
-                if (prefer240p)
-                {
-                    byTrack[trackNum] = file;
-                }
-            }
-
-            var result = new List<BiblePublicationTrack>();
-            foreach (var kv in byTrack.OrderBy(x => x.Key))
-            {
-                var fileElement = kv.Value;
-                if (!fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileInfo) ||
-                    !fileInfo.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
-                {
-                    continue;
-                }
-
-                var url = urlElement.GetString();
-                if (string.IsNullOrEmpty(url))
-                {
-                    continue;
-                }
-
-                var title = MediaTrackTitleHelper.UnknownTitle;
-                if (fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
-                {
-                    title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
-                }
-
-                if (AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(normalizedLanguageCode, title))
-                {
-                    continue;
-                }
-
-                result.Add(new BiblePublicationTrack
-                {
-                    TrackCode = kv.Key.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    Title = title,
-                    TrackUrl = new TrackUrl { Url = url }
-                });
-            }
+            var fetchedPubName = TryDecodePublicationNameFromRoot(root);
+            var byTrack = BuildPreferredFilesByTrackNumber(formatFiles);
+            var result = BuildPublicationTracksFromPreferredFiles(byTrack, normalizedLanguageCode);
 
             if (result.Count > 0)
             {
@@ -304,5 +340,110 @@ internal sealed class FlatPublicationFetcher
             logger.Debug(ex, "Fetch-all (no track param) failed for publication {PublicationCode}", normalizedPublicationCode);
             return (new List<BiblePublicationTrack>(), null);
         }
+    }
+
+    private static bool TryGetFormatFilesFromPubMediaRoot(
+        JsonElement root,
+        string normalizedLanguageCode,
+        string fileFormat,
+        out JsonElement formatFiles)
+    {
+        formatFiles = default;
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement) ||
+            !filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
+            !languageFiles.TryGetProperty(fileFormat, out formatFiles) ||
+            formatFiles.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string? TryDecodePublicationNameFromRoot(JsonElement root)
+    {
+        if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
+        {
+            return null;
+        }
+
+        var rawName = pubNameElement.GetString();
+        return MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
+    }
+
+    private static Dictionary<int, JsonElement> BuildPreferredFilesByTrackNumber(JsonElement formatFiles)
+    {
+        var byTrack = new Dictionary<int, JsonElement>();
+        foreach (var file in formatFiles.EnumerateArray())
+        {
+            if (!file.TryGetProperty(AppConstants.Media.PubMediaJson.Track, out var trackEl))
+            {
+                continue;
+            }
+
+            var trackNum = trackEl.GetInt32();
+            if (trackNum == 0)
+            {
+                continue;
+            }
+
+            if (!byTrack.TryGetValue(trackNum, out _))
+            {
+                byTrack[trackNum] = file;
+                continue;
+            }
+
+            var prefer240p = file.TryGetProperty(AppConstants.Media.PubMediaJson.Label, out var labelEl) &&
+                             labelEl.GetString() == AppConstants.Media.VideoQualityLabel240p;
+            if (prefer240p)
+            {
+                byTrack[trackNum] = file;
+            }
+        }
+
+        return byTrack;
+    }
+
+    private List<BiblePublicationTrack> BuildPublicationTracksFromPreferredFiles(
+        Dictionary<int, JsonElement> byTrack,
+        string normalizedLanguageCode)
+    {
+        var result = new List<BiblePublicationTrack>();
+        foreach (var kv in byTrack.OrderBy(x => x.Key))
+        {
+            var fileElement = kv.Value;
+            if (!fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileInfo) ||
+                !fileInfo.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
+            {
+                continue;
+            }
+
+            var url = urlElement.GetString();
+            if (string.IsNullOrEmpty(url))
+            {
+                continue;
+            }
+
+            var title = MediaTrackTitleHelper.UnknownTitle;
+            if (fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
+            {
+                title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
+            }
+
+            if (AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(normalizedLanguageCode, title))
+            {
+                continue;
+            }
+
+            result.Add(new BiblePublicationTrack
+            {
+                TrackCode = kv.Key.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                Title = title,
+                TrackUrl = new TrackUrl { Url = url }
+            });
+        }
+
+        return result;
     }
 }

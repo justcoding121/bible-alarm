@@ -33,36 +33,37 @@ internal sealed class MusicInstrumentalSectionListLoader
         // First, check if sections are already cataloged (without showing progress)
         var initialSections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
         
-        // Get expected section count for no-language publications from SectionLanguages discovery table
         var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
         var actualSectionCount = initialSections?.Values.Count ?? 0;
-        
-        // Check if we have ALL expected sections AND they're all cataloged (not placeholders)
-        // A section is cataloged if it has a non-empty name and a persisted Id.
-        // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
         var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-        var allSectionsCataloged = hasAllExpectedSections && initialSections != null && initialSections.Count > 0 && initialSections.Values.All(s =>
-            !string.IsNullOrEmpty(s.Name) &&
-            s.Id > 0);
+        var allSectionsCataloged = AreAllSectionsFullyCataloged(initialSections, expectedSectionCount);
 
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (items, selected) = await Task.Run(async () =>
         {
             SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsFromDb = null;
-            
+
             if (!allSectionsCataloged)
             {
-                // Sections are not fully cataloged - show progress and cancel as soon as fetch is decided, then retry fetching
                 progress?.SetIsVisible(true);
                 progress?.UpdateProgress(0.0);
 
-                // Retry logic: Retry fetching until all sections are cataloged (for future support when sections may not be pre-cataloged)
+                if (hasAllExpectedSections)
+                {
+                    logger.Debug("MusicInstrumentalSectionListLoader: Have {ActualCount} sections but some are placeholders, fetching remaining for publication={PublicationCode}",
+                        actualSectionCount, publicationCode);
+                }
+                else
+                {
+                    logger.Debug("MusicInstrumentalSectionListLoader: Only {ActualCount}/{ExpectedCount} sections found, fetching remaining for publication={PublicationCode}",
+                        actualSectionCount, expectedSectionCount, publicationCode);
+                }
+
                 sectionsFromDb = await RetryFetchUntilCatalogedAsync(publicationCode, progress, cancellationToken);
                 progress?.UpdateProgress(0.7);
             }
             else
             {
-                // All expected sections are already cataloged - use the initial query result, no need to show progress
                 logger.Debug("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections already cataloged for publication={PublicationCode}, skipping fetch",
                     expectedSectionCount, publicationCode);
                 sectionsFromDb = initialSections;
@@ -180,19 +181,11 @@ internal sealed class MusicInstrumentalSectionListLoader
                     // Re-query to check if sections are now cataloged (no progress needed for re-query)
                     var reQueriedData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
-                    // Get expected section count to verify we have all sections
                     var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
                     var actualSectionCount = reQueriedData?.Values.Count ?? 0;
-                    
-                    // Check if we have ALL expected sections AND they're all cataloged (not placeholders)
-                    // A section is cataloged if it has a non-empty name and a persisted Id.
-                    // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
-                    var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-                    var allSectionsCataloged = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
-                        !string.IsNullOrEmpty(s.Name) &&
-                        s.Id > 0);
 
-                    if (allSectionsCataloged)
+                    var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+                    if (AreAllSectionsFullyCataloged(reQueriedData, expectedSectionCount))
                     {
                         sectionsData = reQueriedData;
                         allCataloged = true;
@@ -213,31 +206,8 @@ internal sealed class MusicInstrumentalSectionListLoader
                         }
                         previousCatalogedCount = currentCatalogedCount;
 
-                        // Log which sections are still placeholders or missing for debugging
-                        if (reQueriedData != null)
-                        {
-                            var placeholders = reQueriedData.Values.Where(s =>
-                                string.IsNullOrEmpty(s.Name) ||
-                                s.Id == 0).Select(s => s.SectionCode).ToList();
+                        LogRetryIterationDiagnostics(attempt, reQueriedData, hasAllExpectedSections, actualSectionCount, expectedSectionCount);
 
-                            if (placeholders.Count > 0)
-                            {
-                                logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be cataloged: {Placeholders}",
-                                    attempt, placeholders.Count, string.Join(", ", placeholders));
-                            }
-                            else if (!hasAllExpectedSections)
-                            {
-                                logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} sections found, will retry",
-                                    attempt, actualSectionCount, expectedSectionCount);
-                            }
-                        }
-                        else
-                        {
-                            logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: No sections found yet, will retry",
-                                attempt);
-                        }
-
-                        // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
                         var delay = Math.Min(retryDelay * attempt, 5000);
                         await Task.Delay(delay, cancellationToken);
                     }
@@ -299,6 +269,60 @@ internal sealed class MusicInstrumentalSectionListLoader
         }
 
         return sectionsData;
+    }
+
+    private static bool AreAllSectionsFullyCataloged(
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sections,
+        int expectedSectionCount)
+    {
+        var actualSectionCount = sections?.Values.Count ?? 0;
+        if (actualSectionCount < expectedSectionCount)
+        {
+            return false;
+        }
+
+        if (sections == null || sections.Count == 0)
+        {
+            return false;
+        }
+
+        return sections.Values.All(s =>
+            !string.IsNullOrEmpty(s.Name) &&
+            s.Id > 0);
+    }
+
+    private void LogRetryIterationDiagnostics(
+        int attempt,
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? reQueriedData,
+        bool hasAllExpectedSections,
+        int actualSectionCount,
+        int expectedSectionCount)
+    {
+        if (reQueriedData != null)
+        {
+            var placeholders = reQueriedData.Values.Where(s =>
+                    string.IsNullOrEmpty(s.Name) ||
+                    s.Id == 0)
+                .Select(s => s.SectionCode)
+                .ToList();
+
+            if (placeholders.Count > 0)
+            {
+                logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be cataloged: {Placeholders}",
+                    attempt, placeholders.Count, string.Join(", ", placeholders));
+                return;
+            }
+
+            if (!hasAllExpectedSections)
+            {
+                logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} sections found, will retry",
+                    attempt, actualSectionCount, expectedSectionCount);
+                return;
+            }
+        }
+
+        logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: No sections found yet, will retry",
+            attempt);
     }
 }
 
