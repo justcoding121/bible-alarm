@@ -42,122 +42,17 @@ internal sealed class LookupDataLoader
     public async Task<LookupData> LoadAllAsync(LookupDataCollector.LookupKeys keys)
     {
         // Load all data in parallel
-        // For drama/video publications (non-sectioned), load tracks instead of sections
-        var publicationTasks = keys.PublicationKeys.Select(async key =>
-        {
-            try
-            {
-                BiblePublication? publication = null;
-                if (BiblePublicationService != null)
-                {
-                    // Use GetByLanguageAndCodeWithTracksAsync for drama/video publications
-                    // Use GetByLanguageAndCodeWithSectionsAsync for traditional Bible (sectioned)
-                    var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(key.PublicationCode);
-                    publication = hasSectionStructure
-                        ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(key.LanguageCode, key.PublicationCode)
-                        : await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(key.LanguageCode, key.PublicationCode);
-                }
-                return (Key: key, Publication: publication);
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error loading publication {LanguageCode}/{PublicationCode}",
-                    key.LanguageCode, key.PublicationCode);
-                return (Key: key, Publication: (BiblePublication?)null);
-            }
-        }).ToList();
-
-        var sectionTasks = keys.SectionKeys.Select(async key =>
-        {
-            try
-            {
-                var sectionName = biblePublicationSectionService != null
-                    ? await biblePublicationSectionService.GetSectionNameAsync(
-                        key.LanguageCode, key.PublicationCode, key.SectionCode)
-                    : null;
-                return (Key: key, SectionName: sectionName);
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error loading section {LanguageCode}/{PublicationCode}/{SectionCode}",
-                    key.LanguageCode, key.PublicationCode, key.SectionCode);
-                return (Key: key, SectionName: (string?)null);
-            }
-        }).ToList();
+        var publicationTasks = CreatePublicationTasks(keys);
+        var sectionTasks = CreateSectionTasks(keys);
 
         var vocalLanguagesTask = mediaService != null && keys.VocalMusicLanguageCodes.Count > 0
             ? mediaService.GetVocalMusicLanguages()
             : Task.FromResult<Dictionary<string, Language>>(new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase));
 
-        // For bootstrap schedule list display, we only need already-downloaded vocal publications
-        // referenced by schedules. Avoid GetVocalMusicReleases (discovery + placeholders) to reduce DB work.
-        var vocalReleasesTasks = keys.VocalMusicKeys.GroupBy(k => k.LanguageCode, StringComparer.OrdinalIgnoreCase).Select(async group =>
-        {
-            try
-            {
-                var releases = vocalMusicService != null
-                    ? await vocalMusicService.GetByLanguageCodeAsync(group.Key)
-                    : null;
-                return (LanguageCode: group.Key, Releases: releases ?? new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase));
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error loading vocal music releases for {LanguageCode}", group.Key);
-                return (LanguageCode: group.Key, Releases: new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase));
-            }
-        }).ToList();
-
-        var vocalTracksTasks = keys.VocalTrackKeys.Select(async key =>
-        {
-            try
-            {
-                var tracks = mediaService != null
-                    ? await mediaService.GetVocalMusicTracks(key.LanguageCode, key.PublicationCode)
-                    : null;
-                return (Key: key, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error loading vocal tracks {LanguageCode}/{PublicationCode}",
-                    key.LanguageCode, key.PublicationCode);
-                return (Key: key, Tracks: new SortedDictionary<int, MusicTrack>());
-            }
-        }).ToList();
-
-        // Melody tracks:
-        // - Flat melody publications: keyed only by PublicationCode
-        // - Sectioned melody publications (e.g. "iam"): keyed by (PublicationCode, SectionCode) to avoid ambiguity
-        var melodyTracksFlatTasks = keys.MelodyPublicationCodes.Select(async pubCode =>
-        {
-            try
-            {
-                var tracks = mediaService != null && !PublicationTypeHelper.HasSectionStructure(pubCode)
-                    ? await mediaService.GetMelodyMusicTracks(pubCode)
-                    : null;
-                return (PublicationCode: pubCode, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error loading melody tracks {PublicationCode}", pubCode);
-                return (PublicationCode: pubCode, Tracks: new SortedDictionary<int, MusicTrack>());
-            }
-        }).ToList();
-
-        var melodyTracksBySectionTasks = keys.MelodySectionKeys.Select(async key =>
-        {
-            try
-            {
-                var tracks = mediaService != null
-                    ? await mediaService.GetMelodyMusicTracksBySection(key.PublicationCode, key.SectionCode)
-                    : null;
-                return (Key: key, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error loading melody tracks {PublicationCode}/{SectionCode}", key.PublicationCode, key.SectionCode);
-                return (Key: key, Tracks: new SortedDictionary<int, MusicTrack>());
-            }
-        }).ToList();
+        var vocalReleasesTasks = CreateVocalReleasesTasks(keys);
+        var vocalTracksTasks = CreateVocalTracksTasks(keys);
+        var melodyTracksFlatTasks = CreateMelodyTracksFlatTasks(keys);
+        var melodyTracksBySectionTasks = CreateMelodyTracksBySectionTasks(keys);
 
         // Load melody releases for publication names
         var melodyReleasesTask = mediaService != null && keys.MelodyPublicationCodes.Count > 0
@@ -220,6 +115,132 @@ internal sealed class LookupDataLoader
             MelodyTracksFlat: melodyTracksFlatDict,
             MelodyTracksBySection: melodyTracksBySectionDict,
             MelodyReleases: melodyReleasesDict);
+    }
+
+    private List<Task<((string LanguageCode, string PublicationCode) Key, BiblePublication? Publication)>> CreatePublicationTasks(LookupDataCollector.LookupKeys keys)
+    {
+        return keys.PublicationKeys.Select(async key =>
+        {
+            try
+            {
+                BiblePublication? publication = null;
+                if (BiblePublicationService != null)
+                {
+                    // Use GetByLanguageAndCodeWithTracksAsync for drama/video publications
+                    // Use GetByLanguageAndCodeWithSectionsAsync for traditional Bible (sectioned)
+                    var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(key.PublicationCode);
+                    publication = hasSectionStructure
+                        ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(key.LanguageCode, key.PublicationCode)
+                        : await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(key.LanguageCode, key.PublicationCode);
+                }
+
+                return (Key: key, Publication: publication);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading publication {LanguageCode}/{PublicationCode}",
+                    key.LanguageCode, key.PublicationCode);
+                return (Key: key, Publication: (BiblePublication?)null);
+            }
+        }).ToList();
+    }
+
+    private List<Task<((string LanguageCode, string PublicationCode, string SectionCode) Key, string? SectionName)>> CreateSectionTasks(LookupDataCollector.LookupKeys keys)
+    {
+        return keys.SectionKeys.Select(async key =>
+        {
+            try
+            {
+                var sectionName = biblePublicationSectionService != null
+                    ? await biblePublicationSectionService.GetSectionNameAsync(
+                        key.LanguageCode, key.PublicationCode, key.SectionCode)
+                    : null;
+                return (Key: key, SectionName: sectionName);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading section {LanguageCode}/{PublicationCode}/{SectionCode}",
+                    key.LanguageCode, key.PublicationCode, key.SectionCode);
+                return (Key: key, SectionName: (string?)null);
+            }
+        }).ToList();
+    }
+
+    private List<Task<(string LanguageCode, Dictionary<string, VocalMusic> Releases)>> CreateVocalReleasesTasks(LookupDataCollector.LookupKeys keys)
+    {
+        return keys.VocalMusicKeys.GroupBy(k => k.LanguageCode, StringComparer.OrdinalIgnoreCase).Select(async group =>
+        {
+            try
+            {
+                var releases = vocalMusicService != null
+                    ? await vocalMusicService.GetByLanguageCodeAsync(group.Key)
+                    : null;
+                return (LanguageCode: group.Key, Releases: releases ?? new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase));
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading vocal music releases for {LanguageCode}", group.Key);
+                return (LanguageCode: group.Key, Releases: new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase));
+            }
+        }).ToList();
+    }
+
+    private List<Task<((string LanguageCode, string PublicationCode) Key, SortedDictionary<int, MusicTrack> Tracks)>> CreateVocalTracksTasks(LookupDataCollector.LookupKeys keys)
+    {
+        return keys.VocalTrackKeys.Select(async key =>
+        {
+            try
+            {
+                var tracks = mediaService != null
+                    ? await mediaService.GetVocalMusicTracks(key.LanguageCode, key.PublicationCode)
+                    : null;
+                return (Key: key, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading vocal tracks {LanguageCode}/{PublicationCode}",
+                    key.LanguageCode, key.PublicationCode);
+                return (Key: key, Tracks: new SortedDictionary<int, MusicTrack>());
+            }
+        }).ToList();
+    }
+
+    private List<Task<(string PublicationCode, SortedDictionary<int, MusicTrack> Tracks)>> CreateMelodyTracksFlatTasks(LookupDataCollector.LookupKeys keys)
+    {
+        return keys.MelodyPublicationCodes.Select(async pubCode =>
+        {
+            try
+            {
+                var tracks = mediaService != null && !PublicationTypeHelper.HasSectionStructure(pubCode)
+                    ? await mediaService.GetMelodyMusicTracks(pubCode)
+                    : null;
+                return (PublicationCode: pubCode, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading melody tracks {PublicationCode}", pubCode);
+                return (PublicationCode: pubCode, Tracks: new SortedDictionary<int, MusicTrack>());
+            }
+        }).ToList();
+    }
+
+    private List<Task<((string PublicationCode, string SectionCode) Key, SortedDictionary<int, MusicTrack> Tracks)>> CreateMelodyTracksBySectionTasks(LookupDataCollector.LookupKeys keys)
+    {
+        return keys.MelodySectionKeys.Select(async key =>
+        {
+            try
+            {
+                var tracks = mediaService != null
+                    ? await mediaService.GetMelodyMusicTracksBySection(key.PublicationCode, key.SectionCode)
+                    : null;
+                return (Key: key, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading melody tracks {PublicationCode}/{SectionCode}", key.PublicationCode, key.SectionCode);
+                return (Key: key, Tracks: new SortedDictionary<int, MusicTrack>());
+            }
+        }).ToList();
     }
 
     private async Task<NoLanguageLookupData> LoadNoLanguageLookupDataAsync(

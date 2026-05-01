@@ -130,133 +130,13 @@ public sealed class TrackSelectionSyncHandler
                                      !string.Equals(biblePub.PublicationCode, currentSchedule.BiblePublicationCode, StringComparison.OrdinalIgnoreCase);
 
             // Create updated schedule with Bible publication properties
-            var updatedSchedule = currentSchedule.DeepClone();
-            updatedSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : currentSchedule.BiblePublicationScheduleId;
-            
-            // ALWAYS preserve category - category can only be changed via CategorySelectionAction
-            // DeepClone() already preserves the category, but explicitly ensure it's never null/empty
-            // EXCEPTION: If category is null in current schedule but BiblePublicationStateItem has one, use it
-            // This handles cases where DispatchDefaultPublicationAsync is called and the category needs to be set
-            if (string.IsNullOrWhiteSpace(updatedSchedule.BiblePublicationCategoryName))
-            {
-                // Category is null - try to get it from BiblePublicationStateItem
-                if (!string.IsNullOrWhiteSpace(biblePub.CategoryName))
-                {
-                    updatedSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
-                    updatedSchedule.BiblePublicationCategoryName = biblePub.CategoryName;
-                    Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SetCategoryFromBiblePublicationStateItemWasNull,
-                        biblePub.CategoryName);
-                }
-                else
-                {
-                    // Category is null in both - this should not happen, but preserve what we can
-                    Log.Error(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.CategoryNullInBothScheduleAndBiblePublicationStateItem);
-                }
-            }
-            else
-            {
-                // Category exists - ALWAYS preserve it (DeepClone already did this, but be explicit)
-                // Category can only be changed via CategorySelectionAction
-                // Ensure CategoryId is also preserved
-                if (!updatedSchedule.BiblePublicationCategoryId.HasValue && biblePub.CategoryId.HasValue)
-                {
-                    // CategoryId might be missing even though CategoryName exists - preserve it
-                    updatedSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
-                }
-            }
-            
-            // Language code can ONLY be changed by:
-            // 1. Category change (will default language to E)
-            // 2. By user explicitly changing the language
-            // 
-            // IMPORTANT: When user selects a publication with no language (null), the current language stays the same.
-            // The publication's language code (null) will be used in queries, but the schedule's language code doesn't change.
-            if (languageChanged)
-            {
-                // Language changed - update language code and display names
-                // This only happens when: category change or user explicitly changed the language
-                updatedSchedule.BiblePublicationLanguageCode = biblePub.LanguageCode;
-                updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
-                    ? biblePub.LanguageName 
-                    : updatedSchedule.BiblePublicationLanguageName ?? string.Empty;
-                updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
-                    ? biblePub.LanguageDirection 
-                    : updatedSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight;
-            }
-            else
-            {
-                // Language did not change - ALWAYS preserve language (code, name, direction)
-                // Language can only be changed via CategorySelectionAction or explicit user language selection
-                // Even when selecting a publication without language, the current language stays the same
-            }
-            
-            updatedSchedule.BiblePublicationCode = biblePub.PublicationCode;
-            updatedSchedule.BiblePublicationSectionCode = actionSectionCode;
-            updatedSchedule.BiblePublicationTrackCode = biblePub.TrackCode;
-            // Reset saved progress when track identity changes so stale seek positions
-            // don't carry over to a different track (which would cause seeking past the
-            // new track's duration and trigger auto-skip on ExoPlayer).
-            // The DB reset still happens on Save via DetectBiblePublicationChanges.
-            if (languageChanged || publicationChanged ||
-                !Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, actionSectionCode) ||
-                currentSchedule.BiblePublicationTrackCode != biblePub.TrackCode)
-            {
-                updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
-            }
-            
-            // Copy display names from the action (populated from list items when user tapped)
-            // When language or publication changes, always use new values (or clear if empty)
-            if (languageChanged)
-            {
-                // Language changed - update display names
-                updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
-                updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
-                updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
-            }
-            else if (publicationChanged)
-            {
-                // Publication changed - preserve language name, update rest
-                updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
-                    ? biblePub.LanguageName 
-                    : currentSchedule.BiblePublicationLanguageName;
-                updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
-                    ? biblePub.LanguageDirection 
-                    : currentSchedule.BiblePublicationLanguageDirection;
-                updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
-                updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
-                updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
-                
-                // Warn if section/track names are empty for a publication change - this may cause empty UI rows
-                if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(actionSectionCode))
-                {
-                    Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SectionNameEmptyAfterPublicationChangeSectionCodeSet,
-                        actionSectionCode, biblePub.PublicationCode);
-                }
-                if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(biblePub.TrackCode))
-                {
-                    Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.TrackTitleEmptyAfterPublicationChangeTrackCodeValid,
-                        biblePub.TrackCode, biblePub.PublicationCode);
-                }
-            }
-            else
-            {
-                // Same language and publication - preserve if new value is empty
-                updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
-                    ? biblePub.LanguageName 
-                    : currentSchedule.BiblePublicationLanguageName;
-                updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
-                    ? biblePub.LanguageDirection 
-                    : currentSchedule.BiblePublicationLanguageDirection;
-                updatedSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName) 
-                    ? biblePub.PublicationName 
-                    : currentSchedule.BiblePublicationName;
-                updatedSchedule.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName) 
-                    ? biblePub.SectionName 
-                    : currentSchedule.BiblePublicationSectionName;
-                updatedSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle) 
-                    ? biblePub.TrackTitle 
-                    : currentSchedule.BiblePublicationTrackTitle;
-            }
+            var updatedSchedule = ApplyBiblePublicationTrackSelection(
+                currentSchedule,
+                biblePub,
+                languageChanged,
+                publicationChanged,
+                currentSectionCode,
+                actionSectionCode);
 
             Log.Information(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationDispatchingUpdate,
                 updatedSchedule.Id, updatedSchedule.BiblePublicationTrackCode, updatedSchedule.BiblePublicationTrackTitle, updatedSchedule.BiblePublicationSectionCode);
@@ -266,6 +146,123 @@ public sealed class TrackSelectionSyncHandler
         {
             Log.Warning(ex, AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.ErrorSyncingCurrentBiblePublicationScheduleToCurrentSchedule);
         }
+    }
+
+    private static ScheduleStateItem ApplyBiblePublicationTrackSelection(
+        ScheduleStateItem currentSchedule,
+        BiblePublicationStateItem biblePub,
+        bool languageChanged,
+        bool publicationChanged,
+        string? currentSectionCode,
+        string? actionSectionCode)
+    {
+        var updatedSchedule = currentSchedule.DeepClone();
+        updatedSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : currentSchedule.BiblePublicationScheduleId;
+
+        if (string.IsNullOrWhiteSpace(updatedSchedule.BiblePublicationCategoryName))
+        {
+            if (!string.IsNullOrWhiteSpace(biblePub.CategoryName))
+            {
+                updatedSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
+                updatedSchedule.BiblePublicationCategoryName = biblePub.CategoryName;
+                Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SetCategoryFromBiblePublicationStateItemWasNull,
+                    biblePub.CategoryName);
+            }
+            else
+            {
+                Log.Error(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.CategoryNullInBothScheduleAndBiblePublicationStateItem);
+            }
+        }
+        else if (!updatedSchedule.BiblePublicationCategoryId.HasValue && biblePub.CategoryId.HasValue)
+        {
+            updatedSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
+        }
+
+        if (languageChanged)
+        {
+            updatedSchedule.BiblePublicationLanguageCode = biblePub.LanguageCode;
+            updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName)
+                ? biblePub.LanguageName
+                : updatedSchedule.BiblePublicationLanguageName ?? string.Empty;
+            updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection)
+                ? biblePub.LanguageDirection
+                : updatedSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight;
+        }
+
+        updatedSchedule.BiblePublicationCode = biblePub.PublicationCode;
+        updatedSchedule.BiblePublicationSectionCode = actionSectionCode;
+        updatedSchedule.BiblePublicationTrackCode = biblePub.TrackCode;
+
+        if (languageChanged || publicationChanged ||
+            !Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, actionSectionCode) ||
+            currentSchedule.BiblePublicationTrackCode != biblePub.TrackCode)
+        {
+            updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
+        }
+
+        ApplyBiblePublicationDisplayNames(updatedSchedule, currentSchedule, biblePub, languageChanged, publicationChanged, actionSectionCode);
+
+        return updatedSchedule;
+    }
+
+    private static void ApplyBiblePublicationDisplayNames(
+        ScheduleStateItem updatedSchedule,
+        ScheduleStateItem currentSchedule,
+        BiblePublicationStateItem biblePub,
+        bool languageChanged,
+        bool publicationChanged,
+        string? actionSectionCode)
+    {
+        if (languageChanged)
+        {
+            updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
+            updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
+            updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
+            return;
+        }
+
+        if (publicationChanged)
+        {
+            updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName)
+                ? biblePub.LanguageName
+                : currentSchedule.BiblePublicationLanguageName;
+            updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection)
+                ? biblePub.LanguageDirection
+                : currentSchedule.BiblePublicationLanguageDirection;
+            updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
+            updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
+            updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
+
+            if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(actionSectionCode))
+            {
+                Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SectionNameEmptyAfterPublicationChangeSectionCodeSet,
+                    actionSectionCode, biblePub.PublicationCode);
+            }
+
+            if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(biblePub.TrackCode))
+            {
+                Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.TrackTitleEmptyAfterPublicationChangeTrackCodeValid,
+                    biblePub.TrackCode, biblePub.PublicationCode);
+            }
+
+            return;
+        }
+
+        updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName)
+            ? biblePub.LanguageName
+            : currentSchedule.BiblePublicationLanguageName;
+        updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection)
+            ? biblePub.LanguageDirection
+            : currentSchedule.BiblePublicationLanguageDirection;
+        updatedSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName)
+            ? biblePub.PublicationName
+            : currentSchedule.BiblePublicationName;
+        updatedSchedule.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName)
+            ? biblePub.SectionName
+            : currentSchedule.BiblePublicationSectionName;
+        updatedSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle)
+            ? biblePub.TrackTitle
+            : currentSchedule.BiblePublicationTrackTitle;
     }
 
     private static void LogTrackSelectedStart(MusicTrackSelectedAction action)
@@ -368,13 +365,29 @@ public sealed class TrackSelectionSyncHandler
 
     private static void UpdateMusicProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool languageCodeChanged)
     {
-        // If language code changed or Id is 0 (new selection), set MusicId to null or action's Id
-        // Otherwise preserve the existing MusicId
-        int? musicIdFromAction = null;
-        if (actionMusic.Id > 0)
-        {
-            musicIdFromAction = actionMusic.Id;
-        }
+        ApplyMusicIdentityFromTrackSelection(updatedSchedule, currentSchedule, actionMusic, languageCodeChanged);
+        updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
+        var useScheduleLanguage = string.IsNullOrWhiteSpace(actionMusic.LanguageCode);
+        updatedSchedule.MusicLanguageCode = useScheduleLanguage
+            ? currentSchedule.MusicLanguageCode ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode
+            : actionMusic.LanguageCode;
+
+        updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
+        updatedSchedule.MusicTrackCode = actionMusic.TrackCode;
+        updatedSchedule.MusicRepeat = actionMusic.Repeat;
+
+        ApplyMusicLanguageDisplayFields(updatedSchedule, currentSchedule, actionMusic, useScheduleLanguage);
+        updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
+        updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
+    }
+
+    private static void ApplyMusicIdentityFromTrackSelection(
+        ScheduleStateItem updatedSchedule,
+        ScheduleStateItem currentSchedule,
+        MusicStateItem actionMusic,
+        bool languageCodeChanged)
+    {
+        int? musicIdFromAction = actionMusic.Id > 0 ? actionMusic.Id : null;
 
         if (languageCodeChanged || actionMusic.Id == 0)
         {
@@ -384,42 +397,23 @@ public sealed class TrackSelectionSyncHandler
         {
             updatedSchedule.MusicId = currentSchedule.MusicId;
         }
-        updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
-        var useScheduleLanguage = string.IsNullOrWhiteSpace(actionMusic.LanguageCode);
-        // For melody (no-language pub), preserve existing music display language (e.g. MY) so it is saved and restored on view schedule.
-        if (useScheduleLanguage)
-        {
-            updatedSchedule.MusicLanguageCode = currentSchedule.MusicLanguageCode
-                ?? Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode;
-        }
-        else
-        {
-            updatedSchedule.MusicLanguageCode = actionMusic.LanguageCode;
-        }
+    }
 
-        updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
-        updatedSchedule.MusicTrackCode = actionMusic.TrackCode;
-        updatedSchedule.MusicRepeat = actionMusic.Repeat;
-
+    private static void ApplyMusicLanguageDisplayFields(
+        ScheduleStateItem updatedSchedule,
+        ScheduleStateItem currentSchedule,
+        MusicStateItem actionMusic,
+        bool useScheduleLanguage)
+    {
         if (useScheduleLanguage)
         {
             updatedSchedule.MusicLanguageName = currentSchedule.MusicLanguageName;
-        }
-        else
-        {
-            updatedSchedule.MusicLanguageName = actionMusic.LanguageName ?? currentSchedule.MusicLanguageName;
+            updatedSchedule.MusicLanguageDirection = currentSchedule.MusicLanguageDirection;
+            return;
         }
 
-        if (useScheduleLanguage)
-        {
-            updatedSchedule.MusicLanguageDirection = currentSchedule.MusicLanguageDirection;
-        }
-        else
-        {
-            updatedSchedule.MusicLanguageDirection = actionMusic.LanguageDirection ?? currentSchedule.MusicLanguageDirection;
-        }
-        updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
-        updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
+        updatedSchedule.MusicLanguageName = actionMusic.LanguageName ?? currentSchedule.MusicLanguageName;
+        updatedSchedule.MusicLanguageDirection = actionMusic.LanguageDirection ?? currentSchedule.MusicLanguageDirection;
     }
 
     private static async Task SetMusicDisplayNamesAsync(ScheduleStateItem updatedSchedule, MusicStateItem actionMusic)
@@ -433,29 +427,35 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicSectionName = actionMusic.SectionName;
         updatedSchedule.MusicTrackName = actionMusic.TrackName;
 
-        // When switching from melody to vocal (e.g. osg), action may have LanguageCode but LanguageName null
-        // (user tapped osg from merged list without a selected language). Resolve name so the row shows "English" not "E".
-        if (string.IsNullOrWhiteSpace(updatedSchedule.MusicLanguageName) && !string.IsNullOrWhiteSpace(actionMusic.LanguageCode))
+        await TryEnrichVocalLanguageDisplayFromCatalogAsync(updatedSchedule, actionMusic);
+
+        Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedUsingDisplayNamesFromAction,
+            updatedSchedule.MusicLanguageName ?? "null",
+            updatedSchedule.MusicPublicationName ?? "null",
+            updatedSchedule.MusicSectionName ?? "null",
+            updatedSchedule.MusicTrackName ?? "null");
+    }
+
+    private static async Task TryEnrichVocalLanguageDisplayFromCatalogAsync(ScheduleStateItem updatedSchedule, MusicStateItem actionMusic)
+    {
+        if (!string.IsNullOrWhiteSpace(updatedSchedule.MusicLanguageName) || string.IsNullOrWhiteSpace(actionMusic.LanguageCode))
         {
-            var mediaService = ServiceProviderManager.GetService<IMediaService>();
-            var languageNameService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
-            try
+            return;
+        }
+
+        var mediaService = ServiceProviderManager.GetService<IMediaService>();
+        var languageNameService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();
+        try
+        {
+            if (mediaService != null)
             {
-                if (mediaService != null)
+                var languages = await mediaService.GetVocalMusicLanguages();
+                if (languages.TryGetValue(actionMusic.LanguageCode, out var language))
                 {
-                    var languages = await mediaService.GetVocalMusicLanguages();
-                    if (languages.TryGetValue(actionMusic.LanguageCode, out var language))
-                    {
-                        updatedSchedule.MusicLanguageDirection = language.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
-                        updatedSchedule.MusicLanguageName = languageNameService != null
-                            ? await languageNameService.GetNameAsync(language.Id, AppConstants.Media.DefaultLanguageCode) ?? actionMusic.LanguageCode
-                            : actionMusic.LanguageCode;
-                    }
-                    else
-                    {
-                        updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
-                        updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
-                    }
+                    updatedSchedule.MusicLanguageDirection = language.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
+                    updatedSchedule.MusicLanguageName = languageNameService != null
+                        ? await languageNameService.GetNameAsync(language.Id, AppConstants.Media.DefaultLanguageCode) ?? actionMusic.LanguageCode
+                        : actionMusic.LanguageCode;
                 }
                 else
                 {
@@ -463,19 +463,18 @@ public sealed class TrackSelectionSyncHandler
                     updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                 }
             }
-            catch (Exception ex)
+            else
             {
-                Log.Debug(ex, AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCouldNotResolveVocalLanguageDisplayName, actionMusic.LanguageCode);
                 updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
                 updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
-
-        Log.Debug(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedUsingDisplayNamesFromAction,
-            updatedSchedule.MusicLanguageName ?? "null",
-            updatedSchedule.MusicPublicationName ?? "null",
-            updatedSchedule.MusicSectionName ?? "null",
-            updatedSchedule.MusicTrackName ?? "null");
+        catch (Exception ex)
+        {
+            Log.Debug(ex, AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCouldNotResolveVocalLanguageDisplayName, actionMusic.LanguageCode);
+            updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
+            updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
+        }
     }
 
     private static void DispatchTrackUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)

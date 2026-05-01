@@ -1,7 +1,9 @@
 #nullable enable
+using System.Linq;
 using System.Security.Cryptography;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
@@ -49,45 +51,14 @@ internal sealed class DefaultMusicPopulator
                 return;
             }
 
-            // Get all melody music publications; prefer "iam" (Kingdom Melodies) as default, else first available
-            const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
-            var melodyReleases = await melodyMusicService.GetAllAsync();
-            if (melodyReleases == null || melodyReleases.Count == 0)
+            var resolved = await TryResolveDefaultMelodyCatalogAsync(schedulesNeedingMusic.Count);
+            if (resolved == null)
             {
-                Log.Logger.Warning("No melody music publications found in database - cannot populate default music for {Count} schedules",
-                    schedulesNeedingMusic.Count);
                 return;
             }
 
-            string defaultPublicationCode;
-            string defaultPublicationName;
-            if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
-            {
-                defaultPublicationCode = PreferredMelodyPublicationCode;
-                defaultPublicationName = preferred.Name;
-            }
-            else
-            {
-                var firstMelody = melodyReleases.First();
-                if (firstMelody.Value == null)
-                {
-                    return;
-                }
-                defaultPublicationCode = firstMelody.Key;
-                defaultPublicationName = firstMelody.Value.Name;
-            }
-
-            // Load tracks for the default melody music
-            var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
-
-            if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
-            {
-                Log.Logger.Warning("Melody music '{PublicationCode}' not found or has no tracks - cannot populate default music for {Count} schedules",
-                    defaultPublicationCode, schedulesNeedingMusic.Count);
-                return;
-            }
-
-            var trackCount = melodyMusic.Tracks.Count;
+            var (defaultPublicationCode, defaultPublicationName, melodyMusic) = resolved.Value;
+            var trackCount = melodyMusic.Tracks!.Count;
             foreach (var (schedule, stateItem) in schedulesNeedingMusic)
             {
                 var randomTrack = melodyMusic.Tracks[RandomNumberGenerator.GetInt32(trackCount)];
@@ -111,6 +82,48 @@ internal sealed class DefaultMusicPopulator
             Log.Logger.Warning(defaultMusicEx, "Error batch populating default music properties for {Count} schedules",
                 schedulesNeedingMusic.Count);
         }
+    }
+
+    private async Task<(string PublicationCode, string PublicationName, MelodyMusic MelodyMusic)?> TryResolveDefaultMelodyCatalogAsync(int schedulesNeedingCount)
+    {
+        const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
+        var melodyReleases = await melodyMusicService!.GetAllAsync();
+        if (melodyReleases == null || melodyReleases.Count == 0)
+        {
+            Log.Logger.Warning("No melody music publications found in database - cannot populate default music for {Count} schedules",
+                schedulesNeedingCount);
+            return null;
+        }
+
+        string defaultPublicationCode;
+        string defaultPublicationName;
+        if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
+        {
+            defaultPublicationCode = PreferredMelodyPublicationCode;
+            defaultPublicationName = preferred.Name;
+        }
+        else
+        {
+            var firstMelody = melodyReleases.First();
+            if (firstMelody.Value == null)
+            {
+                return null;
+            }
+
+            defaultPublicationCode = firstMelody.Key;
+            defaultPublicationName = firstMelody.Value.Name;
+        }
+
+        var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
+
+        if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
+        {
+            Log.Logger.Warning("Melody music '{PublicationCode}' not found or has no tracks - cannot populate default music for {Count} schedules",
+                defaultPublicationCode, schedulesNeedingCount);
+            return null;
+        }
+
+        return (defaultPublicationCode, defaultPublicationName, melodyMusic);
     }
 }
 

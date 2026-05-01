@@ -131,77 +131,15 @@ internal sealed class RemoteId3ArtworkExtractor
             tempFilePath = Path.Combine(Path.GetTempPath(), $"ba_id3_{Guid.NewGuid():N}.tmp");
             await System.IO.File.WriteAllBytesAsync(tempFilePath, tagBytes);
 
-            File? tagFile = null;
-            try
-            {
-                // Try default detection first.
-                tagFile = File.Create(tempFilePath, TagLibMimeConstants.AudioMpeg, ReadStyle.None);
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Id3FailedToCreateTagLibFileFromTempPath, tempFilePath);
-                return null;
-            }
-
+            using var tagFile = TryOpenTagLibFile(tempFilePath);
             if (tagFile == null)
             {
                 return null;
             }
 
-            using (tagFile)
-            {
-                var tag = tagFile.Tag;
-                string? artistMeta = null;
-                if (!string.IsNullOrEmpty(tag.FirstPerformer))
-                {
-                    artistMeta = tag.FirstPerformer;
-                }
-                else if (!string.IsNullOrEmpty(tag.FirstAlbumArtist))
-                {
-                    artistMeta = tag.FirstAlbumArtist;
-                }
-
-                string? titleMeta = null;
-                if (!string.IsNullOrEmpty(tag.Title))
-                {
-                    titleMeta = tag.Title;
-                }
-
-                string? albumMeta = null;
-                if (!string.IsNullOrEmpty(tag.Album))
-                {
-                    albumMeta = tag.Album;
-                }
-
-                var meta = new MetaData
-                {
-                    Title = titleMeta,
-                    Artist = artistMeta,
-                    Album = albumMeta
-                };
-
-                // Extract artwork from the tag.
-                if (tag.Pictures != null && tag.Pictures.Length > 0)
-                {
-                    TagLib.IPicture? largest = null;
-                    int largestSize = 0;
-                    foreach (var pic in tag.Pictures)
-                    {
-                        if (pic?.Data?.Data != null && pic.Data.Data.Length > largestSize)
-                        {
-                            largest = pic;
-                            largestSize = pic.Data.Data.Length;
-                        }
-                    }
-
-                    if (largest?.Data?.Data != null)
-                    {
-                        meta.ArtworkBytes = largest.Data.Data;
-                    }
-                }
-
-                return meta;
-            }
+            var meta = BuildMetaFromTag(tagFile.Tag);
+            AssignLargestPicture(tagFile.Tag, meta);
+            return meta;
         }
         finally
         {
@@ -217,6 +155,66 @@ internal sealed class RemoteId3ArtworkExtractor
                     // Ignore cleanup errors.
                 }
             }
+        }
+    }
+
+    private File? TryOpenTagLibFile(string tempFilePath)
+    {
+        try
+        {
+            return File.Create(tempFilePath, TagLibMimeConstants.AudioMpeg, ReadStyle.None);
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Id3FailedToCreateTagLibFileFromTempPath, tempFilePath);
+            return null;
+        }
+    }
+
+    private static MetaData BuildMetaFromTag(TagLib.Tag tag)
+    {
+        string? artistMeta = null;
+        if (!string.IsNullOrEmpty(tag.FirstPerformer))
+        {
+            artistMeta = tag.FirstPerformer;
+        }
+        else if (!string.IsNullOrEmpty(tag.FirstAlbumArtist))
+        {
+            artistMeta = tag.FirstAlbumArtist;
+        }
+
+        string? titleMeta = string.IsNullOrEmpty(tag.Title) ? null : tag.Title;
+        string? albumMeta = string.IsNullOrEmpty(tag.Album) ? null : tag.Album;
+
+        return new MetaData
+        {
+            Title = titleMeta,
+            Artist = artistMeta,
+            Album = albumMeta
+        };
+    }
+
+    private static void AssignLargestPicture(TagLib.Tag tag, MetaData meta)
+    {
+        if (tag.Pictures == null || tag.Pictures.Length == 0)
+        {
+            return;
+        }
+
+        TagLib.IPicture? largest = null;
+        var largestSize = 0;
+        foreach (var pic in tag.Pictures)
+        {
+            if (pic?.Data?.Data != null && pic.Data.Data.Length > largestSize)
+            {
+                largest = pic;
+                largestSize = pic.Data.Data.Length;
+            }
+        }
+
+        if (largest?.Data?.Data != null)
+        {
+            meta.ArtworkBytes = largest.Data.Data;
         }
     }
 }

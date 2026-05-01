@@ -92,60 +92,15 @@ internal static class ScheduleStateServiceIosEnableWithPermission
 
             await alarmService.Update(iosUpdatedSchedule);
 
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                try
-                {
-                    var notificationViewModel = new NotificationPermissionViewModel(
-                        logger,
-                        navigationService,
-                        onModalDismissed: (permissionGranted) =>
-                        {
-                            MainThread.BeginInvokeOnMainThread(async () =>
-                            {
-                                try
-                                {
-                                    try
-                                    {
-                                        var dbUpdatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
-                                            scheduleId,
-                                            s => s.IsEnabled = permissionGranted,
-                                            cancellationToken);
-                                        updateFluxorStore(dbUpdatedSchedule);
-                                        logger.Information("EnableScheduleAsync (iOS): Permission {PermissionStatus} from modal - set IsEnabled to {IsEnabled} in DB for schedule {ScheduleId}.",
-                                            permissionGranted ? "granted" : "denied", permissionGranted, scheduleId);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        logger.Error(ex, "EnableScheduleAsync (iOS): Error updating IsEnabled in DB after permission check");
-                                        var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
-                                        var schedules = state.Value.Schedules;
-                                        var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
-                                        if (scheduleToUpdate != null)
-                                        {
-                                            var mapper = serviceProvider.GetRequiredService<IMapper>();
-                                            var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
-                                            updatedSchedule.IsEnabled = permissionGranted;
-                                            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
-                                        }
-                                        else
-                                            logger.Warning("EnableScheduleAsync (iOS): Schedule not found in Schedules collection when trying to set IsEnabled. ScheduleId={ScheduleId}", scheduleId);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.Error(ex, "EnableScheduleAsync (iOS): Error updating IsEnabled after permission check");
-                                }
-                            });
-                        });
-                    notificationViewModel.StartPermissionCheckTimer();
-                    await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "EnableScheduleAsync (iOS): Error opening notification permission modal");
-                }
-            });
+            BeginIosNotificationPermissionModalAfterEnable(
+                logger,
+                navigationService,
+                alarmScheduleService,
+                dispatcher,
+                serviceProvider,
+                updateFluxorStore,
+                cancellationToken,
+                scheduleId);
 
             return (true, iosUpdatedSchedule);
         }
@@ -153,6 +108,91 @@ internal static class ScheduleStateServiceIosEnableWithPermission
         {
             logger.Error(ex, "EnableScheduleAsync (iOS): Exception checking notification permission");
             return (false, null);
+        }
+    }
+
+    private static void BeginIosNotificationPermissionModalAfterEnable(
+        ILogger logger,
+        INavigationService navigationService,
+        IAlarmScheduleService alarmScheduleService,
+        IDispatcher dispatcher,
+        IServiceProvider serviceProvider,
+        Action<AlarmSchedule?> updateFluxorStore,
+        CancellationToken cancellationToken,
+        int scheduleId)
+    {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try
+            {
+                var notificationViewModel = new NotificationPermissionViewModel(
+                    logger,
+                    navigationService,
+                    onModalDismissed: permissionGranted =>
+                        MainThread.BeginInvokeOnMainThread(async () =>
+                            await ApplyIosPermissionDismissAsync(
+                                logger,
+                                alarmScheduleService,
+                                dispatcher,
+                                serviceProvider,
+                                updateFluxorStore,
+                                cancellationToken,
+                                scheduleId,
+                                permissionGranted)));
+                notificationViewModel.StartPermissionCheckTimer();
+                await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "EnableScheduleAsync (iOS): Error opening notification permission modal");
+            }
+        });
+    }
+
+    private static async Task ApplyIosPermissionDismissAsync(
+        ILogger logger,
+        IAlarmScheduleService alarmScheduleService,
+        IDispatcher dispatcher,
+        IServiceProvider serviceProvider,
+        Action<AlarmSchedule?> updateFluxorStore,
+        CancellationToken cancellationToken,
+        int scheduleId,
+        bool permissionGranted)
+    {
+        try
+        {
+            try
+            {
+                var dbUpdatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
+                    scheduleId,
+                    s => s.IsEnabled = permissionGranted,
+                    cancellationToken);
+                updateFluxorStore(dbUpdatedSchedule);
+                logger.Information("EnableScheduleAsync (iOS): Permission {PermissionStatus} from modal - set IsEnabled to {IsEnabled} in DB for schedule {ScheduleId}.",
+                    permissionGranted ? "granted" : "denied", permissionGranted, scheduleId);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "EnableScheduleAsync (iOS): Error updating IsEnabled in DB after permission check");
+                var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
+                var schedules = state.Value.Schedules;
+                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
+                if (scheduleToUpdate != null)
+                {
+                    var mapper = serviceProvider.GetRequiredService<IMapper>();
+                    var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
+                    updatedSchedule.IsEnabled = permissionGranted;
+                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
+                }
+                else
+                {
+                    logger.Warning("EnableScheduleAsync (iOS): Schedule not found in Schedules collection when trying to set IsEnabled. ScheduleId={ScheduleId}", scheduleId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "EnableScheduleAsync (iOS): Error updating IsEnabled after permission check");
         }
     }
 }

@@ -31,63 +31,14 @@ internal static class LookupDataCollector
 
         foreach (var schedule in alarmSchedules)
         {
-            // Collect Bible reading keys
             if (schedule.BiblePublicationSchedule != null)
             {
-                var br = schedule.BiblePublicationSchedule;
-                if (!string.IsNullOrWhiteSpace(br.PublicationCode))
-                {
-                    // For non-language publications (LanguageCode is null in DB), use default language code during bootstrap
-                    // This ensures display names are populated for publications like "iam" that have LanguageId == null
-                    var effectiveLanguageCode = string.IsNullOrWhiteSpace(br.LanguageCode) ? AppConstants.Media.DefaultLanguageCode : br.LanguageCode;
-                    
-                    publicationKeys.Add((effectiveLanguageCode, br.PublicationCode));
-                    var normalizedSectionCode = SectionCodeHelper.Normalize(br.SectionCode);
-                    if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
-                    {
-                        sectionKeys.Add((effectiveLanguageCode, br.PublicationCode, normalizedSectionCode));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(br.TrackCode))
-                    {
-                        bibleTrackKeys.Add((effectiveLanguageCode, br.PublicationCode, normalizedSectionCode, br.TrackCode));
-                    }
-                }
+                CollectBiblePublicationKeys(schedule.BiblePublicationSchedule, publicationKeys, sectionKeys, bibleTrackKeys);
             }
 
-            // Collect music keys
-            // Music type is inferred: NULL/empty LanguageCode = melody (instrumental), otherwise = vocal
             if (schedule.Music != null)
             {
-                var music = schedule.Music;
-                var isMelodyMusic = string.IsNullOrEmpty(music.LanguageCode);
-                
-                if (!isMelodyMusic)
-                {
-                    // Vocal music (has language code)
-                    vocalMusicLanguageCodes.Add(music.LanguageCode!);
-                    if (!string.IsNullOrWhiteSpace(music.PublicationCode))
-                    {
-                        vocalMusicKeys.Add((music.LanguageCode!, music.PublicationCode));
-                        if (!string.IsNullOrWhiteSpace(music.TrackCode))
-                        {
-                            vocalTrackKeys.Add((music.LanguageCode!, music.PublicationCode));
-                        }
-                    }
-                }
-                else
-                {
-                    // Melody/instrumental music (no language code)
-                    if (!string.IsNullOrWhiteSpace(music.PublicationCode))
-                    {
-                        melodyPublicationCodes.Add(music.PublicationCode);
-                        var normalizedSectionCode = SectionCodeHelper.Normalize(music.SectionCode);
-                        if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
-                        {
-                            melodySectionKeys.Add((music.PublicationCode, normalizedSectionCode));
-                        }
-                    }
-                }
+                CollectMusicKeys(schedule.Music, vocalMusicLanguageCodes, vocalMusicKeys, vocalTrackKeys, melodyPublicationCodes, melodySectionKeys);
             }
         }
 
@@ -100,6 +51,71 @@ internal static class LookupDataCollector
             VocalTrackKeys: vocalTrackKeys,
             MelodyPublicationCodes: melodyPublicationCodes,
             MelodySectionKeys: melodySectionKeys);
+    }
+
+    private static void CollectBiblePublicationKeys(
+        BiblePublicationSchedule br,
+        HashSet<(string LanguageCode, string PublicationCode)> publicationKeys,
+        HashSet<(string LanguageCode, string PublicationCode, string SectionCode)> sectionKeys,
+        HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode)> bibleTrackKeys)
+    {
+        if (string.IsNullOrWhiteSpace(br.PublicationCode))
+        {
+            return;
+        }
+
+        // For non-language publications (LanguageCode is null in DB), use default language code during bootstrap
+        // This ensures display names are populated for publications like "iam" that have LanguageId == null
+        var effectiveLanguageCode = string.IsNullOrWhiteSpace(br.LanguageCode) ? AppConstants.Media.DefaultLanguageCode : br.LanguageCode;
+
+        publicationKeys.Add((effectiveLanguageCode, br.PublicationCode));
+        var normalizedSectionCode = SectionCodeHelper.Normalize(br.SectionCode);
+        if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
+        {
+            sectionKeys.Add((effectiveLanguageCode, br.PublicationCode, normalizedSectionCode));
+        }
+
+        if (!string.IsNullOrWhiteSpace(br.TrackCode))
+        {
+            bibleTrackKeys.Add((effectiveLanguageCode, br.PublicationCode, normalizedSectionCode, br.TrackCode));
+        }
+    }
+
+    private static void CollectMusicKeys(
+        AlarmMusic music,
+        HashSet<string> vocalMusicLanguageCodes,
+        HashSet<(string LanguageCode, string PublicationCode)> vocalMusicKeys,
+        HashSet<(string LanguageCode, string PublicationCode)> vocalTrackKeys,
+        HashSet<string> melodyPublicationCodes,
+        HashSet<(string PublicationCode, string SectionCode)> melodySectionKeys)
+    {
+        // Music type is inferred: NULL/empty LanguageCode = melody (instrumental), otherwise = vocal
+        var isMelodyMusic = string.IsNullOrEmpty(music.LanguageCode);
+
+        if (!isMelodyMusic)
+        {
+            vocalMusicLanguageCodes.Add(music.LanguageCode!);
+            if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+            {
+                vocalMusicKeys.Add((music.LanguageCode!, music.PublicationCode));
+                if (!string.IsNullOrWhiteSpace(music.TrackCode))
+                {
+                    vocalTrackKeys.Add((music.LanguageCode!, music.PublicationCode));
+                }
+            }
+
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+        {
+            melodyPublicationCodes.Add(music.PublicationCode);
+            var normalizedSectionCode = SectionCodeHelper.Normalize(music.SectionCode);
+            if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
+            {
+                melodySectionKeys.Add((music.PublicationCode, normalizedSectionCode));
+            }
+        }
     }
 
     public sealed record LookupKeys(

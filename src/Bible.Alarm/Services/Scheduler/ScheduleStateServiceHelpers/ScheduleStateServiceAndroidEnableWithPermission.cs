@@ -72,6 +72,18 @@ internal static class ScheduleStateServiceAndroidEnableWithPermission
 
         await alarmService.Update(androidUpdatedSchedule);
 
+        BeginAndroidNotificationPermissionModalAfterEnable(logger, navigationService, serviceProvider, dispatcher, scheduleId);
+
+        return (true, androidUpdatedSchedule);
+    }
+
+    private static void BeginAndroidNotificationPermissionModalAfterEnable(
+        ILogger logger,
+        INavigationService navigationService,
+        IServiceProvider serviceProvider,
+        IDispatcher dispatcher,
+        int scheduleId)
+    {
         MainThread.BeginInvokeOnMainThread(async () =>
         {
             try
@@ -79,33 +91,8 @@ internal static class ScheduleStateServiceAndroidEnableWithPermission
                 var notificationViewModel = new NotificationPermissionViewModel(
                     logger,
                     navigationService,
-                    onModalDismissed: (permissionGranted) =>
-                    {
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            try
-                            {
-                                var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
-                                var schedules = state.Value.Schedules;
-                                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
-                                if (scheduleToUpdate != null)
-                                {
-                                    var mapper = serviceProvider.GetRequiredService<IMapper>();
-                                    var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
-                                    updatedSchedule.NotificationEnabled = permissionGranted;
-                                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
-                                    logger.Information("EnableScheduleAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} in state for schedule {ScheduleId}. DB will be updated on save.",
-                                        permissionGranted ? "granted" : "denied", permissionGranted, scheduleId);
-                                }
-                                else
-                                    logger.Warning("EnableScheduleAsync: Schedule not found in Schedules collection when trying to set NotificationEnabled. ScheduleId={ScheduleId}", scheduleId);
-                            }
-                            catch (Exception ex)
-                            {
-                                logger.Error(ex, "EnableScheduleAsync: Error updating NotificationEnabled in state after permission check");
-                            }
-                        });
-                    });
+                    onModalDismissed: permissionGranted =>
+                        DispatchAndroidNotificationPermissionResult(serviceProvider, dispatcher, logger, scheduleId, permissionGranted));
                 notificationViewModel.StartPermissionCheckTimer();
                 await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
             }
@@ -114,8 +101,41 @@ internal static class ScheduleStateServiceAndroidEnableWithPermission
                 logger.Error(ex, "EnableScheduleAsync: Error opening notification permission modal");
             }
         });
+    }
 
-        return (true, androidUpdatedSchedule);
+    private static void DispatchAndroidNotificationPermissionResult(
+        IServiceProvider serviceProvider,
+        IDispatcher dispatcher,
+        ILogger logger,
+        int scheduleId,
+        bool permissionGranted)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
+                var schedules = state.Value.Schedules;
+                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
+                if (scheduleToUpdate != null)
+                {
+                    var mapper = serviceProvider.GetRequiredService<IMapper>();
+                    var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
+                    updatedSchedule.NotificationEnabled = permissionGranted;
+                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
+                    logger.Information("EnableScheduleAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} in state for schedule {ScheduleId}. DB will be updated on save.",
+                        permissionGranted ? "granted" : "denied", permissionGranted, scheduleId);
+                }
+                else
+                {
+                    logger.Warning("EnableScheduleAsync: Schedule not found in Schedules collection when trying to set NotificationEnabled. ScheduleId={ScheduleId}", scheduleId);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "EnableScheduleAsync: Error updating NotificationEnabled in state after permission check");
+            }
+        });
     }
 }
 #endif

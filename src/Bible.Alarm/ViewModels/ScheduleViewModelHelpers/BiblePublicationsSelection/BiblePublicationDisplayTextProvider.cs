@@ -327,31 +327,7 @@ public sealed class BiblePublicationDisplayTextProvider
                 .Select(pl => pl.PublicationCode)
                 .ToListAsync();
 
-            var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var code in publicationCodes)
-            {
-                var lower = code.ToLowerInvariant();
-                if (PublicationTypeHelper.IsDrama(lower))
-                {
-                    string codeForDb;
-                    if (lower.Equals("dramas", StringComparison.OrdinalIgnoreCase))
-                    {
-                        codeForDb = AppConstants.Media.BiblePublicationCategoryDramas;
-                    }
-                    else
-                    {
-                        codeForDb = AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
-                    }
-
-                    unique.Add(codeForDb);
-                }
-                else
-                {
-                    unique.Add(code);
-                }
-            }
-
-            var result = unique.Count > 1;
+            var result = CountUniqueSelectablePublicationChoices(publicationCodes) > 1;
             cachedPubSelectableKey = cacheKey;
             cachedPubSelectableValue = result;
             return result;
@@ -426,6 +402,29 @@ public sealed class BiblePublicationDisplayTextProvider
             logger.Warning(ex, "Failed to query section count for selectability. Publication={Publication}, Language={Language}", publicationCode, languageCode);
             return false;
         }
+    }
+
+    private static int CountUniqueSelectablePublicationChoices(IEnumerable<string> publicationCodes)
+    {
+        var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var code in publicationCodes)
+        {
+            var lower = code.ToLowerInvariant();
+            if (PublicationTypeHelper.IsDrama(lower))
+            {
+                var codeForDb = lower.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? AppConstants.Media.BiblePublicationCategoryDramas
+                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
+
+                unique.Add(codeForDb);
+            }
+            else
+            {
+                unique.Add(code);
+            }
+        }
+
+        return unique.Count;
     }
 
     /// <summary>
