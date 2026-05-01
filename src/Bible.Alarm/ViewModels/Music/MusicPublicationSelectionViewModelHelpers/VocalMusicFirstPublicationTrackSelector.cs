@@ -56,47 +56,8 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         Serilog.Log.Debug(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.FirstPublicationByIdOrder,
             firstPublicationCode, language.Code);
 
-        // Step 2: Download the first publication with its first section (if sectioned) and tracks
-        // This happens when language is selected (cascade)
-        // EnsurePublicationExistsAsync reports: 50% (pub+section saved), 100% (tracks saved)
-        if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-        {
-            Serilog.Log.Information(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.DownloadingFirstVocalPublicationCascade,
-                firstPublicationCode, language.Code);
+        await CascadeDownloadFirstVocalPublicationWhenNeededAsync(language, firstPublicationCode, progress);
 
-            try
-            {
-                // EnsurePublicationExistsAsync downloads the publication with its first section (by ID order) and tracks
-                // It reports progress: 0.5 (pub+section saved), 1.0 (tracks saved)
-                var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
-                    firstPublicationCode, language.Code, progress);
-
-                if (!fetchSuccess)
-                {
-                    Serilog.Log.Warning(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.FailedToDownloadFirstVocalPublication,
-                        firstPublicationCode, language.Code);
-                }
-                else
-                {
-                    // Ensure subsequent GetBiblePublications() sees fresh (non-placeholder) data.
-                    // Otherwise the cache can keep returning stale placeholder names after a successful catalog.
-                    mediaService.InvalidateBiblePublicationsCache(language.Code, AppConstants.Media.BiblePublicationCategoryMusic);
-                }
-            }
-            catch (Exception ex)
-            {
-                if (NetworkExceptionHelper.IsNetworkFailure(ex))
-                {
-                    throw;
-                }
-
-                Serilog.Log.Warning(ex, AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.ErrorDownloadingFirstVocalPublication,
-                    firstPublicationCode, language.Code);
-            }
-        }
-
-        // Step 3: Get the downloaded publication using GetBiblePublications (same API as Bible publication)
-        // Data is already saved, just reading from DB - no progress updates needed
         var songPublications = await mediaService.GetBiblePublications(language.Code, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
 
         if (songPublications == null || songPublications.Count == 0)
@@ -104,35 +65,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
             return (null, string.Empty, string.Empty, string.Empty);
         }
 
-        static bool IsCatalogedPublication(Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication publication)
-        {
-            if (publication.LanguageId == null)
-            {
-                return false;
-            }
-
-            if (publication.Id <= 0)
-            {
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(publication.Name))
-            {
-                return false;
-            }
-
-            return !publication.Name.Equals(publication.PublicationCode, StringComparison.OrdinalIgnoreCase);
-        }
-
-        // Prefer the publication we just ensured exists, and ignore placeholders.
-        var firstSongPublication = songPublications.Values
-            .FirstOrDefault(p =>
-                IsCatalogedPublication(p) &&
-                Bible.Alarm.Shared.Helpers.PublicationCodeHelper.CodeEquals(p.PublicationCode, firstPublicationCode))
-            ?? songPublications.Values
-                .Where(IsCatalogedPublication)
-                .OrderBy(p => p.Id)
-                .FirstOrDefault();
+        var firstSongPublication = PickFirstCatalogedSongPublication(songPublications, firstPublicationCode);
 
         if (firstSongPublication == null)
         {
@@ -140,55 +73,117 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         }
 
         var publicationCode = firstSongPublication.PublicationCode;
-        var isSameLanguage = IsSameLanguageAndSongPublication(currentSchedule, language.Code, publicationCode);
-
-        // Use GetBiblePublicationTracks for vocal music (same API as Bible publication)
-        // For vocal music, we need to get tracks from the first section (or flat publication)
-        // IMPORTANT: during "language change" cascade we should NOT ensure all sections.
-        // Ensuring all sections is reserved for when the user explicitly opens the Sections modal.
-        // We only need the already-downloaded first section (if sectioned).
-        // Data is already saved, just reading from DB - no progress updates needed
-        var sections = await mediaService.GetBiblePublicationSections(language.Code, publicationCode, progress: null);
-
-        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>? tracks;
-        if (sections != null && sections.Count > 0)
-        {
-            // Sectioned publication - get tracks from first section
-            using var sectionEnumerator = sections.GetEnumerator();
-            _ = sectionEnumerator.MoveNext();
-            var firstSection = sectionEnumerator.Current;
-            tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, firstSection.Value.SectionCode);
-        }
-        else
-        {
-            // Flat publication - get tracks directly (no sections)
-            tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, null);
-        }
+        var tracks = await LoadVocalPublicationTracksAsync(language.Code, publicationCode);
 
         if (tracks == null || tracks.Count == 0)
         {
             return (null, string.Empty, string.Empty, string.Empty);
         }
 
-        string trackCode;
-        string trackName;
-
-        if (isSameLanguage &&
-            !string.IsNullOrWhiteSpace(currentSchedule?.MusicTrackCode) &&
-            tracks.TryGetValue(currentSchedule.MusicTrackCode, out var currentTrack))
-        {
-            trackCode = currentSchedule.MusicTrackCode;
-            trackName = currentTrack.Title;
-        }
-        else
-        {
-            var tracksList = tracks.Values.ToList();
-            var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-            trackCode = TrackCodeHelper.GetFromTrack(randomTrack);
-            trackName = randomTrack.Title;
-        }
+        var (trackCode, trackName) = PickVocalTrackForCascade(currentSchedule, language.Code, publicationCode, tracks);
 
         return (publicationCode, trackCode, trackName, firstSongPublication.Name);
+    }
+
+    private async Task CascadeDownloadFirstVocalPublicationWhenNeededAsync(
+        LanguageListViewItemModel language,
+        string firstPublicationCode,
+        IFetchProgress? progress)
+    {
+        // EnsurePublicationExistsAsync reports: 50% (pub+section saved), 100% (tracks saved)
+        if (languageContentService == null ||
+            language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        Serilog.Log.Information(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.DownloadingFirstVocalPublicationCascade,
+            firstPublicationCode, language.Code);
+
+        try
+        {
+            var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
+                firstPublicationCode, language.Code, progress);
+
+            if (!fetchSuccess)
+            {
+                Serilog.Log.Warning(AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.FailedToDownloadFirstVocalPublication,
+                    firstPublicationCode, language.Code);
+            }
+            else
+            {
+                mediaService.InvalidateBiblePublicationsCache(language.Code, AppConstants.Media.BiblePublicationCategoryMusic);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (NetworkExceptionHelper.IsNetworkFailure(ex))
+            {
+                throw;
+            }
+
+            Serilog.Log.Warning(ex, AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.ErrorDownloadingFirstVocalPublication,
+                firstPublicationCode, language.Code);
+        }
+    }
+
+    private static bool IsCatalogedSongPublication(Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication publication)
+    {
+        if (publication.LanguageId == null || publication.Id <= 0 || string.IsNullOrWhiteSpace(publication.Name))
+        {
+            return false;
+        }
+
+        return !publication.Name.Equals(publication.PublicationCode, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication? PickFirstCatalogedSongPublication(
+        Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication> songPublications,
+        string firstPublicationCode)
+    {
+        return songPublications.Values
+            .FirstOrDefault(p =>
+                IsCatalogedSongPublication(p) &&
+                PublicationCodeHelper.CodeEquals(p.PublicationCode, firstPublicationCode))
+            ?? songPublications.Values
+                .Where(IsCatalogedSongPublication)
+                .OrderBy(p => p.Id)
+                .FirstOrDefault();
+    }
+
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>?> LoadVocalPublicationTracksAsync(
+        string languageCode,
+        string publicationCode)
+    {
+        var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress: null);
+
+        if (sections != null && sections.Count > 0)
+        {
+            using var sectionEnumerator = sections.GetEnumerator();
+            _ = sectionEnumerator.MoveNext();
+            var firstSection = sectionEnumerator.Current;
+            return await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSection.Value.SectionCode);
+        }
+
+        return await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, null);
+    }
+
+    private static (string TrackCode, string TrackName) PickVocalTrackForCascade(
+        ScheduleStateItem? currentSchedule,
+        string languageCode,
+        string publicationCode,
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack> tracks)
+    {
+        if (IsSameLanguageAndSongPublication(currentSchedule, languageCode, publicationCode) &&
+            currentSchedule!.MusicTrackCode is { Length: > 0 } persistedCode &&
+            tracks.TryGetValue(persistedCode, out var currentTrack))
+        {
+            return (persistedCode, currentTrack.Title);
+        }
+
+        var tracksList = tracks.Values.ToList();
+        var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+        return (TrackCodeHelper.GetFromTrack(randomTrack), randomTrack.Title);
     }
 
     private async Task<string?> ResolveFirstSongPublicationCodeAsync(LanguageListViewItemModel language)

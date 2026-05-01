@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Generic;
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
@@ -47,176 +48,271 @@ public sealed class ScheduleDisplayNameMusicHelper
     {
         if (isMelodyMusic)
         {
-            try
-            {
-                var languagesDict = await mediaService.GetVocalMusicLanguages();
-                var displayLanguageCode = !string.IsNullOrWhiteSpace(music.LanguageCode) ? music.LanguageCode : AppConstants.Media.DefaultLanguageCode;
-                if (languagesDict.TryGetValue(displayLanguageCode, out var language))
-                {
-                    scheduleStateItem.MusicLanguageName = languageNameService.GetNameCached(language.Id) ?? displayLanguageCode;
-                    scheduleStateItem.MusicLanguageDirection = language.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
-                }
-                else
-                {
-                    scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? AppConstants.Media.DefaultLanguageDisplayNameEnglish : music.LanguageCode;
-                    scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicLanguageNameForMelody);
-                scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? AppConstants.Media.DefaultLanguageDisplayNameEnglish : music.LanguageCode;
-                scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
-            }
-
+            await PopulateMelodyMusicLanguageFieldsAsync(scheduleStateItem, music);
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(music.LanguageCode))
+        await PopulateVocalMusicLanguageFieldsAsync(scheduleStateItem, music);
+    }
+
+    private async Task PopulateMelodyMusicLanguageFieldsAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
+    {
+        try
         {
-            try
+            var languagesDict = await mediaService.GetVocalMusicLanguages();
+            var displayLanguageCode = !string.IsNullOrWhiteSpace(music.LanguageCode) ? music.LanguageCode : AppConstants.Media.DefaultLanguageCode;
+            if (languagesDict.TryGetValue(displayLanguageCode, out var language))
             {
-                var languagesDict = await mediaService.GetVocalMusicLanguages();
-                if (languagesDict.TryGetValue(music.LanguageCode, out var language))
-                {
-                    scheduleStateItem.MusicLanguageName = languageNameService.GetNameCached(language.Id) ?? music.LanguageCode;
-                    scheduleStateItem.MusicLanguageDirection = language.Direction;
-                }
-                else
-                {
-                    scheduleStateItem.MusicLanguageName = music.LanguageCode;
-                    scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
-                }
+                scheduleStateItem.MusicLanguageName = languageNameService.GetNameCached(language.Id) ?? displayLanguageCode;
+                scheduleStateItem.MusicLanguageDirection = language.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
             }
-            catch (Exception ex)
+            else
             {
-                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicLanguageName);
+                scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? AppConstants.Media.DefaultLanguageDisplayNameEnglish : music.LanguageCode;
                 scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicLanguageNameForMelody);
+            scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? AppConstants.Media.DefaultLanguageDisplayNameEnglish : music.LanguageCode;
+            scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
+        }
+    }
+
+    private async Task PopulateVocalMusicLanguageFieldsAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
+    {
+        if (string.IsNullOrWhiteSpace(music.LanguageCode))
+        {
+            return;
+        }
+
+        try
+        {
+            var languagesDict = await mediaService.GetVocalMusicLanguages();
+            if (languagesDict.TryGetValue(music.LanguageCode, out var language))
+            {
+                scheduleStateItem.MusicLanguageName = languageNameService.GetNameCached(language.Id) ?? music.LanguageCode;
+                scheduleStateItem.MusicLanguageDirection = language.Direction;
+            }
+            else
+            {
+                scheduleStateItem.MusicLanguageName = music.LanguageCode;
+                scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicLanguageName);
+            scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
         }
     }
 
     private async Task PopulateMusicPublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music, bool isMelodyMusic)
     {
-        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+        if (string.IsNullOrWhiteSpace(music.PublicationCode))
         {
-            try
+            return;
+        }
+
+        try
+        {
+            if (!isMelodyMusic && !string.IsNullOrWhiteSpace(music.LanguageCode))
             {
-                if (!isMelodyMusic && !string.IsNullOrWhiteSpace(music.LanguageCode))
-                {
-                    var vocalMusicService = serviceProvider.GetRequiredService<IVocalMusicService>();
-                    var release = await vocalMusicService.GetByLanguageAndCodeAsync(music.LanguageCode, music.PublicationCode);
-                    if (release != null)
-                        scheduleStateItem.MusicPublicationName = release.Name;
-                }
-                else if (isMelodyMusic)
-                {
-                    var releases = await mediaService.GetMelodyMusicReleases();
-                    var set = releases.TryGetValue(music.PublicationCode, out var melodyRelease);
-                    if (!set && !string.IsNullOrEmpty(music.PublicationCode))
-                    {
-                        var match = releases.FirstOrDefault(kv => string.Equals(kv.Key, music.PublicationCode, StringComparison.OrdinalIgnoreCase));
-                        set = match.Key != null;
-                        melodyRelease = match.Value;
-                    }
-                    if (set && melodyRelease != null)
-                        scheduleStateItem.MusicPublicationName = melodyRelease.Name;
-                    if (string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
-                        scheduleStateItem.MusicPublicationName = JwSourceHelper.GetPublicationDisplayNameFallback(music.PublicationCode);
-                }
+                await TryPopulateVocalMusicPublicationNameAsync(scheduleStateItem, music);
             }
-            catch (Exception ex)
+            else if (isMelodyMusic)
             {
-                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicPublicationName);
-                if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
-                    scheduleStateItem.MusicPublicationName = JwSourceHelper.GetPublicationDisplayNameFallback(music.PublicationCode);
+                await TryPopulateMelodyMusicPublicationNameAsync(scheduleStateItem, music);
             }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicPublicationName);
+            if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
+            {
+                scheduleStateItem.MusicPublicationName = JwSourceHelper.GetPublicationDisplayNameFallback(music.PublicationCode);
+            }
+        }
+    }
+
+    private async Task TryPopulateVocalMusicPublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
+    {
+        var vocalMusicService = serviceProvider.GetRequiredService<IVocalMusicService>();
+        var release = await vocalMusicService.GetByLanguageAndCodeAsync(music.LanguageCode!, music.PublicationCode);
+        if (release != null)
+        {
+            scheduleStateItem.MusicPublicationName = release.Name;
+        }
+    }
+
+    private async Task TryPopulateMelodyMusicPublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
+    {
+        var releases = await mediaService.GetMelodyMusicReleases();
+        var set = releases.TryGetValue(music.PublicationCode, out var melodyRelease);
+        if (!set && !string.IsNullOrEmpty(music.PublicationCode))
+        {
+            var match = releases.FirstOrDefault(kv => string.Equals(kv.Key, music.PublicationCode, StringComparison.OrdinalIgnoreCase));
+            set = match.Key != null;
+            melodyRelease = match.Value;
+        }
+
+        if (set && melodyRelease != null)
+        {
+            scheduleStateItem.MusicPublicationName = melodyRelease.Name;
+        }
+
+        if (string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationName))
+        {
+            scheduleStateItem.MusicPublicationName = JwSourceHelper.GetPublicationDisplayNameFallback(music.PublicationCode);
         }
     }
 
     private async Task PopulateMusicSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music, bool isMelodyMusic)
     {
-        if (!string.IsNullOrWhiteSpace(music.SectionCode) && !string.IsNullOrWhiteSpace(music.PublicationCode))
+        if (string.IsNullOrWhiteSpace(music.SectionCode) || string.IsNullOrWhiteSpace(music.PublicationCode))
         {
-            try
+            return;
+        }
+
+        try
+        {
+            if (!isMelodyMusic && !string.IsNullOrWhiteSpace(music.LanguageCode))
             {
-                if (!isMelodyMusic && !string.IsNullOrWhiteSpace(music.LanguageCode))
-                {
-                    var sectionCode = SectionCodeHelper.Normalize(music.SectionCode);
-                    if (!string.IsNullOrWhiteSpace(sectionCode))
-                    {
-                        var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
-                        var sectionName = await Task.Run(async () => await biblePublicationSectionService.GetSectionNameAsync(music.LanguageCode, music.PublicationCode, sectionCode));
-                        if (!string.IsNullOrWhiteSpace(sectionName))
-                            scheduleStateItem.MusicSectionName = sectionName;
-                    }
-                }
-                else
-                {
-                    var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
-                    using var scope = scopeFactory.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                    var section = await dbContext.BiblePublicationSections
-                        .AsNoTracking()
-                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode && x.BiblePublication.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) && x.BiblePublication.LanguageId == null && x.SectionCode != null && string.Equals(x.SectionCode, music.SectionCode, StringComparison.OrdinalIgnoreCase))
-                        .Select(x => x.Name)
-                        .FirstOrDefaultAsync();
-                    if (!string.IsNullOrWhiteSpace(section))
-                    {
-                        scheduleStateItem.MusicSectionName = section;
-                        logger.Debug(AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.PopulatedMusicSectionNameForPublicationSection,
-                            section,
-                            music.PublicationCode,
-                            music.SectionCode);
-                    }
-                    else
-                    {
-                        logger.Warning(AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.MusicSectionNameNotFoundForPublicationSection, music.PublicationCode, music.SectionCode);
-                        if (isMelodyMusic)
-                            scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
-                    }
-                }
+                await TryPopulateVocalMusicSectionNameAsync(scheduleStateItem, music);
             }
-            catch (Exception ex)
+            else
             {
-                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicSectionNameForPublicationSection, music.PublicationCode, music.SectionCode);
-                if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicSectionName))
-                    scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
+                await TryPopulateNoLanguageMusicSectionNameAsync(scheduleStateItem, music, isMelodyMusic);
             }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicSectionNameForPublicationSection, music.PublicationCode,
+                music.SectionCode);
+            if (isMelodyMusic && string.IsNullOrWhiteSpace(scheduleStateItem.MusicSectionName))
+            {
+                scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
+            }
+        }
+    }
+
+    private async Task TryPopulateVocalMusicSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
+    {
+        var sectionCode = SectionCodeHelper.Normalize(music.SectionCode);
+        if (string.IsNullOrWhiteSpace(sectionCode))
+        {
+            return;
+        }
+
+        var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
+        var sectionName = await Task.Run(async () =>
+            await biblePublicationSectionService.GetSectionNameAsync(music.LanguageCode!, music.PublicationCode, sectionCode));
+        if (!string.IsNullOrWhiteSpace(sectionName))
+        {
+            scheduleStateItem.MusicSectionName = sectionName;
+        }
+    }
+
+    private async Task TryPopulateNoLanguageMusicSectionNameAsync(
+        ScheduleStateItem scheduleStateItem,
+        AlarmMusic music,
+        bool isMelodyMusic)
+    {
+        var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        var section = await dbContext.BiblePublicationSections
+            .AsNoTracking()
+            .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode &&
+                        x.BiblePublication.BiblePublicationCategories.Any(bpc =>
+                            bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
+                        x.BiblePublication.LanguageId == null && x.SectionCode != null &&
+                        string.Equals(x.SectionCode, music.SectionCode, StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.Name)
+            .FirstOrDefaultAsync();
+
+        if (!string.IsNullOrWhiteSpace(section))
+        {
+            scheduleStateItem.MusicSectionName = section;
+            logger.Debug(AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.PopulatedMusicSectionNameForPublicationSection,
+                section,
+                music.PublicationCode,
+                music.SectionCode);
+            return;
+        }
+
+        logger.Warning(AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.MusicSectionNameNotFoundForPublicationSection, music.PublicationCode,
+            music.SectionCode);
+        if (isMelodyMusic)
+        {
+            scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
         }
     }
 
     private async Task PopulateMusicTrackNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music, bool isMelodyMusic)
     {
-        if (!string.IsNullOrWhiteSpace(music.TrackCode))
+        if (string.IsNullOrWhiteSpace(music.TrackCode))
         {
-            try
+            return;
+        }
+
+        try
+        {
+            string? trackName = null;
+            if (isMelodyMusic && !string.IsNullOrWhiteSpace(music.PublicationCode))
             {
-                string? trackName = null;
-                if (isMelodyMusic && !string.IsNullOrWhiteSpace(music.PublicationCode))
-                {
-                    SortedDictionary<int, Bible.Alarm.Shared.Models.Media.Music.MusicTrack> tracks;
-                    if (PublicationTypeHelper.HasSectionStructure(music.PublicationCode))
-                        tracks = string.IsNullOrWhiteSpace(music.SectionCode) ? new SortedDictionary<int, Bible.Alarm.Shared.Models.Media.Music.MusicTrack>() : await Task.Run(async () => await mediaService.GetMelodyMusicTracksBySection(music.PublicationCode, music.SectionCode));
-                    else
-                        tracks = await Task.Run(async () => await mediaService.GetMelodyMusicTracks(music.PublicationCode));
-                    if (!string.IsNullOrWhiteSpace(music.TrackCode) && Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, music.TrackCode, out var melodyPair))
-                        trackName = DisplayNameNormalizer.NormalizeTrackTitle(melodyPair.Track.Title) ?? melodyPair.Track.Title;
-                }
-                else if (!string.IsNullOrWhiteSpace(music.LanguageCode) && !string.IsNullOrWhiteSpace(music.PublicationCode))
-                {
-                    var tracks = await Task.Run(async () => await mediaService.GetVocalMusicTracks(music.LanguageCode, music.PublicationCode));
-                    if (!string.IsNullOrWhiteSpace(music.TrackCode) && Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, music.TrackCode, out var vocalPair))
-                        trackName = vocalPair.Track.Title;
-                }
-                if (!string.IsNullOrWhiteSpace(trackName))
-                    scheduleStateItem.MusicTrackName = trackName;
+                trackName = await TryResolveMelodyTrackDisplayNameAsync(music);
             }
-            catch (Exception ex)
+            else if (!string.IsNullOrWhiteSpace(music.LanguageCode) && !string.IsNullOrWhiteSpace(music.PublicationCode))
             {
-                logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicTrackName);
+                trackName = await TryResolveVocalTrackDisplayNameAsync(music);
+            }
+
+            if (!string.IsNullOrWhiteSpace(trackName))
+            {
+                scheduleStateItem.MusicTrackName = trackName;
             }
         }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicTrackName);
+        }
+    }
+
+    private async Task<string?> TryResolveMelodyTrackDisplayNameAsync(AlarmMusic music)
+    {
+        SortedDictionary<int, Bible.Alarm.Shared.Models.Media.Music.MusicTrack> tracks;
+        if (PublicationTypeHelper.HasSectionStructure(music.PublicationCode))
+        {
+            tracks = string.IsNullOrWhiteSpace(music.SectionCode)
+                ? new SortedDictionary<int, Bible.Alarm.Shared.Models.Media.Music.MusicTrack>()
+                : await Task.Run(async () => await mediaService.GetMelodyMusicTracksBySection(music.PublicationCode, music.SectionCode));
+        }
+        else
+        {
+            tracks = await Task.Run(async () => await mediaService.GetMelodyMusicTracks(music.PublicationCode));
+        }
+
+        if (string.IsNullOrWhiteSpace(music.TrackCode) ||
+            !MusicTrackLookupHelper.TryGetByCode(tracks, music.TrackCode, out var melodyPair))
+        {
+            return null;
+        }
+
+        return DisplayNameNormalizer.NormalizeTrackTitle(melodyPair.Track.Title) ?? melodyPair.Track.Title;
+    }
+
+    private async Task<string?> TryResolveVocalTrackDisplayNameAsync(AlarmMusic music)
+    {
+        var tracks = await Task.Run(async () => await mediaService.GetVocalMusicTracks(music.LanguageCode!, music.PublicationCode));
+        if (string.IsNullOrWhiteSpace(music.TrackCode) ||
+            !MusicTrackLookupHelper.TryGetByCode(tracks, music.TrackCode, out var vocalPair))
+        {
+            return null;
+        }
+
+        return vocalPair.Track.Title;
     }
 
     /// <summary>
