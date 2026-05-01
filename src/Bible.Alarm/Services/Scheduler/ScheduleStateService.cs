@@ -37,8 +37,10 @@ public sealed partial class ScheduleStateService(ScheduleStateServiceDeps deps) 
     private readonly INotificationService notificationService = deps.NotificationService;
     private readonly IToastService toastService = deps.ToastService;
     private readonly IDispatcher dispatcher = deps.Dispatcher;
+#if ANDROID || IOS
     private readonly INavigationService navigationService = deps.NavigationService;
     private readonly IServiceProvider serviceProvider = deps.ServiceProvider;
+#endif
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 

@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Bible.Alarm.Shared.Models.Media;
 
@@ -52,6 +53,7 @@ public class Publication : IComparable, IEquatable<Publication>
         left is not null && right is not null && left.CompareTo(right) >= 0;
 }
 
+[SuppressMessage("SonarAnalyzer.CSharp", "S4035", Justification = "BiblePublication inherits from TranslatedPublication; sealing would break the EF hierarchy.")]
 public class TranslatedPublication : Publication, IEquatable<TranslatedPublication>
 {
     [Required]

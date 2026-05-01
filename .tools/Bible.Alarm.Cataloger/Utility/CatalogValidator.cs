@@ -23,7 +23,7 @@ internal static class CatalogValidator
     {
         logger.Information("=== Validating catalog: sample track/section/publication vs API ===");
 
-        var samples = await GetSampleTracksAsync(db, logger);
+        var samples = await GetSampleTracksAsync(db);
         if (samples.Count == 0)
         {
             logger.Warning("CatalogValidator: No sample tracks found in DB (no tracks with TrackUrl for language E)");
@@ -66,7 +66,7 @@ internal static class CatalogValidator
         logger.Information("CatalogValidator: Done. Passed: {Passed}, Failed: {Failed}", passed, failed);
     }
 
-    private static async Task<List<SampleTrack>> GetSampleTracksAsync(MediaDbContext db, ILogger logger)
+    private static async Task<List<SampleTrack>> GetSampleTracksAsync(MediaDbContext db)
     {
         var samples = new List<SampleTrack>();
 

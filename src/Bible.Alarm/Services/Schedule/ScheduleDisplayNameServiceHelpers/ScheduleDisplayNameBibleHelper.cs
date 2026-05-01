@@ -100,7 +100,7 @@ public sealed class ScheduleDisplayNameBibleHelper
             if (publication != null)
             {
                 ApplyLoadedPublicationMetadataToSchedule(scheduleStateItem, biblePublicationSchedule, publicationCode,
-                    scheduleLanguageCode, hasSections, publication, publicationWithoutLanguage);
+                    hasSections, publication, publicationWithoutLanguage);
             }
         }
         catch (Exception ex)
@@ -162,7 +162,6 @@ public sealed class ScheduleDisplayNameBibleHelper
         ScheduleStateItem scheduleStateItem,
         BiblePublicationSchedule biblePublicationSchedule,
         string publicationCode,
-        string? scheduleLanguageCode,
         bool hasSections,
         BiblePublication publication,
         bool publicationWithoutLanguage)

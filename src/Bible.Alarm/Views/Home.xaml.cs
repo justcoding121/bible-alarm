@@ -169,8 +169,7 @@ public sealed partial class Home : BaseContentPage, IDisposable
     private bool IsTapOnChildControl(View view, Point tapPosition)
     {
         return EnumerateChildViewsForTapHitTest(view)
-            .Where(childView => IsTapOnChild(childView, tapPosition))
-            .Any();
+            .Any(childView => IsTapOnChild(childView, tapPosition));
     }
 
     private static IEnumerable<View> EnumerateChildViewsForTapHitTest(View view)

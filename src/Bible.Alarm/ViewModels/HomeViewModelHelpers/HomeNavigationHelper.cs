@@ -35,8 +35,8 @@ public class HomeNavigationHelper
     private readonly INavigationService navigationService;
     private readonly IPlaybackModalService playbackModalService;
     private readonly IState<PlaybackState> playbackState;
-    private readonly IServiceProvider serviceProvider;
 #if ANDROID || IOS
+    private readonly IServiceProvider serviceProvider;
     private readonly IMapper mapper;
 #endif
     private readonly Dictionary<int, DateTime> recentPlayClicks = new();
@@ -58,10 +58,11 @@ public class HomeNavigationHelper
         this.navigationService = navigationService;
         this.playbackModalService = playbackModalService;
         this.playbackState = playbackState;
-        this.serviceProvider = serviceProvider;
 #if ANDROID || IOS
+        this.serviceProvider = serviceProvider;
         this.mapper = mapper;
 #else
+        _ = serviceProvider;
         _ = mapper;
 #endif
     }
