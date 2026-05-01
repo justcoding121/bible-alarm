@@ -101,7 +101,7 @@ internal sealed class SectionFetcher
         var isBible = category.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
         var isIssueSectioned = MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
         var determinedCatalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
-        string? localizedPubName = null;
+        var localizedPubNameSlot = new LocalizedPublicationNameSlot();
 
         var isMusicPub = categoriesForPub.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
             JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
@@ -141,151 +141,34 @@ internal sealed class SectionFetcher
         var totalSections = missingSectionCodes.Count;
         var completedSections = 0;
 
-        // Fetch and save sections one by one (incremental saves)
         foreach (var sectionCode in missingSectionCodes)
         {
-            // Check for cancellation before each section
             effectiveToken.ThrowIfCancellationRequested();
 
             try
             {
-                var dramaFileFormat = !isBible && !isIssueSectioned && PublicationTypeHelper.IsVideo(normalizedPublicationCode) ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
-                string queryString;
-                if (isIssueSectioned)
-                {
-                    var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
-                    queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={apiPubCode}&{AppConstants.Media.GetPubQueryParamName.Issue}={issueCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-                }
-                else if (isBible)
-                {
-                    queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={normalizedPublicationCode}&{AppConstants.Media.GetPubQueryParamName.BookNum}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-                }
-                else
-                {
-                    queryString = $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={dramaFileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
-                }
+                var iteration = await TryFetchAndPersistSingleMissingSectionAsync(
+                    db,
+                    publication,
+                    normalizedPublicationCode,
+                    normalizedLanguageCode,
+                    sectionCode,
+                    isBible,
+                    isIssueSectioned,
+                    localizedPubNameSlot,
+                    effectiveToken);
 
-                var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
-                var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, effectiveToken);
-                if (jsonString == null)
-                {
-                    logger.Debug("Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
-                        sectionCode, normalizedPublicationCode, normalizedLanguageCode);
-                    completedSections++;
-                    continue;
-                }
-                using var doc = JsonDocument.Parse(jsonString);
-                var root = doc.RootElement;
-
-                if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement))
+                if (iteration.IncrementCompleted)
                 {
                     completedSections++;
-                    continue;
-                }
-
-                string? sectionName = null;
-                if (isIssueSectioned)
-                {
-                    string? pubName = null;
-                    string? formattedDate = null;
-                    if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pnEl))
-                        pubName = pnEl.GetString();
-                    if (root.TryGetProperty(AppConstants.Media.PubMediaJson.FormattedDate, out var fdEl))
-                        formattedDate = fdEl.GetString();
-                    sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
-                }
-                else if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
-                {
-                    var rawName = pubNameElement.GetString();
-                    sectionName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-                }
-                if (sectionName == null)
-                {
-                    logger.Debug("Section name not found in API response for section {SectionCode} in language {LanguageCode}",
-                        sectionCode, normalizedLanguageCode);
-                }
-
-                // Extract localized publication name from first section response
-                if (isIssueSectioned && localizedPubName == null)
-                {
-                    localizedPubName = MagazineHelper.GetYear(normalizedPublicationCode).ToString();
-                    publication.Name = localizedPubName;
-                }
-                else if (localizedPubName == null && root.TryGetProperty(AppConstants.Media.PubMediaJson.ParentPubName, out var parentPubNameElement))
-                {
-                    var rawName = parentPubNameElement.GetString();
-                    var extractedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-                    
-                    if (!string.IsNullOrEmpty(extractedName) && isBible)
+                    if (iteration.UpdateProgressThisIteration && totalSections > 0)
                     {
-                        var isVideoName = AppConstants.Media.ApiMisleadingGoodNewsVideoPublicationNamePhrases.Any(vn =>
-                            extractedName.Contains(vn, StringComparison.OrdinalIgnoreCase));
-                        
-                        if (isVideoName)
-                        {
-                            logger.Warning("API returned video/drama publication name '{ExtractedName}' for Bible publication {PublicationCode} in language {LanguageCode}. This is likely an API error. Skipping this name and using fallback.",
-                                extractedName, normalizedPublicationCode, normalizedLanguageCode);
-                            extractedName = null;
-                        }
-                    }
-                    
-                    if (!string.IsNullOrEmpty(extractedName))
-                    {
-                        localizedPubName = extractedName;
-                        // Update publication name
-                        publication.Name = localizedPubName;
+                        progress?.UpdateProgress((double)completedSections / totalSections);
                     }
                 }
-
-                List<BiblePublicationTrack> tracks;
-                if (isIssueSectioned)
-                {
-                    tracks = EnglishTrackParser.ParseGenericTracks(
-                        filesElement, normalizedLanguageCode, AppConstants.Media.MediaStreamFormatMp3);
-                }
-                else if (isBible)
-                {
-                    tracks = EnglishTrackParser.ParseBibleTracks(
-                        filesElement, normalizedLanguageCode);
-                }
-                else
-                {
-                    var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
-                    tracks = MediatorTrackParser.ParseTracksFromJson(
-                        filesElement,
-                        new MediatorTrackParseContext(normalizedLanguageCode, sectionCode, IsVideo: isVideoDrama));
-                }
-
-                // Create and save section immediately (incremental save)
-                var section = new BiblePublicationSection
-                {
-                    Name = sectionName ?? sectionCode,
-                    SectionCode = sectionCode.ToLowerInvariant(),
-                    BiblePublication = publication,
-                    Tracks = new List<BiblePublicationTrack>()
-                };
-
-                publication.Sections.Add(section);
-                await SaveChangesWithRetryAsync(db, effectiveToken);
-
-                // Add tracks to section
-                foreach (var track in tracks)
-                {
-                    track.Section = section;
-                    track.Publication = publication;
-                }
-                section.Tracks.AddRange(tracks);
-                await SaveChangesWithRetryAsync(db, effectiveToken);
-
-                completedSections++;
-
-                // Update progress AFTER successful save
-                var progressPercent = (double)completedSections / totalSections;
-                progress?.UpdateProgress(progressPercent);
             }
             catch (OperationCanceledException)
             {
-                // Re-throw cancellation - data saved so far is preserved
                 throw;
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
@@ -324,6 +207,220 @@ internal sealed class SectionFetcher
 
         progress?.UpdateProgress(1.0);
         return true;
+    }
+
+    private sealed class LocalizedPublicationNameSlot
+    {
+        public string? Value;
+    }
+
+    private readonly record struct MissingSectionIteration(bool IncrementCompleted, bool UpdateProgressThisIteration);
+
+    private async Task<MissingSectionIteration> TryFetchAndPersistSingleMissingSectionAsync(
+        MediaDbContext db,
+        BiblePublication publication,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        string sectionCode,
+        bool isBible,
+        bool isIssueSectioned,
+        LocalizedPublicationNameSlot localizedPubName,
+        CancellationToken effectiveToken)
+    {
+        var dramaFileFormat = !isBible && !isIssueSectioned && PublicationTypeHelper.IsVideo(normalizedPublicationCode)
+            ? AppConstants.Media.MediaStreamFormatMp4
+            : AppConstants.Media.MediaStreamFormatMp3;
+
+        var queryString = BuildMissingSectionQueryString(
+            normalizedPublicationCode,
+            normalizedLanguageCode,
+            sectionCode,
+            isIssueSectioned,
+            isBible,
+            dramaFileFormat);
+
+        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
+        var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, effectiveToken);
+        if (jsonString == null)
+        {
+            logger.Debug("Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
+                sectionCode, normalizedPublicationCode, normalizedLanguageCode);
+            return new MissingSectionIteration(true, false);
+        }
+
+        using var doc = JsonDocument.Parse(jsonString);
+        var root = doc.RootElement;
+
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement))
+        {
+            return new MissingSectionIteration(true, false);
+        }
+
+        var sectionName = ResolveSectionDisplayNameFromPubMediaJson(root, isIssueSectioned);
+        if (sectionName == null)
+        {
+            logger.Debug("Section name not found in API response for section {SectionCode} in language {LanguageCode}",
+                sectionCode, normalizedLanguageCode);
+        }
+
+        TryApplyLocalizedPublicationNameFromPubMediaJson(
+            root,
+            publication,
+            localizedPubName,
+            isIssueSectioned,
+            isBible,
+            normalizedPublicationCode,
+            normalizedLanguageCode);
+
+        var tracks = ParsePublicationSectionTracksFromFiles(
+            filesElement,
+            isIssueSectioned,
+            isBible,
+            normalizedPublicationCode,
+            normalizedLanguageCode,
+            sectionCode);
+
+        var section = new BiblePublicationSection
+        {
+            Name = sectionName ?? sectionCode,
+            SectionCode = sectionCode.ToLowerInvariant(),
+            BiblePublication = publication,
+            Tracks = new List<BiblePublicationTrack>()
+        };
+
+        publication.Sections.Add(section);
+        await SaveChangesWithRetryAsync(db, effectiveToken);
+
+        foreach (var track in tracks)
+        {
+            track.Section = section;
+            track.Publication = publication;
+        }
+
+        section.Tracks.AddRange(tracks);
+        await SaveChangesWithRetryAsync(db, effectiveToken);
+
+        return new MissingSectionIteration(true, true);
+    }
+
+    private static string BuildMissingSectionQueryString(
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        string sectionCode,
+        bool isIssueSectioned,
+        bool isBible,
+        string dramaFileFormat)
+    {
+        if (isIssueSectioned)
+        {
+            var (apiPubCode, issueCode) = MagazineHelper.ParseSectionCode(sectionCode);
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={apiPubCode}&{AppConstants.Media.GetPubQueryParamName.Issue}={issueCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
+        }
+
+        if (isBible)
+        {
+            return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={normalizedPublicationCode}&{AppConstants.Media.GetPubQueryParamName.BookNum}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
+        }
+
+        return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={dramaFileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
+    }
+
+    private static string? ResolveSectionDisplayNameFromPubMediaJson(JsonElement root, bool isIssueSectioned)
+    {
+        if (isIssueSectioned)
+        {
+            string? pubName = null;
+            string? formattedDate = null;
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pnEl))
+            {
+                pubName = pnEl.GetString();
+            }
+
+            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.FormattedDate, out var fdEl))
+            {
+                formattedDate = fdEl.GetString();
+            }
+
+            return MagazineHelper.BuildSectionName(pubName, formattedDate);
+        }
+
+        if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
+        {
+            var rawName = pubNameElement.GetString();
+            return MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
+        }
+
+        return null;
+    }
+
+    private void TryApplyLocalizedPublicationNameFromPubMediaJson(
+        JsonElement root,
+        BiblePublication publication,
+        LocalizedPublicationNameSlot localizedPubName,
+        bool isIssueSectioned,
+        bool isBible,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode)
+    {
+        if (isIssueSectioned && localizedPubName.Value == null)
+        {
+            localizedPubName.Value = MagazineHelper.GetYear(normalizedPublicationCode).ToString();
+            publication.Name = localizedPubName.Value;
+            return;
+        }
+
+        if (localizedPubName.Value != null || !root.TryGetProperty(AppConstants.Media.PubMediaJson.ParentPubName, out var parentPubNameElement))
+        {
+            return;
+        }
+
+        var rawName = parentPubNameElement.GetString();
+        var extractedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
+
+        if (!string.IsNullOrEmpty(extractedName) && isBible)
+        {
+            var isVideoName = AppConstants.Media.ApiMisleadingGoodNewsVideoPublicationNamePhrases.Any(vn =>
+                extractedName!.Contains(vn, StringComparison.OrdinalIgnoreCase));
+
+            if (isVideoName)
+            {
+                logger.Warning("API returned video/drama publication name '{ExtractedName}' for Bible publication {PublicationCode} in language {LanguageCode}. This is likely an API error. Skipping this name and using fallback.",
+                    extractedName, normalizedPublicationCode, normalizedLanguageCode);
+                extractedName = null;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(extractedName))
+        {
+            localizedPubName.Value = extractedName;
+            publication.Name = localizedPubName.Value;
+        }
+    }
+
+    private static List<BiblePublicationTrack> ParsePublicationSectionTracksFromFiles(
+        JsonElement filesElement,
+        bool isIssueSectioned,
+        bool isBible,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        string sectionCode)
+    {
+        if (isIssueSectioned)
+        {
+            return EnglishTrackParser.ParseGenericTracks(
+                filesElement, normalizedLanguageCode, AppConstants.Media.MediaStreamFormatMp3);
+        }
+
+        if (isBible)
+        {
+            return EnglishTrackParser.ParseBibleTracks(
+                filesElement, normalizedLanguageCode);
+        }
+
+        var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
+        return MediatorTrackParser.ParseTracksFromJson(
+            filesElement,
+            new MediatorTrackParseContext(normalizedLanguageCode, sectionCode, IsVideo: isVideoDrama));
     }
 
     public Task<bool> FetchSectionTracksAsync(FetchSectionTracksRequest request)

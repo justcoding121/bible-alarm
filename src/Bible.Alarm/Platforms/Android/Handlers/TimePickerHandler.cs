@@ -212,34 +212,35 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
     {
         try
         {
-            // Find the TimePicker view inside the dialog
             var dialogView = dialog.Window?.DecorView;
             if (dialogView == null)
                 return;
 
-            // Find TimePicker by traversing the view hierarchy
             var timePicker = FindTimePicker(dialogView);
             if (timePicker is null)
                 return;
 
-            // Find AM/PM TextView - in Material 3 TimePicker, it's typically a child view
-            // Try to find by ID first (Material 3 uses specific IDs)
-            var context = dialog.Context!;
-            if (timePicker is global::Android.Views.ViewGroup timePickerGroup)
-            {
-                // Try finding by resource ID (Material 3 TimePicker AM/PM indicator)
-                if (TryApplyMaterialAmPmLabelFontSizes(context, timePickerGroup, fontSize))
-                {
-                    return;
-                }
-
-                // Fallback: Find all TextViews in TimePicker (TimePicker derives from View)
-                FindAndStyleAmPmTextViews(timePicker, fontSize);
-            }
+            TryApplyAmPmFontSizeToTimePicker(dialog.Context!, timePicker, fontSize);
         }
         catch (Exception)
         {
             // AM/PM views might not be available or accessible
+        }
+    }
+
+    private static void TryApplyAmPmFontSizeToTimePicker(
+        global::Android.Content.Context context,
+        global::Android.Views.View timePicker,
+        double fontSize)
+    {
+        if (timePicker is not global::Android.Views.ViewGroup timePickerGroup)
+        {
+            return;
+        }
+
+        if (!TryApplyMaterialAmPmLabelFontSizes(context, timePickerGroup, fontSize))
+        {
+            FindAndStyleAmPmTextViews(timePicker, fontSize);
         }
     }
 
