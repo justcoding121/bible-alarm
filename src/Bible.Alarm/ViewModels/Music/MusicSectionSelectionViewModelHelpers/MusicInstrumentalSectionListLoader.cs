@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -27,106 +29,26 @@ internal sealed class MusicInstrumentalSectionListLoader
         string? selectedSectionCode,
         IFetchProgress? progress = null)
     {
-        // Get cancellation token from progress tracker (same CTS from modal)
         var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
 
-        // First, check if sections are already cataloged (without showing progress)
         var initialSections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-        
+
         var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
         var actualSectionCount = initialSections?.Values.Count ?? 0;
         var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
         var allSectionsCataloged = AreAllSectionsFullyCataloged(initialSections, expectedSectionCount);
 
-        // Do ALL processing on background thread to avoid blocking spinner animation
+        var prefetch = new InstrumentalSectionsPrefetchState(
+            initialSections,
+            expectedSectionCount,
+            actualSectionCount,
+            hasAllExpectedSections,
+            allSectionsCataloged);
+
         var (items, selected) = await Task.Run(async () =>
-        {
-            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsFromDb = null;
+            await ProcessInstrumentalSectionsBackgroundAsync(publicationCode, selectedSectionCode, progress, cancellationToken, prefetch));
 
-            if (!allSectionsCataloged)
-            {
-                progress?.SetIsVisible(true);
-                progress?.UpdateProgress(0.0);
-
-                if (hasAllExpectedSections)
-                {
-                    logger.Debug("MusicInstrumentalSectionListLoader: Have {ActualCount} sections but some are placeholders, fetching remaining for publication={PublicationCode}",
-                        actualSectionCount, publicationCode);
-                }
-                else
-                {
-                    logger.Debug("MusicInstrumentalSectionListLoader: Only {ActualCount}/{ExpectedCount} sections found, fetching remaining for publication={PublicationCode}",
-                        actualSectionCount, expectedSectionCount, publicationCode);
-                }
-
-                sectionsFromDb = await RetryFetchUntilCatalogedAsync(publicationCode, progress, cancellationToken);
-                progress?.UpdateProgress(0.7);
-            }
-            else
-            {
-                logger.Debug("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections already cataloged for publication={PublicationCode}, skipping fetch",
-                    expectedSectionCount, publicationCode);
-                sectionsFromDb = initialSections;
-            }
-
-            if (sectionsFromDb == null || sectionsFromDb.Count == 0)
-            {
-                logger.Warning("[MusicSectionSelection] LoadAsync: No sections found for publication={PublicationCode}. This publication may not be cataloged yet or may not have sections.",
-                    publicationCode);
-
-                return (new List<BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
-            }
-
-            // Remove placeholder sections that couldn't be fetched (e.g. no content on the server)
-            var unfetchableSectionCodes = sectionsFromDb.Values
-                .Where(s => s.Id == 0 || string.IsNullOrEmpty(s.Name))
-                .Select(s => s.SectionCode)
-                .ToList();
-            if (unfetchableSectionCodes.Count > 0)
-            {
-                foreach (var code in unfetchableSectionCodes)
-                {
-                    sectionsFromDb.Remove(code);
-                }
-                logger.Information("MusicInstrumentalSectionListLoader: Removed {Count} unfetchable placeholder sections: {Codes}",
-                    unfetchableSectionCodes.Count, string.Join(", ", unfetchableSectionCodes));
-            }
-
-            if (sectionsFromDb.Count == 0)
-            {
-                return (new List<BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
-            }
-
-            var vms = new List<BiblePublicationSectionListViewItemModel>();
-            BiblePublicationSectionListViewItemModel? selected = null;
-
-            foreach (var section in sectionsFromDb.Values)
-            {
-                var sectionVm = new BiblePublicationSectionListViewItemModel(section);
-                vms.Add(sectionVm);
-
-                if (!string.IsNullOrEmpty(selectedSectionCode) &&
-                    section.SectionCode.Equals(selectedSectionCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    selected = sectionVm;
-                    selected.IsSelected = true;
-                }
-            }
-
-            // Sort using natural sort (numeric sections as int, non-numeric as string)
-            vms.Sort();
-
-            // Only update progress if we were fetching (progress was shown)
-            if (!allSectionsCataloged)
-            {
-                progress?.UpdateProgress(0.9);
-            }
-
-            return (vms, selected);
-        });
-
-        // Only update progress if we were fetching (progress was shown)
-        if (!allSectionsCataloged)
+        if (!prefetch.AllSectionsCataloged)
         {
             progress?.UpdateProgress(1.0);
             progress?.SetIsVisible(false);
@@ -135,16 +57,137 @@ internal sealed class MusicInstrumentalSectionListLoader
         return (items, selected);
     }
 
+    private async Task<(List<BiblePublicationSectionListViewItemModel> Items, BiblePublicationSectionListViewItemModel? Selected)> ProcessInstrumentalSectionsBackgroundAsync(
+        string publicationCode,
+        string? selectedSectionCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken,
+        InstrumentalSectionsPrefetchState prefetch)
+    {
+        var sectionsFromDb = await ResolveSectionsFromPrefetchAsync(publicationCode, progress, cancellationToken, prefetch);
+
+        if (sectionsFromDb == null || sectionsFromDb.Count == 0)
+        {
+            logger.Warning("[MusicSectionSelection] LoadAsync: No sections found for publication={PublicationCode}. This publication may not be cataloged yet or may not have sections.",
+                publicationCode);
+
+            return (new List<BiblePublicationSectionListViewItemModel>(), null);
+        }
+
+        RemoveInstrumentalPlaceholderSections(sectionsFromDb);
+
+        if (sectionsFromDb.Count == 0)
+        {
+            return (new List<BiblePublicationSectionListViewItemModel>(), null);
+        }
+
+        var (items, selected) = BuildInstrumentalSectionViewModels(sectionsFromDb, selectedSectionCode);
+
+        if (!prefetch.AllSectionsCataloged)
+        {
+            progress?.UpdateProgress(0.9);
+        }
+
+        return (items, selected);
+    }
+
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> ResolveSectionsFromPrefetchAsync(
+        string publicationCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken,
+        InstrumentalSectionsPrefetchState prefetch)
+    {
+        if (prefetch.AllSectionsCataloged)
+        {
+            logger.Debug("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections already cataloged for publication={PublicationCode}, skipping fetch",
+                prefetch.ExpectedSectionCount, publicationCode);
+            return prefetch.InitialSections;
+        }
+
+        progress?.SetIsVisible(true);
+        progress?.UpdateProgress(0.0);
+
+        LogPrefetchFetchReason(publicationCode, prefetch);
+
+        var sections =
+            await RetryFetchUntilCatalogedAsync(publicationCode, progress, cancellationToken);
+
+        progress?.UpdateProgress(0.7);
+        return sections;
+    }
+
+    private void LogPrefetchFetchReason(string publicationCode, InstrumentalSectionsPrefetchState prefetch)
+    {
+        if (prefetch.HasAllExpectedSections)
+        {
+            logger.Debug("MusicInstrumentalSectionListLoader: Have {ActualCount} sections but some are placeholders, fetching remaining for publication={PublicationCode}",
+                prefetch.ActualSectionCount, publicationCode);
+            return;
+        }
+
+        logger.Debug("MusicInstrumentalSectionListLoader: Only {ActualCount}/{ExpectedCount} sections found, fetching remaining for publication={PublicationCode}",
+            prefetch.ActualSectionCount, prefetch.ExpectedSectionCount, publicationCode);
+    }
+
+    private static (List<BiblePublicationSectionListViewItemModel> Items, BiblePublicationSectionListViewItemModel? Selected) BuildInstrumentalSectionViewModels(
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sectionsFromDb,
+        string? selectedSectionCode)
+    {
+        var items = new List<BiblePublicationSectionListViewItemModel>();
+        BiblePublicationSectionListViewItemModel? selected = null;
+
+        foreach (var section in sectionsFromDb.Values)
+        {
+            var sectionVm = new BiblePublicationSectionListViewItemModel(section);
+            items.Add(sectionVm);
+
+            if (!string.IsNullOrEmpty(selectedSectionCode) &&
+                section.SectionCode.Equals(selectedSectionCode, StringComparison.OrdinalIgnoreCase))
+            {
+                selected = sectionVm;
+                selected.IsSelected = true;
+            }
+        }
+
+        items.Sort();
+        return (items, selected);
+    }
+
+    private void RemoveInstrumentalPlaceholderSections(
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sectionsFromDb)
+    {
+        var unfetchableSectionCodes = sectionsFromDb.Values
+            .Where(s => s.Id == 0 || string.IsNullOrEmpty(s.Name))
+            .Select(s => s.SectionCode)
+            .ToList();
+        if (unfetchableSectionCodes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var code in unfetchableSectionCodes)
+        {
+            sectionsFromDb.Remove(code);
+        }
+
+        logger.Information("MusicInstrumentalSectionListLoader: Removed {Count} unfetchable placeholder sections: {Codes}",
+            unfetchableSectionCodes.Count, string.Join(", ", unfetchableSectionCodes));
+    }
+
+    private readonly record struct InstrumentalSectionsPrefetchState(
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? InitialSections,
+        int ExpectedSectionCount,
+        int ActualSectionCount,
+        bool HasAllExpectedSections,
+        bool AllSectionsCataloged);
+
     private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> RetryFetchUntilCatalogedAsync(
         string publicationCode,
         IFetchProgress? progress,
         CancellationToken cancellationToken)
     {
-        // Up to 10 retries
         const int maxRetries = 10;
-        // Start with 1 second
         var retryDelay = 1000;
-        // Total max wait time of 60 seconds
         var maxWaitTime = TimeSpan.FromSeconds(60);
         var startTime = DateTime.UtcNow;
         var allCataloged = false;
@@ -154,7 +197,6 @@ internal sealed class MusicInstrumentalSectionListLoader
         logger.Information("MusicInstrumentalSectionListLoader: Starting fetch with retries for publication={PublicationCode}",
             publicationCode);
 
-        // Show progress overlay at the start of retry loop and keep it visible throughout all retries
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.0);
 
@@ -164,69 +206,50 @@ internal sealed class MusicInstrumentalSectionListLoader
         {
             while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
             {
-                // Check for cancellation before each attempt
                 cancellationToken.ThrowIfCancellationRequested();
 
                 attempt++;
 
                 try
                 {
-                    // Fetch sections (this may trigger cataloging if support is added in the future)
-                    // Pass progress to show download percentage during cataloging
-                    sectionsData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+                    var iterationOutcome = await RunInstrumentalCatalogRetryIterationAsync(
+                        publicationCode,
+                        cancellationToken,
+                        attempt,
+                        retryDelay,
+                        previousCatalogedCount);
 
-                    // Wait a bit for background cataloging to start (with cancellation support)
-                    await Task.Delay(500, cancellationToken);
-
-                    // Re-query to check if sections are now cataloged (no progress needed for re-query)
-                    var reQueriedData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-
-                    var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
-                    var actualSectionCount = reQueriedData?.Values.Count ?? 0;
-
-                    var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-                    if (AreAllSectionsFullyCataloged(reQueriedData, expectedSectionCount))
+                    sectionsData = iterationOutcome.NextSectionsSnapshot;
+                    if (iterationOutcome.Completed)
                     {
-                        sectionsData = reQueriedData;
                         allCataloged = true;
-                        logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}",
-                            expectedSectionCount, attempt, publicationCode);
+                        if (iterationOutcome.LogSuccess)
+                        {
+                            logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}",
+                                iterationOutcome.ExpectedSectionCount, attempt, publicationCode);
+                        }
+                    }
+                    else if (iterationOutcome.BreakRetries)
+                    {
+                        break;
                     }
                     else
                     {
-                        var currentCatalogedCount = reQueriedData?.Values.Count(s =>
-                            !string.IsNullOrEmpty(s.Name) && s.Id > 0) ?? 0;
-
-                        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
-                        {
-                            logger.Information("MusicInstrumentalSectionListLoader: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}",
-                                currentCatalogedCount, expectedSectionCount, publicationCode);
-                            sectionsData = reQueriedData;
-                            break;
-                        }
-                        previousCatalogedCount = currentCatalogedCount;
-
-                        LogRetryIterationDiagnostics(attempt, reQueriedData, hasAllExpectedSections, actualSectionCount, expectedSectionCount);
-
-                        var delay = Math.Min(retryDelay * attempt, 5000);
-                        await Task.Delay(delay, cancellationToken);
+                        previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Re-throw cancellation - data saved so far is preserved
-                    throw;
-                }
-                catch (System.Net.Http.HttpRequestException)
-                {
-                    throw;
-                }
-                catch (System.Net.Sockets.SocketException)
-                {
-                    throw;
                 }
                 catch (Exception ex)
                 {
+                    switch (ex)
+                    {
+                        case OperationCanceledException:
+                            throw;
+                        case System.Net.Http.HttpRequestException:
+                            throw;
+                        case System.Net.Sockets.SocketException:
+                            throw;
+                    }
+
                     if (NetworkExceptionHelper.IsNetworkFailure(ex))
                     {
                         throw;
@@ -235,7 +258,6 @@ internal sealed class MusicInstrumentalSectionListLoader
                     logger.Warning(ex, "MusicInstrumentalSectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, will retry",
                         attempt, publicationCode);
 
-                    // Wait before retrying on exception (with cancellation support)
                     var delay = Math.Min(retryDelay * attempt, 5000);
                     await Task.Delay(delay, cancellationToken);
                 }
@@ -243,7 +265,6 @@ internal sealed class MusicInstrumentalSectionListLoader
         }
         finally
         {
-            // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
             progress?.SetIsVisible(false);
         }
 
@@ -252,10 +273,8 @@ internal sealed class MusicInstrumentalSectionListLoader
             logger.Warning("MusicInstrumentalSectionListLoader: Timeout after {Attempts} attempts waiting for all sections to be cataloged for publication {PublicationCode}. Some may still be placeholders.",
                 attempt, publicationCode);
 
-            // Use the last fetched data even if not all are cataloged
             if (sectionsData == null || sectionsData.Count == 0)
             {
-                // Final attempt to get at least some data
                 try
                 {
                     sectionsData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
@@ -269,6 +288,71 @@ internal sealed class MusicInstrumentalSectionListLoader
         }
 
         return sectionsData;
+    }
+
+    private async Task<InstrumentalCatalogRetryIterationOutcome> RunInstrumentalCatalogRetryIterationAsync(
+        string publicationCode,
+        CancellationToken cancellationToken,
+        int attempt,
+        int retryDelayBase,
+        int previousCatalogedCount)
+    {
+        var fetchedWithProgress =
+            await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+
+        await Task.Delay(500, cancellationToken);
+
+        var reQueriedData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+
+        var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
+        var actualSectionCount = reQueriedData?.Values.Count ?? 0;
+
+        var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+        if (AreAllSectionsFullyCataloged(reQueriedData, expectedSectionCount))
+        {
+            return InstrumentalCatalogRetryIterationOutcome.ForSuccess(reQueriedData!, expectedSectionCount);
+        }
+
+        var currentCatalogedCount =
+            reQueriedData?.Values.Count(static s =>
+                !string.IsNullOrEmpty(s.Name) && s.Id > 0) ?? 0;
+
+        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
+        {
+            logger.Information("MusicInstrumentalSectionListLoader: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}",
+                currentCatalogedCount, expectedSectionCount, publicationCode);
+            return InstrumentalCatalogRetryIterationOutcome.ForStagnation(reQueriedData);
+        }
+
+        LogRetryIterationDiagnostics(attempt, reQueriedData, hasAllExpectedSections, actualSectionCount, expectedSectionCount);
+
+        var delay = Math.Min(retryDelayBase * attempt, 5000);
+        await Task.Delay(delay, cancellationToken);
+
+        return InstrumentalCatalogRetryIterationOutcome.ForContinue(fetchedWithProgress, currentCatalogedCount);
+    }
+
+    private sealed record InstrumentalCatalogRetryIterationOutcome(
+        bool Completed,
+        bool LogSuccess,
+        bool BreakRetries,
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? NextSectionsSnapshot,
+        int ExpectedSectionCount,
+        int UpdatedPreviousCatalogedCount)
+    {
+        public static InstrumentalCatalogRetryIterationOutcome ForSuccess(
+            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> reQueried,
+            int expectedSectionCount) =>
+            new(true, LogSuccess: true, BreakRetries: false, NextSectionsSnapshot: reQueried, ExpectedSectionCount: expectedSectionCount, UpdatedPreviousCatalogedCount: -1);
+
+        public static InstrumentalCatalogRetryIterationOutcome ForStagnation(
+            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? reQueried) =>
+            new(false, LogSuccess: false, BreakRetries: true, NextSectionsSnapshot: reQueried, ExpectedSectionCount: 0, UpdatedPreviousCatalogedCount: -1);
+
+        public static InstrumentalCatalogRetryIterationOutcome ForContinue(
+            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? fetchedWithProgress,
+            int updatedPreviousCatalogedCount) =>
+            new(false, LogSuccess: false, BreakRetries: false, NextSectionsSnapshot: fetchedWithProgress, ExpectedSectionCount: 0, UpdatedPreviousCatalogedCount: updatedPreviousCatalogedCount);
     }
 
     private static bool AreAllSectionsFullyCataloged(
@@ -286,7 +370,7 @@ internal sealed class MusicInstrumentalSectionListLoader
             return false;
         }
 
-        return sections.Values.All(s =>
+        return sections.Values.All(static s =>
             !string.IsNullOrEmpty(s.Name) &&
             s.Id > 0);
     }
@@ -300,7 +384,7 @@ internal sealed class MusicInstrumentalSectionListLoader
     {
         if (reQueriedData != null)
         {
-            var placeholders = reQueriedData.Values.Where(s =>
+            var placeholders = reQueriedData.Values.Where(static s =>
                     string.IsNullOrEmpty(s.Name) ||
                     s.Id == 0)
                 .Select(s => s.SectionCode)
@@ -325,4 +409,3 @@ internal sealed class MusicInstrumentalSectionListLoader
             attempt);
     }
 }
-

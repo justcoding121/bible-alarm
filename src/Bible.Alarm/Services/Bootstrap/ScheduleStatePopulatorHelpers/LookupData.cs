@@ -266,6 +266,14 @@ internal sealed class LookupDataLoader
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+        return await QueryNoLanguageLookupDataAsync(keys, missingPublicationCodes, db);
+    }
+
+    private async Task<NoLanguageLookupData> QueryNoLanguageLookupDataAsync(
+        LookupDataCollector.LookupKeys keys,
+        HashSet<string> missingPublicationCodes,
+        MediaDbContext db)
+    {
         // Load publication metadata (name + category) for LanguageId == null publications.
         var noLanguagePubsRaw = await db.BiblePublications
             .AsNoTracking()
