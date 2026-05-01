@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.ComponentModel;

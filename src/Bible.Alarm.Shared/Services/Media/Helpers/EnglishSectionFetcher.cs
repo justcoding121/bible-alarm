@@ -144,7 +144,7 @@ internal sealed class EnglishSectionFetcher
             return null;
         }
 
-        var sectionName = ResolveEnglishSectionName(root, sectionCode, isIssueSectioned);
+        var sectionName = ResolveEnglishSectionName(root, isIssueSectioned);
 
         var section = new BiblePublicationSection
         {
@@ -193,7 +193,7 @@ internal sealed class EnglishSectionFetcher
         return $"?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={sectionCode}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={fileFormat}&{AppConstants.Media.GetPubQueryAllLangsOff}&{AppConstants.Media.GetPubQueryParamLangWritten}={normalizedLanguageCode}";
     }
 
-    private static string? ResolveEnglishSectionName(JsonElement root, string sectionCode, bool isIssueSectioned)
+    private static string? ResolveEnglishSectionName(JsonElement root, bool isIssueSectioned)
     {
         if (isIssueSectioned)
         {
@@ -224,14 +224,25 @@ internal sealed class EnglishSectionFetcher
         string normalizedLanguageCode,
         string fileFormat)
     {
-        IEnumerable<BiblePublicationTrack> tracks =
-            isIssueSectioned ? EnglishTrackParser.ParseGenericTracks(
-                filesElement, normalizedLanguageCode, AppConstants.Media.MediaStreamFormatMp3)
-            : publicationWithoutLanguage ? EnglishTrackParser.ParseIamTracks(filesElement)
-            : isBible ? EnglishTrackParser.ParseBibleTracks(
-                filesElement, normalizedLanguageCode)
-            : EnglishTrackParser.ParseGenericTracks(
+        IEnumerable<BiblePublicationTrack> tracks;
+        if (isIssueSectioned)
+        {
+            tracks = EnglishTrackParser.ParseGenericTracks(
+                filesElement, normalizedLanguageCode, AppConstants.Media.MediaStreamFormatMp3);
+        }
+        else if (publicationWithoutLanguage)
+        {
+            tracks = EnglishTrackParser.ParseIamTracks(filesElement);
+        }
+        else if (isBible)
+        {
+            tracks = EnglishTrackParser.ParseBibleTracks(filesElement, normalizedLanguageCode);
+        }
+        else
+        {
+            tracks = EnglishTrackParser.ParseGenericTracks(
                 filesElement, normalizedLanguageCode, fileFormat);
+        }
 
         section.Tracks.AddRange(tracks);
     }

@@ -55,7 +55,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
 
         LogScheduleDatabaseVersionBranch(versionMatches, dbExists);
 
-        scheduleDb = await MigrateScheduleDatabaseOrRecoverAsync(scheduleDb, dbPath, versionMatches, scope.ServiceProvider);
+        _ = await MigrateScheduleDatabaseOrRecoverAsync(scheduleDb, dbPath, versionMatches, scope.ServiceProvider);
 
         if (!versionMatches)
         {

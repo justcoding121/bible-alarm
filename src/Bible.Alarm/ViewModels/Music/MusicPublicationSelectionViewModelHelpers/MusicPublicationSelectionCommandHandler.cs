@@ -37,8 +37,6 @@ public sealed class MusicPublicationSelectionCommandHandler(
         var currentLanguage = args.CurrentLanguage;
         var dataProvider = args.DataProvider;
         var setShowProgress = args.Progress.SetShowProgress;
-        var setProgressPercent = args.Progress.SetProgressPercent;
-        var setProgressText = args.Progress.SetProgressText;
 
         if (songPublication == null)
         {
@@ -307,12 +305,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
         MusicPublicationSelectionDataProvider dataProvider,
         HandleMusicLanguageSelectionUiCallbacks ui)
     {
-        var setCurrentLanguage = ui.SetCurrentLanguage;
         var updateSelectedLanguage = ui.UpdateSelectedLanguage;
-        var setShowProgress = ui.SetShowProgress;
-        var setProgressPercent = ui.SetProgressPercent;
-        var setProgressText = ui.SetProgressText;
-        var setIsBusy = ui.SetIsBusy;
 
         if (language == null)
         {

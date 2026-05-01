@@ -246,7 +246,7 @@ internal static class BiblePublicationDisplayNamePopulator
 
         var isNoLanguagePublication = lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode);
 
-        var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
+        var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode) ?? string.Empty;
         if (TryApplyNoLanguageTrackTitle(schedule, scheduleStateItem, biblePublication, lookupData, isNoLanguagePublication, normalizedSectionCode))
         {
             return;

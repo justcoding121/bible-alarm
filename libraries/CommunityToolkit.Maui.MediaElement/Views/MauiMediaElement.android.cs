@@ -74,7 +74,7 @@ public class MauiMediaElement : CoordinatorLayout
     }
 
     /// <summary>
-    /// Deferred from constructor so virtual <see cref="ViewGroup.AddView"/> is not invoked from the ctor (S1699).
+    /// Deferred from constructor so virtual <c>Android.Views.ViewGroup.AddView</c> is not invoked from the ctor (S1699).
     /// </summary>
     void AttachPlayerLayoutIfNeeded()
     {

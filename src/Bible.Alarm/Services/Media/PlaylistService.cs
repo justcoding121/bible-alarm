@@ -52,13 +52,16 @@ public sealed partial class PlaylistService : IPlaylistService
 
     public PlaylistService(PlaylistServiceDeps deps)
     {
+        ArgumentNullException.ThrowIfNull(deps);
+        ArgumentNullException.ThrowIfNull(deps.UrlConstructionService);
+
         logger = deps.Logger;
         dispatcher = deps.Dispatcher;
         applicationState = deps.ApplicationState;
         alarmScheduleService = deps.AlarmScheduleService;
         generalSettingsService = deps.GeneralSettingsService;
         BiblePublicationService = deps.BiblePublicationService;
-        urlConstructionService = deps.UrlConstructionService ?? throw new ArgumentNullException(nameof(deps.UrlConstructionService));
+        urlConstructionService = deps.UrlConstructionService;
         biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, deps.MediaService, deps.UrlRefreshService, urlConstructionService, BiblePublicationService);
         musicTrackBuilder = new PlaylistMusicTrackBuilder(deps.MediaService, deps.UrlRefreshService, urlConstructionService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);

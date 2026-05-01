@@ -242,7 +242,8 @@ public sealed class DisplayMetadataService(
     {
         try
         {
-            var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode).ConfigureAwait(false);
+            var sectionKey = trackMetadata.DownloadCode ?? string.Empty;
+            var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, sectionKey).ConfigureAwait(false);
             var trackCode = trackMetadata.TrackCode;
             if (!string.IsNullOrWhiteSpace(trackCode) &&
                 MusicTrackLookupHelper.TryGetByCode(tracks, trackCode, out var melodyPair))
@@ -282,7 +283,8 @@ public sealed class DisplayMetadataService(
         try
         {
             var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(trackMetadata.PublicationCode).ConfigureAwait(false);
-            if (sections.TryGetValue(trackMetadata.DownloadCode, out var section) &&
+            var sectionKey = trackMetadata.DownloadCode ?? string.Empty;
+            if (sections.TryGetValue(sectionKey, out var section) &&
                 !string.IsNullOrWhiteSpace(section?.Name))
             {
                 return section.Name;

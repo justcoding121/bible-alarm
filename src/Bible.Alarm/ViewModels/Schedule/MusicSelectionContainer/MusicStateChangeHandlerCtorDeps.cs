@@ -2,7 +2,6 @@
 
 using AutoMapper;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using Fluxor;
 using Serilog;

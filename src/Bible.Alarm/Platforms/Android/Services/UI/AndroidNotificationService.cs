@@ -1,3 +1,5 @@
+
+#nullable disable
 using System;
 using System.Linq;
 using _Microsoft.Android.Resource.Designer;
@@ -161,7 +163,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         log.Information("Created notification channel {ChannelId} with sound and alarm audio attributes", ChannelId);
     }
 
-    private static PendingIntent? CreateTapMainActivityPendingIntent(int scheduleId, ILogger log)
+    private static PendingIntent CreateTapMainActivityPendingIntent(int scheduleId, ILogger log)
     {
         var valuesForActivity = new Bundle();
         valuesForActivity.PutInt(ScheduleId, scheduleId);
@@ -187,7 +189,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         string title,
         string body,
         PendingIntent contentIntent,
-        Bitmap? largeIcon,
+        Bitmap largeIcon,
         ILogger log)
     {
         var builder = new NotificationCompat.Builder(AndroidApplication.Context, ChannelId)

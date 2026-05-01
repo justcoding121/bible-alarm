@@ -35,7 +35,6 @@ internal static class MediaServiceBiblePublicationList
         GetBiblePublicationsOptions options)
     {
         var biblePublicationService = services.BiblePublicationService;
-        var languageContentService = services.LanguageContentService;
         var scopeFactory = services.ScopeFactory;
         var languageCode = options.LanguageCode;
         var categoryName = options.CategoryName;

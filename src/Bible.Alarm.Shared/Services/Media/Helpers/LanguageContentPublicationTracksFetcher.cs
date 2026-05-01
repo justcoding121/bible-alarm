@@ -117,9 +117,8 @@ internal sealed class LanguageContentPublicationTracksFetcher
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication,
                         isVideo, isMusic, fileFormat, Language: null, cancellationToken));
 
-                case Models.Enums.CatalogType.Sectioned:
                 default:
-                    // Sectioned catalogs use FetchPublicationSectionsAsync; treat like unknown for this helper.
+                    // Sectioned and other catalogs use FetchPublicationSectionsAsync; unsupported by this helper.
                     logger.Warning("Publication {PublicationCode} has Sectioned catalog type, use FetchPublicationSectionsAsync instead",
                         publicationCode);
                     return false;
