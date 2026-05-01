@@ -314,7 +314,7 @@ public sealed partial class MediaCacheService(
 
     public async Task DeleteScheduleCacheAsync(int scheduleId)
     {
-        await MediaCacheCleanup.DeleteScheduleCacheAsync(
+        await MediaCacheCleanup.DeleteScheduleCacheAsync(new DeleteScheduleCacheArgs(
             logger,
             storageService,
             mediaPlayService,
@@ -323,7 +323,7 @@ public sealed partial class MediaCacheService(
             GetScheduleCacheFolder,
             GetCacheFileName,
             scheduleId,
-            cancellationTokenSource.Token);
+            cancellationTokenSource.Token));
     }
 
 

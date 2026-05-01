@@ -34,8 +34,19 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
     private bool isCancelBusy;
     private CategoryListViewItemModel? selectedCategory;
     private CategoryListViewItemModel? currentFetchingCategory;
-    private volatile bool fetchErrorReceived;
-    private volatile bool categorySelectionSucceededReceived;
+    private readonly CategoryFetchOutcomeLatch fetchOutcomeLatch = new();
+
+    private sealed class CategoryFetchOutcomeLatch
+    {
+        public volatile bool FetchErrorReceived;
+        public volatile bool CategorySelectionSucceededReceived;
+
+        public void ResetForAttempt()
+        {
+            FetchErrorReceived = false;
+            CategorySelectionSucceededReceived = false;
+        }
+    }
 
     public CategorySelectionViewModel(
         ICategoryService categoryService,
@@ -68,7 +79,7 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
 
         if (progress.HasError && fetchingCategory != null && fetchingCategory.Id == progress.CategoryId)
         {
-            fetchErrorReceived = true;
+            fetchOutcomeLatch.FetchErrorReceived = true;
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 fetchingCategory.DownloadProgress = 0;
@@ -78,7 +89,7 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
 
         if (progress.IsComplete && !progress.HasError)
         {
-            categorySelectionSucceededReceived = true;
+            fetchOutcomeLatch.CategorySelectionSucceededReceived = true;
         }
 
         if (fetchingCategory != null && fetchingCategory.Id == progress.CategoryId &&
@@ -91,7 +102,9 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
         }
     }
 
-    public ICommand SelectCategoryCommand => new AsyncRelayCommand<CategoryListViewItemModel>(async (category) =>
+    public ICommand SelectCategoryCommand => new AsyncRelayCommand<CategoryListViewItemModel>(SelectCategoryAsync);
+
+    private async Task SelectCategoryAsync(CategoryListViewItemModel? category)
     {
         if (category == null)
         {
@@ -104,8 +117,7 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
         var previousCategoryName = currentSchedule?.BiblePublicationCategoryName;
         var previousPublicationCode = currentSchedule?.BiblePublicationCode;
 
-        fetchErrorReceived = false;
-        categorySelectionSucceededReceived = false;
+        fetchOutcomeLatch.ResetForAttempt();
         currentFetchingCategory = category;
 
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -122,7 +134,7 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
             const int delayMs = 200;
             for (int i = 0; i < maxWaitAttempts; i++)
             {
-                if (fetchErrorReceived || categorySelectionSucceededReceived)
+                if (fetchOutcomeLatch.FetchErrorReceived || fetchOutcomeLatch.CategorySelectionSucceededReceived)
                     break;
 
                 var currentState = state.Value.CurrentSchedule;
@@ -152,7 +164,7 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
             currentFetchingCategory = null;
         }
 
-        if (fetchErrorReceived)
+        if (fetchOutcomeLatch.FetchErrorReceived)
         {
             try
             {
@@ -177,7 +189,7 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
                 Serilog.Log.Error(ex, AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorClosingModalCategoryCode, category.CategoryCode);
             }
         }
-    });
+    }
 
     private async Task LoadCategoriesAsync()
     {

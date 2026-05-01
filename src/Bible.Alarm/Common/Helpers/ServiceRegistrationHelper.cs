@@ -383,8 +383,26 @@ public static class ServiceRegistrationHelper
 
     private static void RegisterViewModels(IServiceCollection services)
     {
-        services.AddTransient<HomeViewModel>();
-        services.AddTransient<ScheduleViewModel>();
+        services.AddTransient<HomeViewModel>(sp => new HomeViewModel(new HomeViewModelDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp,
+            sp.GetRequiredService<IState<ApplicationState>>(),
+            sp.GetRequiredService<IState<PlaybackState>>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<INavigationService>(),
+            sp.GetRequiredService<AutoMapper.IMapper>())));
+        services.AddTransient<ScheduleViewModel>(sp => new ScheduleViewModel(new ScheduleViewModelDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp,
+            sp.GetRequiredService<AutoMapper.IMapper>(),
+            sp.GetRequiredService<IState<ApplicationState>>(),
+            sp.GetRequiredService<IState<PlaybackState>>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<IScheduleInitializationService>(),
+            sp.GetRequiredService<IScheduleCommandService>(),
+            sp.GetRequiredService<IScheduleMediaCacheService>(),
+            sp.GetRequiredService<IScheduleContainerService>(),
+            sp.GetRequiredService<IScheduleStateChangeHandler>())));
         services.AddTransient<MusicPublicationSelectionViewModel>();
         services.AddTransient<ViewModels.Music.MusicTrackSelectionViewModel>();
         services.AddTransient<BiblePublicationSelectionViewModel>();

@@ -1,15 +1,9 @@
 #nullable enable
 using System.Windows.Input;
 using AutoMapper;
-using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Schedule.Interfaces;
-using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
@@ -31,8 +25,6 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IServiceProvider serviceProvider;
 
     // Helper classes
-    private readonly ScheduleStateManager stateManager;
-    private readonly ScheduleCommandExecutor commandExecutor;
     private readonly SchedulePropertyManager propertyManager;
     private readonly ScheduleContainerManager containerManager;
     private readonly ScheduleOverlayManager overlayManager;
@@ -44,55 +36,30 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
     private const string LogNullDisplayLabel = "(null)";
 
 
-    public ScheduleViewModel(
-        ILogger logger,
-        IToastService popUpService,
-        IPlaybackService playbackService,
-        INotificationService notificationService,
-        IMediaCacheSetupService mediaCacheSetupService,
-        INavigationService navigationService,
-        IServiceProvider serviceProvider,
-        IState<ApplicationState> state,
-        IState<PlaybackState> playbackState,
-        IDispatcher dispatcher,
-        IBiblePublicationService BiblePublicationService,
-        IMelodyMusicService melodyMusicService,
-        IMediaService mediaService,
-        IMapper mapper,
-        IAlarmScheduleService alarmScheduleService,
-        IScheduleDisplayNameService scheduleDisplayNameService,
-        IScheduleSaveService scheduleSaveService,
-        IScheduleValidationService scheduleValidationService,
-        IScheduleInitializationService scheduleInitializationService,
-        IScheduleCommandService scheduleCommandService,
-        IScheduleMediaCacheService scheduleMediaCacheService,
-        IScheduleContainerService scheduleContainerService,
-        IScheduleStateChangeHandler scheduleStateChangeHandler)
+    public ScheduleViewModel(ScheduleViewModelDeps deps)
     {
 #if DEBUG
         var constructorStartTime = DateTime.UtcNow;
         Log.Logger.Information("[PERF] ScheduleViewModel: Constructor started at {StartTime}", constructorStartTime);
 #endif
 
-        // Initialize readonly fields
-        this.logger = logger;
-        this.mapper = mapper;
-        this.state = state;
-        this.playbackState = playbackState;
-        this.dispatcher = dispatcher;
-        this.serviceProvider = serviceProvider;
+        logger = deps.Logger;
+        mapper = deps.Mapper;
+        state = deps.ApplicationState;
+        playbackState = deps.PlaybackState;
+        dispatcher = deps.Dispatcher;
+        serviceProvider = deps.ServiceProvider;
 
-        // Initialize helper classes
-        stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, this.dispatcher, logger);
+        var stateManager = new ScheduleStateManager(deps.ScheduleInitializationService, deps.ScheduleStateChangeHandler, dispatcher, logger);
         propertyManager = new SchedulePropertyManager(state, logger);
-        commandExecutor = new ScheduleCommandExecutor(
-            scheduleCommandService, 
-            scheduleMediaCacheService, 
-            state, 
-            this.playbackState, 
-            this.dispatcher, 
-            this.mapper, 
-            logger, 
+        var commandExecutor = new ScheduleCommandExecutor(
+            deps.ScheduleCommandService,
+            deps.ScheduleMediaCacheService,
+            state,
+            playbackState,
+            dispatcher,
+            mapper,
+            logger,
             () => propertyManager?.MusicSelectionContainerViewModel,
             () => propertyManager?.AlarmSettingsContainerViewModel,
             () => propertyManager?.NumberOfTrackContainerViewModel,
@@ -100,7 +67,7 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
             (isBusy) => propertyManager.IsCancelBusy = isBusy,
             (isBusy) => propertyManager.IsSaveBusy = isBusy,
             (isBusy) => propertyManager.IsDeleteBusy = isBusy);
-        containerManager = new ScheduleContainerManager(scheduleContainerService, this.serviceProvider);
+        containerManager = new ScheduleContainerManager(deps.ScheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(this.dispatcher);
         overlayTimeoutController = new ScheduleOverlayTimeoutController(logger, state, this.dispatcher);
 

@@ -10,6 +10,17 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
+internal sealed record DeleteScheduleCacheArgs(
+    ILogger Logger,
+    IStorageService StorageService,
+    IPlaylistService MediaPlayService,
+    IAlarmScheduleService AlarmScheduleService,
+    ConcurrentDictionary<string, Task<string?>> InProgressDownloads,
+    Func<int, string> GetScheduleCacheFolder,
+    Func<string, string> GetCacheFileName,
+    int ScheduleId,
+    CancellationToken CancellationToken);
+
 internal static class MediaCacheCleanup
 {
     private static async Task<HashSet<string>> GetCacheKeepFileNamesAsync(
@@ -227,43 +238,35 @@ internal static class MediaCacheCleanup
         return Task.CompletedTask;
     }
 
-    internal static async Task DeleteScheduleCacheAsync(
-        ILogger logger,
-        IStorageService storageService,
-        IPlaylistService mediaPlayService,
-        IAlarmScheduleService alarmScheduleService,
-        ConcurrentDictionary<string, Task<string?>> inProgressDownloads,
-        Func<int, string> getScheduleCacheFolder,
-        Func<string, string> getCacheFileName,
-        int scheduleId,
-        CancellationToken cancellationToken)
+    internal static async Task DeleteScheduleCacheAsync(DeleteScheduleCacheArgs args)
     {
+        var scheduleId = args.ScheduleId;
         if (scheduleId <= 0)
         {
-            logger.Warning("Skipping cache deletion for invalid schedule ID: {ScheduleId}", scheduleId);
+            args.Logger.Warning("Skipping cache deletion for invalid schedule ID: {ScheduleId}", scheduleId);
             return;
         }
 
         try
         {
-            var scheduleCacheFolder = getScheduleCacheFolder(scheduleId);
+            var scheduleCacheFolder = args.GetScheduleCacheFolder(scheduleId);
 
             // Check if schedule still exists in database
-            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+            var schedule = await args.AlarmScheduleService.GetScheduleByIdAsync(
                 scheduleId,
                 false,
                 false,
-                cancellationToken);
+                args.CancellationToken);
 
             if (schedule == null)
             {
                 // Schedule was deleted - delete entire folder
-                if (await storageService.DirectoryExists(scheduleCacheFolder))
+                if (await args.StorageService.DirectoryExists(scheduleCacheFolder))
                 {
-                    var filesToDelete = await storageService.GetAllFiles(scheduleCacheFolder);
-                    await DeleteFilesAsync(logger, storageService, inProgressDownloads, getCacheFileName, new HashSet<string>(filesToDelete, StringComparer.Ordinal));
-                    await storageService.DeleteDirectory(scheduleCacheFolder);
-                    logger.Information("Deleted entire cache folder for deleted schedule {ScheduleId} ({Count} files)",
+                    var filesToDelete = await args.StorageService.GetAllFiles(scheduleCacheFolder);
+                    await DeleteFilesAsync(args.Logger, args.StorageService, args.InProgressDownloads, args.GetCacheFileName, new HashSet<string>(filesToDelete, StringComparer.Ordinal));
+                    await args.StorageService.DeleteDirectory(scheduleCacheFolder);
+                    args.Logger.Information("Deleted entire cache folder for deleted schedule {ScheduleId} ({Count} files)",
                         scheduleId,
                         filesToDelete.Count);
                 }
@@ -277,11 +280,11 @@ internal static class MediaCacheCleanup
             List<PlayItem> newPlaylist;
             try
             {
-                newPlaylist = await mediaPlayService.NextTracks(scheduleId);
+                newPlaylist = await args.MediaPlayService.NextTracks(scheduleId);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Failed to get playlist for schedule {ScheduleId} - API call failed. Not deleting any cache files to preserve existing cache.", scheduleId);
+                args.Logger.Error(ex, "Failed to get playlist for schedule {ScheduleId} - API call failed. Not deleting any cache files to preserve existing cache.", scheduleId);
                 // Don't delete any cache if API fails
                 return;
             }
@@ -293,7 +296,7 @@ internal static class MediaCacheCleanup
                 var anchorMetadata = newPlaylist[newPlaylist.Count - 1].Metadata;
                 try
                 {
-                    newPlaylist.Add(await mediaPlayService.GetNextPlayItemAsync(anchorMetadata));
+                    newPlaylist.Add(await args.MediaPlayService.GetNextPlayItemAsync(anchorMetadata));
                 }
                 catch (Exception)
                 {
@@ -302,7 +305,7 @@ internal static class MediaCacheCleanup
 
                 try
                 {
-                    newPlaylist.Add(await mediaPlayService.GetPreviousPlayItemAsync(anchorMetadata));
+                    newPlaylist.Add(await args.MediaPlayService.GetPreviousPlayItemAsync(anchorMetadata));
                 }
                 catch (Exception)
                 {
@@ -311,17 +314,17 @@ internal static class MediaCacheCleanup
             }
 
             var keepFileNames = new HashSet<string>(
-                newPlaylist.Select(pi => getCacheFileName(pi.Metadata.LookUpPath)),
+                newPlaylist.Select(pi => args.GetCacheFileName(pi.Metadata.LookUpPath)),
                 StringComparer.OrdinalIgnoreCase);
 
             // Get all files in the schedule's cache folder
-            if (!await storageService.DirectoryExists(scheduleCacheFolder))
+            if (!await args.StorageService.DirectoryExists(scheduleCacheFolder))
             {
-                logger.Debug("Cache folder does not exist for schedule {ScheduleId}, nothing to clean up", scheduleId);
+                args.Logger.Debug("Cache folder does not exist for schedule {ScheduleId}, nothing to clean up", scheduleId);
                 return;
             }
 
-            var allFiles = await storageService.GetAllFiles(scheduleCacheFolder);
+            var allFiles = await args.StorageService.GetAllFiles(scheduleCacheFolder);
 
             // Delete files that don't match the new schedule's lookup paths
             var filePathsToDelete = new HashSet<string>(StringComparer.Ordinal);
@@ -337,15 +340,15 @@ internal static class MediaCacheCleanup
                 }
             }
 
-            await DeleteFilesAsync(logger, storageService, inProgressDownloads, getCacheFileName, filePathsToDelete);
-            logger.Information("Deleted {Count} cache files for schedule {ScheduleId} (kept {KeptCount} files)",
+            await DeleteFilesAsync(args.Logger, args.StorageService, args.InProgressDownloads, args.GetCacheFileName, filePathsToDelete);
+            args.Logger.Information("Deleted {Count} cache files for schedule {ScheduleId} (kept {KeptCount} files)",
                 filePathsToDelete.Count,
                 scheduleId,
                 allFiles.Count - filePathsToDelete.Count);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error deleting cache files for schedule {ScheduleId}", scheduleId);
+            args.Logger.Error(ex, "Error deleting cache files for schedule {ScheduleId}", scheduleId);
         }
     }
 }

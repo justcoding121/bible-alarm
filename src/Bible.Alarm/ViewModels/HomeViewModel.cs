@@ -46,25 +46,18 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     private readonly HomeViewModelFloatingButtonHandler floatingButtonHandler;
     private readonly HomeViewModelFocusWarningHandler focusWarningHandler;
 
-    public HomeViewModel(
-        ILogger logger,
-        IServiceProvider serviceProvider,
-        IState<ApplicationState> state,
-        IState<PlaybackState> playbackState,
-        IDispatcher dispatcher,
-        INavigationService navigationService,
-        IMapper mapper)
+    public HomeViewModel(HomeViewModelDeps deps)
     {
-        this.logger = logger;
-        this.serviceProvider = serviceProvider;
-        this.state = state;
-        this.playbackState = playbackState;
-        this.dispatcher = dispatcher;
-        this.navigationService = navigationService;
-        this.mapper = mapper;
+        logger = deps.Logger;
+        serviceProvider = deps.ServiceProvider;
+        state = deps.ApplicationState;
+        playbackState = deps.PlaybackState;
+        dispatcher = deps.Dispatcher;
+        navigationService = deps.NavigationService;
+        mapper = deps.Mapper;
 
         // Initialize helper classes
-        scheduleDataPreparer = new ScheduleDataPreparer(this.mapper);
+        scheduleDataPreparer = new ScheduleDataPreparer(mapper);
         var playbackModalService = this.serviceProvider.GetRequiredService<IPlaybackModalService>();
         navigationHelper = new HomeNavigationHelper(logger, dispatcher, this.navigationService, playbackModalService, playbackState, this.serviceProvider, this.mapper);
         scheduleViewModelManager = new ScheduleViewModelManager(logger, this.serviceProvider, navigationHelper.TrackPlayClick);
