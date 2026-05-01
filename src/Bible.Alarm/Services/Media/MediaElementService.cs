@@ -176,97 +176,112 @@ public sealed class MediaElementService : IMediaElementService
 
         try
         {
-            // Stop playback if still playing
-            if (mediaElement.CurrentState is MediaElementState.Playing or
-                MediaElementState.Paused or
-                MediaElementState.Buffering)
-            {
-                mediaElement.Stop();
-            }
-
-            // Clear source
+            StopMediaElementPlaybackIfNeeded(mediaElement);
             mediaElement.Source = null;
 
 #if IOS
-            // Collect native views BEFORE disposing the handler, because disposal
-            // nulls out PlatformView (used for best-effort teardown walks).
-            UIView? nativePlatformView = null;
-            try
-            {
-                nativePlatformView = mediaElement.Handler?.PlatformView as UIView;
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, "MediaElement disposal: could not read PlatformView before handler dispose");
-            }
+            var nativePlatformView = TryReadIosPlatformViewBeforeHandlerDispose(mediaElement);
 #endif
 
             var handler = mediaElement.Handler;
 
 #if IOS
-            UIKit.UIViewController? viewController = null;
-            try
-            {
-                if (handler is IPlatformViewHandler pvh)
-                {
-                    viewController = pvh.ViewController;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, "MediaElement disposal: could not read ViewController before handler dispose");
-            }
+            CleanupIosNativeViewsAfterHandlerDisposed(nativePlatformView, handler);
 #endif
 
-            // Dispose the handler (which disposes ExoPlayer and MediaSession on Android)
-            if (handler is IDisposable disposableHandler)
-            {
-                disposableHandler.Dispose();
-            }
-
-            // Clear handler reference
-            var handlerField = typeof(Element).GetField("_handler",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            handlerField?.SetValue(mediaElement, null);
-
-#if IOS
-            if (nativePlatformView != null)
-            {
-                try
-                {
-                    IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(nativePlatformView);
-                }
-                catch (Exception)
-                {
-                    // Best-effort ObjC/native cleanup during MediaElement teardown; continue if runtime throws.
-                }
-            }
-
-            if (viewController != null)
-            {
-                try
-                {
-                    if (viewController.View != null)
-                    {
-                        IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(viewController.View);
-                    }
-                }
-                catch (ObjectDisposedException ex)
-                {
-                    logger.Debug(ex, "MediaElement disposal: view controller already disposed during cleanup");
-                }
-                catch (Exception ex)
-                {
-                    logger.Debug(ex, "MediaElement disposal: view controller cleanup failed");
-                }
-            }
-#endif
+            DisposeMediaElementHandlerAndClearBinding(mediaElement, handler);
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "Error during MediaElement disposal - continuing");
         }
     }
+
+    private static void StopMediaElementPlaybackIfNeeded(MediaElement mediaElement)
+    {
+        if (mediaElement.CurrentState is MediaElementState.Playing or
+            MediaElementState.Paused or
+            MediaElementState.Buffering)
+        {
+            mediaElement.Stop();
+        }
+    }
+
+#if IOS
+    private UIView? TryReadIosPlatformViewBeforeHandlerDispose(MediaElement mediaElement)
+    {
+        try
+        {
+            return mediaElement.Handler?.PlatformView as UIView;
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "MediaElement disposal: could not read PlatformView before handler dispose");
+            return null;
+        }
+    }
+#endif
+
+    private void DisposeMediaElementHandlerAndClearBinding(MediaElement mediaElement, IElementHandler? handler)
+    {
+        if (handler is IDisposable disposableHandler)
+        {
+            disposableHandler.Dispose();
+        }
+
+        var handlerField = typeof(Element).GetField("_handler",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        handlerField?.SetValue(mediaElement, null);
+    }
+
+#if IOS
+    private void CleanupIosNativeViewsAfterHandlerDisposed(UIView? nativePlatformView, IElementHandler? handler)
+    {
+        UIKit.UIViewController? viewController = null;
+        try
+        {
+            if (handler is IPlatformViewHandler pvh)
+            {
+                viewController = pvh.ViewController;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "MediaElement disposal: could not read ViewController before handler dispose");
+        }
+
+        if (nativePlatformView != null)
+        {
+            try
+            {
+                IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(nativePlatformView);
+            }
+            catch (Exception)
+            {
+                // Best-effort ObjC/native cleanup during MediaElement teardown; continue if runtime throws.
+            }
+        }
+
+        if (viewController != null)
+        {
+            try
+            {
+                if (viewController.View != null)
+                {
+                    IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(viewController.View);
+                }
+            }
+            catch (ObjectDisposedException ex)
+            {
+                logger.Debug(ex, "MediaElement disposal: view controller already disposed during cleanup");
+            }
+            catch (Exception ex)
+            {
+                logger.Debug(ex, "MediaElement disposal: view controller cleanup failed");
+            }
+        }
+    }
+#endif
 
     /// <summary>
     /// Creates a new MediaElement instance on the main thread.

@@ -147,46 +147,65 @@ public class PlaylistMusicTrackBuilder
 
         if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode) && !string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
         {
-            var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
-            var keys = melodyTracks.Keys.ToList();
-            var currentKey = MusicTrackLookupHelper.GetKeyByCode(melodyTracks, melodyMusic.TrackCode);
-            var currentIndex = currentKey.HasValue ? keys.IndexOf(currentKey.Value) : -1;
-
-            if (next && keys.Count > 0 && currentIndex == keys.Count - 1)
-            {
-                var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(melodyMusic.PublicationCode);
-                var sectionCodes = sections.Keys.ToList();
-                var sectionIndex = sectionCodes.FindIndex(s => SectionCodeHelper.CodeEquals(s, melodyMusic.SectionCode));
-                string? nextSectionCode = null;
-                if (sectionIndex >= 0 && sectionIndex < sectionCodes.Count - 1)
-                {
-                    nextSectionCode = sectionCodes[sectionIndex + 1];
-                }
-                else if (sectionCodes.Count > 0)
-                {
-                    nextSectionCode = sectionCodes[0];
-                }
-                if (!string.IsNullOrEmpty(nextSectionCode))
-                {
-                    var nextSectionTracks = await mediaService.GetMelodyMusicTracksBySection(melodyMusic.PublicationCode, nextSectionCode);
-                    if (nextSectionTracks.Count > 0)
-                    {
-                        var firstTrackKey = nextSectionTracks.Keys.Min();
-                        var firstTrack = nextSectionTracks[firstTrackKey];
-                        return await CreateMelodyPlayItem(schedule, melodyMusic, firstTrack);
-                    }
-                }
-            }
-
-            var trackKey = GetNextTrackKey(melodyTracks, melodyMusic.TrackCode, next);
-            var melodyTrack = melodyTracks[trackKey];
-            return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+            return await GetNextMelodyTrackWithSectionStructureAsync(schedule, melodyMusic, next);
         }
 
         var tracks = await GetMelodyTracksCachedAsync(melodyMusic);
         var key = GetNextTrackKey(tracks, melodyMusic.TrackCode, next);
         var track = tracks[key];
         return await CreateMelodyPlayItem(schedule, melodyMusic, track);
+    }
+
+    private async Task<PlayItem> GetNextMelodyTrackWithSectionStructureAsync(AlarmSchedule schedule, AlarmMusic melodyMusic, bool next)
+    {
+        var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
+        var keys = melodyTracks.Keys.ToList();
+        var currentKey = MusicTrackLookupHelper.GetKeyByCode(melodyTracks, melodyMusic.TrackCode);
+        var currentIndex = currentKey.HasValue ? keys.IndexOf(currentKey.Value) : -1;
+
+        if (next && keys.Count > 0 && currentIndex == keys.Count - 1)
+        {
+            var wrapped = await TryCreateMelodyPlayItemAfterSectionWrapAsync(schedule, melodyMusic);
+            if (wrapped != null)
+            {
+                return wrapped;
+            }
+        }
+
+        var trackKey = GetNextTrackKey(melodyTracks, melodyMusic.TrackCode, next);
+        var melodyTrack = melodyTracks[trackKey];
+        return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+    }
+
+    private async Task<PlayItem?> TryCreateMelodyPlayItemAfterSectionWrapAsync(AlarmSchedule schedule, AlarmMusic melodyMusic)
+    {
+        var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(melodyMusic.PublicationCode);
+        var sectionCodes = sections.Keys.ToList();
+        var sectionIndex = sectionCodes.FindIndex(s => SectionCodeHelper.CodeEquals(s, melodyMusic.SectionCode));
+        string? nextSectionCode = null;
+        if (sectionIndex >= 0 && sectionIndex < sectionCodes.Count - 1)
+        {
+            nextSectionCode = sectionCodes[sectionIndex + 1];
+        }
+        else if (sectionCodes.Count > 0)
+        {
+            nextSectionCode = sectionCodes[0];
+        }
+
+        if (string.IsNullOrEmpty(nextSectionCode))
+        {
+            return null;
+        }
+
+        var nextSectionTracks = await mediaService.GetMelodyMusicTracksBySection(melodyMusic.PublicationCode, nextSectionCode);
+        if (nextSectionTracks.Count == 0)
+        {
+            return null;
+        }
+
+        var firstTrackKey = nextSectionTracks.Keys.Min();
+        var firstTrack = nextSectionTracks[firstTrackKey];
+        return await CreateMelodyPlayItem(schedule, melodyMusic, firstTrack);
     }
 
     private async Task<PlayItem> GetPreviousMelodyTrackAsync(AlarmSchedule schedule)

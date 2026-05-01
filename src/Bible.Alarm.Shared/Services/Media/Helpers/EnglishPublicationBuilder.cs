@@ -65,52 +65,107 @@ internal sealed class EnglishPublicationBuilder
 
         if (existingPublication != null)
         {
-            foreach (var track in existingPublication.Sections.SelectMany(s => s.Tracks).Where(t => t.TrackUrl != null))
-            {
-                db.TrackUrls.Remove(track.TrackUrl!);
-            }
-
-            db.BiblePublicationTracks.RemoveRange(existingPublication.Sections.SelectMany(s => s.Tracks));
-            db.BiblePublicationSections.RemoveRange(existingPublication.Sections);
-            existingPublication.Sections.Clear();
-            existingPublication.Name = finalPublicationName;
-            existingPublication.IsVideo = isVideo;
-            existingPublication.IsMusic = categories.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
-                JwSourceHelper.MusicFlagPublicationCodes.Contains(existingPublication.PublicationCode);
-            SyncPublicationCategories(existingPublication, categories);
-
-            foreach (var section in sections)
-            {
-                section.BiblePublication = existingPublication;
-                section.BiblePublicationId = existingPublication.Id;
-                foreach (var track in section.Tracks)
-                {
-                    track.Publication = existingPublication;
-                    track.Section = section;
-                }
-                existingPublication.Sections.Add(section);
-            }
-
-            await db.SaveChangesAsync(cancellationToken);
-
-            if (isBible && !publicationWithoutLanguage)
-            {
-                foreach (var section in sections)
-                {
-                    foreach (var track in section.Tracks)
-                    {
-                        track.BiblePublicationId = existingPublication.Id;
-                        track.BiblePublicationSectionId = section.Id;
-                    }
-                }
-                await db.SaveChangesAsync(cancellationToken);
-            }
-
-            logger.Information("Updated existing publication {PublicationCode} with {Count} sections",
-                normalizedPublicationCode, sections.Count);
-            return true;
+            return await UpdateExistingPublicationAsync(
+                db,
+                existingPublication,
+                categories,
+                sections,
+                finalPublicationName,
+                isVideo,
+                isBible,
+                publicationWithoutLanguage,
+                normalizedPublicationCode,
+                cancellationToken);
         }
 
+        return await InsertNewPublicationAsync(
+            db,
+            categories,
+            sections,
+            normalizedPublicationCode,
+            finalPublicationName,
+            language,
+            languageId,
+            isVideo,
+            isBible,
+            publicationWithoutLanguage,
+            cancellationToken);
+    }
+
+    private static bool PublicationIndicatesMusic(List<Category> categories, string publicationCode) =>
+        categories.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
+        JwSourceHelper.MusicFlagPublicationCodes.Contains(publicationCode);
+
+    private async Task<bool> UpdateExistingPublicationAsync(
+        MediaDbContext db,
+        BiblePublication existingPublication,
+        List<Category> categories,
+        List<BiblePublicationSection> sections,
+        string finalPublicationName,
+        bool isVideo,
+        bool isBible,
+        bool publicationWithoutLanguage,
+        string normalizedPublicationCode,
+        CancellationToken cancellationToken)
+    {
+        foreach (var track in existingPublication.Sections.SelectMany(s => s.Tracks).Where(t => t.TrackUrl != null))
+        {
+            db.TrackUrls.Remove(track.TrackUrl!);
+        }
+
+        db.BiblePublicationTracks.RemoveRange(existingPublication.Sections.SelectMany(s => s.Tracks));
+        db.BiblePublicationSections.RemoveRange(existingPublication.Sections);
+        existingPublication.Sections.Clear();
+        existingPublication.Name = finalPublicationName;
+        existingPublication.IsVideo = isVideo;
+        existingPublication.IsMusic = PublicationIndicatesMusic(categories, existingPublication.PublicationCode);
+        SyncPublicationCategories(existingPublication, categories);
+
+        foreach (var section in sections)
+        {
+            section.BiblePublication = existingPublication;
+            section.BiblePublicationId = existingPublication.Id;
+            foreach (var track in section.Tracks)
+            {
+                track.Publication = existingPublication;
+                track.Section = section;
+            }
+            existingPublication.Sections.Add(section);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (isBible && !publicationWithoutLanguage)
+        {
+            foreach (var section in sections)
+            {
+                foreach (var track in section.Tracks)
+                {
+                    track.BiblePublicationId = existingPublication.Id;
+                    track.BiblePublicationSectionId = section.Id;
+                }
+            }
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        logger.Information("Updated existing publication {PublicationCode} with {Count} sections",
+            normalizedPublicationCode, sections.Count);
+        return true;
+    }
+
+    private async Task<bool> InsertNewPublicationAsync(
+        MediaDbContext db,
+        List<Category> categories,
+        List<BiblePublicationSection> sections,
+        string normalizedPublicationCode,
+        string finalPublicationName,
+        Language? language,
+        int? languageId,
+        bool isVideo,
+        bool isBible,
+        bool publicationWithoutLanguage,
+        CancellationToken cancellationToken)
+    {
         var tracksBySection = new Dictionary<BiblePublicationSection, List<BiblePublicationTrack>>();
         if (isBible && !publicationWithoutLanguage)
         {
@@ -124,8 +179,7 @@ internal sealed class EnglishPublicationBuilder
             }
         }
 
-        var isMusicPub = categories.Any(c => c.CategoryCode.Equals(AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase)) ||
-            JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
+        var isMusicPub = PublicationIndicatesMusic(categories, normalizedPublicationCode);
         var publication = new BiblePublication
         {
             PublicationCode = normalizedPublicationCode,

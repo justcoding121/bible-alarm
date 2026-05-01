@@ -258,55 +258,19 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
     {
         try
         {
-            // Fast path: return cached result if available (cache key includes filter for Music so music container vs Bible container don't share)
             var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
-            string? cacheKey = null;
-            if (normalizedCategory != null)
-            {
-                if (filterIsMusicWhenMusicCategory && string.Equals(normalizedCategory, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
-                {
-                    cacheKey = $"{AppConstants.Media.BiblePublicationCategoryMusic}~IsMusicOnly";
-                }
-                else
-                {
-                    cacheKey = normalizedCategory;
-                }
-            }
-            lock (distinctLanguagesCacheLock)
-            {
-                if (cacheKey == null && cachedDistinctLanguagesAll != null)
-                {
-                    // Return a copy to avoid callers mutating the cached dictionary.
-                    return new Dictionary<string, Language>(cachedDistinctLanguagesAll, StringComparer.OrdinalIgnoreCase);
-                }
+            var cacheKey = BuildDistinctLanguagesCacheKey(normalizedCategory, filterIsMusicWhenMusicCategory);
 
-                if (cacheKey != null &&
-                    cachedDistinctLanguagesByCategory.TryGetValue(cacheKey, out var cachedForCategory))
-                {
-                    return new Dictionary<string, Language>(cachedForCategory, StringComparer.OrdinalIgnoreCase);
-                }
+            var cachedCopy = TryCopyDistinctLanguagesFromCache(cacheKey);
+            if (cachedCopy != null)
+            {
+                return cachedCopy;
             }
 
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Use PublicationLanguage table for discovery - it's designed for this purpose
-            // This table tracks which languages are available for each publication code in each category
-            var query = dbContext.PublicationLanguages
-                .AsNoTracking()
-                .Include(x => x.Language)
-                .Include(x => x.Category)
-                .Where(x => x.Language != null);
-
-            // Filter by category if provided (categoryName is CategoryCode, e.g. Bible vs Music)
-            if (!string.IsNullOrWhiteSpace(categoryName))
-            {
-                query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
-                if (filterIsMusicWhenMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
-                {
-                    query = query.Where(x => x.IsMusic);
-                }
-            }
+            var query = BuildPublicationLanguagesDistinctQuery(dbContext, categoryName, filterIsMusicWhenMusicCategory);
 
             var publicationLanguagesCount = await query.CountAsync(cancellationToken);
             var distinctLanguages = await query
@@ -319,24 +283,87 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var result = distinctLanguages.ToDictionary(x => x.LanguageCode, x => x, StringComparer.OrdinalIgnoreCase);
 
-            // Cache result for subsequent calls
-            lock (distinctLanguagesCacheLock)
-            {
-                if (cacheKey == null)
-                {
-                    cachedDistinctLanguagesAll = result;
-                }
-                else
-                {
-                    cachedDistinctLanguagesByCategory[cacheKey] = result;
-                }
-            }
+            StoreDistinctLanguagesCache(cacheKey, result);
 
             return new Dictionary<string, Language>(result, StringComparer.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException("Error getting distinct Languages from PublicationLanguages", ex);
+        }
+    }
+
+    private static string? BuildDistinctLanguagesCacheKey(string? normalizedCategory, bool filterIsMusicWhenMusicCategory)
+    {
+        if (normalizedCategory == null)
+        {
+            return null;
+        }
+
+        if (filterIsMusicWhenMusicCategory &&
+            string.Equals(normalizedCategory, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{AppConstants.Media.BiblePublicationCategoryMusic}~IsMusicOnly";
+        }
+
+        return normalizedCategory;
+    }
+
+    private Dictionary<string, Language>? TryCopyDistinctLanguagesFromCache(string? cacheKey)
+    {
+        lock (distinctLanguagesCacheLock)
+        {
+            if (cacheKey == null && cachedDistinctLanguagesAll != null)
+            {
+                return new Dictionary<string, Language>(cachedDistinctLanguagesAll, StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (cacheKey != null &&
+                cachedDistinctLanguagesByCategory.TryGetValue(cacheKey, out var cachedForCategory))
+            {
+                return new Dictionary<string, Language>(cachedForCategory, StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        return null;
+    }
+
+    private static IQueryable<PublicationLanguage> BuildPublicationLanguagesDistinctQuery(
+        MediaDbContext dbContext,
+        string? categoryName,
+        bool filterIsMusicWhenMusicCategory)
+    {
+        var query = dbContext.PublicationLanguages
+            .AsNoTracking()
+            .Include(x => x.Language)
+            .Include(x => x.Category)
+            .Where(x => x.Language != null);
+
+        if (!string.IsNullOrWhiteSpace(categoryName))
+        {
+            query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
+            if (filterIsMusicWhenMusicCategory &&
+                string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x => x.IsMusic);
+            }
+        }
+
+        return query;
+    }
+
+    private void StoreDistinctLanguagesCache(string? cacheKey, Dictionary<string, Language> result)
+    {
+        lock (distinctLanguagesCacheLock)
+        {
+            if (cacheKey == null)
+            {
+                cachedDistinctLanguagesAll = result;
+            }
+            else
+            {
+                cachedDistinctLanguagesByCategory[cacheKey] = result;
+            }
         }
     }
 
