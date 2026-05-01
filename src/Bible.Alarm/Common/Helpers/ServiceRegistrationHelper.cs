@@ -39,6 +39,7 @@ using Bible.Alarm.Services.Database;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Playback;
 using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Shared.Helpers;
@@ -75,6 +76,7 @@ using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Categories;
+using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Effects;
 using Bible.Alarm.Stores.Models;
 #if WINDOWS
@@ -221,7 +223,21 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IDisplayMetadataService, DisplayMetadataService>();
         services.AddSingleton<IMediaElementService, MediaElementService>();
         services.AddSingleton<IAudioPlayer, AudioPlayer>();
-        services.AddSingleton<IPlaybackService, PlaybackService>();
+        services.AddSingleton<IPlaybackService>(sp => new PlaybackService(
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<IAudioPlayer>(),
+            sp.GetRequiredService<IAlarmScheduleService>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<IState<PlaybackState>>(),
+            new PlaybackServiceInjectionContext(
+                sp.GetRequiredService<IPreparePlaybackService>(),
+                sp.GetRequiredService<IPlaylistService>(),
+                sp.GetRequiredService<IFallbackAlarmSoundService>(),
+                sp.GetRequiredService<IMediaCacheService>(),
+                sp.GetRequiredService<ICdnPlaybackUrlProbe>(),
+                sp.GetRequiredService<ITrackCdnUrlRefresher>(),
+                sp.GetRequiredService<INotificationService>(),
+                sp.GetRequiredService<IDefaultDeviceRingtoneService>())));
 
 #if ANDROID
         services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.Android.Services.Media.AndroidDefaultDeviceRingtoneService>();

@@ -39,7 +39,7 @@ public sealed partial class PlaybackService : IPlaybackService, IRecipient<NextB
     private readonly PlaybackNavigationHandler navigationHandler;
     private readonly PlaybackStopHandler stopHandler;
     private readonly TrackPlaybackHandler trackPlaybackHandler;
-        private readonly SystemControlsHandler systemControlsHandler;
+    private readonly SystemControlsHandler systemControlsHandler;
     private readonly TrackMarker trackMarker;
     private readonly PlaybackIndefiniteResolver indefiniteResolver;
     private readonly PlaybackPlaylistExtender playlistExtender;
@@ -53,25 +53,25 @@ public sealed partial class PlaybackService : IPlaybackService, IRecipient<NextB
     public PlaybackService(
         ILogger logger,
         IAudioPlayer audioPlayer,
-        IPreparePlaybackService preparePlaybackService,
-        IPlaylistService playlistService,
         IAlarmScheduleService alarmScheduleService,
-        IFallbackAlarmSoundService fallbackAlarmSoundService,
         IDispatcher dispatcher,
-        INotificationService notificationService,
-        IMediaCacheService mediaCacheService,
-        IDefaultDeviceRingtoneService defaultDeviceRingtoneService,
         IState<PlaybackState> playbackState,
-        ICdnPlaybackUrlProbe cdnPlaybackUrlProbe,
-        ITrackCdnUrlRefresher trackCdnUrlRefresher)
+        PlaybackServiceInjectionContext injection)
     {
         this.logger = logger;
         this.audioPlayer = audioPlayer;
         this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
-        this.notificationService = notificationService;
-        this.defaultDeviceRingtoneService = defaultDeviceRingtoneService;
+        this.notificationService = injection.NotificationService;
+        this.defaultDeviceRingtoneService = injection.DefaultDeviceRingtoneService;
         this.playbackState = playbackState;
+
+        var preparePlaybackService = injection.PreparePlaybackService;
+        var playlistService = injection.PlaylistService;
+        var fallbackAlarmSoundService = injection.FallbackAlarmSoundService;
+        var mediaCacheService = injection.MediaCacheService;
+        var cdnPlaybackUrlProbe = injection.CdnPlaybackUrlProbe;
+        var trackCdnUrlRefresher = injection.TrackCdnUrlRefresher;
 
         stateManager = new PlaybackStateManager(logger);
         navigationManager = new PlaybackNavigationManager(dispatcher);

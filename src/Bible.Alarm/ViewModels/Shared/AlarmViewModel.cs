@@ -51,7 +51,7 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
     public ICommand SeekCommand { get; set; }
     public ICommand RetryCommand { get; set; }
 
-    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IReviewPromptService reviewPromptService, IAudioPlayer audioPlayer)
+    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IState<PlaybackState> playbackState, IReviewPromptService reviewPromptService, IAudioPlayer audioPlayer)
     {
         this.logger = logger;
         this.playbackService = playbackService;
