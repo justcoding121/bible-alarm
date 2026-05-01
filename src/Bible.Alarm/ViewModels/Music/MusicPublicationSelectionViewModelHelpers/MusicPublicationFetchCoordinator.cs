@@ -176,17 +176,10 @@ internal sealed class MusicPublicationFetchCoordinator
                 }
                 catch (Exception ex)
                 {
-                    switch (ex)
-                    {
-                        case OperationCanceledException:
-                            throw;
-                        case System.Net.Http.HttpRequestException:
-                            throw;
-                        case System.Net.Sockets.SocketException:
-                            throw;
-                    }
-
-                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                    if (ex is OperationCanceledException
+                        or System.Net.Http.HttpRequestException
+                        or System.Net.Sockets.SocketException
+                        || NetworkExceptionHelper.IsNetworkFailure(ex))
                     {
                         throw;
                     }

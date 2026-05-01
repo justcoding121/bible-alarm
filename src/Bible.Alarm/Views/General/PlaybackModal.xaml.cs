@@ -342,49 +342,41 @@ public sealed partial class PlaybackModal : BaseContentPage, IDisposable
 
     private void ScheduleDeferredPortraitMetadataInvalidate()
     {
-        Task.Delay(100).ContinueWith(_ =>
+        _ = Task.Delay(100).ContinueWith(ContinueDeferredPortraitMetadataInvalidate, TaskScheduler.Default);
+    }
+
+    private void ContinueDeferredPortraitMetadataInvalidate(Task _)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            MainThread.BeginInvokeOnMainThread(ExecuteDeferredPortraitMetadataInvalidate);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "PlaybackModal: scheduling deferred portrait metadata invalidate failed");
+        }
+    }
+
+    private void ExecuteDeferredPortraitMetadataInvalidate()
+    {
+        try
         {
             if (isDisposed)
             {
                 return;
             }
 
-            try
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try
-                    {
-                        if (isDisposed)
-                        {
-                            return;
-                        }
-
-                        InvalidatePortraitMetadataMeasures(this);
-                    }
-                    catch (ObjectDisposedException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during ForceIOSLayoutMeasurement");
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Dispatcher/view no longer available during ForceIOSLayoutMeasurement");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Native bridge or transitional-state exception during ForceIOSLayoutMeasurement");
-                    }
-                });
-            }
-            catch (ObjectDisposedException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during delayed ForceIOSLayoutMeasurement");
-            }
-            catch (InvalidOperationException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: Dispatcher no longer available during delayed ForceIOSLayoutMeasurement");
-            }
-        });
+            InvalidatePortraitMetadataMeasures(this);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "PlaybackModal: deferred portrait metadata invalidate failed");
+        }
     }
 
     private void ForceIOSLayoutMeasurement()
@@ -682,47 +674,39 @@ public sealed partial class PlaybackModal : BaseContentPage, IDisposable
 
     private void ScheduleIsHandlingTapResetAfterSliderTap()
     {
-        Task.Delay(100).ContinueWith(_ =>
-        {
-            if (isDisposed)
-            {
-                return;
-            }
+        _ = Task.Delay(100).ContinueWith(ContinueSliderTapHandlingFlagReset, TaskScheduler.Default);
+    }
 
-            try
+    private void ContinueSliderTapHandlingFlagReset(Task _)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            MainThread.BeginInvokeOnMainThread(ResetSliderTapHandlingFlagAfterDelay);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "PlaybackModal: scheduling isHandlingTap reset failed");
+        }
+    }
+
+    private void ResetSliderTapHandlingFlagAfterDelay()
+    {
+        try
+        {
+            if (!isDisposed)
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try
-                    {
-                        if (!isDisposed)
-                        {
-                            isHandlingTap = false;
-                        }
-                    }
-                    catch (ObjectDisposedException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Modal disposed during OnSliderTapped isHandlingTap reset");
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: View no longer available during OnSliderTapped isHandlingTap reset");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Debug(ex, "PlaybackModal: Exception during OnSliderTapped isHandlingTap reset (transitional state)");
-                    }
-                });
+                isHandlingTap = false;
             }
-            catch (ObjectDisposedException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: Modal disposed before OnSliderTapped isHandlingTap reset");
-            }
-            catch (InvalidOperationException ex)
-            {
-                Log.Logger.Debug(ex, "PlaybackModal: Main thread invocation no longer available for OnSliderTapped isHandlingTap reset");
-            }
-        });
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "PlaybackModal: isHandlingTap reset failed");
+        }
     }
 
     private void OnSliderTapped(object? sender, TappedEventArgs e)

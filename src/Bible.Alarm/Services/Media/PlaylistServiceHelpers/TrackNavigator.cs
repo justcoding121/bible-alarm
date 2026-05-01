@@ -327,6 +327,7 @@ public sealed class TrackNavigator
         }
 
         var orderedDiscoveredKeys = discoveredSectionCodes.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
+        var discoveredCount = orderedDiscoveredKeys.Count;
         var currentIndex = orderedDiscoveredKeys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
         if (currentIndex < 0)
         {
@@ -334,55 +335,98 @@ public sealed class TrackNavigator
         }
 
         var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
-        var index = forward
-            ? (currentIndex + 1) % orderedDiscoveredKeys.Count
-            : (currentIndex - 1 + orderedDiscoveredKeys.Count) % orderedDiscoveredKeys.Count;
+        var index = StepDiscoveredSectionIndex(forward, currentIndex, discoveredCount);
         var attempts = 0;
-        var maxAttempts = orderedDiscoveredKeys.Count;
 
-        while (attempts < maxAttempts)
+        while (attempts < discoveredCount)
         {
             var candidateSectionCode = orderedDiscoveredKeys[index];
 
-            if (sections.TryGetValue(candidateSectionCode, out var matchedSection))
-            {
-                var tracks = await GetTracksCachedAsync(languageCode, publicationCode, candidateSectionCode);
-                if (tracks.Count > 0)
-                {
-                    return new KeyValuePair<string, BiblePublicationSection>(candidateSectionCode, matchedSection);
-                }
-            }
-
-            var cataloged = await SectionCataloger.EnsureSectionCatalogedAsync(
+            var (resolved, updatedSections) = await AttemptResolveAdjacentCandidateAsync(
+                sections,
                 languageCode,
                 publicationCode,
                 candidateSectionCode,
-                sectionFetchProgress,
-                () => InvalidateSectionsCache(languageCode, publicationCode),
-                () => InvalidateTracksCache(languageCode, publicationCode, candidateSectionCode));
-            if (cataloged)
-            {
-                sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+                sectionFetchProgress);
 
-                if (sections.TryGetValue(candidateSectionCode, out matchedSection))
-                {
-                    var tracks = await GetTracksCachedAsync(languageCode, publicationCode, candidateSectionCode);
-                    if (tracks.Count > 0)
-                    {
-                        return new KeyValuePair<string, BiblePublicationSection>(candidateSectionCode, matchedSection);
-                    }
-                }
+            sections = updatedSections;
+
+            if (resolved != null)
+            {
+                return resolved.Value;
             }
 
-            index = forward
-                ? (index + 1) % orderedDiscoveredKeys.Count
-                : (index - 1 + orderedDiscoveredKeys.Count) % orderedDiscoveredKeys.Count;
+            index = StepDiscoveredSectionIndex(forward, index, discoveredCount);
             attempts++;
         }
 
         throw new InvalidOperationException(forward
-            ? $"No valid next section found after attempting {maxAttempts} sections: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}"
-            : $"No valid previous section found after attempting {maxAttempts} sections: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+            ? $"No valid next section found after attempting {discoveredCount} sections: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}"
+            : $"No valid previous section found after attempting {discoveredCount} sections: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+    }
+
+    private static int StepDiscoveredSectionIndex(bool forward, int index, int discoveredCount)
+    {
+        return forward
+            ? (index + 1) % discoveredCount
+            : (index - 1 + discoveredCount) % discoveredCount;
+    }
+
+    private async Task<(KeyValuePair<string, BiblePublicationSection>? Result, SortedDictionary<string, BiblePublicationSection> Sections)>
+        AttemptResolveAdjacentCandidateAsync(
+            SortedDictionary<string, BiblePublicationSection> sections,
+            string languageCode,
+            string publicationCode,
+            string candidateSectionCode,
+            IFetchProgress? sectionFetchProgress)
+    {
+        if (sections.TryGetValue(candidateSectionCode, out var matchedSection))
+        {
+            var fromCache =
+                await TryBuildSectionPairWhenHasTracksAsync(languageCode, publicationCode, candidateSectionCode,
+                    matchedSection);
+            if (fromCache != null)
+            {
+                return (fromCache, sections);
+            }
+        }
+
+        var cataloged = await SectionCataloger.EnsureSectionCatalogedAsync(
+            languageCode,
+            publicationCode,
+            candidateSectionCode,
+            sectionFetchProgress,
+            () => InvalidateSectionsCache(languageCode, publicationCode),
+            () => InvalidateTracksCache(languageCode, publicationCode, candidateSectionCode));
+
+        if (!cataloged)
+        {
+            return (null, sections);
+        }
+
+        var refreshedSections = await GetSectionsCachedAsync(languageCode, publicationCode);
+
+        if (!refreshedSections.TryGetValue(candidateSectionCode, out matchedSection))
+        {
+            return (null, refreshedSections);
+        }
+
+        var afterCatalog =
+            await TryBuildSectionPairWhenHasTracksAsync(languageCode, publicationCode, candidateSectionCode,
+                matchedSection);
+        return (afterCatalog, refreshedSections);
+    }
+
+    private async Task<KeyValuePair<string, BiblePublicationSection>?> TryBuildSectionPairWhenHasTracksAsync(
+        string languageCode,
+        string publicationCode,
+        string candidateSectionCode,
+        BiblePublicationSection section)
+    {
+        var tracks = await GetTracksCachedAsync(languageCode, publicationCode, candidateSectionCode);
+        return tracks.Count > 0
+            ? new KeyValuePair<string, BiblePublicationSection>(candidateSectionCode, section)
+            : null;
     }
 
     private async Task<(BiblePublicationSection? Section, BiblePublicationTrack Track)?> GetFirstTrackOfPublicationAsync(
