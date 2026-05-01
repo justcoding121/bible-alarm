@@ -87,46 +87,9 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
 
         Logger.Information("Discovering languages for all books (1-66) in publication {PublicationCode}", publicationCode);
 
-        // Discover languages for each book (1-66)
-        for (int bookNum = 1; bookNum <= 66; bookNum++)
+        for (var bookNum = 1; bookNum <= 66; bookNum++)
         {
-            try
-            {
-                var bookLanguages = await DiscoverLanguagesForBook(publicationCode, bookNum);
-
-                if (bookLanguages != null && bookLanguages.Count > 0)
-                {
-                    // Filter out sign languages
-                    bookLanguages = await signLanguageChecker.FilterSignLanguagesAsync(bookLanguages);
-
-                    if (bookLanguages.Count > 0)
-                    {
-                        // Save section languages for this book
-                        // The alllangs=1 response already lists only available languages, so no verification needed
-                        if (dataPersister != null)
-                        {
-                            await dataPersister.SaveSectionLanguages(publicationCode, bookNum.ToString(), bookLanguages);
-                        }
-
-                        // Merge languages into consolidated dictionary
-                        foreach (var lang in bookLanguages.Where(l => !allDiscoveredLanguages.ContainsKey(l.Key)))
-                        {
-                            allDiscoveredLanguages[lang.Key] = lang.Value;
-                        }
-
-                        Logger.Debug("Book {BookNum}: Discovered {LanguageCount} languages (total unique: {TotalLanguages})",
-                            bookNum, bookLanguages.Count, allDiscoveredLanguages.Count);
-                    }
-                }
-            }
-            catch (System.Net.Http.HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
-            {
-                Logger.Warning(ex, "Book {BookNum}: HTTP error during language discovery. Skipping.", bookNum);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Book {BookNum}: Failed to discover languages. Skipping.", bookNum);
-            }
+            await MergeSingleBookLanguagesIntoAllAsync(publicationCode, bookNum, allDiscoveredLanguages);
         }
 
         if (allDiscoveredLanguages.Count == 0)
@@ -140,6 +103,50 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
 
         // Return discovered languages (alllangs=1 response already lists only available languages)
         return allDiscoveredLanguages;
+    }
+
+    private async Task MergeSingleBookLanguagesIntoAllAsync(
+        string publicationCode,
+        int bookNum,
+        Dictionary<string, LanguageInfo> allDiscoveredLanguages)
+    {
+        try
+        {
+            var bookLanguages = await DiscoverLanguagesForBook(publicationCode, bookNum);
+
+            if (bookLanguages == null || bookLanguages.Count == 0)
+            {
+                return;
+            }
+
+            bookLanguages = await signLanguageChecker.FilterSignLanguagesAsync(bookLanguages);
+
+            if (bookLanguages.Count == 0)
+            {
+                return;
+            }
+
+            if (dataPersister != null)
+            {
+                await dataPersister.SaveSectionLanguages(publicationCode, bookNum.ToString(), bookLanguages);
+            }
+
+            foreach (var lang in bookLanguages.Where(l => !allDiscoveredLanguages.ContainsKey(l.Key)))
+            {
+                allDiscoveredLanguages[lang.Key] = lang.Value;
+            }
+
+            Logger.Debug("Book {BookNum}: Discovered {LanguageCount} languages (total unique: {TotalLanguages})",
+                bookNum, bookLanguages.Count, allDiscoveredLanguages.Count);
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
+        {
+            Logger.Warning(ex, "Book {BookNum}: HTTP error during language discovery. Skipping.", bookNum);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Book {BookNum}: Failed to discover languages. Skipping.", bookNum);
+        }
     }
 
     /// <summary>

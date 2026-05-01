@@ -297,89 +297,89 @@ internal sealed class SectionLanguageSeeder
 
         foreach (var publication in publicationsWithoutLanguage)
         {
-            if (publication.PrimaryCategory == null)
-            {
-                logger.Warning("Category not found for publication {PublicationCode} without language, skipping", publication.PublicationCode);
-                continue;
-            }
+            await TrySeedPublicationSectionsWithoutLanguageAsync(db, publication);
+        }
+    }
 
-            // Normalize publication code for database (case-sensitive for dramas)
-            var normalizedPublicationCode = publication.PublicationCode.ToLowerInvariant();
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
+    private async Task TrySeedPublicationSectionsWithoutLanguageAsync(MediaDbContext db, BiblePublication publication)
+    {
+        if (publication.PrimaryCategory == null)
+        {
+            logger.Warning("Category not found for publication {PublicationCode} without language, skipping", publication.PublicationCode);
+            return;
+        }
 
-            // Get or create PublicationLanguage entry with LanguageId == null for this publication
-            var publicationLanguage = await db.PublicationLanguages
-                .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+        var normalizedPublicationCode = publication.PublicationCode.ToLowerInvariant();
+        var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
+
+        var publicationLanguage = await db.PublicationLanguages
+            .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+
+        if (publicationLanguage == null)
+        {
+            publicationLanguage = db.ChangeTracker.Entries<PublicationLanguage>()
+                .Where(e => e.Entity.PublicationCode == publicationCodeForDb && e.Entity.LanguageId == null)
+                .Select(e => e.Entity)
+                .FirstOrDefault();
 
             if (publicationLanguage == null)
             {
-                // Also check if it's being tracked in the context but not yet saved
-                publicationLanguage = db.ChangeTracker.Entries<PublicationLanguage>()
-                    .Where(e => e.Entity.PublicationCode == publicationCodeForDb && e.Entity.LanguageId == null)
-                    .Select(e => e.Entity)
-                    .FirstOrDefault();
+                logger.Warning("PublicationLanguage with LanguageId == null not found for {PublicationCode}, creating it", publicationCodeForDb);
 
-                if (publicationLanguage == null)
+                var categoryId = publication.PrimaryCategoryId;
+                var category = await db.Categories.FindAsync(categoryId);
+                if (category == null)
                 {
-                    logger.Warning("PublicationLanguage with LanguageId == null not found for {PublicationCode}, creating it", publicationCodeForDb);
-
-                    var categoryId = publication.PrimaryCategoryId;
-                    var category = await db.Categories.FindAsync(categoryId);
-                    if (category == null)
-                    {
-                        logger.Warning("Category Id {CategoryId} not found for publication {PublicationCode}, skipping", categoryId, publicationCodeForDb);
-                        continue;
-                    }
-
-                    var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
-
-                    publicationLanguage = new PublicationLanguage
-                    {
-                        PublicationCode = publicationCodeForDb,
-                        LanguageId = null,
-                        Language = null,
-                        CatalogType = catalogType,
-                        Category = category,
-                        CategoryId = category.Id,
-                        IsMusic = publication.IsMusic
-                    };
-                    db.PublicationLanguages.Add(publicationLanguage);
-                    await db.SaveChangesAsync();
+                    logger.Warning("Category Id {CategoryId} not found for publication {PublicationCode}, skipping", categoryId, publicationCodeForDb);
+                    return;
                 }
-            }
 
-            // Seed sections for this publication without language
-            if (publication.Sections == null || publication.Sections.Count == 0)
-            {
-                logger.Debug("No sections found for publication {PublicationCode} without language", publicationCodeForDb);
-                continue;
-            }
+                var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
 
-            foreach (var section in publication.Sections)
-            {
-                var normalizedSectionCode = section.SectionCode.ToLowerInvariant();
-
-                // Check if already exists (with LanguageId == null)
-                var exists = await db.SectionLanguages
-                    .AnyAsync(sl => sl.PublicationCode == publicationCodeForDb && 
-                                   sl.SectionCode == normalizedSectionCode && 
-                                   sl.LanguageId == null);
-
-                if (!exists)
+                publicationLanguage = new PublicationLanguage
                 {
-                    var sectionLanguage = new SectionLanguage
-                    {
-                        PublicationCode = publicationCodeForDb,
-                        SectionCode = normalizedSectionCode,
-                        LanguageId = null, // No language FK for sections of publications without language
-                        Language = null,
-                        PublicationLanguage = publicationLanguage,
-                        PublicationLanguageId = publicationLanguage.Id
-                    };
-                    db.SectionLanguages.Add(sectionLanguage);
-                    logger.Debug("Added SectionLanguage entry for {PublicationCode}/{SectionCode} without language",
-                        publicationCodeForDb, normalizedSectionCode);
-                }
+                    PublicationCode = publicationCodeForDb,
+                    LanguageId = null,
+                    Language = null,
+                    CatalogType = catalogType,
+                    Category = category,
+                    CategoryId = category.Id,
+                    IsMusic = publication.IsMusic
+                };
+                db.PublicationLanguages.Add(publicationLanguage);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        if (publication.Sections == null || publication.Sections.Count == 0)
+        {
+            logger.Debug("No sections found for publication {PublicationCode} without language", publicationCodeForDb);
+            return;
+        }
+
+        foreach (var section in publication.Sections)
+        {
+            var normalizedSectionCode = section.SectionCode.ToLowerInvariant();
+
+            var exists = await db.SectionLanguages
+                .AnyAsync(sl => sl.PublicationCode == publicationCodeForDb &&
+                               sl.SectionCode == normalizedSectionCode &&
+                               sl.LanguageId == null);
+
+            if (!exists)
+            {
+                var sectionLanguage = new SectionLanguage
+                {
+                    PublicationCode = publicationCodeForDb,
+                    SectionCode = normalizedSectionCode,
+                    LanguageId = null,
+                    Language = null,
+                    PublicationLanguage = publicationLanguage,
+                    PublicationLanguageId = publicationLanguage.Id
+                };
+                db.SectionLanguages.Add(sectionLanguage);
+                logger.Debug("Added SectionLanguage entry for {PublicationCode}/{SectionCode} without language",
+                    publicationCodeForDb, normalizedSectionCode);
             }
         }
     }

@@ -33,6 +33,31 @@ internal sealed class FlatPublicationFetcher
         this.videoLocalizedNameFetcher = videoLocalizedNameFetcher ?? throw new ArgumentNullException(nameof(videoLocalizedNameFetcher));
     }
 
+    private readonly record struct ExistingFlatPublicationUpdateContext(
+        MediaDbContext Db,
+        BiblePublication ExistingPublication,
+        List<BiblePublicationTrack> Tracks,
+        string? LocalizedPubName,
+        string EnglishPublicationName,
+        bool IsVideo,
+        bool IsMusic,
+        List<Category> Categories,
+        string NormalizedPublicationCode,
+        string NormalizedLanguageCode,
+        CancellationToken CancellationToken);
+
+    private readonly record struct NewFlatPublicationInsertContext(
+        MediaDbContext Db,
+        string NormalizedPublicationCode,
+        string? LocalizedPubName,
+        string EnglishPublicationName,
+        Language ResolvedLanguage,
+        bool IsVideo,
+        bool IsMusic,
+        List<Category> Categories,
+        List<BiblePublicationTrack> Tracks,
+        CancellationToken CancellationToken);
+
     /// <summary>
     /// Unified method for fetching flat-track publications (Music and Video).
     /// Handles both MP3 (Music) and MP4 (Video) formats with their specific behaviors.
@@ -85,7 +110,7 @@ internal sealed class FlatPublicationFetcher
 
         if (existingPublication != null)
         {
-            await UpdateExistingPublicationTracksAsync(
+            await UpdateExistingPublicationTracksAsync(new ExistingFlatPublicationUpdateContext(
                 db,
                 existingPublication,
                 tracks,
@@ -96,11 +121,11 @@ internal sealed class FlatPublicationFetcher
                 categories,
                 normalizedPublicationCode,
                 normalizedLanguageCode,
-                cancellationToken);
+                cancellationToken));
         }
         else
         {
-            await InsertNewFlatPublicationAsync(
+            await InsertNewFlatPublicationAsync(new NewFlatPublicationInsertContext(
                 db,
                 normalizedPublicationCode,
                 localizedPubName,
@@ -110,7 +135,7 @@ internal sealed class FlatPublicationFetcher
                 isMusic,
                 categories,
                 tracks,
-                cancellationToken);
+                cancellationToken));
         }
 
         logger.Information("Successfully fetched {Count} tracks for publication {PublicationCode} in language {LanguageCode}",
@@ -203,79 +228,58 @@ internal sealed class FlatPublicationFetcher
                JwSourceHelper.MusicFlagPublicationCodes.Contains(normalizedPublicationCode);
     }
 
-    private async Task UpdateExistingPublicationTracksAsync(
-        MediaDbContext db,
-        BiblePublication existingPublication,
-        List<BiblePublicationTrack> tracks,
-        string? localizedPubName,
-        string englishPublicationName,
-        bool isVideo,
-        bool isMusic,
-        List<Category> categories,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        CancellationToken cancellationToken)
+    private async Task UpdateExistingPublicationTracksAsync(ExistingFlatPublicationUpdateContext ctx)
     {
         logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, updating tracks and categories",
-            normalizedPublicationCode, normalizedLanguageCode ?? "(null)");
+            ctx.NormalizedPublicationCode, ctx.NormalizedLanguageCode ?? "(null)");
 
-        foreach (var track in existingPublication.Tracks.Where(t => t.TrackUrl != null))
+        foreach (var track in ctx.ExistingPublication.Tracks.Where(t => t.TrackUrl != null))
         {
-            db.TrackUrls.Remove(track.TrackUrl!);
+            ctx.Db.TrackUrls.Remove(track.TrackUrl!);
         }
 
-        db.BiblePublicationTracks.RemoveRange(existingPublication.Tracks);
-        existingPublication.Tracks.Clear();
-        existingPublication.Name = localizedPubName ?? englishPublicationName;
-        existingPublication.IsVideo = isVideo;
-        existingPublication.IsMusic = ComputePublicationIsMusic(isMusic, categories, normalizedPublicationCode);
-        SyncPublicationCategories(existingPublication, categories);
-        foreach (var track in tracks)
+        ctx.Db.BiblePublicationTracks.RemoveRange(ctx.ExistingPublication.Tracks);
+        ctx.ExistingPublication.Tracks.Clear();
+        ctx.ExistingPublication.Name = ctx.LocalizedPubName ?? ctx.EnglishPublicationName;
+        ctx.ExistingPublication.IsVideo = ctx.IsVideo;
+        ctx.ExistingPublication.IsMusic = ComputePublicationIsMusic(ctx.IsMusic, ctx.Categories, ctx.NormalizedPublicationCode);
+        SyncPublicationCategories(ctx.ExistingPublication, ctx.Categories);
+        foreach (var track in ctx.Tracks)
         {
-            track.Publication = existingPublication;
-            track.BiblePublicationId = existingPublication.Id;
-            existingPublication.Tracks.Add(track);
+            track.Publication = ctx.ExistingPublication;
+            track.BiblePublicationId = ctx.ExistingPublication.Id;
+            ctx.ExistingPublication.Tracks.Add(track);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        await ctx.Db.SaveChangesAsync(ctx.CancellationToken);
     }
 
-    private async Task InsertNewFlatPublicationAsync(
-        MediaDbContext db,
-        string normalizedPublicationCode,
-        string? localizedPubName,
-        string englishPublicationName,
-        Language resolvedLanguage,
-        bool isVideo,
-        bool isMusic,
-        List<Category> categories,
-        List<BiblePublicationTrack> tracks,
-        CancellationToken cancellationToken)
+    private async Task InsertNewFlatPublicationAsync(NewFlatPublicationInsertContext ctx)
     {
-        var publicationName = localizedPubName ?? englishPublicationName;
+        var publicationName = ctx.LocalizedPubName ?? ctx.EnglishPublicationName;
         var publication = new BiblePublication
         {
-            PublicationCode = normalizedPublicationCode,
+            PublicationCode = ctx.NormalizedPublicationCode,
             Name = publicationName,
-            Language = resolvedLanguage,
-            BiblePublicationCategories = categories
+            Language = ctx.ResolvedLanguage,
+            BiblePublicationCategories = ctx.Categories
                 .Select(cat => new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = cat.Id, Category = cat })
                 .ToList(),
-            LanguageId = resolvedLanguage.Id,
-            IsVideo = isVideo,
-            IsMusic = ComputePublicationIsMusic(isMusic, categories, normalizedPublicationCode),
+            LanguageId = ctx.ResolvedLanguage.Id,
+            IsVideo = ctx.IsVideo,
+            IsMusic = ComputePublicationIsMusic(ctx.IsMusic, ctx.Categories, ctx.NormalizedPublicationCode),
             CatalogType = CatalogType.Flat,
-            Tracks = tracks,
+            Tracks = ctx.Tracks,
             Sections = new List<BiblePublicationSection>()
         };
 
-        foreach (var track in tracks)
+        foreach (var track in ctx.Tracks)
         {
             track.Publication = publication;
         }
 
-        db.BiblePublications.Add(publication);
-        await db.SaveChangesAsync(cancellationToken);
+        ctx.Db.BiblePublications.Add(publication);
+        await ctx.Db.SaveChangesAsync(ctx.CancellationToken);
     }
 
     private static void SyncPublicationCategories(BiblePublication publication, List<Category> categories)

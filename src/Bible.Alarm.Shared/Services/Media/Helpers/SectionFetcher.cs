@@ -212,7 +212,7 @@ internal sealed class SectionFetcher
         {
             effectiveToken.ThrowIfCancellationRequested();
 
-            var outcome = await ProcessSingleMissingSectionAsync(
+            var outcome = await ProcessSingleMissingSectionAsync(new MissingSectionFetchRequest(
                 db,
                 publication,
                 normalizedPublicationCode,
@@ -221,7 +221,7 @@ internal sealed class SectionFetcher
                 isBible,
                 isIssueSectioned,
                 localizedPubNameSlot,
-                effectiveToken);
+                effectiveToken));
 
             if (outcome.CompletedDelta > 0)
             {
@@ -236,29 +236,22 @@ internal sealed class SectionFetcher
 
     private readonly record struct MissingSectionProcessOutcome(int CompletedDelta, bool UpdateProgress);
 
-    private async Task<MissingSectionProcessOutcome> ProcessSingleMissingSectionAsync(
-        MediaDbContext db,
-        BiblePublication publication,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        string sectionCode,
-        bool isBible,
-        bool isIssueSectioned,
-        LocalizedPublicationNameSlot localizedPubNameSlot,
-        CancellationToken effectiveToken)
+    private readonly record struct MissingSectionFetchRequest(
+        MediaDbContext Db,
+        BiblePublication Publication,
+        string NormalizedPublicationCode,
+        string NormalizedLanguageCode,
+        string SectionCode,
+        bool IsBible,
+        bool IsIssueSectioned,
+        LocalizedPublicationNameSlot LocalizedPubName,
+        CancellationToken EffectiveToken);
+
+    private async Task<MissingSectionProcessOutcome> ProcessSingleMissingSectionAsync(MissingSectionFetchRequest request)
     {
         try
         {
-            var iteration = await TryFetchAndPersistSingleMissingSectionAsync(
-                db,
-                publication,
-                normalizedPublicationCode,
-                normalizedLanguageCode,
-                sectionCode,
-                isBible,
-                isIssueSectioned,
-                localizedPubNameSlot,
-                effectiveToken);
+            var iteration = await TryFetchAndPersistSingleMissingSectionAsync(request);
 
             if (iteration.IncrementCompleted)
             {
@@ -275,7 +268,7 @@ internal sealed class SectionFetcher
         {
             logger.Debug(ex,
                 "Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
-                sectionCode, normalizedPublicationCode, normalizedLanguageCode);
+                request.SectionCode, request.NormalizedPublicationCode, request.NormalizedLanguageCode);
             return new MissingSectionProcessOutcome(1, false);
         }
         catch (Exception ex)
@@ -287,7 +280,7 @@ internal sealed class SectionFetcher
 
             logger.Warning(ex,
                 "Failed to fetch section {SectionCode} for publication {PublicationCode} in language {LanguageCode}",
-                sectionCode, normalizedPublicationCode, normalizedLanguageCode);
+                request.SectionCode, request.NormalizedPublicationCode, request.NormalizedLanguageCode);
             return new MissingSectionProcessOutcome(1, false);
         }
     }
@@ -299,35 +292,26 @@ internal sealed class SectionFetcher
 
     private readonly record struct MissingSectionIteration(bool IncrementCompleted, bool UpdateProgressThisIteration);
 
-    private async Task<MissingSectionIteration> TryFetchAndPersistSingleMissingSectionAsync(
-        MediaDbContext db,
-        BiblePublication publication,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
-        string sectionCode,
-        bool isBible,
-        bool isIssueSectioned,
-        LocalizedPublicationNameSlot localizedPubName,
-        CancellationToken effectiveToken)
+    private async Task<MissingSectionIteration> TryFetchAndPersistSingleMissingSectionAsync(MissingSectionFetchRequest request)
     {
-        var dramaFileFormat = !isBible && !isIssueSectioned && PublicationTypeHelper.IsVideo(normalizedPublicationCode)
+        var dramaFileFormat = !request.IsBible && !request.IsIssueSectioned && PublicationTypeHelper.IsVideo(request.NormalizedPublicationCode)
             ? AppConstants.Media.MediaStreamFormatMp4
             : AppConstants.Media.MediaStreamFormatMp3;
 
         var queryString = BuildMissingSectionQueryString(
-            normalizedPublicationCode,
-            normalizedLanguageCode,
-            sectionCode,
-            isIssueSectioned,
-            isBible,
+            request.NormalizedPublicationCode,
+            request.NormalizedLanguageCode,
+            request.SectionCode,
+            request.IsIssueSectioned,
+            request.IsBible,
             dramaFileFormat);
 
         var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
-        var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, effectiveToken);
+        var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, request.EffectiveToken);
         if (jsonString == null)
         {
             logger.Debug("Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
-                sectionCode, normalizedPublicationCode, normalizedLanguageCode);
+                request.SectionCode, request.NormalizedPublicationCode, request.NormalizedLanguageCode);
             return new MissingSectionIteration(true, false);
         }
 
@@ -339,49 +323,49 @@ internal sealed class SectionFetcher
             return new MissingSectionIteration(true, false);
         }
 
-        var sectionName = ResolveSectionDisplayNameFromPubMediaJson(root, isIssueSectioned);
+        var sectionName = ResolveSectionDisplayNameFromPubMediaJson(root, request.IsIssueSectioned);
         if (sectionName == null)
         {
             logger.Debug("Section name not found in API response for section {SectionCode} in language {LanguageCode}",
-                sectionCode, normalizedLanguageCode);
+                request.SectionCode, request.NormalizedLanguageCode);
         }
 
         TryApplyLocalizedPublicationNameFromPubMediaJson(
             root,
-            publication,
-            localizedPubName,
-            isIssueSectioned,
-            isBible,
-            normalizedPublicationCode,
-            normalizedLanguageCode);
+            request.Publication,
+            request.LocalizedPubName,
+            request.IsIssueSectioned,
+            request.IsBible,
+            request.NormalizedPublicationCode,
+            request.NormalizedLanguageCode);
 
         var tracks = ParsePublicationSectionTracksFromFiles(
             filesElement,
-            isIssueSectioned,
-            isBible,
-            normalizedPublicationCode,
-            normalizedLanguageCode,
-            sectionCode);
+            request.IsIssueSectioned,
+            request.IsBible,
+            request.NormalizedPublicationCode,
+            request.NormalizedLanguageCode,
+            request.SectionCode);
 
         var section = new BiblePublicationSection
         {
-            Name = sectionName ?? sectionCode,
-            SectionCode = sectionCode.ToLowerInvariant(),
-            BiblePublication = publication,
+            Name = sectionName ?? request.SectionCode,
+            SectionCode = request.SectionCode.ToLowerInvariant(),
+            BiblePublication = request.Publication,
             Tracks = new List<BiblePublicationTrack>()
         };
 
-        publication.Sections.Add(section);
-        await SaveChangesWithRetryAsync(db, effectiveToken);
+        request.Publication.Sections.Add(section);
+        await SaveChangesWithRetryAsync(request.Db, request.EffectiveToken);
 
         foreach (var track in tracks)
         {
             track.Section = section;
-            track.Publication = publication;
+            track.Publication = request.Publication;
         }
 
         section.Tracks.AddRange(tracks);
-        await SaveChangesWithRetryAsync(db, effectiveToken);
+        await SaveChangesWithRetryAsync(request.Db, request.EffectiveToken);
 
         return new MissingSectionIteration(true, true);
     }
