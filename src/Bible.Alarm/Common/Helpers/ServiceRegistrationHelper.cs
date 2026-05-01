@@ -410,7 +410,13 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BiblePublicationSectionSelectionViewModel>();
         services.AddTransient<ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModel>();
         services.AddTransient<ViewModels.Music.MusicSectionSelectionViewModel>();
-        services.AddTransient<PlaybackViewModel>();
+        services.AddTransient<PlaybackViewModel>(sp => new PlaybackViewModel(new PlaybackViewModelDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<IPlaybackService>(),
+            sp.GetRequiredService<ISchedulePlaybackService>(),
+            sp.GetRequiredService<IState<PlaybackState>>(),
+            sp.GetRequiredService<IReviewPromptService>(),
+            sp.GetRequiredService<IAudioPlayer>())));
         services.AddSingleton<MiniPlaybackBarViewModel>();
         services.AddTransient<BiblePublicationSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>();

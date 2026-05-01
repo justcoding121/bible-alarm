@@ -27,12 +27,9 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
     private bool areLandscapeOverlayControlsVisible = true;
 
     // Helper classes
-    private readonly AlarmViewModelCommandInitializer commandInitializer;
-    private readonly AlarmViewModelReviewHandler reviewHandler;
     private readonly AlarmViewModalStateUpdater stateUpdater;
     private readonly AlarmViewModalSliderHandler sliderHandler;
     private readonly ArtworkManager artworkManager;
-    private readonly PositionManager positionManager;
     private readonly MessageHandler messageHandler;
     private readonly PlaybackViewModelLandscapeHandler landscapeHandler;
 
@@ -51,11 +48,11 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
     public ICommand SeekCommand { get; set; }
     public ICommand RetryCommand { get; set; }
 
-    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, ISchedulePlaybackService schedulePlaybackService, IState<PlaybackState> playbackState, IReviewPromptService reviewPromptService, IAudioPlayer audioPlayer)
+    public PlaybackViewModel(PlaybackViewModelDeps deps)
     {
-        this.logger = logger;
-        this.playbackService = playbackService;
-        this.playbackState = playbackState;
+        logger = deps.Logger;
+        playbackService = deps.PlaybackService;
+        playbackState = deps.PlaybackState;
 
         // Initialize string fields to avoid nullable warnings
         title = "";
@@ -64,12 +61,11 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
         currentTime = "00:00";
         endTime = "00:00";
 
-        // Initialize helper classes
-        reviewHandler = new AlarmViewModelReviewHandler(this.logger, reviewPromptService);
-        commandInitializer = new AlarmViewModelCommandInitializer(
-            this.logger,
-            this.playbackService,
-            schedulePlaybackService,
+        var reviewHandler = new AlarmViewModelReviewHandler(logger, deps.ReviewPromptService);
+        var commandInitializer = new AlarmViewModelCommandInitializer(
+            logger,
+            playbackService,
+            deps.SchedulePlaybackService,
             reviewHandler.HandleReviewRequestAsync,
             () => PlaybackViewModelStoppingHandler.BeginStoppingUi(ApplyBeginStopping),
             () => PlaybackViewModelStoppingHandler.ResetProgressUi(() => IsUserInteracting, ApplyResetProgress));
@@ -91,14 +87,14 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
             () => OnPropertyChanged(nameof(PreparationProgress)),
             () => OnPropertyChanged(nameof(HasError)));
         sliderHandler = new AlarmViewModalSliderHandler(
-            this.logger,
+            logger,
             () => AreControlsEnabled,
             () => currentDuration,
             SetProgressDirectly,
             () => OnPropertyChanged(nameof(Progress)));
         // Initialize new helper classes
-        artworkManager = new ArtworkManager(this.logger);
-        positionManager = new PositionManager();
+        artworkManager = new ArtworkManager(logger);
+        var positionManager = new PositionManager();
         messageHandler = new MessageHandler(positionManager);
         landscapeHandler = new PlaybackViewModelLandscapeHandler();
 
@@ -140,7 +136,7 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
 
         // Initialize from current state
         UpdateFromState();
-        InitializePositionFromAudioPlayer(audioPlayer);
+        InitializePositionFromAudioPlayer(deps.AudioPlayer);
         AlarmViewModelAutoDisposeMonitor.Start(playbackState, () => isDisposed, Dispose);
     }
 

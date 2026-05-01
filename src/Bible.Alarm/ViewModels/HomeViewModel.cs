@@ -33,13 +33,11 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     private readonly INavigationService navigationService;
 
     // Helper classes
-    private readonly ScheduleDataPreparer scheduleDataPreparer;
     private readonly ScheduleViewModelManager scheduleViewModelManager;
     private readonly HomeNavigationHelper navigationHelper;
     private readonly ProgressBarAnimator progressAnimator;
     private readonly ProgressBarManager progressBarManager;
     private readonly PropertyManager propertyManager;
-    private readonly CommandHandler commandHandler;
     private readonly HomeStateChangeHandler stateChangeHandler;
     private readonly BootstrapReadyManager bootstrapReadyManager;
     private readonly HomeViewModelNotificationPermissionHandler notificationPermissionHandler;
@@ -57,7 +55,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         mapper = deps.Mapper;
 
         // Initialize helper classes
-        scheduleDataPreparer = new ScheduleDataPreparer(mapper);
+        var scheduleDataPreparer = new ScheduleDataPreparer(mapper);
         var playbackModalService = this.serviceProvider.GetRequiredService<IPlaybackModalService>();
         navigationHelper = new HomeNavigationHelper(logger, dispatcher, this.navigationService, playbackModalService, playbackState, this.serviceProvider, this.mapper);
         scheduleViewModelManager = new ScheduleViewModelManager(logger, this.serviceProvider, navigationHelper.TrackPlayClick);
@@ -77,7 +75,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         propertyManager.IsAddBusyChanged += OnIsAddBusyChanged;
         bootstrapReadyManager.BootstrapReadyChanged += OnBootstrapReadyChanged;
 
-        commandHandler = new CommandHandler(
+        var commandHandler = new CommandHandler(
             logger,
             dispatcher,
             this.navigationService,
