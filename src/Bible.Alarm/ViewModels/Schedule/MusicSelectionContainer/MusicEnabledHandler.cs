@@ -109,71 +109,76 @@ public class MusicEnabledHandler
 
     private void EnqueueDefaultMelodyPublicationWhenEmpty()
     {
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             try
             {
-                var schedule = state.Value.CurrentSchedule;
-                if (schedule == null)
-                {
-                    return;
-                }
-
-                if (!string.IsNullOrEmpty(schedule.MusicPublicationCode))
-                {
-                    return;
-                }
-
-                var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
-
-                var melodyReleases = await melodyMusicService.GetAllAsync();
-                if (melodyReleases == null || melodyReleases.Count == 0)
-                {
-                    logger.Warning("MusicEnabled: No melody music publications found in database");
-                    return;
-                }
-
-                if (!TryResolvePreferredOrFirstMelodyPublication(
-                        melodyReleases,
-                        AppConstants.Media.MelodyMusicPublicationCodeIam,
-                        out var defaultPublicationCode,
-                        out var defaultPublicationName))
-                {
-                    return;
-                }
-
-                var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
-
-                if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
-                {
-                    return;
-                }
-
-                ChooseRandomMelodyTrack(melodyMusic, out var chosenSection, out var chosenTrack);
-
-                var latestSchedule = state.Value.CurrentSchedule;
-                if (latestSchedule == null)
-                {
-                    return;
-                }
-
-                if (IsScheduleAlreadyPointingAtChosenMelody(
-                        latestSchedule,
-                        defaultPublicationCode,
-                        chosenSection,
-                        chosenTrack))
-                {
-                    return;
-                }
-
-                DispatchChosenMelodyOnSchedule(latestSchedule, defaultPublicationCode, defaultPublicationName, chosenSection,
-                    chosenTrack);
+                await TryPopulateDefaultMelodyWhenScheduleEmptyAsync();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "MusicEnabled: Error loading default music from DB");
             }
         });
+    }
+
+    private async Task TryPopulateDefaultMelodyWhenScheduleEmptyAsync()
+    {
+        var schedule = state.Value.CurrentSchedule;
+        if (schedule == null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(schedule.MusicPublicationCode))
+        {
+            return;
+        }
+
+        var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
+
+        var melodyReleases = await melodyMusicService.GetAllAsync();
+        if (melodyReleases == null || melodyReleases.Count == 0)
+        {
+            logger.Warning("MusicEnabled: No melody music publications found in database");
+            return;
+        }
+
+        if (!TryResolvePreferredOrFirstMelodyPublication(
+                melodyReleases,
+                AppConstants.Media.MelodyMusicPublicationCodeIam,
+                out var defaultPublicationCode,
+                out var defaultPublicationName))
+        {
+            return;
+        }
+
+        var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
+
+        if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
+        {
+            return;
+        }
+
+        ChooseRandomMelodyTrack(melodyMusic, out var chosenSection, out var chosenTrack);
+
+        var latestSchedule = state.Value.CurrentSchedule;
+        if (latestSchedule == null)
+        {
+            return;
+        }
+
+        if (IsScheduleAlreadyPointingAtChosenMelody(
+                latestSchedule,
+                defaultPublicationCode,
+                chosenSection,
+                chosenTrack))
+        {
+            return;
+        }
+
+        DispatchChosenMelodyOnSchedule(latestSchedule, defaultPublicationCode, defaultPublicationName, chosenSection,
+            chosenTrack);
     }
 
     private static bool TryResolvePreferredOrFirstMelodyPublication(

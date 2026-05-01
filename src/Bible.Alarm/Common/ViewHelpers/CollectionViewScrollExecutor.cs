@@ -100,34 +100,8 @@ internal static class CollectionViewScrollExecutor
             }
             else
             {
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    try
-                    {
-                        if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
-                        {
-                            return;
-                        }
-
-#if WINDOWS
-                        if (await TryWindowsNativeScrollLastTenAsync(collectionView, item, cancellationToken))
-                        {
-                            return;
-                        }
-#endif
-
-                        await ScrollToItemPreferringIndexAsync(collectionView, item, position, animated);
-                        await Task.Delay(150, cancellationToken);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Expected when user taps an item and cancellation token is signalled
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Debug(ex, "Error in MainThread scrolling operation");
-                    }
-                });
+                await PerformStandardPositionScrollOnMainThreadAsync(
+                    collectionView, item, position, animated, cancellationToken);
             }
         }
         catch (OperationCanceledException)
@@ -139,6 +113,41 @@ internal static class CollectionViewScrollExecutor
             HandleScrollException(ex);
         }
     }
+
+    private static Task PerformStandardPositionScrollOnMainThreadAsync(
+        MauiCollectionView collectionView,
+        object item,
+        ScrollToPosition position,
+        bool animated,
+        CancellationToken cancellationToken) =>
+        MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            try
+            {
+                if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
+                {
+                    return;
+                }
+
+#if WINDOWS
+                if (await TryWindowsNativeScrollLastTenAsync(collectionView, item, cancellationToken))
+                {
+                    return;
+                }
+#endif
+
+                await ScrollToItemPreferringIndexAsync(collectionView, item, position, animated);
+                await Task.Delay(150, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when user taps an item and cancellation token is signalled
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Debug(ex, "Error in MainThread scrolling operation");
+            }
+        });
 
     /// <summary>
     /// Performs scrolling for items at the end position (last item).

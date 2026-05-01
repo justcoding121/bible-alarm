@@ -212,51 +212,83 @@ internal sealed class SectionFetcher
         {
             effectiveToken.ThrowIfCancellationRequested();
 
-            try
-            {
-                var iteration = await TryFetchAndPersistSingleMissingSectionAsync(
-                    db,
-                    publication,
-                    normalizedPublicationCode,
-                    normalizedLanguageCode,
-                    sectionCode,
-                    isBible,
-                    isIssueSectioned,
-                    localizedPubNameSlot,
-                    effectiveToken);
+            var outcome = await ProcessSingleMissingSectionAsync(
+                db,
+                publication,
+                normalizedPublicationCode,
+                normalizedLanguageCode,
+                sectionCode,
+                isBible,
+                isIssueSectioned,
+                localizedPubNameSlot,
+                effectiveToken);
 
-                if (iteration.IncrementCompleted)
+            if (outcome.CompletedDelta > 0)
+            {
+                completedSections += outcome.CompletedDelta;
+                if (outcome.UpdateProgress && totalSections > 0)
                 {
-                    completedSections++;
-                    if (iteration.UpdateProgressThisIteration && totalSections > 0)
-                    {
-                        progress?.UpdateProgress((double)completedSections / totalSections);
-                    }
+                    progress?.UpdateProgress((double)completedSections / totalSections);
                 }
             }
-            catch (OperationCanceledException)
+        }
+    }
+
+    private readonly record struct MissingSectionProcessOutcome(int CompletedDelta, bool UpdateProgress);
+
+    private async Task<MissingSectionProcessOutcome> ProcessSingleMissingSectionAsync(
+        MediaDbContext db,
+        BiblePublication publication,
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        string sectionCode,
+        bool isBible,
+        bool isIssueSectioned,
+        LocalizedPublicationNameSlot localizedPubNameSlot,
+        CancellationToken effectiveToken)
+    {
+        try
+        {
+            var iteration = await TryFetchAndPersistSingleMissingSectionAsync(
+                db,
+                publication,
+                normalizedPublicationCode,
+                normalizedLanguageCode,
+                sectionCode,
+                isBible,
+                isIssueSectioned,
+                localizedPubNameSlot,
+                effectiveToken);
+
+            if (iteration.IncrementCompleted)
+            {
+                return new MissingSectionProcessOutcome(1, iteration.UpdateProgressThisIteration);
+            }
+
+            return default;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
+        {
+            logger.Debug(ex,
+                "Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
+                sectionCode, normalizedPublicationCode, normalizedLanguageCode);
+            return new MissingSectionProcessOutcome(1, false);
+        }
+        catch (Exception ex)
+        {
+            if (NetworkExceptionHelper.IsNetworkFailure(ex))
             {
                 throw;
             }
-            catch (HttpRequestException ex) when (ex.Message.Contains("Response status code", StringComparison.Ordinal))
-            {
-                logger.Debug(ex,
-                    "Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
-                    sectionCode, normalizedPublicationCode, normalizedLanguageCode);
-                completedSections++;
-            }
-            catch (Exception ex)
-            {
-                if (NetworkExceptionHelper.IsNetworkFailure(ex))
-                {
-                    throw;
-                }
 
-                logger.Warning(ex,
-                    "Failed to fetch section {SectionCode} for publication {PublicationCode} in language {LanguageCode}",
-                    sectionCode, normalizedPublicationCode, normalizedLanguageCode);
-                completedSections++;
-            }
+            logger.Warning(ex,
+                "Failed to fetch section {SectionCode} for publication {PublicationCode} in language {LanguageCode}",
+                sectionCode, normalizedPublicationCode, normalizedLanguageCode);
+            return new MissingSectionProcessOutcome(1, false);
         }
     }
 

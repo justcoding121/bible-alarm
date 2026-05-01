@@ -180,54 +180,18 @@ public sealed class BiblePublicationCascadeHandler
         // Publication with LanguageId was cataloged above (or already existed).
 
         // Get section and track
-        string? sectionCode = null;
-        string? trackCode = null;
-        string sectionName = string.Empty;
-        string publicationName = string.Empty;
-        string trackTitle = string.Empty;
+        var resolved = await TryResolveSectionAndTrackForLanguageCascadeAsync(
+            currentSchedule,
+            languageCode,
+            publicationCode,
+            publicationWithoutLanguage);
 
-        if (publicationWithoutLanguage)
+        if (resolved == null)
         {
-            (sectionCode, trackCode, sectionName, trackTitle, publicationName) = await BiblePublicationCascadeNoLanguageResolver.GetFirstSectionAndTrackAsync(
-                mediaService,
-                scopeFactory,
-                publicationCode);
+            return;
         }
-        else
-        {
-            // For publications with LanguageId, use the existing publication code from schedule
-            var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
-            var languageModel = new LanguageListViewItemModel(new Language
-            {
-                LanguageCode = languageCode,
-                Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
-            }, languageDisplayName);
 
-            var publicationModel = new PublicationListViewItemModel(new Publication
-            {
-                PublicationCode = publicationCode,
-                Name = currentSchedule.BiblePublicationName ?? publicationCode
-            });
-
-            var (resultSectionCode, resultTrackCode, resultSectionName, resultTrackTitle) =
-                await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
-
-            if (string.IsNullOrWhiteSpace(resultTrackCode))
-            {
-                logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication, publicationCode);
-                return;
-            }
-
-            sectionCode = resultSectionCode;
-            trackCode = resultTrackCode;
-            sectionName = resultSectionName;
-            trackTitle = resultTrackTitle;
-            
-            if (string.IsNullOrEmpty(publicationName))
-            {
-                publicationName = currentSchedule.BiblePublicationName ?? publicationCode;
-            }
-        }
+        var (sectionCode, trackCode, sectionName, publicationName, trackTitle) = resolved.Value;
 
         if (string.IsNullOrWhiteSpace(trackCode))
         {
@@ -254,6 +218,50 @@ public sealed class BiblePublicationCascadeHandler
                 trackModalItemCount,
                 publicationWithoutLanguage),
             dispatcher);
+    }
+
+    private async Task<(string? SectionCode, string? TrackCode, string SectionName, string PublicationName, string TrackTitle)?>
+        TryResolveSectionAndTrackForLanguageCascadeAsync(
+            ScheduleStateItem currentSchedule,
+            string languageCode,
+            string publicationCode,
+            bool publicationWithoutLanguage)
+    {
+        if (publicationWithoutLanguage)
+        {
+            var nl = await BiblePublicationCascadeNoLanguageResolver.GetFirstSectionAndTrackAsync(
+                mediaService,
+                scopeFactory,
+                publicationCode);
+            return (nl.sectionCode, nl.trackCode, nl.sectionName, nl.publicationName, nl.trackTitle);
+        }
+
+        var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
+        var languageModel = new LanguageListViewItemModel(new Language
+        {
+            LanguageCode = languageCode,
+            Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
+        }, languageDisplayName);
+
+        var publicationModel = new PublicationListViewItemModel(new Publication
+        {
+            PublicationCode = publicationCode,
+            Name = currentSchedule.BiblePublicationName ?? publicationCode
+        });
+
+        var (resultSectionCode, resultTrackCode, resultSectionName, resultTrackTitle) =
+            await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
+
+        if (string.IsNullOrWhiteSpace(resultTrackCode))
+        {
+            logger.Warning(
+                AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication,
+                publicationCode);
+            return null;
+        }
+
+        var resolvedPublicationName = currentSchedule.BiblePublicationName ?? publicationCode;
+        return (resultSectionCode, resultTrackCode, resultSectionName, resolvedPublicationName, resultTrackTitle);
     }
 
     private async Task<(string PublicationCode, bool PublicationWithoutLanguage)?>
