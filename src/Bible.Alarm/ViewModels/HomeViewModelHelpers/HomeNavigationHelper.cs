@@ -36,7 +36,9 @@ public class HomeNavigationHelper
     private readonly IPlaybackModalService playbackModalService;
     private readonly IState<PlaybackState> playbackState;
     private readonly IServiceProvider serviceProvider;
+#if ANDROID || IOS
     private readonly IMapper mapper;
+#endif
     private readonly Dictionary<int, DateTime> recentPlayClicks = new();
     private const int PlayClickCooldownMs = 500;
 
@@ -57,7 +59,11 @@ public class HomeNavigationHelper
         this.playbackModalService = playbackModalService;
         this.playbackState = playbackState;
         this.serviceProvider = serviceProvider;
+#if ANDROID || IOS
         this.mapper = mapper;
+#else
+        _ = mapper;
+#endif
     }
 
     public bool ShouldSkipNavigation(int scheduleId)
@@ -118,7 +124,9 @@ public class HomeNavigationHelper
 
         await navigationService.NavigateToScheduleAsync(schedule.Id, reminderEvaluation.ShouldEnableReminder);
 
+#if ANDROID || IOS
         await PresentNotificationPermissionModalAfterNavigateAsync(schedule, reminderEvaluation.ShouldShowPermissionModal);
+#endif
 
 #if DEBUG
         var endTime = DateTime.UtcNow;
@@ -127,6 +135,8 @@ public class HomeNavigationHelper
 #endif
     }
 
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Android/iOS branches use instance dependencies; desktop else branch is a no-op tuple.")]
+    [SuppressMessage("SonarAnalyzer.CSharp", "S1172", Justification = "schedule is consumed in ANDROID/IOS branches; desktop keeps signature for shared call sites.")]
     private async Task<(bool ShouldEnableReminder, bool ShouldShowPermissionModal)> EvaluateReminderAndPermissionModalAsync(
         AlarmSchedule schedule,
         bool initialShouldEnableReminder)
@@ -136,6 +146,7 @@ public class HomeNavigationHelper
 #elif IOS
         return await EvaluateIosReminderAndModalAsync(schedule, initialShouldEnableReminder);
 #else
+        _ = schedule;
         return (initialShouldEnableReminder, false);
 #endif
     }
@@ -221,6 +232,8 @@ public class HomeNavigationHelper
     }
 #endif
 
+#if ANDROID || IOS
+    [SuppressMessage("SonarAnalyzer.CSharp", "S1172", Justification = "schedule flows to modal dismissal on mobile only; required for ANDROID/IOS implementation.")]
     private async Task PresentNotificationPermissionModalAfterNavigateAsync(
         AlarmSchedule schedule,
         bool shouldShowPermissionModal)
@@ -290,6 +303,8 @@ public class HomeNavigationHelper
             }
         });
     }
+
+#endif
 
 #if ANDROID
     private void RunAndroidModalDismissStateUpdate(AlarmSchedule schedule, bool permissionGranted)

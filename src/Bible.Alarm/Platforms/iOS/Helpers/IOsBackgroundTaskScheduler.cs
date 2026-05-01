@@ -1,5 +1,7 @@
 #nullable enable
 
+#pragma warning disable S101 // IOs prefix marks iOS platform implementations and avoids clashes with broader "Ios"/shared naming.
+
 using BackgroundTasks;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Scheduler.Interfaces;

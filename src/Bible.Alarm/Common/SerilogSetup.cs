@@ -236,7 +236,7 @@ public class SerilogSetup
         Log.Logger = loggerConfig.CreateLogger();
     }
 
-#if !ANDROID
+#if !ANDROID && (DEBUG || IOS || !WINDOWS)
     private static string GetLogDirectory()
     {
         try

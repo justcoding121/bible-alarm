@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Platforms.Windows.Services.UI.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
@@ -14,7 +15,8 @@ namespace Bible.Alarm.Platforms.Windows.Effects;
 /// Fluxor effect that shows rich toast notifications with metadata during playback on Windows.
 /// Only shows when the app is not the active foreground window (minimized or behind other windows).
 /// </summary>
-public partial class WindowsMediaToastEffect(
+[SuppressMessage("SonarAnalyzer.CSharp", "S3881", Justification = "Sealed Fluxor effect with IDisposable for explicit unsubscribe; primary constructor.")]
+public sealed partial class WindowsMediaToastEffect(
     IWindowsNotificationService notificationService,
     IState<PlaybackState> playbackState) : IDisposable
 {
@@ -157,22 +159,19 @@ public partial class WindowsMediaToastEffect(
             return;
         }
 
-        if (disposing)
+        if (disposing && isLifecycleSubscribed)
         {
-            if (isLifecycleSubscribed)
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                MainThread.BeginInvokeOnMainThread(() =>
+                var window = Application.Current?.Windows is { Count: > 0 } wins ? wins[0] : null;
+                if (window != null)
                 {
-                    var window = Application.Current?.Windows is { Count: > 0 } wins ? wins[0] : null;
-                    if (window != null)
-                    {
-                        window.Activated -= OnWindowActivated;
-                        window.Deactivated -= OnWindowDeactivated;
-                    }
+                    window.Activated -= OnWindowActivated;
+                    window.Deactivated -= OnWindowDeactivated;
+                }
 
-                    isLifecycleSubscribed = false;
-                });
-            }
+                isLifecycleSubscribed = false;
+            });
         }
 
         disposed = true;

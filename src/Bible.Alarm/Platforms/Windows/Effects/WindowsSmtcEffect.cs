@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Platforms.Windows.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
@@ -13,7 +14,8 @@ namespace Bible.Alarm.Platforms.Windows.Effects;
 /// <summary>
 /// Fluxor effect that initializes Windows SMTC service and updates button states based on navigation changes.
 /// </summary>
-public partial class WindowsSmtcEffect(
+[SuppressMessage("SonarAnalyzer.CSharp", "S3881", Justification = "Sealed Fluxor effect with IDisposable; primary constructor.")]
+public sealed partial class WindowsSmtcEffect(
     IWindowsSmtcService smtcService,
     IState<PlaybackState> playbackState) : IDisposable
 {

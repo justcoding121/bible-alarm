@@ -79,5 +79,8 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 
     partial void PlatformDispose()
     {
+        /*
+         * Intentionally empty: Windows teardown runs from DisconnectHandler / Unloaded.
+         */
     }
 }

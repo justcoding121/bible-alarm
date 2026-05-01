@@ -34,7 +34,13 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #endif
 
     private bool isNotificationPermissionGranted;
+#pragma warning disable S2933 // Mutable on ANDROID||IOS via UpdateCanShowSystemPrompt; readonly on desktop stubs.
+#if ANDROID || IOS
     private bool canShowSystemPrompt = true;
+#else
+    private readonly bool canShowSystemPrompt = true;
+#endif
+#pragma warning restore S2933
     private System.Timers.Timer? permissionCheckTimer;
     private readonly Action<bool>? onModalDismissed;
     private bool isDismissing;
@@ -65,6 +71,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         DismissCommand = new AsyncRelayCommand(DismissModalAsync);
     }
 
+#pragma warning disable S2325 // AsyncRelayCommand delegates; empty body on neutral TFM windows release analysis.
     private Task RequestNotificationPermissionAsync()
     {
 #if ANDROID
@@ -88,6 +95,8 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         return Task.CompletedTask;
 #endif
     }
+
+#pragma warning restore S2325
 
 #if ANDROID
     private void TryScheduleAndroidApplicationDetailsSettings()
@@ -124,7 +133,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #endif
 
 #if IOS
-    private Task OpenIosAppSettingsIfApplicableAsync()
+    private static Task OpenIosAppSettingsIfApplicableAsync()
     {
         if (DeviceInfo.Platform != DevicePlatform.iOS)
             return Task.CompletedTask;

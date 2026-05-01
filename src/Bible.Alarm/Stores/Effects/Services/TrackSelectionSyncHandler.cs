@@ -215,39 +215,26 @@ public sealed class TrackSelectionSyncHandler
     {
         if (languageChanged)
         {
-            updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
-            updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
-            updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
+            ApplyBiblePublicationDisplayNamesForLanguageChanged(updatedSchedule, biblePub);
             return;
         }
 
         if (publicationChanged)
         {
-            updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName)
-                ? biblePub.LanguageName
-                : currentSchedule.BiblePublicationLanguageName;
-            updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection)
-                ? biblePub.LanguageDirection
-                : currentSchedule.BiblePublicationLanguageDirection;
-            updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
-            updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
-            updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
-
-            if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(actionSectionCode))
-            {
-                Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SectionNameEmptyAfterPublicationChangeSectionCodeSet,
-                    actionSectionCode, biblePub.PublicationCode);
-            }
-
-            if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(biblePub.TrackCode))
-            {
-                Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.TrackTitleEmptyAfterPublicationChangeTrackCodeValid,
-                    biblePub.TrackCode, biblePub.PublicationCode);
-            }
-
+            ApplyBiblePublicationDisplayNamesForPublicationChanged(
+                updatedSchedule, currentSchedule, biblePub, actionSectionCode);
             return;
         }
 
+        ApplyBiblePublicationDisplayNamesWhenLanguageAndPublicationUnchanged(
+            updatedSchedule, currentSchedule, biblePub);
+    }
+
+    private static void ApplyBiblePublicationDisplayNamesWhenLanguageAndPublicationUnchanged(
+        ScheduleStateItem updatedSchedule,
+        ScheduleStateItem currentSchedule,
+        BiblePublicationStateItem biblePub)
+    {
         updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName)
             ? biblePub.LanguageName
             : currentSchedule.BiblePublicationLanguageName;
@@ -263,6 +250,44 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle)
             ? biblePub.TrackTitle
             : currentSchedule.BiblePublicationTrackTitle;
+    }
+
+    private static void ApplyBiblePublicationDisplayNamesForLanguageChanged(
+        ScheduleStateItem updatedSchedule,
+        BiblePublicationStateItem biblePub)
+    {
+        updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
+        updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
+        updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
+    }
+
+    private static void ApplyBiblePublicationDisplayNamesForPublicationChanged(
+        ScheduleStateItem updatedSchedule,
+        ScheduleStateItem currentSchedule,
+        BiblePublicationStateItem biblePub,
+        string? actionSectionCode)
+    {
+        updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName)
+            ? biblePub.LanguageName
+            : currentSchedule.BiblePublicationLanguageName;
+        updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection)
+            ? biblePub.LanguageDirection
+            : currentSchedule.BiblePublicationLanguageDirection;
+        updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
+        updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
+        updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
+
+        if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(actionSectionCode))
+        {
+            Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SectionNameEmptyAfterPublicationChangeSectionCodeSet,
+                actionSectionCode, biblePub.PublicationCode);
+        }
+
+        if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(biblePub.TrackCode))
+        {
+            Log.Warning(AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.TrackTitleEmptyAfterPublicationChangeTrackCodeValid,
+                biblePub.TrackCode, biblePub.PublicationCode);
+        }
     }
 
     private static void LogTrackSelectedStart(MusicTrackSelectedAction action)

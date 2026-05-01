@@ -1,5 +1,7 @@
 #nullable enable
 
+#pragma warning disable S101 // IOs prefix marks iOS platform implementations.
+
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Bootstrap;

@@ -1,4 +1,7 @@
 #nullable enable
+
+#pragma warning disable S101 // IOs prefix marks iOS platform implementations.
+
 using System;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.iOS.Services.Media;

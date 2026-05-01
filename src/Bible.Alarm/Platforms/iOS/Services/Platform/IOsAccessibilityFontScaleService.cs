@@ -1,4 +1,7 @@
 #nullable enable
+
+#pragma warning disable S101 // IOs prefix marks iOS platform implementations.
+
 using Bible.Alarm.Common.Interfaces.Platform;
 using Foundation;
 using UIKit;

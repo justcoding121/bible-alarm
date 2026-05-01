@@ -49,7 +49,9 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
     private IosNotificationPermissionService? permissionService;
 #endif
 
+#if ANDROID || IOS
     private readonly INavigationService navigationService;
+#endif
 
     public AlarmSettingsContainerViewModel(
         ILogger logger,
@@ -60,7 +62,11 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
         IMapper mapper)
     {
         this.logger = logger;
+#if ANDROID || IOS
         this.navigationService = navigationService;
+#else
+        _ = navigationService;
+#endif
         this.serviceProvider = serviceProvider;
         this.state = state;
         this.dispatcher = dispatcher;

@@ -1,4 +1,7 @@
 #nullable enable
+
+#pragma warning disable S101 // IOs prefix marks iOS platform implementations.
+
 using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Services.Media.Models;
@@ -211,7 +214,7 @@ public sealed class IOsNowPlayingInfoManager : IiOSNowPlayingInfoManager
     /// Call this periodically during playback (every few seconds) and on pause/resume.
     /// Creates a fresh MPNowPlayingInfo from cache to avoid iOS dropping artwork when paused.
     /// </summary>
-    public void UpdatePlaybackPosition(TimeSpan position, TimeSpan duration, PlayStatus status)
+    public void UpdatePlaybackPosition(TimeSpan currentPosition, TimeSpan duration, PlayStatus status)
     {
         try
         {
@@ -222,7 +225,7 @@ public sealed class IOsNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
             currentStatus = status;
             currentDuration = duration.TotalSeconds;
-            var elapsedSeconds = position.TotalSeconds;
+            var elapsedSeconds = currentPosition.TotalSeconds;
 
             // Ensure artwork is loaded if we have URL but not cached yet
             if (currentArtwork == null && !string.IsNullOrEmpty(currentArtworkUrl))
