@@ -48,7 +48,7 @@ public partial class PropertyChangeHandler : IDisposable
 
         if (e.PropertyName == nameof(MusicSelectionContainerViewModel.ShouldScrollToBottom) && vm.ShouldScrollToBottom)
         {
-            HandleShouldScrollToBottomPropertyChanged(vm, viewModel);
+            HandleShouldScrollToBottomPropertyChanged(viewModel);
         }
     }
 
@@ -109,7 +109,7 @@ public partial class PropertyChangeHandler : IDisposable
         });
     }
 
-    private void HandleShouldScrollToBottomPropertyChanged(MusicSelectionContainerViewModel vm, MusicSelectionContainerViewModel? viewModel)
+    private void HandleShouldScrollToBottomPropertyChanged(MusicSelectionContainerViewModel? viewModel)
     {
 #if DEBUG
         Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ShouldScrollToBottomScrolling);

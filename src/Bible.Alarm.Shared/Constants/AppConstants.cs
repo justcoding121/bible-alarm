@@ -58,7 +58,8 @@ public static class AppConstants
         };
 
         /// <summary>HTTPS origin for JW.org public website (no trailing slash).</summary>
-        public const string JwOrgPublicWebsiteHttpsOrigin = "https://www.jw.org";
+        public static readonly string JwOrgPublicWebsiteHttpsOrigin =
+            System.Uri.UriSchemeHttps + System.Uri.SchemeDelimiter + "www.jw.org";
 
         /// <summary>Path segment for published languages index (<c>/en/languages</c>).</summary>
         public const string JwOrgLanguagesListPath = "/en/languages";

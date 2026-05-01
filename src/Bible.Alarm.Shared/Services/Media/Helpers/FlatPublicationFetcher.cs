@@ -81,8 +81,7 @@ internal sealed class FlatPublicationFetcher
             return false;
         }
 
-        var existingPublication = await FindExistingPublicationAsync(
-            db, normalizedPublicationCode, resolvedLanguage, cancellationToken);
+        var existingPublication = await FindExistingPublicationAsync(db, normalizedPublicationCode, resolvedLanguage, cancellationToken);
 
         if (existingPublication != null)
         {
@@ -168,7 +167,7 @@ internal sealed class FlatPublicationFetcher
             .ToListAsync(cancellationToken);
     }
 
-    private async Task<BiblePublication?> FindExistingPublicationAsync(
+    private static async Task<BiblePublication?> FindExistingPublicationAsync(
         MediaDbContext db,
         string normalizedPublicationCode,
         Language? resolvedLanguage,

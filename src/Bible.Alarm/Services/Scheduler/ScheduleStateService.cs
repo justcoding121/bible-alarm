@@ -31,6 +31,9 @@ public sealed partial class ScheduleStateService(ScheduleStateServiceDeps deps) 
     private readonly ILogger logger = deps.Logger;
     private readonly IAlarmScheduleService alarmScheduleService = deps.AlarmScheduleService;
     private readonly IAlarmService alarmService = deps.AlarmService;
+#if ANDROID || IOS
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S1144:Unused private types or members should be removed", Justification = "Used only when CheckNotificationPermissionsAsync is compiled (#if !ANDROID && !IOS).")]
+#endif
     private readonly INotificationService notificationService = deps.NotificationService;
     private readonly IToastService toastService = deps.ToastService;
     private readonly IDispatcher dispatcher = deps.Dispatcher;

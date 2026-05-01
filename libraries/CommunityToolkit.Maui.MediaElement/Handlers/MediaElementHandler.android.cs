@@ -125,5 +125,6 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 
     partial void PlatformDispose()
     {
+        // Intentionally empty: DisconnectHandler disposes the MediaManager and releases platform resources.
     }
 }

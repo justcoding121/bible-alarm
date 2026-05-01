@@ -89,8 +89,13 @@ public sealed class NotificationPermissionService : IDisposable
     /// <summary>
     /// Wraps permission check to handle invalid context during lifecycle transitions.
     /// </summary>
-    private bool TryGetPostNotificationsGranted(global::Android.Content.Context context)
+    private static bool TryGetPostNotificationsGranted(global::Android.Content.Context context)
     {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(33))
+        {
+            return false;
+        }
+
         try
         {
             var result = ContextCompat.CheckSelfPermission(context, Manifest.Permission.PostNotifications);
@@ -208,7 +213,7 @@ public sealed class NotificationPermissionService : IDisposable
         NotifyPermissionGrantedOrDenied(granted);
     }
 
-    private bool TryResolvePostNotificationsGrant(
+    private static bool TryResolvePostNotificationsGrant(
         int requestCode,
         string[] permissions,
         Permission[] grantResults,

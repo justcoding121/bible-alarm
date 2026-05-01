@@ -20,7 +20,6 @@ namespace Bible.Alarm.ViewModels.Music;
 
 public sealed partial class MusicTrackSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
-    private readonly ILogger logger;
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly MusicTrackStateManager stateManager;
@@ -38,7 +37,6 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
         IState<ApplicationState> state,
         IDispatcher dispatcher)
     {
-        this.logger = logger;
         this.mediaService = mediaService;
         this.state = state;
         this.navigationService = navigationService;

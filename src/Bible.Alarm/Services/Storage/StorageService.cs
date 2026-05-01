@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Storage;
 
-public abstract class StorageService : IStorageService, IDisposable
+public abstract class StorageService : IStorageService
 {
     private bool disposed;
 
@@ -141,6 +141,7 @@ public abstract class StorageService : IStorageService, IDisposable
 
         if (disposing)
         {
+            // No managed IDisposable resources tracked by the base abstraction.
         }
 
         disposed = true;

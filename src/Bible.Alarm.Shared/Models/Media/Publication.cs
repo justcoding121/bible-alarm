@@ -52,7 +52,7 @@ public class Publication : IComparable, IEquatable<Publication>
         left is not null && right is not null && left.CompareTo(right) >= 0;
 }
 
-public class TranslatedPublication : Publication
+public class TranslatedPublication : Publication, IEquatable<TranslatedPublication>
 {
     [Required]
     [ForeignKey(nameof(Language))]
@@ -68,6 +68,8 @@ public class TranslatedPublication : Publication
         other is TranslatedPublication tp &&
         LanguageId == tp.LanguageId &&
         base.Equals(other);
+
+    bool IEquatable<TranslatedPublication>.Equals(TranslatedPublication? other) => Equals(other as Publication);
 
     public override int GetHashCode() => HashCode.Combine(LanguageId, base.GetHashCode());
 }

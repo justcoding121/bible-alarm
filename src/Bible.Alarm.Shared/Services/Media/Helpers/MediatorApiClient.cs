@@ -102,49 +102,71 @@ internal sealed class MediatorApiClient
         return categoryName;
     }
 
-    private List<MediatorTrack> ParseMediatorTracksFromCategoryMedia(JsonElement mediaArray, string categoryKey)
+    private static List<MediatorTrack> ParseMediatorTracksFromCategoryMedia(JsonElement mediaArray, string categoryKey)
     {
         var tracks = new List<MediatorTrack>();
         var index = 0;
         foreach (var mediaItem in mediaArray.EnumerateArray())
         {
-            if (mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.PrimaryCategory, out var primaryCatElement))
+            if (TryBuildMediatorTrack(mediaItem, categoryKey, ref index, out var track))
             {
-                var primaryCat = primaryCatElement.GetString();
-                if (!PrimaryCategoryMatches(categoryKey, primaryCat))
-                    continue;
+                tracks.Add(track);
             }
-
-            if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.NaturalKey, out var _))
-                continue;
-
-            if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement) || filesElement.ValueKind != JsonValueKind.Array)
-                continue;
-
-            string? url = null;
-            foreach (var file in filesElement.EnumerateArray())
-            {
-                if (file.TryGetProperty(AppConstants.Media.PubMediaJson.ProgressiveDownloadUrl, out var urlEl))
-                {
-                    url = urlEl.GetString();
-                    break;
-                }
-            }
-
-            if (string.IsNullOrEmpty(url))
-                continue;
-
-            var title = MediaTrackTitleHelper.UnknownTitle;
-            if (mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
-            {
-                title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
-            }
-
-            index++;
-            tracks.Add(new MediatorTrack(index.ToString(), title, url));
         }
 
         return tracks;
+    }
+
+    private static bool TryBuildMediatorTrack(JsonElement mediaItem, string categoryKey, ref int index, out MediatorTrack track)
+    {
+        if (mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.PrimaryCategory, out var primaryCatElement))
+        {
+            var primaryCat = primaryCatElement.GetString();
+            if (!PrimaryCategoryMatches(categoryKey, primaryCat))
+            {
+                track = default!;
+                return false;
+            }
+        }
+
+        if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.NaturalKey, out var _))
+        {
+            track = default!;
+            return false;
+        }
+
+        if (!mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.Files, out var filesElement) ||
+            filesElement.ValueKind != JsonValueKind.Array)
+        {
+            track = default!;
+            return false;
+        }
+
+        string? url = null;
+        foreach (var file in filesElement.EnumerateArray())
+        {
+            if (file.TryGetProperty(AppConstants.Media.PubMediaJson.ProgressiveDownloadUrl, out var urlEl))
+            {
+                url = urlEl.GetString();
+                break;
+            }
+        }
+
+        if (string.IsNullOrEmpty(url))
+        {
+            track = default!;
+            return false;
+        }
+
+        var title = MediaTrackTitleHelper.UnknownTitle;
+        if (mediaItem.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
+        {
+            title = MediaTrackTitleHelper.DecodeHtmlTitle(titleElement.GetString());
+        }
+
+        index++;
+        track = new MediatorTrack(index.ToString(), title, url);
+        return true;
     }
 
     internal sealed record MediatorTrack(string TrackCode, string Title, string Url);

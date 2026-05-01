@@ -393,17 +393,6 @@ public static class ModalScrollHelper
     }
 
     /// <summary>
-    /// Reveals the CollectionView by setting opacity to 1.
-    /// </summary>
-    private static void RevealCollectionView(MauiCollectionView? collectionView)
-    {
-        if (collectionView == null || DeviceInfo.Platform == DevicePlatform.WinUI)
-            return;
-
-        MainThread.BeginInvokeOnMainThread(() => collectionView.Opacity = 1);
-    }
-
-    /// <summary>
     /// Forces the busy overlay to hide immediately.
     /// Only use in error cases.
     /// </summary>

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
 
@@ -95,6 +96,7 @@ public class ScrollManager
     }
 #endif
 
+    [SuppressMessage("Major Code Smell", "S1172:Unused method parameters should be removed", Justification = "containerName is referenced only in DEBUG log lines below.")]
     private static async Task ScrollToBottomAsync(ScrollView scrollView, string containerName)
     {
         await Task.Delay(50);
@@ -134,6 +136,7 @@ public class ScrollManager
 #endif
     }
 
+    [SuppressMessage("Major Code Smell", "S1172:Unused method parameters should be removed", Justification = "containerName is referenced only in DEBUG log lines below.")]
     private static async Task ScrollToElementAsync(ScrollView scrollView, Element element, string containerName)
     {
         await scrollView.ScrollToAsync(element, ScrollToPosition.MakeVisible, true);

@@ -396,11 +396,8 @@ public partial class MediaManager : Object, IPlayerListener
         }
 
         // We're going to mute state. Capture the current volume first so we can restore later.
-        if (MediaElement.ShouldMute)
-        {
-            volumeBeforeMute = Player.Volume;
-        }
-        else if (!AreFloatingPointNumbersEqual(volumeBeforeMute, Player.Volume) && Player.Volume > 0)
+        if (MediaElement.ShouldMute ||
+            (!AreFloatingPointNumbersEqual(volumeBeforeMute, Player.Volume) && Player.Volume > 0))
         {
             volumeBeforeMute = Player.Volume;
         }

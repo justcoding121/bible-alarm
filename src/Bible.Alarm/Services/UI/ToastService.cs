@@ -3,11 +3,11 @@ using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Services.UI;
 
-public abstract class ToastService : IToastService, IDisposable
+public abstract class ToastService : IToastService
 {
     private bool disposed;
 
-    public abstract Task ShowMessage(string message, int seconds = 2);
+    public abstract Task ShowMessage(string message, int seconds = 3);
 
     public async Task ShowScheduledNotification(AlarmSchedule schedule, int seconds = 3)
     {
@@ -40,6 +40,7 @@ public abstract class ToastService : IToastService, IDisposable
 
         if (disposing)
         {
+            // No managed IDisposable resources tracked by the base abstraction.
         }
 
         disposed = true;

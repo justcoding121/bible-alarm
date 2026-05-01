@@ -105,13 +105,7 @@ public class RestartReceiver : BroadcastReceiver
 
     private bool disposed;
 
-    public new void Dispose()
-    {
-        DisposeManagedResources(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void DisposeManagedResources(bool disposing)
+    protected override void Dispose(bool disposing)
     {
         if (disposed)
         {
@@ -125,6 +119,6 @@ public class RestartReceiver : BroadcastReceiver
         }
 
         disposed = true;
-        base.Dispose();
+        base.Dispose(disposing);
     }
 }
