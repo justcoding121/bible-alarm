@@ -199,15 +199,31 @@ public sealed class NotificationPermissionService : IDisposable
     /// </summary>
     internal void HandlePermissionResult(int requestCode, string[] permissions, Permission[] grantResults)
     {
-        if (requestCode != NotificationPermissionRequestCode)
+        if (!TryResolvePostNotificationsGrant(requestCode, permissions, grantResults, out var granted))
         {
             return;
+        }
+
+        logger.Information("NotificationPermissionService: Permission result - Granted: {Granted}", granted);
+        NotifyPermissionGrantedOrDenied(granted);
+    }
+
+    private bool TryResolvePostNotificationsGrant(
+        int requestCode,
+        string[] permissions,
+        Permission[] grantResults,
+        out bool granted)
+    {
+        granted = false;
+        if (requestCode != NotificationPermissionRequestCode)
+        {
+            return false;
         }
 
         if (permissions.Length == 0 || grantResults.Length == 0)
         {
             logger.Warning("NotificationPermissionService: Empty permissions or grantResults array");
-            return;
+            return false;
         }
 
         var permission = permissions[0];
@@ -216,12 +232,15 @@ public sealed class NotificationPermissionService : IDisposable
         if (permission != Manifest.Permission.PostNotifications)
         {
             logger.Debug("NotificationPermissionService: Ignoring permission result for {Permission}", permission);
-            return;
+            return false;
         }
 
-        var granted = grantResult == Permission.Granted;
-        logger.Information("NotificationPermissionService: Permission result - Granted: {Granted}", granted);
+        granted = grantResult == Permission.Granted;
+        return true;
+    }
 
+    private void NotifyPermissionGrantedOrDenied(bool granted)
+    {
         try
         {
             if (granted)

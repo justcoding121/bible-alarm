@@ -53,180 +53,207 @@ public class MediaSessionEffect(
     {
         try
         {
-            var session = GetValidatedSession("cannot update playback state");
-            if (session == null)
+            if (GetValidatedSession("cannot update playback state") == null)
             {
                 return;
             }
 
-            var currentState = playbackState.Value;
-            var isAutoAdvancing = currentState.IsAutoAdvancing;
-            var previousStatus = currentState.Status;
-
-            if (isRestartingPlayback)
-            {
-                if (action.Status is PlayStatus.Stopped or PlayStatus.Ended)
-                {
-                    logger.Information(
-                        "[AndroidAuto] Suppressing {Status} MediaSession update during playback restart to prevent flashing",
-                        action.Status);
-                    ForegroundServiceCoordinator.OnPlaybackStopped();
-                    return;
-                }
-
-                SetRestartingPlayback(false);
-                logger.Information(
-                    "[AndroidAuto] Cleared restart suppression flag on {Status} status", action.Status);
-            }
-
-            logger.Information(
-                "[AndroidAuto] PlaybackStatusChanged: Status={NewStatus}, PreviousStatus={PreviousStatus}, IsAutoAdvancing={IsAutoAdvancing}, ScheduleId={ScheduleId}, CanPlayNext={CanPlayNext}",
-                action.Status,
-                previousStatus,
-                isAutoAdvancing,
-                currentState.CurrentScheduleId,
-                currentState.CanPlayNext);
-
-            // When status is Loading (during track preparation and media buffering),
-            // Progress behavior: Always use Buffering state (shows progress animation)
-            // Button behavior: Show pause button when auto-advancing (matches Alarm Modal behavior)
-            // But don't show prev/next buttons during Loading - only show them when playback actually starts
-            if (action.Status == PlayStatus.Loading)
-            {
-                // Fluxor effects for the same action type can run concurrently.
-                // If Loading and Playing are dispatched close together, the Playing
-                // effect may set StatePlaying before this Loading effect runs.
-                // Re-check the current Fluxor status to avoid overwriting Playing
-                // with Buffering, which would leave the progress animation stuck.
-                if (playbackState.Value.Status != PlayStatus.Loading)
-                {
-                    logger.Debug(
-                        "[AndroidAuto] Skipping Buffering state — Fluxor status already advanced past Loading to {Status}",
-                        playbackState.Value.Status);
-                    return;
-                }
-
-                // Progress: Always Buffering state (shows progress animation)
-                // Button: Show pause when auto-advancing (both initial play and track transitions)
-                if (isAutoAdvancing)
-                {
-                    // Buffering state (for progress animation) + Pause action (for button)
-                    // This matches Alarm Modal: pause button visible during Loading when auto-advancing
-                    logger.Information(
-                        "[AndroidAuto] Loading status with auto-advancing: Setting to Buffering state with Pause action (pause button visible, buffering progress, no prev/next buttons, matches Alarm Modal)");
-
-                    // Use Buffering state (not Playing) so progress bar shows buffering animation
-                    // BuildPlaybackActions includes both Play and Pause, Android Auto shows Pause for Buffering state
-                    mediaSessionManager.UpdatePlaybackState(
-                        PlaybackStateCompat.StateBuffering,
-                        position: 0,
-                        canPlayNext: true,
-                        canPlayPrevious: true);
-                }
-                else
-                {
-                    // Normal buffering - Buffering state + Play action (preserves existing actions)
-                    logger.Information(
-                        "[AndroidAuto] Loading status without auto-advancing: Setting to Buffering state (preserving metadata, no prev/next buttons)");
-                    mediaSessionManager.SetBufferingStateOnly();
-                }
-            }
-            else if (action.Status == PlayStatus.Stopped)
-            {
-                // Re-read isAutoAdvancing from the current Fluxor state, not the snapshot captured
-                // at the top of this method. During auto-advance, StateChanged(Stopped) fires before
-                // MediaEnded dispatches SetAutoAdvancingAction(true). The reducer runs synchronously,
-                // so by the time this async effect executes, isAutoAdvancing may have been updated.
-                var currentAutoAdvancing = playbackState.Value.IsAutoAdvancing;
-                if (currentAutoAdvancing)
-                {
-                    var canPlayNext = true;
-                    var canPlayPrevious = true;
-                    logger.Information(
-                        "[AndroidAuto] Stopped status with auto-advancing: Setting to Playing state (pause button visible, no prev/next buttons during transition)");
-                    mediaSessionManager.SetPlaybackStatus(PlayStatus.Playing, canPlayNext, canPlayPrevious);
-                }
-                else
-                {
-                    var canPlayNext = true;
-                    var canPlayPrevious = true;
-                    logger.Information(
-                        "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
-                        action.Status,
-                        canPlayNext,
-                        canPlayPrevious);
-                    mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
-                }
-            }
-            else if (action.Status == PlayStatus.Paused)
-            {
-                var currentState2 = playbackState.Value;
-                if (currentState2.IsAutoAdvancing || currentState2.IsTransitioningTrack)
-                {
-                    logger.Information(
-                        "[AndroidAuto] Paused status during track transition: keeping Playing state to prevent play button flash (IsAutoAdvancing={IsAutoAdvancing}, IsTransitioningTrack={IsTransitioningTrack})",
-                        currentState2.IsAutoAdvancing,
-                        currentState2.IsTransitioningTrack);
-                    mediaSessionManager.SetPlaybackStatus(PlayStatus.Playing, canPlayNext: true, canPlayPrevious: true);
-                }
-                else
-                {
-                    logger.Information(
-                        "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
-                        action.Status,
-                        true,
-                        true);
-                    mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext: true, canPlayPrevious: true);
-                }
-            }
-            else if (action.Status == PlayStatus.Failed)
-            {
-                var errorMessage = playbackState.Value.ErrorMessage;
-                logger.Information(
-                    "[AndroidAuto] Playback failed — setting error state with message on Now Playing screen: {ErrorMessage}",
-                    errorMessage);
-                mediaSessionManager.SetErrorState(errorMessage, canPlayNext: true, canPlayPrevious: true);
-            }
-            else
-            {
-                var canPlayNext = true;
-                var canPlayPrevious = true;
-                logger.Information(
-                    "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
-                    action.Status,
-                    canPlayNext,
-                    canPlayPrevious);
-
-                mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
-            }
-
-            // Track playback state for foreground service coordination
-            if (action.Status == PlayStatus.Playing)
-            {
-                // MediaElement started playing - request foreground service ownership
-                await ForegroundServiceCoordinator.OnPlaybackStarted();
-                SaveCurrentMetadataToPreferencesIfAvailable();
-            }
-            else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
-            {
-                // MediaElement stopped playing - release foreground service ownership
-                ForegroundServiceCoordinator.OnPlaybackStopped();
-                ResetMetadataDedup();
-            }
-
-            // On Android 13+, every active MediaSession gets a system-generated notification.
-            // Deactivate the legacy MediaSessionCompat when MediaElement handles playback
-            // and Android Auto is not connected to prevent a duplicate notification.
-            // The Media3 MediaSession from ExoPlayer handles all system controls on its own.
-            if (!ForegroundServiceCoordinator.IsAndroidAutoConnected
-                && ForegroundServiceCoordinator.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.MediaElement)
-            {
-                mediaSessionManager.SetActive(false);
-            }
+            await SyncAndroidAutoPlaybackStatusAsync(action);
         }
         catch (Exception ex)
         {
             logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingPlaybackState);
+        }
+    }
+
+    private async Task SyncAndroidAutoPlaybackStatusAsync(PlaybackStatusChangedAction action)
+    {
+        var currentState = playbackState.Value;
+        var isAutoAdvancing = currentState.IsAutoAdvancing;
+        var previousStatus = currentState.Status;
+
+        if (TryShortCircuitRestartingPlayback(action))
+        {
+            return;
+        }
+
+        logger.Information(
+            "[AndroidAuto] PlaybackStatusChanged: Status={NewStatus}, PreviousStatus={PreviousStatus}, IsAutoAdvancing={IsAutoAdvancing}, ScheduleId={ScheduleId}, CanPlayNext={CanPlayNext}",
+            action.Status,
+            previousStatus,
+            isAutoAdvancing,
+            currentState.CurrentScheduleId,
+            currentState.CanPlayNext);
+
+        if (!TryApplyPlaybackStatusBranch(action, isAutoAdvancing))
+        {
+            return;
+        }
+
+        await CoordinatePlaybackLifecycleSideEffectsAsync(action);
+        ApplyMediaSessionActivationPolicyForMediaElementOwner();
+    }
+
+    /// <summary>Returns true when the handler should exit early (restart suppression path).</summary>
+    private bool TryShortCircuitRestartingPlayback(PlaybackStatusChangedAction action)
+    {
+        if (!isRestartingPlayback)
+        {
+            return false;
+        }
+
+        if (action.Status is PlayStatus.Stopped or PlayStatus.Ended)
+        {
+            logger.Information(
+                "[AndroidAuto] Suppressing {Status} MediaSession update during playback restart to prevent flashing",
+                action.Status);
+            ForegroundServiceCoordinator.OnPlaybackStopped();
+            return true;
+        }
+
+        SetRestartingPlayback(false);
+        logger.Information(
+            "[AndroidAuto] Cleared restart suppression flag on {Status} status", action.Status);
+        return false;
+    }
+
+    /// <summary>Returns false when Loading branch skips the rest (Fluxor already advanced past Loading).</summary>
+    private bool TryApplyPlaybackStatusBranch(PlaybackStatusChangedAction action, bool isAutoAdvancing)
+    {
+        switch (action.Status)
+        {
+            case PlayStatus.Loading:
+                return ApplyLoadingPlaybackBranch(isAutoAdvancing);
+            case PlayStatus.Stopped:
+                ApplyStoppedPlaybackBranch(action);
+                return true;
+            case PlayStatus.Paused:
+                ApplyPausedPlaybackBranch(action);
+                return true;
+            case PlayStatus.Failed:
+                ApplyFailedPlaybackBranch();
+                return true;
+            default:
+                ApplyDefaultPlaybackBranch(action);
+                return true;
+        }
+    }
+
+    private bool ApplyLoadingPlaybackBranch(bool isAutoAdvancing)
+    {
+        if (playbackState.Value.Status != PlayStatus.Loading)
+        {
+            logger.Debug(
+                "[AndroidAuto] Skipping Buffering state — Fluxor status already advanced past Loading to {Status}",
+                playbackState.Value.Status);
+            return false;
+        }
+
+        if (isAutoAdvancing)
+        {
+            logger.Information(
+                "[AndroidAuto] Loading status with auto-advancing: Setting to Buffering state with Pause action (pause button visible, buffering progress, no prev/next buttons, matches Alarm Modal)");
+            mediaSessionManager.UpdatePlaybackState(
+                PlaybackStateCompat.StateBuffering,
+                position: 0,
+                canPlayNext: true,
+                canPlayPrevious: true);
+        }
+        else
+        {
+            logger.Information(
+                "[AndroidAuto] Loading status without auto-advancing: Setting to Buffering state (preserving metadata, no prev/next buttons)");
+            mediaSessionManager.SetBufferingStateOnly();
+        }
+
+        return true;
+    }
+
+    private void ApplyStoppedPlaybackBranch(PlaybackStatusChangedAction action)
+    {
+        var currentAutoAdvancing = playbackState.Value.IsAutoAdvancing;
+        const bool canPlayNext = true;
+        const bool canPlayPrevious = true;
+        if (currentAutoAdvancing)
+        {
+            logger.Information(
+                "[AndroidAuto] Stopped status with auto-advancing: Setting to Playing state (pause button visible, no prev/next buttons during transition)");
+            mediaSessionManager.SetPlaybackStatus(PlayStatus.Playing, canPlayNext, canPlayPrevious);
+        }
+        else
+        {
+            logger.Information(
+                "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+                action.Status,
+                canPlayNext,
+                canPlayPrevious);
+            mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
+        }
+    }
+
+    private void ApplyPausedPlaybackBranch(PlaybackStatusChangedAction action)
+    {
+        var snapshot = playbackState.Value;
+        if (snapshot.IsAutoAdvancing || snapshot.IsTransitioningTrack)
+        {
+            logger.Information(
+                "[AndroidAuto] Paused status during track transition: keeping Playing state to prevent play button flash (IsAutoAdvancing={IsAutoAdvancing}, IsTransitioningTrack={IsTransitioningTrack})",
+                snapshot.IsAutoAdvancing,
+                snapshot.IsTransitioningTrack);
+            mediaSessionManager.SetPlaybackStatus(PlayStatus.Playing, canPlayNext: true, canPlayPrevious: true);
+        }
+        else
+        {
+            logger.Information(
+                "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+                action.Status,
+                true,
+                true);
+            mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext: true, canPlayPrevious: true);
+        }
+    }
+
+    private void ApplyFailedPlaybackBranch()
+    {
+        var errorMessage = playbackState.Value.ErrorMessage;
+        logger.Information(
+            "[AndroidAuto] Playback failed — setting error state with message on Now Playing screen: {ErrorMessage}",
+            errorMessage);
+        mediaSessionManager.SetErrorState(errorMessage, canPlayNext: true, canPlayPrevious: true);
+    }
+
+    private void ApplyDefaultPlaybackBranch(PlaybackStatusChangedAction action)
+    {
+        const bool canPlayNext = true;
+        const bool canPlayPrevious = true;
+        logger.Information(
+            "[AndroidAuto] Setting playback status to {Status} - CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
+            action.Status,
+            canPlayNext,
+            canPlayPrevious);
+        mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
+    }
+
+    private async Task CoordinatePlaybackLifecycleSideEffectsAsync(PlaybackStatusChangedAction action)
+    {
+        if (action.Status == PlayStatus.Playing)
+        {
+            await ForegroundServiceCoordinator.OnPlaybackStarted();
+            SaveCurrentMetadataToPreferencesIfAvailable();
+        }
+        else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
+        {
+            ForegroundServiceCoordinator.OnPlaybackStopped();
+            ResetMetadataDedup();
+        }
+    }
+
+    private void ApplyMediaSessionActivationPolicyForMediaElementOwner()
+    {
+        if (!ForegroundServiceCoordinator.IsAndroidAutoConnected
+            && ForegroundServiceCoordinator.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.MediaElement)
+        {
+            mediaSessionManager.SetActive(false);
         }
     }
 

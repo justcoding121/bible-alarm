@@ -157,73 +157,67 @@ public sealed class IosNotificationPermissionService : IDisposable
         }
 
         logger.Information("IosNotificationPermissionService: Requesting notification permission");
+        MainThread.BeginInvokeOnMainThread(() => _ = RunAuthorizationRequestAsync());
+        return false;
+    }
 
-        MainThread.BeginInvokeOnMainThread(async () =>
+    private async Task RunAuthorizationRequestAsync()
+    {
+        try
         {
-            try
+            var (granted, error) = await UNUserNotificationCenter.Current.RequestAuthorizationAsync(
+                UNAuthorizationOptions.Alert | UNAuthorizationOptions.Sound | UNAuthorizationOptions.Badge | UNAuthorizationOptions.TimeSensitive);
+
+            if (error != null)
             {
-                var (granted, error) = await UNUserNotificationCenter.Current.RequestAuthorizationAsync(
-                    UNAuthorizationOptions.Alert | UNAuthorizationOptions.Sound | UNAuthorizationOptions.Badge | UNAuthorizationOptions.TimeSensitive);
-
-                if (error != null)
-                {
-                    logger.Error("IosNotificationPermissionService: Error requesting permission: {Error}", error);
-                    // Update cache
-                    cachedPermissionResult = false;
-                    lastPermissionCheck = DateTime.UtcNow;
-                    PermissionDenied?.Invoke(this, EventArgs.Empty);
-                    return;
-                }
-
-                logger.Information("IosNotificationPermissionService: Permission result - Granted: {Granted}", granted);
-
-                // Update cache immediately when permission changes
-                // This ensures IsGranted property returns correct value immediately
-                cachedPermissionResult = granted;
-                lastPermissionCheck = DateTime.UtcNow;
-                logger.Information("[NOTIFICATION-PERMISSION] Cache updated after permission request - Granted: {Granted}", granted);
-
-                // Fire events on main thread (like Android does)
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try
-                    {
-                        if (granted)
-                        {
-                            PermissionGranted?.Invoke(this, EventArgs.Empty);
-                        }
-                        else
-                        {
-                            PermissionDenied?.Invoke(this, EventArgs.Empty);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "IosNotificationPermissionService: Exception in permission event handler");
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "IosNotificationPermissionService: Exception requesting permission");
-                // Update cache
+                logger.Error("IosNotificationPermissionService: Error requesting permission: {Error}", error);
                 cachedPermissionResult = false;
                 lastPermissionCheck = DateTime.UtcNow;
-                MainThread.BeginInvokeOnMainThread(() =>
+                PermissionDenied?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            logger.Information("IosNotificationPermissionService: Permission result - Granted: {Granted}", granted);
+            cachedPermissionResult = granted;
+            lastPermissionCheck = DateTime.UtcNow;
+            logger.Information("[NOTIFICATION-PERMISSION] Cache updated after permission request - Granted: {Granted}", granted);
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
                 {
-                    try
+                    if (granted)
+                    {
+                        PermissionGranted?.Invoke(this, EventArgs.Empty);
+                    }
+                    else
                     {
                         PermissionDenied?.Invoke(this, EventArgs.Empty);
                     }
-                    catch (Exception eventEx)
-                    {
-                        logger.Error(eventEx, "IosNotificationPermissionService: Exception in PermissionDenied event handler");
-                    }
-                });
-            }
-        });
-
-        return false;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "IosNotificationPermissionService: Exception in permission event handler");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "IosNotificationPermissionService: Exception requesting permission");
+            cachedPermissionResult = false;
+            lastPermissionCheck = DateTime.UtcNow;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    PermissionDenied?.Invoke(this, EventArgs.Empty);
+                }
+                catch (Exception eventEx)
+                {
+                    logger.Error(eventEx, "IosNotificationPermissionService: Exception in PermissionDenied event handler");
+                }
+            });
+        }
     }
     
     /// <summary>
