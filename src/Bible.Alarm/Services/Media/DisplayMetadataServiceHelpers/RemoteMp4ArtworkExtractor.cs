@@ -79,8 +79,22 @@ internal sealed class RemoteMp4ArtworkExtractor
         };
 
         var contentLength = await GetContentLengthAsync(client, url, cancellationToken);
-        long? len = contentLength;
+        var moovBytes = await ResolveMoovBytesAsync(client, url, contentLength, cancellationToken);
 
+        if (moovBytes == null || moovBytes.Length == 0)
+        {
+            return null;
+        }
+
+        return await ParseMoovWithTagLibAsync(moovBytes);
+    }
+
+    private static async Task<byte[]?> ResolveMoovBytesAsync(
+        HttpClient client,
+        string url,
+        long? len,
+        CancellationToken cancellationToken)
+    {
         byte[]? moovBytes = null;
         if (len.HasValue && len.Value >= 28)
         {
@@ -92,32 +106,23 @@ internal sealed class RemoteMp4ArtworkExtractor
             else if (moovBytes == null && len.Value <= TailChunkSize)
             {
                 var full = await FetchRangeAsync(client, url, 0, len.Value - 1, cancellationToken);
-                if (full != null)
-                {
-                    moovBytes = FindAndExtractMoov(full);
-                }
+                moovBytes = full != null ? FindAndExtractMoov(full) : null;
             }
         }
 
-        if (moovBytes == null)
+        if (moovBytes != null)
         {
-            moovBytes = await TryGetMoovFromHeadAsync(client, url, cancellationToken);
-            if (moovBytes == null)
-            {
-                var tailSuffix = await FetchSuffixRangeAsync(client, url, TailChunkSize, cancellationToken);
-                if (tailSuffix != null)
-                {
-                    moovBytes = FindAndExtractMoovFromTail(tailSuffix);
-                }
-            }
+            return moovBytes;
         }
 
-        if (moovBytes == null || moovBytes.Length == 0)
+        moovBytes = await TryGetMoovFromHeadAsync(client, url, cancellationToken);
+        if (moovBytes != null)
         {
-            return null;
+            return moovBytes;
         }
 
-        return await ParseMoovWithTagLibAsync(moovBytes);
+        var tailSuffix = await FetchSuffixRangeAsync(client, url, TailChunkSize, cancellationToken);
+        return tailSuffix != null ? FindAndExtractMoovFromTail(tailSuffix) : null;
     }
 
     private static async Task<long?> GetContentLengthAsync(HttpClient client, string url, CancellationToken cancellationToken)
@@ -201,27 +206,47 @@ internal sealed class RemoteMp4ArtworkExtractor
         return FindAndExtractMoovFromTail(tail);
     }
 
+    private static bool TryReadIsoBmffAtomSize(byte[] buffer, long offset, out int atomSize)
+    {
+        atomSize = 0;
+        if (offset + 8 > buffer.Length)
+        {
+            return false;
+        }
+
+        var size32 = ReadUInt32BigEndian(buffer, (int)offset);
+        if (size32 == 1)
+        {
+            if (offset + 16 > buffer.Length)
+            {
+                return false;
+            }
+
+            var sz64 = ReadUInt64BigEndian(buffer, (int)offset + 8);
+            if (sz64 < 16)
+            {
+                return false;
+            }
+
+            atomSize = (int)sz64;
+            return true;
+        }
+
+        if (size32 < 8)
+        {
+            return false;
+        }
+
+        atomSize = size32;
+        return true;
+    }
+
     private static byte[]? FindAndExtractMoov(byte[] buffer)
     {
         long offset = 0;
         while (offset + 8 <= buffer.Length)
         {
-            int size = ReadUInt32BigEndian(buffer, (int)offset);
-            // ISO BMFF: size 1 means the atom uses a 64-bit size field (must handle before size < 8 check).
-            if (size == 1)
-            {
-                if (offset + 16 > buffer.Length)
-                {
-                    return null;
-                }
-
-                size = (int)ReadUInt64BigEndian(buffer, (int)offset + 8);
-                if (size < 16)
-                {
-                    return null;
-                }
-            }
-            else if (size < 8)
+            if (!TryReadIsoBmffAtomSize(buffer, offset, out var size))
             {
                 return null;
             }
@@ -254,42 +279,54 @@ internal sealed class RemoteMp4ArtworkExtractor
             }
 
             int start = i - 4;
-            int size32 = ReadUInt32BigEndian(tail, start);
-            long atomSize;
-            if (size32 == 1)
-            {
-                if (i + 12 > tail.Length)
-                {
-                    continue;
-                }
-
-                atomSize = ReadUInt64BigEndian(tail, i + 4);
-                if (atomSize < 16 || atomSize > MaxMoovSize)
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                if (size32 < 8 || size32 > MaxMoovSize)
-                {
-                    continue;
-                }
-
-                atomSize = size32;
-            }
-
-            if (start + atomSize > tail.Length)
+            if (!TryReadTailMoovAtomExtent(tail, start, i, out var atomSize))
             {
                 continue;
             }
 
             var moov = new byte[atomSize];
-            Buffer.BlockCopy(tail, start, moov, 0, (int)atomSize);
+            Buffer.BlockCopy(tail, start, moov, 0, atomSize);
             return moov;
         }
 
         return null;
+    }
+
+    private static bool TryReadTailMoovAtomExtent(byte[] tail, int start, int moovTypeIndex, out int atomSize)
+    {
+        atomSize = 0;
+        var size32 = ReadUInt32BigEndian(tail, start);
+        long atomSizeLong;
+        if (size32 == 1)
+        {
+            if (moovTypeIndex + 12 > tail.Length)
+            {
+                return false;
+            }
+
+            atomSizeLong = ReadUInt64BigEndian(tail, moovTypeIndex + 4);
+            if (atomSizeLong < 16 || atomSizeLong > MaxMoovSize)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (size32 < 8 || size32 > MaxMoovSize)
+            {
+                return false;
+            }
+
+            atomSizeLong = size32;
+        }
+
+        if (start + atomSizeLong > tail.Length)
+        {
+            return false;
+        }
+
+        atomSize = (int)atomSizeLong;
+        return true;
     }
 
     private static bool MatchesType(byte[] buffer, int index, byte[] type)
@@ -350,38 +387,32 @@ internal sealed class RemoteMp4ArtworkExtractor
                 return await ReadFirstBytesFromStreamAsync(response, (int)requestedLength, cancellationToken);
             }
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-            int take = (int)Math.Min(requestedLength, bytes.Length);
-            var slice = new byte[take];
-            if (from > 0)
-            {
-                Buffer.BlockCopy(bytes, bytes.Length - take, slice, 0, take);
-            }
-            else
-            {
-                Buffer.BlockCopy(bytes, 0, slice, 0, take);
-            }
-
-            return slice;
+            return SliceRequestedPortion(bytes, from, requestedLength);
         }
 
         var body = await response.Content.ReadAsByteArrayAsync(cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.OK && body.Length > requestedLength)
         {
-            int take = (int)Math.Min(requestedLength, body.Length);
-            var slice = new byte[take];
-            if (from > 0)
-            {
-                Buffer.BlockCopy(body, body.Length - take, slice, 0, take);
-            }
-            else
-            {
-                Buffer.BlockCopy(body, 0, slice, 0, take);
-            }
-
-            return slice;
+            return SliceRequestedPortion(body, from, requestedLength);
         }
 
         return body;
+    }
+
+    private static byte[] SliceRequestedPortion(byte[] bytes, long from, long requestedLength)
+    {
+        var take = (int)Math.Min(requestedLength, bytes.Length);
+        var slice = new byte[take];
+        if (from > 0)
+        {
+            Buffer.BlockCopy(bytes, bytes.Length - take, slice, 0, take);
+        }
+        else
+        {
+            Buffer.BlockCopy(bytes, 0, slice, 0, take);
+        }
+
+        return slice;
     }
 
     private static async Task<byte[]?> ReadFirstBytesFromStreamAsync(HttpResponseMessage response, int count, CancellationToken cancellationToken)
@@ -469,56 +500,7 @@ internal sealed class RemoteMp4ArtworkExtractor
 
             using (tagFile)
             {
-                var tag = tagFile.Tag;
-                string? artistMeta = null;
-                if (!string.IsNullOrEmpty(tag.FirstPerformer))
-                {
-                    artistMeta = tag.FirstPerformer;
-                }
-                else if (!string.IsNullOrEmpty(tag.FirstAlbumArtist))
-                {
-                    artistMeta = tag.FirstAlbumArtist;
-                }
-
-                string? titleMeta = null;
-                if (!string.IsNullOrEmpty(tag.Title))
-                {
-                    titleMeta = tag.Title;
-                }
-
-                string? albumMeta = null;
-                if (!string.IsNullOrEmpty(tag.Album))
-                {
-                    albumMeta = tag.Album;
-                }
-
-                var meta = new MetaData
-                {
-                    Title = titleMeta,
-                    Artist = artistMeta,
-                    Album = albumMeta
-                };
-
-                if (tag.Pictures != null && tag.Pictures.Length > 0)
-                {
-                    TagLib.IPicture? largest = null;
-                    int largestSize = 0;
-                    foreach (var pic in tag.Pictures)
-                    {
-                        if (pic?.Data?.Data != null && pic.Data.Data.Length > largestSize)
-                        {
-                            largest = pic;
-                            largestSize = pic.Data.Data.Length;
-                        }
-                    }
-
-                    if (largest?.Data?.Data != null)
-                    {
-                        meta.ArtworkBytes = largest.Data.Data;
-                    }
-                }
-
-                return meta;
+                return BuildMetaFromTag(tagFile.Tag);
             }
         }
         finally
@@ -534,6 +516,56 @@ internal sealed class RemoteMp4ArtworkExtractor
                     logger.Debug(ex, AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Mp4FailedToDeleteTempFileFromTempPath, tempFilePath);
                 }
             }
+        }
+    }
+
+    private static MetaData BuildMetaFromTag(TagLib.Tag tag)
+    {
+        string? artistMeta = null;
+        if (!string.IsNullOrEmpty(tag.FirstPerformer))
+        {
+            artistMeta = tag.FirstPerformer;
+        }
+        else if (!string.IsNullOrEmpty(tag.FirstAlbumArtist))
+        {
+            artistMeta = tag.FirstAlbumArtist;
+        }
+
+        string? titleMeta = string.IsNullOrEmpty(tag.Title) ? null : tag.Title;
+        string? albumMeta = string.IsNullOrEmpty(tag.Album) ? null : tag.Album;
+
+        var meta = new MetaData
+        {
+            Title = titleMeta,
+            Artist = artistMeta,
+            Album = albumMeta
+        };
+
+        AssignLargestPicture(tag, meta);
+        return meta;
+    }
+
+    private static void AssignLargestPicture(TagLib.Tag tag, MetaData meta)
+    {
+        if (tag.Pictures == null || tag.Pictures.Length == 0)
+        {
+            return;
+        }
+
+        TagLib.IPicture? largest = null;
+        var largestSize = 0;
+        foreach (var pic in tag.Pictures)
+        {
+            if (pic?.Data?.Data != null && pic.Data.Data.Length > largestSize)
+            {
+                largest = pic;
+                largestSize = pic.Data.Data.Length;
+            }
+        }
+
+        if (largest?.Data?.Data != null)
+        {
+            meta.ArtworkBytes = largest.Data.Data;
         }
     }
 }

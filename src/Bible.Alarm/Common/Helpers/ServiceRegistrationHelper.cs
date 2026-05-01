@@ -75,6 +75,8 @@ using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Categories;
+using Bible.Alarm.Stores.Effects;
+using Bible.Alarm.Stores.Models;
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.Media;
 using Bible.Alarm.Platforms.Windows.Services.Media.Interfaces;
@@ -128,6 +130,15 @@ public static class ServiceRegistrationHelper
 
         // Explicitly register ScheduleEffects to ensure it's available for Effect discovery
         // Note: Fluxor should auto-discover Effects, but explicit registration ensures DI can resolve it
+        services.AddScoped(sp => new ScheduleEffectsOptionalDeps(
+            BiblePublicationService: sp.GetService<IBiblePublicationService>(),
+            BiblePublicationSectionService: sp.GetService<IBiblePublicationSectionService>(),
+            AlarmScheduleService: sp.GetService<IAlarmScheduleService>(),
+            AlarmService: sp.GetService<IAlarmService>(),
+            MediaCacheService: sp.GetService<IMediaCacheService>(),
+            MediaService: sp.GetService<IMediaService>(),
+            State: sp.GetService<IState<Bible.Alarm.Stores.ApplicationState>>(),
+            ScheduleDisplayNameService: sp.GetService<IScheduleDisplayNameService>()));
         services.AddScoped<Bible.Alarm.Stores.Effects.ScheduleEffects>();
 
         // Register logging
@@ -155,7 +166,15 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IPreparePlaybackService, PreparePlaybackService>();
         services.AddSingleton<IFallbackAlarmSoundService, FallbackAlarmSoundService>();
         services.AddSingleton<IAlarmService, AlarmService>();
-        services.AddSingleton<IScheduleStateService, ScheduleStateService>();
+        services.AddSingleton<IScheduleStateService>(sp => new ScheduleStateService(new ScheduleStateServiceDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<IAlarmScheduleService>(),
+            sp.GetRequiredService<IAlarmService>(),
+            sp.GetRequiredService<INotificationService>(),
+            sp.GetRequiredService<IToastService>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<INavigationService>(),
+            sp)));
         services.AddSingleton<ISchedulePlaybackService, SchedulePlaybackService>();
         services.AddSingleton<ISchedulePersistenceService, SchedulePersistenceService>();
         services.AddSingleton<IDefaultScheduleService, DefaultScheduleService>();
@@ -245,7 +264,14 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IFluxorBootstrapService, FluxorBootstrapService>();
         services.AddSingleton<IResourceBootstrapService, ResourceBootstrapService>();
         services.AddSingleton<IScheduleBootstrapService, ScheduleBootstrapService>();
-        services.AddSingleton<IBootstrapOrchestrator, BootstrapOrchestrator>();
+        services.AddSingleton<IBootstrapOrchestrator>(sp => new BootstrapOrchestrator(new BootstrapOrchestratorDeps(
+            sp.GetRequiredService<IDatabaseBootstrapService>(),
+            sp.GetRequiredService<IFluxorBootstrapService>(),
+            sp.GetRequiredService<IResourceBootstrapService>(),
+            sp.GetRequiredService<IScheduleBootstrapService>(),
+            sp.GetRequiredService<IPlatformBootstrapService>(),
+            sp.GetRequiredService<ILanguageNameService>(),
+            sp.GetRequiredService<ICategoryNameService>())));
 
         // Register platform-specific bootstrap service (notification channels, background jobs)
 #if ANDROID

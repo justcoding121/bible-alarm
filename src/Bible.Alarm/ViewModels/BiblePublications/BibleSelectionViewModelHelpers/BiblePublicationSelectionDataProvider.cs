@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
@@ -69,26 +70,7 @@ public sealed class BiblePublicationSelectionDataProvider
             Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulateLanguagesLoaded,
                 languagesData.Count, currentLanguageCode ?? "(null)");
 
-            var languageVMs = new List<LanguageListViewItemModel>();
-
-            foreach (var language in languagesData.Values)
-            {
-                var name = names.GetValueOrDefault(language.Id) ?? language.LanguageCode;
-                if (trimmedSearchTerm != null && !name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                var languageVm = new LanguageListViewItemModel(language, name);
-                languageVMs.Add(languageVm);
-
-                if (!string.IsNullOrEmpty(currentLanguageCode) && 
-                    string.Equals(languageVm.Code, currentLanguageCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    languageVm.IsSelected = true;
-                    Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulateLanguagesMarkedSelected,
-                        languageVm.Code, languageVm.Name);
-                }
-            }
-
-            languageVMs = languageVMs.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+            var languageVMs = BuildSortedLanguageViewModels(languagesData, names, trimmedSearchTerm, currentLanguageCode);
 
             // Add items in small batches with frequent yields for smooth spinner animation
             const int batchSize = 15;
@@ -111,6 +93,38 @@ public sealed class BiblePublicationSelectionDataProvider
                 await Task.Yield();
             }
         });
+    }
+
+    private List<LanguageListViewItemModel> BuildSortedLanguageViewModels(
+        Dictionary<string, Language> languagesData,
+        Dictionary<int, string> names,
+        string? trimmedSearchTerm,
+        string? currentLanguageCode)
+    {
+        var languageVMs = new List<LanguageListViewItemModel>();
+
+        foreach (var language in languagesData.Values)
+        {
+            var name = names.GetValueOrDefault(language.Id) ?? language.LanguageCode;
+            if (trimmedSearchTerm != null && !name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var languageVm = new LanguageListViewItemModel(language, name);
+
+            if (!string.IsNullOrEmpty(currentLanguageCode) &&
+                string.Equals(languageVm.Code, currentLanguageCode, StringComparison.OrdinalIgnoreCase))
+            {
+                languageVm.IsSelected = true;
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulateLanguagesMarkedSelected,
+                    languageVm.Code, languageVm.Name);
+            }
+
+            languageVMs.Add(languageVm);
+        }
+
+        return languageVMs.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
     // Using centralized sorting helper from Bible.Alarm.Shared.Helpers.PublicationSortHelper
@@ -155,8 +169,8 @@ public sealed class BiblePublicationSelectionDataProvider
                 var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
                 var actualPublicationCount = initialPublications?.Values.Count ?? 0;
                 var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
-                var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p =>
-                    !string.IsNullOrEmpty(p.Name) && !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && p.Id > 0);
+                var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 &&
+                    initialPublications.Values.All(IsPublicationFullyCataloged);
 
                 if (allPublicationsCataloged)
                 {
@@ -215,10 +229,8 @@ public sealed class BiblePublicationSelectionDataProvider
                             // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
                             // A publication is cataloged if it has a name that's different from its code and has an ID > 0
                             var retryHasAllExpected = retryActualCount >= retryExpectedCount;
-                            var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p => 
-                                !string.IsNullOrEmpty(p.Name) && 
-                                !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && 
-                                p.Id > 0);
+                            var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 &&
+                                reQueriedData.Values.All(IsPublicationFullyCataloged);
                             
                             if (retryAllCataloged)
                             {
@@ -229,8 +241,7 @@ public sealed class BiblePublicationSelectionDataProvider
                             }
                             else
                             {
-                                var currentCatalogedCount = reQueriedData?.Values.Count(p =>
-                                    !string.IsNullOrEmpty(p.Name) && !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) && p.Id > 0) ?? 0;
+                                var currentCatalogedCount = reQueriedData?.Values.Count(IsPublicationFullyCataloged) ?? 0;
 
                                 if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
                                 {
@@ -244,10 +255,7 @@ public sealed class BiblePublicationSelectionDataProvider
                                 // Log which publications are still placeholders or missing for debugging
                                 if (reQueriedData != null)
                                 {
-                                    var placeholders = reQueriedData.Values.Where(p => 
-                                        string.IsNullOrEmpty(p.Name) || 
-                                        string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) || 
-                                        p.Id == 0).Select(p => p.PublicationCode).ToList();
+                                    var placeholders = reQueriedData.Values.Where(p => !IsPublicationFullyCataloged(p)).Select(p => p.PublicationCode).ToList();
                                     
                                     if (placeholders.Count > 0)
                                     {
@@ -344,7 +352,7 @@ public sealed class BiblePublicationSelectionDataProvider
 
             // Remove placeholder publications that couldn't be fetched (e.g. no tracks on the server)
             var unfetchableCodes = publicationsData
-                .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || string.Equals(kvp.Value.Name, kvp.Value.PublicationCode, StringComparison.OrdinalIgnoreCase))
+                .Where(kvp => !IsPublicationFullyCataloged(kvp.Value))
                 .Select(kvp => kvp.Key)
                 .ToList();
             if (unfetchableCodes.Count > 0)
@@ -515,6 +523,11 @@ public sealed class BiblePublicationSelectionDataProvider
                 languageCode, defaultPublication.Code);
         }
     }
+
+    private static bool IsPublicationFullyCataloged(Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication p) =>
+        !string.IsNullOrEmpty(p.Name) &&
+        !string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) &&
+        p.Id > 0;
 
     public Dictionary<string, PublicationListViewItemModel> GetPublicationVMsMapping()
     {

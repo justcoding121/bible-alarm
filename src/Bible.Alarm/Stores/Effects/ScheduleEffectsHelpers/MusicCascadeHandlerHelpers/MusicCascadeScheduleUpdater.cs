@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -18,76 +19,90 @@ public static class MusicCascadeScheduleUpdater
     public static void UpdateSchedule(
         ILogger logger,
         ScheduleStateItem currentSchedule,
-        string publicationCode,
-        string? publicationName,
-        string? sectionCode,
-        string sectionName,
-        string trackCode,
-        string trackTitle,
-        int? publicationModalItemCount,
-        int? sectionModalItemCount,
+        MusicCascadeScheduleMutation mutation,
         IDispatcher dispatcher)
     {
+        var m = mutation;
         var currentSectionCode = currentSchedule.MusicSectionCode;
         var currentTrackCode = currentSchedule.MusicTrackCode;
         var currentTrackTitle = currentSchedule.MusicTrackName;
         var currentPublicationCode = currentSchedule.MusicPublicationCode;
-        var publicationChanged = !Bible.Alarm.Shared.Helpers.PublicationCodeHelper.CodeEquals(currentPublicationCode, publicationCode);
-        var sectionChanged = !Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, sectionCode);
-        var trackChanged = !Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Equals(currentTrackCode, trackCode);
-        var publicationModalCountChanged = currentSchedule.MusicPublicationModalItemCount != publicationModalItemCount;
-        var sectionModalCountChanged = currentSchedule.MusicSectionModalItemCount != sectionModalItemCount;
+        var publicationChanged = !PublicationCodeHelper.CodeEquals(currentPublicationCode, m.PublicationCode);
+        var sectionChanged = !SectionCodeHelper.CodeEquals(currentSectionCode, m.SectionCode);
+        var trackChanged = !CodeComparisonHelper.Equals(currentTrackCode, m.TrackCode);
+        var publicationModalCountChanged = currentSchedule.MusicPublicationModalItemCount != m.PublicationModalItemCount;
+        var sectionModalCountChanged = currentSchedule.MusicSectionModalItemCount != m.SectionModalItemCount;
 
-        if (Bible.Alarm.Shared.Helpers.PublicationCodeHelper.CodeEquals(currentSchedule.MusicPublicationCode, publicationCode) &&
-            Bible.Alarm.Shared.Helpers.SectionCodeHelper.CodeEquals(currentSectionCode, sectionCode) &&
-            Bible.Alarm.Shared.Helpers.CodeComparisonHelper.Equals(currentTrackCode, trackCode) &&
-            currentTrackTitle == trackTitle &&
+        if (PublicationCodeHelper.CodeEquals(currentSchedule.MusicPublicationCode, m.PublicationCode) &&
+            SectionCodeHelper.CodeEquals(currentSectionCode, m.SectionCode) &&
+            CodeComparisonHelper.Equals(currentTrackCode, m.TrackCode) &&
+            currentTrackTitle == m.TrackTitle &&
             !publicationModalCountChanged &&
             !sectionModalCountChanged)
         {
             logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatchCycle,
-                publicationCode, sectionCode ?? "null", trackCode);
+                m.PublicationCode, m.SectionCode ?? "null", m.TrackCode);
             return;
         }
 
         var updatedSchedule = currentSchedule.DeepClone();
-        updatedSchedule.MusicPublicationCode = publicationCode;
-        if (publicationChanged)
-        {
-            updatedSchedule.MusicPublicationName = !string.IsNullOrWhiteSpace(publicationName)
-                ? publicationName
-                : publicationCode;
-        }
-        else if (!string.IsNullOrWhiteSpace(publicationName))
-        {
-            updatedSchedule.MusicPublicationName = publicationName;
-        }
-        updatedSchedule.MusicSectionCode = sectionCode;
-        if (publicationChanged || sectionChanged)
-        {
-            updatedSchedule.MusicSectionName = !string.IsNullOrWhiteSpace(sectionName)
-                ? sectionName
-                : null;
-        }
-        else if (!string.IsNullOrWhiteSpace(sectionName))
-        {
-            updatedSchedule.MusicSectionName = sectionName;
-        }
-        updatedSchedule.MusicTrackCode = trackCode;
-        if (publicationChanged || sectionChanged || trackChanged)
-        {
-            updatedSchedule.MusicTrackName = !string.IsNullOrWhiteSpace(trackTitle)
-                ? trackTitle
-                : null;
-        }
-        else if (!string.IsNullOrWhiteSpace(trackTitle))
-        {
-            updatedSchedule.MusicTrackName = trackTitle;
-        }
+        updatedSchedule.MusicPublicationCode = m.PublicationCode;
+        AssignMusicPublicationDisplayName(updatedSchedule, m, publicationChanged);
+        AssignMusicSectionName(updatedSchedule, m, publicationChanged, sectionChanged);
+        updatedSchedule.MusicTrackCode = m.TrackCode;
+        AssignMusicTrackTitle(updatedSchedule, m, publicationChanged, sectionChanged, trackChanged);
 
-        updatedSchedule.MusicPublicationModalItemCount = publicationModalItemCount;
-        updatedSchedule.MusicSectionModalItemCount = sectionModalItemCount;
+        updatedSchedule.MusicPublicationModalItemCount = m.PublicationModalItemCount;
+        updatedSchedule.MusicSectionModalItemCount = m.SectionModalItemCount;
 
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+    }
+
+    private static void AssignMusicPublicationDisplayName(ScheduleStateItem updatedSchedule, MusicCascadeScheduleMutation m, bool publicationChanged)
+    {
+        if (publicationChanged)
+        {
+            updatedSchedule.MusicPublicationName = !string.IsNullOrWhiteSpace(m.PublicationName)
+                ? m.PublicationName
+                : m.PublicationCode;
+        }
+        else if (!string.IsNullOrWhiteSpace(m.PublicationName))
+        {
+            updatedSchedule.MusicPublicationName = m.PublicationName;
+        }
+    }
+
+    private static void AssignMusicSectionName(ScheduleStateItem updatedSchedule, MusicCascadeScheduleMutation m, bool publicationChanged, bool sectionChanged)
+    {
+        updatedSchedule.MusicSectionCode = m.SectionCode;
+        if (publicationChanged || sectionChanged)
+        {
+            updatedSchedule.MusicSectionName = !string.IsNullOrWhiteSpace(m.SectionName)
+                ? m.SectionName
+                : null;
+        }
+        else if (!string.IsNullOrWhiteSpace(m.SectionName))
+        {
+            updatedSchedule.MusicSectionName = m.SectionName;
+        }
+    }
+
+    private static void AssignMusicTrackTitle(
+        ScheduleStateItem updatedSchedule,
+        MusicCascadeScheduleMutation m,
+        bool publicationChanged,
+        bool sectionChanged,
+        bool trackChanged)
+    {
+        if (publicationChanged || sectionChanged || trackChanged)
+        {
+            updatedSchedule.MusicTrackName = !string.IsNullOrWhiteSpace(m.TrackTitle)
+                ? m.TrackTitle
+                : null;
+        }
+        else if (!string.IsNullOrWhiteSpace(m.TrackTitle))
+        {
+            updatedSchedule.MusicTrackName = m.TrackTitle;
+        }
     }
 }

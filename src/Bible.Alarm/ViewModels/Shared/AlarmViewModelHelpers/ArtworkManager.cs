@@ -27,45 +27,21 @@ public sealed class ArtworkManager(ILogger logger)
         var previousUrl = lastArtworkUrl;
         lastArtworkUrl = artworkUrl;
 
-        if (string.IsNullOrEmpty(artworkUrl))
+        if (!TryInvalidateStaleArtwork(artworkUrl, previousUrl, forceReload, setArtworkSource, setIsArtworkLoading))
         {
-            if (artworkSource != null)
-            {
-                ClearArtwork(setArtworkSource, setIsArtworkLoading);
-            }
-            else
-            {
-                setIsArtworkLoading(false);
-            }
             return;
-        }
-
-        // Clear existing artwork if URL changed or if forcing reload (for same file path with new content)
-        if (artworkSource != null && (!string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl || forceReload))
-        {
-            // When forcing reload, preserve the URL tracking
-            if (forceReload && previousUrl == artworkUrl)
-            {
-                artworkSource = null;
-                setArtworkSource(null);
-                setIsArtworkLoading(false);
-            }
-            else
-            {
-                ClearArtwork(setArtworkSource, setIsArtworkLoading);
-            }
         }
 
         setIsArtworkLoading(true);
 
         try
         {
-            if (TryLoadFromUri(artworkUrl, setArtworkSource, setIsArtworkLoading))
+            if (TryLoadFromUri(artworkUrl!, setArtworkSource, setIsArtworkLoading))
             {
                 return;
             }
 
-            var filePath = ResolveFilePath(artworkUrl);
+            var filePath = ResolveFilePath(artworkUrl!);
             if (!string.IsNullOrEmpty(filePath) && LoadFromFile(filePath, setArtworkSource, setIsArtworkLoading))
             {
                 return;
@@ -78,6 +54,43 @@ public sealed class ArtworkManager(ILogger logger)
             logger.Debug(ex, AppConstants.Logging.ArtworkManagerDiagnosticsLog.ErrorUpdatingArtworkFromUrl, artworkUrl);
             TryFallbackArtwork(fallbackUrl, setArtworkSource, setIsArtworkLoading);
         }
+    }
+
+    private bool TryInvalidateStaleArtwork(
+        string? artworkUrl,
+        string? previousUrl,
+        bool forceReload,
+        Action<ImageSource?> setArtworkSource,
+        Action<bool> setIsArtworkLoading)
+    {
+        if (string.IsNullOrEmpty(artworkUrl))
+        {
+            if (artworkSource != null)
+            {
+                ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            }
+            else
+            {
+                setIsArtworkLoading(false);
+            }
+            return false;
+        }
+
+        if (artworkSource != null && (!string.IsNullOrEmpty(previousUrl) && previousUrl != artworkUrl || forceReload))
+        {
+            if (forceReload && previousUrl == artworkUrl)
+            {
+                artworkSource = null;
+                setArtworkSource(null);
+                setIsArtworkLoading(false);
+            }
+            else
+            {
+                ClearArtwork(setArtworkSource, setIsArtworkLoading);
+            }
+        }
+
+        return true;
     }
 
     private void TryFallbackArtwork(string? fallbackUrl, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading)

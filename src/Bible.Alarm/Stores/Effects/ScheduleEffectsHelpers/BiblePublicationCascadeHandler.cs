@@ -99,58 +99,15 @@ public sealed class BiblePublicationCascadeHandler
         logger.Information(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.LanguageCascade,
             languageCode, categoryName ?? "all", existingPublicationCode ?? "none");
 
-        if (!string.IsNullOrWhiteSpace(existingPublicationCode))
+        if (await TryApplyExistingPublicationCascadeAsync(
+                currentSchedule,
+                languageCode,
+                categoryName,
+                existingPublicationCode,
+                publicationModalItemCount,
+                dispatcher))
         {
-            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.UsingExistingPublicationFromSchedule,
-                existingPublicationCode);
-
-            // EnsurePublicationExistsAsync is idempotent: returns true if already cataloged,
-            // catalogs if available in PublicationLanguages but not yet fetched,
-            // returns false if not available for this language at all.
-            var wasCataloged = await languageContentService.EnsurePublicationExistsAsync(existingPublicationCode, languageCode);
-            if (wasCataloged)
-            {
-                mediaService.InvalidateBiblePublicationsCache(languageCode, categoryName);
-
-                var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
-                var languageModel = new LanguageListViewItemModel(new Language
-                {
-                    LanguageCode = languageCode,
-                    Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
-                }, languageDisplayName);
-
-                var publicationModel = new PublicationListViewItemModel(new Publication
-                {
-                    PublicationCode = existingPublicationCode,
-                    Name = currentSchedule.BiblePublicationName ?? existingPublicationCode
-                });
-
-                var (resultSectionCode, resultTrackCode, resultSectionName, resultTrackTitle) =
-                    await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
-
-                if (!string.IsNullOrWhiteSpace(resultTrackCode))
-                {
-                    var existingPublicationName = currentSchedule.BiblePublicationName ?? existingPublicationCode;
-                    using var verifyScope = scopeFactory.CreateScope();
-                    var verifyDb = verifyScope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
-                    var sectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(verifyDb, existingPublicationCode, languageCode);
-                    var existingTracks = await mediaService.GetBiblePublicationTracks(languageCode, existingPublicationCode, SectionCodeHelper.Normalize(resultSectionCode));
-                    var existingTrackCount = existingTracks?.Count;
-                    BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
-                        logger, currentSchedule, existingPublicationCode, existingPublicationName,
-                        resultSectionCode, resultSectionName, resultTrackCode, resultTrackTitle,
-                        publicationModalItemCount, sectionModalItemCount, existingTrackCount, dispatcher);
-                    return;
-                }
-
-                logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForExistingPublicationAfterCataloging,
-                    existingPublicationCode);
-            }
-            else
-            {
-                logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ExistingPublicationNotAvailableSelectingNew,
-                    existingPublicationCode, languageCode);
-            }
+            return;
         }
 
         // Get first publication - try publications with LanguageId for selected language, then publications without LanguageId
@@ -314,17 +271,90 @@ public sealed class BiblePublicationCascadeHandler
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            publicationCode,
-            publicationName,
-            sectionCode,
-            sectionName,
-            trackCode,
-            trackTitle,
-            publicationModalItemCount,
-            sectionModalCount,
-            trackModalItemCount,
-            dispatcher,
-            publicationWithoutLanguage);
+            new BiblePublicationCascadeScheduleMutation(
+                publicationCode,
+                publicationName,
+                sectionCode,
+                sectionName,
+                trackCode,
+                trackTitle,
+                publicationModalItemCount,
+                sectionModalCount,
+                trackModalItemCount,
+                publicationWithoutLanguage),
+            dispatcher);
+    }
+
+    private async Task<bool> TryApplyExistingPublicationCascadeAsync(
+        ScheduleStateItem currentSchedule,
+        string languageCode,
+        string? categoryName,
+        string? existingPublicationCode,
+        int? publicationModalItemCount,
+        IDispatcher dispatcher)
+    {
+        if (string.IsNullOrWhiteSpace(existingPublicationCode))
+        {
+            return false;
+        }
+
+        logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.UsingExistingPublicationFromSchedule,
+            existingPublicationCode);
+
+        var wasCataloged = await languageContentService.EnsurePublicationExistsAsync(existingPublicationCode, languageCode);
+        if (!wasCataloged)
+        {
+            logger.Debug(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ExistingPublicationNotAvailableSelectingNew,
+                existingPublicationCode, languageCode);
+            return false;
+        }
+
+        mediaService.InvalidateBiblePublicationsCache(languageCode, categoryName);
+
+        var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
+        var languageModel = new LanguageListViewItemModel(new Language
+        {
+            LanguageCode = languageCode,
+            Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
+        }, languageDisplayName);
+
+        var publicationModel = new PublicationListViewItemModel(new Publication
+        {
+            PublicationCode = existingPublicationCode,
+            Name = currentSchedule.BiblePublicationName ?? existingPublicationCode
+        });
+
+        var (resultSectionCode, resultTrackCode, resultSectionName, resultTrackTitle) =
+            await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
+
+        if (string.IsNullOrWhiteSpace(resultTrackCode))
+        {
+            logger.Warning(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForExistingPublicationAfterCataloging,
+                existingPublicationCode);
+            return false;
+        }
+
+        var existingPublicationName = currentSchedule.BiblePublicationName ?? existingPublicationCode;
+        using var verifyScope = scopeFactory.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
+        var sectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(verifyDb, existingPublicationCode, languageCode);
+        var existingTracks = await mediaService.GetBiblePublicationTracks(languageCode, existingPublicationCode, SectionCodeHelper.Normalize(resultSectionCode));
+        var existingTrackCount = existingTracks?.Count;
+        BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
+            logger,
+            currentSchedule,
+            new BiblePublicationCascadeScheduleMutation(
+                existingPublicationCode,
+                existingPublicationName,
+                resultSectionCode,
+                resultSectionName,
+                resultTrackCode,
+                resultTrackTitle,
+                publicationModalItemCount,
+                sectionModalItemCount,
+                existingTrackCount),
+            dispatcher);
+        return true;
     }
 
     private async Task HandlePublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -370,15 +400,16 @@ public sealed class BiblePublicationCascadeHandler
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            publicationCode,
-            currentSchedule.BiblePublicationName,
-            selectedSectionCode,
-            sectionName,
-            trackCode,
-            trackTitle,
-            publicationModalItemCount,
-            sectionModalItemCount,
-            trackModalItemCount,
+            new BiblePublicationCascadeScheduleMutation(
+                publicationCode,
+                currentSchedule.BiblePublicationName,
+                selectedSectionCode,
+                sectionName,
+                trackCode,
+                trackTitle,
+                publicationModalItemCount,
+                sectionModalItemCount,
+                trackModalItemCount),
             dispatcher);
     }
 
@@ -410,15 +441,16 @@ public sealed class BiblePublicationCascadeHandler
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            publicationCode,
-            currentSchedule.BiblePublicationName,
-            sectionCode,
-            currentSchedule.BiblePublicationSectionName ?? string.Empty,
-            trackCodeStr,
-            firstTrack.Title ?? string.Empty,
-            publicationModalItemCount,
-            sectionModalItemCount,
-            trackModalItemCount,
+            new BiblePublicationCascadeScheduleMutation(
+                publicationCode,
+                currentSchedule.BiblePublicationName,
+                sectionCode,
+                currentSchedule.BiblePublicationSectionName ?? string.Empty,
+                trackCodeStr,
+                firstTrack.Title ?? string.Empty,
+                publicationModalItemCount,
+                sectionModalItemCount,
+                trackModalItemCount),
             dispatcher);
     }
 

@@ -16,6 +16,27 @@ public sealed class MusicSectionSelectionRefreshHandler
         this.logger = logger;
     }
 
+    private static Task HideFetchChromeAsync(MusicSectionSelectionRefreshContext ctx) =>
+        MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
+            {
+                ctx.SetCanCancelFetch(false);
+                ctx.SetShowProgress(false);
+                ctx.SetScreenOn(false);
+            }
+        });
+
+    private static Task HideFetchChromeKeepScreenAsync(MusicSectionSelectionRefreshContext ctx) =>
+        MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (!ctx.IsDisposed())
+            {
+                ctx.SetCanCancelFetch(false);
+                ctx.SetShowProgress(false);
+            }
+        });
+
     public async Task RunRepopulationAsync(MusicSectionSelectionRefreshContext ctx, string publicationCode, IFetchProgress progressReporter)
     {
         try
@@ -42,15 +63,7 @@ public sealed class MusicSectionSelectionRefreshHandler
 
             if (ctx.IsSelectingSection())
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!ctx.IsDisposed())
-                    {
-                        ctx.SetCanCancelFetch(false);
-                        ctx.SetShowProgress(false);
-                        ctx.SetScreenOn(false);
-                    }
-                });
+                await HideFetchChromeAsync(ctx);
                 return;
             }
 
@@ -60,40 +73,18 @@ public sealed class MusicSectionSelectionRefreshHandler
                     ctx.SetSelectedSection();
             });
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
-                {
-                    ctx.SetCanCancelFetch(false);
-                    ctx.SetShowProgress(false);
-                    ctx.SetScreenOn(false);
-                }
-            });
+            await HideFetchChromeAsync(ctx);
         }
         catch (OperationCanceledException ex)
         {
             logger.Debug(ex, "[MusicSectionSelection] RefreshFromState - Fetch cancelled by user");
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
-                {
-                    ctx.SetCanCancelFetch(false);
-                    ctx.SetShowProgress(false);
-                }
-            });
+            await HideFetchChromeKeepScreenAsync(ctx);
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
-                {
-                    ctx.SetCanCancelFetch(false);
-                    ctx.SetShowProgress(false);
-                }
-            });
+            await HideFetchChromeKeepScreenAsync(ctx);
             throw new InvalidOperationException(
                 "[MusicSectionSelection] RefreshFromState - Network error during repopulation",
                 ex);
@@ -101,14 +92,7 @@ public sealed class MusicSectionSelectionRefreshHandler
         catch (Exception ex)
         {
             MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
-                {
-                    ctx.SetCanCancelFetch(false);
-                    ctx.SetShowProgress(false);
-                }
-            });
+            await HideFetchChromeKeepScreenAsync(ctx);
             throw new InvalidOperationException(
                 "[MusicSectionSelection] RefreshFromState - Error during repopulation",
                 ex);

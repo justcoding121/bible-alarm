@@ -49,40 +49,8 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
             return;
         }
 
-        var scheduleIdsToDelete = new List<int>();
-        var musicScheduleIdsToReset = new List<int>();
-
-        using (var mediaConn = new SqliteConnection($"Data Source={mediaIndexDbPath};Mode=ReadOnly"))
-        {
-            await mediaConn.OpenAsync();
-
-            foreach (var r in bibleRefs)
-            {
-                if (!await TrackExistsInCatalogedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
-                {
-                    scheduleIdsToDelete.Add(r.AlarmScheduleId);
-                    logger.Warning(
-                        AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.BibleScheduleTrackNotInFetchedTablesDeletingSchedule,
-                        r.AlarmScheduleId, r.PublicationCode, r.SectionCode ?? "(none)", r.TrackCode);
-                }
-            }
-
-            foreach (var r in musicRefs)
-            {
-                if (scheduleIdsToDelete.Contains(r.AlarmScheduleId))
-                {
-                    continue;
-                }
-
-                if (!await TrackExistsInCatalogedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
-                {
-                    musicScheduleIdsToReset.Add(r.AlarmScheduleId);
-                    logger.Warning(
-                        AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AlarmMusicScheduleTrackNotInFetchedTablesResettingMusic,
-                        r.AlarmScheduleId, r.PublicationCode, r.SectionCode ?? "(none)", r.TrackCode);
-                }
-            }
-        }
+        var (scheduleIdsToDelete, musicScheduleIdsToReset) =
+            await ClassifyRefsAgainstMediaIndexAsync(mediaIndexDbPath, bibleRefs, musicRefs);
 
         using var scheduleConn = new SqliteConnection($"Data Source={scheduleDbPath}");
         await scheduleConn.OpenAsync();
@@ -109,6 +77,47 @@ internal sealed class OrphanedScheduleCleanup(ILogger logger)
         }
 
         await AssignCategoryCodeForNullSchedulesAsync(mediaIndexDbPath, scheduleConn);
+    }
+
+    private async Task<(List<int> ScheduleIdsToDelete, List<int> MusicScheduleIdsToReset)> ClassifyRefsAgainstMediaIndexAsync(
+        string mediaIndexDbPath,
+        List<ScheduleRef> bibleRefs,
+        List<ScheduleRef> musicRefs)
+    {
+        var scheduleIdsToDelete = new List<int>();
+        var musicScheduleIdsToReset = new List<int>();
+
+        using var mediaConn = new SqliteConnection($"Data Source={mediaIndexDbPath};Mode=ReadOnly");
+        await mediaConn.OpenAsync();
+
+        foreach (var r in bibleRefs)
+        {
+            if (!await TrackExistsInCatalogedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
+            {
+                scheduleIdsToDelete.Add(r.AlarmScheduleId);
+                logger.Warning(
+                    AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.BibleScheduleTrackNotInFetchedTablesDeletingSchedule,
+                    r.AlarmScheduleId, r.PublicationCode, r.SectionCode ?? "(none)", r.TrackCode);
+            }
+        }
+
+        foreach (var r in musicRefs)
+        {
+            if (scheduleIdsToDelete.Contains(r.AlarmScheduleId))
+            {
+                continue;
+            }
+
+            if (!await TrackExistsInCatalogedAsync(mediaConn, r.PublicationCode, r.LanguageCode, r.SectionCode, r.TrackCode))
+            {
+                musicScheduleIdsToReset.Add(r.AlarmScheduleId);
+                logger.Warning(
+                    AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AlarmMusicScheduleTrackNotInFetchedTablesResettingMusic,
+                    r.AlarmScheduleId, r.PublicationCode, r.SectionCode ?? "(none)", r.TrackCode);
+            }
+        }
+
+        return (scheduleIdsToDelete, musicScheduleIdsToReset);
     }
 
     /// <summary>

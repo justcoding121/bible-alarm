@@ -28,19 +28,21 @@ namespace Bible.Alarm.Services.Scheduler.ScheduleStateServiceHelpers;
 internal static class ScheduleStateServiceIosEnableWithPermission
 {
     public static async Task<(bool handled, AlarmSchedule? updatedSchedule)> TryHandleEnableAsync(
-        int scheduleId,
-        bool isEnabled,
-        ILogger logger,
-        IAlarmScheduleService alarmScheduleService,
-        IAlarmService alarmService,
-        IDispatcher dispatcher,
-        INavigationService navigationService,
-        IServiceProvider serviceProvider,
-        Func<Exception, bool> isSecurityException,
-        Func<int, Exception, Task<bool>> handleSecurityExceptionAsync,
-        Action<AlarmSchedule?> updateFluxorStore,
-        CancellationToken cancellationToken)
+        ScheduleIosEnablePermissionRequest req)
     {
+        var scheduleId = req.ScheduleId;
+        var isEnabled = req.IsEnabled;
+        var logger = req.Logger;
+        var alarmScheduleService = req.AlarmScheduleService;
+        var alarmService = req.AlarmService;
+        var dispatcher = req.Dispatcher;
+        var navigationService = req.NavigationService;
+        var serviceProvider = req.ServiceProvider;
+        var isSecurityException = req.IsSecurityException;
+        var handleSecurityExceptionAsync = req.HandleSecurityExceptionAsync;
+        var updateFluxorStore = req.UpdateFluxorStore;
+        var cancellationToken = req.CancellationToken;
+
         try
         {
             var permissionService = IOSNotificationPermissionService.Instance;

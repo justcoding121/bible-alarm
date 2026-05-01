@@ -26,19 +26,16 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.Services.Scheduler;
 
-#pragma warning disable CS9113 // Parameters used in platform-specific (#if ANDROID/IOS) code paths only
-public sealed partial class ScheduleStateService(
-    ILogger logger,
-    IAlarmScheduleService alarmScheduleService,
-    IAlarmService alarmService,
-    INotificationService notificationService,
-    IToastService toastService,
-    IDispatcher dispatcher,
-    INavigationService navigationService,
-    IServiceProvider serviceProvider)
-#pragma warning restore CS9113
-    : IScheduleStateService
+public sealed partial class ScheduleStateService(ScheduleStateServiceDeps deps) : IScheduleStateService
 {
+    private readonly ILogger logger = deps.Logger;
+    private readonly IAlarmScheduleService alarmScheduleService = deps.AlarmScheduleService;
+    private readonly IAlarmService alarmService = deps.AlarmService;
+    private readonly INotificationService notificationService = deps.NotificationService;
+    private readonly IToastService toastService = deps.ToastService;
+    private readonly IDispatcher dispatcher = deps.Dispatcher;
+    private readonly INavigationService navigationService = deps.NavigationService;
+    private readonly IServiceProvider serviceProvider = deps.ServiceProvider;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
@@ -54,8 +51,18 @@ public sealed partial class ScheduleStateService(
         {
 #if ANDROID
             var (androidHandled, androidUpdated) = await ScheduleStateServiceAndroidEnableWithPermission.TryHandleEnableAsync(
-                scheduleId, isEnabled, logger, alarmScheduleService, alarmService, dispatcher, navigationService,
-                serviceProvider, IsSecurityException, HandleSecurityExceptionAsync, cancellationTokenSource.Token);
+                new ScheduleAndroidEnablePermissionRequest(
+                    scheduleId,
+                    isEnabled,
+                    logger,
+                    alarmScheduleService,
+                    alarmService,
+                    dispatcher,
+                    navigationService,
+                    serviceProvider,
+                    IsSecurityException,
+                    HandleSecurityExceptionAsync,
+                    cancellationTokenSource.Token));
             if (androidHandled)
             {
                 if (androidUpdated is AlarmSchedule storedAndroidSchedule)
@@ -68,8 +75,19 @@ public sealed partial class ScheduleStateService(
             }
 #elif IOS
             var (iosHandled, iosUpdated) = await ScheduleStateServiceIosEnableWithPermission.TryHandleEnableAsync(
-                scheduleId, isEnabled, logger, alarmScheduleService, alarmService, dispatcher, navigationService,
-                serviceProvider, IsSecurityException, HandleSecurityExceptionAsync, UpdateFluxorStore, cancellationTokenSource.Token);
+                new ScheduleIosEnablePermissionRequest(
+                    scheduleId,
+                    isEnabled,
+                    logger,
+                    alarmScheduleService,
+                    alarmService,
+                    dispatcher,
+                    navigationService,
+                    serviceProvider,
+                    IsSecurityException,
+                    HandleSecurityExceptionAsync,
+                    UpdateFluxorStore,
+                    cancellationTokenSource.Token));
             if (iosHandled)
             {
                 if (iosUpdated is AlarmSchedule storedIosSchedule)

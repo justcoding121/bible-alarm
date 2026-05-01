@@ -39,38 +39,22 @@ public sealed class CategorySelectionAutoPopulateHandler
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger logger;
 
-    public CategorySelectionAutoPopulateHandler(
-        IBiblePublicationService biblePublicationService,
-        IMediaService mediaService,
-        ILanguageContentService languageContentService,
-        ILanguageNameService languageNameService,
-        BiblePublicationSelectionItemSelector itemSelector,
-        IState<ApplicationState> state,
-        IServiceScopeFactory scopeFactory,
-        ILogger logger)
+    public CategorySelectionAutoPopulateHandler(CategorySelectionAutoPopulateHandlerDeps d)
     {
-        this.biblePublicationService = biblePublicationService;
-        this.mediaService = mediaService;
-        this.languageContentService = languageContentService;
-        this.languageNameService = languageNameService;
-        this.itemSelector = itemSelector;
-        this.state = state;
-        this.scopeFactory = scopeFactory;
-        this.logger = logger;
+        biblePublicationService = d.BiblePublicationService;
+        mediaService = d.MediaService;
+        languageContentService = d.LanguageContentService;
+        languageNameService = d.LanguageNameService;
+        itemSelector = d.ItemSelector;
+        state = d.State;
+        scopeFactory = d.ScopeFactory;
+        logger = d.Logger;
     }
 
     public async Task HandleAsync(CategorySelectionAction action, IDispatcher dispatcher)
     {
-        void ReportProgress(double progress, bool isComplete = false)
-        {
-            WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
-                new CategoryFetchProgress
-                {
-                    CategoryId = action.CategoryId,
-                    Progress = progress,
-                    IsComplete = isComplete
-                }));
-        }
+        void ReportProgress(double progress, bool isComplete = false) =>
+            SendCategoryFetchProgress(action.CategoryId, progress, isComplete);
 
         var fetchOccurred = false;
 
@@ -404,5 +388,16 @@ public sealed class CategorySelectionAutoPopulateHandler
                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(action.PreviousScheduleSnapshot, true, true, shouldSave: false));
             }
         }
+    }
+
+    private static void SendCategoryFetchProgress(int categoryId, double progress, bool isComplete)
+    {
+        WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
+            new CategoryFetchProgress
+            {
+                CategoryId = categoryId,
+                Progress = progress,
+                IsComplete = isComplete
+            }));
     }
 }

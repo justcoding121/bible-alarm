@@ -36,31 +36,34 @@ namespace Bible.Alarm.Stores.Effects;
 /// - Map DB entity → domain model
 /// - Dispatch success/failure actions
 /// </summary>
-public class ScheduleEffects(
-    IMapper mapper,
-    IBiblePublicationService? BiblePublicationService = null,
-    IBiblePublicationSectionService? biblePublicationSectionService = null,
-    IAlarmScheduleService? alarmScheduleService = null,
-    IAlarmService? alarmService = null,
-    IMediaCacheService? mediaCacheService = null,
-    IMediaService? mediaService = null,
-    IState<ApplicationState>? state = null,
-    IScheduleDisplayNameService? scheduleDisplayNameService = null)
+public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optionalDeps)
 {
     private readonly IMapper mapper = mapper;
-    private readonly IAlarmScheduleService? alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
-    private readonly IAlarmService? alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
-    private readonly IMediaCacheService? mediaCacheService = mediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
-    private readonly IState<ApplicationState>? state = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
-    private readonly IScheduleDisplayNameService scheduleDisplayNameService = scheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>()!;
+    private readonly ScheduleEffectsOptionalDeps optionalDeps = optionalDeps;
 
-    // Helper classes for modular functionality
-    private readonly ScheduleUpdateProcessor updateProcessor = new(
-        mapper,
-        alarmScheduleService,
-        alarmService,
-        scheduleDisplayNameService: scheduleDisplayNameService);
-    private readonly TrackSelectionSyncHandler trackSyncHandler = new(state);
+    private IBiblePublicationService? BiblePublicationService => optionalDeps.BiblePublicationService;
+    private IBiblePublicationSectionService? biblePublicationSectionService => optionalDeps.BiblePublicationSectionService;
+
+    private readonly IAlarmScheduleService? alarmScheduleService = optionalDeps.AlarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
+    private readonly IAlarmService? alarmService = optionalDeps.AlarmService ?? ServiceProviderManager.GetService<IAlarmService>();
+    private readonly IMediaCacheService? mediaCacheService = optionalDeps.MediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
+    private readonly IState<ApplicationState>? state = optionalDeps.State ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+    private readonly IMediaService? mediaService = optionalDeps.MediaService;
+    private readonly IScheduleDisplayNameService scheduleDisplayNameService =
+        optionalDeps.ScheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>()!;
+
+    // Helper classes for modular functionality (lazy: field initializers cannot reference sibling instance fields)
+    private ScheduleUpdateProcessor? _updateProcessor;
+    private ScheduleUpdateProcessor updateProcessor =>
+        _updateProcessor ??= new ScheduleUpdateProcessor(
+            mapper,
+            alarmScheduleService,
+            alarmService,
+            scheduleDisplayNameService: scheduleDisplayNameService);
+
+    private TrackSelectionSyncHandler? _trackSyncHandler;
+    private TrackSelectionSyncHandler trackSyncHandler =>
+        _trackSyncHandler ??= new TrackSelectionSyncHandler(state);
 
     // Effect handlers - initialized lazily when first accessed
     private ScheduleAddHandler? _addHandler;
@@ -474,20 +477,21 @@ public class ScheduleEffects(
             var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>()!;
 
             var handler = new CategorySelectionAutoPopulateHandler(
-                currentBiblePublicationService,
-                currentMediaService,
-                languageContentService,
-                languageNameService,
-                new Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers.BiblePublicationSelectionItemSelector(
-                    currentMediaService,
-                    currentState,
+                new CategorySelectionAutoPopulateHandlerDeps(
                     currentBiblePublicationService,
-                    currentBiblePublicationSectionService,
+                    currentMediaService,
                     languageContentService,
-                    scopeFactory),
-                currentState,
-                scopeFactory,
-                Log.Logger);
+                    languageNameService,
+                    new Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers.BiblePublicationSelectionItemSelector(
+                        currentMediaService,
+                        currentState,
+                        currentBiblePublicationService,
+                        currentBiblePublicationSectionService,
+                        languageContentService,
+                        scopeFactory),
+                    currentState,
+                    scopeFactory,
+                    Log.Logger));
             
             await handler.HandleAsync(action, dispatcher);
         }

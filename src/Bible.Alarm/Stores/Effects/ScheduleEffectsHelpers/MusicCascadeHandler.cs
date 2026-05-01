@@ -79,48 +79,54 @@ public sealed class MusicCascadeHandler
             // IMPORTANT:
             // Many music publications (vocal/instrumental) are FLAT (no sections). For those, SectionCode is expected to be null,
             // and we must NOT treat "missing section" as an incomplete selection once a TrackCode is already chosen.
-            if (!string.IsNullOrWhiteSpace(publicationCode))
-            {
-                var trackMissing = string.IsNullOrWhiteSpace(trackCode);
-
-                // Sectioned publications (e.g. "iam") need a section first.
-                if (publicationHasSections)
-                {
-                    if (string.IsNullOrWhiteSpace(sectionCode))
-                    {
-                        logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncSectionedNoSectionCodeCallingPublicationCascade);
-                        await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
-                        return;
-                    }
-
-                    if (trackMissing)
-                    {
-                        logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncSectionedNoTrackCodeCallingSectionCascade);
-                        await HandleSectionCascadeAsync(currentSchedule, dispatcher);
-                        return;
-                    }
-                }
-                else
-                {
-                    // Flat publications: only cascade when track is missing.
-                    if (trackMissing)
-                    {
-                        logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncFlatNoTrackCodeCallingFlatCascade);
-                        await HandleFlatPublicationCascadeAsync(currentSchedule, dispatcher);
-                        return;
-                    }
-                }
-
-                // Everything is already set - ensure modal counts are refreshed (e.g., when music is enabled on existing schedule)
-                // This ensures the section row arrow shows correctly when music is enabled
-                logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncEverythingSetCallingRefreshModalCounts);
-                await RefreshModalCountsIfNeededAsync(currentSchedule, dispatcher);
-            }
+            await HandlePublicationSectionTrackChainAsync(currentSchedule, publicationCode, sectionCode, trackCode, publicationHasSections, dispatcher);
         }
         catch (Exception ex)
         {
             logger.Error(ex, AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ErrorDuringCascade);
         }
+    }
+
+    private async Task HandlePublicationSectionTrackChainAsync(
+        ScheduleStateItem currentSchedule,
+        string publicationCode,
+        string? sectionCode,
+        string? trackCode,
+        bool publicationHasSections,
+        IDispatcher dispatcher)
+    {
+        if (string.IsNullOrWhiteSpace(publicationCode))
+        {
+            return;
+        }
+
+        var trackMissing = string.IsNullOrWhiteSpace(trackCode);
+
+        if (publicationHasSections)
+        {
+            if (string.IsNullOrWhiteSpace(sectionCode))
+            {
+                logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncSectionedNoSectionCodeCallingPublicationCascade);
+                await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
+                return;
+            }
+
+            if (trackMissing)
+            {
+                logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncSectionedNoTrackCodeCallingSectionCascade);
+                await HandleSectionCascadeAsync(currentSchedule, dispatcher);
+                return;
+            }
+        }
+        else if (trackMissing)
+        {
+            logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncFlatNoTrackCodeCallingFlatCascade);
+            await HandleFlatPublicationCascadeAsync(currentSchedule, dispatcher);
+            return;
+        }
+
+        logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncEverythingSetCallingRefreshModalCounts);
+        await RefreshModalCountsIfNeededAsync(currentSchedule, dispatcher);
     }
 
     private async Task RefreshModalCountsIfNeededAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -210,14 +216,15 @@ public sealed class MusicCascadeHandler
         MusicCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            publicationCode,
-            currentSchedule.MusicPublicationName,
-            sectionCode: null,
-            sectionName: string.Empty,
-            trackCode: trackCode,
-            trackTitle: trackTitle,
-            publicationModalItemCount,
-            sectionModalItemCount,
+            new MusicCascadeScheduleMutation(
+                publicationCode,
+                currentSchedule.MusicPublicationName,
+                null,
+                string.Empty,
+                trackCode,
+                trackTitle,
+                publicationModalItemCount,
+                sectionModalItemCount),
             dispatcher);
     }
 
@@ -230,90 +237,14 @@ public sealed class MusicCascadeHandler
 
         string? publicationCode = null;
         string? publicationName = null;
-        bool publicationWithoutLanguage = false;
-        bool needCatalog = false;
+        var publicationWithoutLanguage = false;
+        var needCatalog = false;
 
         using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            if (!string.IsNullOrEmpty(languageCode))
-            {
-                var normalizedLanguageCode = languageCode.ToUpperInvariant();
-                var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
-                var publicationLanguage = (await db.PublicationLanguages
-                    .AsNoTracking()
-                    .Include(pl => pl.Language)
-                    .Include(pl => pl.Category)
-                    .Where(pl => pl.Language != null &&
-                               pl.Language.LanguageCode == normalizedLanguageCode &&
-                               pl.Category != null &&
-                               pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
-                    .ToListAsync())
-                    .OrderBy(pl => pl.PublicationCode, musicComparer)
-                    .ThenBy(pl => pl.Id)
-                    .FirstOrDefault();
-
-                if (publicationLanguage != null)
-                {
-                    publicationCode = publicationLanguage.PublicationCode;
-
-                    var publication = await db.BiblePublications
-                        .AsNoTracking()
-                        .Where(bp => bp.PublicationCode == publicationCode &&
-                                   bp.LanguageId != null &&
-                                   bp.Language != null &&
-                                   bp.Language.LanguageCode == normalizedLanguageCode)
-                        .FirstOrDefaultAsync();
-
-                    if (publication != null)
-                    {
-                        publicationName = publication.Name;
-                    }
-                    else
-                    {
-                        needCatalog = true;
-                    }
-                }
-                else
-                {
-                    var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
-                    var noLangPublication = (await db.BiblePublications
-                        .AsNoTracking()
-                        .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
-                                   bp.LanguageId == null)
-                        .ToListAsync())
-                        .OrderBy(bp => bp.PublicationCode, noLangMusicComparer)
-                        .ThenBy(bp => bp.Id)
-                        .FirstOrDefault();
-
-                    if (noLangPublication != null)
-                    {
-                        publicationCode = noLangPublication.PublicationCode;
-                        publicationName = noLangPublication.Name;
-                        publicationWithoutLanguage = true;
-                    }
-                }
-            }
-            else
-            {
-                var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
-                var publication = (await db.BiblePublications
-                    .AsNoTracking()
-                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
-                               bp.LanguageId == null)
-                    .ToListAsync())
-                    .OrderBy(bp => bp.PublicationCode, noLangMusicComparer)
-                    .ThenBy(bp => bp.Id)
-                    .FirstOrDefault();
-
-                if (publication != null)
-                {
-                    publicationCode = publication.PublicationCode;
-                    publicationName = publication.Name;
-                    publicationWithoutLanguage = true;
-                }
-            }
+            (publicationCode, publicationName, publicationWithoutLanguage, needCatalog) =
+                await ResolveMusicPublicationFromLanguageDbAsync(db, languageCode);
         }
 
         if (needCatalog && !string.IsNullOrEmpty(publicationCode))
@@ -394,7 +325,108 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        MusicCascadeScheduleUpdater.UpdateSchedule(logger, currentSchedule, publicationCode, publicationName, sectionCode, sectionName, trackCode, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
+        MusicCascadeScheduleUpdater.UpdateSchedule(
+            logger,
+            currentSchedule,
+            new MusicCascadeScheduleMutation(
+                publicationCode,
+                publicationName,
+                sectionCode,
+                sectionName,
+                trackCode,
+                trackTitle,
+                publicationModalItemCount,
+                sectionModalItemCount),
+            dispatcher);
+    }
+
+    private static async Task<(string? PublicationCode, string? PublicationName, bool PublicationWithoutLanguage, bool NeedCatalog)>
+        ResolveMusicPublicationFromLanguageDbAsync(MediaDbContext db, string languageCode)
+    {
+        string? publicationCode = null;
+        string? publicationName = null;
+        var publicationWithoutLanguage = false;
+        var needCatalog = false;
+
+        if (!string.IsNullOrEmpty(languageCode))
+        {
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
+            var publicationLanguage = (await db.PublicationLanguages
+                    .AsNoTracking()
+                    .Include(pl => pl.Language)
+                    .Include(pl => pl.Category)
+                    .Where(pl => pl.Language != null &&
+                                pl.Language.LanguageCode == normalizedLanguageCode &&
+                                pl.Category != null &&
+                                pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
+                    .ToListAsync())
+                .OrderBy(pl => pl.PublicationCode, musicComparer)
+                .ThenBy(pl => pl.Id)
+                .FirstOrDefault();
+
+            if (publicationLanguage != null)
+            {
+                publicationCode = publicationLanguage.PublicationCode;
+
+                var publication = await db.BiblePublications
+                    .AsNoTracking()
+                    .Where(bp => bp.PublicationCode == publicationCode &&
+                                bp.LanguageId != null &&
+                                bp.Language != null &&
+                                bp.Language.LanguageCode == normalizedLanguageCode)
+                    .FirstOrDefaultAsync();
+
+                if (publication != null)
+                {
+                    publicationName = publication.Name;
+                }
+                else
+                {
+                    needCatalog = true;
+                }
+            }
+            else
+            {
+                var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
+                var noLangPublication = (await db.BiblePublications
+                        .AsNoTracking()
+                        .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
+                                    bp.LanguageId == null)
+                        .ToListAsync())
+                    .OrderBy(bp => bp.PublicationCode, noLangMusicComparer)
+                    .ThenBy(bp => bp.Id)
+                    .FirstOrDefault();
+
+                if (noLangPublication != null)
+                {
+                    publicationCode = noLangPublication.PublicationCode;
+                    publicationName = noLangPublication.Name;
+                    publicationWithoutLanguage = true;
+                }
+            }
+        }
+        else
+        {
+            var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
+            var publication = (await db.BiblePublications
+                    .AsNoTracking()
+                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
+                                bp.LanguageId == null)
+                    .ToListAsync())
+                .OrderBy(bp => bp.PublicationCode, noLangMusicComparer)
+                .ThenBy(bp => bp.Id)
+                .FirstOrDefault();
+
+            if (publication != null)
+            {
+                publicationCode = publication.PublicationCode;
+                publicationName = publication.Name;
+                publicationWithoutLanguage = true;
+            }
+        }
+
+        return (publicationCode, publicationName, publicationWithoutLanguage, needCatalog);
     }
 
     private async Task HandlePublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -442,7 +474,19 @@ public sealed class MusicCascadeHandler
         var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
         var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
-        MusicCascadeScheduleUpdater.UpdateSchedule(logger, currentSchedule, publicationCode, publication.Name, sectionCode, sectionName, trackCode, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
+        MusicCascadeScheduleUpdater.UpdateSchedule(
+            logger,
+            currentSchedule,
+            new MusicCascadeScheduleMutation(
+                publicationCode,
+                publication.Name,
+                sectionCode,
+                sectionName,
+                trackCode,
+                trackTitle,
+                publicationModalItemCount,
+                sectionModalItemCount),
+            dispatcher);
     }
 
     private async Task HandleSectionCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -497,6 +541,18 @@ public sealed class MusicCascadeHandler
         var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
         var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
-        MusicCascadeScheduleUpdater.UpdateSchedule(logger, currentSchedule, publicationCode, currentSchedule.MusicPublicationName, sectionCode, sectionName, trackCode, firstTrack.Title ?? string.Empty, publicationModalItemCount, sectionModalItemCount, dispatcher);
+        MusicCascadeScheduleUpdater.UpdateSchedule(
+            logger,
+            currentSchedule,
+            new MusicCascadeScheduleMutation(
+                publicationCode,
+                currentSchedule.MusicPublicationName,
+                sectionCode,
+                sectionName,
+                trackCode,
+                firstTrack.Title ?? string.Empty,
+                publicationModalItemCount,
+                sectionModalItemCount),
+            dispatcher);
     }
 }

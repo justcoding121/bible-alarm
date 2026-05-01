@@ -28,22 +28,15 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
     private readonly ILanguageNameService languageNameService;
     private readonly ICategoryNameService categoryNameService;
 
-    public BootstrapOrchestrator(
-        IDatabaseBootstrapService databaseBootstrapService,
-        IFluxorBootstrapService fluxorBootstrapService,
-        IResourceBootstrapService resourceBootstrapService,
-        IScheduleBootstrapService scheduleBootstrapService,
-        IPlatformBootstrapService platformBootstrapService,
-        ILanguageNameService languageNameService,
-        ICategoryNameService categoryNameService)
+    public BootstrapOrchestrator(BootstrapOrchestratorDeps deps)
     {
-        this.databaseBootstrapService = databaseBootstrapService;
-        this.fluxorBootstrapService = fluxorBootstrapService;
-        this.resourceBootstrapService = resourceBootstrapService;
-        this.scheduleBootstrapService = scheduleBootstrapService;
-        this.platformBootstrapService = platformBootstrapService;
-        this.languageNameService = languageNameService;
-        this.categoryNameService = categoryNameService;
+        databaseBootstrapService = deps.DatabaseBootstrapService;
+        fluxorBootstrapService = deps.FluxorBootstrapService;
+        resourceBootstrapService = deps.ResourceBootstrapService;
+        scheduleBootstrapService = deps.ScheduleBootstrapService;
+        platformBootstrapService = deps.PlatformBootstrapService;
+        languageNameService = deps.LanguageNameService;
+        categoryNameService = deps.CategoryNameService;
     }
 
     public async Task VerifyServicesAsync(bool initializeUi = false)
@@ -108,60 +101,11 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
 
                     // Only on version change: new media index was copied and overwritten this run.
                     // Then: orphan cleanup (E/S pre-fetched, non E/S discovery), then ad-hoc non-EnglishSpanish fetch.
-                    if (resourceBootstrapService.WasMediaIndexReplacedThisRun())
-                    {
-                        Log.Logger.Information("[BOOTSTRAP] Media index replaced (version change); running orphan cleanup then non-EnglishSpanish fetch");
-                        await resourceBootstrapService.MigrateNonEnglishMediaDataAsync();
-                    }
-                    else
-                    {
-                        Log.Logger.Debug("[BOOTSTRAP] Media index was not replaced this run, skipping orphan cleanup and fetch (runs only on version change)");
-                    }
+                    await MigrateMediaIfIndexReplacedAsync();
 
-                    // Warm in-memory caches for category and language display names (current app language "E")
-                    // so UI lookups avoid DB hits. Future app languages can be warmed similarly.
-                    try
-                    {
-                        var defaultLang = AppConstants.Media.DefaultLanguageCode;
-                        await languageNameService.WarmCacheForDisplayLanguageAsync(defaultLang);
-                        await categoryNameService.WarmCacheForDisplayLanguageAsync(defaultLang);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to warm display-name caches, lookups will use DB");
-                    }
+                    await WarmDisplayNameCachesBestEffortAsync();
 
-                    // Send InitializedMessage early (after database/Fluxor are ready) to show UI with loading state
-                    // This improves perceived performance - user sees the home page while schedules are being populated
-                    if (shouldSendEarlyNav)
-                    {
-#if DEBUG
-                        var earlyNavStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-                        Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage early (before schedule population)");
-#endif
-                        try
-                        {
-                            MainThread.BeginInvokeOnMainThread(() =>
-                            {
-                                try
-                                {
-                                    WeakReferenceMessenger.Default.Send(new InitializedMessage());
-#if DEBUG
-                                    var earlyNavElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - earlyNavStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                                    Log.Logger.Information("[BOOTSTRAP] Early InitializedMessage sent - Navigation triggered in {ElapsedMs:F2}ms", earlyNavElapsed);
-#endif
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Logger.Error(ex, "Error sending early InitializedMessage");
-                                }
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Logger.Error(ex, "Error invoking MainThread for early InitializedMessage");
-                        }
-                    }
+                    PostEarlyInitializedMessageIfNeeded(shouldSendEarlyNav);
 
                     // After database and Fluxor store are initialized, load schedules into state
                     // This ensures schedules are available for both Android Auto services and main UI
@@ -198,38 +142,103 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
         }
         else if (initializeUi && servicesVerified)
         {
-            // Services were already verified (bootstrap completed by Android Auto/CarPlay or previous call)
-            // Since bootstrap is complete, handlers should already be registered, so send immediately
             Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage immediately (services already verified by prior bootstrap, e.g. CarPlay/Android Auto cold start)");
-#if DEBUG
-            var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-#endif
-            try
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try
-                    {
-                        WeakReferenceMessenger.Default.Send(new InitializedMessage());
-#if DEBUG
-                        var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                        Log.Logger.Information("[BOOTSTRAP] InitializedMessage sent immediately - Navigation triggered in {ElapsedMs:F2}ms", navElapsed);
-#endif
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Error(ex, "Error sending InitializedMessage (immediate)");
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Error(ex, "Error invoking MainThread for immediate InitializedMessage");
-            }
+            PostImmediateInitializedMessageIfNeeded();
         }
         else
         {
             Log.Logger.Information("initializeUI=false, not sending InitializedMessage");
+        }
+    }
+
+    private async Task MigrateMediaIfIndexReplacedAsync()
+    {
+        if (resourceBootstrapService.WasMediaIndexReplacedThisRun())
+        {
+            Log.Logger.Information("[BOOTSTRAP] Media index replaced (version change); running orphan cleanup then non-EnglishSpanish fetch");
+            await resourceBootstrapService.MigrateNonEnglishMediaDataAsync();
+        }
+        else
+        {
+            Log.Logger.Debug("[BOOTSTRAP] Media index was not replaced this run, skipping orphan cleanup and fetch (runs only on version change)");
+        }
+    }
+
+    private async Task WarmDisplayNameCachesBestEffortAsync()
+    {
+        try
+        {
+            var defaultLang = AppConstants.Media.DefaultLanguageCode;
+            await languageNameService.WarmCacheForDisplayLanguageAsync(defaultLang);
+            await categoryNameService.WarmCacheForDisplayLanguageAsync(defaultLang);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to warm display-name caches, lookups will use DB");
+        }
+    }
+
+    private static void PostEarlyInitializedMessageIfNeeded(bool shouldSendEarlyNav)
+    {
+        if (!shouldSendEarlyNav)
+        {
+            return;
+        }
+
+#if DEBUG
+        var earlyNavStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+        Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage early (before schedule population)");
+#endif
+        try
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    WeakReferenceMessenger.Default.Send(new InitializedMessage());
+#if DEBUG
+                    var earlyNavElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - earlyNavStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    Log.Logger.Information("[BOOTSTRAP] Early InitializedMessage sent - Navigation triggered in {ElapsedMs:F2}ms", earlyNavElapsed);
+#endif
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Error(ex, "Error sending early InitializedMessage");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Error(ex, "Error invoking MainThread for early InitializedMessage");
+        }
+    }
+
+    private static void PostImmediateInitializedMessageIfNeeded()
+    {
+#if DEBUG
+        var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
+        try
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    WeakReferenceMessenger.Default.Send(new InitializedMessage());
+#if DEBUG
+                    var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    Log.Logger.Information("[BOOTSTRAP] InitializedMessage sent immediately - Navigation triggered in {ElapsedMs:F2}ms", navElapsed);
+#endif
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Error(ex, "Error sending InitializedMessage (immediate)");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Error(ex, "Error invoking MainThread for immediate InitializedMessage");
         }
     }
 }
