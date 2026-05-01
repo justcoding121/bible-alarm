@@ -21,6 +21,12 @@ namespace Bible.Alarm.Shared.Services.Media.Helpers.SectionFetcherHelpers;
 
 internal sealed class SectionFetcherSectionTracksLoader
 {
+    private readonly record struct ApplySectionNameContext(
+        MediaDbContext Db,
+        string NormalizedSectionCode,
+        string NormalizedPublicationCode,
+        string NormalizedLanguageCode);
+
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
 
@@ -88,6 +94,28 @@ internal sealed class SectionFetcherSectionTracksLoader
                 normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
             return false;
         }
+        return await PersistFetchedSectionTracksAsync(request, existingTracksToReplace, jsonString);
+    }
+
+    private async Task<bool> PersistFetchedSectionTracksAsync(
+        FetchSectionTracksRequest request,
+        List<BiblePublicationTrack> existingTracksToReplace,
+        string jsonString)
+    {
+        var db = request.Db;
+        var normalizedPublicationCode = request.NormalizedPublicationCode;
+        var normalizedSectionCode = request.NormalizedSectionCode;
+        var normalizedLanguageCode = request.NormalizedLanguageCode;
+        var publication = request.Publication;
+        var section = request.Section;
+        var cancellationToken = request.CancellationToken;
+
+        var categoryCode = publication.PrimaryCategory?.CategoryCode ?? "";
+        var isBible = categoryCode.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
+        var isIssueSectioned = publication.CatalogType == CatalogType.IssueSectioned ||
+            MagazineHelper.IsMagazinePublicationCode(normalizedPublicationCode);
+        var isVideoDrama = !isBible && !isIssueSectioned && publication.IsVideo;
+
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
@@ -99,14 +127,12 @@ internal sealed class SectionFetcherSectionTracksLoader
         }
 
         string? updatedSectionName = null;
+        var nameCtx = new ApplySectionNameContext(db, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
         ApplySectionNameFromPubMediaRoot(
             root,
             isIssueSectioned,
             section,
-            db,
-            normalizedSectionCode,
-            normalizedPublicationCode,
-            normalizedLanguageCode,
+            nameCtx,
             ref updatedSectionName);
 
         var formatKey = isVideoDrama ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
@@ -152,9 +178,14 @@ internal sealed class SectionFetcherSectionTracksLoader
         }
 
         if (section.Tracks == null)
+        {
             section.Tracks = new List<BiblePublicationTrack>();
+        }
+
         foreach (var track in tracks)
+        {
             section.Tracks.Add(track);
+        }
 
         if (!string.IsNullOrEmpty(updatedSectionName) && section.Name != updatedSectionName)
         {
@@ -162,6 +193,7 @@ internal sealed class SectionFetcherSectionTracksLoader
                 normalizedSectionCode, updatedSectionName, section.Name);
             section.Name = updatedSectionName;
         }
+
         if (!string.IsNullOrEmpty(updatedSectionName))
         {
             db.Entry(section).Property(s => s.Name).IsModified = true;
@@ -176,8 +208,10 @@ internal sealed class SectionFetcherSectionTracksLoader
         var persistedSectionName = section.Name;
 
         if (!string.IsNullOrEmpty(updatedSectionName) && persistedSectionName != updatedSectionName)
+        {
             logger.Error("Section name was not persisted correctly! Expected: {ExpectedName}, Actual: {ActualName} for section {SectionCode}",
                 updatedSectionName, persistedSectionName, normalizedSectionCode);
+        }
 
         logger.Information("Successfully fetched {Count} tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. Section name: {SectionName}",
             tracks.Count, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode, persistedSectionName);
@@ -189,10 +223,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         JsonElement root,
         bool isIssueSectioned,
         BiblePublicationSection section,
-        MediaDbContext db,
-        string normalizedSectionCode,
-        string normalizedPublicationCode,
-        string normalizedLanguageCode,
+        ApplySectionNameContext ctx,
         ref string? updatedSectionName)
     {
         if (isIssueSectioned)
@@ -218,9 +249,9 @@ internal sealed class SectionFetcherSectionTracksLoader
             var oldName = section.Name;
             updatedSectionName = sectionName;
             section.Name = sectionName;
-            db.Entry(section).Property(s => s.Name).IsModified = true;
+            ctx.Db.Entry(section).Property(s => s.Name).IsModified = true;
             logger.Information("Updated magazine section name from API: {OldName} -> {NewName} for section {SectionCode}",
-                oldName, sectionName, normalizedSectionCode);
+                oldName, sectionName, ctx.NormalizedSectionCode);
             return;
         }
 
@@ -228,30 +259,30 @@ internal sealed class SectionFetcherSectionTracksLoader
         {
             logger.Warning(
                 "pubName not found in API response for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. Available properties: {Properties}",
-                normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode,
+                ctx.NormalizedSectionCode, ctx.NormalizedPublicationCode, ctx.NormalizedLanguageCode,
                 string.Join(", ", root.EnumerateObject().Select(p => p.Name)));
             return;
         }
 
         var rawName = pubNameElement.GetString();
-        logger.Debug("Found pubName in API response for section {SectionCode}: rawName={RawName}", normalizedSectionCode, rawName);
+        logger.Debug("Found pubName in API response for section {SectionCode}: rawName={RawName}", ctx.NormalizedSectionCode, rawName);
         var sectionNameFromApi = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
         if (string.IsNullOrEmpty(sectionNameFromApi))
         {
             logger.Warning(
                 "pubName found in API response but section name is empty after processing. rawName={RawName} for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
-                rawName, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
+                rawName, ctx.NormalizedSectionCode, ctx.NormalizedPublicationCode, ctx.NormalizedLanguageCode);
             return;
         }
 
         var previousName = section.Name;
         updatedSectionName = sectionNameFromApi;
         section.Name = sectionNameFromApi;
-        db.Entry(section).Property(s => s.Name).IsModified = true;
+        ctx.Db.Entry(section).Property(s => s.Name).IsModified = true;
         logger.Information(
             "Updated section name from API: {OldName} -> {NewName} for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. IsModified={IsModified}",
-            previousName, sectionNameFromApi, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode,
-            db.Entry(section).Property(s => s.Name).IsModified);
+            previousName, sectionNameFromApi, ctx.NormalizedSectionCode, ctx.NormalizedPublicationCode, ctx.NormalizedLanguageCode,
+            ctx.Db.Entry(section).Property(s => s.Name).IsModified);
     }
 
     private bool TryGetLanguageFormatFilesElement(

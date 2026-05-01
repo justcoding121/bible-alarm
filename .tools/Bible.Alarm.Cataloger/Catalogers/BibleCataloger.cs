@@ -56,56 +56,62 @@ internal class BibleCataloger : BaseCataloger
     {
         foreach (var publication in biblePublicationCodeToNameMappings)
         {
-            var publicationCode = publication.Key;
-            Logger.Information("Starting catalog for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
+            await CatalogSingleBiblePublicationLinksAsync(
+                publication,
+                languageCodeToInfoMappings,
+                languageCodeToEditionsMapping,
+                isTestRun);
+        }
+    }
 
-            // Discovery already happened in Phase 1, so get discovered languages from dataPersister
-            // If dataPersister is not available or doesn't have the data, fall back to discovery
-            Dictionary<string, LanguageInfo>? allDiscoveredLanguages = null;
-            
-            if (dataPersister is DbSeeder dbSeeder)
+    private async Task CatalogSingleBiblePublicationLinksAsync(
+        KeyValuePair<string, string> publication,
+        ConcurrentDictionary<string, LanguageInfo> languageCodeToInfoMappings,
+        ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping,
+        bool isTestRun)
+    {
+        var publicationCode = publication.Key;
+        Logger.Information("Starting catalog for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
+
+        Dictionary<string, LanguageInfo>? allDiscoveredLanguages = null;
+
+        if (dataPersister is DbSeeder dbSeeder)
+        {
+            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+            if (dbSeeder.PublicationLanguages.TryGetValue(normalizedPublicationCode, out var discoveredLangs))
             {
-                // Try to get discovered languages from the data store
-                var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-                if (dbSeeder.PublicationLanguages.TryGetValue(normalizedPublicationCode, out var discoveredLangs))
-                {
-                    allDiscoveredLanguages = discoveredLangs;
-                    Logger.Debug("Using discovered languages from discovery phase for publication {PublicationCode}", publicationCode);
-                }
+                allDiscoveredLanguages = discoveredLangs;
+                Logger.Debug("Using discovered languages from discovery phase for publication {PublicationCode}", publicationCode);
             }
+        }
 
-            // Fallback: If discovery data not available, discover now (shouldn't happen if discovery phase ran)
+        if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
+        {
+            Logger.Warning("No discovered languages found for publication {PublicationCode} in data store. Running discovery now...", publicationCode);
+            allDiscoveredLanguages = await discoveryCataloger.DiscoverLanguagesForAllBooks(publicationCode, publication.Value, isTestRun);
+
             if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
             {
-                Logger.Warning("No discovered languages found for publication {PublicationCode} in data store. Running discovery now...", publicationCode);
-                allDiscoveredLanguages = await discoveryCataloger.DiscoverLanguagesForAllBooks(publicationCode, publication.Value, isTestRun);
-                
-                if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
-                {
-                    Logger.Warning("No languages discovered for publication {PublicationCode}. Skipping.", publicationCode);
-                    continue;
-                }
-
-                // Save discovered languages if not already saved
-                if (dataPersister != null)
-                {
-                    await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
-                }
+                Logger.Warning("No languages discovered for publication {PublicationCode}. Skipping.", publicationCode);
+                return;
             }
 
-            // Verify English (E) is available (it will be seeded separately after discovery)
-            if (!allDiscoveredLanguages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguageInfo))
+            if (dataPersister != null)
             {
-                Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
-                continue;
+                await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
             }
+        }
 
-            // Add English to language mappings (for reference, but don't process it here)
-            languageCodeToInfoMappings.TryAdd(AppConstants.Media.DefaultLanguageCode, englishLanguageInfo);
-            if (!languageCodeToEditionsMapping.TryAdd(AppConstants.Media.DefaultLanguageCode, [publicationCode]))
-            {
-                languageCodeToEditionsMapping[AppConstants.Media.DefaultLanguageCode].Add(publicationCode);
-            }
+        if (!allDiscoveredLanguages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguageInfo))
+        {
+            Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
+            return;
+        }
+
+        languageCodeToInfoMappings.TryAdd(AppConstants.Media.DefaultLanguageCode, englishLanguageInfo);
+        if (!languageCodeToEditionsMapping.TryAdd(AppConstants.Media.DefaultLanguageCode, [publicationCode]))
+        {
+            languageCodeToEditionsMapping[AppConstants.Media.DefaultLanguageCode].Add(publicationCode);
         }
     }
 }

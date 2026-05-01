@@ -150,85 +150,13 @@ internal static class CatalogValidator
 
         foreach (var publicationCode in codesToValidate)
         {
-            var codeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(publicationCode.ToLowerInvariant()) ?? publicationCode;
-
-            // Magazine publications with no discovered issues (future years, empty years) are expected to have no content
-            if (MagazineHelper.IsMagazinePublicationCode(publicationCode))
-            {
-                var hasDiscoveredSections = await db.SectionLanguages
-                    .AsNoTracking()
-                    .AnyAsync(sl => sl.PublicationCode == codeForDb);
-                if (!hasDiscoveredSections)
-                {
-                    logger.Debug("CatalogValidator E-seed: Skipping magazine {PublicationCode} (no issues discovered)", publicationCode);
-                    continue;
-                }
-            }
-
-            var pub = await db.BiblePublications
-                .AsNoTracking()
-                .Include(bp => bp.Language)
-                .Include(bp => bp.Sections)
-                .Include(bp => bp.Tracks)
-                .FirstOrDefaultAsync(bp => bp.PublicationCode == codeForDb &&
-                    bp.LanguageId != null &&
-                    bp.Language != null &&
-                    bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
-
-            if (pub == null)
-            {
-                logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} has no E content (missing)", publicationCode);
-                failed.Add($"{publicationCode} (missing)");
-                continue;
-            }
-
-            var trackCount = pub.Tracks?.Count ?? 0;
-            var sectionCount = pub.Sections?.Count ?? 0;
-
-            if (trackCount == 0)
-            {
-                logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} has 0 tracks", publicationCode);
-                failed.Add($"{publicationCode} (0 tracks)");
-                continue;
-            }
-
-            if (sectionedCodes.Contains(publicationCode) && sectionCount == 0)
-            {
-                logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} is sectioned but has 0 sections", publicationCode);
-                failed.Add($"{publicationCode} (0 sections)");
-            }
+            await ValidateOneEnglishSeededPublicationAsync(db, logger, publicationCode, sectionedCodes, failed);
         }
 
         var checkIam = publicationFilter == null || publicationFilter.Contains(AppConstants.Media.MelodyMusicPublicationCodeIam);
         if (checkIam)
         {
-            var iamCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
-            var iamPub = await db.BiblePublications
-                .AsNoTracking()
-                .Include(bp => bp.Sections)
-                .Include(bp => bp.Tracks)
-                .FirstOrDefaultAsync(bp => bp.PublicationCode == iamCode && bp.LanguageId == null);
-
-            if (iamPub == null)
-            {
-                logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} (no-language) has no row", iamCode);
-                failed.Add($"{iamCode} (missing)");
-            }
-            else
-            {
-                var iamTracks = iamPub.Tracks?.Count ?? 0;
-                var iamSections = iamPub.Sections?.Count ?? 0;
-                if (iamTracks == 0)
-                {
-                    logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} has 0 tracks", iamCode);
-                    failed.Add($"{iamCode} (0 tracks)");
-                }
-                else if (iamSections == 0)
-                {
-                    logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} is sectioned but has 0 sections", iamCode);
-                    failed.Add($"{iamCode} (0 sections)");
-                }
-            }
+            await ValidateIamNoLanguageEnglishSeedAsync(db, logger, failed);
         }
 
         if (failed.Count == 0)
@@ -239,6 +167,91 @@ internal static class CatalogValidator
 
         logger.Warning("CatalogValidator E-seed: {Count} publication(s) failed validation: {Failed}", failed.Count, string.Join(", ", failed));
         return false;
+    }
+
+    private static async Task ValidateOneEnglishSeededPublicationAsync(
+        MediaDbContext db,
+        ILogger logger,
+        string publicationCode,
+        HashSet<string> sectionedCodes,
+        List<string> failed)
+    {
+        var codeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(publicationCode.ToLowerInvariant()) ?? publicationCode;
+
+        if (MagazineHelper.IsMagazinePublicationCode(publicationCode))
+        {
+            var hasDiscoveredSections = await db.SectionLanguages
+                .AsNoTracking()
+                .AnyAsync(sl => sl.PublicationCode == codeForDb);
+            if (!hasDiscoveredSections)
+            {
+                logger.Debug("CatalogValidator E-seed: Skipping magazine {PublicationCode} (no issues discovered)", publicationCode);
+                return;
+            }
+        }
+
+        var pub = await db.BiblePublications
+            .AsNoTracking()
+            .Include(bp => bp.Language)
+            .Include(bp => bp.Sections)
+            .Include(bp => bp.Tracks)
+            .FirstOrDefaultAsync(bp => bp.PublicationCode == codeForDb &&
+                bp.LanguageId != null &&
+                bp.Language != null &&
+                bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
+
+        if (pub == null)
+        {
+            logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} has no E content (missing)", publicationCode);
+            failed.Add($"{publicationCode} (missing)");
+            return;
+        }
+
+        var trackCount = pub.Tracks?.Count ?? 0;
+        var sectionCount = pub.Sections?.Count ?? 0;
+
+        if (trackCount == 0)
+        {
+            logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} has 0 tracks", publicationCode);
+            failed.Add($"{publicationCode} (0 tracks)");
+            return;
+        }
+
+        if (sectionedCodes.Contains(publicationCode) && sectionCount == 0)
+        {
+            logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} is sectioned but has 0 sections", publicationCode);
+            failed.Add($"{publicationCode} (0 sections)");
+        }
+    }
+
+    private static async Task ValidateIamNoLanguageEnglishSeedAsync(MediaDbContext db, ILogger logger, List<string> failed)
+    {
+        var iamCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
+        var iamPub = await db.BiblePublications
+            .AsNoTracking()
+            .Include(bp => bp.Sections)
+            .Include(bp => bp.Tracks)
+            .FirstOrDefaultAsync(bp => bp.PublicationCode == iamCode && bp.LanguageId == null);
+
+        if (iamPub == null)
+        {
+            logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} (no-language) has no row", iamCode);
+            failed.Add($"{iamCode} (missing)");
+            return;
+        }
+
+        var iamTracks = iamPub.Tracks?.Count ?? 0;
+        var iamSections = iamPub.Sections?.Count ?? 0;
+        if (iamTracks == 0)
+        {
+            logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} has 0 tracks", iamCode);
+            failed.Add($"{iamCode} (0 tracks)");
+        }
+        else if (iamSections == 0)
+        {
+            logger.Warning("CatalogValidator E-seed: Publication {PublicationCode} is sectioned but has 0 sections", iamCode);
+            failed.Add($"{iamCode} (0 sections)");
+        }
     }
 
     /// <summary>
