@@ -99,24 +99,29 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
         }
     }
 
-    private void FindAndWireSwitchesAndButtons(View view)
+    private bool TryAttachInteractiveHandlers(View view)
     {
-        if (view == null)
-        {
-            return;
-        }
-
         if (view is Shared.PlatformSwitch platformSwitch)
         {
-            platformSwitch.PropertyChanged -= OnSwitchPropertyChanged; // Remove first to avoid duplicates
+            platformSwitch.PropertyChanged -= OnSwitchPropertyChanged;
             platformSwitch.PropertyChanged += OnSwitchPropertyChanged;
-            return;
+            return true;
         }
 
         if (view is Button button)
         {
-            button.Clicked -= OnButtonClicked; // Remove first to avoid duplicates
+            button.Clicked -= OnButtonClicked;
             button.Clicked += OnButtonClicked;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void FindAndWireSwitchesAndButtons(View view)
+    {
+        if (view == null || TryAttachInteractiveHandlers(view))
+        {
             return;
         }
 

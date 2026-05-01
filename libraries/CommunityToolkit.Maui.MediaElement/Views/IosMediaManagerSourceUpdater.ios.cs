@@ -146,13 +146,15 @@ internal static class IosMediaManagerSourceUpdater
         return (metaData, currentItemErrorObserver);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S1172", Justification = "AVFoundation callback arity; metadata not needed after wiring.")]
     private static void HandleMediaOpened(
         IMediaElement mediaElement,
         AVPlayer player,
         AVPlayerItem playerItem,
-        Metadata _,
+        Metadata? unusedMetadata,
         AVPlayerViewController? playerViewController)
     {
+        _ = unusedMetadata;
         mediaElement.MediaOpened();
 
         (mediaElement.MediaWidth, mediaElement.MediaHeight) = GetVideoDimensions(playerItem);

@@ -240,43 +240,7 @@ public class HomeNavigationHelper
                     serviceProvider.GetRequiredService<ILogger>(),
                     navigationService,
                     onModalDismissed: (permissionGranted) =>
-                    {
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            try
-                            {
-                                var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
-                                if (state.Value.ContainerReadiness.AllReady && state.Value.IsSchedulePageOverlayVisible)
-                                {
-                                    dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-                                    logger.Debug("ShowOverlayAndNavigateAsync: Hiding overlay after modal dismissal - containers are ready");
-                                }
-                            }
-                            catch (Exception overlayEx)
-                            {
-                                logger.Error(overlayEx, "ShowOverlayAndNavigateAsync: Error checking/hiding overlay after modal dismissal");
-                            }
-                        });
-
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                await Task.Delay(100);
-#if ANDROID
-                                RunAndroidModalDismissStateUpdate(schedule, permissionGranted);
-#elif IOS
-                                await RunIosModalDismissDbAndStateUpdateAsync(schedule, permissionGranted);
-#else
-                                await Task.CompletedTask;
-#endif
-                            }
-                            catch (Exception ex)
-                            {
-                                logger.Error(ex, "ShowOverlayAndNavigateAsync: Error in onModalDismissed callback");
-                            }
-                        });
-                    });
+                        NotificationPermissionModalDismissed(schedule, permissionGranted));
 
                 notificationViewModel.StartPermissionCheckTimer();
                 await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
@@ -284,6 +248,45 @@ public class HomeNavigationHelper
             catch (Exception ex)
             {
                 logger.Error(ex, "ShowOverlayAndNavigateAsync: Error opening notification permission modal");
+            }
+        });
+    }
+
+    private void NotificationPermissionModalDismissed(AlarmSchedule schedule, bool permissionGranted)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
+                if (state.Value.ContainerReadiness.AllReady && state.Value.IsSchedulePageOverlayVisible)
+                {
+                    dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                    logger.Debug("ShowOverlayAndNavigateAsync: Hiding overlay after modal dismissal - containers are ready");
+                }
+            }
+            catch (Exception overlayEx)
+            {
+                logger.Error(overlayEx, "ShowOverlayAndNavigateAsync: Error checking/hiding overlay after modal dismissal");
+            }
+        });
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(100);
+#if ANDROID
+                RunAndroidModalDismissStateUpdate(schedule, permissionGranted);
+#elif IOS
+                await RunIosModalDismissDbAndStateUpdateAsync(schedule, permissionGranted);
+#else
+                await Task.CompletedTask;
+#endif
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "ShowOverlayAndNavigateAsync: Error in onModalDismissed callback");
             }
         });
     }

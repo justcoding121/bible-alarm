@@ -299,25 +299,28 @@ public partial class BusyOverlay : ContentView
     /// Applies the hide state (opacity 0, input transparent, stop spinner). Used when the normal
     /// hide transition was skipped due to re-entrancy so the overlay does not stay visible forever.
     /// </summary>
+    private static void ApplyDeferredHideVisualState(BusyOverlay overlay)
+    {
+        if (overlay.Window == null)
+        {
+            FinishDeferredHideTeardownWithoutWindow(overlay);
+            return;
+        }
+
+        overlay.InputTransparent = true;
+        if (overlay.overlayGrid != null)
+        {
+            overlay.overlayGrid.Opacity = 0;
+            overlay.overlayGrid.InputTransparent = true;
+        }
+
+        FinishDeferredHideTeardownWithoutWindow(overlay);
+        logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideApplied);
+    }
+
     private static void DeferredApplyHide(BusyOverlay overlay)
     {
-        void ApplyHide()
-        {
-            if (overlay.Window == null)
-            {
-                FinishDeferredHideTeardownWithoutWindow(overlay);
-                return;
-            }
-
-            overlay.InputTransparent = true;
-            if (overlay.overlayGrid != null)
-            {
-                overlay.overlayGrid.Opacity = 0;
-                overlay.overlayGrid.InputTransparent = true;
-            }
-            FinishDeferredHideTeardownWithoutWindow(overlay);
-            logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideApplied);
-        }
+        void ApplyHide() => ApplyDeferredHideVisualState(overlay);
 
         try
         {
@@ -356,6 +359,71 @@ public partial class BusyOverlay : ContentView
             {
                 overlay.isProcessingVisibilityChange = false;
             }
+        }
+    }
+
+    /// <summary>
+    /// When a visibility toggle arrives while already processing one, optionally defer hide (caller returns true — stop processing).
+    /// </summary>
+    private static bool TryHandleBusyOverlayReentrantHide(BusyOverlay overlay, bool newBoolValue)
+    {
+        if (!overlay.isProcessingVisibilityChange)
+        {
+            return false;
+        }
+
+        if (newBoolValue)
+        {
+            logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedSkippingAlreadyProcessing);
+            return true;
+        }
+
+        logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedDeferringHideAlreadyProcessing);
+        DeferredApplyHide(overlay);
+        return true;
+    }
+
+    /// <summary>
+    /// Applies opacity, input routing, spinner, and hard-timeout state from an IsVisible change (dispatched onto UI thread).
+    /// </summary>
+    private static void ApplyBusyOverlayIsVisibleOpacityAndSpinner(BusyOverlay overlay, bool newBoolValue, double opacity, bool inputTransparent)
+    {
+        if (overlay.Window == null)
+        {
+            overlay.CancelHardTimeout();
+            if (!newBoolValue)
+            {
+                overlay.StopSpinnerAfterDelay();
+            }
+
+            return;
+        }
+
+        overlay.InputTransparent = inputTransparent;
+
+        if (overlay.overlayGrid != null)
+        {
+            overlay.overlayGrid.Opacity = opacity;
+            overlay.overlayGrid.InputTransparent = inputTransparent;
+            logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedSetContentAndGridInputTransparent,
+                inputTransparent, opacity, inputTransparent);
+        }
+
+        if (newBoolValue)
+        {
+            overlay.UpdateIsSpinnerRunning();
+            overlay.CancelSpinnerStop();
+            if (overlay.IsSpinnerRunning)
+            {
+                overlay.StartSpinnerImmediately();
+            }
+
+            overlay.StartHardTimeout();
+        }
+        else
+        {
+            overlay.CancelHardTimeout();
+            overlay.StopSpinnerAfterDelay();
         }
     }
 
@@ -470,15 +538,8 @@ public partial class BusyOverlay : ContentView
             // This prevents infinite loops when binding and explicit sets conflict.
             // When transitioning to false (hide), we must not skip: otherwise the overlay can stay visible
             // forever (e.g. track modal sets IsBusy=false before the "show" dispatch has run).
-            if (overlay.isProcessingVisibilityChange)
+            if (TryHandleBusyOverlayReentrantHide(overlay, newBoolValue))
             {
-                if (newBoolValue)
-                {
-                    logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedSkippingAlreadyProcessing);
-                    return;
-                }
-                logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedDeferringHideAlreadyProcessing);
-                DeferredApplyHide(overlay);
                 return;
             }
 
@@ -490,48 +551,8 @@ public partial class BusyOverlay : ContentView
             logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedPropertyChangedBindingOpacity,
                 oldValue, newBoolValue, opacity, inputTransparent);
 
-            // Set opacity and InputTransparent directly on both the ContentView itself and the overlay grid
-            // This bypasses any binding delays and ensures the overlay behaves correctly as soon as IsVisible is set
-            void Apply()
-            {
-                // On Windows, when the overlay is hidden very quickly (e.g. state update right after show),
-                // the dispatched callback can run after the view was detached or during layout teardown.
-                // Touching InputTransparent/Opacity then can throw InvalidOperationException in MAUI.
-                if (overlay.Window == null)
-                {
-                    overlay.CancelHardTimeout();
-                    if (!newBoolValue)
-                        overlay.StopSpinnerAfterDelay();
-                    return;
-                }
-
-                // Set InputTransparent on the ContentView itself (this is critical - parent must allow input through)
-                overlay.InputTransparent = inputTransparent;
-
-                if (overlay.overlayGrid != null)
-                {
-                    overlay.overlayGrid.Opacity = opacity;
-                    overlay.overlayGrid.InputTransparent = inputTransparent;
-                    logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedSetContentAndGridInputTransparent,
-                        inputTransparent, opacity, inputTransparent);
-                }
-
-                if (newBoolValue)
-                {
-                    overlay.UpdateIsSpinnerRunning();
-                    overlay.CancelSpinnerStop();
-                    if (overlay.IsSpinnerRunning)
-                        overlay.StartSpinnerImmediately();
-                    overlay.StartHardTimeout();
-                }
-                else
-                {
-                    // Don't set IsSpinnerRunning to false yet - keep spinner animating so it fades out with the card.
-                    // StopSpinnerAfterDelay will stop it after the overlay has faded (card and spinner hide together).
-                    overlay.CancelHardTimeout();
-                    overlay.StopSpinnerAfterDelay();
-                }
-            }
+            void Apply() =>
+                ApplyBusyOverlayIsVisibleOpacityAndSpinner(overlay, newBoolValue, opacity, inputTransparent);
 
             // Start spinner synchronously before dispatch to prevent card-without-spinner on iOS.
             // The XAML binding on overlayGrid.Opacity fires immediately (card visible),

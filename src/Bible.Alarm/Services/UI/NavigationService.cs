@@ -371,7 +371,10 @@ public sealed partial class NavigationService(
 
                 await PopOrRemovePlaybackPageAsync(navigation, playbackPage);
                 DisposePlaybackModalSafely(playbackPage);
-                NotifyPlaybackModalClosedOnPlatforms(serviceProvider);
+#if ANDROID
+                NotifyPlaybackModalClosedAndroid(serviceProvider);
+#endif
+                WindowSetupService.UpdateNavigationBarColors();
             });
         });
     }
@@ -441,15 +444,13 @@ public sealed partial class NavigationService(
 #endif
     }
 
-    private static void NotifyPlaybackModalClosedOnPlatforms(IServiceProvider serviceProvider)
-    {
 #if ANDROID
+    private static void NotifyPlaybackModalClosedAndroid(IServiceProvider serviceProvider)
+    {
         var barHost = serviceProvider.GetService<IAndroidMiniPlaybackBarHost>();
         barHost?.SetPlaybackModalActive(false);
-#endif
-
-        WindowSetupService.UpdateNavigationBarColors();
     }
+#endif
 
     public void SetMiniBarVisible(bool visible)
     {

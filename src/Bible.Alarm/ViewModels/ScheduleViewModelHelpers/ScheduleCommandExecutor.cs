@@ -49,8 +49,10 @@ public sealed class ScheduleCommandExecutor
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private readonly Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel;
+#if ANDROID
     private readonly Func<AlarmSettingsContainerViewModel?>? getAlarmSettingsContainerViewModel;
     private readonly Func<NumberOfTrackContainerViewModel?>? getNumberOfTrackContainerViewModel;
+#endif
     private readonly Action<bool>? setIsSaving;
     private readonly Action<bool>? setIsCancelBusy;
     private readonly Action<bool>? setIsSaveBusy;
@@ -66,8 +68,10 @@ public sealed class ScheduleCommandExecutor
         dispatcher = core.Dispatcher;
         mapper = core.Mapper;
         getMusicSelectionContainerViewModel = hooks.GetMusicSelectionContainerViewModel;
+#if ANDROID
         getAlarmSettingsContainerViewModel = hooks.GetAlarmSettingsContainerViewModel;
         getNumberOfTrackContainerViewModel = hooks.GetNumberOfTrackContainerViewModel;
+#endif
         setIsSaving = hooks.SetIsSaving;
         setIsCancelBusy = hooks.SetIsCancelBusy;
         setIsSaveBusy = hooks.SetIsSaveBusy;

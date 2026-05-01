@@ -74,7 +74,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
     /// Deletes only legacy-named schedule DB files (never the current schedule.db path).
     /// version.dat files are not deleted — MediaIndexVersionService uses them when Preferences are unavailable.
     /// </summary>
-    private async Task DeleteLegacyScheduleDatabaseFilesAsync(string dbDirectory)
+    private static async Task DeleteLegacyScheduleDatabaseFilesAsync(string dbDirectory)
     {
         var oldDbPath1 = System.IO.Path.Combine(dbDirectory, AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName);
         await DeleteOldDatabaseFilesAsync(oldDbPath1, $"old Schedule database ({AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName})");

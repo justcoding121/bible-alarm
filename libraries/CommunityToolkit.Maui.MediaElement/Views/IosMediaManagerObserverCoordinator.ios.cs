@@ -159,8 +159,10 @@ internal sealed class IosMediaManagerObserverCoordinator
         }
     }
 
-    private static void ErrorOccurred(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? _, NSNotificationEventArgs args)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S1172", Justification = "NSNotificationCenter callback arity; sender unused.")]
+    private static void ErrorOccurred(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? unusedSender, NSNotificationEventArgs args)
     {
+        _ = unusedSender;
         var error = player.CurrentItem?.Error;
         if (error is not null)
         {
@@ -174,8 +176,10 @@ internal sealed class IosMediaManagerObserverCoordinator
         logger.LogWarning("{LogMessage}", nonFatal);
     }
 
-    private static void PlayedToEnd(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? _, NSNotificationEventArgs args)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S1172", Justification = "NSNotificationCenter callback arity; sender unused.")]
+    private static void PlayedToEnd(AVPlayer player, IMediaElement mediaElement, ILogger logger, object? unusedSender, NSNotificationEventArgs args)
     {
+        _ = unusedSender;
         if (args.Notification.Object != player.CurrentItem)
         {
             return;

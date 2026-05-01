@@ -166,7 +166,6 @@ public sealed class MediaElementService : IMediaElementService
         }
     }
 
-    [SuppressMessage("SonarAnalyzer.CSharp", "S3011", Justification = "Reflection clears MAUI internal _handler after disposal; no supported public API.")]
     private void DisposeMediaElementOnMainThread(MediaElement mediaElement)
     {
         if (!MainThread.IsMainThread)
@@ -222,6 +221,8 @@ public sealed class MediaElementService : IMediaElementService
     }
 #endif
 
+    [SuppressMessage("SonarAnalyzer.CSharp", "S3011",
+        Justification = "Clears MAUI Element._handler via reflection after handler dispose; controlled teardown without public MAUI API.")]
     private static void DisposeMediaElementHandlerAndClearBinding(MediaElement mediaElement, IElementHandler? handler)
     {
         if (handler is IDisposable disposableHandler)

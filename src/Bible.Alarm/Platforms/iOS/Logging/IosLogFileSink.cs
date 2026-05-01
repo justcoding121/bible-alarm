@@ -13,7 +13,7 @@ namespace Bible.Alarm.Platforms.iOS.Logging;
 /// Custom Serilog sink for iOS that writes logs to a file in the Documents directory
 /// (accessible via Finder file sharing) and also maintains a recent log buffer for HTTP access
 /// </summary>
-public class IosLogFileSink : Serilog.Core.ILogEventSink, IDisposable
+public sealed class IosLogFileSink : Serilog.Core.ILogEventSink, IDisposable
 {
     private readonly ITextFormatter formatter;
     private readonly string logFilePath;
