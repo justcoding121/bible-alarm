@@ -9,7 +9,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BiblePublicationSelection : BaseContentPage, IDisposable
+public sealed partial class BiblePublicationSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingPublication;

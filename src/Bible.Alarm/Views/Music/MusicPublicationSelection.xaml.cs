@@ -6,7 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MusicPublicationSelection : BaseContentPage, IDisposable
+public sealed partial class MusicPublicationSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingPublication;

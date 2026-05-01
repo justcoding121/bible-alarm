@@ -15,7 +15,7 @@ using View = Android.Views.View;
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class PlaybackModal : BaseContentPage, IDisposable
+public sealed partial class PlaybackModal : BaseContentPage, IDisposable
 {
     protected override bool ApplyAndroidSafeAreaPadding => false;
 

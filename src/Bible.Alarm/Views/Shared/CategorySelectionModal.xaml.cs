@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Bible.Alarm.Views.Shared;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class CategorySelectionModal : BaseContentPage, IDisposable
+public sealed partial class CategorySelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingCategory;

@@ -8,7 +8,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MusicTrackSelection : BaseContentPage, IDisposable
+public sealed partial class MusicTrackSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly MusicTrackSelectionViewModel viewModel;

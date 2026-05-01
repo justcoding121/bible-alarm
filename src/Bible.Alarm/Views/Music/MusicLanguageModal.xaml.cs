@@ -15,7 +15,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MusicLanguageModal : BaseContentPage, IDisposable
+public sealed partial class MusicLanguageModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingLanguage;

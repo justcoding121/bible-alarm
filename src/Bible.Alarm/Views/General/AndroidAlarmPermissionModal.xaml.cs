@@ -1,7 +1,7 @@
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class AndroidAlarmPermissionModal : BaseContentPage, IDisposable
+public sealed partial class AndroidAlarmPermissionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
 

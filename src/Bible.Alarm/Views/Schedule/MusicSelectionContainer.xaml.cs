@@ -9,7 +9,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MusicSelectionContainer : ContentView, IDisposable
+public sealed partial class MusicSelectionContainer : ContentView, IDisposable
 {
     private MusicSelectionContainerViewModel? viewModel;
     private bool isDisposed;

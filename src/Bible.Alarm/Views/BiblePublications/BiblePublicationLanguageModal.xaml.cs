@@ -14,7 +14,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposable
+public sealed partial class BiblePublicationLanguageModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingLanguage;

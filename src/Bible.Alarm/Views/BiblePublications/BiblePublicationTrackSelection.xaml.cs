@@ -8,7 +8,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BiblePublicationTrackSelection : BaseContentPage, IDisposable
+public sealed partial class BiblePublicationTrackSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly BiblePublicationTrackSelectionViewModel viewModel;

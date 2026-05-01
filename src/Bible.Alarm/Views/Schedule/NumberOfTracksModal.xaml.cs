@@ -10,7 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class NumberOfTracksModal : BaseContentPage, IDisposable
+public sealed partial class NumberOfTracksModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();

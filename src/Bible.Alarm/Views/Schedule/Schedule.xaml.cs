@@ -6,7 +6,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class Schedule : BaseContentPage, IDisposable
+public sealed partial class Schedule : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool hasHandledFirstLoad;

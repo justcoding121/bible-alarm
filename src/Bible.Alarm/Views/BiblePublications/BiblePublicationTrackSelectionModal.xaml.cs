@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDisposable
+public sealed partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingTrack;

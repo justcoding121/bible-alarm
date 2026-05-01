@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
+public sealed partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingTrack;

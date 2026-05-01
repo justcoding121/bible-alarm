@@ -11,7 +11,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposable
+public sealed partial class BiblePublicationSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingPublication;

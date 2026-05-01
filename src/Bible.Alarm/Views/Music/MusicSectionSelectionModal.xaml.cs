@@ -11,7 +11,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
+public sealed partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool isSelectingSection;
