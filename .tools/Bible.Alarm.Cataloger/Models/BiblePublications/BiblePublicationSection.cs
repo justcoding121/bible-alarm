@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace Bible.Alarm.Cataloger.Models.BiblePublications;
