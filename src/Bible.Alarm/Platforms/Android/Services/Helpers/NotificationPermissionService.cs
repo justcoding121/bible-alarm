@@ -76,32 +76,37 @@ public sealed class NotificationPermissionService : IDisposable
                     return false;
                 }
 
-                // Wrap permission check in additional try-catch to handle cases where
-                // context becomes invalid during app lifecycle transitions (e.g., when permission is revoked)
-                try
-                {
-                    var result = ContextCompat.CheckSelfPermission(context, Manifest.Permission.PostNotifications);
-                    var granted = result == Permission.Granted;
-                    logger.Debug("NotificationPermissionService.IsGranted: {Granted}", granted);
-                    return granted;
-                }
-                catch (Java.Lang.RuntimeException javaEx)
-                {
-                    // Handle Java exceptions that can occur when context is invalid
-                    logger.Error(javaEx, "NotificationPermissionService.IsGranted: Java exception checking permission (context may be invalid)");
-                    return false;
-                }
-                catch (System.Exception ex)
-                {
-                    logger.Error(ex, "NotificationPermissionService.IsGranted: Exception checking permission");
-                    return false;
-                }
+                return TryGetPostNotificationsGranted(context);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "NotificationPermissionService.IsGranted: Exception getting context or checking permission");
                 return false;
             }
+        }
+    }
+
+    /// <summary>
+    /// Wraps permission check to handle invalid context during lifecycle transitions.
+    /// </summary>
+    private bool TryGetPostNotificationsGranted(global::Android.Content.Context context)
+    {
+        try
+        {
+            var result = ContextCompat.CheckSelfPermission(context, Manifest.Permission.PostNotifications);
+            var granted = result == Permission.Granted;
+            logger.Debug("NotificationPermissionService.IsGranted: {Granted}", granted);
+            return granted;
+        }
+        catch (Java.Lang.RuntimeException javaEx)
+        {
+            logger.Error(javaEx, "NotificationPermissionService.IsGranted: Java exception checking permission (context may be invalid)");
+            return false;
+        }
+        catch (System.Exception ex)
+        {
+            logger.Error(ex, "NotificationPermissionService.IsGranted: Exception checking permission");
+            return false;
         }
     }
 
@@ -221,44 +226,59 @@ public sealed class NotificationPermissionService : IDisposable
         {
             if (granted)
             {
-                promptExhausted = false;
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try
-                    {
-                        PermissionGranted?.Invoke(this, EventArgs.Empty);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "NotificationPermissionService: Exception in PermissionGranted event handler");
-                    }
-                });
+                InvokePermissionGrantedOnMainThread();
             }
             else
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try
-                    {
-                        var activity = global::Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
-                        if (activity != null && (int)Build.VERSION.SdkInt >= 33 &&
-                            !ActivityCompat.ShouldShowRequestPermissionRationale(activity, "android.permission.POST_NOTIFICATIONS"))
-                        {
-                            promptExhausted = true;
-                            logger.Information("NotificationPermissionService: System prompt exhausted (user permanently denied or don't ask again)");
-                        }
-                        PermissionDenied?.Invoke(this, EventArgs.Empty);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "NotificationPermissionService: Exception in PermissionDenied event handler");
-                    }
-                });
+                InvokePermissionDeniedOnMainThread();
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "NotificationPermissionService: Exception invoking permission result events");
+        }
+    }
+
+    private void InvokePermissionGrantedOnMainThread()
+    {
+        promptExhausted = false;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                PermissionGranted?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "NotificationPermissionService: Exception in PermissionGranted event handler");
+            }
+        });
+    }
+
+    private void InvokePermissionDeniedOnMainThread()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                UpdatePromptExhaustedIfPermanentDenial();
+                PermissionDenied?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "NotificationPermissionService: Exception in PermissionDenied event handler");
+            }
+        });
+    }
+
+    private void UpdatePromptExhaustedIfPermanentDenial()
+    {
+        var activity = global::Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
+        if (activity != null && (int)Build.VERSION.SdkInt >= 33 &&
+            !ActivityCompat.ShouldShowRequestPermissionRationale(activity, "android.permission.POST_NOTIFICATIONS"))
+        {
+            promptExhausted = true;
+            logger.Information("NotificationPermissionService: System prompt exhausted (user permanently denied or don't ask again)");
         }
     }
 

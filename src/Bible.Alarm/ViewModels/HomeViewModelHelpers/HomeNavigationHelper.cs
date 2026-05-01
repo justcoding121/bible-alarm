@@ -1,6 +1,8 @@
 #nullable enable
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using AutoMapper;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
@@ -9,6 +11,7 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.General;
 using Fluxor;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using System.Threading;
@@ -110,232 +113,12 @@ public class HomeNavigationHelper
         logger.Information("[PERF] ShowOverlayAndNavigateAsync: Overlay dispatched, now calling NavigateToScheduleAsync");
 #endif
 
-        var schedule = scheduleListItem.Schedule;
-        var shouldEnableReminder = scheduleListItem.IsEnabled;
-        var shouldShowPermissionModal = false;
+        var schedule = scheduleListItem.Schedule!;
+        var reminderEvaluation = await EvaluateReminderAndPermissionModalAsync(schedule, scheduleListItem.IsEnabled);
 
-#if ANDROID
-        // Android: Check if schedule has NotificationEnabled=true but permission is not granted
-        // If so, enable reminder and show permission modal after navigation
-        if (schedule.NotificationEnabled)
-        {
-            try
-            {
-                var permissionService = NotificationPermissionService.Instance;
-                bool isPermissionGranted = false;
-                try
-                {
-                    isPermissionGranted = permissionService.IsGranted;
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "ShowOverlayAndNavigateAsync: Exception checking permission - assuming not granted");
-                    isPermissionGranted = false;
-                }
+        await navigationService.NavigateToScheduleAsync(schedule.Id, reminderEvaluation.ShouldEnableReminder);
 
-                if (!isPermissionGranted)
-                {
-                    logger.Information("ShowOverlayAndNavigateAsync: Schedule {ScheduleId} has NotificationEnabled=true but permission not granted - will enable reminder and show modal", schedule.Id);
-                    shouldEnableReminder = true;
-                    shouldShowPermissionModal = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "ShowOverlayAndNavigateAsync: Exception checking notification permission");
-            }
-        }
-#elif IOS
-        // iOS: Check if schedule has IsEnabled=true but permission is not granted
-        // If so, enable reminder and show permission modal after navigation
-        // iOS works directly with IsEnabled (reminder enabled), not NotificationEnabled
-        if (schedule.IsEnabled)
-        {
-            try
-            {
-                var permissionService = IosNotificationPermissionService.Instance;
-                bool isPermissionGranted = false;
-                try
-                {
-                    // Use async check to get accurate real-time status.
-                    // The sync IsGranted property can return false when cache is empty
-                    // (e.g., on first app launch before the async check completes),
-                    // which would unnecessarily show the permission modal.
-                    isPermissionGranted = await IosNotificationPermissionService.IsGrantedAsync();
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "ShowOverlayAndNavigateAsync: Exception checking permission - assuming not granted");
-                    isPermissionGranted = false;
-                }
-
-                if (!isPermissionGranted)
-                {
-                    logger.Information("ShowOverlayAndNavigateAsync: Schedule {ScheduleId} has IsEnabled=true but permission not granted - will enable reminder and show modal", schedule.Id);
-                    shouldEnableReminder = true;
-                    shouldShowPermissionModal = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "ShowOverlayAndNavigateAsync: Exception checking notification permission");
-            }
-        }
-#endif
-
-        // Navigate with the schedule ID - state will be set inside the lock to prevent race conditions
-        // (If we set state here and wait for lock, Home.OnAppearing could clear it)
-        await navigationService.NavigateToScheduleAsync(schedule.Id, shouldEnableReminder);
-
-        // Show notification permission modal after navigation if needed (shouldShowPermissionModal set in #if ANDROID / #elif IOS).
-        if (shouldShowPermissionModal)
-        {
-            // Wait longer for the schedule page to fully initialize and containers to signal ready
-            // This ensures the overlay can be properly hidden after modal dismissal
-            await Task.Delay(1000);
-            
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                try
-                {
-                    var notificationViewModel = new NotificationPermissionViewModel(
-                        serviceProvider.GetRequiredService<ILogger>(),
-                        navigationService,
-                        onModalDismissed: (permissionGranted) =>
-                        {
-                            // Ensure overlay is hidden after modal dismissal
-                            // The schedule page containers should have signaled ready by now
-                            MainThread.BeginInvokeOnMainThread(() =>
-                            {
-                                try
-                                {
-                                    var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
-                                    // If containers are ready, hide overlay immediately
-                                    // Otherwise, let the normal flow handle it
-                                    if (state.Value.ContainerReadiness.AllReady && state.Value.IsSchedulePageOverlayVisible)
-                                    {
-                                        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
-                                        logger.Debug("ShowOverlayAndNavigateAsync: Hiding overlay after modal dismissal - containers are ready");
-                                    }
-                                }
-                                catch (Exception overlayEx)
-                                {
-                                    logger.Error(overlayEx, "ShowOverlayAndNavigateAsync: Error checking/hiding overlay after modal dismissal");
-                                }
-                            });
-                            
-                            // Run DB update in background to avoid blocking modal dismissal
-                            // Use fire-and-forget pattern with proper error handling
-                            _ = Task.Run(async () =>
-                            {
-                                try
-                                {
-                                    await Task.Delay(100); // Brief delay to ensure modal is fully dismissed
-                                    
-                                    // Get services on background thread (platform-specific to avoid unused locals per target)
-#if ANDROID
-                                    var dbDispatcher = serviceProvider.GetRequiredService<IDispatcher>();
-                                    var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
-                                    // Android: Update NotificationEnabled in state only (not DB)
-                                    MainThread.BeginInvokeOnMainThread(() =>
-                                    {
-                                        try
-                                        {
-                                            var schedules = state.Value.Schedules;
-                                            var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
-                                            
-                                            if (scheduleToUpdate != null)
-                                            {
-                                                var updatedSchedule = this.mapper.Map<ScheduleStateItem>(scheduleToUpdate);
-                                                updatedSchedule.NotificationEnabled = permissionGranted;
-                                                dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
-                                                logger.Information("ShowOverlayAndNavigateAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} for schedule {ScheduleId}", 
-                                                    permissionGranted ? "granted" : "denied", permissionGranted, schedule.Id);
-                                            }
-                                        }
-                                        catch (Exception stateEx)
-                                        {
-                                            logger.Error(stateEx, "ShowOverlayAndNavigateAsync: Error updating NotificationEnabled in state");
-                                        }
-                                    });
-#elif IOS
-                                    var dbDispatcher = serviceProvider.GetRequiredService<IDispatcher>();
-                                    var alarmScheduleService = serviceProvider.GetRequiredService<IAlarmScheduleService>();
-                                    var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
-                                    // iOS: Update IsEnabled in DB (like ScheduleStateService does)
-                                    try
-                                    {
-                                        _ = await alarmScheduleService.UpdateScheduleByIdAsync(
-                                            schedule.Id,
-                                            s => s.IsEnabled = permissionGranted,
-                                            CancellationToken.None);
-                                        
-                                        // Update Fluxor store with DB value on main thread
-                                        MainThread.BeginInvokeOnMainThread(() =>
-                                        {
-                                            try
-                                            {
-                                                var schedules = state.Value.Schedules;
-                                                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
-                                
-                                                if (scheduleToUpdate != null)
-                                                {
-                                                    var stateUpdatedSchedule = this.mapper.Map<ScheduleStateItem>(scheduleToUpdate);
-                                                    stateUpdatedSchedule.IsEnabled = permissionGranted;
-                                                    dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(stateUpdatedSchedule, false, false, shouldSave: false));
-                                                }
-                                
-                                                logger.Information("ShowOverlayAndNavigateAsync: Permission {PermissionStatus} from modal - set IsEnabled to {IsEnabled} in DB for schedule {ScheduleId}", 
-                                                    permissionGranted ? "granted" : "denied", permissionGranted, schedule.Id);
-                                            }
-                                            catch (Exception stateEx)
-                                            {
-                                                logger.Error(stateEx, "ShowOverlayAndNavigateAsync: Error updating state after DB update");
-                                            }
-                                        });
-                                    }
-                                    catch (Exception dbEx)
-                                    {
-                                        logger.Error(dbEx, "ShowOverlayAndNavigateAsync: Error updating IsEnabled in DB - falling back to state update");
-                                        // Fallback: update state only if DB update fails
-                                        MainThread.BeginInvokeOnMainThread(() =>
-                                        {
-                                            try
-                                            {
-                                                var schedules = state.Value.Schedules;
-                                                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
-                                                
-                                                if (scheduleToUpdate != null)
-                                                {
-                                                    var updatedSchedule = this.mapper.Map<ScheduleStateItem>(scheduleToUpdate);
-                                                    updatedSchedule.IsEnabled = permissionGranted;
-                                                    dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
-                                                }
-                                            }
-                                            catch (Exception fallbackEx)
-                                            {
-                                                logger.Error(fallbackEx, "ShowOverlayAndNavigateAsync: Error in fallback state update");
-                                            }
-                                        });
-                                    }
-#endif
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.Error(ex, "ShowOverlayAndNavigateAsync: Error in onModalDismissed callback");
-                                }
-                            });
-                        });
-                    
-                    notificationViewModel.StartPermissionCheckTimer();
-                    await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "ShowOverlayAndNavigateAsync: Error opening notification permission modal");
-                }
-            });
-        }
+        await PresentNotificationPermissionModalAfterNavigateAsync(schedule, reminderEvaluation.ShouldShowPermissionModal);
 
 #if DEBUG
         var endTime = DateTime.UtcNow;
@@ -343,5 +126,257 @@ public class HomeNavigationHelper
             (endTime - startTime).TotalMilliseconds);
 #endif
     }
+
+    private async Task<(bool ShouldEnableReminder, bool ShouldShowPermissionModal)> EvaluateReminderAndPermissionModalAsync(
+        AlarmSchedule schedule,
+        bool initialShouldEnableReminder)
+    {
+#if ANDROID
+        return await Task.FromResult(EvaluateAndroidReminderAndModal(schedule, initialShouldEnableReminder));
+#elif IOS
+        return await EvaluateIosReminderAndModalAsync(schedule, initialShouldEnableReminder);
+#else
+        return (initialShouldEnableReminder, false);
+#endif
+    }
+
+#if ANDROID
+    private (bool ShouldEnableReminder, bool ShouldShowPermissionModal) EvaluateAndroidReminderAndModal(
+        AlarmSchedule schedule,
+        bool shouldEnableReminder)
+    {
+        var shouldShowPermissionModal = false;
+        if (!schedule.NotificationEnabled)
+        {
+            return (shouldEnableReminder, shouldShowPermissionModal);
+        }
+
+        try
+        {
+            var permissionService = NotificationPermissionService.Instance;
+            bool isPermissionGranted;
+            try
+            {
+                isPermissionGranted = permissionService.IsGranted;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "ShowOverlayAndNavigateAsync: Exception checking permission - assuming not granted");
+                isPermissionGranted = false;
+            }
+
+            if (!isPermissionGranted)
+            {
+                logger.Information("ShowOverlayAndNavigateAsync: Schedule {ScheduleId} has NotificationEnabled=true but permission not granted - will enable reminder and show modal", schedule.Id);
+                shouldEnableReminder = true;
+                shouldShowPermissionModal = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "ShowOverlayAndNavigateAsync: Exception checking notification permission");
+        }
+
+        return (shouldEnableReminder, shouldShowPermissionModal);
+    }
+#endif
+
+#if IOS
+    private async Task<(bool ShouldEnableReminder, bool ShouldShowPermissionModal)> EvaluateIosReminderAndModalAsync(
+        AlarmSchedule schedule,
+        bool shouldEnableReminder)
+    {
+        var shouldShowPermissionModal = false;
+        if (!schedule.IsEnabled)
+        {
+            return (shouldEnableReminder, shouldShowPermissionModal);
+        }
+
+        try
+        {
+            bool isPermissionGranted;
+            try
+            {
+                isPermissionGranted = await IosNotificationPermissionService.IsGrantedAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "ShowOverlayAndNavigateAsync: Exception checking permission - assuming not granted");
+                isPermissionGranted = false;
+            }
+
+            if (!isPermissionGranted)
+            {
+                logger.Information("ShowOverlayAndNavigateAsync: Schedule {ScheduleId} has IsEnabled=true but permission not granted - will enable reminder and show modal", schedule.Id);
+                shouldEnableReminder = true;
+                shouldShowPermissionModal = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "ShowOverlayAndNavigateAsync: Exception checking notification permission");
+        }
+
+        return (shouldEnableReminder, shouldShowPermissionModal);
+    }
+#endif
+
+    private async Task PresentNotificationPermissionModalAfterNavigateAsync(
+        AlarmSchedule schedule,
+        bool shouldShowPermissionModal)
+    {
+        if (!shouldShowPermissionModal)
+        {
+            return;
+        }
+
+        await Task.Delay(1000);
+
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try
+            {
+                var notificationViewModel = new NotificationPermissionViewModel(
+                    serviceProvider.GetRequiredService<ILogger>(),
+                    navigationService,
+                    onModalDismissed: (permissionGranted) =>
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            try
+                            {
+                                var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
+                                if (state.Value.ContainerReadiness.AllReady && state.Value.IsSchedulePageOverlayVisible)
+                                {
+                                    dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                                    logger.Debug("ShowOverlayAndNavigateAsync: Hiding overlay after modal dismissal - containers are ready");
+                                }
+                            }
+                            catch (Exception overlayEx)
+                            {
+                                logger.Error(overlayEx, "ShowOverlayAndNavigateAsync: Error checking/hiding overlay after modal dismissal");
+                            }
+                        });
+
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await Task.Delay(100);
+#if ANDROID
+                                RunAndroidModalDismissStateUpdate(schedule, permissionGranted);
+#elif IOS
+                                await RunIosModalDismissDbAndStateUpdateAsync(schedule, permissionGranted);
+#else
+                                await Task.CompletedTask;
+#endif
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.Error(ex, "ShowOverlayAndNavigateAsync: Error in onModalDismissed callback");
+                            }
+                        });
+                    });
+
+                notificationViewModel.StartPermissionCheckTimer();
+                await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "ShowOverlayAndNavigateAsync: Error opening notification permission modal");
+            }
+        });
+    }
+
+#if ANDROID
+    private void RunAndroidModalDismissStateUpdate(AlarmSchedule schedule, bool permissionGranted)
+    {
+        var dbDispatcher = serviceProvider.GetRequiredService<IDispatcher>();
+        var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                var schedules = state.Value.Schedules;
+                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
+
+                if (scheduleToUpdate != null)
+                {
+                    var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
+                    updatedSchedule.NotificationEnabled = permissionGranted;
+                    dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
+                    logger.Information("ShowOverlayAndNavigateAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} for schedule {ScheduleId}",
+                        permissionGranted ? "granted" : "denied", permissionGranted, schedule.Id);
+                }
+            }
+            catch (Exception stateEx)
+            {
+                logger.Error(stateEx, "ShowOverlayAndNavigateAsync: Error updating NotificationEnabled in state");
+            }
+        });
+    }
+#endif
+
+#if IOS
+    private async Task RunIosModalDismissDbAndStateUpdateAsync(AlarmSchedule schedule, bool permissionGranted)
+    {
+        var dbDispatcher = serviceProvider.GetRequiredService<IDispatcher>();
+        var alarmScheduleService = serviceProvider.GetRequiredService<IAlarmScheduleService>();
+        var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
+        try
+        {
+            _ = await alarmScheduleService.UpdateScheduleByIdAsync(
+                schedule.Id,
+                s => s.IsEnabled = permissionGranted,
+                CancellationToken.None);
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    var schedules = state.Value.Schedules;
+                    var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
+
+                    if (scheduleToUpdate != null)
+                    {
+                        var stateUpdatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
+                        stateUpdatedSchedule.IsEnabled = permissionGranted;
+                        dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(stateUpdatedSchedule, false, false, shouldSave: false));
+                    }
+
+                    logger.Information("ShowOverlayAndNavigateAsync: Permission {PermissionStatus} from modal - set IsEnabled to {IsEnabled} in DB for schedule {ScheduleId}",
+                        permissionGranted ? "granted" : "denied", permissionGranted, schedule.Id);
+                }
+                catch (Exception stateEx)
+                {
+                    logger.Error(stateEx, "ShowOverlayAndNavigateAsync: Error updating state after DB update");
+                }
+            });
+        }
+        catch (Exception dbEx)
+        {
+            logger.Error(dbEx, "ShowOverlayAndNavigateAsync: Error updating IsEnabled in DB - falling back to state update");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    var schedules = state.Value.Schedules;
+                    var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == schedule.Id);
+
+                    if (scheduleToUpdate != null)
+                    {
+                        var updatedSchedule = mapper.Map<ScheduleStateItem>(scheduleToUpdate);
+                        updatedSchedule.IsEnabled = permissionGranted;
+                        dbDispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
+                    }
+                }
+                catch (Exception fallbackEx)
+                {
+                    logger.Error(fallbackEx, "ShowOverlayAndNavigateAsync: Error in fallback state update");
+                }
+            });
+        }
+    }
+#endif
 }
 

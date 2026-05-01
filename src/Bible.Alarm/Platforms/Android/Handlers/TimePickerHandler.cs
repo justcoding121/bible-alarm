@@ -228,35 +228,45 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
             if (timePicker is global::Android.Views.ViewGroup timePickerGroup)
             {
                 // Try finding by resource ID (Material 3 TimePicker AM/PM indicator)
-                var amPmId = context.Resources?.GetIdentifier("material_timepicker_am_label", "id", context.PackageName);
-                if (amPmId.HasValue && amPmId.Value != 0)
+                if (TryApplyMaterialAmPmLabelFontSizes(context, timePickerGroup, fontSize))
                 {
-                    var amPmView = timePickerGroup.FindViewById(amPmId.Value);
-                    if (amPmView is TextView amPmTextView)
-                    {
-                        amPmTextView.SetTextSize(ComplexUnitType.Sp, (float)fontSize);
-                    }
+                    return;
                 }
 
-                // Also try PM label
-                var pmId = context.Resources?.GetIdentifier("material_timepicker_pm_label", "id", context.PackageName);
-                if (pmId.HasValue && pmId.Value != 0)
-                {
-                    var pmView = timePickerGroup.FindViewById(pmId.Value);
-                    if (pmView is TextView pmTextView)
-                    {
-                        pmTextView.SetTextSize(ComplexUnitType.Sp, (float)fontSize);
-                    }
-                }
+                // Fallback: Find all TextViews in TimePicker (TimePicker derives from View)
+                FindAndStyleAmPmTextViews(timePicker, fontSize);
             }
-
-            // Fallback: Find all TextViews in TimePicker (TimePicker derives from View)
-            FindAndStyleAmPmTextViews(timePicker, fontSize);
         }
         catch (Exception)
         {
             // AM/PM views might not be available or accessible
         }
+    }
+
+    private static bool TryApplyMaterialAmPmLabelFontSizes(global::Android.Content.Context context, global::Android.Views.ViewGroup timePickerGroup, double fontSize)
+    {
+        var amPmId = context.Resources?.GetIdentifier("material_timepicker_am_label", "id", context.PackageName);
+        if (amPmId.HasValue && amPmId.Value != 0)
+        {
+            var amPmView = timePickerGroup.FindViewById(amPmId.Value);
+            if (amPmView is TextView amPmTextView)
+            {
+                amPmTextView.SetTextSize(ComplexUnitType.Sp, (float)fontSize);
+            }
+        }
+
+        var pmId = context.Resources?.GetIdentifier("material_timepicker_pm_label", "id", context.PackageName);
+        if (pmId.HasValue && pmId.Value != 0)
+        {
+            var pmView = timePickerGroup.FindViewById(pmId.Value);
+            if (pmView is TextView pmTextView)
+            {
+                pmTextView.SetTextSize(ComplexUnitType.Sp, (float)fontSize);
+                return true;
+            }
+        }
+
+        return amPmId.HasValue && amPmId.Value != 0;
     }
 
     private static global::Android.Widget.TimePicker? FindTimePicker(global::Android.Views.View root)

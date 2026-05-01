@@ -1,10 +1,12 @@
 #nullable enable
 
+using System.Linq;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -37,188 +39,24 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         Log.Logger.Information("[BOOTSTRAP] Database initialization starting");
 #endif
 
-        // Create a scope for the DbContext since it's registered as scoped
-        // This ensures proper lifetime management and prevents disposal issues
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        // Migrate Schedule database (always safe - app owns this DB)
-        // On this release, we're switching to a new database name (schedule.db)
-        // Delete old database and version.dat files if they exist (no longer used)
 #if DEBUG
         var scheduleDbStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
         var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-        // Get database directory and storage root for cleanup
         var dbPath = scheduleDb.Database.GetDbConnection().DataSource;
         var dbDirectory = System.IO.Path.GetDirectoryName(dbPath) ?? "";
 
-        // Delete only legacy-named database files (never the current schedule DB file if it exists).
-        // Recovery path below may delete the current file when migration fails due to corruption.
-        var oldDbPath1 = System.IO.Path.Combine(dbDirectory, AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName);
-        await DeleteOldDatabaseFilesAsync(oldDbPath1, $"old Schedule database ({AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName})");
-        
-        var oldDbPath2 = System.IO.Path.Combine(dbDirectory, AppConstants.Database.ScheduleDatabaseLegacyBibleAlarm2FileName);
-        await DeleteOldDatabaseFilesAsync(oldDbPath2, $"old Schedule database ({AppConstants.Database.ScheduleDatabaseLegacyBibleAlarm2FileName})");
+        await DeleteLegacyScheduleDatabaseFilesAsync(dbDirectory);
 
-        // version.dat files are NOT deleted here — MediaIndexVersionService still uses them as
-        // a fallback when Preferences are unavailable (e.g. iOS evicted NSUserDefaults).
-        // Deleting them here would race with the parallel MediaIndexService.Verify() call and
-        // could cause the media index to be re-extracted unnecessarily, triggering orphan cleanup
-        // that deletes user schedules.
-
-        // Check if new database file exists
-        var dbExists = System.IO.File.Exists(dbPath);
-
-        // If database doesn't exist, try copying from bundled resource first
-        // This eliminates the need for migrations on clean install (saves ~1.2 seconds)
-        if (!dbExists)
-        {
-            await CopyScheduleDatabaseFromResourceIfNeededAsync(dbPath);
-            dbExists = System.IO.File.Exists(dbPath); // Re-check after copy attempt
-        }
-
-        // Check if version matches (using Preferences only, no version.dat fallback)
-        // Even if version matches, we still need to verify the schema exists
-        // (database file might be corrupted, empty, or missing schema)
-        // GetPendingMigrationsAsync() is fast if schema exists (just reads migrations history table)
+        var dbExists = await EnsureScheduleDatabaseFileExistsAsync(dbPath);
         var versionMatches = dbExists && await scheduleVersionService.IsVersionCurrentAsync();
 
-        if (versionMatches)
-        {
-            Log.Logger.Debug("[BOOTSTRAP] Schedule database version matches current app version, verifying schema...");
-        }
-        else
-        {
-            // Version mismatch, first launch, or database doesn't exist
-            if (!dbExists)
-            {
-                Log.Logger.Debug("[BOOTSTRAP] Schedule database file does not exist, will be created from bundled resource or migrations");
-            }
-            else
-            {
-                Log.Logger.Debug("[BOOTSTRAP] Schedule database version mismatch or not set, will verify schema and apply migrations if needed");
-            }
-        }
+        LogScheduleDatabaseVersionBranch(versionMatches, dbExists);
 
-        // Always verify schema by checking for pending migrations
-        // This is fast if schema exists (just reads migrations history table)
-        // If bundled database was copied correctly, this should return empty (schema already exists)
-        // If bundled database is missing/empty/corrupted, this will return all migrations (need to create schema)
-        try
-        {
-            var pendingScheduleMigrations = await scheduleDb.Database.GetPendingMigrationsAsync();
-            if (pendingScheduleMigrations.Any())
-            {
-                Log.Logger.Information(
-                    "[BOOTSTRAP] Schedule database has {Count} pending migrations, applying...",
-                    pendingScheduleMigrations.Count());
-                await scheduleDb.Database.MigrateAsync();
-                Log.Logger.Information("[BOOTSTRAP] Schedule database migrations applied successfully");
-            }
-            else
-            {
-                if (versionMatches)
-                {
-                    Log.Logger.Debug("[BOOTSTRAP] Schedule database schema verified - version matches and all migrations applied");
-                }
-                else
-                {
-                    Log.Logger.Debug("[BOOTSTRAP] Schedule database is already up to date (bundled database had schema), skipping migration");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // If GetPendingMigrationsAsync or MigrateAsync fails (e.g., database is corrupted, EF version incompatibility),
-            // try to recover by copying the bundled database as a safety net
-            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to check/apply migrations, attempting recovery with bundled database");
+        scheduleDb = await MigrateScheduleDatabaseOrRecoverAsync(scheduleDb, dbPath, versionMatches, scope.ServiceProvider);
 
-            try
-            {
-                // Close and dispose the database connection before attempting to replace the file
-                // This ensures the file is not locked when we try to delete it
-                await scheduleDb.Database.CloseConnectionAsync();
-                await scheduleDb.DisposeAsync();
-
-                // Release SQLite file locks before delete (preferred over GC.Collect triplet)
-                SqliteConnection.ClearAllPools();
-
-                // Delete the corrupted database file and any WAL/SHM files with retry logic
-                // SQLite may take a moment to fully release the file lock
-                if (System.IO.File.Exists(dbPath))
-                {
-                    const int maxRetries = 5;
-                    const int retryDelayMs = 100;
-                    bool deleted = false;
-
-                    for (int attempt = 0; attempt < maxRetries && !deleted; attempt++)
-                    {
-                        try
-                        {
-                            System.IO.File.Delete(dbPath);
-                            deleted = true;
-                            Log.Logger.Information("[BOOTSTRAP] Deleted corrupted Schedule database file");
-                        }
-                        catch (IOException deleteEx) when (attempt < maxRetries - 1)
-                        {
-                            Log.Logger.Debug(deleteEx,
-                                "[BOOTSTRAP] Could not delete corrupted database file (attempt {Attempt}/{MaxRetries}), retrying...",
-                                attempt + 1, maxRetries);
-                            await Task.Delay(retryDelayMs);
-                        }
-                        catch (IOException deleteEx)
-                        {
-                            throw new IOException(
-                                $"[BOOTSTRAP] Could not delete corrupted database file after {maxRetries} attempts, may be locked.",
-                                deleteEx);
-                        }
-                    }
-                }
-
-                // Clean up WAL and SHM files if they exist (these are usually easier to delete)
-                var walPath = dbPath + AppConstants.Database.SqliteWalFileSuffix;
-                var shmPath = dbPath + AppConstants.Database.SqliteShmFileSuffix;
-                TryDeleteAuxiliaryDbFile(walPath);
-                TryDeleteAuxiliaryDbFile(shmPath);
-
-                // Force overwrite with bundled database (no conditional - always copy)
-                await CopyScheduleDatabaseFromResourceForceAsync(dbPath);
-
-                // Verify the database was copied successfully
-                if (!System.IO.File.Exists(dbPath))
-                {
-                    throw new InvalidOperationException("Failed to copy bundled database during recovery");
-                }
-
-                // Get a fresh DbContext instance for the new database
-                scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-
-                // Try to verify/apply migrations again with the fresh database
-                var pendingScheduleMigrationsAfterRecovery = await scheduleDb.Database.GetPendingMigrationsAsync();
-                if (pendingScheduleMigrationsAfterRecovery.Any())
-                {
-                    Log.Logger.Information(
-                        "[BOOTSTRAP] Schedule database recovery: {Count} pending migrations after copying bundled database, applying...",
-                        pendingScheduleMigrationsAfterRecovery.Count());
-                    await scheduleDb.Database.MigrateAsync();
-                    Log.Logger.Information("[BOOTSTRAP] Schedule database migrations applied successfully after recovery");
-                }
-                else
-                {
-                    Log.Logger.Information("[BOOTSTRAP] Schedule database recovery successful - bundled database had correct schema");
-                }
-            }
-            catch (Exception recoveryEx)
-            {
-                throw new InvalidOperationException(
-                    "Schedule database migration failed and recovery attempt failed. The app cannot continue without a valid database.",
-                    recoveryEx);
-            }
-        }
-
-        // Save current version after successful schema verification/migration
-        // This marks the database as verified for the current app version
         if (!versionMatches)
         {
             await scheduleVersionService.SaveCurrentVersionAsync();
@@ -230,6 +68,168 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         var dbInitElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dbInitStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         Log.Logger.Information("[BOOTSTRAP] Database initialization completed in {ElapsedMs:F2}ms", dbInitElapsed);
 #endif
+    }
+
+    /// <summary>
+    /// Deletes only legacy-named schedule DB files (never the current schedule.db path).
+    /// version.dat files are not deleted — MediaIndexVersionService uses them when Preferences are unavailable.
+    /// </summary>
+    private async Task DeleteLegacyScheduleDatabaseFilesAsync(string dbDirectory)
+    {
+        var oldDbPath1 = System.IO.Path.Combine(dbDirectory, AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName);
+        await DeleteOldDatabaseFilesAsync(oldDbPath1, $"old Schedule database ({AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName})");
+
+        var oldDbPath2 = System.IO.Path.Combine(dbDirectory, AppConstants.Database.ScheduleDatabaseLegacyBibleAlarm2FileName);
+        await DeleteOldDatabaseFilesAsync(oldDbPath2, $"old Schedule database ({AppConstants.Database.ScheduleDatabaseLegacyBibleAlarm2FileName})");
+    }
+
+    private async Task<bool> EnsureScheduleDatabaseFileExistsAsync(string dbPath)
+    {
+        var dbExists = System.IO.File.Exists(dbPath);
+        if (!dbExists)
+        {
+            await CopyScheduleDatabaseFromResourceIfNeededAsync(dbPath);
+            dbExists = System.IO.File.Exists(dbPath);
+        }
+
+        return dbExists;
+    }
+
+    private static void LogScheduleDatabaseVersionBranch(bool versionMatches, bool dbExists)
+    {
+        if (versionMatches)
+        {
+            Log.Logger.Debug("[BOOTSTRAP] Schedule database version matches current app version, verifying schema...");
+            return;
+        }
+
+        if (!dbExists)
+        {
+            Log.Logger.Debug("[BOOTSTRAP] Schedule database file does not exist, will be created from bundled resource or migrations");
+        }
+        else
+        {
+            Log.Logger.Debug("[BOOTSTRAP] Schedule database version mismatch or not set, will verify schema and apply migrations if needed");
+        }
+    }
+
+    private async Task<ScheduleDbContext> MigrateScheduleDatabaseOrRecoverAsync(
+        ScheduleDbContext scheduleDb,
+        string dbPath,
+        bool versionMatches,
+        IServiceProvider scopedServices)
+    {
+        try
+        {
+            await ApplyPendingScheduleMigrationsAsync(scheduleDb, versionMatches);
+            return scheduleDb;
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to check/apply migrations, attempting recovery with bundled database");
+            return await RecoverScheduleDatabaseAfterMigrationFailureAsync(scheduleDb, dbPath, scopedServices);
+        }
+    }
+
+    private static async Task ApplyPendingScheduleMigrationsAsync(ScheduleDbContext scheduleDb, bool versionMatches)
+    {
+        var pendingScheduleMigrations = await scheduleDb.Database.GetPendingMigrationsAsync();
+        if (pendingScheduleMigrations.Any())
+        {
+            Log.Logger.Information(
+                "[BOOTSTRAP] Schedule database has {Count} pending migrations, applying...",
+                pendingScheduleMigrations.Count());
+            await scheduleDb.Database.MigrateAsync();
+            Log.Logger.Information("[BOOTSTRAP] Schedule database migrations applied successfully");
+        }
+        else if (versionMatches)
+        {
+            Log.Logger.Debug("[BOOTSTRAP] Schedule database schema verified - version matches and all migrations applied");
+        }
+        else
+        {
+            Log.Logger.Debug("[BOOTSTRAP] Schedule database is already up to date (bundled database had schema), skipping migration");
+        }
+    }
+
+    private async Task<ScheduleDbContext> RecoverScheduleDatabaseAfterMigrationFailureAsync(
+        ScheduleDbContext scheduleDb,
+        string dbPath,
+        IServiceProvider scopedServices)
+    {
+        try
+        {
+            await scheduleDb.Database.CloseConnectionAsync();
+            await scheduleDb.DisposeAsync();
+
+            SqliteConnection.ClearAllPools();
+
+            if (System.IO.File.Exists(dbPath))
+            {
+                const int maxRetries = 5;
+                const int retryDelayMs = 100;
+                var deleted = false;
+
+                for (var attempt = 0; attempt < maxRetries && !deleted; attempt++)
+                {
+                    try
+                    {
+                        System.IO.File.Delete(dbPath);
+                        deleted = true;
+                        Log.Logger.Information("[BOOTSTRAP] Deleted corrupted Schedule database file");
+                    }
+                    catch (IOException deleteEx) when (attempt < maxRetries - 1)
+                    {
+                        Log.Logger.Debug(deleteEx,
+                            "[BOOTSTRAP] Could not delete corrupted database file (attempt {Attempt}/{MaxRetries}), retrying...",
+                            attempt + 1, maxRetries);
+                        await Task.Delay(retryDelayMs);
+                    }
+                    catch (IOException deleteEx)
+                    {
+                        throw new IOException(
+                            $"[BOOTSTRAP] Could not delete corrupted database file after {maxRetries} attempts, may be locked.",
+                            deleteEx);
+                    }
+                }
+            }
+
+            var walPath = dbPath + AppConstants.Database.SqliteWalFileSuffix;
+            var shmPath = dbPath + AppConstants.Database.SqliteShmFileSuffix;
+            TryDeleteAuxiliaryDbFile(walPath);
+            TryDeleteAuxiliaryDbFile(shmPath);
+
+            await CopyScheduleDatabaseFromResourceForceAsync(dbPath);
+
+            if (!System.IO.File.Exists(dbPath))
+            {
+                throw new InvalidOperationException("Failed to copy bundled database during recovery");
+            }
+
+            var freshDb = scopedServices.GetRequiredService<ScheduleDbContext>();
+
+            var pendingAfterRecovery = await freshDb.Database.GetPendingMigrationsAsync();
+            if (pendingAfterRecovery.Any())
+            {
+                Log.Logger.Information(
+                    "[BOOTSTRAP] Schedule database recovery: {Count} pending migrations after copying bundled database, applying...",
+                    pendingAfterRecovery.Count());
+                await freshDb.Database.MigrateAsync();
+                Log.Logger.Information("[BOOTSTRAP] Schedule database migrations applied successfully after recovery");
+            }
+            else
+            {
+                Log.Logger.Information("[BOOTSTRAP] Schedule database recovery successful - bundled database had correct schema");
+            }
+
+            return freshDb;
+        }
+        catch (Exception recoveryEx)
+        {
+            throw new InvalidOperationException(
+                "Schedule database migration failed and recovery attempt failed. The app cannot continue without a valid database.",
+                recoveryEx);
+        }
     }
 
     private async Task CopyScheduleDatabaseFromResourceIfNeededAsync(string dbPath)
