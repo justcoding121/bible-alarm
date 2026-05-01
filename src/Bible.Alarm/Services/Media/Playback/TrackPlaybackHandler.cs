@@ -51,45 +51,22 @@ public sealed class TrackPlaybackHandler
             return false;
         }
 
-        // Mark that we're preparing a track to prevent race conditions in IsPreparingOrPlayingInternal
         setIsPreparingTrack(true);
         try
         {
-            // Sync metadata (including artwork) before opening the file for playback.
-            // When the track is cached, the same file is used for playback and for TagLib artwork extraction.
-            // If we extract after PrepareAsync, the media player may have the file open and extraction can fail
-            // on some platforms (first track shows spinner; dismiss and play again then works). Doing it first
-            // ensures artwork is in state before the modal displays and avoids file contention.
-            await audioPlayer.SyncMetadataForTrackAsync(track);
-
-            // Set internal status to Loading before changing the source so intermediate
-            // MediaElement states (Stopped, Paused) during the source change are filtered
-            // by ShouldIgnoreStateChange, preventing rapid play/pause button toggling.
-            audioPlayer.NotifyTrackTransitionStarting();
-
-            await audioPlayer.PrepareAsync(track);
-
-            // On Android with queue (SetSourceWithDummyQueue), MediaOpened may not fire when changing tracks.
-            // We already synced metadata above; HandleMediaOpenedAsync will run when MediaOpened fires and can
-            // refresh if needed (e.g. duration). No need to call SyncMetadataForTrackAsync again here.
-
-            // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
-            // Wait for the media to be in a ready state (not None or Failed)
-            // This also gives time for the state to transition from "Opening" to "Paused"
-            await trackPreparationHandler.WaitForMediaReadyAsync(cancellationToken);
-
-            // Check if stop was called during PrepareAsync or WaitForMediaReadyAsync
-            // This ensures stop works correctly in the gap between downloads and playback
-            var playlist = getPlaylist();
-            if (!isPreparingOrPlaying() || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
+            var preparationOk = await TryPrepareTrackSourceAsync(
+                track,
+                currentTrackIndex,
+                cancellationToken,
+                isPreparingOrPlaying,
+                getPlaylist);
+            if (!preparationOk)
             {
-                logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.PlaybackStoppedDuringPrepareAborting);
                 return false;
             }
         }
         finally
         {
-            // Clear the flag after preparation is complete (whether successful or not)
             setIsPreparingTrack(false);
         }
 
@@ -283,6 +260,47 @@ public sealed class TrackPlaybackHandler
 
         // Don't clear auto-advancing flag here - let the reducer handle it when status stabilizes to Playing
         // This prevents rapid state changes from causing flicker
+
+        return true;
+    }
+
+    private async Task<bool> TryPrepareTrackSourceAsync(
+        AudioPlayerTrack track,
+        int currentTrackIndex,
+        CancellationToken cancellationToken,
+        Func<bool> isPreparingOrPlaying,
+        Func<List<AudioPlayerTrack>?> getPlaylist)
+    {
+        // Sync metadata (including artwork) before opening the file for playback.
+        // When the track is cached, the same file is used for playback and for TagLib artwork extraction.
+        // If we extract after PrepareAsync, the media player may have the file open and extraction can fail
+        // on some platforms (first track shows spinner; dismiss and play again then works). Doing it first
+        // ensures artwork is in state before the modal displays and avoids file contention.
+        await audioPlayer.SyncMetadataForTrackAsync(track);
+
+        // Set internal status to Loading before changing the source so intermediate
+        // MediaElement states (Stopped, Paused) during the source change are filtered
+        // by ShouldIgnoreStateChange, preventing rapid play/pause button toggling.
+        audioPlayer.NotifyTrackTransitionStarting();
+
+        await audioPlayer.PrepareAsync(track);
+
+        // On Android with queue (SetSourceWithDummyQueue), MediaOpened may not fire when changing tracks.
+        // We already synced metadata above; HandleMediaOpenedAsync will run when MediaOpened fires and can
+        // refresh if needed (e.g. duration). No need to call SyncMetadataForTrackAsync again here.
+
+        // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
+        // Wait for the media to be in a ready state (not None or Failed)
+        // This also gives time for the state to transition from "Opening" to "Paused"
+        await trackPreparationHandler.WaitForMediaReadyAsync(cancellationToken);
+
+        // Check if stop was called during PrepareAsync or WaitForMediaReadyAsync
+        var playlist = getPlaylist();
+        if (!isPreparingOrPlaying() || playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
+        {
+            logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.PlaybackStoppedDuringPrepareAborting);
+            return false;
+        }
 
         return true;
     }

@@ -10,6 +10,18 @@ using Serilog;
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 
 /// <summary>
+/// Per-schedule fields used to detect home list reorder vs in-place metadata updates.
+/// </summary>
+internal readonly record struct SchedulePropertySnapshot(
+    string? SectionCode,
+    string? TrackCode,
+    string Name,
+    int Hour,
+    int Minute,
+    WeekDays DaysOfWeek,
+    DateTime? LastPlayedAtUtc);
+
+/// <summary>
 /// Handles state change processing for HomeViewModel.
 /// Separated from HomeViewModel for better modularity.
 /// </summary>
@@ -29,12 +41,12 @@ public class HomeStateChangeHandler
 
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
-    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, WeekDays DaysOfWeek, DateTime? LastPlayedAtUtc)>? lastProcessedScheduleProperties;
+    private Dictionary<int, SchedulePropertySnapshot>? lastProcessedScheduleProperties;
 
     // Stored when a reorder is deferred because the playback modal is visible.
     // Applied by ApplyDeferredReorderAsync() when the modal is confirmed on screen.
     private ObservableHashSet<ScheduleListItemViewModel>? deferredNewSchedules;
-    private Dictionary<int, (string? SectionCode, string? TrackCode, string Name, int Hour, int Minute, WeekDays DaysOfWeek, DateTime? LastPlayedAtUtc)>? deferredScheduleProperties;
+    private Dictionary<int, SchedulePropertySnapshot>? deferredScheduleProperties;
 
     public HomeStateChangeHandler(HomeStateChangeHandlerDeps deps, HomeStateChangeHandlerCallbacks callbacks)
     {
@@ -62,26 +74,8 @@ public class HomeStateChangeHandler
             var scheduleIdsChanged = lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
 
             // Check if schedule properties (like track number, name, time, days of week, last played) have changed
-            var currentScheduleProperties = stateValue.Schedules
-                .Where(s => s.Id > 0)
-                .ToDictionary(s => s.Id, s => (
-                    SectionCode: s.BiblePublicationSectionCode,
-                    TrackCode: s.BiblePublicationTrackCode,
-                    Name: s.Name ?? string.Empty,
-                    Hour: s.Hour,
-                    Minute: s.Minute,
-                    DaysOfWeek: s.DaysOfWeek,
-                    LastPlayedAtUtc: s.LastPlayedAtUtc));
-            var schedulePropertiesChanged = lastProcessedScheduleProperties == null ||
-                currentScheduleProperties.Any(kvp =>
-                    !lastProcessedScheduleProperties.ContainsKey(kvp.Key) ||
-                    !string.Equals(lastProcessedScheduleProperties[kvp.Key].SectionCode, kvp.Value.SectionCode, StringComparison.OrdinalIgnoreCase) ||
-                    lastProcessedScheduleProperties[kvp.Key].TrackCode != kvp.Value.TrackCode ||
-                    lastProcessedScheduleProperties[kvp.Key].Name != kvp.Value.Name ||
-                    lastProcessedScheduleProperties[kvp.Key].Hour != kvp.Value.Hour ||
-                    lastProcessedScheduleProperties[kvp.Key].Minute != kvp.Value.Minute ||
-                    lastProcessedScheduleProperties[kvp.Key].DaysOfWeek != kvp.Value.DaysOfWeek ||
-                    Nullable.Compare(lastProcessedScheduleProperties[kvp.Key].LastPlayedAtUtc, kvp.Value.LastPlayedAtUtc) != 0);
+            var currentScheduleProperties = BuildSchedulePropertiesMap(stateValue.Schedules);
+            var schedulePropertiesChanged = SchedulePropertiesHaveChanged(lastProcessedScheduleProperties, currentScheduleProperties);
 
             if (!schedulesCountChanged && !scheduleIdsChanged && !schedulePropertiesChanged && lastProcessedScheduleIds != null)
             {
@@ -343,6 +337,49 @@ public class HomeStateChangeHandler
                 item.ScheduleId, item.Name);
             collection.Add(item);
         }
+    }
+
+    private static Dictionary<int, SchedulePropertySnapshot> BuildSchedulePropertiesMap(IEnumerable<ScheduleStateItem> schedules)
+    {
+        return schedules
+            .Where(s => s.Id > 0)
+            .ToDictionary(
+                s => s.Id,
+                s => new SchedulePropertySnapshot(
+                    s.BiblePublicationSectionCode,
+                    s.BiblePublicationTrackCode,
+                    s.Name ?? string.Empty,
+                    s.Hour,
+                    s.Minute,
+                    s.DaysOfWeek,
+                    s.LastPlayedAtUtc));
+    }
+
+    private static bool SchedulePropertiesHaveChanged(
+        Dictionary<int, SchedulePropertySnapshot>? last,
+        Dictionary<int, SchedulePropertySnapshot> current)
+    {
+        if (last == null)
+        {
+            return true;
+        }
+
+        return current.Any(kvp =>
+        {
+            if (!last.TryGetValue(kvp.Key, out var prev))
+            {
+                return true;
+            }
+
+            var cur = kvp.Value;
+            return !string.Equals(prev.SectionCode, cur.SectionCode, StringComparison.OrdinalIgnoreCase)
+                || prev.TrackCode != cur.TrackCode
+                || prev.Name != cur.Name
+                || prev.Hour != cur.Hour
+                || prev.Minute != cur.Minute
+                || prev.DaysOfWeek != cur.DaysOfWeek
+                || Nullable.Compare(prev.LastPlayedAtUtc, cur.LastPlayedAtUtc) != 0;
+        });
     }
 }
 

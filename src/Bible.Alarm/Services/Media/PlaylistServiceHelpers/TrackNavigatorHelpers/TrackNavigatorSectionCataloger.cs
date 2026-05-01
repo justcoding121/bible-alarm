@@ -151,13 +151,10 @@ public sealed class TrackNavigatorSectionCataloger
         }
 
         var sections = await getSectionsCachedAsync(languageCode, publicationCode);
-        if (sections.ContainsKey(sectionCode))
+        var fastPathOk = await TryReturnWhenCachedSectionAlreadyHasTracksAsync(languageCode, publicationCode, sectionCode, sections);
+        if (fastPathOk)
         {
-            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
-            if (tracks.Count > 0)
-            {
-                return true;
-            }
+            return true;
         }
 
         var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
@@ -169,97 +166,131 @@ public sealed class TrackNavigatorSectionCataloger
 
         try
         {
-            logger.Information("Cataloging section for navigation: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
-                languageCode, publicationCode, sectionCode);
-
-            sectionFetchProgress?.UpdateProgress(0.0);
-
-            var publicationProgress = sectionFetchProgress != null
-                ? new ScaledFetchProgressAdapter(sectionFetchProgress, 0.5)
-                : null;
-
-            // For sectioned (Bible/iam): ensures pub + first section; we then fetch this section's tracks via GETPUBMEDIALINKS (section-level, no track=).
-            // For mediator (drama): ensures pub by fetching all tracks from mediator, so sections already have tracks; FetchSectionTracksAsync below is then a no-op.
-            var publicationExists = await languageContentService.EnsurePublicationExistsAsync(
-                publicationCode,
+            return await CatalogSectionViaLanguageContentAsync(
                 languageCode,
-                publicationProgress,
-                CancellationToken.None);
-
-            if (!publicationExists)
-            {
-                logger.Warning("Failed to ensure publication exists");
-                return false;
-            }
-
-            sectionFetchProgress?.UpdateProgress(0.5);
-
-            using (var scope = scopeFactory.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-                var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-                var normalizedSectionCode = sectionCode.ToLowerInvariant();
-                var normalizedLanguageCode = languageCode.ToUpperInvariant();
-                var publicationCodeForDb = GetPublicationCodeForDb(normalizedPublicationCode,
-                    PublicationTypeHelper.IsDrama(normalizedPublicationCode));
-
-                var publication = await db.BiblePublications
-                    .Include(bp => bp.Sections)
-                    .FirstOrDefaultAsync(
-                        bp => bp.PublicationCode == publicationCodeForDb &&
-                              bp.Language != null &&
-                              bp.Language.LanguageCode == normalizedLanguageCode);
-
-                if (publication == null)
-                {
-                    logger.Warning("Publication not found after EnsurePublicationExistsAsync");
-                    return false;
-                }
-
-                var section = publication.Sections.FirstOrDefault(s =>
-                    s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
-
-                if (section == null)
-                {
-                    logger.Information("Section entity doesn't exist, creating it");
-                    section = new BiblePublicationSection
-                    {
-                        Name = sectionCode,
-                        SectionCode = normalizedSectionCode,
-                        BiblePublication = publication,
-                        BiblePublicationId = publication.Id,
-                        Tracks = new List<BiblePublicationTrack>()
-                    };
-                    publication.Sections.Add(section);
-                    await SaveWithRetryAsync(db, sectionCode);
-                }
-            }
-
-            // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
-            var success = await languageContentService.FetchSectionTracksAsync(
                 publicationCode,
                 sectionCode,
-                languageCode,
-                cancellationToken: CancellationToken.None);
-
-            sectionFetchProgress?.UpdateProgress(1.0);
-
-            if (success)
-            {
-                clearSectionsCache();
-                clearTracksCache();
-                return true;
-            }
-
-            logger.Warning("Failed to catalog section");
-            return false;
+                sectionFetchProgress,
+                languageContentService,
+                clearSectionsCache,
+                clearTracksCache);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error cataloging section");
             return false;
         }
+    }
+
+    private async Task<bool> TryReturnWhenCachedSectionAlreadyHasTracksAsync(
+        string languageCode,
+        string publicationCode,
+        string sectionCode,
+        SortedDictionary<string, BiblePublicationSection> sections)
+    {
+        if (!sections.ContainsKey(sectionCode))
+        {
+            return false;
+        }
+
+        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
+        return tracks.Count > 0;
+    }
+
+    private async Task<bool> CatalogSectionViaLanguageContentAsync(
+        string languageCode,
+        string publicationCode,
+        string sectionCode,
+        IFetchProgress? sectionFetchProgress,
+        ILanguageContentService languageContentService,
+        Action clearSectionsCache,
+        Action clearTracksCache)
+    {
+        logger.Information("Cataloging section for navigation: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+            languageCode, publicationCode, sectionCode);
+
+        sectionFetchProgress?.UpdateProgress(0.0);
+
+        var publicationProgress = sectionFetchProgress != null
+            ? new ScaledFetchProgressAdapter(sectionFetchProgress, 0.5)
+            : null;
+
+        // For sectioned (Bible/iam): ensures pub + first section; we then fetch this section's tracks via GETPUBMEDIALINKS (section-level, no track=).
+        // For mediator (drama): ensures pub by fetching all tracks from mediator, so sections already have tracks; FetchSectionTracksAsync below is then a no-op.
+        var publicationExists = await languageContentService.EnsurePublicationExistsAsync(
+            publicationCode,
+            languageCode,
+            publicationProgress,
+            CancellationToken.None);
+
+        if (!publicationExists)
+        {
+            logger.Warning("Failed to ensure publication exists");
+            return false;
+        }
+
+        sectionFetchProgress?.UpdateProgress(0.5);
+
+        using (var scope = scopeFactory!.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+            var normalizedSectionCode = sectionCode.ToLowerInvariant();
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            var publicationCodeForDb = GetPublicationCodeForDb(normalizedPublicationCode,
+                PublicationTypeHelper.IsDrama(normalizedPublicationCode));
+
+            var publication = await db.BiblePublications
+                .Include(bp => bp.Sections)
+                .FirstOrDefaultAsync(
+                    bp => bp.PublicationCode == publicationCodeForDb &&
+                          bp.Language != null &&
+                          bp.Language.LanguageCode == normalizedLanguageCode);
+
+            if (publication == null)
+            {
+                logger.Warning("Publication not found after EnsurePublicationExistsAsync");
+                return false;
+            }
+
+            var section = publication.Sections.FirstOrDefault(s =>
+                s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+
+            if (section == null)
+            {
+                logger.Information("Section entity doesn't exist, creating it");
+                section = new BiblePublicationSection
+                {
+                    Name = sectionCode,
+                    SectionCode = normalizedSectionCode,
+                    BiblePublication = publication,
+                    BiblePublicationId = publication.Id,
+                    Tracks = new List<BiblePublicationTrack>()
+                };
+                publication.Sections.Add(section);
+                await SaveWithRetryAsync(db, sectionCode);
+            }
+        }
+
+        // Scope disposed so only one connection is open during fetch (avoids SQLite "database is locked")
+        var success = await languageContentService.FetchSectionTracksAsync(
+            publicationCode,
+            sectionCode,
+            languageCode,
+            cancellationToken: CancellationToken.None);
+
+        sectionFetchProgress?.UpdateProgress(1.0);
+
+        if (success)
+        {
+            clearSectionsCache();
+            clearTracksCache();
+            return true;
+        }
+
+        logger.Warning("Failed to catalog section");
+        return false;
     }
 
     private async Task SaveWithRetryAsync(MediaDbContext db, string context)

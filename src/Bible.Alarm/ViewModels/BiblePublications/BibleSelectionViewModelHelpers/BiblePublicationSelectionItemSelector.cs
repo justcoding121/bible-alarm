@@ -156,113 +156,8 @@ public sealed class BiblePublicationSelectionItemSelector
         // Use the override when provided (e.g. during category change, state hasn't been updated yet).
         var categoryName = categoryNameOverride ?? stateValue.CurrentSchedule?.BiblePublicationCategoryName;
 
-        BiblePublication? publication = null;
-        bool publicationWithoutLanguage = false;
-
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
-            var normalizedLanguageCode = language.Code.ToUpperInvariant();
-
-            var query = db.PublicationLanguages
-                .AsNoTracking()
-                .Include(pl => pl.Language)
-                .Include(pl => pl.Category)
-                .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode);
-
-            if (!string.IsNullOrWhiteSpace(categoryName))
-            {
-                query = query.Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
-            }
-
-            var publicationLanguages = await query.ToListAsync();
-            publicationLanguages = publicationLanguages
-                .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName))
-                .ThenBy(pl => pl.Id)
-                .ToList();
-
-            foreach (var (pl, publicationCodeForDb) in publicationLanguages.Select(pl =>
-                         (pl, PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(pl.PublicationCode))))
-            {
-                // For non-English languages, catalog ONLY this publication (first section + its tracks for sectioned publications).
-                // Progress is reported by EnsurePublicationExistsAsync: 50% (pub+section saved), 100% (tracks saved)
-                if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    // Set progress to 0% immediately when we know a fetch will happen
-                    progress?.UpdateProgress(0.0);
-                    try
-                    {
-                        var ensured = await languageContentService.EnsurePublicationExistsAsync(
-                            pl.PublicationCode,
-                            language.Code,
-                            progress);
-                        if (!ensured)
-                        {
-                            continue;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        if (NetworkExceptionHelper.IsNetworkFailure(ex))
-                        {
-                            throw;
-                        }
-
-                        Log.Debug(ex,
-                            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.FailedToCatalogPublicationTryingNext,
-                            pl.PublicationCode,
-                            language.Code);
-                        continue;
-                    }
-                }
-
-                // Load the actual publication (with localized name) after catalog.
-                BiblePublication? candidate;
-                if (biblePublicationService != null)
-                {
-                        candidate = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, publicationCodeForDb);
-                }
-                else
-                {
-                        candidate = await db.BiblePublications
-                            .AsNoTracking()
-                            .Include(bp => bp.Language)
-                            .Where(bp => bp.PublicationCode == publicationCodeForDb &&
-                                     bp.Language != null &&
-                                     bp.Language.LanguageCode == normalizedLanguageCode)
-                        .FirstOrDefaultAsync();
-                }
-
-                if (candidate == null)
-                {
-                    continue;
-                }
-
-                publication = candidate;
-                publicationWithoutLanguage = candidate.LanguageId == null;
-                break;
-            }
-
-            // Fallback: if nothing exists with a language FK, pick a publication without language FK for this category.
-            if (publication == null && !string.IsNullOrWhiteSpace(categoryName))
-            {
-                var categoryComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName);
-                if (((await db.BiblePublications
-                    .AsNoTracking()
-                    .Include(bp => bp.BiblePublicationCategories)
-                    .ThenInclude(bpc => bpc.Category)
-                    .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
-                                 bp.LanguageId == null)
-                    .ToListAsync())
-                    .OrderBy(bp => bp.PublicationCode, categoryComparer)
-                    .ThenBy(bp => bp.Id)
-                    .FirstOrDefault()) is { } pubWithoutLanguage)
-                {
-                    publication = pubWithoutLanguage;
-                    publicationWithoutLanguage = true;
-                }
-            }
-        }
+        var (publication, publicationWithoutLanguage) =
+            await PickPublicationForLanguageCategoryAsync(language, categoryName, progress);
 
         if (publication is null)
         {
@@ -292,63 +187,12 @@ public sealed class BiblePublicationSelectionItemSelector
         // For publications with LanguageId, use the language code
         string? languageCodeForQuery = publicationWithoutLanguage ? null : language.Code;
 
-        // Ensure publication is cataloged before getting sections
-        // For publications with LanguageId, EnsurePublicationExistsAsync should have been called above,
-        // but we ensure it here as well to handle edge cases (no progress passed - just a safety check)
-        if (!publicationWithoutLanguage && languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-        {
-            Log.Debug(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.EnsuringPublicationExistsBeforeGettingSections,
-                publicationCode, language.Code);
-            try
-            {
-                // Don't pass progress here - this is a safety check, not the main fetch
-                await languageContentService.EnsurePublicationExistsAsync(publicationCode, language.Code);
-            }
-            catch (Exception ex)
-            {
-                if (NetworkExceptionHelper.IsNetworkFailure(ex))
-                {
-                    throw;
-                }
+        await EnsurePublicationCatalogedBeforeSectionsSafetyAsync(publicationWithoutLanguage, publicationCode, language);
 
-                Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.FailedToEnsurePublicationExistsContinuingAnyway,
-                    publicationCode);
-            }
-        }
-
-        // Try to get sections to determine if publication is sectioned or not
-        // IMPORTANT: Query sections directly from database first to avoid triggering full cataloging
-        // Only fetch sections if they don't exist yet
-        SortedDictionary<string, BiblePublicationSection>? sections = null;
-        if (publicationWithoutLanguage)
-        {
-            // Query sections for publications without language (LanguageId=null)
-            Log.Debug(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.QueryingSectionsPublicationWithoutLanguage, publicationCode);
-            sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-        }
-        else
-        {
-            // Query sections directly from database without triggering EnsureAllSectionsForPublicationAsync
-            // This avoids fetching all sections when we only need to check if the publication is sectioned
-            if (biblePublicationSectionService != null)
-            {
-                sections = await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publicationCode, default);
-                
-                // If no sections found and publication was just cataloged, it might be a non-sectioned publication
-                // Or the publication might not exist yet - in that case, EnsurePublicationExistsAsync above should have created it
-                // For sectioned publications, EnsurePublicationExistsAsync fetches the FIRST section + tracks, so we should have at least one section now.
-                if (sections == null || sections.Count == 0)
-                {
-                    Log.Debug(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.NoSectionsInDbAfterEnsuringLikelyNonSectioned);
-                }
-            }
-            else
-            {
-                // Fallback to MediaService method (read-only when progress is null).
-                Log.Warning(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.BiblePublicationSectionServiceNullUsingMediaServiceSections);
-                sections = await mediaService.GetBiblePublicationSections(language.Code, publicationCode);
-            }
-        }
+        var sections = await LoadSectionsDictionaryForPublicationAsync(
+            publicationWithoutLanguage,
+            publicationCode,
+            language);
 
         if (sections != null && sections.Count > 0)
         {
@@ -385,5 +229,172 @@ public sealed class BiblePublicationSelectionItemSelector
         Log.Debug(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationNonSectionedResult,
             trackCode, trackTitle);
         return (publicationCode, null, trackCode, string.Empty, publicationName, trackTitle);
+    }
+
+    private async Task<(BiblePublication? Publication, bool PublicationWithoutLanguage)> PickPublicationForLanguageCategoryAsync(
+        LanguageListViewItemModel language,
+        string? categoryName,
+        IFetchProgress? progress)
+    {
+        BiblePublication? publication = null;
+        var publicationWithoutLanguage = false;
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
+        var normalizedLanguageCode = language.Code.ToUpperInvariant();
+
+        var query = db.PublicationLanguages
+            .AsNoTracking()
+            .Include(pl => pl.Language)
+            .Include(pl => pl.Category)
+            .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode);
+
+        if (!string.IsNullOrWhiteSpace(categoryName))
+        {
+            query = query.Where(pl => pl.Category != null && pl.Category.CategoryCode == categoryName);
+        }
+
+        var publicationLanguages = await query.ToListAsync();
+        publicationLanguages = publicationLanguages
+            .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName))
+            .ThenBy(pl => pl.Id)
+            .ToList();
+
+        foreach (var (pl, publicationCodeForDb) in publicationLanguages.Select(pl =>
+                     (pl, PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(pl.PublicationCode))))
+        {
+            // For non-English languages, catalog ONLY this publication (first section + its tracks for sectioned publications).
+            // Progress is reported by EnsurePublicationExistsAsync: 50% (pub+section saved), 100% (tracks saved)
+            if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+            {
+                progress?.UpdateProgress(0.0);
+                try
+                {
+                    var ensured = await languageContentService.EnsurePublicationExistsAsync(
+                        pl.PublicationCode,
+                        language.Code,
+                        progress);
+                    if (!ensured)
+                    {
+                        continue;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                    {
+                        throw;
+                    }
+
+                    Log.Debug(ex,
+                        AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.FailedToCatalogPublicationTryingNext,
+                        pl.PublicationCode,
+                        language.Code);
+                    continue;
+                }
+            }
+
+            BiblePublication? candidate;
+            if (biblePublicationService != null)
+            {
+                candidate = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, publicationCodeForDb);
+            }
+            else
+            {
+                candidate = await db.BiblePublications
+                    .AsNoTracking()
+                    .Include(bp => bp.Language)
+                    .Where(bp => bp.PublicationCode == publicationCodeForDb &&
+                             bp.Language != null &&
+                             bp.Language.LanguageCode == normalizedLanguageCode)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            publication = candidate;
+            publicationWithoutLanguage = candidate.LanguageId == null;
+            break;
+        }
+
+        if (publication == null && !string.IsNullOrWhiteSpace(categoryName))
+        {
+            var categoryComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName);
+            if (((await db.BiblePublications
+                .AsNoTracking()
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bpc => bpc.Category)
+                .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName) &&
+                             bp.LanguageId == null)
+                .ToListAsync())
+                .OrderBy(bp => bp.PublicationCode, categoryComparer)
+                .ThenBy(bp => bp.Id)
+                .FirstOrDefault()) is { } pubWithoutLanguage)
+            {
+                publication = pubWithoutLanguage;
+                publicationWithoutLanguage = true;
+            }
+        }
+
+        return (publication, publicationWithoutLanguage);
+    }
+
+    private async Task EnsurePublicationCatalogedBeforeSectionsSafetyAsync(
+        bool publicationWithoutLanguage,
+        string publicationCode,
+        LanguageListViewItemModel language)
+    {
+        if (publicationWithoutLanguage ||
+            languageContentService == null ||
+            language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        Log.Debug(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.EnsuringPublicationExistsBeforeGettingSections,
+            publicationCode, language.Code);
+        try
+        {
+            await languageContentService.EnsurePublicationExistsAsync(publicationCode, language.Code);
+        }
+        catch (Exception ex)
+        {
+            if (NetworkExceptionHelper.IsNetworkFailure(ex))
+            {
+                throw;
+            }
+
+            Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.FailedToEnsurePublicationExistsContinuingAnyway,
+                publicationCode);
+        }
+    }
+
+    private async Task<SortedDictionary<string, BiblePublicationSection>?> LoadSectionsDictionaryForPublicationAsync(
+        bool publicationWithoutLanguage,
+        string publicationCode,
+        LanguageListViewItemModel language)
+    {
+        if (publicationWithoutLanguage)
+        {
+            Log.Debug(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.QueryingSectionsPublicationWithoutLanguage, publicationCode);
+            return await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+        }
+
+        if (biblePublicationSectionService != null)
+        {
+            var sections = await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publicationCode, default);
+            if (sections == null || sections.Count == 0)
+            {
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.NoSectionsInDbAfterEnsuringLikelyNonSectioned);
+            }
+
+            return sections;
+        }
+
+        Log.Warning(AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.BiblePublicationSectionServiceNullUsingMediaServiceSections);
+        return await mediaService.GetBiblePublicationSections(language.Code, publicationCode);
     }
 }

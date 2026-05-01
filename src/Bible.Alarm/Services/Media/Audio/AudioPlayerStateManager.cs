@@ -53,54 +53,78 @@ public class AudioPlayerStateManager
             return true;
         }
 
-        // Ignore intermediate Paused states when transitioning from Loading/Buffering to Playing
-        if (newState == MediaElementState.Paused)
+        if (TryIgnoreIntermediatePausedDuringLoadToPlay(newState))
         {
-            if (Status == PlayStatus.Loading)
-            {
-                isTransitioningFromLoadingToPlaying = true;
-                lastLoadingToPlayingTransitionTime = DateTime.UtcNow;
-                logger.Debug("Ignoring intermediate Paused state during Loading->Playing transition");
-                return true;
-            }
-            else if (isTransitioningFromLoadingToPlaying)
-            {
-                var timeSinceTransition = lastLoadingToPlayingTransitionTime.HasValue
-                    ? (DateTime.UtcNow - lastLoadingToPlayingTransitionTime.Value).TotalMilliseconds
-                    : double.MaxValue;
-
-                if (timeSinceTransition <= 200)
-                {
-                    logger.Debug("Ignoring Paused state during Loading->Playing transition ({Time}ms since transition start)", timeSinceTransition);
-                    return true;
-                }
-                else
-                {
-                    isTransitioningFromLoadingToPlaying = false;
-                    lastLoadingToPlayingTransitionTime = null;
-                    logger.Debug("Paused state received after transition window ({Time}ms), treating as real pause", timeSinceTransition);
-                }
-            }
+            return true;
         }
 
-        // Clear transition flag if we get Playing state
+        ClearLoadingToPlayingTransitionIfPlaying(newState);
+
+        if (TryIgnoreStateChangeWhenSourceIsNull(newState, mediaElement))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryIgnoreIntermediatePausedDuringLoadToPlay(MediaElementState newState)
+    {
+        if (newState != MediaElementState.Paused)
+        {
+            return false;
+        }
+
+        if (Status == PlayStatus.Loading)
+        {
+            isTransitioningFromLoadingToPlaying = true;
+            lastLoadingToPlayingTransitionTime = DateTime.UtcNow;
+            logger.Debug("Ignoring intermediate Paused state during Loading->Playing transition");
+            return true;
+        }
+
+        if (!isTransitioningFromLoadingToPlaying)
+        {
+            return false;
+        }
+
+        var timeSinceTransition = lastLoadingToPlayingTransitionTime.HasValue
+            ? (DateTime.UtcNow - lastLoadingToPlayingTransitionTime.Value).TotalMilliseconds
+            : double.MaxValue;
+
+        if (timeSinceTransition <= 200)
+        {
+            logger.Debug("Ignoring Paused state during Loading->Playing transition ({Time}ms since transition start)", timeSinceTransition);
+            return true;
+        }
+
+        isTransitioningFromLoadingToPlaying = false;
+        lastLoadingToPlayingTransitionTime = null;
+        logger.Debug("Paused state received after transition window ({Time}ms), treating as real pause", timeSinceTransition);
+        return false;
+    }
+
+    private void ClearLoadingToPlayingTransitionIfPlaying(MediaElementState newState)
+    {
         if (newState == MediaElementState.Playing && isTransitioningFromLoadingToPlaying)
         {
             isTransitioningFromLoadingToPlaying = false;
             lastLoadingToPlayingTransitionTime = null;
         }
+    }
 
-        // If Source is null, ignore state changes (except Stopped/None)
-        if (mediaElement?.Source == null &&
-            newState is not MediaElementState.Stopped and not MediaElementState.None)
+    private bool TryIgnoreStateChangeWhenSourceIsNull(MediaElementState newState, MediaElement? mediaElement)
+    {
+        if (mediaElement?.Source != null ||
+            newState is MediaElementState.Stopped or MediaElementState.None)
         {
-            logger.Debug("Ignoring state change to {NewState} because Source is null, forcing Status to Stopped", newState);
-            Status = PlayStatus.Stopped;
-            SendStatusMessage();
-            return true;
+            return false;
         }
 
-        return false;
+        logger.Debug("Ignoring state change to {NewState} because Source is null, forcing Status to Stopped", newState);
+        Status = PlayStatus.Stopped;
+        SendStatusMessage();
+        return true;
     }
 
     public void UpdateStatus(MediaElementState newState)

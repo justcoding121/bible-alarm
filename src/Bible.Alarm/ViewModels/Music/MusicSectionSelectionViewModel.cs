@@ -184,9 +184,6 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
 
     /// <summary>
     /// Refreshes the sections list from the current state. Can be called when modal appears to ensure latest state is used.
-    /// </summary>
-    /// <summary>
-    /// Refreshes the sections list from the current state. Can be called when modal appears to ensure latest state is used.
     /// Uses a semaphore to ensure concurrent calls wait for any in-progress refresh to complete.
     /// </summary>
     public async Task RefreshFromState()
@@ -249,24 +246,7 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
 
         if (shouldRepopulate && !isDisposed)
         {
-            fetchCts?.CancelAsync();
-            fetchCts?.Dispose();
-            fetchCts = new CancellationTokenSource();
-            var progressReporter = new ModalOverlayFetchProgressReporter("MusicSection", fetchCts.Token);
-            var refreshContext = new MusicSectionSelectionRefreshContext
-            {
-                IsDisposed = () => isDisposed,
-                IsSelectingSection = () => isSelectingSection,
-                SetIsBusy = (b) => IsBusy = b,
-                SetCanCancelFetch = (b) => CanCancelFetch = b,
-                SetShowProgress = (b) => ShowProgress = b,
-                SetProgressText = (s) => ProgressText = s,
-                SetProgressPercent = (d) => ProgressPercent = d,
-                SetScreenOn = (on) => DeviceDisplay.Current.KeepScreenOn = on,
-                PopulateSections = (pub, progress) => PopulateSections(pub, progress),
-                SetSelectedSection = SetSelectedSection
-            };
-            await refreshHandler.RunRepopulationAsync(refreshContext, publicationCode, progressReporter);
+            await RunSectionsRepopulationAsync(publicationCode);
         }
         else
         {
@@ -281,6 +261,28 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
                     SetSelectedSection();
             });
         }
+    }
+
+    private async Task RunSectionsRepopulationAsync(string publicationCode)
+    {
+        fetchCts?.CancelAsync();
+        fetchCts?.Dispose();
+        fetchCts = new CancellationTokenSource();
+        var progressReporter = new ModalOverlayFetchProgressReporter("MusicSection", fetchCts.Token);
+        var refreshContext = new MusicSectionSelectionRefreshContext
+        {
+            IsDisposed = () => isDisposed,
+            IsSelectingSection = () => isSelectingSection,
+            SetIsBusy = (b) => IsBusy = b,
+            SetCanCancelFetch = (b) => CanCancelFetch = b,
+            SetShowProgress = (b) => ShowProgress = b,
+            SetProgressText = (s) => ProgressText = s,
+            SetProgressPercent = (d) => ProgressPercent = d,
+            SetScreenOn = (on) => DeviceDisplay.Current.KeepScreenOn = on,
+            PopulateSections = (pub, progress) => PopulateSections(pub, progress),
+            SetSelectedSection = SetSelectedSection
+        };
+        await refreshHandler.RunRepopulationAsync(refreshContext, publicationCode, progressReporter);
     }
 
     public void Receive(ModalOverlayFetchProgressMessage message)
