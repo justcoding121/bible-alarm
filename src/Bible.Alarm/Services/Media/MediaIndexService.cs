@@ -164,6 +164,14 @@ public sealed partial class MediaIndexService(
         var newMediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
         var scheduleDbPath = Path.Combine(IndexRoot, AppConstants.Database.ScheduleDatabaseFileName);
 
+        await CopyCriticalRefsFromOldMediaIndexAsync(oldMediaIndexDbPath, newMediaIndexDbPath, scheduleDbPath);
+        await FetchMissingScheduleBootstrapRefsAsync(scheduleDbPath, newMediaIndexDbPath);
+        await CleanupOrphanedSchedulesAfterMigrationAsync(newMediaIndexDbPath, scheduleDbPath);
+        QueueBackgroundRemainingOldIndexCopy(oldMediaIndexDbPath, newMediaIndexDbPath, scheduleDbPath);
+    }
+
+    private async Task CopyCriticalRefsFromOldMediaIndexAsync(string oldMediaIndexDbPath, string newMediaIndexDbPath, string scheduleDbPath)
+    {
         try
         {
             var copier = new OldMediaIndexDataCopier(logger);
@@ -173,7 +181,10 @@ public sealed partial class MediaIndexService(
         {
             logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.OldMediaIndexDataCopyFailed);
         }
+    }
 
+    private async Task FetchMissingScheduleBootstrapRefsAsync(string scheduleDbPath, string newMediaIndexDbPath)
+    {
         try
         {
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
@@ -184,7 +195,10 @@ public sealed partial class MediaIndexService(
         {
             logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.ScheduleMediaBootstrapFetchFailed);
         }
+    }
 
+    private async Task CleanupOrphanedSchedulesAfterMigrationAsync(string newMediaIndexDbPath, string scheduleDbPath)
+    {
         try
         {
             var cleanup = new OrphanedScheduleCleanup(logger);
@@ -194,7 +208,10 @@ public sealed partial class MediaIndexService(
         {
             logger.Error(ex, AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToCleanupOrphanedSchedules);
         }
+    }
 
+    private void QueueBackgroundRemainingOldIndexCopy(string oldMediaIndexDbPath, string newMediaIndexDbPath, string scheduleDbPath)
+    {
         _ = Task.Run(async () =>
         {
             try
@@ -278,48 +295,57 @@ public sealed partial class MediaIndexService(
 
             foreach (var entry in archive.Entries)
             {
-                entryCount++;
-                if (entryCount > MaxEntryCount)
-                {
-                    throw new InvalidOperationException($"Zip entry count exceeds limit ({MaxEntryCount}).");
-                }
-
-                var fullPath = Path.GetFullPath(Path.Combine(destinationFullPath, entry.FullName));
-                if (!fullPath.StartsWith(destinationFullPath, StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new InvalidOperationException($"Zip entry path traversal detected: {entry.FullName}");
-                }
-
-                if (entry.FullName.EndsWith('/'))
-                {
-                    Directory.CreateDirectory(fullPath);
-                    continue;
-                }
-
-                var parentDir = Path.GetDirectoryName(fullPath);
-                if (!string.IsNullOrEmpty(parentDir))
-                {
-                    Directory.CreateDirectory(parentDir);
-                }
-
-                using (var entryStream = entry.Open())
-                using (var fileStream = File.Create(fullPath))
-                {
-                    var buffer = new byte[81920];
-                    int read;
-                    while ((read = entryStream.Read(buffer, 0, buffer.Length)) > 0)
-                    {
-                        totalExtracted += read;
-                        if (totalExtracted > MaxTotalUncompressedBytes)
-                        {
-                            throw new InvalidOperationException($"Zip uncompressed size exceeds limit ({MaxTotalUncompressedBytes} bytes).");
-                        }
-
-                        fileStream.Write(buffer, 0, read);
-                    }
-                }
+                ExtractSingleZipEntrySafely(entry, destinationFullPath, ref entryCount, ref totalExtracted, MaxEntryCount, MaxTotalUncompressedBytes);
             }
         });
+    }
+
+    private static void ExtractSingleZipEntrySafely(
+        ZipArchiveEntry entry,
+        string destinationFullPath,
+        ref int entryCount,
+        ref long totalExtracted,
+        int maxEntryCount,
+        long maxTotalUncompressedBytes)
+    {
+        entryCount++;
+        if (entryCount > maxEntryCount)
+        {
+            throw new InvalidOperationException($"Zip entry count exceeds limit ({maxEntryCount}).");
+        }
+
+        var fullPath = Path.GetFullPath(Path.Combine(destinationFullPath, entry.FullName));
+        if (!fullPath.StartsWith(destinationFullPath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Zip entry path traversal detected: {entry.FullName}");
+        }
+
+        if (entry.FullName.EndsWith('/'))
+        {
+            Directory.CreateDirectory(fullPath);
+            return;
+        }
+
+        var parentDir = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(parentDir))
+        {
+            Directory.CreateDirectory(parentDir);
+        }
+
+        using var entryStream = entry.Open();
+        using var fileStream = File.Create(fullPath);
+        var buffer = new byte[81920];
+        int read;
+        while ((read = entryStream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            totalExtracted += read;
+            if (totalExtracted > maxTotalUncompressedBytes)
+            {
+                throw new InvalidOperationException($"Zip uncompressed size exceeds limit ({maxTotalUncompressedBytes} bytes).");
+            }
+
+            fileStream.Write(buffer, 0, read);
+        }
     }
 
     /// <summary>

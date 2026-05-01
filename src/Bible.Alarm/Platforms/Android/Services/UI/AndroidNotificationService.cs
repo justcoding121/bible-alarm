@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
@@ -95,141 +96,157 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
                 return;
             }
 
-            // Ensure notification channel exists (should be created during bootstrap, but verify)
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
-            {
-                var notificationManager = AndroidApplication.Context.GetSystemService(Context.NotificationService) as NotificationManager;
-                var channel = notificationManager?.GetNotificationChannel(ChannelId);
-                if (channel == null)
-                {
-                    staticLogger.Warning("Notification channel {ChannelId} does not exist - creating it now", ChannelId);
-                    // Channel should have been created during bootstrap, but create it if missing
-                    var newChannel = new NotificationChannel(ChannelId, ChannelName, NotificationImportance.Max)
-                    {
-                        Description = ChannelDescription
-                    };
-                    newChannel.EnableLights(true);
-                    newChannel.EnableVibration(true);
+            EnsureAlarmNotificationChannelExists(staticLogger);
 
-                    // Use default notification sound (short message tone/alert) for tap-enabled alarms
-                    var channelSoundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
-                    var channelAttributes = new AudioAttributes.Builder()
-                        .SetUsage(AudioUsageKind.Alarm) // Use Alarm to ensure it plays even in silent/DND mode
-                        ?.SetContentType(AudioContentType.Sonification)
-                        ?.Build();
-                    newChannel.SetSound(channelSoundUri, channelAttributes);
-
-                    // Allow notifications to bypass Do Not Disturb mode (Android 7.1+)
-                    if (Build.VERSION.SdkInt >= BuildVersionCodes.NMr1)
-                    {
-                        newChannel.SetBypassDnd(true);
-                    }
-
-                    notificationManager?.CreateNotificationChannel(newChannel);
-                    staticLogger.Information("Created notification channel {ChannelId} with sound and alarm audio attributes", ChannelId);
-                }
-                else
-                {
-                    staticLogger.Debug("Notification channel {ChannelId} exists with importance {Importance}", ChannelId, channel.Importance);
-                }
-            }
-
-            // Pass the current button press count value to the next activity:
-            var valuesForActivity = new Bundle();
-            valuesForActivity.PutInt(ScheduleId, scheduleId);
-
-            var resultIntent = new Intent(AndroidApplication.Context, typeof(MainActivity));
-            resultIntent.PutExtras(valuesForActivity);
-            // Set flags to bring app to foreground when notification is tapped
-            resultIntent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.SingleTop | ActivityFlags.NewTask);
-
-            var stackBuilder = TaskStackBuilder.Create(AndroidApplication.Context);
-            stackBuilder.AddParentStack(Class.FromType(typeof(MainActivity)));
-            stackBuilder.AddNextIntent(resultIntent);
-
-            // Create the PendingIntent with the back stack:
-            var resultPendingIntent = stackBuilder.GetPendingIntent(0, (int)(PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable));
+            var resultPendingIntent = CreateTapMainActivityPendingIntent(scheduleId, staticLogger);
             if (resultPendingIntent == null)
             {
-                staticLogger.Error("Failed to create PendingIntent - cannot show notification");
                 return;
             }
 
             var drawable = ContextCompat.GetDrawable(AndroidApplication.Context, ResourceConstant.Drawable.ic_launcher_round);
             var bitmap = DrawableToBitmap(drawable);
 
-            // Build the notification:
-            // Do NOT use SetFullScreenIntent here — this is a "tap to play" notification.
-            // FullScreenIntent would auto-launch MainActivity (with schedule_id) when the screen
-            // is locked, bypassing the "wait until I tap" behavior entirely.
-            var builder = new NotificationCompat.Builder(AndroidApplication.Context, ChannelId)
-                .SetAutoCancel(true)
-                .SetContentIntent(resultPendingIntent)
-                .SetContentTitle(title)
-                .SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play)
-                .SetLargeIcon(bitmap)
-                .SetContentText(body)
-                .SetPriority(NotificationCompat.PriorityMax) // Maximum priority to ensure visibility
-                .SetVisibility(NotificationCompat.VisibilityPublic) // Show on lock screen
-                .SetCategory(NotificationCompat.CategoryAlarm) // Mark as alarm category
-                .SetShowWhen(true) // Show timestamp
-                .SetWhen(Java.Lang.JavaSystem.CurrentTimeMillis()); // Set current time
+            var builder = BuildTapToPlayNotification(title, body, resultPendingIntent, bitmap, staticLogger);
 
-            // Use default notification sound (short message tone/alert) for tap-enabled alarms
-            // This ensures a short alert sound instead of a long ringtone
-            var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
-
-            if (Build.VERSION.SdkInt < BuildVersionCodes.O)
-            {
-                // For pre-O Android, explicitly set the notification sound and defaults
-                builder.SetSound(soundUri);
-                builder.SetDefaults(NotificationCompat.DefaultAll); // Enable sound, vibration, lights for pre-O
-            }
-            else
-            {
-                // For Android O+, explicitly set sound on notification to ensure it plays
-                // The channel's audio attributes (Alarm usage) will be used automatically
-                // Explicitly setting sound ensures the notification plays even if channel settings change
-                builder.SetSound(soundUri);
-                staticLogger.Debug("Set notification sound explicitly for Android O+ - SoundUri={SoundUri}, channel audio attributes will be used", soundUri);
-            }
-
-            // Check if notifications are enabled for this app
-            var areNotificationsEnabled = notificationManagerCompat.AreNotificationsEnabled();
-            staticLogger.Information("Notifications enabled for app: {AreNotificationsEnabled}", areNotificationsEnabled);
-
-            if (!areNotificationsEnabled)
-            {
-                staticLogger.Warning("Notifications are disabled for this app - notification will not be shown. User needs to enable notifications in system settings.");
-            }
+            LogNotificationEnablement(staticLogger, notificationManagerCompat);
 
             var notification = builder.Build();
-
-            // Force heads-up notification by using a high-priority notification ID and ensuring it's not silent
-            // On Android 13+, we need to explicitly request heads-up behavior
             notificationManagerCompat.Notify(scheduleId, notification);
 
-            // Verify notification was actually posted
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
-            {
-                var activeNotifications = notificationManagerCompat.ActiveNotifications;
-                var wasPosted = activeNotifications?.Any(n => n.Id == scheduleId) ?? false;
-                staticLogger.Information("Notification posted - ScheduleId={ScheduleId}, NotificationId={NotificationId}, WasActuallyPosted={WasPosted}, ActiveNotificationCount={Count}",
-                    scheduleId, scheduleId, wasPosted, activeNotifications?.Count ?? 0);
-
-                if (!wasPosted)
-                {
-                    staticLogger.Warning("Notification was not actually posted to system - may be blocked by system settings or app permissions");
-                }
-            }
-            else
-            {
-                staticLogger.Information("Local notification shown successfully - ScheduleId={ScheduleId}, NotificationId={NotificationId}", scheduleId, scheduleId);
-            }
+            LogNotificationPostedVerification(notificationManagerCompat, scheduleId, staticLogger);
         }
         catch (Exception ex)
         {
             staticLogger.Error(ex, "Error showing local notification - ScheduleId={ScheduleId}", scheduleId);
+        }
+    }
+
+    private static void EnsureAlarmNotificationChannelExists(ILogger log)
+    {
+        if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+        {
+            return;
+        }
+
+        var notificationManager = AndroidApplication.Context.GetSystemService(Context.NotificationService) as NotificationManager;
+        var channel = notificationManager?.GetNotificationChannel(ChannelId);
+        if (channel != null)
+        {
+            log.Debug("Notification channel {ChannelId} exists with importance {Importance}", ChannelId, channel.Importance);
+            return;
+        }
+
+        log.Warning("Notification channel {ChannelId} does not exist - creating it now", ChannelId);
+        var newChannel = new NotificationChannel(ChannelId, ChannelName, NotificationImportance.Max)
+        {
+            Description = ChannelDescription
+        };
+        newChannel.EnableLights(true);
+        newChannel.EnableVibration(true);
+
+        var channelSoundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
+        var channelAttributes = new AudioAttributes.Builder()
+            .SetUsage(AudioUsageKind.Alarm)
+            ?.SetContentType(AudioContentType.Sonification)
+            ?.Build();
+        newChannel.SetSound(channelSoundUri, channelAttributes);
+
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.NMr1)
+        {
+            newChannel.SetBypassDnd(true);
+        }
+
+        notificationManager?.CreateNotificationChannel(newChannel);
+        log.Information("Created notification channel {ChannelId} with sound and alarm audio attributes", ChannelId);
+    }
+
+    private static PendingIntent? CreateTapMainActivityPendingIntent(int scheduleId, ILogger log)
+    {
+        var valuesForActivity = new Bundle();
+        valuesForActivity.PutInt(ScheduleId, scheduleId);
+
+        var resultIntent = new Intent(AndroidApplication.Context, typeof(MainActivity));
+        resultIntent.PutExtras(valuesForActivity);
+        resultIntent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.SingleTop | ActivityFlags.NewTask);
+
+        var stackBuilder = TaskStackBuilder.Create(AndroidApplication.Context);
+        stackBuilder.AddParentStack(Class.FromType(typeof(MainActivity)));
+        stackBuilder.AddNextIntent(resultIntent);
+
+        var resultPendingIntent = stackBuilder.GetPendingIntent(0, (int)(PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable));
+        if (resultPendingIntent == null)
+        {
+            log.Error("Failed to create PendingIntent - cannot show notification");
+        }
+
+        return resultPendingIntent;
+    }
+
+    private static NotificationCompat.Builder BuildTapToPlayNotification(
+        string title,
+        string body,
+        PendingIntent contentIntent,
+        Bitmap? largeIcon,
+        ILogger log)
+    {
+        var builder = new NotificationCompat.Builder(AndroidApplication.Context, ChannelId)
+            .SetAutoCancel(true)
+            .SetContentIntent(contentIntent)
+            .SetContentTitle(title)
+            .SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play)
+            .SetLargeIcon(largeIcon)
+            .SetContentText(body)
+            .SetPriority(NotificationCompat.PriorityMax)
+            .SetVisibility(NotificationCompat.VisibilityPublic)
+            .SetCategory(NotificationCompat.CategoryAlarm)
+            .SetShowWhen(true)
+            .SetWhen(Java.Lang.JavaSystem.CurrentTimeMillis());
+
+        var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
+
+        if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+        {
+            builder.SetSound(soundUri);
+            builder.SetDefaults(NotificationCompat.DefaultAll);
+        }
+        else
+        {
+            builder.SetSound(soundUri);
+            log.Debug("Set notification sound explicitly for Android O+ - SoundUri={SoundUri}, channel audio attributes will be used", soundUri);
+        }
+
+        return builder;
+    }
+
+    private static void LogNotificationEnablement(ILogger log, NotificationManagerCompat notificationManagerCompat)
+    {
+        var areNotificationsEnabled = notificationManagerCompat.AreNotificationsEnabled();
+        log.Information("Notifications enabled for app: {AreNotificationsEnabled}", areNotificationsEnabled);
+
+        if (!areNotificationsEnabled)
+        {
+            log.Warning("Notifications are disabled for this app - notification will not be shown. User needs to enable notifications in system settings.");
+        }
+    }
+
+    private static void LogNotificationPostedVerification(NotificationManagerCompat notificationManagerCompat, int scheduleId, ILogger log)
+    {
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
+        {
+            var activeNotifications = notificationManagerCompat.ActiveNotifications;
+            var wasPosted = activeNotifications?.Any(n => n.Id == scheduleId) ?? false;
+            log.Information("Notification posted - ScheduleId={ScheduleId}, NotificationId={NotificationId}, WasActuallyPosted={WasPosted}, ActiveNotificationCount={Count}",
+                scheduleId, scheduleId, wasPosted, activeNotifications?.Count ?? 0);
+
+            if (!wasPosted)
+            {
+                log.Warning("Notification was not actually posted to system - may be blocked by system settings or app permissions");
+            }
+        }
+        else
+        {
+            log.Information("Local notification shown successfully - ScheduleId={ScheduleId}, NotificationId={NotificationId}", scheduleId, scheduleId);
         }
     }
 
