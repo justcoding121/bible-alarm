@@ -6,6 +6,7 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -125,7 +126,6 @@ public class MusicEnabledHandler
 
                 var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
 
-                const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
                 var melodyReleases = await melodyMusicService.GetAllAsync();
                 if (melodyReleases == null || melodyReleases.Count == 0)
                 {
@@ -133,80 +133,132 @@ public class MusicEnabledHandler
                     return;
                 }
 
-                string defaultPublicationCode;
-                string defaultPublicationName;
-                if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
+                if (!TryResolvePreferredOrFirstMelodyPublication(
+                        melodyReleases,
+                        AppConstants.Media.MelodyMusicPublicationCodeIam,
+                        out var defaultPublicationCode,
+                        out var defaultPublicationName))
                 {
-                    defaultPublicationCode = PreferredMelodyPublicationCode;
-                    defaultPublicationName = preferred.Name;
-                }
-                else
-                {
-                    var firstMelody = melodyReleases.First();
-                    if (firstMelody.Value == null)
-                    {
-                        return;
-                    }
-
-                    defaultPublicationCode = firstMelody.Key;
-                    defaultPublicationName = firstMelody.Value.Name;
+                    return;
                 }
 
                 var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
 
-                if (melodyMusic != null && melodyMusic.Tracks != null && melodyMusic.Tracks.Count > 0)
+                if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
                 {
-                    BiblePublicationSection? chosenSection = null;
-                    BiblePublicationTrack? chosenTrack = null;
-
-                    var sectionsWithTracks = melodyMusic.Sections?
-                        .Where(s => s.Tracks != null && s.Tracks.Count > 0)
-                        .ToList();
-
-                    if (sectionsWithTracks != null && sectionsWithTracks.Count > 0)
-                    {
-                        chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
-                        if (chosenSection.Tracks.Count > 0)
-                        {
-                            chosenTrack = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
-                        }
-                    }
-
-                    chosenTrack ??= melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
-
-                    var latestSchedule = state.Value.CurrentSchedule;
-                    if (latestSchedule == null)
-                    {
-                        return;
-                    }
-
-                    if (latestSchedule.MusicLanguageCode == null &&
-                        string.Equals(latestSchedule.MusicPublicationCode, defaultPublicationCode, StringComparison.OrdinalIgnoreCase) &&
-                        SectionCodeHelper.CodeEquals(latestSchedule.MusicSectionCode, chosenSection?.SectionCode) &&
-                        CodeComparisonHelper.Equals(latestSchedule.MusicTrackCode, TrackCodeHelper.GetFromTrack(chosenTrack)) &&
-                        latestSchedule.MusicEnabled)
-                    {
-                        return;
-                    }
-
-                    var clonedSchedule = latestSchedule.DeepClone();
-                    clonedSchedule.MusicEnabled = true;
-                    clonedSchedule.MusicPublicationCode = defaultPublicationCode;
-                    clonedSchedule.MusicPublicationName = defaultPublicationName;
-                    clonedSchedule.MusicLanguageCode = null;
-                    clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
-                    clonedSchedule.MusicSectionName = chosenSection?.Name;
-                    clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
-                    clonedSchedule.MusicRepeat = false;
-                    clonedSchedule.MusicTrackName = MediaTrackTitleHelper.DecodeHtmlTitle(chosenTrack.Title);
-
-                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+                    return;
                 }
+
+                ChooseRandomMelodyTrack(melodyMusic, out var chosenSection, out var chosenTrack);
+
+                var latestSchedule = state.Value.CurrentSchedule;
+                if (latestSchedule == null)
+                {
+                    return;
+                }
+
+                if (IsScheduleAlreadyPointingAtChosenMelody(
+                        latestSchedule,
+                        defaultPublicationCode,
+                        chosenSection,
+                        chosenTrack))
+                {
+                    return;
+                }
+
+                DispatchChosenMelodyOnSchedule(latestSchedule, defaultPublicationCode, defaultPublicationName, chosenSection,
+                    chosenTrack);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "MusicEnabled: Error loading default music from DB");
             }
         });
+    }
+
+    private static bool TryResolvePreferredOrFirstMelodyPublication(
+        Dictionary<string, MelodyMusic> melodyReleases,
+        string preferredPublicationCode,
+        out string defaultPublicationCode,
+        out string defaultPublicationName)
+    {
+        if (melodyReleases.TryGetValue(preferredPublicationCode, out var preferred) && preferred != null)
+        {
+            defaultPublicationCode = preferredPublicationCode;
+            defaultPublicationName = preferred.Name;
+            return true;
+        }
+
+        foreach (var pair in melodyReleases)
+        {
+            if (pair.Value != null)
+            {
+                defaultPublicationCode = pair.Key;
+                defaultPublicationName = pair.Value.Name;
+                return true;
+            }
+        }
+
+        defaultPublicationCode = string.Empty;
+        defaultPublicationName = string.Empty;
+        return false;
+    }
+
+    private static void ChooseRandomMelodyTrack(
+        MelodyMusic melodyMusic,
+        out BiblePublicationSection? chosenSection,
+        out BiblePublicationTrack chosenTrack)
+    {
+        chosenSection = null;
+        BiblePublicationTrack? track = null;
+
+        var sectionsWithTracks = melodyMusic.Sections?
+            .Where(static s => s.Tracks != null && s.Tracks.Count > 0)
+            .ToList();
+
+        if (sectionsWithTracks is { Count: > 0 })
+        {
+            chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
+            if (chosenSection.Tracks.Count > 0)
+            {
+                track = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
+            }
+        }
+
+        chosenTrack = track ?? melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
+    }
+
+    private static bool IsScheduleAlreadyPointingAtChosenMelody(
+        ScheduleStateItem latestSchedule,
+        string defaultPublicationCode,
+        BiblePublicationSection? chosenSection,
+        BiblePublicationTrack chosenTrack) =>
+        latestSchedule.MusicLanguageCode == null &&
+        string.Equals(latestSchedule.MusicPublicationCode, defaultPublicationCode, StringComparison.OrdinalIgnoreCase) &&
+        SectionCodeHelper.CodeEquals(latestSchedule.MusicSectionCode, chosenSection?.SectionCode) &&
+        CodeComparisonHelper.Equals(latestSchedule.MusicTrackCode, TrackCodeHelper.GetFromTrack(chosenTrack)) &&
+        latestSchedule.MusicEnabled;
+
+    private void DispatchChosenMelodyOnSchedule(
+        ScheduleStateItem latestSchedule,
+        string defaultPublicationCode,
+        string defaultPublicationName,
+        BiblePublicationSection? chosenSection,
+        BiblePublicationTrack chosenTrack)
+    {
+        var clonedSchedule = latestSchedule.DeepClone();
+        clonedSchedule.MusicEnabled = true;
+        clonedSchedule.MusicPublicationCode = defaultPublicationCode;
+        clonedSchedule.MusicPublicationName = defaultPublicationName;
+        clonedSchedule.MusicLanguageCode = null;
+        clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
+        clonedSchedule.MusicSectionName = chosenSection?.Name;
+        clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
+        clonedSchedule.MusicRepeat = false;
+        clonedSchedule.MusicTrackName = MediaTrackTitleHelper.DecodeHtmlTitle(chosenTrack.Title);
+
+        dispatcher.Dispatch(
+            new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false,
+                shouldSave: false));
     }
 }

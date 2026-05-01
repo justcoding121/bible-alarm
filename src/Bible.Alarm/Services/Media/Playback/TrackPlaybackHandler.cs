@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
@@ -82,106 +83,24 @@ public sealed class TrackPlaybackHandler
             return false;
         }
 
-        // Determine if we need to seek to a saved position
-        TimeSpan? seekPosition = null;
+        var bibleSession = TryBuildBibleTrackSession(track, playedBibleTrackKeys);
+        TimeSpan? seekPosition = await ResolveResumeSeekPositionAsync(
+            track,
+            startFromBeginning,
+            bibleSession,
+            playedBibleTrackKeys,
+            currentScheduleId);
 
-        // Create unique key for this Bible track to track if it's been played before
-        string? bibleTrackKey = null;
-        var isBibleTrack = track.PlayItem?.Metadata != null && track.PlayItem.Metadata.PlayType == PlayType.Bible;
-        var isFirstEncounter = false;
+        MarkBibleTrackPlayedIfNeeded(bibleSession, playedBibleTrackKeys);
 
-        if (isBibleTrack && track.PlayItem?.Metadata != null)
-        {
-            var trackMetadata = track.PlayItem.Metadata;
-            bibleTrackKey = $"{trackMetadata.ScheduleId}:{trackMetadata.LanguageCode}:{trackMetadata.PublicationCode}:{trackMetadata.SectionCode ?? "null"}:{trackMetadata.TrackCode}";
-            isFirstEncounter = !playedBibleTrackKeys.Contains(bibleTrackKey);
-        }
-
-        // Seek ONLY on first encounter of a Bible track with saved progress
-        // Conditions:
-        // 1. Caller did not request start from beginning (manual Prev always, manual Next to already-visited)
-        // 2. This is the FIRST encounter of this Bible track in this session (manual or automatic)
-        // 3. It's a Bible track with saved progress
-        // 4. Schedule allows resume (AlwaysPlayFromStart == false) - checked via ShouldResumeFromLastPositionAsync
-        // Note: Auto-advance uses startFromBeginning=false; manual Prev uses true; manual Next uses true when track was already visited
-        var inMemoryFinishedDuration = track.PlayItem?.Metadata?.FinishedDuration ?? TimeSpan.Zero;
-        var shouldCheckSeek = !startFromBeginning
-            && isFirstEncounter
-            && inMemoryFinishedDuration != TimeSpan.Zero;
-
-        if (shouldCheckSeek)
-        {
-            var shouldResume = await trackPreparationHandler.ShouldResumeFromLastPositionAsync(currentScheduleId);
-
-            if (shouldResume)
-            {
-                seekPosition = inMemoryFinishedDuration;
-                logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekFromInMemoryFinishedDuration,
-                    seekPosition.Value, currentScheduleId);
-            }
-        }
-        else if (!startFromBeginning && isFirstEncounter
-            && inMemoryFinishedDuration == TimeSpan.Zero && currentScheduleId.HasValue
-            && playedBibleTrackKeys.Count == 0)
-        {
-            // Fallback: in-memory FinishedDuration is zero but the DB may have a saved position
-            // (e.g. after process restart if playlist builder didn't propagate the value).
-            // Only applies to the very first Bible track in the session — once any Bible track
-            // has played, the DB's FinishedDuration reflects that track's position and is stale
-            // for subsequent tracks.
-            var dbFinishedDuration = await trackPreparationHandler.GetScheduleFinishedDurationAsync(currentScheduleId);
-            if (dbFinishedDuration > TimeSpan.Zero)
-            {
-                var shouldResume = await trackPreparationHandler.ShouldResumeFromLastPositionAsync(currentScheduleId);
-                if (shouldResume)
-                {
-                    seekPosition = dbFinishedDuration;
-                    logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeFallbackDbFinishedDuration,
-                        dbFinishedDuration, currentScheduleId);
-                }
-            }
-            else
-            {
-                logger.Debug(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeNoSeekBothZero,
-                    currentScheduleId);
-            }
-        }
-
-        // Mark this Bible track as played (after checking seek conditions, before actually playing)
-        if (isBibleTrack && bibleTrackKey != null)
-        {
-            playedBibleTrackKeys.Add(bibleTrackKey);
-        }
-
-        // Validate seek position against track duration to prevent seeking past the end.
-        // Seeking past the end causes ExoPlayer to immediately fire endedState, which triggers
-        // auto-advance to the next track. This happens when FinishedDuration is stale
-        // (e.g. from a previously played longer track after a publication/track change).
-        // Only reject the seek when duration is known and the seek exceeds it.
-        // When duration is still zero (not yet from stream metadata), allow the seek.
-        // Post-play validation on iOS/Android corrects once duration is known.
 #if IOS || ANDROID
         var postPlayNeedsDurationRecheck = false;
+        seekPosition = ClampSeekAgainstPrePlayDuration(seekPosition, ref postPlayNeedsDurationRecheck);
+#else
+        seekPosition = ClampSeekAgainstPrePlayDuration(seekPosition);
 #endif
-        if (seekPosition.HasValue)
-        {
-            var prePlayDuration = audioPlayer.Duration;
-            if (prePlayDuration > TimeSpan.Zero && seekPosition.Value >= prePlayDuration)
-            {
-                logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekExceedsDurationStartingBeginning,
-                    seekPosition.Value, prePlayDuration);
-                seekPosition = null;
-            }
-#if IOS || ANDROID
-            else if (prePlayDuration == TimeSpan.Zero)
-            {
-                postPlayNeedsDurationRecheck = true;
-            }
-#endif
-        }
 
 #if !IOS && !ANDROID
-        // On non-iOS/Android platforms (Windows), seek BEFORE play
         if (seekPosition.HasValue)
         {
             await SeekWithRetryAsync(seekPosition.Value, cancellationToken);
@@ -190,8 +109,6 @@ public sealed class TrackPlaybackHandler
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Final check before starting playback - ensure stop wasn't called during seek/resume operations.
-        // Same rationale as the post-WaitForMediaReadyAsync check: only check playlist validity.
         var playlistBeforePlay = getPlaylist();
         if (playlistBeforePlay == null || currentTrackIndex >= playlistBeforePlay.Count)
         {
@@ -199,11 +116,6 @@ public sealed class TrackPlaybackHandler
             return false;
         }
 
-        // Note: isPreparingTrack is already false at this point, so IsPreparingOrPlayingInternal
-        // will rely on actual MediaElement state, which should be ready by now
-
-        // When we need to seek to saved progress, mute before play so the user doesn't hear
-        // audio from the beginning before the seek completes. Unmute after seek.
         var didMute = seekPosition.HasValue;
         if (didMute)
         {
@@ -214,31 +126,12 @@ public sealed class TrackPlaybackHandler
         {
             await audioPlayer.PlayAsync();
 
-            // On iOS and Android, wait for playback to start so seekable ranges are available.
-            // When seeking to resume: we muted above so no audible audio during this wait or the seek.
-            // Use a longer delay (300ms) when resuming: after a track transition (e.g. music to Bible),
-            // ExoPlayer/AVPlayer need extra time before seeking works reliably. 100ms is often insufficient.
 #if IOS || ANDROID
             await Task.Delay(seekPosition.HasValue ? 300 : 100);
 
-            // On iOS and Android, seek AFTER play starts - seekable ranges are more reliable once playing
-            // On Android, this is critical when transitioning from music to Bible track because
-            // SetSourceWithDummyQueue's player.SeekTo(currentItemIndex, 0) may interfere with seeking before play
             if (seekPosition.HasValue && postPlayNeedsDurationRecheck)
             {
-                // Re-validate only when pre-play duration was unknown (zero). Now that playback
-                // started, duration may be available from stream headers. When pre-play duration
-                // was already known (> 0), the pre-play validation was sufficient; re-validating
-                // here risks using a stale duration from a previous track (e.g. a short music
-                // track whose duration is still cached in mediaElement.Duration), which would
-                // incorrectly reject a valid seek position for the current Bible track.
-                var postPlayDuration = audioPlayer.Duration;
-                if (postPlayDuration > TimeSpan.Zero && seekPosition.Value >= postPlayDuration)
-                {
-                    logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumePostPlaySeekExceedsDurationSkippingSeek,
-                        seekPosition.Value, postPlayDuration);
-                    seekPosition = null;
-                }
+                seekPosition = RevalidateSeekAgainstPostPlayDuration(seekPosition.Value);
             }
 
             if (seekPosition.HasValue)
@@ -263,6 +156,149 @@ public sealed class TrackPlaybackHandler
 
         return true;
     }
+
+    private readonly record struct BibleTrackPlaySession(bool IsBibleTrack, string? BibleTrackKey, bool IsFirstEncounter);
+
+    private static BibleTrackPlaySession TryBuildBibleTrackSession(AudioPlayerTrack track, HashSet<string> playedBibleTrackKeys)
+    {
+        var metadata = track.PlayItem?.Metadata;
+        if (metadata == null || metadata.PlayType != PlayType.Bible)
+        {
+            return new BibleTrackPlaySession(false, null, false);
+        }
+
+        var bibleTrackKey =
+            $"{metadata.ScheduleId}:{metadata.LanguageCode}:{metadata.PublicationCode}:{metadata.SectionCode ?? "null"}:{metadata.TrackCode}";
+        var isFirstEncounter = !playedBibleTrackKeys.Contains(bibleTrackKey);
+
+        return new BibleTrackPlaySession(true, bibleTrackKey, isFirstEncounter);
+    }
+
+    private async Task<TimeSpan?> ResolveResumeSeekPositionAsync(
+        AudioPlayerTrack track,
+        bool startFromBeginning,
+        BibleTrackPlaySession bibleSession,
+        HashSet<string> playedBibleTrackKeys,
+        int? currentScheduleId)
+    {
+        if (!bibleSession.IsBibleTrack || track.PlayItem?.Metadata == null)
+        {
+            return null;
+        }
+
+        var inMemoryFinishedDuration = track.PlayItem?.Metadata?.FinishedDuration ?? TimeSpan.Zero;
+
+        var shouldCheckSeek =
+            !startFromBeginning && bibleSession.IsFirstEncounter && inMemoryFinishedDuration != TimeSpan.Zero;
+
+        if (shouldCheckSeek)
+        {
+            var shouldResume = await trackPreparationHandler.ShouldResumeFromLastPositionAsync(currentScheduleId);
+
+            if (shouldResume)
+            {
+                logger.Information(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekFromInMemoryFinishedDuration,
+                    inMemoryFinishedDuration, currentScheduleId);
+                return inMemoryFinishedDuration;
+            }
+
+            return null;
+        }
+
+        if (!startFromBeginning &&
+            bibleSession.IsFirstEncounter &&
+            inMemoryFinishedDuration == TimeSpan.Zero &&
+            currentScheduleId.HasValue &&
+            playedBibleTrackKeys.Count == 0)
+        {
+            var dbFinishedDuration = await trackPreparationHandler.GetScheduleFinishedDurationAsync(currentScheduleId);
+            if (dbFinishedDuration > TimeSpan.Zero)
+            {
+                var shouldResume = await trackPreparationHandler.ShouldResumeFromLastPositionAsync(currentScheduleId);
+                if (shouldResume)
+                {
+                    logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeFallbackDbFinishedDuration,
+                        dbFinishedDuration, currentScheduleId);
+                    return dbFinishedDuration;
+                }
+            }
+            else
+            {
+                logger.Debug(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeNoSeekBothZero,
+                    currentScheduleId);
+            }
+        }
+
+        return null;
+    }
+
+    private static void MarkBibleTrackPlayedIfNeeded(BibleTrackPlaySession bibleSession, HashSet<string> playedBibleTrackKeys)
+    {
+        if (bibleSession.IsBibleTrack && bibleSession.BibleTrackKey != null)
+        {
+            playedBibleTrackKeys.Add(bibleSession.BibleTrackKey);
+        }
+    }
+
+#if IOS || ANDROID
+
+    private TimeSpan? ClampSeekAgainstPrePlayDuration(TimeSpan? seekPosition, ref bool postPlayNeedsDurationRecheck)
+    {
+        if (!seekPosition.HasValue)
+        {
+            return seekPosition;
+        }
+
+        var prePlayDuration = audioPlayer.Duration;
+        if (prePlayDuration > TimeSpan.Zero && seekPosition.Value >= prePlayDuration)
+        {
+            logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekExceedsDurationStartingBeginning,
+                seekPosition.Value, prePlayDuration);
+            return null;
+        }
+
+        if (prePlayDuration == TimeSpan.Zero)
+        {
+            postPlayNeedsDurationRecheck = true;
+        }
+
+        return seekPosition;
+    }
+
+    private TimeSpan? RevalidateSeekAgainstPostPlayDuration(TimeSpan seekPosition)
+    {
+        var postPlayDuration = audioPlayer.Duration;
+        if (postPlayDuration > TimeSpan.Zero && seekPosition >= postPlayDuration)
+        {
+            logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumePostPlaySeekExceedsDurationSkippingSeek,
+                seekPosition, postPlayDuration);
+            return null;
+        }
+
+        return seekPosition;
+    }
+
+#else
+
+    private TimeSpan? ClampSeekAgainstPrePlayDuration(TimeSpan? seekPosition)
+    {
+        if (!seekPosition.HasValue)
+        {
+            return seekPosition;
+        }
+
+        var prePlayDuration = audioPlayer.Duration;
+        if (prePlayDuration > TimeSpan.Zero && seekPosition.Value >= prePlayDuration)
+        {
+            logger.Warning(AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekExceedsDurationStartingBeginning,
+                seekPosition.Value, prePlayDuration);
+            return null;
+        }
+
+        return seekPosition;
+    }
+
+#endif
 
     private async Task<bool> TryPrepareTrackSourceAsync(
         AudioPlayerTrack track,
