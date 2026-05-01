@@ -214,34 +214,40 @@ public sealed class DisplayMetadataService(
 
     private async Task<bool> TrySetDiscStyleMelodyMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
     {
-        // We rely on DownloadCode being set by PlaylistBiblePublicationTrackBuilder.TryApplyDiscMusicLookUpPath.
-        if (string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
-        {
+        if (!TryValidateDiscStyleMelodyInputs(trackMetadata))
             return false;
-        }
 
-        // Additional guard: disc code should look like "{pubCode}-{digits}".
-        if (!trackMetadata.DownloadCode.StartsWith(trackMetadata.PublicationCode + "-", StringComparison.OrdinalIgnoreCase))
-        {
+        var trackTitle = await TryGetMelodyTrackTitleAsync(trackMetadata).ConfigureAwait(false);
+        var releaseName = await TryGetMelodyReleaseNameAsync(trackMetadata).ConfigureAwait(false);
+        var sectionName = await TryGetMelodySectionNameAsync(trackMetadata).ConfigureAwait(false);
+
+        ApplyDiscStyleMelodyMetadata(meta, trackTitle, releaseName, sectionName);
+        return true;
+    }
+
+    private static bool TryValidateDiscStyleMelodyInputs(TrackMetadata trackMetadata)
+    {
+        if (string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
             return false;
-        }
+
+        if (!trackMetadata.DownloadCode.StartsWith(trackMetadata.PublicationCode + "-", StringComparison.OrdinalIgnoreCase))
+            return false;
 
         var discParts = trackMetadata.DownloadCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var suffix = discParts.Length > 0 ? discParts[^1] : null;
-        if (string.IsNullOrWhiteSpace(suffix) || !suffix.All(char.IsDigit))
-        {
-            return false;
-        }
+        return !string.IsNullOrWhiteSpace(suffix) && suffix.All(char.IsDigit);
+    }
 
-        string? trackTitle = null;
+    private async Task<string?> TryGetMelodyTrackTitleAsync(TrackMetadata trackMetadata)
+    {
         try
         {
-            var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode);
+            var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode).ConfigureAwait(false);
             var trackCode = trackMetadata.TrackCode;
             if (!string.IsNullOrWhiteSpace(trackCode) &&
-                Bible.Alarm.Shared.Helpers.MusicTrackLookupHelper.TryGetByCode(tracks, trackCode, out var melodyPair))
+                MusicTrackLookupHelper.TryGetByCode(tracks, trackCode, out var melodyPair))
             {
-                trackTitle = NormalizeTitle(melodyPair.Track.Title);
+                return NormalizeTitle(melodyPair.Track.Title);
             }
         }
         catch (Exception ex)
@@ -249,14 +255,18 @@ public sealed class DisplayMetadataService(
             logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodyTrackTitleFromMediaService);
         }
 
-        string? releaseName = null;
+        return null;
+    }
+
+    private async Task<string?> TryGetMelodyReleaseNameAsync(TrackMetadata trackMetadata)
+    {
         try
         {
-            var releases = await mediaService.GetMelodyMusicReleases();
+            var releases = await mediaService.GetMelodyMusicReleases().ConfigureAwait(false);
             if (releases.TryGetValue(trackMetadata.PublicationCode, out var release) &&
                 !string.IsNullOrWhiteSpace(release?.Name))
             {
-                releaseName = release.Name;
+                return release.Name;
             }
         }
         catch (Exception ex)
@@ -264,14 +274,18 @@ public sealed class DisplayMetadataService(
             logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodyReleaseNameFromMediaService);
         }
 
-        string? sectionName = null;
+        return null;
+    }
+
+    private async Task<string?> TryGetMelodySectionNameAsync(TrackMetadata trackMetadata)
+    {
         try
         {
-            var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(trackMetadata.PublicationCode);
+            var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(trackMetadata.PublicationCode).ConfigureAwait(false);
             if (sections.TryGetValue(trackMetadata.DownloadCode, out var section) &&
                 !string.IsNullOrWhiteSpace(section?.Name))
             {
-                sectionName = section.Name;
+                return section.Name;
             }
         }
         catch (Exception ex)
@@ -279,9 +293,11 @@ public sealed class DisplayMetadataService(
             logger.Debug(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodySectionNameFromMediaService);
         }
 
-        // CarPlay/lock screen: put short text in Title so it does not overlap the two-line subtitle.
-        // (Behavior may differ between Simulator and real CarPlay; verify on device when possible.)
-        // Title = publication or disc (short); Artist = track name; Album = disc/section.
+        return null;
+    }
+
+    private static void ApplyDiscStyleMelodyMetadata(MetaData meta, string? trackTitle, string? releaseName, string? sectionName)
+    {
         meta.Title = !string.IsNullOrWhiteSpace(releaseName) ? releaseName : sectionName;
         meta.Artist = trackTitle;
         meta.Album = sectionName;
@@ -289,8 +305,6 @@ public sealed class DisplayMetadataService(
             meta.Artist = DisplayMetadataPublisherStrings.JwOrgLabel;
         if (string.IsNullOrWhiteSpace(meta.Title))
             meta.Title = "Melody";
-
-        return true;
     }
 
     private static string? NormalizeTitle(string? rawTitle)
@@ -383,97 +397,83 @@ public sealed class DisplayMetadataService(
 
     private async Task<MetaData> ExtractMetadataFromFileAsync(string uri)
     {
-        // Preferred path: extract from local cached file.
-        var localMeta = await TryExtractFromLocalFileAsync(uri);
+        var localMeta = await TryExtractFromLocalFileAsync(uri).ConfigureAwait(false);
         if (localMeta != null)
-        {
             return localMeta;
-        }
 
-        // Fallback: for HTTPS streaming URLs with no local file, use HTTP Range requests
-        // to fetch tag/metadata (ID3v2 for MP3, moov for MP4) without downloading the full file.
-        if (uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            var remoteMeta = await remoteId3ArtworkExtractor.TryExtractMetadataAsync(uri);
-            if (remoteMeta == null)
-            {
-                remoteMeta = await remoteMp4ArtworkExtractor.TryExtractMetadataAsync(uri);
-            }
+        var remoteMeta = await TryExtractRemoteStreamingMetadataAsync(uri).ConfigureAwait(false);
+        return remoteMeta ?? CreateFallbackMetadata();
+    }
 
-            if (remoteMeta != null)
-            {
-                return remoteMeta;
-            }
-        }
+    private async Task<MetaData?> TryExtractRemoteStreamingMetadataAsync(string uri)
+    {
+        if (!uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
+            return null;
 
-        return CreateFallbackMetadata();
+        var remoteMeta = await remoteId3ArtworkExtractor.TryExtractMetadataAsync(uri).ConfigureAwait(false);
+        remoteMeta ??= await remoteMp4ArtworkExtractor.TryExtractMetadataAsync(uri).ConfigureAwait(false);
+        return remoteMeta;
     }
 
     private async Task<MetaData?> TryExtractFromLocalFileAsync(string uri)
     {
-        // HTTPS URLs are not local files -- skip the file system check entirely.
         if (uri.StartsWith(MediaUriSchemeConstants.HttpsPrefix, StringComparison.OrdinalIgnoreCase))
-        {
             return null;
-        }
 
         return await Task.Run(() =>
+            ReadMetadataFromLocalFileCore(ConvertUriToFilePath(uri), uri)).ConfigureAwait(false);
+    }
+
+    private MetaData? ReadMetadataFromLocalFileCore(string filePath, string uri)
+    {
+        try
+        {
+            if (!System.IO.File.Exists(filePath))
+                return null;
+
+            using var tagFile = TryOpenTagLibForLocalMetadata(filePath, uri);
+            if (tagFile == null)
+                return null;
+
+            var tag = tagFile.Tag;
+            var meta = ExtractBasicMetadata(tag);
+            ExtractArtworkIfAvailable(tag, meta);
+            return meta;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataFromLocalFile, uri);
+            return null;
+        }
+    }
+
+    private File? TryOpenTagLibForLocalMetadata(string filePath, string uri)
+    {
+        try
+        {
+            return File.Create(filePath);
+        }
+        catch (Exception ex)
         {
             try
             {
-                var filePath = ConvertUriToFilePath(uri);
-
-                if (!System.IO.File.Exists(filePath))
-                {
-                    return null;
-                }
-
-                File? file = null;
+                return File.Create(filePath, TagLibMimeConstants.VideoMp4, ReadStyle.None);
+            }
+            catch (Exception ex2)
+            {
                 try
                 {
-                    file = File.Create(filePath);
+                    return File.Create(filePath, TagLibMimeConstants.AudioMpeg, ReadStyle.None);
                 }
-                catch (Exception ex)
+                catch (Exception ex3)
                 {
-                    try
-                    {
-                        file = File.Create(filePath, TagLibMimeConstants.VideoMp4, ReadStyle.None);
-                    }
-                    catch (Exception ex2)
-                    {
-                        try
-                        {
-                            file = File.Create(filePath, TagLibMimeConstants.AudioMpeg, ReadStyle.None);
-                        }
-                        catch (Exception ex3)
-                        {
-                            logger.Warning(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataDefaultCreateFailedForUri, uri);
-                            logger.Debug(ex2, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.VideoMp4CreateAlsoFailedForUri, uri);
-                            logger.Debug(ex3, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.AudioMpegCreateAlsoFailedForUri, uri);
-                            return null;
-                        }
-                    }
-                }
-
-                if (file == null)
-                {
+                    logger.Warning(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataDefaultCreateFailedForUri, uri);
+                    logger.Debug(ex2, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.VideoMp4CreateAlsoFailedForUri, uri);
+                    logger.Debug(ex3, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.AudioMpegCreateAlsoFailedForUri, uri);
                     return null;
                 }
-
-                using (file)
-                {
-                    var tag = file.Tag;
-                    var meta = ExtractBasicMetadata(tag);
-                    ExtractArtworkIfAvailable(tag, meta);
-                    return meta;
-                }
             }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataFromLocalFile, uri);
-                return null;
-            }
-        });
+        }
     }
 
     private static string ConvertUriToFilePath(string uri)
