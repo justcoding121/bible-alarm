@@ -269,7 +269,7 @@ public sealed class BiblePublicationSelectionDataProvider
         return (vms, mapping, preferredDefault);
     }
 
-    private void RemoveIncompleteCatalogPlaceholders(Dictionary<string, BiblePublication> publicationsData)
+    private static void RemoveIncompleteCatalogPlaceholders(Dictionary<string, BiblePublication> publicationsData)
     {
         var unfetchableCodes = publicationsData
             .Where(kvp => !IsPublicationFullyCataloged(kvp.Value))
@@ -487,7 +487,7 @@ public sealed class BiblePublicationSelectionDataProvider
         return BiblePublicationRetryIterationOutcome.ForContinue(fetchedWithProgress, currentCatalogedCount);
     }
 
-    private void LogBiblePublicationRetryAttemptDiagnostics(
+    private static void LogBiblePublicationRetryAttemptDiagnostics(
         int attempt,
         Dictionary<string, BiblePublication>? reQueriedData,
         bool retryHasAllExpected,

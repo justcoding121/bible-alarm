@@ -270,7 +270,7 @@ internal sealed class MusicPublicationFetchCoordinator
         return MusicPublicationRetryIterationOutcome.ForContinue(fetchedWithProgress, currentCatalogedCount);
     }
 
-    private void LogMusicPublicationRetryDiagnostics(
+    private static void LogMusicPublicationRetryDiagnostics(
         int attempt,
         Dictionary<string, BiblePublication>? reQueriedData,
         bool retryHasAllExpected,

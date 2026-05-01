@@ -37,7 +37,7 @@ public sealed class MusicSectionSelectionRefreshHandler
             }
         });
 
-    private async Task OnRepopulateFailedClearUiAsync(MusicSectionSelectionRefreshContext ctx)
+    private static async Task OnRepopulateFailedClearUiAsync(MusicSectionSelectionRefreshContext ctx)
     {
         MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
         await HideFetchChromeKeepScreenAsync(ctx);

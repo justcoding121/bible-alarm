@@ -402,7 +402,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         return title;
     }
 
-    private bool TryResolveSectionTrackCodeString(
+    private static bool TryResolveSectionTrackCodeString(
         JsonElement trackFile,
         bool isBible,
         bool isIssueSectioned,
