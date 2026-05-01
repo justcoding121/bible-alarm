@@ -27,7 +27,6 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
-    private readonly IMapper mapper;
 
     // Helper classes for modular functionality
     private readonly BiblePublicationCommandInitializer commandInitializer;
@@ -74,10 +73,9 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         this.logger = logger;
         this.state = state;
         this.dispatcher = dispatcher;
-        this.mapper = mapper;
 
         // Initialize helper classes
-        commandInitializer = new BiblePublicationCommandInitializer(logger, navigationService, scheduleSelectionService, state, this.dispatcher, this.mapper, serviceProvider);
+        commandInitializer = new BiblePublicationCommandInitializer(logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider);
         var mediaService = serviceProvider.GetRequiredService<Bible.Alarm.Services.Media.Interfaces.IMediaService>();
         var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
         var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();

@@ -95,7 +95,7 @@ public sealed class BiblePublicationSelectionDataProvider
         });
     }
 
-    private List<LanguageListViewItemModel> BuildSortedLanguageViewModels(
+    private static List<LanguageListViewItemModel> BuildSortedLanguageViewModels(
         Dictionary<string, Language> languagesData,
         Dictionary<int, string> names,
         string? trimmedSearchTerm,

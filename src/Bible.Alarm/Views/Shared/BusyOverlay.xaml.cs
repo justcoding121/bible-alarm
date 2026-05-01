@@ -315,7 +315,7 @@ public partial class BusyOverlay : ContentView
                 overlay.overlayGrid.Opacity = 0;
                 overlay.overlayGrid.InputTransparent = true;
             }
-            FinishDeferredHideTeardownFull(overlay);
+            FinishDeferredHideTeardownWithoutWindow(overlay);
             logger.Debug(AppConstants.Logging.BusyOverlayDiagnosticsLog.DeferredApplyHideApplied);
         }
 
@@ -366,17 +366,11 @@ public partial class BusyOverlay : ContentView
         overlay.isProcessingVisibilityChange = false;
     }
 
-    private static void FinishDeferredHideTeardownFull(BusyOverlay overlay)
-    {
-        overlay.CancelHardTimeout();
-        overlay.StopSpinnerAfterDelay();
-        overlay.isProcessingVisibilityChange = false;
-    }
 
     private static void WarnRecoverDeferredHide(BusyOverlay overlay, Exception ex, string diagnosticsLogConstant)
     {
         logger.Warning(ex, diagnosticsLogConstant);
-        FinishDeferredHideTeardownFull(overlay);
+        FinishDeferredHideTeardownWithoutWindow(overlay);
     }
 
     private static void RecoverDeferredHideAfterUnknownFailure(BusyOverlay overlay, Exception ex)

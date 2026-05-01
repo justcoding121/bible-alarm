@@ -222,7 +222,7 @@ public sealed class MediaElementService : IMediaElementService
     }
 #endif
 
-    private void DisposeMediaElementHandlerAndClearBinding(MediaElement mediaElement, IElementHandler? handler)
+    private static void DisposeMediaElementHandlerAndClearBinding(MediaElement mediaElement, IElementHandler? handler)
     {
         if (handler is IDisposable disposableHandler)
         {

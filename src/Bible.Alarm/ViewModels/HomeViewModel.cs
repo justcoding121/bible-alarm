@@ -23,10 +23,6 @@ namespace Bible.Alarm.ViewModels;
 public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<ShowProgressBarMessage>, IRecipient<HideProgressBarMessage>
 {
     private readonly ILogger logger;
-    private readonly IServiceProvider serviceProvider;
-
-    private readonly IMapper mapper;
-
     private readonly IDispatcher dispatcher;
     private readonly IState<ApplicationState> state;
     private readonly IState<PlaybackState> playbackState;
@@ -47,24 +43,24 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     public HomeViewModel(HomeViewModelDeps deps)
     {
         logger = deps.Logger;
-        serviceProvider = deps.ServiceProvider;
+        var serviceProvider = deps.ServiceProvider;
         state = deps.ApplicationState;
         playbackState = deps.PlaybackState;
         dispatcher = deps.Dispatcher;
         navigationService = deps.NavigationService;
-        mapper = deps.Mapper;
+        var mapper = deps.Mapper;
 
         // Initialize helper classes
         var scheduleDataPreparer = new ScheduleDataPreparer(mapper);
-        var playbackModalService = this.serviceProvider.GetRequiredService<IPlaybackModalService>();
-        navigationHelper = new HomeNavigationHelper(logger, dispatcher, this.navigationService, playbackModalService, playbackState, this.serviceProvider, this.mapper);
-        scheduleViewModelManager = new ScheduleViewModelManager(logger, this.serviceProvider, navigationHelper.TrackPlayClick);
+        var playbackModalService = serviceProvider.GetRequiredService<IPlaybackModalService>();
+        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, playbackModalService, playbackState, serviceProvider, mapper);
+        scheduleViewModelManager = new ScheduleViewModelManager(logger, serviceProvider, navigationHelper.TrackPlayClick);
         progressAnimator = new ProgressBarAnimator();
         progressBarManager = new ProgressBarManager(progressAnimator);
         propertyManager = new PropertyManager();
         bootstrapReadyManager = new BootstrapReadyManager(logger);
         notificationPermissionHandler = new HomeViewModelNotificationPermissionHandler(logger, state);
-        floatingButtonHandler = new HomeViewModelFloatingButtonHandler(logger, this.serviceProvider);
+        floatingButtonHandler = new HomeViewModelFloatingButtonHandler(logger, serviceProvider);
         focusWarningHandler = new HomeViewModelFocusWarningHandler(logger, state);
 
         progressBarManager.ProgressBarOpacityChanged += OnProgressBarOpacityChanged;
@@ -78,8 +74,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         var commandHandler = new CommandHandler(
             logger,
             dispatcher,
-            this.navigationService,
-            this.serviceProvider,
+            navigationService,
+            serviceProvider,
             (x) => x.Schedule?.Id > 0 && navigationHelper.ShouldSkipNavigation(x.Schedule.Id),
             async (x) => await navigationHelper.ShowOverlayAndNavigateAsync(x));
 

@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.ViewModels;
@@ -10,7 +11,7 @@ using Syncfusion.Maui.Buttons;
 namespace Bible.Alarm.Views;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class Home : BaseContentPage, IDisposable
+public sealed partial class Home : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool hasHandledFirstLoad;
@@ -167,15 +168,9 @@ public partial class Home : BaseContentPage, IDisposable
 
     private bool IsTapOnChildControl(View view, Point tapPosition)
     {
-        foreach (var childView in EnumerateChildViewsForTapHitTest(view))
-        {
-            if (IsTapOnChild(childView, tapPosition))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return EnumerateChildViewsForTapHitTest(view)
+            .Where(childView => IsTapOnChild(childView, tapPosition))
+            .Any();
     }
 
     private static IEnumerable<View> EnumerateChildViewsForTapHitTest(View view)

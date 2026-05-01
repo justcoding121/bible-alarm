@@ -95,7 +95,7 @@ public class MediaSessionEffect(
     }
 
     /// <summary>Returns true when the handler should exit early (restart suppression path).</summary>
-    private bool TryShortCircuitRestartingPlayback(PlaybackStatusChangedAction action)
+    private static bool TryShortCircuitRestartingPlayback(PlaybackStatusChangedAction action)
     {
         if (!isRestartingPlayback)
         {

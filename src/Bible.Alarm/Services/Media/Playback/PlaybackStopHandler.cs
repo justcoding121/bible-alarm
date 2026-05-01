@@ -122,7 +122,7 @@ public sealed class PlaybackStopHandler
         }
     }
 
-    private async Task RunIgnoringWarningAsync(Func<Task> asyncStep, Action<Exception> warn)
+    private static async Task RunIgnoringWarningAsync(Func<Task> asyncStep, Action<Exception> warn)
     {
         try
         {

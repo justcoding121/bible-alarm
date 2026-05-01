@@ -9,7 +9,7 @@ namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
 /// <summary>
 /// Handles property change events from MusicSelectionContainerViewModel.
 /// </summary>
-public partial class PropertyChangeHandler : IDisposable
+public sealed class PropertyChangeHandler : IDisposable
 {
     private readonly MusicSelectionContainer container;
     private readonly Action<bool, bool> updateVisibility;

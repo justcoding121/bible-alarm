@@ -206,7 +206,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         return tracks ?? EmptySortedTracks();
     }
 
-    private SortedDictionary<string, BiblePublicationTrack>? QueryTracksFromPublicationForLanguage(
+    private static SortedDictionary<string, BiblePublicationTrack>? QueryTracksFromPublicationForLanguage(
         BiblePublication? pub,
         BiblePublicationSection firstSection,
         string publicationCode,

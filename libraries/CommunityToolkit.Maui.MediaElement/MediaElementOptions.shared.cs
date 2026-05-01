@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Maui.Primitives;
 
 namespace CommunityToolkit.Maui;
@@ -5,6 +6,8 @@ namespace CommunityToolkit.Maui;
 /// <summary>
 /// Construction options for MediaElement, for example, to create an Android SurfaceView or TextureView
 /// </summary>
+[SuppressMessage("SonarAnalyzer.CSharp", "S1118",
+    Justification = "Internal instance constructors integrate with MauiAppBuilder.")]
 public class MediaElementOptions
 {
     internal MediaElementOptions()

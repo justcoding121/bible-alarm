@@ -121,7 +121,7 @@ public class ScheduleViewModelManager
         }
     }
 
-    private ObservableHashSet<ScheduleListItemViewModel> BuildMergedScheduleCollection(
+    private static ObservableHashSet<ScheduleListItemViewModel> BuildMergedScheduleCollection(
         ObservableHashSet<ScheduleListItemViewModel> currentSchedules,
         List<int> schedulesToRemove,
         List<ScheduleListItemViewModel> schedulesToAdd)

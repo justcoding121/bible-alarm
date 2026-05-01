@@ -94,6 +94,14 @@ public sealed partial class WindowSetupService(IServiceProvider serviceProvider,
     }
 
     /// <summary>
+    /// Clears the static NavigationPage reference during teardown (isolated static mutation).
+    /// </summary>
+    private static void ClearMainNavigationPageReference()
+    {
+        mainNavPage = null;
+    }
+
+    /// <summary>
     /// Initializes centralized navigation bar color management.
     /// </summary>
     private static void Initialize(NavigationPage navigationPage)
@@ -285,7 +293,7 @@ public sealed partial class WindowSetupService(IServiceProvider serviceProvider,
         playbackModalService.UnsubscribeToPlaybackStateChanges();
         navigationService.PopAllModalsAndPages();
 
-        mainNavPage = null;
+        ClearMainNavigationPageReference();
 
         // Dispatch PlaybackStoppedAction synchronously AFTER unsubscribing so Fluxor state
         // is clean (Stopped) before a new session starts. The handler is already unsubscribed,

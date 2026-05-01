@@ -33,9 +33,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     private BiblePublicationSchedule? current;
 
     private readonly ILogger logger;
-    private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
-    private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
     private bool initComplete;
     private BiblePublicationSchedule? lastCurrent;
@@ -67,13 +65,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     public BiblePublicationSectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IInternetConnectivityChecker? internetChecker = null)
     {
         this.logger = logger;
-        this.mediaService = mediaService;
         this.state = state;
-        this.dispatcher = dispatcher;
         this.navigationService = navigationService;
-        sectionListLoader = new SectionListLoader(logger, this.mediaService, internetChecker);
-        var trackSelectionResolver = new TrackSelectionResolver(logger, this.mediaService);
-        trackTapHandler = new BiblePublicationSectionSelectionTrackTapHandler(logger, state, this.dispatcher, this.navigationService, trackSelectionResolver);
+        sectionListLoader = new SectionListLoader(logger, mediaService, internetChecker);
+        var trackSelectionResolver = new TrackSelectionResolver(logger, mediaService);
+        trackTapHandler = new BiblePublicationSectionSelectionTrackTapHandler(logger, state, dispatcher, navigationService, trackSelectionResolver);
         refreshHandler = new BiblePublicationSectionSelectionRefreshHandler(logger);
 
         // Don't initialize here - let OnBiblePublicationInitialized handle it
