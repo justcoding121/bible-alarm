@@ -30,7 +30,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #if ANDROID
     private readonly NotificationPermissionService? permissionService;
 #elif IOS
-    private readonly IOSNotificationPermissionService? permissionService;
+    private readonly IosNotificationPermissionService? permissionService;
 #endif
 
     private bool isNotificationPermissionGranted;
@@ -51,7 +51,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #if ANDROID
         permissionService = NotificationPermissionService.Instance;
 #elif IOS
-        permissionService = IOSNotificationPermissionService.Instance;
+        permissionService = IosNotificationPermissionService.Instance;
 #endif
 
         InitializeCommands();
@@ -234,7 +234,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             return;
         try
         {
-            var canShow = await IOSNotificationPermissionService.CanShowSystemPromptAsync();
+            var canShow = await IosNotificationPermissionService.CanShowSystemPromptAsync();
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 UpdateCanShowSystemPrompt(canShow);
@@ -265,8 +265,8 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
                 try
                 {
                     permissionService.InvalidateCache();
-                    var result = await IOSNotificationPermissionService.IsGrantedAsync();
-                    var canShow = await IOSNotificationPermissionService.CanShowSystemPromptAsync();
+                    var result = await IosNotificationPermissionService.IsGrantedAsync();
+                    var canShow = await IosNotificationPermissionService.CanShowSystemPromptAsync();
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         IsNotificationPermissionGranted = result;

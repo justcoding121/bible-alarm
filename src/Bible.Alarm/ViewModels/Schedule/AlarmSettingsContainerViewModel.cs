@@ -46,7 +46,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
     private bool isUpdatingFromPermissionCheck;
     private bool isSyncingFromState;
     private bool isWaitingForPermissionResponse;
-    private IOSNotificationPermissionService? permissionService;
+    private IosNotificationPermissionService? permissionService;
 #endif
 
     private readonly INavigationService navigationService;
@@ -87,7 +87,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
 #elif IOS
     private void InitializePermissionService()
     {
-        permissionService = IOSNotificationPermissionService.Instance;
+        permissionService = IosNotificationPermissionService.Instance;
         permissionService.PermissionGranted += OnPermissionGranted;
         permissionService.PermissionDenied += OnPermissionDenied;
     }

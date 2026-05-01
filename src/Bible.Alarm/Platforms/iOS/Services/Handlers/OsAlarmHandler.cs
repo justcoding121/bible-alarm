@@ -11,7 +11,7 @@ using UIKit;
 
 namespace Bible.Alarm.Platforms.iOS.Services.Handlers;
 
-public sealed class IOsAlarmHandler(
+public sealed class OsAlarmHandler(
     ILogger logger,
     IPlaybackService playbackService,
     IState<PlaybackState> playbackState,

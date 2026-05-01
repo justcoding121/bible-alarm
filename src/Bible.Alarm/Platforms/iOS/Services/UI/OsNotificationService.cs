@@ -8,7 +8,7 @@ using UserNotifications;
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI;
 
-public sealed class IOsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService
+public sealed class OsNotificationService(ILogger logger, IServiceScopeFactory scopeFactory) : INotificationService
 {
     public async Task ShowNotificationAsync(int scheduleId)
     {

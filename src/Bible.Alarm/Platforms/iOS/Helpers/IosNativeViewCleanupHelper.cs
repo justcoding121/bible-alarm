@@ -11,7 +11,7 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 /// <summary>
 /// Best-effort walk of UIView/CALayer hierarchies during teardown (logs if native objects are already disposed).
 /// </summary>
-public static class IOSNativeViewCleanupHelper
+public static class IosNativeViewCleanupHelper
 {
     public static void SuppressFinalizersForViewHierarchy(UIView view)
     {

@@ -234,7 +234,7 @@ public sealed class MediaElementService : IMediaElementService
             {
                 try
                 {
-                    IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(nativePlatformView);
+                    IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(nativePlatformView);
                 }
                 catch (Exception)
                 {
@@ -248,7 +248,7 @@ public sealed class MediaElementService : IMediaElementService
                 {
                     if (viewController.View != null)
                     {
-                        IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(viewController.View);
+                        IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(viewController.View);
                     }
                 }
                 catch (ObjectDisposedException ex)

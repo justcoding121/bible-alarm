@@ -14,7 +14,7 @@ sealed class Metadata
     private string? cachedArtworkUri;
 
     // Remote command handlers (play/pause/toggle/seek) are NOT registered here.
-    // The app manages all MPRemoteCommandCenter handlers via iOSRemoteCommandCenterManager,
+    // The app manages all MPRemoteCommandCenter handlers via IOsRemoteCommandCenterManager,
     // which includes CarPlay auto-play suppression and Fluxor state awareness.
     // Registering a second set of handlers here would bypass that logic and cause
     // direct AVPlayer.Play() calls that circumvent the app's playback pipeline.

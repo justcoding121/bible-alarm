@@ -9,7 +9,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Platform;
 /// iOS implementation of font scale detection using UIApplication.SharedApplication.PreferredContentSizeCategory.
 /// This reads the user's Dynamic Type font size preference from iOS accessibility settings.
 /// </summary>
-public sealed class iOSAccessibilityFontScaleService : IAccessibilityFontScaleService, IDisposable
+public sealed class IOsAccessibilityFontScaleService : IAccessibilityFontScaleService, IDisposable
 {
     private double currentFontScale;
     private bool isDisposed;
@@ -17,7 +17,7 @@ public sealed class iOSAccessibilityFontScaleService : IAccessibilityFontScaleSe
 
     public event EventHandler<double>? FontScaleChanged;
 
-    public iOSAccessibilityFontScaleService()
+    public IOsAccessibilityFontScaleService()
     {
         // Get initial font scale
         currentFontScale = GetSystemFontScale();

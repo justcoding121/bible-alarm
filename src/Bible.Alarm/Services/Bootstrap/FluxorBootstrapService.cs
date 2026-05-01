@@ -86,18 +86,18 @@ public class FluxorBootstrapService : IFluxorBootstrapService
         }
 #elif IOS
         // iOS Now Playing and CarPlay use MPNowPlayingInfoCenter and MPRemoteCommandCenter.
-        // Register the iOSMediaSessionEffect message handlers to ensure playback position updates
+        // Register the IOsMediaSessionEffect message handlers to ensure playback position updates
         // flow to the Now Playing display (Lock Screen, Control Center, CarPlay, AirPods).
         // (Metadata/status/navigation are handled via Fluxor effects, but position comes from MVVM messages.)
         try
         {
-            var mediaSessionEffect = ServiceProviderManager.GetService<iOSMediaSessionEffect>();
+            var mediaSessionEffect = ServiceProviderManager.GetService<IOsMediaSessionEffect>();
             mediaSessionEffect?.RegisterMessageHandlers();
-            Log.Logger.Debug("iOSMediaSessionEffect message handlers registered (bootstrap)");
+            Log.Logger.Debug("IOsMediaSessionEffect message handlers registered (bootstrap)");
         }
         catch (Exception ex)
         {
-            Log.Logger.Warning(ex, "Failed to register iOSMediaSessionEffect message handlers (bootstrap)");
+            Log.Logger.Warning(ex, "Failed to register IOsMediaSessionEffect message handlers (bootstrap)");
         }
 #endif
 

@@ -15,9 +15,9 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media;
 /// Updates the Lock Screen, Control Center, CarPlay, and other system media interfaces
 /// with current track metadata and playback progress.
 /// </summary>
-public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
+public sealed class IOsNowPlayingInfoManager : IiOSNowPlayingInfoManager
 {
-    private static readonly ILogger logger = Log.ForContext<iOSNowPlayingInfoManager>();
+    private static readonly ILogger logger = Log.ForContext<IOsNowPlayingInfoManager>();
 
     // Cache current metadata to avoid redundant updates
     private string? currentTitle;

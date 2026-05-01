@@ -3040,7 +3040,7 @@ public static class AppConstants
                 "Failed to resolve category display name for code {CategoryCode}";
         }
 
-        /// <summary>iOS lock screen / Control Center Now Playing (<c>iOSNowPlayingInfoManager</c>).</summary>
+        /// <summary>iOS lock screen / Control Center Now Playing (<c>IOsNowPlayingInfoManager</c>).</summary>
         public static class IosNowPlayingDiagnosticsLog
         {
             public const string FailedToUpdateMetadata =
@@ -4219,23 +4219,23 @@ public static class AppConstants
                 "SuppressViewControllerFinalizer: Error (non-fatal)";
         }
 
-        /// <summary>iOS UIView/CALayer finalizer suppression (<c>IOSNativeViewCleanupHelper</c>).</summary>
+        /// <summary>iOS UIView/CALayer finalizer suppression (<c>IosNativeViewCleanupHelper</c>).</summary>
         public static class IosNativeViewCleanupDiagnosticsLog
         {
             public const string SubviewsWalkHitDisposedViewNonFatal =
-                "IOSNativeViewCleanupHelper: Subviews walk hit disposed view (non-fatal)";
+                "IosNativeViewCleanupHelper: Subviews walk hit disposed view (non-fatal)";
 
             public const string GestureRecognizersAccessDisposedNonFatal =
-                "IOSNativeViewCleanupHelper: GestureRecognizers access disposed (non-fatal)";
+                "IosNativeViewCleanupHelper: GestureRecognizers access disposed (non-fatal)";
 
             public const string LayerAccessDisposedNonFatal =
-                "IOSNativeViewCleanupHelper: Layer access disposed (non-fatal)";
+                "IosNativeViewCleanupHelper: Layer access disposed (non-fatal)";
 
             public const string PropertyFinalizerWalkDisposedNonFatal =
-                "IOSNativeViewCleanupHelper: Property finalizer walk disposed (non-fatal)";
+                "IosNativeViewCleanupHelper: Property finalizer walk disposed (non-fatal)";
 
             public const string SublayersWalkDisposedNonFatal =
-                "IOSNativeViewCleanupHelper: Sublayers walk disposed (non-fatal)";
+                "IosNativeViewCleanupHelper: Sublayers walk disposed (non-fatal)";
         }
 
         /// <summary>WinRT toast notifier creation (<c>WindowsToastNotifierFactory</c>).</summary>
@@ -4334,7 +4334,7 @@ public static class AppConstants
         public static class MauiPlatformUiDiagnosticsLog
         {
             public const string IOSRemoveCurrentToastCleanupFailedNonFatal =
-                "IOsToastService: RemoveCurrentToast cleanup failed (non-fatal)";
+                "OsToastService: RemoveCurrentToast cleanup failed (non-fatal)";
 
             public const string BibleSelectionContainerShouldScrollToContainerDebug =
                 "[BibleSelectionContainer] ShouldScrollToContainer property changed, scrolling to container";

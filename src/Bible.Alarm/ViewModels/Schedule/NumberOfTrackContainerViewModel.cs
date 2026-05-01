@@ -52,7 +52,7 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
     private bool isUpdatingFromPermissionCheck;
     private bool isSyncingFromState;
     private bool isWaitingForPermissionResponse;
-    private IOSNotificationPermissionService? permissionService;
+    private IosNotificationPermissionService? permissionService;
 #endif
     private readonly ContainerReadySignaler containerReadySignaler;
     private readonly NumberOfTracksListPopulator listPopulator;
@@ -109,7 +109,7 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
 #elif IOS
     private void InitializePermissionService()
     {
-        permissionService = IOSNotificationPermissionService.Instance;
+        permissionService = IosNotificationPermissionService.Instance;
         permissionService.PermissionGranted += OnPermissionGranted;
         permissionService.PermissionDenied += OnPermissionDenied;
     }

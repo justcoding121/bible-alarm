@@ -8,7 +8,7 @@ using Bible.Alarm.Shared.Constants;
 using Serilog;
 using UIKit;
 
-[assembly: Dependency(typeof(IOsToastService))]
+[assembly: Dependency(typeof(OsToastService))]
 
 namespace Bible.Alarm.Platforms.iOS.Services.UI;
 
@@ -16,7 +16,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.UI;
 /// Custom in-app toast for iOS. Uses a native UIView overlay.
 /// When a new toast arrives while one is showing, the old toast is dismissed immediately.
 /// </summary>
-public class IOsToastService : ToastService
+public class OsToastService : ToastService
 {
     private static readonly SemaphoreSlim @lock = new(1);
     private static CancellationTokenSource? activeCts;
@@ -110,7 +110,7 @@ public class IOsToastService : ToastService
         {
             currentToastView.Layer.RemoveAllAnimations();
             currentToastView.RemoveFromSuperview();
-            IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(currentToastView);
+            IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(currentToastView);
             currentToastView.Dispose();
         }
         catch (Exception ex)
@@ -201,7 +201,7 @@ public class IOsToastService : ToastService
             UIView.Animate(0.3, () => toastView.Alpha = 0, () =>
             {
                 toastView.RemoveFromSuperview();
-                IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(toastView);
+                IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(toastView);
                 toastView.Dispose();
 
                 if (currentToastView == toastView)

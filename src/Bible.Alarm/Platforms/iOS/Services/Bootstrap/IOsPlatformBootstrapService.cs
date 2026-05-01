@@ -9,7 +9,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Bootstrap;
 /// iOS platform-specific setup (background tasks, notifications) is handled
 /// directly in AppDelegate, so this is a no-op implementation.
 /// </summary>
-public class iOSPlatformBootstrapService : IPlatformBootstrapService
+public class IOsPlatformBootstrapService : IPlatformBootstrapService
 {
     public Task InitializeAsync()
     {

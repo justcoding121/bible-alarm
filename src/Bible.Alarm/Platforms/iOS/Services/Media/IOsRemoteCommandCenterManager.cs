@@ -17,9 +17,9 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media;
 /// Handles play/pause/next/previous/seek commands from Lock Screen, Control Center,
 /// AirPods, CarPlay, and other system media interfaces.
 /// </summary>
-public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManager
+public sealed class IOsRemoteCommandCenterManager : IiOSRemoteCommandCenterManager
 {
-    private static readonly ILogger logger = Log.ForContext<iOSRemoteCommandCenterManager>();
+    private static readonly ILogger logger = Log.ForContext<IOsRemoteCommandCenterManager>();
     private readonly MPRemoteCommandCenter commandCenter;
     private readonly IState<PlaybackState> playbackState;
     private bool isRegistered;
@@ -36,7 +36,7 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
     private NSObject? skipBackwardToken;
     private NSObject? changePositionToken;
 
-    public iOSRemoteCommandCenterManager(IState<PlaybackState> playbackState)
+    public IOsRemoteCommandCenterManager(IState<PlaybackState> playbackState)
     {
         commandCenter = MPRemoteCommandCenter.Shared;
         this.playbackState = playbackState;

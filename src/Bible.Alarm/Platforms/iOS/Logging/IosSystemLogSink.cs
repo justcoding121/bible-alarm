@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.iOS.Logging;
 /// Serilog sink that writes to Apple Unified Logging (os_log) so logs are visible via
 /// Console.app or: log stream --device --predicate 'subsystem == "com.jthomas.info.Bible.Alarm"'
 /// </summary>
-public sealed class IOSSystemLogSink : Serilog.Core.ILogEventSink
+public sealed class IosSystemLogSink : Serilog.Core.ILogEventSink
 {
     private const string Prefix = "BibleAlarm";
 

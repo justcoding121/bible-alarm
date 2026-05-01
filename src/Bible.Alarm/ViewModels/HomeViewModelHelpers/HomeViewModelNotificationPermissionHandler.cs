@@ -122,7 +122,7 @@ public sealed class HomeViewModelNotificationPermissionHandler
     {
         try
         {
-            var permissionService = Platforms.iOS.Services.Helpers.IOSNotificationPermissionService.Instance;
+            var permissionService = Platforms.iOS.Services.Helpers.IosNotificationPermissionService.Instance;
             var isGranted = permissionService.IsGranted;
             logger.Information("[NOTIFICATION-BUTTON] Permission granted: {PermissionGranted}", isGranted);
 
@@ -130,7 +130,7 @@ public sealed class HomeViewModelNotificationPermissionHandler
             {
                 try
                 {
-                    var asyncResult = await Platforms.iOS.Services.Helpers.IOSNotificationPermissionService.IsGrantedAsync();
+                    var asyncResult = await Platforms.iOS.Services.Helpers.IosNotificationPermissionService.IsGrantedAsync();
                     logger.Information("[NOTIFICATION-BUTTON] Async permission check completed: {Result}", asyncResult);
                     if (asyncResult != isGranted)
                     {

@@ -10,16 +10,16 @@ namespace Bible.Alarm.Platforms.iOS.Services.Helpers;
 /// <summary>
 /// Event-driven service for managing notification permission on iOS.
 /// </summary>
-public sealed class IOSNotificationPermissionService : IDisposable
+public sealed class IosNotificationPermissionService : IDisposable
 {
-    private static readonly ILogger logger = Log.ForContext<IOSNotificationPermissionService>();
-    private static IOSNotificationPermissionService? instance;
+    private static readonly ILogger logger = Log.ForContext<IosNotificationPermissionService>();
+    private static IosNotificationPermissionService? instance;
     private static readonly object instanceLock = new();
 
     /// <summary>
     /// Gets the singleton instance of the iOS notification permission service.
     /// </summary>
-    public static IOSNotificationPermissionService Instance
+    public static IosNotificationPermissionService Instance
     {
         get
         {
@@ -27,7 +27,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
             {
                 lock (instanceLock)
                 {
-                    instance ??= new IOSNotificationPermissionService();
+                    instance ??= new IosNotificationPermissionService();
                 }
             }
             return instance;
@@ -76,7 +76,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                 {
                     try
                     {
-                        var result = await IOSNotificationPermissionService.IsGrantedAsync();
+                        var result = await IosNotificationPermissionService.IsGrantedAsync();
                         cachedPermissionResult = result;
                         lastPermissionCheck = DateTime.UtcNow;
                         logger.Debug("[NOTIFICATION-PERMISSION] Cache refreshed with result: {Result}", result);
@@ -96,7 +96,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "IOSNotificationPermissionService.IsGranted: Exception checking permission");
+                logger.Error(ex, "IosNotificationPermissionService.IsGranted: Exception checking permission");
                 return false;
             }
         }
@@ -136,9 +136,9 @@ public sealed class IOSNotificationPermissionService : IDisposable
         }
     }
 
-    private IOSNotificationPermissionService()
+    private IosNotificationPermissionService()
     {
-        logger.Debug("IOSNotificationPermissionService: Instance created");
+        logger.Debug("IosNotificationPermissionService: Instance created");
     }
 
     /// <summary>
@@ -152,11 +152,11 @@ public sealed class IOSNotificationPermissionService : IDisposable
         // This matches Android's behavior where IsGranted always checks actual status
         if (IsGranted)
         {
-            logger.Information("IOSNotificationPermissionService: Permission already granted");
+            logger.Information("IosNotificationPermissionService: Permission already granted");
             return true;
         }
 
-        logger.Information("IOSNotificationPermissionService: Requesting notification permission");
+        logger.Information("IosNotificationPermissionService: Requesting notification permission");
 
         MainThread.BeginInvokeOnMainThread(async () =>
         {
@@ -167,7 +167,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
 
                 if (error != null)
                 {
-                    logger.Error("IOSNotificationPermissionService: Error requesting permission: {Error}", error);
+                    logger.Error("IosNotificationPermissionService: Error requesting permission: {Error}", error);
                     // Update cache
                     cachedPermissionResult = false;
                     lastPermissionCheck = DateTime.UtcNow;
@@ -175,7 +175,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                     return;
                 }
 
-                logger.Information("IOSNotificationPermissionService: Permission result - Granted: {Granted}", granted);
+                logger.Information("IosNotificationPermissionService: Permission result - Granted: {Granted}", granted);
 
                 // Update cache immediately when permission changes
                 // This ensures IsGranted property returns correct value immediately
@@ -199,13 +199,13 @@ public sealed class IOSNotificationPermissionService : IDisposable
                     }
                     catch (Exception ex)
                     {
-                        logger.Error(ex, "IOSNotificationPermissionService: Exception in permission event handler");
+                        logger.Error(ex, "IosNotificationPermissionService: Exception in permission event handler");
                     }
                 });
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "IOSNotificationPermissionService: Exception requesting permission");
+                logger.Error(ex, "IosNotificationPermissionService: Exception requesting permission");
                 // Update cache
                 cachedPermissionResult = false;
                 lastPermissionCheck = DateTime.UtcNow;
@@ -217,7 +217,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                     }
                     catch (Exception eventEx)
                     {
-                        logger.Error(eventEx, "IOSNotificationPermissionService: Exception in PermissionDenied event handler");
+                        logger.Error(eventEx, "IosNotificationPermissionService: Exception in PermissionDenied event handler");
                     }
                 });
             }

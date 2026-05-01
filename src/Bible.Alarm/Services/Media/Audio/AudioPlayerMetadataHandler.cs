@@ -196,7 +196,7 @@ public class AudioPlayerMetadataHandler
         string? artworkUrl = meta.ArtworkUrl;
 
         // ALWAYS save artwork bytes to a local file if available
-        // This ensures iOSNowPlayingInfoManager can load artwork synchronously from a file path
+        // This ensures IOsNowPlayingInfoManager can load artwork synchronously from a file path
         // rather than trying to load from HTTP URLs which would require async loading
         if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
         {

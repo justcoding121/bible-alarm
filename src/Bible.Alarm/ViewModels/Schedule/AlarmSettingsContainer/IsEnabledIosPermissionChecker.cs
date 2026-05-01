@@ -16,7 +16,7 @@ public sealed record IosReminderToggleGuardRequest(
     bool IsUpdatingFromPermissionCheck,
     bool IsSyncingFromState,
     Func<bool> GetIsEnabled,
-    IOSNotificationPermissionService? PermissionService,
+    IosNotificationPermissionService? PermissionService,
     ILogger Logger,
     Action SetOnAndNotify,
     Action SetOffAndNotify,
@@ -46,7 +46,7 @@ public static class IsEnabledIosPermissionChecker
                 {
                     try
                     {
-                        var result = await IOSNotificationPermissionService.IsGrantedAsync();
+                        var result = await IosNotificationPermissionService.IsGrantedAsync();
                         MainThread.BeginInvokeOnMainThread(() =>
                         {
                             if (result && !r.GetIsEnabled())

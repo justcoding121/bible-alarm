@@ -263,7 +263,7 @@ public static class ServiceRegistrationHelper
 #if ANDROID
         services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.Android.Services.Media.AndroidDefaultDeviceRingtoneService>();
 #elif IOS
-        services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.iOS.Services.Media.iOSDefaultDeviceRingtoneService>();
+        services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.iOS.Services.Media.IOsDefaultDeviceRingtoneService>();
 #elif WINDOWS
         services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.Windows.Services.Media.WindowsDefaultDeviceRingtoneService>();
 #else
@@ -274,7 +274,7 @@ public static class ServiceRegistrationHelper
 #if ANDROID
         services.AddSingleton<IAccessibilityFontScaleService, AndroidAccessibilityFontScaleService>();
 #elif IOS
-        services.AddSingleton<IAccessibilityFontScaleService, iOSAccessibilityFontScaleService>();
+        services.AddSingleton<IAccessibilityFontScaleService, IOsAccessibilityFontScaleService>();
 #elif WINDOWS
         services.AddSingleton<IAccessibilityFontScaleService, WindowsAccessibilityFontScaleService>();
 #endif
@@ -335,7 +335,7 @@ public static class ServiceRegistrationHelper
 #if ANDROID
         services.AddSingleton<IPlatformBootstrapService, AndroidPlatformBootstrapService>();
 #elif IOS
-        services.AddSingleton<IPlatformBootstrapService, iOSPlatformBootstrapService>();
+        services.AddSingleton<IPlatformBootstrapService, IOsPlatformBootstrapService>();
 #elif WINDOWS
         services.AddSingleton<IPlatformBootstrapService, WindowsPlatformBootstrapService>();
 #endif
@@ -369,15 +369,15 @@ public static class ServiceRegistrationHelper
         // Default schedule rotation when Android Auto connected and not playing (every 5 min)
         services.AddSingleton<Bible.Alarm.Platforms.Android.Services.AndroidAuto.Interfaces.IAndroidAutoDefaultScheduleRotationService, Bible.Alarm.Platforms.Android.Services.AndroidAuto.AndroidAutoDefaultScheduleRotationService>();
 #elif IOS
-        services.AddSingleton<INotificationService, IOsNotificationService>();
-        services.AddSingleton<IToastService, IOsToastService>();
-        services.AddSingleton<IStorageService, IOsStorageService>();
-        services.AddSingleton<IIosAlarmHandler, IOsAlarmHandler>();
+        services.AddSingleton<INotificationService, OsNotificationService>();
+        services.AddSingleton<IToastService, OsToastService>();
+        services.AddSingleton<IStorageService, OsStorageService>();
+        services.AddSingleton<IIosAlarmHandler, OsAlarmHandler>();
         // Register iOS Now Playing and Remote Command services for Lock Screen, Control Center, AirPods, and CarPlay
-        services.AddSingleton<IiOSRemoteCommandCenterManager, iOSRemoteCommandCenterManager>();
-        services.AddSingleton<IiOSNowPlayingInfoManager, iOSNowPlayingInfoManager>();
+        services.AddSingleton<IiOSRemoteCommandCenterManager, IOsRemoteCommandCenterManager>();
+        services.AddSingleton<IiOSNowPlayingInfoManager, IOsNowPlayingInfoManager>();
         // Register iOS MediaSession effect for syncing playback state with system media controls
-        services.AddSingleton<iOSMediaSessionEffect>();
+        services.AddSingleton<IOsMediaSessionEffect>();
         // Default schedule rotation when CarPlay connected and not playing (every 5 min)
         services.AddSingleton<Bible.Alarm.Platforms.iOS.Services.CarPlay.Interfaces.ICarPlayDefaultScheduleRotationService, Bible.Alarm.Platforms.iOS.Services.CarPlay.CarPlayDefaultScheduleRotationService>();
 #elif WINDOWS

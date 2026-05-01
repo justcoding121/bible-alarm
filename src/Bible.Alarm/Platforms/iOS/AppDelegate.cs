@@ -163,7 +163,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         {
             // iOS 16+ (minimum supported) uses BGTaskScheduler for periodic work.
             // This runs the scheduler, which also performs media cache cleanup.
-            iOSBackgroundTaskScheduler.RegisterAndSchedule();
+            IOsBackgroundTaskScheduler.RegisterAndSchedule();
         }
         catch (Exception ex)
         {

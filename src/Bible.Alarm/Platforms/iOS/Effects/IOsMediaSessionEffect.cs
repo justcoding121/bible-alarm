@@ -22,9 +22,9 @@ namespace Bible.Alarm.Platforms.iOS.Effects;
 /// - MPNowPlayingInfoCenter (equivalent to MediaMetadataCompat)
 /// - MPRemoteCommandCenter (equivalent to MediaSessionCompat.Callback)
 /// </summary>
-public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
+public class IOsMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
 {
-    private static readonly ILogger logger = Log.ForContext<iOSMediaSessionEffect>();
+    private static readonly ILogger logger = Log.ForContext<IOsMediaSessionEffect>();
 
     private readonly IiOSRemoteCommandCenterManager remoteCommandManager;
     private readonly IiOSNowPlayingInfoManager nowPlayingManager;
@@ -38,7 +38,7 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     private string? lastMetadataAlbum;
     private string? lastMetadataArtworkUrl;
 
-    public iOSMediaSessionEffect(
+    public IOsMediaSessionEffect(
         IiOSRemoteCommandCenterManager remoteCommandManager,
         IiOSNowPlayingInfoManager nowPlayingManager,
         IState<PlaybackState> playbackState)

@@ -153,7 +153,7 @@ public class HomeNavigationHelper
         {
             try
             {
-                var permissionService = IOSNotificationPermissionService.Instance;
+                var permissionService = IosNotificationPermissionService.Instance;
                 bool isPermissionGranted = false;
                 try
                 {
@@ -161,7 +161,7 @@ public class HomeNavigationHelper
                     // The sync IsGranted property can return false when cache is empty
                     // (e.g., on first app launch before the async check completes),
                     // which would unnecessarily show the permission modal.
-                    isPermissionGranted = await IOSNotificationPermissionService.IsGrantedAsync();
+                    isPermissionGranted = await IosNotificationPermissionService.IsGrantedAsync();
                 }
                 catch (Exception ex)
                 {

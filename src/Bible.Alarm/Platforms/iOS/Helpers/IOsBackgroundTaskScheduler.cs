@@ -8,11 +8,11 @@ using Serilog;
 
 namespace Bible.Alarm.Platforms.iOS.Helpers;
 
-internal static class iOSBackgroundTaskScheduler
+internal static class IOsBackgroundTaskScheduler
 {
     internal const string SchedulerRefreshTaskIdentifier = "com.jthomas.info.Bible.Alarm.SchedulerRefresh";
 
-    private static readonly ILogger logger = Log.ForContext(typeof(iOSBackgroundTaskScheduler));
+    private static readonly ILogger logger = Log.ForContext(typeof(IOsBackgroundTaskScheduler));
 
     private static volatile bool isRegistered;
     private static readonly object registerLock = new();

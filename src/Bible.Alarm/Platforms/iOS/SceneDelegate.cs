@@ -77,7 +77,7 @@ public class SceneDelegate : MauiUISceneDelegate
         {
             logger.Debug("[SceneDelegate] Scene did enter background");
             // Ensure the scheduler refresh BG task is (re)scheduled while we still have foreground execution time.
-            iOSBackgroundTaskScheduler.ScheduleSchedulerRefresh();
+            IOsBackgroundTaskScheduler.ScheduleSchedulerRefresh();
             base.DidEnterBackground(scene);
         }
         catch (Exception ex)

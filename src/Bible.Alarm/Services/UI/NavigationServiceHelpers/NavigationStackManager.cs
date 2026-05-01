@@ -248,7 +248,7 @@ public static class NavigationStackManager
     /// 1. Collect native UIView references from the MAUI visual tree (must happen BEFORE
     ///    <see cref="IElement.DisconnectHandler"/> nulls out <c>Handler.PlatformView</c>).
     /// 2. Disconnect MAUI handlers (releases managed-to-native bindings).
-    /// 3. Walk the collected views and sublayers using <see cref="IOSNativeViewCleanupHelper"/>
+    /// 3. Walk the collected views and sublayers using <see cref="IosNativeViewCleanupHelper"/>
     ///    (best-effort; logs ObjectDisposed paths).
     /// </summary>
     internal static void CleanupIOSNativeViews(IVisualTreeElement element)
@@ -262,7 +262,7 @@ public static class NavigationStackManager
         {
             try
             {
-                IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(view);
+                IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(view);
             }
             catch (Exception ex)
             {
@@ -356,7 +356,7 @@ public static class NavigationStackManager
 
             if (vc.View != null)
             {
-                IOSNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(vc.View);
+                IosNativeViewCleanupHelper.SuppressFinalizersForViewHierarchy(vc.View);
             }
         }
         catch (ObjectDisposedException ex)

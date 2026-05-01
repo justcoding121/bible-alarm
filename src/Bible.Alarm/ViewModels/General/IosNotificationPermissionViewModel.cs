@@ -14,26 +14,26 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.General;
 
-public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisposable
+public sealed class IosNotificationPermissionViewModel : ObservableObject, IDisposable
 {
     [SuppressMessage("SonarAnalyzer.CSharp", "S4487", Justification = "Used only in IOS preprocessor blocks; unreachable on other targets.")]
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
 #if IOS
-    private readonly IOSNotificationPermissionService permissionService;
+    private readonly IosNotificationPermissionService permissionService;
 #endif
 
     private bool isNotificationPermissionGranted;
     private System.Timers.Timer? permissionCheckTimer;
 
-    public IOSNotificationPermissionViewModel(
+    public IosNotificationPermissionViewModel(
         ILogger logger,
         INavigationService navigationService)
     {
         this.logger = logger;
         this.navigationService = navigationService;
 #if IOS
-        permissionService = IOSNotificationPermissionService.Instance;
+        permissionService = IosNotificationPermissionService.Instance;
 #endif
 
         InitializeCommands();

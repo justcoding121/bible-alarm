@@ -19,7 +19,7 @@ internal static partial class AudioToolboxNative
 /// <summary>
 /// iOS does not expose the user default ringtone URI to apps. Repeats a system alert sound until stopped.
 /// </summary>
-public sealed class iOSDefaultDeviceRingtoneService(ILogger logger) : IDefaultDeviceRingtoneService
+public sealed class IOsDefaultDeviceRingtoneService(ILogger logger) : IDefaultDeviceRingtoneService
 {
     private const double IntervalSeconds = 2.0;
 
@@ -42,7 +42,7 @@ public sealed class iOSDefaultDeviceRingtoneService(ILogger logger) : IDefaultDe
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "iOSDefaultDeviceRingtoneService: failed to start repeating alert");
+                logger.Warning(ex, "IOsDefaultDeviceRingtoneService: failed to start repeating alert");
             }
         });
     }
@@ -61,7 +61,7 @@ public sealed class iOSDefaultDeviceRingtoneService(ILogger logger) : IDefaultDe
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "iOSDefaultDeviceRingtoneService: failed to stop");
+                logger.Warning(ex, "IOsDefaultDeviceRingtoneService: failed to stop");
             }
         });
     }

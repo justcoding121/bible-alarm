@@ -76,7 +76,7 @@ public sealed class AlarmService(
         {
             try
             {
-                var permissionService = IOSNotificationPermissionService.Instance;
+                var permissionService = IosNotificationPermissionService.Instance;
                 bool isPermissionGranted = false;
                 try
                 {
