@@ -60,102 +60,121 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 
     private void InitializeCommands()
     {
-        RequestNotificationPermissionCommand = new AsyncRelayCommand(async () =>
-        {
+        RequestNotificationPermissionCommand = new AsyncRelayCommand(RequestNotificationPermissionAsync);
+        OpenSettingsCommand = new AsyncRelayCommand(OpenAppSettingsAsync);
+        DismissCommand = new AsyncRelayCommand(DismissModalAsync);
+    }
+
+    private Task RequestNotificationPermissionAsync()
+    {
 #if ANDROID
-            if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
-            {
-                // Request permission - will fire PermissionGranted or PermissionDenied event
-                permissionService.RequestPermissionIfNeeded();
-            }
+        if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
+            permissionService.RequestPermissionIfNeeded();
 #elif IOS
-            if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
-            {
-                // Request permission - will fire PermissionGranted or PermissionDenied event
-                permissionService.RequestPermissionIfNeeded();
-            }
+        if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
+            permissionService.RequestPermissionIfNeeded();
 #endif
-        });
+        return Task.CompletedTask;
+    }
 
-        OpenSettingsCommand = new AsyncRelayCommand(async () =>
-        {
+    private Task OpenAppSettingsAsync()
+    {
 #if ANDROID
-            if (DeviceInfo.Platform == DevicePlatform.Android)
-            {
-                // Open Android app settings using proper Intent
-                try
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        try
-                        {
-                            var intent = new Intent(Settings.ActionApplicationDetailsSettings);
-                            var uri = Android.Net.Uri.FromParts("package", AndroidApplication.Context.PackageName, null);
-                            intent.SetData(uri);
-                            intent.SetFlags(ActivityFlags.NewTask);
-                            AndroidApplication.Context.StartActivity(intent);
-                            logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.SuccessfullyOpenedAndroidAppSettings);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.FailedToOpenAndroidAppSettings);
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.FailedToOpenAndroidAppSettings);
-                }
-            }
+        TryScheduleAndroidApplicationDetailsSettings();
+        return Task.CompletedTask;
 #elif IOS
-            if (DeviceInfo.Platform == DevicePlatform.iOS)
-            {
-                // Open iOS app settings
-                await Launcher.OpenAsync(new Uri("app-settings:"));
-            }
+        return OpenIosAppSettingsIfApplicableAsync();
+#else
+        return Task.CompletedTask;
 #endif
-        });
+    }
 
-        DismissCommand = new AsyncRelayCommand(async () =>
+#if ANDROID
+    private void TryScheduleAndroidApplicationDetailsSettings()
+    {
+        if (DeviceInfo.Platform != DevicePlatform.Android)
+            return;
+
+        try
         {
-            // Prevent double-dismiss (race between timer polling and OnPermissionGranted event)
-            if (isDismissing)
-            {
-                logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.DismissCommandAlreadyDismissingSkippingDuplicate);
-                return;
-            }
-            isDismissing = true;
+            MainThread.BeginInvokeOnMainThread(OpenAndroidApplicationDetailsSettingsOnMainThread);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.FailedToOpenAndroidAppSettings);
+        }
+    }
 
-            try
-            {
-                StopPermissionCheckTimer();
-                
-                // Check permission status before closing modal
-                CheckPermissionStatus();
-                var wasGranted = IsNotificationPermissionGranted;
-                
-                await navigationService.PopModalAsync();
-                UpdateHomePageButtonVisibility();
-                
-                // Call callback if provided (e.g., from schedule page to update toggle)
-                if (onModalDismissed != null)
-                {
-                    try
-                    {
-                        onModalDismissed(wasGranted);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInOnModalDismissedCallback);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInDismissCommand);
-                isDismissing = false;
-            }
-        });
+    private void OpenAndroidApplicationDetailsSettingsOnMainThread()
+    {
+        try
+        {
+            var intent = new Intent(Settings.ActionApplicationDetailsSettings);
+            var uri = Android.Net.Uri.FromParts("package", AndroidApplication.Context.PackageName, null);
+            intent.SetData(uri);
+            intent.SetFlags(ActivityFlags.NewTask);
+            AndroidApplication.Context.StartActivity(intent);
+            logger.Information(AppConstants.Logging.NotificationPermissionDiagnosticsLog.SuccessfullyOpenedAndroidAppSettings);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.FailedToOpenAndroidAppSettings);
+        }
+    }
+#endif
+
+#if IOS
+    private Task OpenIosAppSettingsIfApplicableAsync()
+    {
+        if (DeviceInfo.Platform != DevicePlatform.iOS)
+            return Task.CompletedTask;
+
+        return Launcher.OpenAsync(new Uri("app-settings:"));
+    }
+#endif
+
+    private async Task DismissModalAsync()
+    {
+        if (isDismissing)
+        {
+            logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.DismissCommandAlreadyDismissingSkippingDuplicate);
+            return;
+        }
+
+        isDismissing = true;
+
+        try
+        {
+            StopPermissionCheckTimer();
+
+            CheckPermissionStatus();
+            var wasGranted = IsNotificationPermissionGranted;
+
+            await navigationService.PopModalAsync();
+            UpdateHomePageButtonVisibility();
+
+            InvokeModalDismissedCallbackIfProvided(wasGranted);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInDismissCommand);
+            isDismissing = false;
+        }
+    }
+
+    private void InvokeModalDismissedCallbackIfProvided(bool wasGranted)
+    {
+        if (onModalDismissed == null)
+            return;
+
+        try
+        {
+            onModalDismissed(wasGranted);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInOnModalDismissedCallback);
+        }
     }
 
     private void InitializePermissionStatus()
@@ -249,62 +268,77 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 
     private void OnPermissionCheckTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
-        // Skip if already dismissing
         if (isDismissing)
-        {
             return;
-        }
 
         var wasGranted = IsNotificationPermissionGranted;
 
 #if IOS
         if (permissionService != null)
         {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    permissionService.InvalidateCache();
-                    var result = await IosNotificationPermissionService.IsGrantedAsync();
-                    var canShow = await IosNotificationPermissionService.CanShowSystemPromptAsync();
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        IsNotificationPermissionGranted = result;
-                        UpdateCanShowSystemPrompt(canShow);
-                        logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckAsyncCompletedGrantedCanShowWasGranted,
-                            IsNotificationPermissionGranted, canShow, wasGranted);
-                        if (!wasGranted && IsNotificationPermissionGranted)
-                        {
-                            ScheduleAutoDismissOnMainThread();
-                        }
-                    });
-                }
-                catch (Exception asyncEx)
-                {
-                    logger.Error(asyncEx, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInAsyncPermissionCheckFromTimer);
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        CheckPermissionStatus();
-                        if (!wasGranted && IsNotificationPermissionGranted)
-                        {
-                            ScheduleAutoDismissOnMainThread();
-                        }
-                    });
-                }
-            });
+            PollIosPermissionAfterTimer(wasGranted);
             return;
         }
 #endif
 
-        // Android: use synchronous check on main thread (also refreshes CanShowSystemPrompt)
+        RefreshAndroidPermissionOnMainThreadAfterTimer(wasGranted);
+    }
+
+#if IOS
+    private void PollIosPermissionAfterTimer(bool wasGrantedBeforePoll)
+    {
+        var svc = permissionService;
+        if (svc == null)
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                svc.InvalidateCache();
+                var result = await IosNotificationPermissionService.IsGrantedAsync().ConfigureAwait(false);
+                var canShow = await IosNotificationPermissionService.CanShowSystemPromptAsync().ConfigureAwait(false);
+                MainThread.BeginInvokeOnMainThread(() =>
+                    ApplyIosTimerPollUi(result, canShow, wasGrantedBeforePoll));
+            }
+            catch (Exception asyncEx)
+            {
+                logger.Error(asyncEx, AppConstants.Logging.NotificationPermissionDiagnosticsLog.ErrorInAsyncPermissionCheckFromTimer);
+                MainThread.BeginInvokeOnMainThread(() =>
+                    RecoverIosTimerPollOnMainThread(wasGrantedBeforePoll));
+            }
+        });
+    }
+
+    private void ApplyIosTimerPollUi(bool granted, bool canShow, bool wasGrantedBeforePoll)
+    {
+        IsNotificationPermissionGranted = granted;
+        UpdateCanShowSystemPrompt(canShow);
+        logger.Debug(AppConstants.Logging.NotificationPermissionDiagnosticsLog.PermissionCheckAsyncCompletedGrantedCanShowWasGranted,
+            IsNotificationPermissionGranted, canShow, wasGrantedBeforePoll);
+        MaybeScheduleAutoDismissIfBecameGranted(wasGrantedBeforePoll);
+    }
+
+    private void RecoverIosTimerPollOnMainThread(bool wasGrantedBeforePoll)
+    {
+        CheckPermissionStatus();
+        MaybeScheduleAutoDismissIfBecameGranted(wasGrantedBeforePoll);
+    }
+#endif
+
+    private void RefreshAndroidPermissionOnMainThreadAfterTimer(bool wasGrantedBeforePoll)
+    {
         MainThread.BeginInvokeOnMainThread(() =>
         {
             CheckPermissionStatus();
-            if (!wasGranted && IsNotificationPermissionGranted)
-            {
-                ScheduleAutoDismissOnMainThread();
-            }
+            MaybeScheduleAutoDismissIfBecameGranted(wasGrantedBeforePoll);
         });
+    }
+
+    private void MaybeScheduleAutoDismissIfBecameGranted(bool wasGrantedBeforePoll)
+    {
+        if (!wasGrantedBeforePoll && IsNotificationPermissionGranted)
+            ScheduleAutoDismissOnMainThread();
     }
 
     /// <summary>
