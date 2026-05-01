@@ -13,7 +13,15 @@ public class ScheduleMappingProfile : Profile
 {
     public ScheduleMappingProfile()
     {
-        // Map AlarmSchedule to ScheduleStateItem (flatten nested entities)
+        ConfigureAlarmScheduleToScheduleStateItem();
+        ConfigureScheduleStateItemToAlarmSchedule();
+        ConfigureAlarmMusicMaps();
+        ConfigureBiblePublicationMaps();
+        ConfigureScheduleStateItemClone();
+    }
+
+    private void ConfigureAlarmScheduleToScheduleStateItem()
+    {
         CreateMap<AlarmSchedule, ScheduleStateItem>()
             .ForMember(dest => dest.BiblePublicationScheduleId, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.Id : null))
             .ForMember(dest => dest.BiblePublicationLanguageCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.LanguageCode : null))
@@ -29,13 +37,12 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.MusicTrackCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.TrackCode : null))
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
             .ForMember(dest => dest.BiblePublicationCategoryName, opt => opt.MapFrom(src => src.CategoryCode))
-            // Set manually during bootstrap
             .ForMember(dest => dest.BiblePublicationLanguageName, opt => opt.Ignore())
-            // Set manually during bootstrap
             .ForMember(dest => dest.BiblePublicationSectionName, opt => opt.Ignore());
+    }
 
-        // Map ScheduleStateItem back to AlarmSchedule (for when we need the entity)
-        // Note: This creates a new AlarmSchedule but won't have EF tracking
+    private void ConfigureScheduleStateItemToAlarmSchedule()
+    {
         CreateMap<ScheduleStateItem, AlarmSchedule>()
             .ForMember(dest => dest.BiblePublicationSchedule, opt => opt.MapFrom(src => src.BiblePublicationScheduleId.HasValue ? new BiblePublicationSchedule
             {
@@ -57,38 +64,30 @@ public class ScheduleMappingProfile : Profile
                 Repeat = src.MusicRepeat ?? false,
                 AlarmScheduleId = src.Id
             } : null))
-            // Not stored in state
             .ForMember(dest => dest.AlarmNotifications, opt => opt.Ignore())
-            // Computed property
             .ForMember(dest => dest.CronExpression, opt => opt.Ignore())
-            // Computed property
             .ForMember(dest => dest.MeridianHour, opt => opt.Ignore())
-            // Computed property
             .ForMember(dest => dest.Meridian, opt => opt.Ignore())
-            // Computed property
             .ForMember(dest => dest.TimeText, opt => opt.Ignore())
-            // Set in ScheduleSaveService (Music schedules leave CategoryCode null)
             .ForMember(dest => dest.CategoryCode, opt => opt.Ignore());
-
-        // Map AlarmMusic to MusicStateItem
-        CreateMap<AlarmMusic, MusicStateItem>();
-
-        // Map MusicStateItem back to AlarmMusic
-        CreateMap<MusicStateItem, AlarmMusic>()
-            // Not stored in state
-            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore());
-
-        // Map BiblePublicationSchedule to BiblePublicationStateItem
-        CreateMap<BiblePublicationSchedule, BiblePublicationStateItem>();
-
-        // Map BiblePublicationStateItem back to BiblePublicationSchedule
-        CreateMap<BiblePublicationStateItem, BiblePublicationSchedule>()
-            // Not stored in state
-            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore());
-
-        // Same-type clone for ScheduleStateItem (used when creating modified copies for updates)
-        CreateMap<ScheduleStateItem, ScheduleStateItem>();
     }
 
-}
+    private void ConfigureAlarmMusicMaps()
+    {
+        CreateMap<AlarmMusic, MusicStateItem>();
+        CreateMap<MusicStateItem, AlarmMusic>()
+            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore());
+    }
 
+    private void ConfigureBiblePublicationMaps()
+    {
+        CreateMap<BiblePublicationSchedule, BiblePublicationStateItem>();
+        CreateMap<BiblePublicationStateItem, BiblePublicationSchedule>()
+            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore());
+    }
+
+    private void ConfigureScheduleStateItemClone()
+    {
+        CreateMap<ScheduleStateItem, ScheduleStateItem>();
+    }
+}

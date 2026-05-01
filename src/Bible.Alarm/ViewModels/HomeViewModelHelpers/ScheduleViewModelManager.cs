@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -39,53 +40,75 @@ public class ScheduleViewModelManager
         var schedulesToRemove = new List<int>();
         var currentViewModelIds = new HashSet<int>(scheduleDataMap.Keys);
 
-        // Process each schedule using pre-mapped data
         foreach (var (scheduleId, schedule) in scheduleDataMap)
         {
             scheduleStateItemMap.TryGetValue(scheduleId, out var scheduleStateItem);
 
             if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
             {
-                // Existing view model - update it with pre-mapped data
-                existingViewModel.InitializeFromSchedule(schedule, scheduleStateItem);
-
-                // Ensure callbacks are set
-                if (existingViewModel.OnPlayStarted == null)
-                {
-                    existingViewModel.OnPlayStarted = () => trackPlayClick(scheduleId);
-                }
-                if (existingViewModel.OnPlaybackStarted == null)
-                {
-                    existingViewModel.OnPlaybackStarted = () => { };
-                }
+                UpdateExistingScheduleViewModel(existingViewModel, scheduleId, schedule, scheduleStateItem);
             }
             else
             {
-                // New schedule - create new view model
-                logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsCreatingNewListItem, scheduleId);
-
-                var viewModel = serviceProvider.GetRequiredService<ScheduleListItemViewModel>();
-                viewModel.InitializeFromSchedule(schedule, scheduleStateItem);
-
-                if (viewModel.Schedule == null)
-                {
-                    logger.Warning(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsScheduleListItemNotInitialized, scheduleId);
-                }
-                else
-                {
-                    logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsScheduleListItemInitializedWithName,
-                        scheduleId, viewModel.Schedule.Name);
-                }
-
-                // Set callbacks
-                viewModel.OnPlayStarted = () => trackPlayClick(scheduleId);
-                viewModel.OnPlaybackStarted = () => { };
-                scheduleViewModels[scheduleId] = viewModel;
-                schedulesToAdd.Add(viewModel);
+                TryCreateScheduleViewModel(scheduleId, schedule, scheduleStateItem, schedulesToAdd);
             }
         }
 
-        // Identify view models to remove
+        CollectRemovedScheduleIds(currentViewModelIds, schedulesToRemove);
+
+        var newSchedules = BuildMergedScheduleCollection(currentSchedules, schedulesToRemove, schedulesToAdd);
+
+        return (schedulesToAdd, schedulesToRemove, newSchedules);
+    }
+
+    private void UpdateExistingScheduleViewModel(
+        ScheduleListItemViewModel existingViewModel,
+        int scheduleId,
+        AlarmSchedule schedule,
+        ScheduleStateItem? scheduleStateItem)
+    {
+        existingViewModel.InitializeFromSchedule(schedule, scheduleStateItem);
+
+        if (existingViewModel.OnPlayStarted == null)
+        {
+            existingViewModel.OnPlayStarted = () => trackPlayClick(scheduleId);
+        }
+
+        if (existingViewModel.OnPlaybackStarted == null)
+        {
+            existingViewModel.OnPlaybackStarted = () => { };
+        }
+    }
+
+    private void TryCreateScheduleViewModel(
+        int scheduleId,
+        AlarmSchedule schedule,
+        ScheduleStateItem? scheduleStateItem,
+        List<ScheduleListItemViewModel> schedulesToAdd)
+    {
+        logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsCreatingNewListItem, scheduleId);
+
+        var viewModel = serviceProvider.GetRequiredService<ScheduleListItemViewModel>();
+        viewModel.InitializeFromSchedule(schedule, scheduleStateItem);
+
+        if (viewModel.Schedule == null)
+        {
+            logger.Warning(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsScheduleListItemNotInitialized, scheduleId);
+        }
+        else
+        {
+            logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.PrepareScheduleViewModelsScheduleListItemInitializedWithName,
+                scheduleId, viewModel.Schedule.Name);
+        }
+
+        viewModel.OnPlayStarted = () => trackPlayClick(scheduleId);
+        viewModel.OnPlaybackStarted = () => { };
+        scheduleViewModels[scheduleId] = viewModel;
+        schedulesToAdd.Add(viewModel);
+    }
+
+    private void CollectRemovedScheduleIds(HashSet<int> currentViewModelIds, List<int> schedulesToRemove)
+    {
         var toRemove = scheduleViewModels.Keys.Where(id => !currentViewModelIds.Contains(id)).ToList();
         foreach (var id in toRemove)
         {
@@ -96,12 +119,16 @@ public class ScheduleViewModelManager
                 scheduleViewModels.Remove(id);
             }
         }
+    }
 
-        // Prepare new collection
+    private ObservableHashSet<ScheduleListItemViewModel> BuildMergedScheduleCollection(
+        ObservableHashSet<ScheduleListItemViewModel> currentSchedules,
+        List<int> schedulesToRemove,
+        List<ScheduleListItemViewModel> schedulesToAdd)
+    {
         var newSchedules = new ObservableHashSet<ScheduleListItemViewModel>();
         var currentSchedulesSnapshot = currentSchedules.ToList();
 
-        // Add all existing items that aren't being removed
         foreach (var item in currentSchedulesSnapshot)
         {
             if (item.ScheduleId > 0 && !schedulesToRemove.Contains(item.ScheduleId))
@@ -110,13 +137,12 @@ public class ScheduleViewModelManager
             }
         }
 
-        // Add new items
         foreach (var item in schedulesToAdd)
         {
             newSchedules.Add(item);
         }
 
-        return (schedulesToAdd, schedulesToRemove, newSchedules);
+        return newSchedules;
     }
 
     public void UpdateScheduleViewModels(ObservableHashSet<ScheduleStateItem> scheduleItems)

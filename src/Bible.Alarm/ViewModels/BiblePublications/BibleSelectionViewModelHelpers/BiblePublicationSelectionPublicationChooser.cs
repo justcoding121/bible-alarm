@@ -38,84 +38,113 @@ internal sealed class BiblePublicationSelectionPublicationChooser
 
         if (biblePublicationService == null)
         {
-            using var pubEnumerator = publications.GetEnumerator();
-            _ = pubEnumerator.MoveNext();
-            var firstPub = pubEnumerator.Current;
-            return (firstPub.Key, firstPub.Value, firstPub.Value.LanguageId == null);
+            return SelectFirstPublicationWhenServiceUnavailable(publications);
         }
 
-        // Iterate through publications in priority order: nwt first, then bi12, then others
         foreach (var pubKvp in PublicationSortHelper.SortByPriority(publications))
         {
-            var pubCode = pubKvp.Key;
-            var pub = pubKvp.Value;
-
-            // Check if this publication has LanguageId = null (doesn't need a language)
-            // This is data-driven, not hard-coded
-            if (pub.LanguageId == null)
+            var resolved = await TryResolvePublicationForPriorityEntryAsync(pubKvp, language, progress);
+            if (resolved != null)
             {
-                Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationNoLanguageNeeded,
-                    pubCode);
-                return (pubCode, pub, true);
+                return resolved.Value;
             }
-
-            // Publication has LanguageId - check if already cataloged, then catalog if needed
-            if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    progress?.UpdateProgress(0.3);
-
-                    // Check if publication with first section and tracks is already cataloged
-                    var isAlreadyCataloged = await sectionTrackResolver.CheckIfPublicationWithFirstSectionCatalogedAsync(
-                        pubCode,
-                        language.Code);
-
-                    if (!isAlreadyCataloged)
-                    {
-                        // Catalog the publication (EnsurePublicationExistsAsync checks if it exists first)
-                        await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, progress);
-                    }
-                    else
-                    {
-                        Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChoosePublicationAlreadyCatalogedWithSectionAndTracks,
-                            pubCode,
-                            language.Code);
-                        progress?.UpdateProgress(0.5);
-                        await Task.Delay(100);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (Bible.Alarm.Shared.Helpers.NetworkExceptionHelper.IsNetworkFailure(ex))
-                    {
-                        throw;
-                    }
-
-                    Log.Debug(ex, AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseFailedToCatalogPublicationTryingNext,
-                        pubCode,
-                        language.Code);
-                    continue;
-                }
-            }
-
-            // Check if this publication can be queried with a language (has LanguageId)
-            // Re-query from database to get the actual publication with correct localized name (not placeholder)
-            BiblePublication? queriedPub = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, pubCode);
-            if (queriedPub != null)
-            {
-                Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationQueryableWithLanguage,
-                    pubCode,
-                    language.Code);
-                return (pubCode, queriedPub, false);
-            }
-
-            Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSkippingPublicationNotQueryableWithLanguage,
-                pubCode,
-                language.Code);
         }
 
         return (null, null, false);
+    }
+
+    private static (string? PublicationCode, BiblePublication? Publication, bool PublicationWithoutLanguage)
+        SelectFirstPublicationWhenServiceUnavailable(Dictionary<string, BiblePublication> publications)
+    {
+        using var pubEnumerator = publications.GetEnumerator();
+        _ = pubEnumerator.MoveNext();
+        var firstPub = pubEnumerator.Current;
+        return (firstPub.Key, firstPub.Value, firstPub.Value.LanguageId == null);
+    }
+
+    private async Task<(string PublicationCode, BiblePublication Publication, bool PublicationWithoutLanguage)?>
+        TryResolvePublicationForPriorityEntryAsync(
+            KeyValuePair<string, BiblePublication> pubKvp,
+            LanguageListViewItemModel language,
+            IFetchProgress? progress)
+    {
+        var pubCode = pubKvp.Key;
+        var pub = pubKvp.Value;
+
+        if (pub.LanguageId == null)
+        {
+            Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationNoLanguageNeeded,
+                pubCode);
+            return (pubCode, pub, true);
+        }
+
+        var catalogSkipped = await TryEnsurePublicationCatalogedAsync(pubCode, language, progress);
+        if (!catalogSkipped)
+        {
+            return null;
+        }
+
+        BiblePublication? queriedPub = await biblePublicationService!.GetByLanguageAndCodeWithTracksAsync(language.Code, pubCode);
+        if (queriedPub != null)
+        {
+            Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationQueryableWithLanguage,
+                pubCode,
+                language.Code);
+            return (pubCode, queriedPub, false);
+        }
+
+        Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSkippingPublicationNotQueryableWithLanguage,
+            pubCode,
+            language.Code);
+        return null;
+    }
+
+    /// <summary>Returns false when outer loop should try next publication (catalog failure).</summary>
+    private async Task<bool> TryEnsurePublicationCatalogedAsync(
+        string pubCode,
+        LanguageListViewItemModel language,
+        IFetchProgress? progress)
+    {
+        if (languageContentService == null || language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        try
+        {
+            progress?.UpdateProgress(0.3);
+
+            var isAlreadyCataloged = await sectionTrackResolver.CheckIfPublicationWithFirstSectionCatalogedAsync(
+                pubCode,
+                language.Code);
+
+            if (!isAlreadyCataloged)
+            {
+                await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, progress);
+            }
+            else
+            {
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChoosePublicationAlreadyCatalogedWithSectionAndTracks,
+                    pubCode,
+                    language.Code);
+                progress?.UpdateProgress(0.5);
+                await Task.Delay(100);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (Bible.Alarm.Shared.Helpers.NetworkExceptionHelper.IsNetworkFailure(ex))
+            {
+                throw;
+            }
+
+            Log.Debug(ex, AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseFailedToCatalogPublicationTryingNext,
+                pubCode,
+                language.Code);
+            return false;
+        }
+
+        return true;
     }
 }
 
