@@ -38,7 +38,11 @@ public sealed partial class ScheduleStateService(ScheduleStateServiceDeps deps) 
     private readonly IToastService toastService = deps.ToastService;
     private readonly IDispatcher dispatcher = deps.Dispatcher;
 #if ANDROID || IOS
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S1144",
+        Justification = "Used only in Android/iOS UpdateScheduleEnabledStateAsync branches; omitted from other TFMs.")]
     private readonly INavigationService navigationService = deps.NavigationService;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S1144",
+        Justification = "Used only in Android/iOS UpdateScheduleEnabledStateAsync branches; omitted from other TFMs.")]
     private readonly IServiceProvider serviceProvider = deps.ServiceProvider;
 #endif
     private readonly CancellationTokenSource cancellationTokenSource = new();

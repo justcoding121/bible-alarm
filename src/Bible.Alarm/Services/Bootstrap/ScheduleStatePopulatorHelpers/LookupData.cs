@@ -269,7 +269,7 @@ internal sealed class LookupDataLoader
         return await QueryNoLanguageLookupDataAsync(keys, missingPublicationCodes, db);
     }
 
-    private async Task<NoLanguageLookupData> QueryNoLanguageLookupDataAsync(
+    private static async Task<NoLanguageLookupData> QueryNoLanguageLookupDataAsync(
         LookupDataCollector.LookupKeys keys,
         HashSet<string> missingPublicationCodes,
         MediaDbContext db)
@@ -366,7 +366,7 @@ internal sealed class LookupDataLoader
 
     private static Dictionary<(string PublicationCode, string SectionCode), string> BuildNoLanguageSectionsDict(
         IReadOnlyList<NoLanguageSectionDto> sections,
-        IReadOnlyDictionary<int, string> pubCodeById)
+        Dictionary<int, string> pubCodeById)
     {
         var sectionsDict = new Dictionary<(string PublicationCode, string SectionCode), string>(PublicationLookupKeyComparers.PublicationSection.Instance);
         foreach (var s in sections)
@@ -409,8 +409,8 @@ internal sealed class LookupDataLoader
 
     private static Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string> BuildNoLanguageTrackTitlesDict(
         IReadOnlyList<NoLanguageTrackDto> tracks,
-        IReadOnlyDictionary<int, string> pubCodeById,
-        IReadOnlyDictionary<int, string?> sectionCodeById,
+        Dictionary<int, string> pubCodeById,
+        Dictionary<int, string?> sectionCodeById,
         HashSet<(string PublicationCode, string? SectionCode, string TrackCode)> neededTrackKeys)
     {
         var trackTitles = new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>(

@@ -36,6 +36,8 @@ public class HomeNavigationHelper
     private readonly IPlaybackModalService playbackModalService;
     private readonly IState<PlaybackState> playbackState;
 #if ANDROID || IOS
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S4487",
+        Justification = "Used only in Android/iOS navigation branches; desktop references are compiled out.")]
     private readonly IServiceProvider serviceProvider;
     private readonly IMapper mapper;
 #endif
@@ -136,6 +138,7 @@ public class HomeNavigationHelper
 #endif
     }
 
+    [SuppressMessage("Microsoft.Performance", "CA1822:Mark members as static", Justification = "Instance pattern; Android/iOS branches use instance state.")]
     [SuppressMessage("SonarAnalyzer.CSharp", "S2325", Justification = "Android/iOS branches use instance dependencies; desktop else branch is a no-op tuple.")]
     [SuppressMessage("SonarAnalyzer.CSharp", "S1172", Justification = "schedule is consumed in ANDROID/IOS branches; desktop keeps signature for shared call sites.")]
     private async Task<(bool ShouldEnableReminder, bool ShouldShowPermissionModal)> EvaluateReminderAndPermissionModalAsync(

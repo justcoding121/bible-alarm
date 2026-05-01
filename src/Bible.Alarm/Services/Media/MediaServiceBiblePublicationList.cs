@@ -214,7 +214,7 @@ internal static class MediaServiceBiblePublicationList
         string normalizedLanguageCode,
         string? categoryName,
         bool requireIsMusicForMusicCategory,
-        IReadOnlyCollection<string> missingPublicationCodes,
+        List<string> missingPublicationCodes,
         Dictionary<string, BiblePublication> result,
         CancellationToken cancellationToken)
     {

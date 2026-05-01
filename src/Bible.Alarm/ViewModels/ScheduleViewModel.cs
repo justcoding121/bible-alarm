@@ -1,4 +1,5 @@
 #nullable enable
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Shared.Helpers;
@@ -407,6 +408,7 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         overlayTimeoutController.SetIsSaving(saving);
     }
 
+    [SuppressMessage("Microsoft.Performance", "CA1822:Mark members as static", Justification = "Instance method on ViewModel; Android-only body references instance propertyManager.")]
     public void StopPermissionCheckTasks()
     {
 #if ANDROID

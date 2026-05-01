@@ -262,7 +262,7 @@ internal sealed class FlatPublicationFetcher
         await ctx.Db.SaveChangesAsync(ctx.CancellationToken);
     }
 
-    private async Task InsertNewFlatPublicationAsync(NewFlatPublicationInsertContext ctx)
+    private static async Task InsertNewFlatPublicationAsync(NewFlatPublicationInsertContext ctx)
     {
         var publicationName = ctx.LocalizedPubName ?? ctx.EnglishPublicationName;
         var publication = new BiblePublication
@@ -416,7 +416,7 @@ internal sealed class FlatPublicationFetcher
         return byTrack;
     }
 
-    private List<BiblePublicationTrack> BuildPublicationTracksFromPreferredFiles(
+    private static List<BiblePublicationTrack> BuildPublicationTracksFromPreferredFiles(
         Dictionary<int, JsonElement> byTrack,
         string normalizedLanguageCode)
     {

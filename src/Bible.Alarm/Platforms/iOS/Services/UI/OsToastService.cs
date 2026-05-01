@@ -22,7 +22,7 @@ public class OsToastService : ToastService
     private static CancellationTokenSource? activeCts;
     private static UIView? currentToastView;
 
-    public override async Task ShowMessage(string message, int seconds = 3)
+    public override async Task ShowMessage(string message, int seconds)
     {
         CancelActiveCts();
 
