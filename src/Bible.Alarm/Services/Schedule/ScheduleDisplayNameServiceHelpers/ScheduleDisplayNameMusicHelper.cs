@@ -33,12 +33,19 @@ public sealed class ScheduleDisplayNameMusicHelper
     {
         // Melody = no-language publication (e.g. iam). Use publication list so saved display language (e.g. MY) is preserved on load.
         var melodyReleases = await mediaService.GetMelodyMusicReleases();
-        var isMelodyPublication = !string.IsNullOrWhiteSpace(music.PublicationCode) &&
+        var isMelodyMusic = !string.IsNullOrWhiteSpace(music.PublicationCode) &&
             (melodyReleases.ContainsKey(music.PublicationCode) ||
              melodyReleases.Keys.Any(k => string.Equals(k, music.PublicationCode, StringComparison.OrdinalIgnoreCase)));
-        var isMelodyMusic = isMelodyPublication;
 
-        if (isMelodyPublication)
+        await PopulateMusicLanguageFieldsAsync(scheduleStateItem, music, isMelodyMusic);
+        await PopulateMusicPublicationNameAsync(scheduleStateItem, music, isMelodyMusic);
+        await PopulateMusicSectionNameAsync(scheduleStateItem, music, isMelodyMusic);
+        await PopulateMusicTrackNameAsync(scheduleStateItem, music, isMelodyMusic);
+    }
+
+    private async Task PopulateMusicLanguageFieldsAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music, bool isMelodyMusic)
+    {
+        if (isMelodyMusic)
         {
             try
             {
@@ -61,8 +68,11 @@ public sealed class ScheduleDisplayNameMusicHelper
                 scheduleStateItem.MusicLanguageName = string.IsNullOrWhiteSpace(music.LanguageCode) ? AppConstants.Media.DefaultLanguageDisplayNameEnglish : music.LanguageCode;
                 scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
+
+            return;
         }
-        else if (!string.IsNullOrWhiteSpace(music.LanguageCode))
+
+        if (!string.IsNullOrWhiteSpace(music.LanguageCode))
         {
             try
             {
@@ -84,7 +94,10 @@ public sealed class ScheduleDisplayNameMusicHelper
                 scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
+    }
 
+    private async Task PopulateMusicPublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music, bool isMelodyMusic)
+    {
         if (!string.IsNullOrWhiteSpace(music.PublicationCode))
         {
             try
@@ -119,7 +132,10 @@ public sealed class ScheduleDisplayNameMusicHelper
                     scheduleStateItem.MusicPublicationName = JwSourceHelper.GetPublicationDisplayNameFallback(music.PublicationCode);
             }
         }
+    }
 
+    private async Task PopulateMusicSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music, bool isMelodyMusic)
+    {
         if (!string.IsNullOrWhiteSpace(music.SectionCode) && !string.IsNullOrWhiteSpace(music.PublicationCode))
         {
             try
@@ -168,7 +184,10 @@ public sealed class ScheduleDisplayNameMusicHelper
                     scheduleStateItem.MusicSectionName = GetMelodySectionDisplayNameFallback(music.PublicationCode, music.SectionCode);
             }
         }
+    }
 
+    private async Task PopulateMusicTrackNameAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music, bool isMelodyMusic)
+    {
         if (!string.IsNullOrWhiteSpace(music.TrackCode))
         {
             try

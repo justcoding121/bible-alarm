@@ -1,6 +1,6 @@
 #nullable enable
 
-using System;
+using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -41,6 +41,19 @@ public sealed class ScheduleDisplayNameBibleHelper
         var scheduleLanguageCode = biblePublicationSchedule.LanguageCode;
         var publicationCode = biblePublicationSchedule.PublicationCode;
 
+        await PopulateBibleLanguageFieldsAsync(scheduleStateItem, scheduleLanguageCode);
+
+        await PopulatePublicationCategoryAndTracksAsync(scheduleStateItem, biblePublicationSchedule, scheduleLanguageCode, publicationCode);
+
+        ApplyBiblePublicationFallbackNames(scheduleStateItem, publicationCode);
+
+        await PopulateBibleSectionFieldsAsync(scheduleStateItem, biblePublicationSchedule, scheduleLanguageCode, publicationCode);
+
+        await PopulateBibleTrackTitleFieldsAsync(scheduleStateItem, biblePublicationSchedule, scheduleLanguageCode, publicationCode);
+    }
+
+    private async Task PopulateBibleLanguageFieldsAsync(ScheduleStateItem scheduleStateItem, string? scheduleLanguageCode)
+    {
         if (!string.IsNullOrWhiteSpace(scheduleLanguageCode) && biblePublicationService != null)
         {
             try
@@ -64,7 +77,14 @@ public sealed class ScheduleDisplayNameBibleHelper
                 scheduleStateItem.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
+    }
 
+    private async Task PopulatePublicationCategoryAndTracksAsync(
+        ScheduleStateItem scheduleStateItem,
+        BiblePublicationSchedule biblePublicationSchedule,
+        string? scheduleLanguageCode,
+        string publicationCode)
+    {
         if (!string.IsNullOrWhiteSpace(publicationCode))
         {
             try
@@ -143,17 +163,32 @@ public sealed class ScheduleDisplayNameBibleHelper
             {
                 logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationNameAndCategory);
             }
+        }
+    }
 
-            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
-                scheduleStateItem.BiblePublicationName = publicationCode;
-            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName))
-            {
-                var categoryName = JwSourceHelper.GetCategoryName(publicationCode);
-                if (!string.IsNullOrWhiteSpace(categoryName))
-                    scheduleStateItem.BiblePublicationCategoryName = categoryName;
-            }
+    private static void ApplyBiblePublicationFallbackNames(ScheduleStateItem scheduleStateItem, string publicationCode)
+    {
+        if (string.IsNullOrWhiteSpace(publicationCode))
+        {
+            return;
         }
 
+        if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
+            scheduleStateItem.BiblePublicationName = publicationCode;
+        if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName))
+        {
+            var categoryName = JwSourceHelper.GetCategoryName(publicationCode);
+            if (!string.IsNullOrWhiteSpace(categoryName))
+                scheduleStateItem.BiblePublicationCategoryName = categoryName;
+        }
+    }
+
+    private async Task PopulateBibleSectionFieldsAsync(
+        ScheduleStateItem scheduleStateItem,
+        BiblePublicationSchedule biblePublicationSchedule,
+        string? scheduleLanguageCode,
+        string publicationCode)
+    {
         var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublicationSchedule.SectionCode);
         if (string.IsNullOrWhiteSpace(normalizedSectionCode))
             scheduleStateItem.BiblePublicationSectionName = null;
@@ -191,7 +226,14 @@ public sealed class ScheduleDisplayNameBibleHelper
                 logger.Warning(ex, AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationSectionName);
             }
         }
+    }
 
+    private async Task PopulateBibleTrackTitleFieldsAsync(
+        ScheduleStateItem scheduleStateItem,
+        BiblePublicationSchedule biblePublicationSchedule,
+        string? scheduleLanguageCode,
+        string publicationCode)
+    {
         if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) && !string.IsNullOrWhiteSpace(publicationCode))
         {
             try

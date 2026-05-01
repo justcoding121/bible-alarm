@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Linq;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
@@ -8,6 +9,7 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -75,6 +77,18 @@ public class MusicEnabledHandler
             setShouldScrollToBottom(true);
         }
 
+        DispatchMusicEnabledScheduleUpdate(currentSchedule, value);
+
+        if (value && !currentValue && initialMusicEnabledOnPageLoad is false)
+        {
+            EnqueueDefaultMelodyPublicationWhenEmpty();
+        }
+
+        return true;
+    }
+
+    private void DispatchMusicEnabledScheduleUpdate(ScheduleStateItem currentSchedule, bool value)
+    {
         _ = Task.Run(() =>
         {
             var clonedSchedule = currentSchedule.DeepClone();
@@ -90,114 +104,109 @@ public class MusicEnabledHandler
                 biblePublicationUpdated: false,
                 shouldSave: false));
         });
+    }
 
-        if (value && !currentValue)
+    private void EnqueueDefaultMelodyPublicationWhenEmpty()
+    {
+        Task.Run(async () =>
         {
-            var shouldResetToDefault = initialMusicEnabledOnPageLoad is false;
-
-            if (shouldResetToDefault)
+            try
             {
-                Task.Run(async () =>
+                var schedule = state.Value.CurrentSchedule;
+                if (schedule == null)
                 {
-                    try
+                    return;
+                }
+
+                if (!string.IsNullOrEmpty(schedule.MusicPublicationCode))
+                {
+                    return;
+                }
+
+                var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
+
+                const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
+                var melodyReleases = await melodyMusicService.GetAllAsync();
+                if (melodyReleases == null || melodyReleases.Count == 0)
+                {
+                    logger.Warning("MusicEnabled: No melody music publications found in database");
+                    return;
+                }
+
+                string defaultPublicationCode;
+                string defaultPublicationName;
+                if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
+                {
+                    defaultPublicationCode = PreferredMelodyPublicationCode;
+                    defaultPublicationName = preferred.Name;
+                }
+                else
+                {
+                    var firstMelody = melodyReleases.First();
+                    if (firstMelody.Value == null)
                     {
-                        var schedule = state.Value.CurrentSchedule;
-                        if (schedule == null)
+                        return;
+                    }
+
+                    defaultPublicationCode = firstMelody.Key;
+                    defaultPublicationName = firstMelody.Value.Name;
+                }
+
+                var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
+
+                if (melodyMusic != null && melodyMusic.Tracks != null && melodyMusic.Tracks.Count > 0)
+                {
+                    BiblePublicationSection? chosenSection = null;
+                    BiblePublicationTrack? chosenTrack = null;
+
+                    var sectionsWithTracks = melodyMusic.Sections?
+                        .Where(s => s.Tracks != null && s.Tracks.Count > 0)
+                        .ToList();
+
+                    if (sectionsWithTracks != null && sectionsWithTracks.Count > 0)
+                    {
+                        chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
+                        if (chosenSection.Tracks.Count > 0)
                         {
-                            return;
-                        }
-                        if (!string.IsNullOrEmpty(schedule.MusicPublicationCode))
-                        {
-                            return;
-                        }
-
-                        var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
-
-                        const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;
-                        var melodyReleases = await melodyMusicService.GetAllAsync();
-                        if (melodyReleases == null || melodyReleases.Count == 0)
-                        {
-                            logger.Warning("MusicEnabled: No melody music publications found in database");
-                            return;
-                        }
-
-                        string defaultPublicationCode;
-                        string defaultPublicationName;
-                        if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
-                        {
-                            defaultPublicationCode = PreferredMelodyPublicationCode;
-                            defaultPublicationName = preferred.Name;
-                        }
-                        else
-                        {
-                            var firstMelody = melodyReleases.First();
-                            if (firstMelody.Value == null)
-                            {
-                                return;
-                            }
-                            defaultPublicationCode = firstMelody.Key;
-                            defaultPublicationName = firstMelody.Value.Name;
-                        }
-
-                        var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
-
-                        if (melodyMusic != null && melodyMusic.Tracks != null && melodyMusic.Tracks.Count > 0)
-                        {
-                            BiblePublicationSection? chosenSection = null;
-                            BiblePublicationTrack? chosenTrack = null;
-
-                            var sectionsWithTracks = melodyMusic.Sections?
-                                .Where(s => s.Tracks != null && s.Tracks.Count > 0)
-                                .ToList();
-
-                            if (sectionsWithTracks != null && sectionsWithTracks.Count > 0)
-                            {
-                                chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
-                                if (chosenSection.Tracks.Count > 0)
-                                {
-                                    chosenTrack = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
-                                }
-                            }
-
-                            chosenTrack ??= melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
-
-                            var latestSchedule = state.Value.CurrentSchedule;
-                            if (latestSchedule == null)
-                            {
-                                return;
-                            }
-
-                            if (latestSchedule.MusicLanguageCode == null &&
-                                string.Equals(latestSchedule.MusicPublicationCode, defaultPublicationCode, StringComparison.OrdinalIgnoreCase) &&
-                                SectionCodeHelper.CodeEquals(latestSchedule.MusicSectionCode, chosenSection?.SectionCode) &&
-                                CodeComparisonHelper.Equals(latestSchedule.MusicTrackCode, TrackCodeHelper.GetFromTrack(chosenTrack)) &&
-                                latestSchedule.MusicEnabled)
-                            {
-                                return;
-                            }
-
-                            var clonedSchedule = latestSchedule.DeepClone();
-                            clonedSchedule.MusicEnabled = true;
-                            clonedSchedule.MusicPublicationCode = defaultPublicationCode;
-                            clonedSchedule.MusicPublicationName = defaultPublicationName;
-                            clonedSchedule.MusicLanguageCode = null;
-                            clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
-                            clonedSchedule.MusicSectionName = chosenSection?.Name;
-                            clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
-                            clonedSchedule.MusicRepeat = false;
-                            clonedSchedule.MusicTrackName = MediaTrackTitleHelper.DecodeHtmlTitle(chosenTrack.Title);
-
-                            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+                            chosenTrack = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
                         }
                     }
-                    catch (Exception ex)
+
+                    chosenTrack ??= melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
+
+                    var latestSchedule = state.Value.CurrentSchedule;
+                    if (latestSchedule == null)
                     {
-                        logger.Error(ex, "MusicEnabled: Error loading default music from DB");
+                        return;
                     }
-                });
+
+                    if (latestSchedule.MusicLanguageCode == null &&
+                        string.Equals(latestSchedule.MusicPublicationCode, defaultPublicationCode, StringComparison.OrdinalIgnoreCase) &&
+                        SectionCodeHelper.CodeEquals(latestSchedule.MusicSectionCode, chosenSection?.SectionCode) &&
+                        CodeComparisonHelper.Equals(latestSchedule.MusicTrackCode, TrackCodeHelper.GetFromTrack(chosenTrack)) &&
+                        latestSchedule.MusicEnabled)
+                    {
+                        return;
+                    }
+
+                    var clonedSchedule = latestSchedule.DeepClone();
+                    clonedSchedule.MusicEnabled = true;
+                    clonedSchedule.MusicPublicationCode = defaultPublicationCode;
+                    clonedSchedule.MusicPublicationName = defaultPublicationName;
+                    clonedSchedule.MusicLanguageCode = null;
+                    clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
+                    clonedSchedule.MusicSectionName = chosenSection?.Name;
+                    clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
+                    clonedSchedule.MusicRepeat = false;
+                    clonedSchedule.MusicTrackName = MediaTrackTitleHelper.DecodeHtmlTitle(chosenTrack.Title);
+
+                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+                }
             }
-        }
-
-        return true;
+            catch (Exception ex)
+            {
+                logger.Error(ex, "MusicEnabled: Error loading default music from DB");
+            }
+        });
     }
 }

@@ -40,35 +40,11 @@ public sealed class MusicPublicationSelectionRefreshHandler
         Func<string?, bool, IFetchProgress?, CancellationToken, Task> populateSongPublications,
         Action setSelectedSongPublication)
     {
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            propertyManager.CanCancelFetch = true;
-            DeviceDisplay.Current.KeepScreenOn = true;
-        });
-
-        string? newLanguageCode = null;
-        bool isMelodyMusic = false;
+        await BeginFetchUiAsync();
 
         try
         {
-            for (int i = 0; i < MaxWaitAttempts; i++)
-            {
-                fetchCts.Token.ThrowIfCancellationRequested();
-                var stateValue = state.Value;
-
-                if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
-                {
-                    newLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
-                    isMelodyMusic = string.IsNullOrEmpty(newLanguageCode);
-
-                    if (!isMelodyMusic && !string.IsNullOrEmpty(newLanguageCode))
-                        break;
-                    if (isMelodyMusic)
-                        break;
-                }
-
-                await Task.Delay(DelayMs, fetchCts.Token);
-            }
+            var snapshot = await WaitForMusicPublicationCodesAsync(fetchCts.Token);
 
             var finalStateValue = state.Value;
             if (finalStateValue.CurrentSchedule == null)
@@ -78,7 +54,7 @@ public sealed class MusicPublicationSelectionRefreshHandler
             if (current != null)
                 stateManager.EnsureCurrentIsSet(state);
 
-            if (!isMelodyMusic)
+            if (!snapshot.IsMelodyMusic)
             {
                 if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
                     await populateLanguages(null);
@@ -87,14 +63,14 @@ public sealed class MusicPublicationSelectionRefreshHandler
             }
 
             string? languageCodeToUse = ResolveLanguageCodeToUse(
-                isMelodyMusic,
-                newLanguageCode,
+                snapshot.IsMelodyMusic,
+                snapshot.NewLanguageCode,
                 finalStateValue.CurrentSchedule.MusicLanguageCode,
                 current);
 
             var progressReporter = new ModalOverlayFetchProgressReporter("MusicPublication", fetchCts.Token);
 
-            if (isMelodyMusic)
+            if (snapshot.IsMelodyMusic)
                 await populateSongPublications(null, true, progressReporter, fetchCts.Token);
             else if (!string.IsNullOrEmpty(languageCodeToUse))
                 await populateSongPublications(languageCodeToUse, true, progressReporter, fetchCts.Token);
@@ -131,6 +107,42 @@ public sealed class MusicPublicationSelectionRefreshHandler
                 DeviceDisplay.Current.KeepScreenOn = false;
             });
         }
+    }
+
+    private async Task BeginFetchUiAsync()
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            propertyManager.CanCancelFetch = true;
+            DeviceDisplay.Current.KeepScreenOn = true;
+        });
+    }
+
+    private async Task<(string? NewLanguageCode, bool IsMelodyMusic)> WaitForMusicPublicationCodesAsync(CancellationToken ct)
+    {
+        string? newLanguageCode = null;
+        bool isMelodyMusic = false;
+
+        for (var i = 0; i < MaxWaitAttempts; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var stateValue = state.Value;
+
+            if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
+            {
+                newLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
+                isMelodyMusic = string.IsNullOrEmpty(newLanguageCode);
+
+                if (!isMelodyMusic && !string.IsNullOrEmpty(newLanguageCode))
+                    break;
+                if (isMelodyMusic)
+                    break;
+            }
+
+            await Task.Delay(DelayMs, ct);
+        }
+
+        return (newLanguageCode, isMelodyMusic);
     }
 
     private string? ResolveLanguageCodeToUse(

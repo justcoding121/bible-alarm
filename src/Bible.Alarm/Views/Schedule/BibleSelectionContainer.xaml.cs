@@ -62,30 +62,30 @@ public partial class BibleSelectionContainer : ContentView
             return;
         }
 
-        // Check gesture recognizers on this view
-        foreach (var gesture in view.GestureRecognizers)
+        AttachTapHandlers(view.GestureRecognizers);
+
+        if (view is SfEffectsView sfEffectsView)
+        {
+            AttachTapHandlers(sfEffectsView.GestureRecognizers);
+        }
+
+        TraverseChildrenForTapGestures(view);
+    }
+
+    private void AttachTapHandlers(IEnumerable<IGestureRecognizer> gestures)
+    {
+        foreach (var gesture in gestures)
         {
             if (gesture is TapGestureRecognizer tapGesture)
             {
-                tapGesture.Tapped -= OnTapGestureTapped; // Remove first to avoid duplicates
+                tapGesture.Tapped -= OnTapGestureTapped;
                 tapGesture.Tapped += OnTapGestureTapped;
             }
         }
-        
-        // Handle SfEffectsView which also has GestureRecognizers
-        if (view is SfEffectsView sfEffectsView)
-        {
-            foreach (var gesture in sfEffectsView.GestureRecognizers)
-            {
-                if (gesture is TapGestureRecognizer tapGesture)
-                {
-                    tapGesture.Tapped -= OnTapGestureTapped; // Remove first to avoid duplicates
-                    tapGesture.Tapped += OnTapGestureTapped;
-                }
-            }
-        }
-        
-        // Recursively check children
+    }
+
+    private void TraverseChildrenForTapGestures(View view)
+    {
         if (view is Layout layout)
         {
             foreach (var child in layout.Children)
@@ -95,12 +95,17 @@ public partial class BibleSelectionContainer : ContentView
                     FindAndWireTapGestures(childView);
                 }
             }
+
+            return;
         }
-        else if (view is ContentView contentView && contentView.Content is View content)
+
+        if (view is ContentView contentView && contentView.Content is View nestedContent)
         {
-            FindAndWireTapGestures(content);
+            FindAndWireTapGestures(nestedContent);
+            return;
         }
-        else if (view is SfEffectsView sfView && sfView.Content is View sfContent)
+
+        if (view is SfEffectsView sfView && sfView.Content is View sfContent)
         {
             FindAndWireTapGestures(sfContent);
         }
