@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers.LookupLoading;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -255,12 +256,7 @@ internal sealed class LookupDataLoader
 
         // Only attempt no-language lookups for publications that were requested but not found via language-bound queries.
         // This keeps the no-language queries tightly bounded and avoids scanning large parts of the media index.
-        var missingPublicationCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var result in publicationTasks.Select(t => t.Result).Where(r =>
-                     r.Publication == null && !string.IsNullOrWhiteSpace(r.Key.PublicationCode)))
-        {
-            missingPublicationCodes.Add(result.Key.PublicationCode);
-        }
+        var missingPublicationCodes = CollectMissingPublicationCodes(publicationTasks);
 
         if (missingPublicationCodes.Count == 0)
         {
@@ -322,13 +318,7 @@ internal sealed class LookupDataLoader
         var sections = await db.BiblePublicationSections
             .AsNoTracking()
             .Where(s => pubIds.Contains(s.BiblePublicationId))
-            .Select(s => new
-            {
-                s.Id,
-                s.BiblePublicationId,
-                s.SectionCode,
-                s.Name
-            })
+            .Select(s => new NoLanguageSectionDto(s.Id, s.BiblePublicationId, s.SectionCode, s.Name))
             .ToListAsync(CancellationToken.None);
 
         var sectionCodeById = sections
@@ -336,6 +326,40 @@ internal sealed class LookupDataLoader
             .GroupBy(s => s.Id)
             .ToDictionary(g => g.Key, g => SectionCodeHelper.Normalize(g.First().SectionCode));
 
+        var sectionsDict =
+            BuildNoLanguageSectionsDict(sections, pubCodeById);
+
+        // Load tracks (TrackCode + Title) for relevant no-language publications.
+        // We load all tracks for these publications; no-language pubs are expected to be small (e.g. melody discs).
+        var tracks = await db.BiblePublicationTracks
+            .AsNoTracking()
+            .Where(t => pubIds.Contains(t.BiblePublicationId))
+            .Select(t => new NoLanguageTrackDto(t.BiblePublicationId, t.BiblePublicationSectionId, t.TrackCode, t.Title))
+            .ToListAsync(CancellationToken.None);
+
+        var neededTrackKeys = BuildNeededNoLanguageTrackKeys(keys, missingPublicationCodes);
+        var trackTitles = BuildNoLanguageTrackTitlesDict(tracks, pubCodeById, sectionCodeById, neededTrackKeys);
+
+        return new NoLanguageLookupData(publicationsDict, sectionsDict, trackTitles);
+    }
+
+    private static HashSet<string> CollectMissingPublicationCodes(
+        List<Task<((string LanguageCode, string PublicationCode) Key, BiblePublication? Publication)>> publicationTasks)
+    {
+        var missingPublicationCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var result in publicationTasks.Select(t => t.Result).Where(static r =>
+                     r.Publication == null && !string.IsNullOrWhiteSpace(r.Key.PublicationCode)))
+        {
+            missingPublicationCodes.Add(result.Key.PublicationCode);
+        }
+
+        return missingPublicationCodes;
+    }
+
+    private static Dictionary<(string PublicationCode, string SectionCode), string> BuildNoLanguageSectionsDict(
+        IReadOnlyList<NoLanguageSectionDto> sections,
+        IReadOnlyDictionary<int, string> pubCodeById)
+    {
         var sectionsDict = new Dictionary<(string PublicationCode, string SectionCode), string>(PublicationLookupKeyComparers.PublicationSection.Instance);
         foreach (var s in sections)
         {
@@ -353,24 +377,13 @@ internal sealed class LookupDataLoader
             sectionsDict[(pubCode, normalizedSectionCode)] = s.Name;
         }
 
-        // Load tracks (TrackCode + Title) for relevant no-language publications.
-        // We load all tracks for these publications; no-language pubs are expected to be small (e.g. melody discs).
-        var tracks = await db.BiblePublicationTracks
-            .AsNoTracking()
-            .Where(t => pubIds.Contains(t.BiblePublicationId))
-            .Select(t => new
-            {
-                t.BiblePublicationId,
-                t.BiblePublicationSectionId,
-                t.TrackCode,
-                t.Title
-            })
-            .ToListAsync(CancellationToken.None);
+        return sectionsDict;
+    }
 
-        var trackTitles = new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>(
-            PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance);
-
-        // Precompute the desired track keys so we only retain titles for tracks we actually need.
+    private static HashSet<(string PublicationCode, string? SectionCode, string TrackCode)> BuildNeededNoLanguageTrackKeys(
+        LookupDataCollector.LookupKeys keys,
+        HashSet<string> missingPublicationCodes)
+    {
         var neededTrackKeys = new HashSet<(string PublicationCode, string? SectionCode, string TrackCode)>(
             PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance);
         foreach (var key in keys.BibleTrackKeys)
@@ -382,6 +395,18 @@ internal sealed class LookupDataLoader
 
             neededTrackKeys.Add((key.PublicationCode, SectionCodeHelper.Normalize(key.SectionCode), key.TrackCode));
         }
+
+        return neededTrackKeys;
+    }
+
+    private static Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string> BuildNoLanguageTrackTitlesDict(
+        IReadOnlyList<NoLanguageTrackDto> tracks,
+        IReadOnlyDictionary<int, string> pubCodeById,
+        IReadOnlyDictionary<int, string?> sectionCodeById,
+        HashSet<(string PublicationCode, string? SectionCode, string TrackCode)> neededTrackKeys)
+    {
+        var trackTitles = new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>(
+            PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance);
 
         foreach (var t in tracks)
         {
@@ -412,9 +437,12 @@ internal sealed class LookupDataLoader
             trackTitles[trackKey] = normalizedTitle;
         }
 
-        return new NoLanguageLookupData(publicationsDict, sectionsDict, trackTitles);
+        return trackTitles;
     }
 
+    private sealed record NoLanguageSectionDto(int Id, int BiblePublicationId, string SectionCode, string? Name);
+
+    private sealed record NoLanguageTrackDto(int BiblePublicationId, int? BiblePublicationSectionId, string TrackCode, string? Title);
     public sealed record LookupData(
         Dictionary<(string LanguageCode, string PublicationCode), BiblePublication> Publications,
         Dictionary<(string LanguageCode, string PublicationCode, string SectionCode), string> Sections,

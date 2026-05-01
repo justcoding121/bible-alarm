@@ -209,30 +209,36 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
 
     private async Task RefreshFromStateInternal()
     {
-        // Don't refresh if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
         if (isSelectingSection)
         {
             return;
         }
 
-        var stateValue = state.Value;
-
-        // Use CurrentSchedule as the source of truth
-        if (stateValue.CurrentSchedule == null ||
-            string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
         {
             return;
         }
 
-        var currentSchedule = stateValue.CurrentSchedule;
-        var publicationCode = currentSchedule.MusicPublicationCode;
+        var refreshPlan = ComputeMusicSectionRefreshPlan(currentSchedule);
+
+        if (refreshPlan.ShouldRepopulate && !isDisposed)
+        {
+            await RunSectionsRepopulationAsync(refreshPlan.PublicationCode);
+            return;
+        }
+
+        await FinalizeMusicSectionRefreshOnMainThreadAsync();
+    }
+
+    private (string PublicationCode, bool ShouldRepopulate) ComputeMusicSectionRefreshPlan(ScheduleStateItem currentSchedule)
+    {
+        var publicationCode = currentSchedule.MusicPublicationCode!;
         var sectionCode = currentSchedule.MusicSectionCode;
 
-        // Check if publication code changed (need to repopulate sections)
         var publicationCodeChanged = lastPublicationCode != publicationCode;
         var needsRepopulation = publicationCodeChanged || !initComplete;
 
-        // Update tracking variables
         lastPublicationCode = publicationCode;
         lastSectionCode = sectionCode;
 
@@ -244,23 +250,24 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
         var sectionsEmpty = Sections == null || Sections.Count == 0;
         var shouldRepopulate = needsRepopulation || sectionsEmpty;
 
-        if (shouldRepopulate && !isDisposed)
+        return (publicationCode, shouldRepopulate);
+    }
+
+    private async Task FinalizeMusicSectionRefreshOnMainThreadAsync()
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            await RunSectionsRepopulationAsync(publicationCode);
-        }
-        else
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            if (!isDisposed && !isSelectingSection)
             {
-                if (!isDisposed && !isSelectingSection)
-                {
-                    ShowProgress = false;
-                    CanCancelFetch = false;
-                }
-                if (!isDisposed)
-                    SetSelectedSection();
-            });
-        }
+                ShowProgress = false;
+                CanCancelFetch = false;
+            }
+
+            if (!isDisposed)
+            {
+                SetSelectedSection();
+            }
+        });
     }
 
     private async Task RunSectionsRepopulationAsync(string publicationCode)

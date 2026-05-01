@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -31,88 +32,131 @@ internal sealed class SectionListLoader
         string? selectedSectionCode,
         IFetchProgress? progress = null)
     {
-        // Get cancellation token from progress tracker (same CTS from modal)
         var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
-        
-        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsFromDb = null;
-        
-        // Retry logic: If non-English language, retry fetching until all sections are cataloged
-        // For non-English languages, sections need to be fetched, so we retry with increasing delays
-        if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-        {
-            var initialSections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
-
-            var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
-            var actualSectionCount = initialSections?.Values.Count ?? 0;
-            var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-
-            if (AreAllSectionsFullyCataloged(initialSections, expectedSectionCount))
-            {
-                logger.Debug("SectionListLoader: All {ExpectedCount} expected sections already cataloged for publication={PublicationCode}, language={LanguageCode}, skipping fetch",
-                    expectedSectionCount, publicationCode, languageCode);
-                sectionsFromDb = initialSections;
-            }
-            else
-            {
-                progress?.SetIsVisible(true);
-                progress?.UpdateProgress(0.0);
-
-                if (hasAllExpectedSections)
-                {
-                    logger.Debug("SectionListLoader: Have {ActualCount} sections but some are placeholders, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
-                        actualSectionCount, publicationCode, languageCode);
-                }
-                else
-                {
-                    logger.Debug("SectionListLoader: Only {ActualCount}/{ExpectedCount} sections found, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
-                        actualSectionCount, expectedSectionCount, publicationCode, languageCode);
-                }
-
-                sectionsFromDb = await RetryFetchUntilCatalogedAsync(languageCode, publicationCode, progress, cancellationToken);
-            }
-        }
-        else
-        {
-            // For English or when language is empty, just fetch once
-            sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
-        }
+        var sectionsFromDb = await ResolveSectionsFromSourcesAsync(languageCode, publicationCode, progress, cancellationToken);
 
         progress?.UpdateProgress(0.7);
 
         if (sectionsFromDb == null || sectionsFromDb.Count == 0)
         {
-            logger.Warning(
-                "SectionListLoader: No sections found for publication={PublicationCode}, language={LanguageCode}. This publication may not be cataloged yet or may not have sections.",
-                publicationCode,
-                languageCode ?? "(null)");
-
+            LogNoSectionsWarning(publicationCode, languageCode);
             progress?.UpdateProgress(1.0);
             progress?.SetIsVisible(false);
-            return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<string, BiblePublicationSectionListViewItemModel>(StringComparer.OrdinalIgnoreCase));
+            return EmptySectionResult();
         }
 
-        // Remove placeholder sections that couldn't be fetched (e.g. no content on the server)
-        var unfetchableSectionCodes = sectionsFromDb.Values
-            .Where(s => s.Id == 0 || string.IsNullOrEmpty(s.Name))
-            .Select(s => s.SectionCode)
-            .ToList();
-        if (unfetchableSectionCodes.Count > 0)
-        {
-            foreach (var code in unfetchableSectionCodes)
-            {
-                sectionsFromDb.Remove(code);
-            }
-            logger.Information("SectionListLoader: Removed {Count} unfetchable placeholder sections: {Codes}",
-                unfetchableSectionCodes.Count, string.Join(", ", unfetchableSectionCodes));
-        }
+        RemovePlaceholderSections(sectionsFromDb);
 
         if (sectionsFromDb.Count == 0)
         {
             progress?.UpdateProgress(1.0);
             progress?.SetIsVisible(false);
-            return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<string, BiblePublicationSectionListViewItemModel>(StringComparer.OrdinalIgnoreCase));
+            return EmptySectionResult();
         }
 
+        var (vms, map) = BuildSortedSectionViewModels(sectionsFromDb, selectedSectionCode);
+
+        progress?.UpdateProgress(0.9);
+        progress?.UpdateProgress(1.0);
+        progress?.SetIsVisible(false);
+
+        return (vms, map);
+    }
+
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> ResolveSectionsFromSourcesAsync(
+        string languageCode,
+        string publicationCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken)
+    {
+        var isNonEnglish = !string.IsNullOrEmpty(languageCode) &&
+                           !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase);
+        if (!isNonEnglish)
+        {
+            return await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
+        }
+
+        return await LoadNonEnglishSectionsWithOptionalRetryAsync(languageCode, publicationCode, progress, cancellationToken);
+    }
+
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> LoadNonEnglishSectionsWithOptionalRetryAsync(
+        string languageCode,
+        string publicationCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken)
+    {
+        var initialSections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
+        var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
+        var actualSectionCount = initialSections?.Values.Count ?? 0;
+        var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+
+        if (AreAllSectionsFullyCataloged(initialSections, expectedSectionCount))
+        {
+            logger.Debug("SectionListLoader: All {ExpectedCount} expected sections already cataloged for publication={PublicationCode}, language={LanguageCode}, skipping fetch",
+                expectedSectionCount, publicationCode, languageCode);
+            return initialSections;
+        }
+
+        progress?.SetIsVisible(true);
+        progress?.UpdateProgress(0.0);
+
+        LogNonEnglishSectionFetchReason(hasAllExpectedSections, actualSectionCount, expectedSectionCount, publicationCode, languageCode);
+        return await RetryFetchUntilCatalogedAsync(languageCode, publicationCode, progress, cancellationToken);
+    }
+
+    private void LogNonEnglishSectionFetchReason(
+        bool hasAllExpectedSections,
+        int actualSectionCount,
+        int expectedSectionCount,
+        string publicationCode,
+        string languageCode)
+    {
+        if (hasAllExpectedSections)
+        {
+            logger.Debug("SectionListLoader: Have {ActualCount} sections but some are placeholders, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
+                actualSectionCount, publicationCode, languageCode);
+            return;
+        }
+
+        logger.Debug("SectionListLoader: Only {ActualCount}/{ExpectedCount} sections found, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
+            actualSectionCount, expectedSectionCount, publicationCode, languageCode);
+    }
+
+    private static (List<BiblePublicationSectionListViewItemModel> Items, Dictionary<string, BiblePublicationSectionListViewItemModel> Map) EmptySectionResult() =>
+        (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<string, BiblePublicationSectionListViewItemModel>(StringComparer.OrdinalIgnoreCase));
+
+    private void LogNoSectionsWarning(string publicationCode, string? languageCode)
+    {
+        logger.Warning(
+            "SectionListLoader: No sections found for publication={PublicationCode}, language={LanguageCode}. This publication may not be cataloged yet or may not have sections.",
+            publicationCode,
+            languageCode ?? "(null)");
+    }
+
+    private void RemovePlaceholderSections(SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sectionsFromDb)
+    {
+        var unfetchableSectionCodes = sectionsFromDb.Values
+            .Where(s => s.Id == 0 || string.IsNullOrEmpty(s.Name))
+            .Select(s => s.SectionCode)
+            .ToList();
+        if (unfetchableSectionCodes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var code in unfetchableSectionCodes)
+        {
+            sectionsFromDb.Remove(code);
+        }
+
+        logger.Information("SectionListLoader: Removed {Count} unfetchable placeholder sections: {Codes}",
+            unfetchableSectionCodes.Count, string.Join(", ", unfetchableSectionCodes));
+    }
+
+    private static (List<BiblePublicationSectionListViewItemModel> Vms, Dictionary<string, BiblePublicationSectionListViewItemModel> Map) BuildSortedSectionViewModels(
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sectionsFromDb,
+        string? selectedSectionCode)
+    {
         var vms = new List<BiblePublicationSectionListViewItemModel>();
         var map = new Dictionary<string, BiblePublicationSectionListViewItemModel>(StringComparer.OrdinalIgnoreCase);
 
@@ -129,13 +173,7 @@ internal sealed class SectionListLoader
             }
         }
 
-        // Sort using natural sort (numeric sections as int, non-numeric as string)
         vms.Sort();
-
-        progress?.UpdateProgress(0.9);
-        progress?.UpdateProgress(1.0);
-        progress?.SetIsVisible(false);
-
         return (vms, map);
     }
 
@@ -171,69 +209,52 @@ internal sealed class SectionListLoader
         {
             while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
             {
-                // Check for cancellation before each attempt
                 cancellationToken.ThrowIfCancellationRequested();
 
                 attempt++;
 
                 try
                 {
-                    // Fetch sections (this triggers cataloging if needed)
-                    // Pass progress to show download percentage during cataloging
-                    sectionsData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
+                    var iterationOutcome = await RunCatalogRetryIterationAsync(
+                        languageCode,
+                        publicationCode,
+                        progress,
+                        cancellationToken,
+                        attempt,
+                        retryDelay,
+                        previousCatalogedCount);
 
-                    // Wait a bit for background cataloging to start (with cancellation support)
-                    await Task.Delay(500, cancellationToken);
-
-                    // Re-query to check if sections are now cataloged (no progress needed for re-query)
-                    var reQueriedData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
-
-                    var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
-                    var actualSectionCount = reQueriedData?.Values.Count ?? 0;
-
-                    var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
-                    if (AreAllSectionsFullyCataloged(reQueriedData, expectedSectionCount))
+                    sectionsData = iterationOutcome.NextSectionsSnapshot;
+                    if (iterationOutcome.Completed)
                     {
-                        sectionsData = reQueriedData;
                         allCataloged = true;
-                        logger.Information("SectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
-                            expectedSectionCount, attempt, publicationCode, languageCode);
+                        if (iterationOutcome.LogSuccess)
+                        {
+                            logger.Information("SectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
+                                iterationOutcome.ExpectedSectionCount, attempt, publicationCode, languageCode);
+                        }
+                    }
+                    else if (iterationOutcome.BreakRetries)
+                    {
+                        break;
                     }
                     else
                     {
-                        var currentCatalogedCount = reQueriedData?.Values.Count(s =>
-                            !string.IsNullOrEmpty(s.Name) && s.Id > 0) ?? 0;
-
-                        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
-                        {
-                            logger.Information("SectionListLoader: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}, language={LanguageCode}",
-                                currentCatalogedCount, expectedSectionCount, publicationCode, languageCode);
-                            sectionsData = reQueriedData;
-                            break;
-                        }
-                        previousCatalogedCount = currentCatalogedCount;
-
-                        LogSectionRetryIterationDiagnostics(attempt, reQueriedData, hasAllExpectedSections, actualSectionCount, expectedSectionCount);
-
-                        var delay = Math.Min(retryDelay * attempt, 5000);
-                        await Task.Delay(delay, cancellationToken);
+                        previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Re-throw cancellation - data saved so far is preserved
-                    throw;
-                }
-                catch (System.Net.Http.HttpRequestException)
-                {
-                    throw;
-                }
-                catch (System.Net.Sockets.SocketException)
-                {
-                    throw;
                 }
                 catch (Exception ex)
                 {
+                    switch (ex)
+                    {
+                        case OperationCanceledException:
+                            throw;
+                        case System.Net.Http.HttpRequestException:
+                            throw;
+                        case System.Net.Sockets.SocketException:
+                            throw;
+                    }
+
                     if (NetworkExceptionHelper.IsNetworkFailure(ex))
                     {
                         throw;
@@ -242,7 +263,6 @@ internal sealed class SectionListLoader
                     logger.Warning(ex, "SectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, language={LanguageCode}, will retry",
                         attempt, publicationCode, languageCode);
 
-                    // Wait before retrying on exception (with cancellation support)
                     var delay = Math.Min(retryDelay * attempt, 5000);
                     await Task.Delay(delay, cancellationToken);
                 }
@@ -276,6 +296,73 @@ internal sealed class SectionListLoader
         }
 
         return sectionsData;
+    }
+
+    private async Task<CatalogRetryIterationOutcome> RunCatalogRetryIterationAsync(
+        string languageCode,
+        string publicationCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken,
+        int attempt,
+        int retryDelayBase,
+        int previousCatalogedCount)
+    {
+        var fetchedWithProgress =
+            await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
+
+        await Task.Delay(500, cancellationToken);
+
+        var reQueriedData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
+
+        var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
+        var actualSectionCount = reQueriedData?.Values.Count ?? 0;
+
+        var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+        if (AreAllSectionsFullyCataloged(reQueriedData, expectedSectionCount))
+        {
+            return CatalogRetryIterationOutcome.ForSuccess(reQueriedData!, expectedSectionCount);
+        }
+
+        var currentCatalogedCount =
+            reQueriedData?.Values.Count(static s =>
+                !string.IsNullOrEmpty(s.Name) && s.Id > 0) ?? 0;
+
+        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
+        {
+            logger.Information("SectionListLoader: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for publication={PublicationCode}, language={LanguageCode}",
+                currentCatalogedCount, expectedSectionCount, publicationCode, languageCode);
+            return CatalogRetryIterationOutcome.ForStagnation(reQueriedData);
+        }
+
+        LogSectionRetryIterationDiagnostics(attempt, reQueriedData, hasAllExpectedSections, actualSectionCount, expectedSectionCount);
+
+        var delay = Math.Min(retryDelayBase * attempt, 5000);
+        await Task.Delay(delay, cancellationToken);
+
+        return CatalogRetryIterationOutcome.ForContinue(fetchedWithProgress, currentCatalogedCount);
+    }
+
+    private sealed record CatalogRetryIterationOutcome(
+        bool Completed,
+        bool LogSuccess,
+        bool BreakRetries,
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? NextSectionsSnapshot,
+        int ExpectedSectionCount,
+        int UpdatedPreviousCatalogedCount)
+    {
+        public static CatalogRetryIterationOutcome ForSuccess(
+            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> reQueried,
+            int expectedSectionCount) =>
+            new(true, LogSuccess: true, BreakRetries: false, NextSectionsSnapshot: reQueried, ExpectedSectionCount: expectedSectionCount, UpdatedPreviousCatalogedCount: -1);
+
+        public static CatalogRetryIterationOutcome ForStagnation(
+            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? reQueried) =>
+            new(false, LogSuccess: false, BreakRetries: true, NextSectionsSnapshot: reQueried, ExpectedSectionCount: 0, UpdatedPreviousCatalogedCount: -1);
+
+        public static CatalogRetryIterationOutcome ForContinue(
+            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? fetchedWithProgress,
+            int updatedPreviousCatalogedCount) =>
+            new(false, LogSuccess: false, BreakRetries: false, NextSectionsSnapshot: fetchedWithProgress, ExpectedSectionCount: 0, UpdatedPreviousCatalogedCount: updatedPreviousCatalogedCount);
     }
 
     private static bool AreAllSectionsFullyCataloged(
