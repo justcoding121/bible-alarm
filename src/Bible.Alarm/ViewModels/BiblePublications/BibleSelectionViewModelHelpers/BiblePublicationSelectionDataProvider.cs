@@ -1,5 +1,7 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -155,245 +157,8 @@ public sealed class BiblePublicationSelectionDataProvider
                 $"PopulatePublicationsAsync: Category is null or empty. Category must always be selected. LanguageCode={languageCode}, PublicationCode={currentPublicationCode}");
         }
 
-        // Do ALL processing on background thread to avoid blocking spinner animation
-        var (publicationVMs, newMapping, defaultPublication) = await Task.Run(async () =>
-        {
-            // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
-            // downloadAll=false when language changes (only download first publication in cascade)
-            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? publicationsData = null;
-
-            if (downloadAll)
-            {
-                // Always check DB first: if all expected publications are already cataloged, use that and skip fetch/progress
-                var initialPublications = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
-                var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
-                var actualPublicationCount = initialPublications?.Values.Count ?? 0;
-                var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
-                var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 &&
-                    initialPublications.Values.All(IsPublicationFullyCataloged);
-
-                if (allPublicationsCataloged)
-                {
-                    Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAllExpectedAlreadyCatalogedSkippingFetch,
-                        expectedPublicationCount, languageCode, currentCategoryName);
-                    publicationsData = initialPublications;
-                }
-                else
-                {
-                    // Not pre-cataloged: show progress and fetch (with retry until cataloged or timeout)
-                    var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
-                    // Publications are not fully cataloged - show progress and retry fetching
-                    // Up to 10 retries
-                    const int maxRetries = 10;
-                    // Start with 1 second
-                    var retryDelay = 1000;
-                    // Total max wait time of 60 seconds
-                    var maxWaitTime = TimeSpan.FromSeconds(60);
-                    var startTime = DateTime.UtcNow;
-                    var allCataloged = false;
-                    var attempt = 0;
-                    var previousCatalogedCount = -1;
-                    
-                    Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsStartingFetchWithRetries,
-                        languageCode, currentCategoryName);
-                    
-                    // Show progress overlay at the start of retry loop and keep it visible throughout all retries
-                    progress?.SetIsVisible(true);
-                    progress?.UpdateProgress(0.0);
-                    
-                    try
-                    {
-                        while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-                    {
-                        // Check for cancellation before each attempt
-                        cancellationToken.ThrowIfCancellationRequested();
-                        
-                        attempt++;
-                        
-                        try
-                        {
-                            // Fetch publications (this triggers cataloging if needed)
-                            // Pass progress to show download percentage during cataloging
-                            publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
-                            
-                            // Wait a bit for background cataloging to start (with cancellation support)
-                            await Task.Delay(500, cancellationToken);
-                            
-                            // Re-query to check if publications are now cataloged (no progress needed for re-query)
-                            var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
-                            
-                            // Get expected publication count to verify we have all publications
-                            var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
-                            var retryActualCount = reQueriedData?.Values.Count ?? 0;
-                            
-                            // Check if we have ALL expected publications AND they're all cataloged (not placeholders)
-                            // A publication is cataloged if it has a name that's different from its code and has an ID > 0
-                            var retryHasAllExpected = retryActualCount >= retryExpectedCount;
-                            var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 &&
-                                reQueriedData.Values.All(IsPublicationFullyCataloged);
-                            
-                            if (retryAllCataloged)
-                            {
-                                publicationsData = reQueriedData;
-                                allCataloged = true;
-                                Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAllExpectedCatalogedOnAttempt,
-                                    retryExpectedCount, attempt, languageCode, currentCategoryName);
-                            }
-                            else
-                            {
-                                var currentCatalogedCount = reQueriedData?.Values.Count(IsPublicationFullyCataloged) ?? 0;
-
-                                if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
-                                {
-                                    Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsNoProgressBetweenRetriesStopping,
-                                        currentCatalogedCount, retryExpectedCount, languageCode, currentCategoryName);
-                                    publicationsData = reQueriedData;
-                                    break;
-                                }
-                                previousCatalogedCount = currentCatalogedCount;
-
-                                // Log which publications are still placeholders or missing for debugging
-                                if (reQueriedData != null)
-                                {
-                                    var placeholders = reQueriedData.Values.Where(p => !IsPublicationFullyCataloged(p)).Select(p => p.PublicationCode).ToList();
-                                    
-                                    if (placeholders.Count > 0)
-                                    {
-                                        Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptStillWaitingForPlaceholders,
-                                            attempt, placeholders.Count, string.Join(", ", placeholders));
-                                    }
-                                    else if (!retryHasAllExpected)
-                                    {
-                                        Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptPartialCountWillRetry,
-                                            attempt, retryActualCount, retryExpectedCount);
-                                    }
-                                }
-                                else
-                                {
-                                    Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptNoPublicationsYetWillRetry,
-                                        attempt);
-                                }
-                                
-                                // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
-                                var delay = Math.Min(retryDelay * attempt, 5000);
-                                await Task.Delay(delay, cancellationToken);
-                            }
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Re-throw cancellation - data saved so far is preserved
-                            throw;
-                        }
-                        catch (System.Net.Http.HttpRequestException)
-                        {
-                            throw;
-                        }
-                        catch (System.Net.Sockets.SocketException)
-                        {
-                            throw;
-                        }
-                        catch (Exception ex)
-                        {
-                            if (NetworkExceptionHelper.IsNetworkFailure(ex))
-                            {
-                                throw;
-                            }
-
-                            Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptFailedWillRetry,
-                                attempt, languageCode);
-                            
-                            // Wait before retrying on exception (with cancellation support)
-                            var delay = Math.Min(retryDelay * attempt, 5000);
-                            await Task.Delay(delay, cancellationToken);
-                        }
-                    }
-                    }
-                    finally
-                    {
-                        // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
-                        progress?.SetIsVisible(false);
-                    }
-                    
-                    if (!allCataloged)
-                    {
-                        Log.Warning(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsTimeoutWaitingForCatalog,
-                            attempt, languageCode);
-                        
-                        // Use the last fetched data even if not all are cataloged
-                        if (publicationsData == null || publicationsData.Count == 0)
-                        {
-                            // Final attempt to get at least some data
-                            try
-                            {
-                                publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, progress);
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(ex, AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsFinalFetchAttemptFailed,
-                                    languageCode);
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // downloadAll=false (e.g. language change): single fetch
-                publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
-            }
-            
-            var vms = new List<PublicationListViewItemModel>();
-            var mapping = new Dictionary<string, PublicationListViewItemModel>(StringComparer.OrdinalIgnoreCase);
-
-            if (publicationsData == null)
-            {
-                return (vms, mapping, null);
-            }
-
-            // Remove placeholder publications that couldn't be fetched (e.g. no tracks on the server)
-            var unfetchableCodes = publicationsData
-                .Where(kvp => !IsPublicationFullyCataloged(kvp.Value))
-                .Select(kvp => kvp.Key)
-                .ToList();
-            if (unfetchableCodes.Count > 0)
-            {
-                foreach (var code in unfetchableCodes)
-                {
-                    publicationsData.Remove(code);
-                }
-                Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsRemovedUnfetchablePlaceholders,
-                    unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
-            }
-
-            foreach (var publication in publicationsData.Values)
-            {
-                // Skip duplicates - if code already exists, use the existing one
-                if (mapping.TryGetValue(publication.PublicationCode, out _))
-                {
-                    // Don't set IsSelected here - it will be set later by SetSelectedPublication()
-                    continue;
-                }
-
-                var publicationVm = new PublicationListViewItemModel(publication);
-                vms.Add(publicationVm);
-                mapping[publicationVm.Code] = publicationVm;
-
-                // Don't set IsSelected here - it will be set later by SetSelectedPublication()
-                // This ensures only one publication is selected at a time
-            }
-
-            // Sort publications using category-specific comparer (Bible: nwt first; Magazine: latest year first; etc.)
-            vms = PublicationSortHelper.SortByPriorityForCategory(vms, p => p.Code, p => p.Name, currentCategoryName).ToList();
-            
-            Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsSortedFirstThreeCodes,
-                vms.Count, currentCategoryName,
-                string.Join(", ", vms.Take(3).Select(p => p.Code)));
-
-            // Determine default publication: after sorting, the first item is the preferred default (nwt first).
-            var preferredDefault = vms.Count > 0 ? vms[0] : null;
-
-            return (vms, mapping, preferredDefault);
-        });
+        var (publicationVMs, newMapping, defaultPublication) =
+            await Task.Run(() => BuildPublicationPopulateResultAsync(languageCode, currentCategoryName, downloadAll, progress));
 
         // Update mapping
         publicationVMsMapping.Clear();
@@ -402,10 +167,10 @@ public sealed class BiblePublicationSelectionDataProvider
             publicationVMsMapping[kvp.Key] = kvp.Value;
         }
 
-            // Handle language change default selection
-            // IMPORTANT: Only dispatch default publication if user hasn't already selected a publication
-            // This prevents overwriting user's selection (e.g., when switching from "melodies" to "original songs")
-            if (languageChanged && defaultPublication != null)
+        // Handle language change default selection
+        // IMPORTANT: Only dispatch default publication if user hasn't already selected a publication
+        // This prevents overwriting user's selection (e.g., when switching from "melodies" to "original songs")
+        if (languageChanged && defaultPublication != null)
             {
                 var currentSchedule = state.Value.CurrentSchedule;
                 
@@ -420,22 +185,17 @@ public sealed class BiblePublicationSelectionDataProvider
                     // User has already selected a publication - don't dispatch default
                     // Don't set IsSelected here - SetSelectedPublication() will handle it based on current schedule
                 }
-                else
-                {
-                    // No publication selected yet - dispatch default publication
-                    // Don't set IsSelected here - SetSelectedPublication() will handle it after dispatch
-
-                // Check if state already matches what we're about to dispatch
+            else
+            {
                 var currentSectionCode = currentSchedule?.BiblePublicationSectionCode;
                 var alreadyMatches = currentSchedule != null &&
-                                    currentSchedule.BiblePublicationLanguageCode == languageCode &&
-                                    currentSchedule.BiblePublicationCode == defaultPublication.Code &&
-                                    string.Equals(currentSectionCode, "1", StringComparison.OrdinalIgnoreCase) &&
-                                    string.Equals(currentSchedule.BiblePublicationTrackCode, "1", StringComparison.Ordinal);
+                                     currentSchedule.BiblePublicationLanguageCode == languageCode &&
+                                     currentSchedule.BiblePublicationCode == defaultPublication.Code &&
+                                     string.Equals(currentSectionCode, "1", StringComparison.OrdinalIgnoreCase) &&
+                                     string.Equals(currentSchedule.BiblePublicationTrackCode, "1", StringComparison.Ordinal);
 
                 if (!alreadyMatches)
                 {
-                    // Fire and forget the dispatch (already on background thread)
                     _ = DispatchDefaultPublicationAsync(languageCode, defaultPublication, currentLanguageName, currentLanguageDirection);
                 }
             }
@@ -450,6 +210,312 @@ public sealed class BiblePublicationSelectionDataProvider
                 publications.Add(trans);
             }
         });
+    }
+
+    private async Task<(List<PublicationListViewItemModel> Vms, Dictionary<string, PublicationListViewItemModel> Mapping, PublicationListViewItemModel?
+        PreferredDefault)> BuildPublicationPopulateResultAsync(
+        string languageCode,
+        string currentCategoryName,
+        bool downloadAll,
+        IFetchProgress? progress)
+    {
+        var publicationsData =
+            await LoadPublicationsDictionaryForPopulateAsync(languageCode, currentCategoryName, downloadAll, progress);
+
+        var vms = new List<PublicationListViewItemModel>();
+        var mapping = new Dictionary<string, PublicationListViewItemModel>(StringComparer.OrdinalIgnoreCase);
+
+        if (publicationsData == null)
+        {
+            return (vms, mapping, null);
+        }
+
+        var unfetchableCodes = publicationsData
+            .Where(kvp => !IsPublicationFullyCataloged(kvp.Value))
+            .Select(kvp => kvp.Key)
+            .ToList();
+        if (unfetchableCodes.Count > 0)
+        {
+            foreach (var code in unfetchableCodes)
+            {
+                publicationsData.Remove(code);
+            }
+
+            Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsRemovedUnfetchablePlaceholders,
+                unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
+        }
+
+        foreach (var publication in publicationsData.Values)
+        {
+            if (mapping.TryGetValue(publication.PublicationCode, out _))
+            {
+                continue;
+            }
+
+            var publicationVm = new PublicationListViewItemModel(publication);
+            vms.Add(publicationVm);
+            mapping[publicationVm.Code] = publicationVm;
+        }
+
+        vms = PublicationSortHelper.SortByPriorityForCategory(vms, p => p.Code, p => p.Name, currentCategoryName).ToList();
+
+        Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsSortedFirstThreeCodes,
+            vms.Count, currentCategoryName,
+            string.Join(", ", vms.Take(3).Select(p => p.Code)));
+
+        var preferredDefault = vms.Count > 0 ? vms[0] : null;
+
+        return (vms, mapping, preferredDefault);
+    }
+
+    private async Task<Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>?>
+        LoadPublicationsDictionaryForPopulateAsync(
+            string languageCode,
+            string currentCategoryName,
+            bool downloadAll,
+            IFetchProgress? progress)
+    {
+        if (!downloadAll)
+        {
+            return await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
+        }
+
+        var initialPublications = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
+        var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
+        var actualPublicationCount = initialPublications?.Values.Count ?? 0;
+        var hasAllExpected = actualPublicationCount >= expectedPublicationCount;
+        var allPublicationsCataloged = hasAllExpected && initialPublications != null && initialPublications.Values.Count > 0 &&
+            initialPublications.Values.All(IsPublicationFullyCataloged);
+
+        if (allPublicationsCataloged)
+        {
+            Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAllExpectedAlreadyCatalogedSkippingFetch,
+                expectedPublicationCount, languageCode, currentCategoryName);
+            return initialPublications;
+        }
+
+        var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
+        return await RetryFetchBiblePublicationsUntilCatalogedAsync(languageCode, currentCategoryName, downloadAll,
+            progress, cancellationToken);
+    }
+
+    private async Task<Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>?>
+        RetryFetchBiblePublicationsUntilCatalogedAsync(
+            string languageCode,
+            string currentCategoryName,
+            bool downloadAll,
+            IFetchProgress? progress,
+            CancellationToken cancellationToken)
+    {
+        const int maxRetries = 10;
+        var retryDelay = 1000;
+        var maxWaitTime = TimeSpan.FromSeconds(60);
+        var startTime = DateTime.UtcNow;
+        var allCataloged = false;
+        var attempt = 0;
+        var previousCatalogedCount = -1;
+
+        Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsStartingFetchWithRetries,
+            languageCode, currentCategoryName);
+
+        progress?.SetIsVisible(true);
+        progress?.UpdateProgress(0.0);
+
+        Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? publicationsData = null;
+
+        try
+        {
+            while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                attempt++;
+
+                try
+                {
+                    var outcome =
+                        await RunBiblePublicationRetryIterationAsync(languageCode, currentCategoryName, downloadAll,
+                            progress,
+                            cancellationToken, attempt, retryDelay, previousCatalogedCount);
+
+                    publicationsData = outcome.NextSnapshot;
+                    if (outcome.Completed)
+                    {
+                        allCataloged = true;
+                        if (outcome.LogSuccess)
+                        {
+                            Log.Information(
+                                AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAllExpectedCatalogedOnAttempt,
+                                outcome.ExpectedCountForLog, attempt, languageCode, currentCategoryName);
+                        }
+                    }
+                    else if (outcome.BreakRetries)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        previousCatalogedCount = outcome.UpdatedCatalogedCount;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    switch (ex)
+                    {
+                        case OperationCanceledException:
+                            throw;
+                        case System.Net.Http.HttpRequestException:
+                            throw;
+                        case System.Net.Sockets.SocketException:
+                            throw;
+                    }
+
+                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                    {
+                        throw;
+                    }
+
+                    Log.Warning(ex, AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptFailedWillRetry,
+                        attempt, languageCode);
+
+                    var delay = Math.Min(retryDelay * attempt, 5000);
+                    await Task.Delay(delay, cancellationToken);
+                }
+            }
+        }
+        finally
+        {
+            progress?.SetIsVisible(false);
+        }
+
+        if (!allCataloged)
+        {
+            Log.Warning(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsTimeoutWaitingForCatalog,
+                attempt, languageCode);
+
+            if (publicationsData == null || publicationsData.Count == 0)
+            {
+                try
+                {
+                    publicationsData =
+                        await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false,
+                            progress);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex,
+                        AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsFinalFetchAttemptFailed,
+                        languageCode);
+                }
+            }
+        }
+
+        return publicationsData;
+    }
+
+    private async Task<BiblePublicationRetryIterationOutcome> RunBiblePublicationRetryIterationAsync(
+        string languageCode,
+        string currentCategoryName,
+        bool downloadAll,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken,
+        int attempt,
+        int retryDelayBase,
+        int previousCatalogedCount)
+    {
+        var fetchedWithProgress =
+            await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
+
+        await Task.Delay(500, cancellationToken);
+
+        var reQueriedData =
+            await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
+
+        var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
+        var retryActualCount = reQueriedData?.Values.Count ?? 0;
+        var retryHasAllExpected = retryActualCount >= retryExpectedCount;
+        var retryAllCataloged = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 &&
+            reQueriedData.Values.All(IsPublicationFullyCataloged);
+
+        if (retryAllCataloged)
+        {
+            return BiblePublicationRetryIterationOutcome.ForSuccess(reQueriedData!, retryExpectedCount);
+        }
+
+        var currentCatalogedCount = reQueriedData?.Values.Count(IsPublicationFullyCataloged) ?? 0;
+
+        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
+        {
+            Log.Information(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsNoProgressBetweenRetriesStopping,
+                currentCatalogedCount, retryExpectedCount, languageCode, currentCategoryName);
+            return BiblePublicationRetryIterationOutcome.ForStagnation(reQueriedData);
+        }
+
+        LogBiblePublicationRetryAttemptDiagnostics(attempt, reQueriedData, retryHasAllExpected, retryActualCount,
+            retryExpectedCount);
+
+        var delay = Math.Min(retryDelayBase * attempt, 5000);
+        await Task.Delay(delay, cancellationToken);
+
+        return BiblePublicationRetryIterationOutcome.ForContinue(fetchedWithProgress, currentCatalogedCount);
+    }
+
+    private void LogBiblePublicationRetryAttemptDiagnostics(
+        int attempt,
+        Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? reQueriedData,
+        bool retryHasAllExpected,
+        int retryActualCount,
+        int retryExpectedCount)
+    {
+        if (reQueriedData != null)
+        {
+            var placeholders = reQueriedData.Values.Where(p => !IsPublicationFullyCataloged(p)).Select(p => p.PublicationCode).ToList();
+
+            if (placeholders.Count > 0)
+            {
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptStillWaitingForPlaceholders,
+                    attempt, placeholders.Count, string.Join(", ", placeholders));
+                return;
+            }
+
+            if (!retryHasAllExpected)
+            {
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptPartialCountWillRetry,
+                    attempt, retryActualCount, retryExpectedCount);
+            }
+
+            return;
+        }
+
+        Log.Debug(AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptNoPublicationsYetWillRetry,
+            attempt);
+    }
+
+    private sealed record BiblePublicationRetryIterationOutcome(
+        bool Completed,
+        bool LogSuccess,
+        bool BreakRetries,
+        Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? NextSnapshot,
+        int ExpectedCountForLog,
+        int UpdatedCatalogedCount)
+    {
+        public static BiblePublicationRetryIterationOutcome ForSuccess(
+            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication> reQueried,
+            int expectedCount) =>
+            new(true, LogSuccess: true, BreakRetries: false, NextSnapshot: reQueried, ExpectedCountForLog: expectedCount,
+                UpdatedCatalogedCount: -1);
+
+        public static BiblePublicationRetryIterationOutcome ForStagnation(
+            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? reQueried) =>
+            new(false, LogSuccess: false, BreakRetries: true, NextSnapshot: reQueried, ExpectedCountForLog: 0,
+                UpdatedCatalogedCount: -1);
+
+        public static BiblePublicationRetryIterationOutcome ForContinue(
+            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? fetchedWithProgress,
+            int updatedCatalogedCount) =>
+            new(false, LogSuccess: false, BreakRetries: false, NextSnapshot: fetchedWithProgress,
+                ExpectedCountForLog: 0,
+                UpdatedCatalogedCount: updatedCatalogedCount);
     }
 
     private async Task DispatchDefaultPublicationAsync(

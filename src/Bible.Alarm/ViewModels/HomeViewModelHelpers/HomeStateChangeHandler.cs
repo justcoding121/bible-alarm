@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Enums;
@@ -48,6 +49,12 @@ public class HomeStateChangeHandler
     private ObservableHashSet<ScheduleListItemViewModel>? deferredNewSchedules;
     private Dictionary<int, SchedulePropertySnapshot>? deferredScheduleProperties;
 
+    private readonly record struct ScheduleProcessingInputs(
+        bool UnchangedSinceLastProcessed,
+        HashSet<int> CurrentScheduleIds,
+        Dictionary<int, SchedulePropertySnapshot> CurrentScheduleProperties,
+        bool SchedulePropertiesChanged);
+
     public HomeStateChangeHandler(HomeStateChangeHandlerDeps deps, HomeStateChangeHandlerCallbacks callbacks)
     {
         logger = deps.Logger;
@@ -65,188 +72,191 @@ public class HomeStateChangeHandler
 
     public async Task HandleStateChangedAsync(ApplicationState stateValue)
     {
-        var deferReorder = false;
-        if (stateValue.Schedules != null)
+        if (stateValue.Schedules == null)
         {
-            // Check if Schedules collection has actually changed
-            var currentScheduleIds = new HashSet<int>(stateValue.Schedules.Where(s => s.Id > 0).Select(s => s.Id));
-            var schedulesCountChanged = lastProcessedSchedulesCount != stateValue.Schedules.Count;
-            var scheduleIdsChanged = lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
+            ApplySchedulesClearedTelemetry();
+            return;
+        }
 
-            // Check if schedule properties (like track number, name, time, days of week, last played) have changed
-            var currentScheduleProperties = BuildSchedulePropertiesMap(stateValue.Schedules);
-            var schedulePropertiesChanged = SchedulePropertiesHaveChanged(lastProcessedScheduleProperties, currentScheduleProperties);
+        await ApplySchedulesStateChangeAsync(stateValue.Schedules);
+    }
 
-            if (!schedulesCountChanged && !scheduleIdsChanged && !schedulePropertiesChanged && lastProcessedScheduleIds != null)
-            {
-                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.SkippingProcessingSchedulesUnchangedCount, stateValue.Schedules.Count);
+    private void ApplySchedulesClearedTelemetry()
+    {
+        logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.StateSchedulesNullShowingLoading);
+        updateProgressBarVisibility();
+        lastProcessedSchedulesCount = null;
+        lastProcessedScheduleIds = null;
+        lastProcessedScheduleProperties = null;
+    }
 
-                // Even if skipping processing, ensure progress bar is hidden if we have schedules
-                if (stateValue.Schedules.Count > 0 && getIsBusy())
-                {
-                    // Fade out first, then set IsBusy to false
-                    // This ensures smooth animation before UpdateVisibility snaps opacity to 0
-                    await fadeOutProgressBarAsync();
-                    setIsBusy(false);
-                }
-                return;
-            }
+    private ScheduleProcessingInputs BuildScheduleProcessingInputs(ObservableHashSet<ScheduleStateItem> schedules)
+    {
+        var currentScheduleIds = new HashSet<int>(schedules.Where(s => s.Id > 0).Select(s => s.Id));
+        var schedulesCountChanged = lastProcessedSchedulesCount != schedules.Count;
+        var scheduleIdsChanged =
+            lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
+        var currentScheduleProperties = BuildSchedulePropertiesMap(schedules);
+        var schedulePropertiesChanged =
+            SchedulePropertiesHaveChanged(lastProcessedScheduleProperties, currentScheduleProperties);
 
-            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ProcessingSchedulesFromStateCurrentCollectionCount,
-                stateValue.Schedules.Count, getSchedules()?.Count ?? 0);
+        var unchanged = lastProcessedScheduleIds != null && !schedulesCountChanged && !scheduleIdsChanged &&
+                        !schedulePropertiesChanged;
 
-            var hadSchedules = getSchedules() != null && getSchedules()!.Count > 0;
-            var previousScheduleCount = getSchedules()?.Count ?? 0;
-            var currentScheduleCount = stateValue.Schedules.Count;
+        return new ScheduleProcessingInputs(
+            unchanged,
+            currentScheduleIds,
+            currentScheduleProperties,
+            schedulePropertiesChanged);
+    }
 
-            // If we had schedules but now don't (cleared), reset progress bar flag
-            if (hadSchedules && (stateValue.Schedules == null || stateValue.Schedules.Count == 0))
-            {
-                setIsBusy(true);
-                updateProgressBarVisibility();
-            }
+    private async Task ApplySchedulesStateChangeAsync(ObservableHashSet<ScheduleStateItem> schedules)
+    {
+        var inputs = BuildScheduleProcessingInputs(schedules);
 
-            // Prepare data structures off UI thread
-            var (scheduleDataMap, scheduleStateItemMap) = await Task.Run(() =>
-            {
-                return dataPreparer.PrepareScheduleDataOffUIThread(stateValue.Schedules ?? new ObservableHashSet<ScheduleStateItem>());
-            });
+        if (inputs.UnchangedSinceLastProcessed)
+        {
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.SkippingProcessingSchedulesUnchangedCount, schedules.Count);
 
-            // Prepare ViewModels and collection on UI thread
-            var currentSchedules = getSchedules() ?? new ObservableHashSet<ScheduleListItemViewModel>();
-
-            // Capture the pre-mutation sort order so we can detect whether items actually moved.
-            // PrepareScheduleViewModelsOnUIThread mutates existing VM instances (via InitializeFromSchedule),
-            // which changes LastPlayedAtUtc and invalidates the SortedSet's internal ordering.
-            // We must snapshot the order NOW before those mutations happen.
-            var oldScheduleOrder = currentSchedules.Select(vm => vm.ScheduleId).ToList();
-
-            var (schedulesToAdd, schedulesToRemove, newSchedules) = viewModelManager.PrepareScheduleViewModelsOnUIThread(
-                scheduleDataMap,
-                scheduleStateItemMap,
-                currentSchedules);
-
-            // newSchedules is a fresh ObservableHashSet built from the mutated VMs, so its iteration
-            // order reflects the true post-mutation sort order.
-            var newScheduleOrder = newSchedules?.Select(vm => vm.ScheduleId).ToList() ?? [];
-            var orderChanged = !oldScheduleOrder.SequenceEqual(newScheduleOrder);
-            var hasSchedulesNow = newSchedules != null && newSchedules.Count > 0;
-
-            // Show progress bar when delete is detected
-            if (schedulesToRemove.Count > 0 && previousScheduleCount > currentScheduleCount)
-            {
-                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.DeleteDetectedShowingProgressRemovingCount, schedulesToRemove.Count);
-                setIsBusy(true);
-                updateProgressBarVisibility();
-            }
-
-            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PreparedAddRemoveTotalsHasSchedulesNow,
-                schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
-
-            var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
-            var fadeDeferredForInitialLoad = false;
-
-            if (isInitialLoad && hasSchedulesNow && newSchedules != null)
-            {
-                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.InitialLoadSettingSchedulesCount, newSchedules.Count);
-
-                SyncCollectionToNewSchedules(newSchedules);
-                notifySchedulesChanged?.Invoke();
-                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.InitialLoadCompleteDeferringProgressBarHideUntilItemsRender, newSchedules.Count);
-
-                fadeDeferredForInitialLoad = true;
-                _ = DeferProgressBarHideUntilListRenderedAsync();
-            }
-            else if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
-            {
-                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.UpdatingCollectionAddingRemoving,
-                    schedulesToAdd.Count, schedulesToRemove.Count);
-
-                if (newSchedules != null)
-                {
-                    SyncCollectionToNewSchedules(newSchedules);
-                    notifySchedulesChanged?.Invoke();
-                    logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.CollectionUpdatedNowHasCount, getSchedules()?.Count ?? 0);
-                }
-
-                if (schedulesToRemove.Count > 0)
-                {
-                    await fadeOutProgressBarAsync();
-                    setIsBusy(false);
-                }
-            }
-            else
-            {
-                // No add/remove, but schedule properties (e.g. LastPlayedAtUtc) may have changed — sync to reorder
-                deferReorder = schedulePropertiesChanged && orderChanged && newSchedules != null && newSchedules.Count > 0 && isPlaybackModalVisible();
-                if (schedulePropertiesChanged && newSchedules != null && newSchedules.Count > 0 && !deferReorder)
-                {
-                    if (orderChanged)
-                    {
-                        // Items moved positions (e.g. a different schedule became most-recently-played).
-                        // Replace the collection so the CollectionView reflects the new sort order.
-                        logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedSortOrderChangedSyncingCollectionToReorder);
-                        SyncCollectionToNewSchedules(newSchedules);
-                        notifySchedulesChanged?.Invoke();
-                    }
-                    else
-                    {
-                        // Only metadata changed (e.g. track/section code during playback transition).
-                        // The ScheduleListItemViewModel instances were already updated in-place by
-                        // PrepareScheduleViewModelsOnUIThread via InitializeFromSchedule, which fires
-                        // INotifyPropertyChanged. The CollectionView cells update through their bindings
-                        // without a collection change event, so no ItemsSource replacement is needed.
-                        // Replacing ItemsSource on WinUI causes a full re-render of the entire list,
-                        // which is the bug this branch avoids.
-                        logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedSortOrderUnchangedSkippingCollectionSync);
-                    }
-                }
-                else if (deferReorder)
-                {
-                    logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedPlaybackModalVisibleDeferringListReorder);
-                    deferredNewSchedules = newSchedules;
-                    deferredScheduleProperties = currentScheduleProperties;
-                }
-                else if (stateValue.Schedules != null)
-                {
-                    viewModelManager.UpdateScheduleViewModels(stateValue.Schedules);
-                }
-
-                if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
-                {
-                    logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.DeleteRollbackDetectedHidingProgressBar);
-                    // Fade out first, then set IsBusy to false
-                    await fadeOutProgressBarAsync();
-                    setIsBusy(false);
-                }
-            }
-
-            // Hide progress bar for non-initial-load cases (e.g., schedule updates)
-            // Initial load defers the hide until list items are rendered
-            if (hasSchedulesNow && getIsBusy() && !fadeDeferredForInitialLoad)
+            if (schedules.Count > 0 && getIsBusy())
             {
                 await fadeOutProgressBarAsync();
                 setIsBusy(false);
             }
+            return;
+        }
 
-            // Update last processed state
-            if (stateValue.Schedules != null)
+        logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ProcessingSchedulesFromStateCurrentCollectionCount,
+            schedules.Count, getSchedules()?.Count ?? 0);
+
+        var deferReorder = false;
+        var hadSchedules = getSchedules() != null && getSchedules()!.Count > 0;
+        var previousScheduleCount = getSchedules()?.Count ?? 0;
+        var currentScheduleCount = schedules.Count;
+
+        if (hadSchedules && schedules.Count == 0)
+        {
+            setIsBusy(true);
+            updateProgressBarVisibility();
+        }
+
+        var (scheduleDataMap, scheduleStateItemMap) = await Task.Run(() =>
+            dataPreparer.PrepareScheduleDataOffUIThread(schedules));
+
+        var currentSchedules = getSchedules() ?? new ObservableHashSet<ScheduleListItemViewModel>();
+
+        var oldScheduleOrder = currentSchedules.Select(vm => vm.ScheduleId).ToList();
+
+        var (schedulesToAdd, schedulesToRemove, newSchedules) = viewModelManager.PrepareScheduleViewModelsOnUIThread(
+            scheduleDataMap,
+            scheduleStateItemMap,
+            currentSchedules);
+
+        var newScheduleOrder = newSchedules?.Select(vm => vm.ScheduleId).ToList() ?? [];
+        var orderChanged = !oldScheduleOrder.SequenceEqual(newScheduleOrder);
+        var hasSchedulesNow = newSchedules != null && newSchedules.Count > 0;
+
+        if (schedulesToRemove.Count > 0 && previousScheduleCount > currentScheduleCount)
+        {
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.DeleteDetectedShowingProgressRemovingCount, schedulesToRemove.Count);
+            setIsBusy(true);
+            updateProgressBarVisibility();
+        }
+
+        logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PreparedAddRemoveTotalsHasSchedulesNow,
+            schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
+
+        var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
+        var fadeDeferredForInitialLoad = false;
+
+        if (isInitialLoad && hasSchedulesNow && newSchedules != null)
+        {
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.InitialLoadSettingSchedulesCount, newSchedules.Count);
+
+            SyncCollectionToNewSchedules(newSchedules);
+            notifySchedulesChanged?.Invoke();
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.InitialLoadCompleteDeferringProgressBarHideUntilItemsRender,
+                newSchedules.Count);
+
+            fadeDeferredForInitialLoad = true;
+            _ = DeferProgressBarHideUntilListRenderedAsync();
+        }
+        else if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
+        {
+            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.UpdatingCollectionAddingRemoving,
+                schedulesToAdd.Count, schedulesToRemove.Count);
+
+            if (newSchedules != null)
             {
-                lastProcessedSchedulesCount = stateValue.Schedules.Count;
-                lastProcessedScheduleIds = currentScheduleIds;
-                if (!deferReorder)
-                {
-                    lastProcessedScheduleProperties = currentScheduleProperties;
-                }
+                SyncCollectionToNewSchedules(newSchedules);
+                notifySchedulesChanged?.Invoke();
+                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.CollectionUpdatedNowHasCount, getSchedules()?.Count ?? 0);
+            }
+
+            if (schedulesToRemove.Count > 0)
+            {
+                await fadeOutProgressBarAsync();
+                setIsBusy(false);
             }
         }
         else
         {
-            logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.StateSchedulesNullShowingLoading);
-            updateProgressBarVisibility();
-            lastProcessedSchedulesCount = null;
-            lastProcessedScheduleIds = null;
-            lastProcessedScheduleProperties = null;
+            deferReorder =
+                inputs.SchedulePropertiesChanged &&
+                orderChanged &&
+                newSchedules != null &&
+                newSchedules.Count > 0 &&
+                isPlaybackModalVisible();
+
+            if (inputs.SchedulePropertiesChanged &&
+                newSchedules != null &&
+                newSchedules.Count > 0 &&
+                !deferReorder)
+            {
+                if (orderChanged)
+                {
+                    logger.Debug(
+                        AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedSortOrderChangedSyncingCollectionToReorder);
+                    SyncCollectionToNewSchedules(newSchedules);
+                    notifySchedulesChanged?.Invoke();
+                }
+                else
+                {
+                    logger.Debug(
+                        AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedSortOrderUnchangedSkippingCollectionSync);
+                }
+            }
+            else if (deferReorder)
+            {
+                logger.Debug(
+                    AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedPlaybackModalVisibleDeferringListReorder);
+                deferredNewSchedules = newSchedules;
+                deferredScheduleProperties = inputs.CurrentScheduleProperties;
+            }
+            else
+            {
+                viewModelManager.UpdateScheduleViewModels(schedules);
+            }
+
+            if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
+            {
+                logger.Debug(AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.DeleteRollbackDetectedHidingProgressBar);
+                await fadeOutProgressBarAsync();
+                setIsBusy(false);
+            }
+        }
+
+        if (hasSchedulesNow && getIsBusy() && !fadeDeferredForInitialLoad)
+        {
+            await fadeOutProgressBarAsync();
+            setIsBusy(false);
+        }
+
+        lastProcessedSchedulesCount = schedules.Count;
+        lastProcessedScheduleIds = inputs.CurrentScheduleIds;
+        if (!deferReorder)
+        {
+            lastProcessedScheduleProperties = inputs.CurrentScheduleProperties;
         }
     }
 

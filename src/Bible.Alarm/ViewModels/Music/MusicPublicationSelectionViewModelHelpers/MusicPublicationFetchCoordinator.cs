@@ -1,12 +1,14 @@
 #nullable enable
 
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
 
 namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 
@@ -26,7 +28,6 @@ internal sealed class MusicPublicationFetchCoordinator
         IFetchProgress? progress,
         CancellationToken cancellationToken = default)
     {
-        // Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
         var isMelodyMusic = string.IsNullOrEmpty(current?.LanguageCode) && string.IsNullOrEmpty(languageCode);
         var effectiveLanguageCode = isMelodyMusic ? AppConstants.Media.DefaultLanguageCode : languageCode;
 
@@ -34,16 +35,17 @@ internal sealed class MusicPublicationFetchCoordinator
             return null;
 
         var languageForFetch = effectiveLanguageCode!;
-        Dictionary<string, BiblePublication>? publicationsData = null;
+        Dictionary<string, BiblePublication>? publicationsData;
 
         if (downloadAll)
         {
-            // Always check DB first: if all expected publications are already cataloged, use that and skip fetch/progress (matches Bible).
-            var initialPublications = await mediaService.GetBiblePublications(languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
-            var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
-            var allPublicationsCataloged = ArePublicationsFullyCataloged(initialPublications, expectedPublicationCount);
-
-            if (allPublicationsCataloged)
+            var initialPublications =
+                await mediaService.GetBiblePublications(languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic,
+                    downloadAll: false, null, requireIsMusicForMusicCategory: true);
+            var expectedPublicationCount =
+                await mediaService.GetExpectedPublicationCountAsync(languageForFetch,
+                    AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
+            if (ArePublicationsFullyCataloged(initialPublications, expectedPublicationCount))
             {
                 Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedAlreadyCatalogedSkippingFetch,
                     expectedPublicationCount, languageForFetch, AppConstants.Media.BiblePublicationCategoryMusic);
@@ -53,25 +55,32 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (isMelodyMusic)
         {
-            publicationsData = await mediaService.GetBiblePublications(AppConstants.Media.DefaultLanguageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData = await mediaService.GetBiblePublications(AppConstants.Media.DefaultLanguageCode,
+                AppConstants.Media.BiblePublicationCategoryMusic, downloadAll, progress,
+                requireIsMusicForMusicCategory: true);
         }
         else if (!string.IsNullOrEmpty(languageCode))
         {
-            publicationsData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData =
+                await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
+                    downloadAll, progress, requireIsMusicForMusicCategory: true);
         }
         else
         {
             return null;
         }
 
-        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+        if (downloadAll && !string.IsNullOrEmpty(languageCode) &&
+            !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             publicationsData = await RetryFetchUntilCatalogedAsync(languageCode, progress, cancellationToken);
         }
 
         if (publicationsData == null && !string.IsNullOrEmpty(languageCode))
         {
-            publicationsData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll, progress, requireIsMusicForMusicCategory: true);
+            publicationsData =
+                await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
+                    downloadAll, progress, requireIsMusicForMusicCategory: true);
         }
 
         return publicationsData;
@@ -97,32 +106,26 @@ internal sealed class MusicPublicationFetchCoordinator
     }
 
     private async Task<Dictionary<string, BiblePublication>?> RetryFetchUntilCatalogedAsync(
-        string languageCode, 
+        string languageCode,
         IFetchProgress? progress,
         CancellationToken cancellationToken)
     {
-        // First, check if publications are already cataloged (without showing progress)
-        // This prevents progress bar from flashing at 0% when data is already available
-        var initialPublications = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
-        
-        // Get expected publication count from PublicationLanguages discovery table
-        var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
-        var allPublicationsCataloged = ArePublicationsFullyCataloged(initialPublications, expectedPublicationCount);
+        var initialPublications =
+            await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
+                downloadAll: false, null, requireIsMusicForMusicCategory: true);
 
-        if (allPublicationsCataloged)
+        var expectedPublicationCount =
+            await mediaService.GetExpectedPublicationCountAsync(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
+                requireIsMusicForMusicCategory: true);
+        if (ArePublicationsFullyCataloged(initialPublications, expectedPublicationCount))
         {
-            // All expected publications are already cataloged - use the initial query result, no need to show progress
             Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedAlreadyCatalogedSkippingFetch,
                 expectedPublicationCount, languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
             return initialPublications;
         }
 
-        // Publications are not fully cataloged - show progress and retry fetching
-        // Up to 10 retries
         const int maxRetries = 10;
-        // Start with 1 second
         var retryDelay = 1000;
-        // Total max wait time of 60 seconds
         var maxWaitTime = TimeSpan.FromSeconds(60);
         var startTime = DateTime.UtcNow;
         var allCataloged = false;
@@ -132,7 +135,6 @@ internal sealed class MusicPublicationFetchCoordinator
         Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.StartingFetchWithRetries,
             languageCode, AppConstants.Media.BiblePublicationCategoryMusic);
 
-        // Show progress overlay at the start of retry loop and keep it visible throughout all retries
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.0);
 
@@ -142,94 +144,48 @@ internal sealed class MusicPublicationFetchCoordinator
         {
             while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
             {
-                // Check for cancellation before each attempt
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 attempt++;
 
                 try
                 {
-                    // Fetch publications (this triggers cataloging if needed)
-                    // Pass progress to show download percentage during cataloging
-                    publicationsData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: true, progress, requireIsMusicForMusicCategory: true);
+                    var outcome =
+                        await RunMusicPublicationRetryIterationAsync(languageCode, progress, cancellationToken, attempt,
+                            retryDelay, previousCatalogedCount);
 
-                    // Wait a bit for background cataloging to start (with cancellation support)
-                    await Task.Delay(500, cancellationToken);
-
-                    // Re-query to check if publications are now cataloged (no progress needed for re-query)
-                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, null, requireIsMusicForMusicCategory: true);
-
-                    // Get expected publication count to verify we have all publications
-                    var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
-                    var retryActualCount = reQueriedData?.Values.Count ?? 0;
-                    var retryHasAllExpected = retryActualCount >= retryExpectedCount;
-                    var retryAllCataloged = ArePublicationsFullyCataloged(reQueriedData, retryExpectedCount);
-
-                    if (retryAllCataloged)
+                    publicationsData = outcome.NextSnapshot;
+                    if (outcome.Completed)
                     {
-                        publicationsData = reQueriedData;
                         allCataloged = true;
-                        Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
-                            retryExpectedCount, attempt, languageCode);
+                        if (outcome.LogSuccess)
+                        {
+                            Serilog.Log.Information(
+                                AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
+                                outcome.ExpectedCount, attempt, languageCode);
+                        }
+                    }
+                    else if (outcome.BreakRetries)
+                    {
+                        break;
                     }
                     else
                     {
-                        var currentCatalogedCount = CountCatalogedPublications(reQueriedData);
-
-                        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
-                        {
-                            Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.NoProgressBetweenRetriesStopping,
-                                currentCatalogedCount, retryExpectedCount, languageCode);
-                            publicationsData = reQueriedData;
-                            break;
-                        }
-                        previousCatalogedCount = currentCatalogedCount;
-
-                        // Log which publications are still placeholders or missing for debugging
-                        if (reQueriedData != null)
-                        {
-                            var placeholders = reQueriedData.Values.Where(p =>
-                                string.IsNullOrEmpty(p.Name) ||
-                                string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) ||
-                                p.Id == 0).Select(p => p.PublicationCode).ToList();
-
-                            if (placeholders.Count > 0)
-                            {
-                                Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptStillWaitingForPlaceholders,
-                                    attempt, placeholders.Count, string.Join(", ", placeholders));
-                            }
-                            else if (!retryHasAllExpected)
-                            {
-                                Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptPartialPublicationsRetry,
-                                    attempt, retryActualCount, retryExpectedCount);
-                            }
-                        }
-                        else
-                        {
-                            Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptNoPublicationsYetRetry,
-                                attempt);
-                        }
-
-                        // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
-                        var delay = Math.Min(retryDelay * attempt, 5000);
-                        await Task.Delay(delay, cancellationToken);
+                        previousCatalogedCount = outcome.UpdatedCatalogedCount;
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Re-throw cancellation - data saved so far is preserved
-                    throw;
-                }
-                catch (System.Net.Http.HttpRequestException)
-                {
-                    throw;
-                }
-                catch (System.Net.Sockets.SocketException)
-                {
-                    throw;
                 }
                 catch (Exception ex)
                 {
+                    switch (ex)
+                    {
+                        case OperationCanceledException:
+                            throw;
+                        case System.Net.Http.HttpRequestException:
+                            throw;
+                        case System.Net.Sockets.SocketException:
+                            throw;
+                    }
+
                     if (NetworkExceptionHelper.IsNetworkFailure(ex))
                     {
                         throw;
@@ -238,7 +194,6 @@ internal sealed class MusicPublicationFetchCoordinator
                     Serilog.Log.Warning(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry,
                         attempt, languageCode);
 
-                    // Wait before retrying on exception (with cancellation support)
                     var delay = Math.Min(retryDelay * attempt, 5000);
                     await Task.Delay(delay, cancellationToken);
                 }
@@ -246,7 +201,6 @@ internal sealed class MusicPublicationFetchCoordinator
         }
         finally
         {
-            // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
             progress?.SetIsVisible(false);
         }
 
@@ -255,13 +209,14 @@ internal sealed class MusicPublicationFetchCoordinator
             Serilog.Log.Warning(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.TimeoutAfterAttemptsWaitingForCatalog,
                 attempt, languageCode);
 
-            // Use the last fetched data even if not all are cataloged
             if (publicationsData == null || publicationsData.Count == 0)
             {
-                // Final attempt to get at least some data
                 try
                 {
-                    publicationsData = await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic, downloadAll: false, progress, requireIsMusicForMusicCategory: true);
+                    publicationsData =
+                        await mediaService.GetBiblePublications(languageCode,
+                            AppConstants.Media.BiblePublicationCategoryMusic,
+                            downloadAll: false, progress, requireIsMusicForMusicCategory: true);
                 }
                 catch (Exception ex)
                 {
@@ -272,5 +227,115 @@ internal sealed class MusicPublicationFetchCoordinator
         }
 
         return publicationsData;
+    }
+
+    private async Task<MusicPublicationRetryIterationOutcome> RunMusicPublicationRetryIterationAsync(
+        string languageCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken,
+        int attempt,
+        int retryDelayBase,
+        int previousCatalogedCount)
+    {
+        var fetchedWithProgress =
+            await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
+                downloadAll: true, progress, requireIsMusicForMusicCategory: true);
+
+        await Task.Delay(500, cancellationToken);
+
+        var reQueriedData =
+            await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
+                downloadAll: false, null, requireIsMusicForMusicCategory: true);
+
+        var retryExpectedCount =
+            await mediaService.GetExpectedPublicationCountAsync(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
+                requireIsMusicForMusicCategory: true);
+        var retryActualCount = reQueriedData?.Values.Count ?? 0;
+        var retryHasAllExpected = retryActualCount >= retryExpectedCount;
+        var retryAllCataloged = ArePublicationsFullyCataloged(reQueriedData, retryExpectedCount);
+
+        if (retryAllCataloged)
+        {
+            return MusicPublicationRetryIterationOutcome.ForSuccess(reQueriedData!, retryExpectedCount);
+        }
+
+        var currentCatalogedCount = CountCatalogedPublications(reQueriedData);
+
+        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
+        {
+            Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.NoProgressBetweenRetriesStopping,
+                currentCatalogedCount, retryExpectedCount, languageCode);
+            return MusicPublicationRetryIterationOutcome.ForStagnation(reQueriedData);
+        }
+
+        LogMusicPublicationRetryDiagnostics(attempt, reQueriedData, retryHasAllExpected, retryActualCount,
+            retryExpectedCount);
+
+        var delay = Math.Min(retryDelayBase * attempt, 5000);
+        await Task.Delay(delay, cancellationToken);
+
+        return MusicPublicationRetryIterationOutcome.ForContinue(fetchedWithProgress, currentCatalogedCount);
+    }
+
+    private void LogMusicPublicationRetryDiagnostics(
+        int attempt,
+        Dictionary<string, BiblePublication>? reQueriedData,
+        bool retryHasAllExpected,
+        int retryActualCount,
+        int retryExpectedCount)
+    {
+        if (reQueriedData != null)
+        {
+            var placeholders = reQueriedData.Values
+                .Where(static p =>
+                    string.IsNullOrEmpty(p.Name) ||
+                    string.Equals(p.Name, p.PublicationCode, StringComparison.OrdinalIgnoreCase) ||
+                    p.Id == 0)
+                .Select(p => p.PublicationCode)
+                .ToList();
+
+            if (placeholders.Count > 0)
+            {
+                Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptStillWaitingForPlaceholders,
+                    attempt, placeholders.Count, string.Join(", ", placeholders));
+                return;
+            }
+
+            if (!retryHasAllExpected)
+            {
+                Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptPartialPublicationsRetry,
+                    attempt, retryActualCount, retryExpectedCount);
+            }
+
+            return;
+        }
+
+        Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptNoPublicationsYetRetry,
+            attempt);
+    }
+
+    private sealed record MusicPublicationRetryIterationOutcome(
+        bool Completed,
+        bool LogSuccess,
+        bool BreakRetries,
+        Dictionary<string, BiblePublication>? NextSnapshot,
+        int ExpectedCount,
+        int UpdatedCatalogedCount)
+    {
+        public static MusicPublicationRetryIterationOutcome ForSuccess(
+            Dictionary<string, BiblePublication> reQueried,
+            int expectedCount) =>
+            new(true, LogSuccess: true, BreakRetries: false, NextSnapshot: reQueried, ExpectedCount: expectedCount,
+                UpdatedCatalogedCount: -1);
+
+        public static MusicPublicationRetryIterationOutcome ForStagnation(Dictionary<string, BiblePublication>? reQueried) =>
+            new(false, LogSuccess: false, BreakRetries: true, NextSnapshot: reQueried, ExpectedCount: 0,
+                UpdatedCatalogedCount: -1);
+
+        public static MusicPublicationRetryIterationOutcome ForContinue(
+            Dictionary<string, BiblePublication>? reQueried,
+            int updatedCatalogedCount) =>
+            new(false, LogSuccess: false, BreakRetries: false, NextSnapshot: reQueried, ExpectedCount: 0,
+                UpdatedCatalogedCount: updatedCatalogedCount);
     }
 }
