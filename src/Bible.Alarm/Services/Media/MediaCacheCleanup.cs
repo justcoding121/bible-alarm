@@ -238,6 +238,60 @@ internal static class MediaCacheCleanup
         return Task.CompletedTask;
     }
 
+    private static async Task DeleteEntireScheduleCacheFolderAsync(DeleteScheduleCacheArgs args, string scheduleCacheFolder, int scheduleId)
+    {
+        if (!await args.StorageService.DirectoryExists(scheduleCacheFolder))
+            return;
+
+        var filesToDelete = await args.StorageService.GetAllFiles(scheduleCacheFolder);
+        await DeleteFilesAsync(args.Logger, args.StorageService, args.InProgressDownloads, args.GetCacheFileName, new HashSet<string>(filesToDelete, StringComparer.Ordinal));
+        await args.StorageService.DeleteDirectory(scheduleCacheFolder);
+        args.Logger.Information("Deleted entire cache folder for deleted schedule {ScheduleId} ({Count} files)",
+            scheduleId,
+            filesToDelete.Count);
+    }
+
+    private static async Task AppendIndefinitePlaylistNeighborsAsync(
+        IPlaylistService mediaPlayService,
+        AlarmSchedule schedule,
+        List<PlayItem> newPlaylist)
+    {
+        if (schedule.NumberOfTracksToPlay > 0 || newPlaylist.Count == 0)
+            return;
+
+        var anchorMetadata = newPlaylist[newPlaylist.Count - 1].Metadata;
+        try
+        {
+            newPlaylist.Add(await mediaPlayService.GetNextPlayItemAsync(anchorMetadata));
+        }
+        catch (Exception)
+        {
+            // Ignore
+        }
+
+        try
+        {
+            newPlaylist.Add(await mediaPlayService.GetPreviousPlayItemAsync(anchorMetadata));
+        }
+        catch (Exception)
+        {
+            // Ignore
+        }
+    }
+
+    private static HashSet<string> CollectCacheFilePathsOutsideKeepSet(IEnumerable<string> allFiles, HashSet<string> keepFileNames)
+    {
+        var filePathsToDelete = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var filePath in allFiles)
+        {
+            var fileName = Path.GetFileName(filePath);
+            if (!keepFileNames.Contains(fileName))
+                filePathsToDelete.Add(filePath);
+        }
+
+        return filePathsToDelete;
+    }
+
     internal static async Task DeleteScheduleCacheAsync(DeleteScheduleCacheArgs args)
     {
         var scheduleId = args.ScheduleId;
@@ -260,17 +314,7 @@ internal static class MediaCacheCleanup
 
             if (schedule == null)
             {
-                // Schedule was deleted - delete entire folder
-                if (await args.StorageService.DirectoryExists(scheduleCacheFolder))
-                {
-                    var filesToDelete = await args.StorageService.GetAllFiles(scheduleCacheFolder);
-                    await DeleteFilesAsync(args.Logger, args.StorageService, args.InProgressDownloads, args.GetCacheFileName, new HashSet<string>(filesToDelete, StringComparer.Ordinal));
-                    await args.StorageService.DeleteDirectory(scheduleCacheFolder);
-                    args.Logger.Information("Deleted entire cache folder for deleted schedule {ScheduleId} ({Count} files)",
-                        scheduleId,
-                        filesToDelete.Count);
-                }
-
+                await DeleteEntireScheduleCacheFolderAsync(args, scheduleCacheFolder, scheduleId);
                 return;
             }
 
@@ -289,29 +333,7 @@ internal static class MediaCacheCleanup
                 return;
             }
 
-            // For indefinite playback schedules, keep a small lookaround window (prev + next)
-            // so we don't delete tracks that were downloaded opportunistically.
-            if (schedule.NumberOfTracksToPlay <= 0 && newPlaylist.Count > 0)
-            {
-                var anchorMetadata = newPlaylist[newPlaylist.Count - 1].Metadata;
-                try
-                {
-                    newPlaylist.Add(await args.MediaPlayService.GetNextPlayItemAsync(anchorMetadata));
-                }
-                catch (Exception)
-                {
-                    // Ignore
-                }
-
-                try
-                {
-                    newPlaylist.Add(await args.MediaPlayService.GetPreviousPlayItemAsync(anchorMetadata));
-                }
-                catch (Exception)
-                {
-                    // Ignore
-                }
-            }
+            await AppendIndefinitePlaylistNeighborsAsync(args.MediaPlayService, schedule, newPlaylist);
 
             var keepFileNames = new HashSet<string>(
                 newPlaylist.Select(pi => args.GetCacheFileName(pi.Metadata.LookUpPath)),
@@ -326,19 +348,7 @@ internal static class MediaCacheCleanup
 
             var allFiles = await args.StorageService.GetAllFiles(scheduleCacheFolder);
 
-            // Delete files that don't match the new schedule's lookup paths
-            var filePathsToDelete = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var filePath in allFiles)
-            {
-                var fileName = Path.GetFileName(filePath);
-
-                var shouldKeep = keepFileNames.Contains(fileName);
-
-                if (!shouldKeep)
-                {
-                    filePathsToDelete.Add(filePath);
-                }
-            }
+            var filePathsToDelete = CollectCacheFilePathsOutsideKeepSet(allFiles, keepFileNames);
 
             await DeleteFilesAsync(args.Logger, args.StorageService, args.InProgressDownloads, args.GetCacheFileName, filePathsToDelete);
             args.Logger.Information("Deleted {Count} cache files for schedule {ScheduleId} (kept {KeptCount} files)",

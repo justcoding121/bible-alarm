@@ -144,45 +144,16 @@ public sealed class BiblePublicationCascadeHandler
         // Cascade must fetch MINIMUM data:
         // - catalog ONLY the first viable publication (first section + tracks for first section)
         // - never ensure ALL publications or ALL sections here
-        foreach (var (pl, publicationCodeForDb) in publicationLanguages.Select(pl =>
-                     (pl, PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(pl.PublicationCode))))
+        var pickedPublication = await TryPickFirstQueryablePublicationAfterLanguageCascadeAsync(
+            publicationLanguages,
+            languageCode,
+            normalizedLanguageCode,
+            categoryName,
+            db).ConfigureAwait(false);
+        if (pickedPublication.HasValue)
         {
-            var isCataloged = await languageContentService.EnsurePublicationExistsAsync(pl.PublicationCode, languageCode);
-            if (!isCataloged)
-            {
-                logger.Debug(
-                    AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.FailedToCatalogPublicationTryingNext,
-                    pl.PublicationCode,
-                    languageCode);
-                continue;
-            }
-
-            // Invalidate cache after downloading to ensure selectability checks use fresh data
-            mediaService.InvalidateBiblePublicationsCache(languageCode, categoryName);
-
-            var canQueryWithLanguage = await db.BiblePublications
-                .AsNoTracking()
-                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
-                                bp.LanguageId != null &&
-                                bp.Language != null &&
-                                bp.Language.LanguageCode == normalizedLanguageCode);
-
-            if (!canQueryWithLanguage)
-            {
-                logger.Debug(
-                    AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCatalogedCannotQueryWithLanguageTryingNext,
-                    pl.PublicationCode,
-                    languageCode);
-                continue;
-            }
-
-            publicationCode = publicationCodeForDb;
-            publicationWithoutLanguage = false;
-            logger.Debug(
-                AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationCatalogedQueryableForLanguage,
-                publicationCode,
-                languageCode);
-            break;
+            publicationCode = pickedPublication.Value.PublicationCode;
+            publicationWithoutLanguage = pickedPublication.Value.PublicationWithoutLanguage;
         }
         
         if (string.IsNullOrEmpty(publicationCode) &&
@@ -283,6 +254,55 @@ public sealed class BiblePublicationCascadeHandler
                 trackModalItemCount,
                 publicationWithoutLanguage),
             dispatcher);
+    }
+
+    private async Task<(string PublicationCode, bool PublicationWithoutLanguage)?>
+        TryPickFirstQueryablePublicationAfterLanguageCascadeAsync(
+            List<PublicationLanguage> publicationLanguages,
+            string languageCode,
+            string normalizedLanguageCode,
+            string? categoryName,
+            MediaDbContext db)
+    {
+        foreach (var (pl, publicationCodeForDb) in publicationLanguages.Select(pl =>
+                     (pl, PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(pl.PublicationCode))))
+        {
+            var isCataloged = await languageContentService.EnsurePublicationExistsAsync(pl.PublicationCode, languageCode);
+            if (!isCataloged)
+            {
+                logger.Debug(
+                    AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.FailedToCatalogPublicationTryingNext,
+                    pl.PublicationCode,
+                    languageCode);
+                continue;
+            }
+
+            mediaService.InvalidateBiblePublicationsCache(languageCode, categoryName);
+
+            var canQueryWithLanguage = await db.BiblePublications
+                .AsNoTracking()
+                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
+                                bp.LanguageId != null &&
+                                bp.Language != null &&
+                                bp.Language.LanguageCode == normalizedLanguageCode);
+
+            if (!canQueryWithLanguage)
+            {
+                logger.Debug(
+                    AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCatalogedCannotQueryWithLanguageTryingNext,
+                    pl.PublicationCode,
+                    languageCode);
+                continue;
+            }
+
+            logger.Debug(
+                AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationCatalogedQueryableForLanguage,
+                publicationCodeForDb,
+                languageCode);
+            return (publicationCodeForDb, false);
+        }
+
+        return null;
     }
 
     private async Task<bool> TryApplyExistingPublicationCascadeAsync(

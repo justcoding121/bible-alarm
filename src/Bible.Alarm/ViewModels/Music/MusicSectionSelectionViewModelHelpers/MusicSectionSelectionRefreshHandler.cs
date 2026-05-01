@@ -37,6 +37,12 @@ public sealed class MusicSectionSelectionRefreshHandler
             }
         });
 
+    private async Task OnRepopulateFailedClearUiAsync(MusicSectionSelectionRefreshContext ctx)
+    {
+        MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
+        await HideFetchChromeKeepScreenAsync(ctx);
+    }
+
     public async Task RunRepopulationAsync(MusicSectionSelectionRefreshContext ctx, string publicationCode, IFetchProgress progressReporter)
     {
         try
@@ -78,21 +84,18 @@ public sealed class MusicSectionSelectionRefreshHandler
         catch (OperationCanceledException ex)
         {
             logger.Debug(ex, "[MusicSectionSelection] RefreshFromState - Fetch cancelled by user");
-            MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
-            await HideFetchChromeKeepScreenAsync(ctx);
+            await OnRepopulateFailedClearUiAsync(ctx);
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
-            MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
-            await HideFetchChromeKeepScreenAsync(ctx);
+            await OnRepopulateFailedClearUiAsync(ctx);
             throw new InvalidOperationException(
                 "[MusicSectionSelection] RefreshFromState - Network error during repopulation",
                 ex);
         }
         catch (Exception ex)
         {
-            MainThread.BeginInvokeOnMainThread(() => ctx.SetScreenOn(false));
-            await HideFetchChromeKeepScreenAsync(ctx);
+            await OnRepopulateFailedClearUiAsync(ctx);
             throw new InvalidOperationException(
                 "[MusicSectionSelection] RefreshFromState - Error during repopulation",
                 ex);

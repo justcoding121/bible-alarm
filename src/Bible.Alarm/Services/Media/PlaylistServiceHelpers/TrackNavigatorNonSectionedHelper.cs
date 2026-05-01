@@ -111,13 +111,13 @@ public sealed class TrackNavigatorNonSectionedHelper
         }
 
         var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
-        if (categoryInfo is not { } info || string.IsNullOrWhiteSpace(info.CategoryCode) ||
-            string.Equals(info.CategoryCode, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase) || info.IsMusic)
+        if (ShouldSkipCrossPublicationNavigation(categoryInfo))
         {
             return null;
         }
 
-        var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode);
+        var info = categoryInfo!.Value;
+        var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode!);
         var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
         if (pubIndex < 0)
         {
@@ -125,7 +125,38 @@ public sealed class TrackNavigatorNonSectionedHelper
         }
 
         var edgeLabel = navigateForward ? "first" : "last";
+        return await TryFindAdjacentPublicationCornerAsync(
+            languageCode,
+            orderedPubCodes,
+            pubIndex,
+            navigateForward,
+            edgeLabel,
+            getEndpoint,
+            sectionFetchProgress).ConfigureAwait(false);
+    }
 
+    private static bool ShouldSkipCrossPublicationNavigation((string? CategoryCode, bool IsMusic)? categoryInfo)
+    {
+        if (categoryInfo is not { } info ||
+            string.IsNullOrWhiteSpace(info.CategoryCode) ||
+            string.Equals(info.CategoryCode, AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase) ||
+            info.IsMusic)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private async System.Threading.Tasks.Task<TrackNavigationResult?> TryFindAdjacentPublicationCornerAsync(
+        string languageCode,
+        List<string> orderedPubCodes,
+        int pubIndex,
+        bool navigateForward,
+        string edgeLabel,
+        Func<string, string, IFetchProgress?, System.Threading.Tasks.Task<(BiblePublicationSection?, BiblePublicationTrack)?>> getEndpoint,
+        IFetchProgress? sectionFetchProgress)
+    {
         for (var step = 1; step <= orderedPubCodes.Count; step++)
         {
             var adjacentIndex = navigateForward

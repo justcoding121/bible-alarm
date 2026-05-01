@@ -343,73 +343,56 @@ public sealed class MusicCascadeHandler
     private static async Task<(string? PublicationCode, string? PublicationName, bool PublicationWithoutLanguage, bool NeedCatalog)>
         ResolveMusicPublicationFromLanguageDbAsync(MediaDbContext db, string languageCode)
     {
+        if (!string.IsNullOrEmpty(languageCode))
+            return await ResolveMusicPublicationWhenLanguageCodeSpecifiedAsync(db, languageCode).ConfigureAwait(false);
+
+        return await ResolveMusicPublicationWhenLanguageCodeEmptyAsync(db).ConfigureAwait(false);
+    }
+
+    private static async Task<(string? PublicationCode, string? PublicationName, bool PublicationWithoutLanguage, bool NeedCatalog)>
+        ResolveMusicPublicationWhenLanguageCodeSpecifiedAsync(MediaDbContext db, string languageCode)
+    {
         string? publicationCode = null;
         string? publicationName = null;
         var publicationWithoutLanguage = false;
         var needCatalog = false;
 
-        if (!string.IsNullOrEmpty(languageCode))
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+        var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
+        var publicationLanguage = (await db.PublicationLanguages
+                .AsNoTracking()
+                .Include(pl => pl.Language)
+                .Include(pl => pl.Category)
+                .Where(pl => pl.Language != null &&
+                            pl.Language.LanguageCode == normalizedLanguageCode &&
+                            pl.Category != null &&
+                            pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
+                .ToListAsync())
+            .OrderBy(pl => pl.PublicationCode, musicComparer)
+            .ThenBy(pl => pl.Id)
+            .FirstOrDefault();
+
+        if (publicationLanguage != null)
         {
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            var musicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
-            var publicationLanguage = (await db.PublicationLanguages
-                    .AsNoTracking()
-                    .Include(pl => pl.Language)
-                    .Include(pl => pl.Category)
-                    .Where(pl => pl.Language != null &&
-                                pl.Language.LanguageCode == normalizedLanguageCode &&
-                                pl.Category != null &&
-                                pl.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
-                    .ToListAsync())
-                .OrderBy(pl => pl.PublicationCode, musicComparer)
-                .ThenBy(pl => pl.Id)
-                .FirstOrDefault();
+            publicationCode = publicationLanguage.PublicationCode;
 
-            if (publicationLanguage != null)
-            {
-                publicationCode = publicationLanguage.PublicationCode;
+            var publication = await db.BiblePublications
+                .AsNoTracking()
+                .Where(bp => bp.PublicationCode == publicationCode &&
+                            bp.LanguageId != null &&
+                            bp.Language != null &&
+                            bp.Language.LanguageCode == normalizedLanguageCode)
+                .FirstOrDefaultAsync();
 
-                var publication = await db.BiblePublications
-                    .AsNoTracking()
-                    .Where(bp => bp.PublicationCode == publicationCode &&
-                                bp.LanguageId != null &&
-                                bp.Language != null &&
-                                bp.Language.LanguageCode == normalizedLanguageCode)
-                    .FirstOrDefaultAsync();
-
-                if (publication != null)
-                {
-                    publicationName = publication.Name;
-                }
-                else
-                {
-                    needCatalog = true;
-                }
-            }
+            if (publication != null)
+                publicationName = publication.Name;
             else
-            {
-                var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
-                var noLangPublication = (await db.BiblePublications
-                        .AsNoTracking()
-                        .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
-                                    bp.LanguageId == null)
-                        .ToListAsync())
-                    .OrderBy(bp => bp.PublicationCode, noLangMusicComparer)
-                    .ThenBy(bp => bp.Id)
-                    .FirstOrDefault();
-
-                if (noLangPublication != null)
-                {
-                    publicationCode = noLangPublication.PublicationCode;
-                    publicationName = noLangPublication.Name;
-                    publicationWithoutLanguage = true;
-                }
-            }
+                needCatalog = true;
         }
         else
         {
             var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
-            var publication = (await db.BiblePublications
+            var noLangPublication = (await db.BiblePublications
                     .AsNoTracking()
                     .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
                                 bp.LanguageId == null)
@@ -418,15 +401,41 @@ public sealed class MusicCascadeHandler
                 .ThenBy(bp => bp.Id)
                 .FirstOrDefault();
 
-            if (publication != null)
+            if (noLangPublication != null)
             {
-                publicationCode = publication.PublicationCode;
-                publicationName = publication.Name;
+                publicationCode = noLangPublication.PublicationCode;
+                publicationName = noLangPublication.Name;
                 publicationWithoutLanguage = true;
             }
         }
 
         return (publicationCode, publicationName, publicationWithoutLanguage, needCatalog);
+    }
+
+    private static async Task<(string? PublicationCode, string? PublicationName, bool PublicationWithoutLanguage, bool NeedCatalog)>
+        ResolveMusicPublicationWhenLanguageCodeEmptyAsync(MediaDbContext db)
+    {
+        string? publicationCode = null;
+        string? publicationName = null;
+        var publicationWithoutLanguage = false;
+        var noLangMusicComparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
+        var publication = (await db.BiblePublications
+                .AsNoTracking()
+                .Where(bp => bp.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic) &&
+                            bp.LanguageId == null)
+                .ToListAsync())
+            .OrderBy(bp => bp.PublicationCode, noLangMusicComparer)
+            .ThenBy(bp => bp.Id)
+            .FirstOrDefault();
+
+        if (publication != null)
+        {
+            publicationCode = publication.PublicationCode;
+            publicationName = publication.Name;
+            publicationWithoutLanguage = true;
+        }
+
+        return (publicationCode, publicationName, publicationWithoutLanguage, false);
     }
 
     private async Task HandlePublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)

@@ -270,61 +270,66 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
 #if ANDROID || IOS
         isSyncingFromState = true;
         try
-#endif
         {
-            var categoryBefore = lastCategoryName;
-
-            var syncTargets = new NumberOfTrackStateChangeHandler.SyncTargets
-            {
-                NotificationEnabled = notificationEnabled,
-                AlwaysPlayFromStart = alwaysPlayFromStart,
-                PlayIndefinitely = playIndefinitely,
-                LastCategoryName = lastCategoryName
-            };
-
-            NumberOfTrackStateChangeHandler.ApplyPropertyChanges(
-                new NumberOfTrackStateChangeHandler.ApplyContext(
-                    currentSchedule,
-#if ANDROID || IOS
-                    isWaitingForPermissionResponse,
-#else
-                    false,
-#endif
-#if ANDROID || IOS
-                    () => permissionService != null && permissionService.IsGranted,
-#else
-                    () => true,
-#endif
-                    () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
-                    forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
-                    () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1),
-                    logger),
-                syncTargets);
-
-            notificationEnabled = syncTargets.NotificationEnabled;
-            alwaysPlayFromStart = syncTargets.AlwaysPlayFromStart;
-            playIndefinitely = syncTargets.PlayIndefinitely;
-            lastCategoryName = syncTargets.LastCategoryName;
-
-            OnPropertyChanged(nameof(NotificationEnabled));
-            OnPropertyChanged(nameof(AlwaysPlayFromStart));
-            OnPropertyChanged(nameof(PlayIndefinitely));
-            OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
-            if (!string.Equals(categoryBefore, lastCategoryName, StringComparison.OrdinalIgnoreCase))
-            {
-                OnPropertyChanged(nameof(TrackLabelText));
-                OnPropertyChanged(nameof(TracksLabelText));
-                OnPropertyChanged(nameof(SelectedTracksText));
-                OnPropertyChanged(nameof(ModalHeaderText));
-                OnPropertyChanged(nameof(RestartLabelText));
-            }
+            ApplyScheduleStatePropertyChangesCore(currentSchedule);
         }
-#if ANDROID || IOS
         finally
         {
             isSyncingFromState = false;
         }
+#else
+        ApplyScheduleStatePropertyChangesCore(currentSchedule);
 #endif
+    }
+
+    private void ApplyScheduleStatePropertyChangesCore(ScheduleStateItem currentSchedule)
+    {
+        var categoryBefore = lastCategoryName;
+
+        var syncTargets = new NumberOfTrackStateChangeHandler.SyncTargets
+        {
+            NotificationEnabled = notificationEnabled,
+            AlwaysPlayFromStart = alwaysPlayFromStart,
+            PlayIndefinitely = playIndefinitely,
+            LastCategoryName = lastCategoryName
+        };
+
+        NumberOfTrackStateChangeHandler.ApplyPropertyChanges(
+            new NumberOfTrackStateChangeHandler.ApplyContext(
+                currentSchedule,
+#if ANDROID || IOS
+                isWaitingForPermissionResponse,
+#else
+                false,
+#endif
+#if ANDROID || IOS
+                () => permissionService != null && permissionService.IsGranted,
+#else
+                () => true,
+#endif
+                () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
+                forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
+                () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1),
+                logger),
+            syncTargets);
+
+        notificationEnabled = syncTargets.NotificationEnabled;
+        alwaysPlayFromStart = syncTargets.AlwaysPlayFromStart;
+        playIndefinitely = syncTargets.PlayIndefinitely;
+        lastCategoryName = syncTargets.LastCategoryName;
+
+        OnPropertyChanged(nameof(NotificationEnabled));
+        OnPropertyChanged(nameof(AlwaysPlayFromStart));
+        OnPropertyChanged(nameof(PlayIndefinitely));
+        OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
+        if (!string.Equals(categoryBefore, lastCategoryName, StringComparison.OrdinalIgnoreCase))
+        {
+            OnPropertyChanged(nameof(TrackLabelText));
+            OnPropertyChanged(nameof(TracksLabelText));
+            OnPropertyChanged(nameof(SelectedTracksText));
+            OnPropertyChanged(nameof(ModalHeaderText));
+            OnPropertyChanged(nameof(RestartLabelText));
+        }
     }
 
     public ICommand OpenModalCommand { get; private set; } = null!;

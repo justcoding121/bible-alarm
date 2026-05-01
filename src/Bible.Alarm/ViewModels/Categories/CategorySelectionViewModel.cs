@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.Threading;
 using System.Windows.Input;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
@@ -130,26 +131,11 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
             var previousScheduleSnapshot = currentSchedule?.DeepClone();
             dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.CategoryCode, previousLanguageCode, previousScheduleSnapshot));
 
-            const int maxWaitAttempts = 60;
-            const int delayMs = 200;
-            for (int i = 0; i < maxWaitAttempts; i++)
-            {
-                if (fetchOutcomeLatch.FetchErrorReceived || fetchOutcomeLatch.CategorySelectionSucceededReceived)
-                    break;
-
-                var currentState = state.Value.CurrentSchedule;
-                if (currentState != null &&
-                    currentState.BiblePublicationCategoryName == category.CategoryCode &&
-                    !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
-                    !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode) &&
-                    (currentState.BiblePublicationCategoryName != previousCategoryName ||
-                     currentState.BiblePublicationCode != previousPublicationCode))
-                {
-                    break;
-                }
-
-                await Task.Delay(delayMs);
-            }
+            await WaitForCategoryCascadeApplyAsync(
+                category,
+                previousCategoryName,
+                previousPublicationCode,
+                CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -164,6 +150,39 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
             currentFetchingCategory = null;
         }
 
+        await CloseModalAfterCategorySelectAsync(category);
+    }
+
+    private async Task WaitForCategoryCascadeApplyAsync(
+        CategoryListViewItemModel category,
+        string? previousCategoryName,
+        string? previousPublicationCode,
+        CancellationToken cancellationToken)
+    {
+        const int maxWaitAttempts = 60;
+        const int delayMs = 200;
+        for (var i = 0; i < maxWaitAttempts; i++)
+        {
+            if (fetchOutcomeLatch.FetchErrorReceived || fetchOutcomeLatch.CategorySelectionSucceededReceived)
+                break;
+
+            var currentState = state.Value.CurrentSchedule;
+            if (currentState != null &&
+                currentState.BiblePublicationCategoryName == category.CategoryCode &&
+                !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
+                !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode) &&
+                (currentState.BiblePublicationCategoryName != previousCategoryName ||
+                 currentState.BiblePublicationCode != previousPublicationCode))
+            {
+                break;
+            }
+
+            await Task.Delay(delayMs, cancellationToken);
+        }
+    }
+
+    private async Task CloseModalAfterCategorySelectAsync(CategoryListViewItemModel category)
+    {
         if (fetchOutcomeLatch.FetchErrorReceived)
         {
             try
@@ -177,17 +196,16 @@ public sealed partial class CategorySelectionViewModel : ObservableObject, IList
             {
                 Serilog.Log.Error(ex, AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorClosingModalAfterFetchErrorCategoryCode, category.CategoryCode);
             }
+            return;
         }
-        else
+
+        try
         {
-            try
-            {
-                await navigationService.PopModalAsync();
-            }
-            catch (Exception ex)
-            {
-                Serilog.Log.Error(ex, AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorClosingModalCategoryCode, category.CategoryCode);
-            }
+            await navigationService.PopModalAsync();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorClosingModalCategoryCode, category.CategoryCode);
         }
     }
 

@@ -73,61 +73,70 @@ internal static class CollectionViewScrollExecutor
     {
         try
         {
-            await Task.Run(async () =>
-            {
-                try
-                {
-                    // For End position (last item), use production-ready approach
-                    // On Windows, ScrollToPosition.End may not scroll far enough, so we use a more reliable method
-                    if (position == ScrollToPosition.End)
-                    {
-                        await PerformEndPositionScrollAsync(collectionView, item, position, animated, cancellationToken);
-                    }
-                    else
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(async () =>
-                        {
-                            try
-                            {
-                                if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
-                                {
-                                    return;
-                                }
-
-#if WINDOWS
-                                if (await TryWindowsNativeScrollLastTenAsync(collectionView, item, cancellationToken))
-                                {
-                                    return;
-                                }
-#endif
-
-                                await ScrollToItemPreferringIndexAsync(collectionView, item, position, animated);
-                                await Task.Delay(150, cancellationToken);
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                // Expected when user taps an item and cancellation token is signalled
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Logger.Debug(ex, "Error in MainThread scrolling operation");
-                            }
-                        });
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Cancellation requested - this is expected, don't log
-                }
-                catch (Exception ex)
-                {
-                    HandleScrollException(ex);
-                }
-            }, cancellationToken);
+            await Task.Run(
+                () => RunScrollOperationAsync(collectionView, item, position, animated, cancellationToken),
+                cancellationToken);
         }
         catch (Exception ex)
         {
             Log.Logger.Debug(ex, "Critical error in PerformScrollAsync, aborting all scroll operations");
+        }
+    }
+
+    private static async Task RunScrollOperationAsync(
+        MauiCollectionView collectionView,
+        object item,
+        ScrollToPosition position,
+        bool animated,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // For End position (last item), use production-ready approach
+            // On Windows, ScrollToPosition.End may not scroll far enough, so we use a more reliable method
+            if (position == ScrollToPosition.End)
+            {
+                await PerformEndPositionScrollAsync(collectionView, item, position, animated, cancellationToken);
+            }
+            else
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    try
+                    {
+                        if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
+                        {
+                            return;
+                        }
+
+#if WINDOWS
+                        if (await TryWindowsNativeScrollLastTenAsync(collectionView, item, cancellationToken))
+                        {
+                            return;
+                        }
+#endif
+
+                        await ScrollToItemPreferringIndexAsync(collectionView, item, position, animated);
+                        await Task.Delay(150, cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected when user taps an item and cancellation token is signalled
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Logger.Debug(ex, "Error in MainThread scrolling operation");
+                    }
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation requested - this is expected, don't log
+        }
+        catch (Exception ex)
+        {
+            HandleScrollException(ex);
         }
     }
 
