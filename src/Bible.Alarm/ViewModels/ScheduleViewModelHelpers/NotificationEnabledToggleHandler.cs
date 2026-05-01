@@ -5,22 +5,27 @@ using Serilog;
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
 /// <summary>
+/// Arguments for <see cref="NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted"/>.
+/// </summary>
+public sealed record NotificationEnabledToggleRequest(
+    bool Value,
+    Func<bool> GetIsGranted,
+    Func<bool> RequestPermission,
+    Action SetOffAndNotify,
+    Action SetOnAndNotify,
+    Action<bool> SetIsWaitingForPermissionResponse,
+    ILogger Logger,
+    string LogContext);
+
+/// <summary>
 /// Handles the NotificationEnabled (or IsEnabled on iOS) toggle when user turns it ON and permission is not granted.
 /// Returns true if the handler processed the toggle (caller should return early); false if caller should proceed with normal update.
 /// </summary>
 public static class NotificationEnabledToggleHandler
 {
-    public static bool TryHandleToggleOnWhenNotGranted(
-        bool value,
-        Func<bool> getIsGranted,
-        Func<bool> requestPermission,
-        Action setOffAndNotify,
-        Action setOnAndNotify,
-        Action<bool> setIsWaitingForPermissionResponse,
-        ILogger logger,
-        string logContext)
+    public static bool TryHandleToggleOnWhenNotGranted(NotificationEnabledToggleRequest r)
     {
-        if (!value)
+        if (!r.Value)
         {
             return false;
         }
@@ -28,13 +33,13 @@ public static class NotificationEnabledToggleHandler
         var isGranted = false;
         try
         {
-            isGranted = getIsGranted();
+            isGranted = r.GetIsGranted();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "{Context} - assuming not granted", logContext);
-            setOffAndNotify();
-            setIsWaitingForPermissionResponse(true);
+            r.Logger.Error(ex, "{Context} - assuming not granted", r.LogContext);
+            r.SetOffAndNotify();
+            r.SetIsWaitingForPermissionResponse(true);
             return true;
         }
 
@@ -43,16 +48,16 @@ public static class NotificationEnabledToggleHandler
             return false;
         }
 
-        logger.Debug("Permission not granted - setting toggle to OFF and requesting permission");
-        setIsWaitingForPermissionResponse(true);
-        setOffAndNotify();
+        r.Logger.Debug("Permission not granted - setting toggle to OFF and requesting permission");
+        r.SetIsWaitingForPermissionResponse(true);
+        r.SetOffAndNotify();
 
-        var requestInitiated = requestPermission();
+        var requestInitiated = r.RequestPermission();
         if (requestInitiated)
         {
-            logger.Debug("Permission already granted after check - allowing toggle ON");
-            setIsWaitingForPermissionResponse(false);
-            setOnAndNotify();
+            r.Logger.Debug("Permission already granted after check - allowing toggle ON");
+            r.SetIsWaitingForPermissionResponse(false);
+            r.SetOnAndNotify();
         }
 
         return true;

@@ -397,7 +397,7 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
                 return;
             }
 
-            if (NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
+            if (NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(new NotificationEnabledToggleRequest(
                     value,
                     () => permissionService != null && permissionService.IsGranted,
                     () => permissionService?.RequestPermissionIfNeeded() ?? false,
@@ -415,7 +415,7 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
                     },
                     x => isWaitingForPermissionResponse = x,
                     logger,
-                    "NotificationEnabled setter"))
+                    "NotificationEnabled setter")))
             {
                 return;
             }

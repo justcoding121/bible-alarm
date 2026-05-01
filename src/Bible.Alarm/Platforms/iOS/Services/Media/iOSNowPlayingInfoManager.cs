@@ -26,7 +26,6 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     private string? currentArtworkUrl;
     private MPMediaItemArtwork? currentArtwork;
     private double currentDuration;
-    private double currentPosition;
     private PlayStatus currentStatus = PlayStatus.Stopped;
 
     // Prevent the source UIImage from being garbage-collected while the
@@ -212,7 +211,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
     /// Call this periodically during playback (every few seconds) and on pause/resume.
     /// Creates a fresh MPNowPlayingInfo from cache to avoid iOS dropping artwork when paused.
     /// </summary>
-    public void UpdatePlaybackPosition(TimeSpan currentPosition, TimeSpan duration, PlayStatus status)
+    public void UpdatePlaybackPosition(TimeSpan position, TimeSpan duration, PlayStatus status)
     {
         try
         {
@@ -223,7 +222,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
             currentStatus = status;
             currentDuration = duration.TotalSeconds;
-            this.currentPosition = currentPosition.TotalSeconds;
+            var elapsedSeconds = position.TotalSeconds;
 
             // Ensure artwork is loaded if we have URL but not cached yet
             if (currentArtwork == null && !string.IsNullOrEmpty(currentArtworkUrl))
@@ -237,7 +236,7 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
             var freshInfo = CreateFreshNowPlayingInfoFromCache(
                 currentDuration,
-                this.currentPosition,
+                elapsedSeconds,
                 status == PlayStatus.Playing ? 1.0 : 0.0);
             if (freshInfo != null)
             {
@@ -336,7 +335,6 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
             currentArtwork = null;
             retainedArtworkImage = null;
             currentDuration = 0;
-            currentPosition = 0;
             currentStatus = PlayStatus.Stopped;
         }
         catch (Exception ex)

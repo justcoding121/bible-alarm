@@ -56,7 +56,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
     private readonly StateChangeHandler stateChangeHandler;
     private readonly SectionListLoader sectionListLoader;
-    private readonly TrackSelectionResolver trackSelectionResolver;
     private readonly BiblePublicationSectionSelectionTrackTapHandler trackTapHandler;
     private readonly BiblePublicationSectionSelectionRefreshHandler refreshHandler;
 
@@ -73,7 +72,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
         sectionListLoader = new SectionListLoader(logger, this.mediaService, internetChecker);
-        trackSelectionResolver = new TrackSelectionResolver(logger, this.mediaService);
+        var trackSelectionResolver = new TrackSelectionResolver(logger, this.mediaService);
         trackTapHandler = new BiblePublicationSectionSelectionTrackTapHandler(logger, state, this.dispatcher, this.navigationService, trackSelectionResolver);
         refreshHandler = new BiblePublicationSectionSelectionRefreshHandler(logger);
 

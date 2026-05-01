@@ -20,13 +20,12 @@ namespace Bible.Alarm.ViewModels.Schedule;
 
 public sealed partial class MusicSelectionContainerViewModel : ObservableObject, IDisposable
 {
+    private readonly MusicSelectionContainerViewModelDeps containerDeps;
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
 
     // Helper classes for modular functionality
-    private readonly MusicCommandInitializer commandInitializer;
     private readonly MusicDisplayTextProvider displayTextProvider;
-    private readonly MusicPropertyNotifier propertyNotifier;
     private readonly MusicEnabledHandler musicEnabledHandler;
     private readonly MusicStateTracker stateTracker;
     private readonly MusicStateInitializer stateInitializer;
@@ -77,37 +76,24 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
         }
     }
 
-    public MusicSelectionContainerViewModel(
-        ILogger logger,
-        INavigationService navigationService,
-        IScheduleSelectionService scheduleSelectionService,
-        IMediaService mediaService,
-        IState<ApplicationState> state,
-        IDispatcher dispatcher,
-        IMapper mapper,
-        IServiceProvider serviceProvider,
-        IToastService toastService)
+    public MusicSelectionContainerViewModel(MusicSelectionContainerViewModelDeps deps)
     {
-        this.logger = logger;
-        this.state = state;
+        containerDeps = deps;
+        logger = deps.Logger;
+        state = deps.ApplicationState;
 
-        // Initialize helper classes
-        commandInitializer = new MusicCommandInitializer(
-            logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider, toastService);
-        var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
-        displayTextProvider = new MusicDisplayTextProvider(state, mediaService, logger, serviceScopeFactory: serviceScopeFactory);
-        propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
-        // Set property change notifier so display provider can notify when language name loads asynchronously
+        var serviceScopeFactory = deps.ServiceProvider.GetRequiredService<IServiceScopeFactory>();
+        displayTextProvider = new MusicDisplayTextProvider(deps.ApplicationState, deps.MediaService, deps.Logger, serviceScopeFactory: serviceScopeFactory);
+        var propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
         displayTextProvider.SetPropertyChangeNotifier(propertyName => OnPropertyChanged(propertyName));
-        musicEnabledHandler = new MusicEnabledHandler(logger, dispatcher, serviceProvider, state);
+
+        musicEnabledHandler = new MusicEnabledHandler(deps.Logger, deps.Dispatcher, deps.ServiceProvider, deps.ApplicationState);
         stateTracker = new MusicStateTracker();
-        stateInitializer = new MusicStateInitializer(state, dispatcher, displayTextProvider, propertyNotifier);
-        stateChangeHandler = new MusicStateChangeHandler(logger, state, dispatcher, mapper, serviceProvider, stateTracker, propertyNotifier, displayTextProvider);
+        stateInitializer = new MusicStateInitializer(deps.ApplicationState, deps.Dispatcher, displayTextProvider, propertyNotifier);
+        stateChangeHandler = new MusicStateChangeHandler(deps.Logger, deps.ApplicationState, deps.Dispatcher, deps.Mapper, deps.ServiceProvider, stateTracker, propertyNotifier, displayTextProvider);
 
         state.StateChanged += OnStateChanged;
 
-        // Initialize scheduleId and isNewSchedule before creating commands
-        // so commands capture the correct values
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule != null)
         {
@@ -115,7 +101,8 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
             isNewSchedule = currentSchedule.Id <= 0;
         }
 
-        InitializeCommands();
+        var commandInitializer = CreateCommandInitializer();
+        InitializeCommands(commandInitializer);
         InitializeFromState();
         _ = UpdateSelectabilityFlagsAsync();
     }
@@ -137,7 +124,20 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
         stateTracker.InitializeFromSchedule(state.Value.CurrentSchedule);
     }
 
-    private void InitializeCommands()
+    private MusicCommandInitializer CreateCommandInitializer() =>
+        new(
+            containerDeps.Logger,
+            containerDeps.NavigationService,
+            containerDeps.ScheduleSelectionService,
+            containerDeps.ApplicationState,
+            containerDeps.Dispatcher,
+            containerDeps.Mapper,
+            containerDeps.ServiceProvider,
+            containerDeps.ToastService);
+
+    private void InitializeCommands() => InitializeCommands(CreateCommandInitializer());
+
+    private void InitializeCommands(MusicCommandInitializer commandInitializer)
     {
         SelectMusicCommand = commandInitializer.CreateSelectMusicCommand(
             () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);

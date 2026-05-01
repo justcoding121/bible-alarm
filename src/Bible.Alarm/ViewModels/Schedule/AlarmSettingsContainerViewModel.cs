@@ -363,7 +363,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                 return;
             }
 
-            if (NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
+            if (NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(new NotificationEnabledToggleRequest(
                     value,
                     () => permissionService != null && permissionService.IsGranted,
                     () => permissionService?.RequestPermissionIfNeeded() ?? false,
@@ -381,7 +381,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                     },
                     x => isWaitingForPermissionResponse = x,
                     logger,
-                    "NotificationEnabled setter"))
+                    "NotificationEnabled setter")))
             {
                 return;
             }

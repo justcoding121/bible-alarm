@@ -4,63 +4,93 @@ using Fluxor;
 
 namespace Bible.Alarm.Stores;
 
+public sealed record PlaybackTransportSlice(
+    int? CurrentScheduleId,
+    bool IsPreparingOrPlaying,
+    bool CanPlayNext,
+    bool CanPlayPrevious,
+    PlayStatus Status,
+    bool IsAutoAdvancing,
+    bool IsTransitioningTrack);
+
+public sealed record PlaybackMediaSlice(
+    string? Title,
+    string? Artist,
+    string? Album,
+    string? ArtworkUrl,
+    TimeSpan Duration,
+    string? ErrorMessage);
+
+public sealed record PlaybackDefaultScheduleSlice(
+    int? DefaultScheduleId,
+    string? DefaultScheduleTitle,
+    string? DefaultScheduleArtist,
+    string? DefaultScheduleAlbum,
+    string? DefaultScheduleArtworkUrl);
+
+/// <summary>
+/// Fluxor feature state for playback UI / Android Auto metadata.
+/// Split ctor slices keep Sonar parameter counts low while preserving a flat property surface for consumers.
+/// </summary>
 [FeatureState]
-public sealed class PlaybackState(
-    int? currentScheduleId,
-    bool isPreparingOrPlaying,
-    bool canPlayNext,
-    bool canPlayPrevious,
-    PlayStatus status = PlayStatus.Stopped,
-    string? title = null,
-    string? artist = null,
-    string? album = null,
-    string? artworkUrl = null,
-    TimeSpan duration = default,
-    string? errorMessage = null,
-    int? defaultScheduleId = null,
-    string? defaultScheduleTitle = null,
-    string? defaultScheduleArtist = null,
-    string? defaultScheduleAlbum = null,
-    string? defaultScheduleArtworkUrl = null,
-    bool isAutoAdvancing = false,
-    bool isTransitioningTrack = false)
+public sealed class PlaybackState
 {
-    public int? CurrentScheduleId { get; init; } = currentScheduleId;
-    public bool IsPreparingOrPlaying { get; init; } = isPreparingOrPlaying;
-    public bool CanPlayNext { get; init; } = canPlayNext;
-    public bool CanPlayPrevious { get; init; } = canPlayPrevious;
+    public int? CurrentScheduleId { get; init; }
+    public bool IsPreparingOrPlaying { get; init; }
+    public bool CanPlayNext { get; init; }
+    public bool CanPlayPrevious { get; init; }
 
-    // Playback status
-    public PlayStatus Status { get; init; } = status;
+    public PlayStatus Status { get; init; }
 
-    // Metadata
-    public string? Title { get; init; } = title;
-    public string? Artist { get; init; } = artist;
-    public string? Album { get; init; } = album;
-    public string? ArtworkUrl { get; init; } = artworkUrl;
+    public string? Title { get; init; }
+    public string? Artist { get; init; }
+    public string? Album { get; init; }
+    public string? ArtworkUrl { get; init; }
 
-    // Duration (updated when track changes, infrequent)
-    // Note: CurrentPosition and PreparationProgress are handled via MVVM messaging for performance (high-frequency updates)
-    public TimeSpan Duration { get; init; } = duration;
+    public TimeSpan Duration { get; init; }
 
-    // Error message (shown when playback fails)
-    public string? ErrorMessage { get; init; } = errorMessage;
+    public string? ErrorMessage { get; init; }
 
-    // Default schedule metadata for Android Auto (when not playing)
-    public int? DefaultScheduleId { get; init; } = defaultScheduleId;
-    public string? DefaultScheduleTitle { get; init; } = defaultScheduleTitle;
-    public string? DefaultScheduleArtist { get; init; } = defaultScheduleArtist;
-    public string? DefaultScheduleAlbum { get; init; } = defaultScheduleAlbum;
-    public string? DefaultScheduleArtworkUrl { get; init; } = defaultScheduleArtworkUrl;
+    public int? DefaultScheduleId { get; init; }
+    public string? DefaultScheduleTitle { get; init; }
+    public string? DefaultScheduleArtist { get; init; }
+    public string? DefaultScheduleAlbum { get; init; }
+    public string? DefaultScheduleArtworkUrl { get; init; }
 
-    // Auto-advancing flag: true when transitioning between tracks automatically (not user-initiated pause)
-    public bool IsAutoAdvancing { get; init; } = isAutoAdvancing;
+    public bool IsAutoAdvancing { get; init; }
 
     /// <summary>True when Next/Previous was pressed and we are fetching/preparing the new track. Enables immediate progress bar animation.</summary>
-    public bool IsTransitioningTrack { get; init; } = isTransitioningTrack;
+    public bool IsTransitioningTrack { get; init; }
 
-    public PlaybackState() : this(null, false, false, false, PlayStatus.Stopped, null, null, null, null, TimeSpan.Zero, null, null, null, null, null, null, false, false)
+    public PlaybackState(PlaybackTransportSlice transport, PlaybackMediaSlice media, PlaybackDefaultScheduleSlice defaults)
+    {
+        CurrentScheduleId = transport.CurrentScheduleId;
+        IsPreparingOrPlaying = transport.IsPreparingOrPlaying;
+        CanPlayNext = transport.CanPlayNext;
+        CanPlayPrevious = transport.CanPlayPrevious;
+        Status = transport.Status;
+        IsAutoAdvancing = transport.IsAutoAdvancing;
+        IsTransitioningTrack = transport.IsTransitioningTrack;
+
+        Title = media.Title;
+        Artist = media.Artist;
+        Album = media.Album;
+        ArtworkUrl = media.ArtworkUrl;
+        Duration = media.Duration;
+        ErrorMessage = media.ErrorMessage;
+
+        DefaultScheduleId = defaults.DefaultScheduleId;
+        DefaultScheduleTitle = defaults.DefaultScheduleTitle;
+        DefaultScheduleArtist = defaults.DefaultScheduleArtist;
+        DefaultScheduleAlbum = defaults.DefaultScheduleAlbum;
+        DefaultScheduleArtworkUrl = defaults.DefaultScheduleArtworkUrl;
+    }
+
+    public PlaybackState()
+        : this(
+            new PlaybackTransportSlice(null, false, false, false, PlayStatus.Stopped, false, false),
+            new PlaybackMediaSlice(null, null, null, null, TimeSpan.Zero, null),
+            new PlaybackDefaultScheduleSlice(null, null, null, null, null))
     {
     }
 }
-

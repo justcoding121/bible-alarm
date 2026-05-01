@@ -419,7 +419,16 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<IAudioPlayer>())));
         services.AddSingleton<MiniPlaybackBarViewModel>();
         services.AddTransient<BiblePublicationSelectionContainerViewModel>();
-        services.AddTransient<MusicSelectionContainerViewModel>();
+        services.AddTransient<MusicSelectionContainerViewModel>(sp => new MusicSelectionContainerViewModel(new MusicSelectionContainerViewModelDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<INavigationService>(),
+            sp.GetRequiredService<IScheduleSelectionService>(),
+            sp.GetRequiredService<IMediaService>(),
+            sp.GetRequiredService<IState<ApplicationState>>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<AutoMapper.IMapper>(),
+            sp,
+            sp.GetRequiredService<IToastService>())));
         services.AddTransient<NumberOfTrackContainerViewModel>();
         services.AddTransient<ScheduleDetailsContainerViewModel>();
         services.AddTransient<AlarmSettingsContainerViewModel>();

@@ -26,7 +26,6 @@ public sealed partial class AudioPlayer : IAudioPlayer
     // Helper classes
     private readonly AudioPlayerStateManager stateManager;
     private readonly AudioPlayerMetadataHandler metadataHandler;
-    private readonly AudioPlayerPositionTracker positionTracker;
     private readonly EventHandlerManager eventHandlerManager;
     private readonly PlaybackController playbackController;
     private readonly MediaElementManager mediaElementManager;
@@ -93,7 +92,7 @@ public sealed partial class AudioPlayer : IAudioPlayer
         stateManager.SetBufferingWatchdog(bufferingWatchdog);
 
         metadataHandler = new AudioPlayerMetadataHandler(logger, displayMetadataService, dispatcher);
-        positionTracker = new AudioPlayerPositionTracker(dispatcher);
+        var positionTracker = new AudioPlayerPositionTracker(dispatcher);
 
         eventHandlerManager = new EventHandlerManager(
             logger,

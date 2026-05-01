@@ -11,101 +11,69 @@ public static class PlaybackReducer
     public static PlaybackState OnPlaybackStarted(PlaybackState state, PlaybackStartedAction action)
     {
         var scheduleChanged = state.CurrentScheduleId != action.ScheduleId;
+        var defaults = Defaults(state);
+        if (scheduleChanged)
+        {
+            defaults = defaults with { DefaultScheduleArtworkUrl = null };
+        }
+
         return new PlaybackState(
-            currentScheduleId: action.ScheduleId,
-            isPreparingOrPlaying: true,
-            // Next/Previous are always enabled during playback sessions.
-            canPlayNext: true,
-            canPlayPrevious: true,
-            status: PlayStatus.Loading,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: scheduleChanged ? null : state.ArtworkUrl,
-            duration: state.Duration,
-            // Clear error when starting new playback
-            errorMessage: null,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: scheduleChanged ? null : state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing,
-            isTransitioningTrack: state.IsTransitioningTrack);
+            new PlaybackTransportSlice(
+                action.ScheduleId,
+                true,
+                true,
+                true,
+                PlayStatus.Loading,
+                state.IsAutoAdvancing,
+                state.IsTransitioningTrack),
+            new PlaybackMediaSlice(
+                state.Title,
+                state.Artist,
+                state.Album,
+                scheduleChanged ? null : state.ArtworkUrl,
+                state.Duration,
+                null),
+            defaults);
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackStopped(PlaybackState state, PlaybackStoppedAction action)
     {
         return new PlaybackState(
-            currentScheduleId: null,
-            isPreparingOrPlaying: false,
-            canPlayNext: false,
-            canPlayPrevious: false,
-            status: PlayStatus.Stopped,
-            title: null,
-            artist: null,
-            album: null,
-            artworkUrl: null,
-            duration: TimeSpan.Zero,
-            errorMessage: null,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: false,
-            isTransitioningTrack: false);
+            new PlaybackTransportSlice(null, false, false, false, PlayStatus.Stopped, false, false),
+            new PlaybackMediaSlice(null, null, null, null, TimeSpan.Zero, null),
+            Defaults(state));
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackNavigationChanged(PlaybackState state, PlaybackNavigationChangedAction action)
     {
         return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: action.CanPlayNext,
-            canPlayPrevious: action.CanPlayPrevious,
-            status: state.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            duration: state.Duration,
-            errorMessage: state.ErrorMessage,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing,
-            isTransitioningTrack: state.IsTransitioningTrack);
+            new PlaybackTransportSlice(
+                state.CurrentScheduleId,
+                state.IsPreparingOrPlaying,
+                action.CanPlayNext,
+                action.CanPlayPrevious,
+                state.Status,
+                state.IsAutoAdvancing,
+                state.IsTransitioningTrack),
+            Media(state),
+            Defaults(state));
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackStatusChanged(PlaybackState state, PlaybackStatusChangedAction action)
     {
-        // Update IsPreparingOrPlaying based on status
-        // Keep modal open when:
-        // - Loading, Playing, or Paused (normal playback states)
-        // - Failed (to show error message) if we have a current schedule
-        // - Stopped (when switching tracks) if we have a current schedule (keep modal open during track navigation)
         var isPreparingOrPlaying = action.Status == PlayStatus.Loading ||
                                    action.Status == PlayStatus.Playing ||
                                    action.Status == PlayStatus.Paused ||
                                    (action.Status == PlayStatus.Failed && state.CurrentScheduleId.HasValue) ||
                                    (action.Status == PlayStatus.Stopped && state.CurrentScheduleId.HasValue);
 
-        // If status is Stopped/Ended and we're not preparing/playing, clear schedule
-        // Keep schedule when Failed or Stopped (during track navigation) to allow error display and retry
         var currentScheduleId = (isPreparingOrPlaying || state.IsPreparingOrPlaying)
             ? state.CurrentScheduleId
             : null;
 
-        // Clear auto-advancing flag when playback actually starts (Playing status)
-        // This ensures smooth transition: auto-advancing keeps pause button visible during Loading/Stopped,
-        // but once Playing, we use the actual status
-        // Keep flag set during Loading/Stopped transitions to prevent flicker
         var wasAutoAdvancing = state.IsAutoAdvancing;
         var isAutoAdvancing = action.Status != PlayStatus.Playing && state.IsAutoAdvancing;
 
@@ -118,121 +86,75 @@ public static class PlaybackReducer
         }
 
         return new PlaybackState(
-            currentScheduleId: currentScheduleId,
-            isPreparingOrPlaying: isPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: action.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            duration: state.Duration,
-            errorMessage: state.ErrorMessage,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: isAutoAdvancing,
-            isTransitioningTrack: state.IsTransitioningTrack);
+            new PlaybackTransportSlice(
+                currentScheduleId,
+                isPreparingOrPlaying,
+                state.CanPlayNext,
+                state.CanPlayPrevious,
+                action.Status,
+                isAutoAdvancing,
+                state.IsTransitioningTrack),
+            Media(state),
+            Defaults(state));
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackMetadataChanged(PlaybackState state, PlaybackMetadataChangedAction action)
     {
         return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: state.Status,
-            title: action.Title,
-            artist: action.Artist,
-            album: action.Album,
-            artworkUrl: action.ArtworkUrl,
-            duration: state.Duration,
-            errorMessage: state.ErrorMessage,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing,
-            isTransitioningTrack: state.IsTransitioningTrack);
+            Transport(state),
+            new PlaybackMediaSlice(
+                action.Title,
+                action.Artist,
+                action.Album,
+                action.ArtworkUrl,
+                state.Duration,
+                state.ErrorMessage),
+            Defaults(state));
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackDurationChanged(PlaybackState state, PlaybackDurationChangedAction action)
     {
         return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: state.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            duration: action.Duration,
-            errorMessage: state.ErrorMessage,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing,
-            isTransitioningTrack: state.IsTransitioningTrack);
+            Transport(state),
+            new PlaybackMediaSlice(
+                state.Title,
+                state.Artist,
+                state.Album,
+                state.ArtworkUrl,
+                action.Duration,
+                state.ErrorMessage),
+            Defaults(state));
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackError(PlaybackState state, PlaybackErrorAction action)
     {
         return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            // Keep modal open to show error
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: state.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            duration: state.Duration,
-            errorMessage: action.ErrorMessage,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing,
-            isTransitioningTrack: state.IsTransitioningTrack);
+            Transport(state),
+            new PlaybackMediaSlice(
+                state.Title,
+                state.Artist,
+                state.Album,
+                state.ArtworkUrl,
+                state.Duration,
+                action.ErrorMessage),
+            Defaults(state));
     }
 
     [ReducerMethod]
     public static PlaybackState OnSetDefaultScheduleMetadata(PlaybackState state, SetDefaultScheduleMetadataAction action)
     {
         return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: state.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            duration: state.Duration,
-            errorMessage: state.ErrorMessage,
-            defaultScheduleId: action.ScheduleId,
-            defaultScheduleTitle: action.Title,
-            defaultScheduleArtist: action.Artist,
-            defaultScheduleAlbum: action.Album,
-            defaultScheduleArtworkUrl: action.ArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing,
-            isTransitioningTrack: state.IsTransitioningTrack);
+            Transport(state),
+            Media(state),
+            new PlaybackDefaultScheduleSlice(
+                action.ScheduleId,
+                action.Title,
+                action.Artist,
+                action.Album,
+                action.ArtworkUrl));
     }
 
     [ReducerMethod]
@@ -252,72 +174,55 @@ public static class PlaybackReducer
         }
 
         return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: state.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            duration: state.Duration,
-            errorMessage: state.ErrorMessage,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: isAutoAdvancing,
-            isTransitioningTrack: state.IsTransitioningTrack);
+            new PlaybackTransportSlice(
+                state.CurrentScheduleId,
+                state.IsPreparingOrPlaying,
+                state.CanPlayNext,
+                state.CanPlayPrevious,
+                state.Status,
+                isAutoAdvancing,
+                state.IsTransitioningTrack),
+            Media(state),
+            Defaults(state));
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackTrackTransitionStarted(PlaybackState state, PlaybackTrackTransitionStartedAction action)
     {
         return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: state.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            duration: TimeSpan.Zero,
-            errorMessage: state.ErrorMessage,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing,
-            isTransitioningTrack: true);
+            Transport(state),
+            new PlaybackMediaSlice(
+                state.Title,
+                state.Artist,
+                state.Album,
+                state.ArtworkUrl,
+                TimeSpan.Zero,
+                state.ErrorMessage),
+            Defaults(state));
     }
 
     [ReducerMethod]
     public static PlaybackState OnPlaybackTrackTransitionEnded(PlaybackState state, PlaybackTrackTransitionEndedAction action)
     {
         return new PlaybackState(
-            currentScheduleId: state.CurrentScheduleId,
-            isPreparingOrPlaying: state.IsPreparingOrPlaying,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
-            status: state.Status,
-            title: state.Title,
-            artist: state.Artist,
-            album: state.Album,
-            artworkUrl: state.ArtworkUrl,
-            duration: state.Duration,
-            errorMessage: state.ErrorMessage,
-            defaultScheduleId: state.DefaultScheduleId,
-            defaultScheduleTitle: state.DefaultScheduleTitle,
-            defaultScheduleArtist: state.DefaultScheduleArtist,
-            defaultScheduleAlbum: state.DefaultScheduleAlbum,
-            defaultScheduleArtworkUrl: state.DefaultScheduleArtworkUrl,
-            isAutoAdvancing: state.IsAutoAdvancing,
-            isTransitioningTrack: false);
+            new PlaybackTransportSlice(
+                state.CurrentScheduleId,
+                state.IsPreparingOrPlaying,
+                state.CanPlayNext,
+                state.CanPlayPrevious,
+                state.Status,
+                state.IsAutoAdvancing,
+                false),
+            Media(state),
+            Defaults(state));
     }
-}
 
+    private static PlaybackTransportSlice Transport(PlaybackState s) =>
+        new(s.CurrentScheduleId, s.IsPreparingOrPlaying, s.CanPlayNext, s.CanPlayPrevious, s.Status, s.IsAutoAdvancing, s.IsTransitioningTrack);
+
+    private static PlaybackMediaSlice Media(PlaybackState s) =>
+        new(s.Title, s.Artist, s.Album, s.ArtworkUrl, s.Duration, s.ErrorMessage);
+
+    private static PlaybackDefaultScheduleSlice Defaults(PlaybackState s) =>
+        new(s.DefaultScheduleId, s.DefaultScheduleTitle, s.DefaultScheduleArtist, s.DefaultScheduleAlbum, s.DefaultScheduleArtworkUrl);
+}

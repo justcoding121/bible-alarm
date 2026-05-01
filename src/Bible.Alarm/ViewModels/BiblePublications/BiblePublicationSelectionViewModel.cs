@@ -28,7 +28,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IHasF
     private readonly INavigationService navigationService;
 
     // Services
-    private readonly BiblePublicationSelectionCommandHandler commandHandler;
     private readonly BiblePublicationSelectionStateHandler stateHandler;
     private readonly BiblePublicationSelectionDataProvider dataProvider;
     private readonly BiblePublicationSelectionPropertyManager propertyManager;
@@ -63,7 +62,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IHasF
         dataProvider = new BiblePublicationSelectionDataProvider(mediaService, languageNameService, state, dispatcher);
         stateHandler = new BiblePublicationSelectionStateHandler(state, dataProvider, scopeFactory);
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
-        commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, biblePublicationService, languageContentService);
+        var commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, biblePublicationService, languageContentService);
         propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);
         SetupPropertyManagerForwarding();
 
