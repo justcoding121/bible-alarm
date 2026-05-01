@@ -95,76 +95,13 @@ internal static class CollectionViewScrollExecutor
                                 }
 
 #if WINDOWS
-                                // Check if item is in the last 10 positions — WinUI-only block for native scrolling when needed.
-                                    bool isInLast10 = false;
-                                    var itemsSource = collectionView.ItemsSource;
-                                    if (itemsSource != null)
-                                    {
-                                            var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
-                                            if (itemsList.Count > 0)
-                                        {
-                                            // Find the item index
-                                            int itemIndex = -1;
-                                            for (int i = 0; i < itemsList.Count; i++)
-                                            {
-                                                if (ReferenceEquals(itemsList[i], item) ||
-                                                    (item is LanguageListViewItemModel targetLang && itemsList[i] is LanguageListViewItemModel listLang && string.Equals(targetLang.Code, listLang.Code, StringComparison.OrdinalIgnoreCase)))
-                                                {
-                                                    itemIndex = i;
-                                                    break;
-                                                }
-                                            }
-
-                                            // Check if item is in the last 10 positions
-                                            if (itemIndex >= 0 && itemIndex >= itemsList.Count - 10)
-                                            {
-                                                isInLast10 = true;
-                                            }
-                                        }
-                                    }
-
-                                    // For items in last 10 positions on Windows, try native ScrollViewer scrolling first
-                                    if (isInLast10)
-                                    {
-                                        // First scroll to bottom using native ScrollViewer
-                                        var nativeScrollSuccess = await WindowsNativeScrollHelper.ScrollToBottomUsingNativeScrollViewer(collectionView, cancellationToken);
-                                        if (nativeScrollSuccess)
-                                        {
-                                            // Then scroll to the specific item to ensure it's visible and selected
-                                            await Task.Delay(200, cancellationToken);
-                                            collectionView.ScrollTo(item, position: ScrollToPosition.MakeVisible, animate: false);
-                                            return;
-                                        }
-                                    }
+                                if (await TryWindowsNativeScrollLastTenAsync(collectionView, item, cancellationToken))
+                                {
+                                    return;
+                                }
 #endif
 
-                                // Try to find the item's index for more reliable scrolling
-                                // This handles cases where the item reference doesn't match due to collection repopulation
-                                var scrollSuccessful = false;
-                                var scrollItemsSource = collectionView.ItemsSource;
-                                if (scrollItemsSource != null)
-                                {
-                                    var itemsList = scrollItemsSource as IList ?? scrollItemsSource.Cast<object>().ToList();
-                                    if (itemsList.Count > 0)
-                                    {
-                                        int itemIndex = FindItemIndexByValue(itemsList, item);
-                                        if (itemIndex >= 0)
-                                        {
-                                            Log.Logger.Debug("ScrollExecutor: Using index-based scroll to index {Index} for item type {Type}", 
-                                                itemIndex, item.GetType().Name);
-                                            collectionView.ScrollTo(itemIndex, position: position, animate: animated);
-                                            scrollSuccessful = true;
-                                        }
-                                    }
-                                }
-                                
-                                if (!scrollSuccessful)
-                                {
-                                    // Fallback to item-based scrolling
-                                    collectionView.ScrollTo(item, position: position, animate: animated);
-                                }
-
-                                // Delay after scrolling to let the layout settle
+                                await ScrollToItemPreferringIndexAsync(collectionView, item, position, animated);
                                 await Task.Delay(150, cancellationToken);
                             }
                             catch (OperationCanceledException)
@@ -206,106 +143,195 @@ internal static class CollectionViewScrollExecutor
     {
         try
         {
-            var parent = collectionView.Parent;
-            Microsoft.Maui.Controls.ScrollView? scrollView = null;
-
-            // Safely traverse parent hierarchy
-            try
-            {
-                while (parent != null)
-                {
-                    if (parent is Microsoft.Maui.Controls.ScrollView sv)
-                    {
-                        scrollView = sv;
-                        break;
-                    }
-                    parent = parent.Parent;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Debug(ex, "Error traversing parent hierarchy, proceeding with CollectionView-only approach");
-            }
+            var scrollView = TryFindParentScrollView(collectionView.Parent);
 
             if (scrollView != null)
             {
-                // Virtual scrolling scenario: CollectionView inside ScrollView
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    try
-                    {
-                        if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
-                        {
-                            return;
-                        }
-
-                        await Task.Delay(300, cancellationToken);
-                        collectionView.ScrollTo(item, position: position, animate: animated);
-                        await Task.Delay(400, cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Debug(ex, "CollectionView.ScrollTo failed, trying ScrollView approach");
-                        try
-                        {
-                            var contentHeight = scrollView.Content.Height;
-                            if (contentHeight > 0)
-                            {
-                                await scrollView.ScrollToAsync(0, contentHeight, animated);
-                            }
-                        }
-                        catch (Exception ex2)
-                        {
-                            Log.Logger.Debug(ex2, "ScrollView fallback also failed");
-                        }
-                    }
-                });
+                await InvokeEndScrollInsideScrollViewAsync(collectionView, scrollView, item, position, animated, cancellationToken);
             }
             else
             {
-                // Standalone CollectionView (most common virtual scrolling case)
-                // On Windows, try native ScrollViewer scrolling first (more reliable)
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    try
-                    {
-                        if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
-                        {
-                            return;
-                        }
-
-                        await Task.Delay(400, cancellationToken);
-
-#if WINDOWS
-                        // On Windows, try native ScrollViewer scrolling first (simulates mouse scroll)
-                        if (DeviceInfo.Platform == DevicePlatform.WinUI)
-                        {
-                            var nativeScrollSuccess = await WindowsNativeScrollHelper.ScrollToBottomUsingNativeScrollViewer(collectionView, cancellationToken);
-                            if (nativeScrollSuccess)
-                            {
-                                // Also do a CollectionView.ScrollTo to ensure the item is selected/highlighted
-                                await Task.Delay(200, cancellationToken);
-                                collectionView.ScrollTo(item, position: ScrollToPosition.MakeVisible, animate: false);
-                                return;
-                            }
-                        }
-#endif
-
-                        // Fallback to CollectionView.ScrollTo
-                        collectionView.ScrollTo(item, position: position, animate: animated);
-                        await Task.Delay(500, cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Debug(ex, "Standalone CollectionView scrolling failed");
-                    }
-                });
+                await InvokeEndScrollStandaloneCollectionViewAsync(collectionView, item, position, animated, cancellationToken);
             }
         }
         catch (Exception ex)
         {
             Log.Logger.Debug(ex, "Critical error in PerformEndPositionScrollAsync, aborting scroll operation");
         }
+    }
+
+#if WINDOWS
+    private static bool IsItemInLastTenPositions(MauiCollectionView collectionView, object item)
+    {
+        var itemsSource = collectionView.ItemsSource;
+        if (itemsSource == null)
+        {
+            return false;
+        }
+
+        var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
+        if (itemsList.Count == 0)
+        {
+            return false;
+        }
+
+        var itemIndex = FindItemIndexByValue(itemsList, item);
+        return itemIndex >= 0 && itemIndex >= itemsList.Count - 10;
+    }
+
+    private static async Task<bool> TryWindowsNativeScrollLastTenAsync(
+        MauiCollectionView collectionView,
+        object item,
+        CancellationToken cancellationToken)
+    {
+        if (!IsItemInLastTenPositions(collectionView, item))
+        {
+            return false;
+        }
+
+        var nativeScrollSuccess =
+            await WindowsNativeScrollHelper.ScrollToBottomUsingNativeScrollViewer(collectionView, cancellationToken);
+        if (!nativeScrollSuccess)
+        {
+            return false;
+        }
+
+        await Task.Delay(200, cancellationToken);
+        collectionView.ScrollTo(item, position: ScrollToPosition.MakeVisible, animate: false);
+        return true;
+    }
+#endif
+
+    private static async Task ScrollToItemPreferringIndexAsync(
+        MauiCollectionView collectionView,
+        object item,
+        ScrollToPosition position,
+        bool animated)
+    {
+        var scrollItemsSource = collectionView.ItemsSource;
+        if (scrollItemsSource != null)
+        {
+            var itemsList = scrollItemsSource as IList ?? scrollItemsSource.Cast<object>().ToList();
+            if (itemsList.Count > 0)
+            {
+                var itemIndex = FindItemIndexByValue(itemsList, item);
+                if (itemIndex >= 0)
+                {
+                    Log.Logger.Debug(
+                        "ScrollExecutor: Using index-based scroll to index {Index} for item type {Type}",
+                        itemIndex,
+                        item.GetType().Name);
+                    collectionView.ScrollTo(itemIndex, position: position, animate: animated);
+                    return;
+                }
+            }
+        }
+
+        collectionView.ScrollTo(item, position: position, animate: animated);
+    }
+
+    private static Microsoft.Maui.Controls.ScrollView? TryFindParentScrollView(Microsoft.Maui.Controls.Element? parent)
+    {
+        try
+        {
+            while (parent != null)
+            {
+                if (parent is Microsoft.Maui.Controls.ScrollView sv)
+                {
+                    return sv;
+                }
+
+                parent = parent.Parent;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Debug(ex, "Error traversing parent hierarchy, proceeding with CollectionView-only approach");
+        }
+
+        return null;
+    }
+
+    private static async Task InvokeEndScrollInsideScrollViewAsync(
+        MauiCollectionView collectionView,
+        Microsoft.Maui.Controls.ScrollView scrollView,
+        object item,
+        ScrollToPosition position,
+        bool animated,
+        CancellationToken cancellationToken)
+    {
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            try
+            {
+                if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
+                {
+                    return;
+                }
+
+                await Task.Delay(300, cancellationToken);
+                collectionView.ScrollTo(item, position: position, animate: animated);
+                await Task.Delay(400, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Debug(ex, "CollectionView.ScrollTo failed, trying ScrollView approach");
+                try
+                {
+                    var contentHeight = scrollView.Content.Height;
+                    if (contentHeight > 0)
+                    {
+                        await scrollView.ScrollToAsync(0, contentHeight, animated);
+                    }
+                }
+                catch (Exception ex2)
+                {
+                    Log.Logger.Debug(ex2, "ScrollView fallback also failed");
+                }
+            }
+        });
+    }
+
+    private static async Task InvokeEndScrollStandaloneCollectionViewAsync(
+        MauiCollectionView collectionView,
+        object item,
+        ScrollToPosition position,
+        bool animated,
+        CancellationToken cancellationToken)
+    {
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            try
+            {
+                if (!ValidateCollectionViewBeforeScroll(collectionView, cancellationToken))
+                {
+                    return;
+                }
+
+                await Task.Delay(400, cancellationToken);
+
+#if WINDOWS
+                if (DeviceInfo.Platform == DevicePlatform.WinUI)
+                {
+                    var nativeScrollSuccess =
+                        await WindowsNativeScrollHelper.ScrollToBottomUsingNativeScrollViewer(collectionView, cancellationToken);
+                    if (nativeScrollSuccess)
+                    {
+                        await Task.Delay(200, cancellationToken);
+                        collectionView.ScrollTo(item, position: ScrollToPosition.MakeVisible, animate: false);
+                        return;
+                    }
+                }
+#endif
+
+                collectionView.ScrollTo(item, position: position, animate: animated);
+                await Task.Delay(500, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Debug(ex, "Standalone CollectionView scrolling failed");
+            }
+        });
     }
 
     private static bool ValidateCollectionViewBeforeScroll(MauiCollectionView collectionView, CancellationToken cancellationToken)

@@ -47,130 +47,9 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.GetFirstSectionFirstSectionCodeKey,
             firstSectionCode, firstSection.SectionCode, firstSection.Name);
 
-        SortedDictionary<string, BiblePublicationTrack>? tracks;
-
-        // Publications without LanguageId use null/empty languageCode
-        if (string.IsNullOrEmpty(languageCode))
-        {
-            // Query tracks directly from database for publications without LanguageId
-            using var scope = scopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var pub = await dbContext.BiblePublications
-                .AsNoTracking()
-                .Include(x => x.Sections)
-                    .ThenInclude(s => s.Tracks)
-                .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
-                .FirstOrDefaultAsync();
-
-            if (pub?.Sections != null)
-            {
-                var section = pub.Sections.FirstOrDefault(s => SectionCodeHelper.CodeEquals(s.SectionCode, firstSection.SectionCode));
-                if (section?.Tracks != null && section.Tracks.Count > 0)
-                {
-                    var tracksDict = section.Tracks
-                        .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
-                        .ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal);
-                    tracks = new SortedDictionary<string, BiblePublicationTrack>(tracksDict, TrackCodeComparer.Comparer);
-                }
-                else
-                {
-                    tracks = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
-                }
-            }
-            else
-            {
-                tracks = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
-            }
-        }
-        else
-        {
-            using var scope = scopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var pub = await dbContext.BiblePublications
-                .AsNoTracking()
-                .Include(x => x.Language)
-                .Include(x => x.Sections)
-                    .ThenInclude(s => s.Tracks)
-                .Where(x => x.PublicationCode == publicationCode &&
-                           x.Language != null &&
-                           string.Equals(x.Language.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase))
-                .FirstOrDefaultAsync();
-
-            SortedDictionary<string, BiblePublicationTrack>? foundTracks = null;
-
-            if (pub?.Sections != null)
-            {
-                // Use the actual SectionCode from the section object for matching (case-insensitive)
-                var section = pub.Sections.FirstOrDefault(s =>
-                    s.SectionCode.Equals(firstSection.SectionCode, StringComparison.OrdinalIgnoreCase));
-                if (section?.Tracks != null && section.Tracks.Count > 0)
-                {
-                    Log.Debug(
-                        AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FoundTracksForSectionUsingDirectQuery,
-                        section.Tracks.Count,
-                        section.SectionCode);
-                    var tracksDict = section.Tracks
-                        .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
-                        .ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal);
-                    foundTracks = new SortedDictionary<string, BiblePublicationTrack>(tracksDict, TrackCodeComparer.Comparer);
-                }
-                else
-                {
-                    Log.Warning(
-                        AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.SectionFoundButNoTracks,
-                        firstSection.SectionCode,
-                        publicationCode,
-                        languageCode);
-                }
-            }
-            else
-            {
-                Log.Warning(
-                    AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.PublicationNotFoundOrHasNoSections,
-                    publicationCode,
-                    languageCode);
-            }
-
-            tracks = foundTracks;
-
-            // If no tracks found in database, explicitly fetch them (matching cascade behavior)
-            // Tracks are NOT automatically fetched when sections are cataloged
-            if (tracks == null || tracks.Count == 0)
-            {
-                Log.Information(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksInDatabaseFetchingFirstSection);
-                progress?.UpdateProgress(0.7);
-                if (languageContentService != null)
-                {
-                    var fetchSuccess = await languageContentService.FetchSectionTracksAsync(
-                        publicationCode,
-                        firstSection.SectionCode,
-                        languageCode);
-
-                    if (fetchSuccess)
-                    {
-                        // Re-query tracks after fetching
-                        Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.TracksFetchedSuccessfullyRequeryingFromDatabase);
-                        tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSection.SectionCode);
-                    }
-                    else
-                    {
-                        Log.Warning(
-                            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FailedToFetchTracksForSection,
-                            firstSection.SectionCode,
-                            publicationCode,
-                            languageCode);
-                    }
-                }
-            }
-
-            if (tracks == null || tracks.Count == 0)
-            {
-                Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FallingBackToMediaServiceGetBiblePublicationTracks);
-                tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSection.SectionCode);
-            }
-        }
+        var tracks = string.IsNullOrEmpty(languageCode)
+            ? await LoadTracksFirstSectionNoLanguageAsync(publicationCode, firstSection)
+            : await LoadTracksFirstSectionWithLanguageAsync(languageCode, publicationCode, firstSection, progress);
 
         if (tracks == null || tracks.Count == 0)
         {
@@ -230,35 +109,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.LoadedPublicationNameAndTracksCount,
             publication?.Name ?? "(null)", publication?.Tracks?.Count ?? 0);
 
-        // If no tracks found, ensure publication is cataloged (for non-sectioned publications, this fetches tracks)
-        if (publication == null || publication.Tracks == null || publication.Tracks.Count == 0)
-        {
-            Log.Information(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksEnsuringPublicationExistsFetchNonSectioned);
-
-            if (!string.IsNullOrEmpty(languageCode) && languageContentService != null)
-            {
-                progress?.UpdateProgress(0.6);
-                var catalogSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode, progress);
-
-                if (catalogSuccess)
-                {
-                    Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.PublicationCatalogedSuccessfullyRequeryingTracks);
-                    progress?.UpdateProgress(0.8);
-                    publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
-                }
-                else
-                {
-                    Log.Warning(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FailedToCatalogPublicationForLanguage,
-                        publicationCode, languageCode);
-                }
-            }
-            else if (string.IsNullOrEmpty(languageCode))
-            {
-                // For publications without language (like "iam"), tracks should already be pre-cataloged
-                Log.Warning(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksFoundPublicationWithoutLanguage,
-                    publicationCode);
-            }
-        }
+        publication = await TryEnsureNonSectionedPublicationTracksAsync(languageCode, publicationCode, publication, progress);
 
         if (publication == null || publication.Tracks == null || publication.Tracks.Count == 0)
         {
@@ -274,6 +125,190 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
 
         progress?.UpdateProgress(1.0);
         return (null, trackCode, string.Empty, firstTrack.Title ?? string.Empty);
+    }
+
+    private static SortedDictionary<string, BiblePublicationTrack> EmptySortedTracks() =>
+        new(TrackCodeComparer.Comparer);
+
+    private static SortedDictionary<string, BiblePublicationTrack> ToSortedTrackDictionary(IEnumerable<BiblePublicationTrack> tracks)
+    {
+        var tracksDict = tracks
+            .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
+            .ToDictionary(t => t.TrackCode, t => t, StringComparer.Ordinal);
+        return new SortedDictionary<string, BiblePublicationTrack>(tracksDict, TrackCodeComparer.Comparer);
+    }
+
+    private async Task<SortedDictionary<string, BiblePublicationTrack>> LoadTracksFirstSectionNoLanguageAsync(
+        string publicationCode,
+        BiblePublicationSection firstSection)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var pub = await dbContext.BiblePublications
+            .AsNoTracking()
+            .Include(x => x.Sections)
+                .ThenInclude(s => s.Tracks)
+            .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
+            .FirstOrDefaultAsync();
+
+        if (pub?.Sections == null)
+        {
+            return EmptySortedTracks();
+        }
+
+        var section = pub.Sections.FirstOrDefault(s =>
+            SectionCodeHelper.CodeEquals(s.SectionCode, firstSection.SectionCode));
+        if (section?.Tracks == null || section.Tracks.Count == 0)
+        {
+            return EmptySortedTracks();
+        }
+
+        return ToSortedTrackDictionary(section.Tracks);
+    }
+
+    private async Task<SortedDictionary<string, BiblePublicationTrack>> LoadTracksFirstSectionWithLanguageAsync(
+        string languageCode,
+        string publicationCode,
+        BiblePublicationSection firstSection,
+        IFetchProgress? progress)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var pub = await dbContext.BiblePublications
+            .AsNoTracking()
+            .Include(x => x.Language)
+            .Include(x => x.Sections)
+                .ThenInclude(s => s.Tracks)
+            .Where(x => x.PublicationCode == publicationCode &&
+                       x.Language != null &&
+                       string.Equals(x.Language.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase))
+            .FirstOrDefaultAsync();
+
+        var tracks = QueryTracksFromPublicationForLanguage(pub, firstSection, publicationCode, languageCode);
+
+        if (tracks == null || tracks.Count == 0)
+        {
+            tracks = await TryRefetchSectionTracksViaLanguageContentAsync(
+                languageCode,
+                publicationCode,
+                firstSection.SectionCode,
+                progress);
+        }
+
+        if (tracks == null || tracks.Count == 0)
+        {
+            Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FallingBackToMediaServiceGetBiblePublicationTracks);
+            tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSection.SectionCode);
+        }
+
+        return tracks ?? EmptySortedTracks();
+    }
+
+    private SortedDictionary<string, BiblePublicationTrack>? QueryTracksFromPublicationForLanguage(
+        BiblePublication? pub,
+        BiblePublicationSection firstSection,
+        string publicationCode,
+        string languageCode)
+    {
+        if (pub?.Sections == null)
+        {
+            Log.Warning(
+                AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.PublicationNotFoundOrHasNoSections,
+                publicationCode,
+                languageCode);
+            return null;
+        }
+
+        var section = pub.Sections.FirstOrDefault(s =>
+            s.SectionCode.Equals(firstSection.SectionCode, StringComparison.OrdinalIgnoreCase));
+        if (section?.Tracks != null && section.Tracks.Count > 0)
+        {
+            Log.Debug(
+                AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FoundTracksForSectionUsingDirectQuery,
+                section.Tracks.Count,
+                section.SectionCode);
+            return ToSortedTrackDictionary(section.Tracks);
+        }
+
+        Log.Warning(
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.SectionFoundButNoTracks,
+            firstSection.SectionCode,
+            publicationCode,
+            languageCode);
+        return null;
+    }
+
+    private async Task<SortedDictionary<string, BiblePublicationTrack>?> TryRefetchSectionTracksViaLanguageContentAsync(
+        string languageCode,
+        string publicationCode,
+        string firstSectionSectionCode,
+        IFetchProgress? progress)
+    {
+        Log.Information(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksInDatabaseFetchingFirstSection);
+        progress?.UpdateProgress(0.7);
+        if (languageContentService == null)
+        {
+            return null;
+        }
+
+        var fetchSuccess = await languageContentService.FetchSectionTracksAsync(
+            publicationCode,
+            firstSectionSectionCode,
+            languageCode);
+
+        if (!fetchSuccess)
+        {
+            Log.Warning(
+                AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FailedToFetchTracksForSection,
+                firstSectionSectionCode,
+                publicationCode,
+                languageCode);
+            return null;
+        }
+
+        Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.TracksFetchedSuccessfullyRequeryingFromDatabase);
+        return await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionSectionCode);
+    }
+
+    private async Task<BiblePublication?> TryEnsureNonSectionedPublicationTracksAsync(
+        string? languageCode,
+        string publicationCode,
+        BiblePublication? publication,
+        IFetchProgress? progress)
+    {
+        if (publication?.Tracks != null && publication.Tracks.Count > 0)
+        {
+            return publication;
+        }
+
+        Log.Information(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksEnsuringPublicationExistsFetchNonSectioned);
+
+        if (!string.IsNullOrEmpty(languageCode) && languageContentService != null)
+        {
+            progress?.UpdateProgress(0.6);
+            var catalogSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode, progress);
+
+            if (catalogSuccess)
+            {
+                Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.PublicationCatalogedSuccessfullyRequeryingTracks);
+                progress?.UpdateProgress(0.8);
+                return await biblePublicationService!.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+            }
+
+            Log.Warning(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FailedToCatalogPublicationForLanguage,
+                publicationCode, languageCode);
+            return publication;
+        }
+
+        if (string.IsNullOrEmpty(languageCode))
+        {
+            Log.Warning(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksFoundPublicationWithoutLanguage,
+                publicationCode);
+        }
+
+        return publication;
     }
 
     internal async Task<bool> CheckIfPublicationWithFirstSectionCatalogedAsync(string publicationCode, string languageCode)
