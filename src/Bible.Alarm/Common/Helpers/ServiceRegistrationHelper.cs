@@ -270,7 +270,16 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IScheduleSaveService, ScheduleSaveService>();
         services.AddSingleton<IScheduleValidationService, ScheduleValidationService>();
         services.AddSingleton<IScheduleInitializationService, ScheduleInitializationService>();
-        services.AddSingleton<IScheduleCommandService, ScheduleCommandService>();
+        services.AddSingleton<IScheduleCommandService>(sp => new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<INavigationService>(),
+            sp.GetRequiredService<IScheduleSaveService>(),
+            sp.GetRequiredService<IPlaybackService>(),
+            sp.GetRequiredService<INotificationService>(),
+            sp.GetRequiredService<IToastService>(),
+            sp.GetRequiredService<AutoMapper.IMapper>(),
+            sp.GetRequiredService<IState<ApplicationState>>())));
         services.AddSingleton<IScheduleMediaCacheService, ScheduleMediaCacheService>();
         services.AddSingleton<IScheduleContainerService, ScheduleContainerService>();
         services.AddSingleton<IScheduleStateChangeHandler, ScheduleStateChangeHandler>();
@@ -434,7 +443,16 @@ public static class ServiceRegistrationHelper
         services.AddTransient<AlarmSettingsContainerViewModel>();
 
         // Register ScheduleListItem as transient for list items
-        services.AddTransient<ScheduleListItemViewModel>();
+        services.AddTransient<ScheduleListItemViewModel>(sp => new ScheduleListItemViewModel(new ScheduleListItemViewModelDeps(
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<ISchedulePlaybackService>(),
+            sp.GetRequiredService<IPlaybackService>(),
+            sp.GetRequiredService<IScheduleStateService>(),
+            sp.GetRequiredService<IState<ApplicationState>>(),
+            sp.GetRequiredService<IState<PlaybackState>>(),
+            sp.GetRequiredService<Fluxor.IDispatcher>(),
+            sp.GetRequiredService<AutoMapper.IMapper>(),
+            sp.GetRequiredService<ICategoryNameService>())));
 
         // Register factory for ScheduleListItem (takes schedule ID and returns ScheduleListItem with DI)
         // ScheduleListItem initializes from state using the schedule ID

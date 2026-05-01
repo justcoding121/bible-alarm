@@ -125,15 +125,7 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
     }
 
     private MusicCommandInitializer CreateCommandInitializer() =>
-        new(
-            containerDeps.Logger,
-            containerDeps.NavigationService,
-            containerDeps.ScheduleSelectionService,
-            containerDeps.ApplicationState,
-            containerDeps.Dispatcher,
-            containerDeps.Mapper,
-            containerDeps.ServiceProvider,
-            containerDeps.ToastService);
+        new(containerDeps);
 
     private void InitializeCommands() => InitializeCommands(CreateCommandInitializer());
 

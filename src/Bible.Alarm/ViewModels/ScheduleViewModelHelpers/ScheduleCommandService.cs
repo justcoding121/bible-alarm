@@ -20,6 +20,17 @@ using Bible.Alarm.Platforms.Android.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
+public sealed record ScheduleCommandServiceDeps(
+    ILogger Logger,
+    IDispatcher Dispatcher,
+    INavigationService NavigationService,
+    IScheduleSaveService ScheduleSaveService,
+    IPlaybackService PlaybackService,
+    INotificationService NotificationService,
+    IToastService ToastService,
+    IMapper Mapper,
+    IState<ApplicationState> State);
+
 public sealed class ScheduleCommandService : IScheduleCommandService
 {
     private readonly ILogger logger;
@@ -32,26 +43,17 @@ public sealed class ScheduleCommandService : IScheduleCommandService
     private readonly IMapper mapper;
     private readonly IState<ApplicationState> state;
 
-    public ScheduleCommandService(
-        ILogger logger,
-        IDispatcher dispatcher,
-        INavigationService navigationService,
-        IScheduleSaveService scheduleSaveService,
-        IPlaybackService playbackService,
-        INotificationService notificationService,
-        IToastService toastService,
-        IMapper mapper,
-        IState<ApplicationState> state)
+    public ScheduleCommandService(ScheduleCommandServiceDeps d)
     {
-        this.logger = logger;
-        this.dispatcher = dispatcher;
-        this.navigationService = navigationService;
-        this.scheduleSaveService = scheduleSaveService;
-        this.playbackService = playbackService;
-        this.notificationService = notificationService;
-        this.toastService = toastService;
-        this.mapper = mapper;
-        this.state = state;
+        logger = d.Logger;
+        dispatcher = d.Dispatcher;
+        navigationService = d.NavigationService;
+        scheduleSaveService = d.ScheduleSaveService;
+        playbackService = d.PlaybackService;
+        notificationService = d.NotificationService;
+        toastService = d.ToastService;
+        mapper = d.Mapper;
+        state = d.State;
     }
 
     public async Task ExecuteCancelAsync(

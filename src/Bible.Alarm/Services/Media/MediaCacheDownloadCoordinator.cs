@@ -8,28 +8,35 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
+internal sealed record DownloadAndCacheTrackWithProgressArgs(
+    ILogger Logger,
+    IDownloadService DownloadService,
+    IStorageService StorageService,
+    IMediaUrlRefreshService UrlRefreshService,
+    IMediaService MediaService,
+    ConcurrentDictionary<string, Task<string?>> InProgressDownloads,
+    Func<int, string> GetScheduleCacheFolder,
+    Func<string, string> GetCacheFileName,
+    PlayItem PlayItem,
+    int ScheduleId,
+    Action<long, long?>? ProgressCallback,
+    CancellationToken CancellationToken = default);
+
 internal static class MediaCacheDownloadCoordinator
 {
-    internal static async Task<string?> DownloadAndCacheTrackWithProgressAsync(
-        ILogger logger,
-        IDownloadService downloadService,
-        IStorageService storageService,
-        IMediaUrlRefreshService urlRefreshService,
-        IMediaService mediaService,
-        ConcurrentDictionary<string, Task<string?>> inProgressDownloads,
-        Func<int, string> getScheduleCacheFolder,
-        Func<string, string> getCacheFileName,
-        PlayItem playItem,
-        int scheduleId,
-        Action<long, long?>? progressCallback,
-        CancellationToken cancellationToken = default)
+    internal static async Task<string?> DownloadAndCacheTrackWithProgressAsync(DownloadAndCacheTrackWithProgressArgs args)
     {
-        // Use lookup path (stable) instead of CDN URL (dynamic) for cache key
+        var logger = args.Logger;
+        var playItem = args.PlayItem;
+        var scheduleId = args.ScheduleId;
+        var cancellationToken = args.CancellationToken;
+        var inProgressDownloads = args.InProgressDownloads;
+        var getScheduleCacheFolder = args.GetScheduleCacheFolder;
+        var getCacheFileName = args.GetCacheFileName;
+
         var lookUpPath = playItem.Metadata.LookUpPath;
-        // Create a unique key for this download (scheduleId + lookupPath)
         var downloadKey = $"{scheduleId}:{lookUpPath}";
 
-        // Check if there's already a download in progress for this file
         if (inProgressDownloads.TryGetValue(downloadKey, out var existingTask))
         {
             logger.Debug(
@@ -39,17 +46,14 @@ internal static class MediaCacheDownloadCoordinator
                 scheduleId);
             try
             {
-                // Wait for the existing download to complete and return its result
                 return await existingTask;
             }
             catch (OperationCanceledException)
             {
-                // The existing download was cancelled, let the caller handle it
                 throw;
             }
             catch (Exception ex)
             {
-                // The existing download failed, log but don't rethrow since caller may want to try again
                 logger.Warning(
                     ex,
                     "Existing download failed for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}",
@@ -60,15 +64,12 @@ internal static class MediaCacheDownloadCoordinator
             }
         }
 
-        // Create the download task
         var downloadTaskSource = new TaskCompletionSource<string?>();
         var downloadTask = downloadTaskSource.Task;
 
-        // Try to add our task to the dictionary - if another thread beat us, use their task
         if (!inProgressDownloads.TryAdd(downloadKey, downloadTask)
             && inProgressDownloads.TryGetValue(downloadKey, out existingTask))
         {
-            // Another thread just started the download, wait for their result
             logger.Debug(
                 "Another thread started download for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}. Waiting for that download.",
                 lookUpPath,
@@ -96,16 +97,14 @@ internal static class MediaCacheDownloadCoordinator
 
         try
         {
-            // Check for cancellation before downloading
             cancellationToken.ThrowIfCancellationRequested();
 
-            var bytes = await downloadService.DownloadWithProgressAsync(playItem.Url, progressCallback, cancellationToken);
+            var bytes = await args.DownloadService.DownloadWithProgressAsync(playItem.Url, args.ProgressCallback, cancellationToken);
 
             if (bytes != null && bytes.Length > 0)
             {
-                // Use lookup path (stable) instead of CDN URL (dynamic) for cache filename
                 var scheduleCacheFolder = getScheduleCacheFolder(scheduleId);
-                await storageService.SaveFile(scheduleCacheFolder, getCacheFileName(lookUpPath), bytes);
+                await args.StorageService.SaveFile(scheduleCacheFolder, getCacheFileName(lookUpPath), bytes);
                 logger.Debug(
                     "Successfully downloaded and saved track: LookUpPath={LookUpPath}, URL={Url}, Size={Size} bytes, ScheduleId={ScheduleId}",
                     lookUpPath,
@@ -135,9 +134,7 @@ internal static class MediaCacheDownloadCoordinator
         }
         finally
         {
-            // Always remove from the dictionary when done (success or failure)
             inProgressDownloads.TryRemove(downloadKey, out _);
         }
     }
 }
-

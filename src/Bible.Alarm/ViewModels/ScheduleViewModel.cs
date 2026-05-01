@@ -53,20 +53,22 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         var stateManager = new ScheduleStateManager(deps.ScheduleInitializationService, deps.ScheduleStateChangeHandler, dispatcher, logger);
         propertyManager = new SchedulePropertyManager(state, logger);
         var commandExecutor = new ScheduleCommandExecutor(
-            deps.ScheduleCommandService,
-            deps.ScheduleMediaCacheService,
-            state,
-            playbackState,
-            dispatcher,
-            mapper,
-            logger,
-            () => propertyManager?.MusicSelectionContainerViewModel,
-            () => propertyManager?.AlarmSettingsContainerViewModel,
-            () => propertyManager?.NumberOfTrackContainerViewModel,
-            SetIsSaving,
-            (isBusy) => propertyManager.IsCancelBusy = isBusy,
-            (isBusy) => propertyManager.IsSaveBusy = isBusy,
-            (isBusy) => propertyManager.IsDeleteBusy = isBusy);
+            new ScheduleCommandExecutorCoreDeps(
+                deps.ScheduleCommandService,
+                deps.ScheduleMediaCacheService,
+                state,
+                playbackState,
+                dispatcher,
+                mapper,
+                logger),
+            new ScheduleCommandExecutorUiHooks(
+                () => propertyManager?.MusicSelectionContainerViewModel,
+                () => propertyManager?.AlarmSettingsContainerViewModel,
+                () => propertyManager?.NumberOfTrackContainerViewModel,
+                SetIsSaving,
+                isBusy => propertyManager.IsCancelBusy = isBusy,
+                isBusy => propertyManager.IsSaveBusy = isBusy,
+                isBusy => propertyManager.IsDeleteBusy = isBusy));
         containerManager = new ScheduleContainerManager(deps.ScheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(this.dispatcher);
         overlayTimeoutController = new ScheduleOverlayTimeoutController(logger, state, this.dispatcher);

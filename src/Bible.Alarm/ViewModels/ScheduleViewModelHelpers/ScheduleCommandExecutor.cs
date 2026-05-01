@@ -18,6 +18,24 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
+public sealed record ScheduleCommandExecutorCoreDeps(
+    IScheduleCommandService ScheduleCommandService,
+    IScheduleMediaCacheService ScheduleMediaCacheService,
+    IState<ApplicationState> State,
+    IState<PlaybackState> PlaybackState,
+    IDispatcher Dispatcher,
+    IMapper Mapper,
+    ILogger Logger);
+
+public sealed record ScheduleCommandExecutorUiHooks(
+    Func<MusicSelectionContainerViewModel?> GetMusicSelectionContainerViewModel,
+    Func<AlarmSettingsContainerViewModel?>? GetAlarmSettingsContainerViewModel,
+    Func<NumberOfTrackContainerViewModel?>? GetNumberOfTrackContainerViewModel,
+    Action<bool>? SetIsSaving,
+    Action<bool>? SetIsCancelBusy,
+    Action<bool>? SetIsSaveBusy,
+    Action<bool>? SetIsDeleteBusy);
+
 /// <summary>
 /// Handles command execution for ScheduleViewModel.
 /// </summary>
@@ -38,36 +56,22 @@ public sealed class ScheduleCommandExecutor
     private readonly Action<bool>? setIsSaveBusy;
     private readonly Action<bool>? setIsDeleteBusy;
 
-    public ScheduleCommandExecutor(
-        IScheduleCommandService scheduleCommandService,
-        IScheduleMediaCacheService scheduleMediaCacheService,
-        IState<ApplicationState> state,
-        IState<PlaybackState> playbackState,
-        IDispatcher dispatcher,
-        IMapper mapper,
-        ILogger logger,
-        Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel,
-        Func<AlarmSettingsContainerViewModel?>? getAlarmSettingsContainerViewModel = null,
-        Func<NumberOfTrackContainerViewModel?>? getNumberOfTrackContainerViewModel = null,
-        Action<bool>? setIsSaving = null,
-        Action<bool>? setIsCancelBusy = null,
-        Action<bool>? setIsSaveBusy = null,
-        Action<bool>? setIsDeleteBusy = null)
+    public ScheduleCommandExecutor(ScheduleCommandExecutorCoreDeps core, ScheduleCommandExecutorUiHooks hooks)
     {
-        this.logger = logger;
-        this.scheduleCommandService = scheduleCommandService;
-        this.scheduleMediaCacheService = scheduleMediaCacheService;
-        this.state = state;
-        this.playbackState = playbackState;
-        this.dispatcher = dispatcher;
-        this.mapper = mapper;
-        this.getMusicSelectionContainerViewModel = getMusicSelectionContainerViewModel;
-        this.getAlarmSettingsContainerViewModel = getAlarmSettingsContainerViewModel;
-        this.getNumberOfTrackContainerViewModel = getNumberOfTrackContainerViewModel;
-        this.setIsSaving = setIsSaving;
-        this.setIsCancelBusy = setIsCancelBusy;
-        this.setIsSaveBusy = setIsSaveBusy;
-        this.setIsDeleteBusy = setIsDeleteBusy;
+        logger = core.Logger;
+        scheduleCommandService = core.ScheduleCommandService;
+        scheduleMediaCacheService = core.ScheduleMediaCacheService;
+        state = core.State;
+        playbackState = core.PlaybackState;
+        dispatcher = core.Dispatcher;
+        mapper = core.Mapper;
+        getMusicSelectionContainerViewModel = hooks.GetMusicSelectionContainerViewModel;
+        getAlarmSettingsContainerViewModel = hooks.GetAlarmSettingsContainerViewModel;
+        getNumberOfTrackContainerViewModel = hooks.GetNumberOfTrackContainerViewModel;
+        setIsSaving = hooks.SetIsSaving;
+        setIsCancelBusy = hooks.SetIsCancelBusy;
+        setIsSaveBusy = hooks.SetIsSaveBusy;
+        setIsDeleteBusy = hooks.SetIsDeleteBusy;
     }
 
     public void InitializeCommands(

@@ -11,7 +11,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Music;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
+using Bible.Alarm.ViewModels.Schedule;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,24 +35,16 @@ public sealed class MusicCommandInitializer
     private readonly IServiceProvider serviceProvider;
     private readonly IToastService toastService;
 
-    public MusicCommandInitializer(
-        ILogger logger,
-        INavigationService navigationService,
-        IScheduleSelectionService scheduleSelectionService,
-        IState<ApplicationState> state,
-        IDispatcher dispatcher,
-        IMapper mapper,
-        IServiceProvider serviceProvider,
-        IToastService toastService)
+    public MusicCommandInitializer(MusicSelectionContainerViewModelDeps deps)
     {
-        this.logger = logger;
-        this.navigationService = navigationService;
-        this.scheduleSelectionService = scheduleSelectionService;
-        this.state = state;
-        this.dispatcher = dispatcher;
-        this.mapper = mapper;
-        this.serviceProvider = serviceProvider;
-        this.toastService = toastService;
+        logger = deps.Logger;
+        navigationService = deps.NavigationService;
+        scheduleSelectionService = deps.ScheduleSelectionService;
+        state = deps.ApplicationState;
+        dispatcher = deps.Dispatcher;
+        mapper = deps.Mapper;
+        serviceProvider = deps.ServiceProvider;
+        toastService = deps.ToastService;
     }
 
     public ICommand CreateSelectMusicCommand(Func<AlarmMusic?> getMusic, Action<AlarmMusic?> setMusic, int scheduleId, bool isNewSchedule, bool musicUpdated)

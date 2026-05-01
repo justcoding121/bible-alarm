@@ -263,7 +263,7 @@ public sealed partial class MediaCacheService(
 
     private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default)
     {
-        return await MediaCacheDownloadCoordinator.DownloadAndCacheTrackWithProgressAsync(
+        return await MediaCacheDownloadCoordinator.DownloadAndCacheTrackWithProgressAsync(new DownloadAndCacheTrackWithProgressArgs(
             logger,
             downloadService,
             storageService,
@@ -275,7 +275,7 @@ public sealed partial class MediaCacheService(
             playItem,
             scheduleId,
             null,
-            cancellationToken);
+            cancellationToken));
     }
 
 

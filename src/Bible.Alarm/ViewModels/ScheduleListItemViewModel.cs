@@ -24,26 +24,38 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public sealed class ScheduleListItemViewModel(
-    ILogger logger,
-    ISchedulePlaybackService playbackService,
-    IPlaybackService stopPlaybackService,
-    IScheduleStateService scheduleStateService,
-    IState<ApplicationState> applicationState,
-    IState<PlaybackState> playbackState,
-    IDispatcher dispatcher,
-    IMapper mapper,
-    ICategoryNameService categoryNameService)
-    : ObservableObject, IComparable, IComparable<ScheduleListItemViewModel>, IEquatable<ScheduleListItemViewModel>, IDisposable
+public sealed class ScheduleListItemViewModel : ObservableObject, IComparable, IComparable<ScheduleListItemViewModel>, IEquatable<ScheduleListItemViewModel>, IDisposable
 {
+    private readonly ILogger logger;
+    private readonly ISchedulePlaybackService playbackService;
+    private readonly IPlaybackService stopPlaybackService;
+    private readonly IState<ApplicationState> applicationState;
+    private readonly IState<PlaybackState> playbackState;
+    private readonly IDispatcher dispatcher;
+
     // Helper classes
-    private readonly ScheduleListItemInitializer initializer = new(logger, mapper, applicationState);
-    private readonly ScheduleListItemPropertyManager propertyManager = new(logger, scheduleStateService);
-    private readonly ScheduleListItemStateHandler stateHandler = new(logger, mapper, applicationState);
-    private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, applicationState, playbackState);
-    private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider = new(applicationState, categoryNameService);
+    private readonly ScheduleListItemInitializer initializer;
+    private readonly ScheduleListItemPropertyManager propertyManager;
+    private readonly ScheduleListItemStateHandler stateHandler;
+    private readonly ScheduleListItemSubtitleManager subtitleManager;
+    private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider;
     private ScheduleListItemStateChangeApplier? stateChangeApplier;
     private ScheduleListItemStateChangeApplier StateChangeApplier => stateChangeApplier ??= new(logger, applicationState, stateHandler, propertyManager);
+
+    public ScheduleListItemViewModel(ScheduleListItemViewModelDeps d)
+    {
+        logger = d.Logger;
+        playbackService = d.PlaybackService;
+        stopPlaybackService = d.StopPlaybackService;
+        applicationState = d.ApplicationState;
+        playbackState = d.PlaybackState;
+        dispatcher = d.Dispatcher;
+        initializer = new ScheduleListItemInitializer(logger, d.Mapper, applicationState);
+        propertyManager = new ScheduleListItemPropertyManager(logger, d.ScheduleStateService);
+        stateHandler = new ScheduleListItemStateHandler(logger, d.Mapper, applicationState);
+        subtitleManager = new ScheduleListItemSubtitleManager(logger, applicationState, playbackState);
+        bibleDisplayNameProvider = new ScheduleListItemBibleDisplayNameProvider(applicationState, d.CategoryNameService);
+    }
 
     private const int SpinnerTimeoutSeconds = 15;
     private bool isBusy;
