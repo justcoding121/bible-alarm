@@ -92,15 +92,17 @@ internal static class ScheduleStateServiceIosEnableWithPermission
 
             await alarmService.Update(iosUpdatedSchedule);
 
-            BeginIosNotificationPermissionModalAfterEnable(
-                logger,
-                navigationService,
-                alarmScheduleService,
-                dispatcher,
-                serviceProvider,
-                updateFluxorStore,
-                cancellationToken,
-                scheduleId);
+            BeginIosNotificationPermissionModalAfterEnable(new BeginIosNotificationPermissionModalAfterEnableArgs
+            {
+                Logger = logger,
+                NavigationService = navigationService,
+                AlarmScheduleService = alarmScheduleService,
+                Dispatcher = dispatcher,
+                ServiceProvider = serviceProvider,
+                UpdateFluxorStore = updateFluxorStore,
+                CancellationToken = cancellationToken,
+                ScheduleId = scheduleId
+            });
 
             return (true, iosUpdatedSchedule);
         }
@@ -111,16 +113,17 @@ internal static class ScheduleStateServiceIosEnableWithPermission
         }
     }
 
-    private static void BeginIosNotificationPermissionModalAfterEnable(
-        ILogger logger,
-        INavigationService navigationService,
-        IAlarmScheduleService alarmScheduleService,
-        IDispatcher dispatcher,
-        IServiceProvider serviceProvider,
-        Action<AlarmSchedule?> updateFluxorStore,
-        CancellationToken cancellationToken,
-        int scheduleId)
+    private static void BeginIosNotificationPermissionModalAfterEnable(BeginIosNotificationPermissionModalAfterEnableArgs args)
     {
+        var logger = args.Logger;
+        var navigationService = args.NavigationService;
+        var alarmScheduleService = args.AlarmScheduleService;
+        var dispatcher = args.Dispatcher;
+        var serviceProvider = args.ServiceProvider;
+        var updateFluxorStore = args.UpdateFluxorStore;
+        var cancellationToken = args.CancellationToken;
+        var scheduleId = args.ScheduleId;
+
         MainThread.BeginInvokeOnMainThread(async () =>
         {
             try
@@ -130,15 +133,17 @@ internal static class ScheduleStateServiceIosEnableWithPermission
                     navigationService,
                     onModalDismissed: permissionGranted =>
                         MainThread.BeginInvokeOnMainThread(async () =>
-                            await ApplyIosPermissionDismissAsync(
-                                logger,
-                                alarmScheduleService,
-                                dispatcher,
-                                serviceProvider,
-                                updateFluxorStore,
-                                cancellationToken,
-                                scheduleId,
-                                permissionGranted)));
+                            await ApplyIosPermissionDismissAsync(new ApplyIosPermissionDismissArgs
+                            {
+                                Logger = logger,
+                                AlarmScheduleService = alarmScheduleService,
+                                Dispatcher = dispatcher,
+                                ServiceProvider = serviceProvider,
+                                UpdateFluxorStore = updateFluxorStore,
+                                CancellationToken = cancellationToken,
+                                ScheduleId = scheduleId,
+                                PermissionGranted = permissionGranted
+                            })));
                 notificationViewModel.StartPermissionCheckTimer();
                 await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
             }
@@ -149,16 +154,17 @@ internal static class ScheduleStateServiceIosEnableWithPermission
         });
     }
 
-    private static async Task ApplyIosPermissionDismissAsync(
-        ILogger logger,
-        IAlarmScheduleService alarmScheduleService,
-        IDispatcher dispatcher,
-        IServiceProvider serviceProvider,
-        Action<AlarmSchedule?> updateFluxorStore,
-        CancellationToken cancellationToken,
-        int scheduleId,
-        bool permissionGranted)
+    private static async Task ApplyIosPermissionDismissAsync(ApplyIosPermissionDismissArgs args)
     {
+        var logger = args.Logger;
+        var alarmScheduleService = args.AlarmScheduleService;
+        var dispatcher = args.Dispatcher;
+        var serviceProvider = args.ServiceProvider;
+        var updateFluxorStore = args.UpdateFluxorStore;
+        var cancellationToken = args.CancellationToken;
+        var scheduleId = args.ScheduleId;
+        var permissionGranted = args.PermissionGranted;
+
         try
         {
             try
@@ -194,6 +200,30 @@ internal static class ScheduleStateServiceIosEnableWithPermission
         {
             logger.Error(ex, "EnableScheduleAsync (iOS): Error updating IsEnabled after permission check");
         }
+    }
+
+    private sealed class BeginIosNotificationPermissionModalAfterEnableArgs
+    {
+        public required ILogger Logger { get; init; }
+        public required INavigationService NavigationService { get; init; }
+        public required IAlarmScheduleService AlarmScheduleService { get; init; }
+        public required IDispatcher Dispatcher { get; init; }
+        public required IServiceProvider ServiceProvider { get; init; }
+        public required Action<AlarmSchedule?> UpdateFluxorStore { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
+        public required int ScheduleId { get; init; }
+    }
+
+    private sealed class ApplyIosPermissionDismissArgs
+    {
+        public required ILogger Logger { get; init; }
+        public required IAlarmScheduleService AlarmScheduleService { get; init; }
+        public required IDispatcher Dispatcher { get; init; }
+        public required IServiceProvider ServiceProvider { get; init; }
+        public required Action<AlarmSchedule?> UpdateFluxorStore { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
+        public required int ScheduleId { get; init; }
+        public required bool PermissionGranted { get; init; }
     }
 }
 #endif

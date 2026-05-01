@@ -323,34 +323,36 @@ public sealed class MusicStateChangeHandler
             var capturedMusicEnabled = currentSchedule.MusicEnabled;
 
             MainThread.BeginInvokeOnMainThread(() =>
-                DeliverPendingMusicPropertyNotifications(
-                    languageCodeChanged,
-                    publicationCodeChanged,
-                    sectionCodeChanged,
-                    trackCodeChanged,
-                    repeatChanged,
-                    publicationNameChanged,
-                    sectionNameChanged,
-                    isMelodyMusic,
-                    capturedMusicEnabled,
-                    setShouldScrollToBottom,
-                    onPropertyChanged));
+                DeliverPendingMusicPropertyNotifications(new PendingMusicPropertyNotificationsArgs
+                {
+                    LanguageCodeChanged = languageCodeChanged,
+                    PublicationCodeChanged = publicationCodeChanged,
+                    SectionCodeChanged = sectionCodeChanged,
+                    TrackCodeChanged = trackCodeChanged,
+                    RepeatChanged = repeatChanged,
+                    PublicationNameChanged = publicationNameChanged,
+                    SectionNameChanged = sectionNameChanged,
+                    IsMelodyMusic = isMelodyMusic,
+                    MusicEnabled = capturedMusicEnabled,
+                    SetShouldScrollToBottom = setShouldScrollToBottom,
+                    OnPropertyChanged = onPropertyChanged
+                }));
         }
     }
 
-    private void DeliverPendingMusicPropertyNotifications(
-        bool languageCodeChanged,
-        bool publicationCodeChanged,
-        bool sectionCodeChanged,
-        bool trackCodeChanged,
-        bool repeatChanged,
-        bool publicationNameChanged,
-        bool sectionNameChanged,
-        bool isMelodyMusic,
-        bool musicEnabled,
-        Action<bool> setShouldScrollToBottom,
-        Action<string> onPropertyChanged)
+    private void DeliverPendingMusicPropertyNotifications(PendingMusicPropertyNotificationsArgs args)
     {
+        var languageCodeChanged = args.LanguageCodeChanged;
+        var publicationCodeChanged = args.PublicationCodeChanged;
+        var sectionCodeChanged = args.SectionCodeChanged;
+        var trackCodeChanged = args.TrackCodeChanged;
+        var repeatChanged = args.RepeatChanged;
+        var publicationNameChanged = args.PublicationNameChanged;
+        var sectionNameChanged = args.SectionNameChanged;
+        var musicEnabled = args.MusicEnabled;
+        var setShouldScrollToBottom = args.SetShouldScrollToBottom;
+        var onPropertyChanged = args.OnPropertyChanged;
+
         isPropertyChangeScheduled = false;
         propertyNotifier.NotifyPropertiesChanged(
             languageCodeChanged,
@@ -358,7 +360,7 @@ public sealed class MusicStateChangeHandler
             sectionCodeChanged,
             trackCodeChanged,
             repeatChanged,
-            isMelodyMusic,
+            args.IsMelodyMusic,
             shouldScroll => { if (musicEnabled) setShouldScrollToBottom(shouldScroll); });
 
         if (!languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackCodeChanged && !repeatChanged)
@@ -372,6 +374,21 @@ public sealed class MusicStateChangeHandler
                 onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
             }
         }
+    }
+
+    private sealed class PendingMusicPropertyNotificationsArgs
+    {
+        public required bool LanguageCodeChanged { get; init; }
+        public required bool PublicationCodeChanged { get; init; }
+        public required bool SectionCodeChanged { get; init; }
+        public required bool TrackCodeChanged { get; init; }
+        public required bool RepeatChanged { get; init; }
+        public required bool PublicationNameChanged { get; init; }
+        public required bool SectionNameChanged { get; init; }
+        public required bool IsMelodyMusic { get; init; }
+        public required bool MusicEnabled { get; init; }
+        public required Action<bool> SetShouldScrollToBottom { get; init; }
+        public required Action<string> OnPropertyChanged { get; init; }
     }
 
     private void HandleBibleLanguageDirectionChange(ScheduleStateItem currentSchedule)

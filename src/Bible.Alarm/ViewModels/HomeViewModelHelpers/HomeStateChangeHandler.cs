@@ -157,15 +157,18 @@ public class HomeStateChangeHandler
             schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
 
         var (fadeDeferredForInitialLoad, deferReorder) = await ApplyScheduleCollectionMutationsAsync(
-            schedules,
-            inputs,
-            schedulesToAdd,
-            schedulesToRemove,
-            newSchedules,
-            orderChanged,
-            hasSchedulesNow,
-            previousScheduleCount,
-            currentScheduleCount);
+            new ScheduleCollectionMutationArgs
+            {
+                Schedules = schedules,
+                Inputs = inputs,
+                SchedulesToAdd = schedulesToAdd,
+                SchedulesToRemove = schedulesToRemove,
+                NewSchedules = newSchedules,
+                OrderChanged = orderChanged,
+                HasSchedulesNow = hasSchedulesNow,
+                PreviousScheduleCount = previousScheduleCount,
+                CurrentScheduleCount = currentScheduleCount
+            });
 
         await FinalizeScheduleStateProcessingAsync(schedules, inputs, hasSchedulesNow, fadeDeferredForInitialLoad, deferReorder);
     }
@@ -194,16 +197,18 @@ public class HomeStateChangeHandler
     }
 
     private async Task<(bool FadeDeferredForInitialLoad, bool DeferReorder)> ApplyScheduleCollectionMutationsAsync(
-        ObservableHashSet<ScheduleStateItem> schedules,
-        ScheduleProcessingInputs inputs,
-        List<ScheduleListItemViewModel> schedulesToAdd,
-        List<int> schedulesToRemove,
-        ObservableHashSet<ScheduleListItemViewModel>? newSchedules,
-        bool orderChanged,
-        bool hasSchedulesNow,
-        int previousScheduleCount,
-        int currentScheduleCount)
+        ScheduleCollectionMutationArgs args)
     {
+        var schedules = args.Schedules;
+        var inputs = args.Inputs;
+        var schedulesToAdd = args.SchedulesToAdd;
+        var schedulesToRemove = args.SchedulesToRemove;
+        var newSchedules = args.NewSchedules;
+        var orderChanged = args.OrderChanged;
+        var hasSchedulesNow = args.HasSchedulesNow;
+        var previousScheduleCount = args.PreviousScheduleCount;
+        var currentScheduleCount = args.CurrentScheduleCount;
+
         var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
 
         if (isInitialLoad && hasSchedulesNow && newSchedules != null)
@@ -227,6 +232,19 @@ public class HomeStateChangeHandler
             currentScheduleCount);
 
         return (false, deferReorder);
+    }
+
+    private sealed class ScheduleCollectionMutationArgs
+    {
+        public required ObservableHashSet<ScheduleStateItem> Schedules { get; init; }
+        public required ScheduleProcessingInputs Inputs { get; init; }
+        public required List<ScheduleListItemViewModel> SchedulesToAdd { get; init; }
+        public required List<int> SchedulesToRemove { get; init; }
+        public ObservableHashSet<ScheduleListItemViewModel>? NewSchedules { get; init; }
+        public required bool OrderChanged { get; init; }
+        public required bool HasSchedulesNow { get; init; }
+        public required int PreviousScheduleCount { get; init; }
+        public required int CurrentScheduleCount { get; init; }
     }
 
     private async Task<bool> ApplyInitialScheduleCollectionLoadAsync(ObservableHashSet<ScheduleListItemViewModel> newSchedules)

@@ -130,18 +130,20 @@ public sealed class CategorySelectionAutoPopulateHandler
             logger.Information(AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.AutoPopulatedSummary,
                 languageCodeForLog, publicationCode, sectionCode, trackCode, publicationWithoutLanguage);
 
-            DispatchAutoPopulatedSchedule(
-                dispatcher,
-                currentSchedule,
-                action,
-                publicationWithoutLanguage,
-                selectedLanguage,
-                publicationCode,
-                sectionCode,
-                trackCode,
-                sectionName,
-                publicationName,
-                trackTitle);
+            DispatchAutoPopulatedSchedule(new DispatchAutoPopulatedScheduleArgs
+            {
+                Dispatcher = dispatcher,
+                CurrentSchedule = currentSchedule,
+                Action = action,
+                PublicationWithoutLanguage = publicationWithoutLanguage,
+                SelectedLanguage = selectedLanguage,
+                PublicationCode = publicationCode,
+                SectionCode = sectionCode,
+                TrackCode = trackCode,
+                SectionName = sectionName,
+                PublicationName = publicationName,
+                TrackTitle = trackTitle
+            });
 
             if (fetchOccurred)
             {
@@ -418,19 +420,20 @@ public sealed class CategorySelectionAutoPopulateHandler
             resultTrackTitle);
     }
 
-    private void DispatchAutoPopulatedSchedule(
-        IDispatcher dispatcher,
-        ScheduleStateItem currentSchedule,
-        CategorySelectionAction action,
-        bool publicationWithoutLanguage,
-        Language? selectedLanguage,
-        string publicationCode,
-        string? sectionCode,
-        string trackCode,
-        string sectionName,
-        string publicationName,
-        string trackTitle)
+    private void DispatchAutoPopulatedSchedule(DispatchAutoPopulatedScheduleArgs args)
     {
+        var dispatcher = args.Dispatcher;
+        var currentSchedule = args.CurrentSchedule;
+        var action = args.Action;
+        var publicationWithoutLanguage = args.PublicationWithoutLanguage;
+        var selectedLanguage = args.SelectedLanguage;
+        var publicationCode = args.PublicationCode;
+        var sectionCode = args.SectionCode;
+        var trackCode = args.TrackCode;
+        var sectionName = args.SectionName;
+        var publicationName = args.PublicationName;
+        var trackTitle = args.TrackTitle;
+
         var updatedSchedule = currentSchedule.DeepClone();
         updatedSchedule.BiblePublicationCategoryId = action.CategoryId;
         updatedSchedule.BiblePublicationCategoryName = action.CategoryName;
@@ -462,6 +465,21 @@ public sealed class CategorySelectionAutoPopulateHandler
         updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
 
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
+    }
+
+    private sealed class DispatchAutoPopulatedScheduleArgs
+    {
+        public required IDispatcher Dispatcher { get; init; }
+        public required ScheduleStateItem CurrentSchedule { get; init; }
+        public required CategorySelectionAction Action { get; init; }
+        public required bool PublicationWithoutLanguage { get; init; }
+        public Language? SelectedLanguage { get; init; }
+        public required string PublicationCode { get; init; }
+        public string? SectionCode { get; init; }
+        public required string TrackCode { get; init; }
+        public required string SectionName { get; init; }
+        public required string PublicationName { get; init; }
+        public required string TrackTitle { get; init; }
     }
 
     private static void PublishAutoPopulateFetchError(int categoryId) =>

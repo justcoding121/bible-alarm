@@ -74,15 +74,17 @@ public sealed class PlaybackEventHandler
             currentTrackIndex >= 0 &&
             currentTrackIndex == pl.Count - 1)
         {
-            await HandleIndefiniteLastTrackEndedAsync(
-                pl,
-                currentTrackIndex,
-                currentScheduleId,
-                tryAppendNextTrackAsync,
-                setCurrentTrackIndex,
-                playCurrentTrackAsync,
-                showPlaybackErrorInModalKeepSessionAsync,
-                getIsAlarm);
+            await HandleIndefiniteLastTrackEndedAsync(new IndefiniteLastTrackEndedArgs
+            {
+                Playlist = pl,
+                CurrentTrackIndex = currentTrackIndex,
+                CurrentScheduleId = currentScheduleId,
+                TryAppendNextTrackAsync = tryAppendNextTrackAsync,
+                SetCurrentTrackIndex = setCurrentTrackIndex,
+                PlayCurrentTrackAsync = playCurrentTrackAsync,
+                ShowPlaybackErrorInModalKeepSessionAsync = showPlaybackErrorInModalKeepSessionAsync,
+                GetIsAlarm = getIsAlarm
+            });
             return;
         }
 
@@ -320,16 +322,17 @@ public sealed class PlaybackEventHandler
         return AppConstants.Media.PlaybackModalMessages.CouldNotStartPlaybackCheckConnectionTapRetry;
     }
 
-    private async Task HandleIndefiniteLastTrackEndedAsync(
-        List<AudioPlayerTrack> playlist,
-        int currentTrackIndex,
-        int? currentScheduleId,
-        Func<Task<bool>> tryAppendNextTrackAsync,
-        Action<int> setCurrentTrackIndex,
-        Func<bool, Task> playCurrentTrackAsync,
-        Func<string, bool, Task> showPlaybackErrorInModalKeepSessionAsync,
-        Func<bool> getIsAlarm)
+    private async Task HandleIndefiniteLastTrackEndedAsync(IndefiniteLastTrackEndedArgs args)
     {
+        var playlist = args.Playlist;
+        var currentTrackIndex = args.CurrentTrackIndex;
+        var currentScheduleId = args.CurrentScheduleId;
+        var tryAppendNextTrackAsync = args.TryAppendNextTrackAsync;
+        var setCurrentTrackIndex = args.SetCurrentTrackIndex;
+        var playCurrentTrackAsync = args.PlayCurrentTrackAsync;
+        var showPlaybackErrorInModalKeepSessionAsync = args.ShowPlaybackErrorInModalKeepSessionAsync;
+        var getIsAlarm = args.GetIsAlarm;
+
         var appended = await tryAppendNextTrackAsync();
         var canAdvance = appended && playlist.Count > currentTrackIndex + 1;
 
@@ -378,6 +381,18 @@ public sealed class PlaybackEventHandler
         await showPlaybackErrorInModalKeepSessionAsync(
             AppConstants.Media.PlaybackModalMessages.CouldNotLoadNextPartCheckConnectionTapRetry,
             getIsAlarm());
+    }
+
+    private sealed class IndefiniteLastTrackEndedArgs
+    {
+        public required List<AudioPlayerTrack> Playlist { get; init; }
+        public required int CurrentTrackIndex { get; init; }
+        public int? CurrentScheduleId { get; init; }
+        public required Func<Task<bool>> TryAppendNextTrackAsync { get; init; }
+        public required Action<int> SetCurrentTrackIndex { get; init; }
+        public required Func<bool, Task> PlayCurrentTrackAsync { get; init; }
+        public required Func<string, bool, Task> ShowPlaybackErrorInModalKeepSessionAsync { get; init; }
+        public required Func<bool> GetIsAlarm { get; init; }
     }
 
     private async Task MarkCurrentTrackAsFinishedAsync(List<AudioPlayerTrack>? playlist, int currentTrackIndex)

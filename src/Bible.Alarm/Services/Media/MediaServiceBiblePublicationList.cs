@@ -95,15 +95,17 @@ internal static class MediaServiceBiblePublicationList
             languageCode,
             categoryName ?? "all");
 
-        await TryEnsureAllPublicationsForLanguageModalAsync(
-            services,
-            languageCode,
-            categoryName,
-            downloadAll,
-            progress,
-            requireIsMusicForMusicCategory,
-            result,
-            cancellationToken);
+        await TryEnsureAllPublicationsForLanguageModalAsync(new EnsureAllPublicationsForLanguageModalArgs
+        {
+            Services = services,
+            LanguageCode = languageCode,
+            CategoryName = categoryName,
+            DownloadAll = downloadAll,
+            Progress = progress,
+            RequireIsMusicForMusicCategory = requireIsMusicForMusicCategory,
+            Result = result,
+            CancellationToken = cancellationToken
+        });
 
         return result;
     }
@@ -344,16 +346,17 @@ internal static class MediaServiceBiblePublicationList
         }
     }
 
-    private static async Task TryEnsureAllPublicationsForLanguageModalAsync(
-        GetBiblePublicationsServices services,
-        string languageCode,
-        string? categoryName,
-        bool downloadAll,
-        IFetchProgress? progress,
-        bool requireIsMusicForMusicCategory,
-        Dictionary<string, BiblePublication> result,
-        CancellationToken cancellationToken)
+    private static async Task TryEnsureAllPublicationsForLanguageModalAsync(EnsureAllPublicationsForLanguageModalArgs args)
     {
+        var services = args.Services;
+        var languageCode = args.LanguageCode;
+        var categoryName = args.CategoryName;
+        var downloadAll = args.DownloadAll;
+        var progress = args.Progress;
+        var requireIsMusicForMusicCategory = args.RequireIsMusicForMusicCategory;
+        var result = args.Result;
+        var cancellationToken = args.CancellationToken;
+
         var languageContentService = services.LanguageContentService;
         var biblePublicationService = services.BiblePublicationService;
 
@@ -401,6 +404,18 @@ internal static class MediaServiceBiblePublicationList
         {
             Log.Warning(ex, AppConstants.Logging.MediaServiceDiagnosticsLog.FailedEnsureAllPublicationsForLanguage, languageCode);
         }
+    }
+
+    private sealed class EnsureAllPublicationsForLanguageModalArgs
+    {
+        public required GetBiblePublicationsServices Services { get; init; }
+        public required string LanguageCode { get; init; }
+        public string? CategoryName { get; init; }
+        public required bool DownloadAll { get; init; }
+        public IFetchProgress? Progress { get; init; }
+        public required bool RequireIsMusicForMusicCategory { get; init; }
+        public required Dictionary<string, BiblePublication> Result { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
     }
 }
 

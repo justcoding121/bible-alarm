@@ -356,9 +356,17 @@ public sealed class BiblePublicationSelectionDataProvider
                 try
                 {
                     var outcome =
-                        await RunBiblePublicationRetryIterationAsync(languageCode, currentCategoryName, downloadAll,
-                            progress,
-                            cancellationToken, attempt, retryDelay, previousCatalogedCount);
+                        await RunBiblePublicationRetryIterationAsync(new BiblePublicationRetryIterationInput
+                        {
+                            LanguageCode = languageCode,
+                            CurrentCategoryName = currentCategoryName,
+                            DownloadAll = downloadAll,
+                            Progress = progress,
+                            CancellationToken = cancellationToken,
+                            Attempt = attempt,
+                            RetryDelayBase = retryDelay,
+                            PreviousCatalogedCount = previousCatalogedCount
+                        });
 
                     publicationsData = outcome.NextSnapshot;
                     if (outcome.Completed)
@@ -441,19 +449,17 @@ public sealed class BiblePublicationSelectionDataProvider
     }
 
     private async Task<BiblePublicationRetryIterationOutcome> RunBiblePublicationRetryIterationAsync(
-        string languageCode,
-        string currentCategoryName,
-        bool downloadAll,
-        IFetchProgress? progress,
-        CancellationToken cancellationToken,
-        int attempt,
-        int retryDelayBase,
-        int previousCatalogedCount)
+        BiblePublicationRetryIterationInput input)
     {
-        var fetchedWithProgress =
-            await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
+        var languageCode = input.LanguageCode;
+        var currentCategoryName = input.CurrentCategoryName;
+        var attempt = input.Attempt;
+        var previousCatalogedCount = input.PreviousCatalogedCount;
 
-        await Task.Delay(500, cancellationToken);
+        var fetchedWithProgress =
+            await mediaService.GetBiblePublications(languageCode, currentCategoryName, input.DownloadAll, input.Progress);
+
+        await Task.Delay(500, input.CancellationToken);
 
         var reQueriedData =
             await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
@@ -481,10 +487,22 @@ public sealed class BiblePublicationSelectionDataProvider
         LogBiblePublicationRetryAttemptDiagnostics(attempt, reQueriedData, retryHasAllExpected, retryActualCount,
             retryExpectedCount);
 
-        var delay = Math.Min(retryDelayBase * attempt, 5000);
-        await Task.Delay(delay, cancellationToken);
+        var delay = Math.Min(input.RetryDelayBase * attempt, 5000);
+        await Task.Delay(delay, input.CancellationToken);
 
         return BiblePublicationRetryIterationOutcome.ForContinue(fetchedWithProgress, currentCatalogedCount);
+    }
+
+    private sealed class BiblePublicationRetryIterationInput
+    {
+        public required string LanguageCode { get; init; }
+        public required string CurrentCategoryName { get; init; }
+        public required bool DownloadAll { get; init; }
+        public IFetchProgress? Progress { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
+        public required int Attempt { get; init; }
+        public required int RetryDelayBase { get; init; }
+        public required int PreviousCatalogedCount { get; init; }
     }
 
     private static void LogBiblePublicationRetryAttemptDiagnostics(
