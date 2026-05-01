@@ -4,14 +4,14 @@ using System.Collections.ObjectModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
@@ -40,65 +40,26 @@ public sealed class MusicPublicationSelectionDataProvider(
         Action<LanguageListViewItemModel?> setCurrentLanguage,
         string? searchTerm = null)
     {
-        // Prevent concurrent population which can cause duplicates
         await ConcurrencyHelper.ExecuteAsync(languagePopulationLock, async () =>
         {
-            // Do ALL processing on background thread to avoid blocking spinner animation
-            // Use GetBiblePublicationLanguages with the music publication category (same API as Bible publication)
             var languagesFromDb = await mediaService.GetBiblePublicationLanguages(AppConstants.Media.BiblePublicationCategoryMusic, requireIsMusicForMusicCategory: true);
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
             var languageIds = languagesFromDb.Values.Select(l => l.Id).ToList();
-            var names = await languageNameService.GetNamesAsync(languageIds, Bible.Alarm.Shared.Constants.AppConstants.Media.DefaultLanguageCode);
+            var names = await languageNameService.GetNamesAsync(languageIds, AppConstants.Media.DefaultLanguageCode);
 
-            var languageVMs = new List<LanguageListViewItemModel>();
-            LanguageListViewItemModel? selectedLanguage = null;
-
-            foreach (var language in languagesFromDb.Values)
-            {
-                var name = names.GetValueOrDefault(language.Id) ?? language.LanguageCode;
-                if (trimmedSearchTerm != null && !name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                var languageVm = new LanguageListViewItemModel(language, name);
-                languageVMs.Add(languageVm);
-
-                if (current != null && 
-                    string.Equals(languageVm.Code, current.LanguageCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    languageVm.IsSelected = true;
-                    selectedLanguage = languageVm;
-                    Log.Debug(AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.PopulateLanguagesMarkedLanguageSelected,
-                        languageVm.Code, languageVm.Name);
-                }
-            }
+            var (languageVMs, selectedLanguage) = BuildLanguageViewModelsForPopulate(
+                languagesFromDb.Values,
+                names,
+                trimmedSearchTerm,
+                current);
 
             languageVMs = languageVMs.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
 
-            // Add items in small batches with frequent yields for smooth spinner animation
-            const int batchSize = 15;
-            await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
-            // Let spinner animate after clear
-            await Task.Yield();
-
-            for (int i = 0; i < languageVMs.Count; i += batchSize)
-            {
-                var batch = languageVMs.Skip(i).Take(batchSize).ToList();
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    foreach (var lang in batch)
-                    {
-                        languages.Add(lang);
-                    }
-                });
-
-                // Yield after every batch for smooth animation
-                await Task.Yield();
-            }
+            await AppendLanguagesInBatchesAsync(languages, languageVMs);
 
             if (selectedLanguage != null)
-            {
                 await MainThread.InvokeOnMainThreadAsync(() => setCurrentLanguage(selectedLanguage));
-            }
         });
     }
 
@@ -111,10 +72,6 @@ public sealed class MusicPublicationSelectionDataProvider(
         IFetchProgress? progress = null,
         CancellationToken cancellationToken = default)
     {
-        // Use GetBiblePublications with the music publication category — same API as Bible publication container
-        // This returns both publications with language AND without language FK (data-driven)
-        // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
-        // downloadAll=false when language changes (only download first publication in cascade)
         var publicationsData = await fetchCoordinator.FetchMusicPublicationsAsync(languageCode, current, downloadAll, progress, cancellationToken);
 
         var songPublicationVMs = new List<PublicationListViewItemModel>();
@@ -123,74 +80,140 @@ public sealed class MusicPublicationSelectionDataProvider(
 
         if (publicationsData != null && publicationsData.Count > 0)
         {
-            // Remove placeholder publications that couldn't be fetched (e.g. no tracks on the server)
-            var unfetchableCodes = publicationsData
-                .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || string.Equals(kvp.Value.Name, kvp.Value.PublicationCode, StringComparison.OrdinalIgnoreCase))
-                .Select(kvp => kvp.Key)
-                .ToList();
-            if (unfetchableCodes.Count > 0)
-            {
-                foreach (var code in unfetchableCodes)
-                {
-                    publicationsData.Remove(code);
-                }
-                Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.RemovedUnfetchablePlaceholderPublications,
-                    unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
-            }
+            RemoveUnfetchablePlaceholderPublications(publicationsData);
 
-            // Show ALL music publications (both with and without LanguageId)
-            // This matches Bible container behavior - merging languaged and non-languaged publications
             foreach (var publication in publicationsData.Values)
-            {
-                // Skip duplicates - if code already exists, use the existing one
-                if (newMapping.TryGetValue(publication.PublicationCode, out var existingVm))
-                {
-                    // Check if this matches the current publication code
-                    if (current != null &&
-                        string.Equals(current.PublicationCode, publication.PublicationCode, StringComparison.OrdinalIgnoreCase))
-                    {
-                        existingVm.IsSelected = true;
-                        selectedSongPublication = existingVm;
-                    }
-                    continue;
-                }
+                MergePublicationIntoSongLists(publication, current, songPublicationVMs, newMapping, ref selectedSongPublication);
 
-                var songPublicationListViewItemModel = new PublicationListViewItemModel(publication);
-                songPublicationVMs.Add(songPublicationListViewItemModel);
-                newMapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
-
-                // Check if this matches the current publication code
-                if (current != null &&
-                    string.Equals(current.PublicationCode, publication.PublicationCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    songPublicationListViewItemModel.IsSelected = true;
-                    selectedSongPublication = songPublicationListViewItemModel;
-                }
-            }
-
-            // Sort publications by category: Music = osg first, then others by name
             songPublicationVMs = PublicationSortHelper.SortByPriorityForCategory(songPublicationVMs, p => p.Code, p => p.Name, AppConstants.Media.BiblePublicationCategoryMusic).ToList();
         }
 
-        // Update mapping
-        songPublicationVMsMapping.Clear();
-        foreach (var kvp in newMapping)
+        ReplaceSongPublicationMapping(newMapping);
+
+        await ApplySongPublicationsToUiAsync(songPublications, songPublicationVMs, selectedSongPublication, setSelectedSongPublication);
+    }
+
+    private static (List<LanguageListViewItemModel> Items, LanguageListViewItemModel? Selected) BuildLanguageViewModelsForPopulate(
+        IEnumerable<Language> languages,
+        Dictionary<int, string> names,
+        string? trimmedSearchTerm,
+        AlarmMusic? current)
+    {
+        var languageVMs = new List<LanguageListViewItemModel>();
+        LanguageListViewItemModel? selectedLanguage = null;
+
+        foreach (var language in languages)
         {
-            songPublicationVMsMapping[kvp.Key] = kvp.Value;
+            var name = names.GetValueOrDefault(language.Id) ?? language.LanguageCode;
+            if (trimmedSearchTerm != null && !name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var languageVm = new LanguageListViewItemModel(language, name);
+            languageVMs.Add(languageVm);
+
+            if (current != null &&
+                string.Equals(languageVm.Code, current.LanguageCode, StringComparison.OrdinalIgnoreCase))
+            {
+                languageVm.IsSelected = true;
+                selectedLanguage = languageVm;
+                Log.Debug(AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.PopulateLanguagesMarkedLanguageSelected,
+                    languageVm.Code, languageVm.Name);
+            }
         }
 
-        // Minimal UI thread work - just swap the collection contents
+        return (languageVMs, selectedLanguage);
+    }
+
+    private static async Task AppendLanguagesInBatchesAsync(
+        ObservableCollection<LanguageListViewItemModel> languages,
+        List<LanguageListViewItemModel> languageVMs)
+    {
+        const int batchSize = 15;
+        await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
+        await Task.Yield();
+
+        for (var i = 0; i < languageVMs.Count; i += batchSize)
+        {
+            var batch = languageVMs.Skip(i).Take(batchSize).ToList();
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                foreach (var lang in batch)
+                    languages.Add(lang);
+            });
+            await Task.Yield();
+        }
+    }
+
+    private static void RemoveUnfetchablePlaceholderPublications(Dictionary<string, BiblePublication> publicationsData)
+    {
+        var unfetchableCodes = publicationsData
+            .Where(kvp => kvp.Value.Id == 0 || string.IsNullOrEmpty(kvp.Value.Name) || string.Equals(kvp.Value.Name, kvp.Value.PublicationCode, StringComparison.OrdinalIgnoreCase))
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        if (unfetchableCodes.Count == 0)
+            return;
+
+        foreach (var code in unfetchableCodes)
+            publicationsData.Remove(code);
+
+        Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.RemovedUnfetchablePlaceholderPublications,
+            unfetchableCodes.Count, string.Join(", ", unfetchableCodes));
+    }
+
+    private static void MergePublicationIntoSongLists(
+        BiblePublication publication,
+        AlarmMusic? current,
+        List<PublicationListViewItemModel> songPublicationVMs,
+        Dictionary<string, PublicationListViewItemModel> newMapping,
+        ref PublicationListViewItemModel? selectedSongPublication)
+    {
+        if (newMapping.TryGetValue(publication.PublicationCode, out var existingVm))
+        {
+            if (TrySelectCurrentPublication(existingVm, publication.PublicationCode, current))
+                selectedSongPublication = existingVm;
+            return;
+        }
+
+        var songPublicationListViewItemModel = new PublicationListViewItemModel(publication);
+        songPublicationVMs.Add(songPublicationListViewItemModel);
+        newMapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
+
+        if (TrySelectCurrentPublication(songPublicationListViewItemModel, publication.PublicationCode, current))
+            selectedSongPublication = songPublicationListViewItemModel;
+    }
+
+    private static bool TrySelectCurrentPublication(PublicationListViewItemModel vm, string publicationCode, AlarmMusic? current)
+    {
+        if (current == null ||
+            !string.Equals(current.PublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        vm.IsSelected = true;
+        return true;
+    }
+
+    private void ReplaceSongPublicationMapping(Dictionary<string, PublicationListViewItemModel> newMapping)
+    {
+        songPublicationVMsMapping.Clear();
+        foreach (var kvp in newMapping)
+            songPublicationVMsMapping[kvp.Key] = kvp.Value;
+    }
+
+    private static async Task ApplySongPublicationsToUiAsync(
+        ObservableCollection<PublicationListViewItemModel> songPublications,
+        List<PublicationListViewItemModel> songPublicationVMs,
+        PublicationListViewItemModel? selectedSongPublication,
+        Action<PublicationListViewItemModel?> setSelectedSongPublication)
+    {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             songPublications.Clear();
             foreach (var songPublication in songPublicationVMs)
-            {
                 songPublications.Add(songPublication);
-            }
+
             if (selectedSongPublication != null)
-            {
                 setSelectedSongPublication(selectedSongPublication);
-            }
         });
     }
 
