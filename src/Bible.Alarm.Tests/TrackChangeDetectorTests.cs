@@ -102,4 +102,23 @@ public sealed class TrackChangeDetectorTests
         Assert.False(await sut.CheckIfTrackChanged(meta));
         Assert.Equal(0, alarms.GetScheduleByIdAsyncCalls);
     }
+
+    [Fact]
+    public async Task CheckIfTrackChanged_returns_false_when_schedule_id_non_positive_for_bible_content()
+    {
+        var alarms = new RecordingAlarmScheduleService();
+        var sut = new TrackChangeDetector(alarms, CancellationToken.None);
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 0,
+            IsBibleContent = true,
+            TrackCode = "1",
+            SectionCode = "gen",
+            LookUpPath = "path",
+        };
+
+        Assert.False(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(0, alarms.GetScheduleByIdAsyncCalls);
+    }
 }
