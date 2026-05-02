@@ -143,4 +143,26 @@ public sealed class ScheduleUpdaterTests
 
         await Assert.ThrowsAsync<ArgumentException>(() => sut.GetScheduleWithBiblePublicationAsync(3));
     }
+
+    [Fact]
+    public async Task UpdateScheduleToNextTrackAsync_throws_when_bible_publication_schedule_missing()
+    {
+        var schedule = new AlarmSchedule { Id = 7, BiblePublicationSchedule = null };
+        var schedules = new StubAlarmScheduleService { Schedule = schedule };
+        var sut = new ScheduleUpdater(schedules, CancellationToken.None);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            sut.UpdateScheduleToNextTrackAsync(7, Nav("pub", null, "1")));
+    }
+
+    [Fact]
+    public async Task UpdateScheduleToPreviousTrackAsync_throws_when_bible_publication_schedule_missing()
+    {
+        var schedule = new AlarmSchedule { Id = 8, BiblePublicationSchedule = null };
+        var schedules = new StubAlarmScheduleService { Schedule = schedule };
+        var sut = new ScheduleUpdater(schedules, CancellationToken.None);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            sut.UpdateScheduleToPreviousTrackAsync(8, Nav("pub", null, "2")));
+    }
 }
