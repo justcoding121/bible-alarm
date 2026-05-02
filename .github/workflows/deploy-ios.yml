@@ -109,7 +109,7 @@ jobs:
         mkdir -p ~/private_keys
         B64="$(echo "$APP_STORE_CONNECT_API_KEY_BASE64" | tr -d '\r\n\t' | sed 's/ /+/g')"
         echo "$B64" | base64 --decode -o ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
-        python3 -m pip install --quiet --only-binary=:all: -r .github/scripts/requirements-asc-check.txt
+        python3 -m pip install --quiet --only-binary=:all: --require-hashes --no-deps -r .github/scripts/requirements-asc-check.txt
         python .github/scripts/check-asc-build-exists.py \
           "$APP_STORE_CONNECT_API_KEY_ID" \
           "$APP_STORE_CONNECT_API_ISSUER_ID" \

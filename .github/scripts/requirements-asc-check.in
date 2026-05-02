@@ -1,0 +1,6 @@
+# Edit this file; regenerate requirements-asc-check.txt with:
+#   pip-compile --generate-hashes requirements-asc-check.in -o requirements-asc-check.txt
+pyjwt==2.10.1
+cryptography==44.0.2
+cffi==1.17.1
+pycparser==2.22
