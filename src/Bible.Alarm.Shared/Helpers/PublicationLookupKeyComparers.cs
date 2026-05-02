@@ -78,7 +78,7 @@ public static class PublicationLookupKeyComparers
             HashCode.Combine(
                 StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LanguageCode),
                 StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PublicationCode),
-                obj.SectionCode != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(obj.SectionCode) : 0,
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.SectionCode ?? string.Empty),
                 StringComparer.Ordinal.GetHashCode(obj.TrackCode ?? string.Empty));
     }
 
@@ -124,7 +124,7 @@ public static class PublicationLookupKeyComparers
         public int GetHashCode((string PublicationCode, string? SectionCode, string TrackCode) obj) =>
             HashCode.Combine(
                 StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PublicationCode),
-                obj.SectionCode != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(obj.SectionCode) : 0,
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.SectionCode ?? string.Empty),
                 StringComparer.Ordinal.GetHashCode(obj.TrackCode ?? string.Empty));
     }
 
@@ -148,7 +148,7 @@ public static class PublicationLookupKeyComparers
         public int GetHashCode((string PublicationCode, string? LanguageCode) obj) =>
             HashCode.Combine(
                 StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PublicationCode),
-                obj.LanguageCode != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LanguageCode) : 0);
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.LanguageCode ?? string.Empty));
     }
 
     /// <summary>
