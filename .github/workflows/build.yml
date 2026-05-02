@@ -56,7 +56,7 @@ jobs:
             /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.language="cs" `
             /d:sonar.dotnet.excludeTestProjects="true" `
-            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/Database/Migrations/**,**/*.pem" `
+            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/Database/Migrations/**" `
             /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
         shell: pwsh
 
