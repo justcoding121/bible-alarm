@@ -168,6 +168,70 @@ public sealed class LookupDataLoaderTests
         Assert.Equal(iamMelodyRelease.Name, data.MelodyReleases[iam].Name);
     }
 
+    [Fact]
+    public async Task LoadAllAsync_drops_publication_entry_when_fetch_throws()
+    {
+        var keys = EmptyKeys();
+        keys.PublicationKeys.Add(("E", AppConstants.Media.BiblePublicationCodeNwt));
+
+        var sut = new LookupDataLoader(
+            new ThrowingBiblePublicationService(),
+            biblePublicationSectionService: null,
+            mediaService: null,
+            vocalMusicService: null,
+            scopeFactory: null);
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Empty(data.Publications);
+    }
+
+    private sealed class ThrowingBiblePublicationService : IBiblePublicationService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<BiblePublication?>(new InvalidOperationException("Simulated publication load failure"));
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase));
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+
+        public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+        {
+        }
+    }
+
     private sealed class RoutingBiblePublicationService : IBiblePublicationService
     {
         private readonly BiblePublication sectionedPublication;
