@@ -43,6 +43,17 @@ public sealed class PlaylistBiblePlayItemBuilderTests
             Task.FromResult(UrlToReturn);
     }
 
+    private sealed class CapturingUrlRefresh : IMediaUrlRefreshService
+    {
+        public TrackMetadata? LastMetadata { get; private set; }
+
+        public Task<string?> RefreshUrlAsync(TrackMetadata trackMetadata)
+        {
+            LastMetadata = trackMetadata;
+            return Task.FromResult<string?>("https://example.test/iam.mp3");
+        }
+    }
+
     [Fact]
     public void Constructor_throws_when_dependency_null()
     {
@@ -90,5 +101,18 @@ public sealed class PlaylistBiblePlayItemBuilderTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             builder.BuildPlayItemAsync(1, "E", "nwtsty", "1", "1"));
+    }
+
+    [Fact]
+    public async Task BuildPlayItemAsync_applies_disc_style_download_code_before_url_refresh()
+    {
+        var capture = new CapturingUrlRefresh();
+        var builder = new PlaylistBiblePlayItemBuilder(new StubUrlConstruction(), capture);
+
+        await builder.BuildPlayItemAsync(44, "E", "iam", "iam-2", "07");
+
+        Assert.NotNull(capture.LastMetadata);
+        Assert.Equal("iam-2", capture.LastMetadata.DownloadCode);
+        Assert.Equal(7, capture.LastMetadata.OriginalTrackCode);
     }
 }
