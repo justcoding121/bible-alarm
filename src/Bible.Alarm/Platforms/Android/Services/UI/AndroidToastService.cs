@@ -32,7 +32,7 @@ public class AndroidToastService : ToastService
     private const int TextSizeSp = 16;
     private const int FadeAnimationMs = 300;
 
-    public override async Task ShowMessage(string message, int seconds = 3)
+    public override async Task ShowMessage(string message, int seconds = DefaultToastDurationSeconds)
     {
         CancelActiveCts();
 
