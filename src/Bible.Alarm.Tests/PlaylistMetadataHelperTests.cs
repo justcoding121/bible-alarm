@@ -17,6 +17,25 @@ public sealed class PlaylistMetadataHelperTests
         };
 
     [Fact]
+    public void No_op_when_publication_code_blank_for_disc_style_section()
+    {
+        var m = Meta("  ", "iam-2", "07");
+        PlaylistMetadataHelper.TryApplyDiscStyleDownloadCode(m);
+        Assert.Null(m.DownloadCode);
+    }
+
+    [Fact]
+    public void Applies_using_final_hyphen_segment_when_multiple_segments()
+    {
+        var m = Meta("iam", "iam-disc-03", "01");
+
+        PlaylistMetadataHelper.TryApplyDiscStyleDownloadCode(m);
+
+        Assert.Equal("iam-disc-03", m.DownloadCode);
+        Assert.Equal(1, m.OriginalTrackCode);
+    }
+
+    [Fact]
     public void No_op_when_section_missing_or_plain_book_code()
     {
         var a = Meta("nwt", null, "1");
