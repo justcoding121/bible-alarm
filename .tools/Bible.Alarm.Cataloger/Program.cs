@@ -70,15 +70,6 @@ public static class Program
         }
         finally
         {
-            if (serviceProvider is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-            else if (serviceProvider is IAsyncDisposable asyncDisposable)
-            {
-                await asyncDisposable.DisposeAsync();
-            }
-
             await Log.CloseAndFlushAsync();
         }
 

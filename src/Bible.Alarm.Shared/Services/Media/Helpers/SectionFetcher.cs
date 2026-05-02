@@ -164,16 +164,25 @@ internal sealed class SectionFetcher
             return PrepareExistingPublicationForSectionFetch(existingPublication, categoriesForPub, isMusicPub, determinedCatalogType);
         }
 
-        return await InsertNewPublicationForSectionFetchAsync(
-            db,
-            normalizedPublicationCode,
-            englishPublication,
-            language,
-            categoriesForPub,
-            isMusicPub,
-            determinedCatalogType,
-            effectiveToken);
+        return await InsertNewPublicationForSectionFetchAsync(db,
+            new InsertNewPublicationForSectionFetchSpec(
+                normalizedPublicationCode,
+                englishPublication,
+                language,
+                categoriesForPub,
+                isMusicPub,
+                determinedCatalogType,
+                effectiveToken));
     }
+
+    private readonly record struct InsertNewPublicationForSectionFetchSpec(
+        string NormalizedPublicationCode,
+        BiblePublication EnglishPublication,
+        Language Language,
+        List<Category> CategoriesForPub,
+        bool IsMusicPub,
+        CatalogType? DeterminedCatalogType,
+        CancellationToken EffectiveToken);
 
     private static bool ComputeIsMusicPublication(List<Category> categoriesForPub, string normalizedPublicationCode) =>
         categoriesForPub.Any(c =>
@@ -199,14 +208,15 @@ internal sealed class SectionFetcher
 
     private async Task<BiblePublication> InsertNewPublicationForSectionFetchAsync(
         MediaDbContext db,
-        string normalizedPublicationCode,
-        BiblePublication englishPublication,
-        Language language,
-        List<Category> categoriesForPub,
-        bool isMusicPub,
-        CatalogType? determinedCatalogType,
-        CancellationToken effectiveToken)
+        InsertNewPublicationForSectionFetchSpec spec)
     {
+        var normalizedPublicationCode = spec.NormalizedPublicationCode;
+        var englishPublication = spec.EnglishPublication;
+        var language = spec.Language;
+        var categoriesForPub = spec.CategoriesForPub;
+        var isMusicPub = spec.IsMusicPub;
+        var determinedCatalogType = spec.DeterminedCatalogType;
+        var effectiveToken = spec.EffectiveToken;
         var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
         var publication = new BiblePublication
         {

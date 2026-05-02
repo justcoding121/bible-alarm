@@ -126,88 +126,97 @@ internal sealed class TestModeSeeder
 
         foreach (var publicationCode in publicationCodes.OrderBy(pc => pc))
         {
-            var languageTimes = new Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)>(StringComparer.OrdinalIgnoreCase);
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-
-            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? AppConstants.Media.BiblePublicationCategoryDramas
-                    : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
-            }
-            else
-            {
-                publicationCodeForDb = normalizedPublicationCode;
-            }
-
-            // Get English publication to determine category/cataloger type
-            var englishPublication = await db.BiblePublications
-                .Include(bp => bp.Language)
-                .Include(bp => bp.BiblePublicationCategories)
-                .ThenInclude(bpc => bpc.Category)
-                .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb &&
-                                          bp.Language != null &&
-                                          bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
-
-            if (englishPublication == null)
-            {
-                logger.Warning("English publication {PublicationCode} not found, skipping", publicationCode);
-                continue;
-            }
-
-            logger.Debug("Testing on-demand fetching for publication: {PublicationCode} (Category: {Category}, IsVideo: {IsVideo})",
-                publicationCode, englishPublication.PrimaryCategory?.CategoryCode ?? "Unknown", englishPublication.IsVideo);
-
-            foreach (var testLanguageCode in testLanguages)
-            {
-                var normalizedTestLanguageCode = testLanguageCode.ToUpperInvariant();
-                
-                // Check if language is available for this publication
-                var isAvailable = await db.PublicationLanguages
-                    .Include(pl => pl.Language)
-                    .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode &&
-                                   pl.Language != null &&
-                                   pl.Language.LanguageCode == normalizedTestLanguageCode);
-
-                if (!isAvailable)
-                {
-                    logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode}, skipping",
-                        testLanguageCode, publicationCode);
-                    continue;
-                }
-
-                // Check if publication already exists for this language
-                var existing = await db.BiblePublications
-                    .Include(bp => bp.Language)
-                    .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode &&
-                                  bp.Language != null &&
-                                  bp.Language.LanguageCode == normalizedTestLanguageCode);
-
-                if (existing)
-                {
-                    logger.Debug("Publication {PublicationCode} for language {LanguageCode} already exists, skipping fetch",
-                        publicationCode, testLanguageCode);
-                    continue;
-                }
-
-                await TryRunOnDemandFetchForTestLanguageAsync(
-                    db,
-                    languageContentService,
-                    publicationCode,
-                    normalizedPublicationCode,
-                    normalizedTestLanguageCode,
-                    testLanguageCode,
-                    languageTimes);
-            }
-
+            var languageTimes = await BuildOnDemandLanguageTimesForPublicationAsync(
+                db, languageContentService, publicationCode, testLanguages);
             publicationStats.Add((publicationCode, languageTimes));
         }
 
         var totalElapsed = DateTime.UtcNow - totalStartTime;
         LogOnDemandFetchingSummary(testLanguages, publicationStats, totalElapsed);
+    }
+
+    private async Task<Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)>> BuildOnDemandLanguageTimesForPublicationAsync(
+        MediaDbContext db,
+        LanguageContentService languageContentService,
+        string publicationCode,
+        string[] testLanguages)
+    {
+        var languageTimes = new Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)>(StringComparer.OrdinalIgnoreCase);
+        var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+
+        var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+        var publicationCodeForDb = ResolvePublicationCodeForDb(normalizedPublicationCode, isDrama);
+
+        var englishPublication = await db.BiblePublications
+            .Include(bp => bp.Language)
+            .Include(bp => bp.BiblePublicationCategories)
+            .ThenInclude(bpc => bpc.Category)
+            .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb &&
+                                      bp.Language != null &&
+                                      bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);
+
+        if (englishPublication == null)
+        {
+            logger.Warning("English publication {PublicationCode} not found, skipping", publicationCode);
+            return languageTimes;
+        }
+
+        logger.Debug("Testing on-demand fetching for publication: {PublicationCode} (Category: {Category}, IsVideo: {IsVideo})",
+            publicationCode, englishPublication.PrimaryCategory?.CategoryCode ?? "Unknown", englishPublication.IsVideo);
+
+        foreach (var testLanguageCode in testLanguages)
+        {
+            var normalizedTestLanguageCode = testLanguageCode.ToUpperInvariant();
+
+            var isAvailable = await db.PublicationLanguages
+                .Include(pl => pl.Language)
+                .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode &&
+                               pl.Language != null &&
+                               pl.Language.LanguageCode == normalizedTestLanguageCode);
+
+            if (!isAvailable)
+            {
+                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode}, skipping",
+                    testLanguageCode, publicationCode);
+                continue;
+            }
+
+            var existing = await db.BiblePublications
+                .Include(bp => bp.Language)
+                .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode &&
+                              bp.Language != null &&
+                              bp.Language.LanguageCode == normalizedTestLanguageCode);
+
+            if (existing)
+            {
+                logger.Debug("Publication {PublicationCode} for language {LanguageCode} already exists, skipping fetch",
+                    publicationCode, testLanguageCode);
+                continue;
+            }
+
+            await TryRunOnDemandFetchForTestLanguageAsync(
+                db,
+                languageContentService,
+                publicationCode,
+                normalizedPublicationCode,
+                normalizedTestLanguageCode,
+                testLanguageCode,
+                languageTimes);
+        }
+
+        return languageTimes;
+    }
+
+    private static string ResolvePublicationCodeForDb(string normalizedPublicationCode, bool isDrama)
+    {
+        if (!isDrama)
+        {
+            return normalizedPublicationCode;
+        }
+
+        return normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+            ? AppConstants.Media.BiblePublicationCategoryDramas
+            : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
     }
 
     private void LogOnDemandFetchingSummary(
@@ -302,16 +311,25 @@ internal sealed class TestModeSeeder
         }
     }
 
+    private readonly record struct FetchSectionedPublicationForTestRequest(
+        string PublicationCode,
+        string TestLanguageCode,
+        string NormalizedPublicationCode,
+        string NormalizedTestLanguageCode,
+        Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)> LanguageTimes,
+        DateTime LanguageStartTime);
+
     private async Task FetchSectionedPublicationForTestAsync(
         MediaDbContext db,
         LanguageContentService languageContentService,
-        string publicationCode,
-        string testLanguageCode,
-        string normalizedPublicationCode,
-        string normalizedTestLanguageCode,
-        Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)> languageTimes,
-        DateTime languageStartTime)
+        FetchSectionedPublicationForTestRequest request)
     {
+        var publicationCode = request.PublicationCode;
+        var testLanguageCode = request.TestLanguageCode;
+        var normalizedPublicationCode = request.NormalizedPublicationCode;
+        var normalizedTestLanguageCode = request.NormalizedTestLanguageCode;
+        var languageTimes = request.LanguageTimes;
+        var languageStartTime = request.LanguageStartTime;
         logger.Debug("Fetching sections for publication {PublicationCode} in language {LanguageCode}...",
             publicationCode, testLanguageCode);
 
@@ -382,15 +400,14 @@ internal sealed class TestModeSeeder
 
             if (hasSections)
             {
-                await FetchSectionedPublicationForTestAsync(
-                    db,
-                    languageContentService,
-                    publicationCode,
-                    testLanguageCode,
-                    normalizedPublicationCode,
-                    normalizedTestLanguageCode,
-                    languageTimes,
-                    languageStartTime);
+                await FetchSectionedPublicationForTestAsync(db, languageContentService,
+                    new FetchSectionedPublicationForTestRequest(
+                        publicationCode,
+                        testLanguageCode,
+                        normalizedPublicationCode,
+                        normalizedTestLanguageCode,
+                        languageTimes,
+                        languageStartTime));
                 return;
             }
 
