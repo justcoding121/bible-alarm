@@ -41,7 +41,7 @@ static class Program
         0.061359f, 0.244771f, 0.387744f, 0.244771f, 0.061359f,
     };
 
-    static int Main(string[] args)
+    internal static int Main(string[] args)
     {
         var folder = args.Length > 0 ? args[0].Trim() : null;
         if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))

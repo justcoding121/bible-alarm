@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- Exclude from SonarScanner analysis (no injected Sonar Roslyn diagnostics during dotnet build under scan). -->
+    <SonarQubeExclude>true</SonarQubeExclude>
+    <SonarQubeTestProject>true</SonarQubeTestProject>
+    <!-- Match repo code style locally, but skip style analyzers as build warnings in CI/tests. -->
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bible.Alarm.IosScreenshotResizer\Bible.Alarm.IosScreenshotResizer.csproj" />
+  </ItemGroup>
+
+</Project>
