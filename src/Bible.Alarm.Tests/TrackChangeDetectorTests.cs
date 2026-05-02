@@ -72,6 +72,82 @@ public sealed class TrackChangeDetectorTests
             Task.FromResult<BiblePublicationSchedule?>(null);
     }
 
+    /// <summary>
+    /// Bible schedule loaded from alarm matches supplied metadata track signature (cache primed path).
+    /// </summary>
+    private sealed class MatchingBibleScheduleAlarmService : IAlarmScheduleService
+    {
+        public int GetScheduleByIdAsyncCalls { get; private set; }
+
+        public void Dispose()
+        {
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true, bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default)
+        {
+            GetScheduleByIdAsyncCalls++;
+            return Task.FromResult<AlarmSchedule?>(new AlarmSchedule
+            {
+                Id = scheduleId,
+                Name = "Matching bible row",
+                BiblePublicationSchedule = new BiblePublicationSchedule
+                {
+                    AlarmScheduleId = scheduleId,
+                    PublicationCode = "nwt",
+                    SectionCode = "gen",
+                    TrackCode = "1",
+                    FinishedDuration = TimeSpan.Zero,
+                },
+            });
+        }
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AlarmSchedule());
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
+    }
+
     [Fact]
     public void SetLastKnownBibleTrack_ignores_non_positive_schedule_id()
     {
@@ -120,5 +196,27 @@ public sealed class TrackChangeDetectorTests
 
         Assert.False(await sut.CheckIfTrackChanged(meta));
         Assert.Equal(0, alarms.GetScheduleByIdAsyncCalls);
+    }
+
+    [Fact]
+    public async Task CheckIfTrackChanged_repeated_calls_do_not_reload_schedule_when_signature_matches_after_prime()
+    {
+        var alarms = new MatchingBibleScheduleAlarmService();
+        var sut = new TrackChangeDetector(alarms, CancellationToken.None);
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 101,
+            IsBibleContent = true,
+            TrackCode = "1",
+            SectionCode = "gen",
+            LookUpPath = "path",
+        };
+
+        Assert.False(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(1, alarms.GetScheduleByIdAsyncCalls);
+
+        Assert.False(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(1, alarms.GetScheduleByIdAsyncCalls);
     }
 }

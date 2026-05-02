@@ -102,6 +102,70 @@ public sealed class PlaylistScheduleDisplayRefresherTests
             Task.FromResult<BiblePublicationSchedule?>(null);
     }
 
+    /// <summary>
+    /// Alarm row exists but includes no bible attachment — same guard as missing schedule row.
+    /// </summary>
+    private sealed class IdleAlarmReturningScheduleWithoutBiblePublication : IAlarmScheduleService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true, bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(new AlarmSchedule
+            {
+                Id = scheduleId,
+                Name = "Schedule without bible row",
+                BiblePublicationSchedule = null,
+            });
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AlarmSchedule());
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
+    }
+
     [Fact]
     public async Task RefreshAsync_no_op_when_alarm_or_display_service_missing()
     {
@@ -130,6 +194,22 @@ public sealed class PlaylistScheduleDisplayRefresherTests
             TestLogging.CreateLogger());
 
         await sut.RefreshAsync(42, "E", "nwt", "gen", CancellationToken.None);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_no_op_when_alarm_returns_schedule_without_bible_publication()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var sut = new PlaylistScheduleDisplayRefresher(
+            new IdleAlarmReturningScheduleWithoutBiblePublication(),
+            new IdleScheduleDisplayNameService(),
+            new FakeApplicationState(new ApplicationState([])),
+            dispatcher,
+            TestLogging.CreateLogger());
+
+        await sut.RefreshAsync(99, "E", "nwt", "gen", CancellationToken.None);
 
         Assert.Empty(dispatcher.Dispatched);
     }
