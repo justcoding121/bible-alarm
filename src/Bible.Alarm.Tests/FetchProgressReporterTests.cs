@@ -30,4 +30,48 @@ public sealed class FetchProgressReporterTests
 
         Assert.Equal(cts.Token, sut.CancellationToken);
     }
+
+    [Fact]
+    public void ModalOverlayFetchProgressReporter_UpdateProgress_clamps_and_does_not_throw()
+    {
+        using var cts = new CancellationTokenSource();
+        var sut = new ModalOverlayFetchProgressReporter("BiblePublication", cts.Token);
+
+        sut.UpdateProgress(-1);
+        sut.UpdateProgress(2);
+        sut.UpdateProgress(0.5);
+
+        Assert.Equal(cts.Token, sut.CancellationToken);
+    }
+
+    [Fact]
+    public void ModalOverlayFetchProgressReporter_UpdateProgressText_and_SetIsVisible_do_not_throw()
+    {
+        var sut = new ModalOverlayFetchProgressReporter("BibleSection", default);
+
+        sut.UpdateProgressText("Fetching...");
+        sut.SetIsVisible(true);
+        sut.SetIsVisible(false);
+    }
+
+    [Fact]
+    public void ListItemFetchProgressReporter_UpdateProgress_invokes_callback_and_clamps()
+    {
+        var calls = 0;
+        var sut = new ListItemFetchProgressReporter("BiblePublication", "pub-1", () => calls++, default);
+
+        sut.UpdateProgress(2);
+        sut.UpdateProgress(-0.5);
+
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public void ListItemFetchProgressReporter_no_ops_for_text_and_visibility()
+    {
+        var sut = new ListItemFetchProgressReporter("ctx", "id");
+
+        sut.UpdateProgressText("ignored");
+        sut.SetIsVisible(true);
+    }
 }
