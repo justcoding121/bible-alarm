@@ -1,16 +1,109 @@
 #nullable enable
 
+using AutoMapper;
+using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.Services;
+using Bible.Alarm.Stores.Mapping;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Linq.Expressions;
 
 namespace Bible.Alarm.Tests;
 
 public sealed class ScheduleUpdateProcessorTests
 {
+    private sealed class IdleScheduleDisplayNameService : IScheduleDisplayNameService
+    {
+        public Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class IdleAlarmScheduleService : IAlarmScheduleService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true, bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AlarmSchedule());
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
+    }
+
+    private sealed class RecordingAlarmUpdateService : IAlarmService
+    {
+        public List<AlarmSchedule> Updated { get; } = [];
+
+        public Task Create(AlarmSchedule schedule) => Task.CompletedTask;
+
+        public Task Update(AlarmSchedule schedule)
+        {
+            Updated.Add(schedule);
+            return Task.CompletedTask;
+        }
+
+        public Task Delete(int scheduleId) => Task.CompletedTask;
+    }
+
+    private static IMapper CreateScheduleMapper()
+    {
+        var cfg = new MapperConfiguration(
+            cfg => cfg.AddProfile<ScheduleMappingProfile>(),
+            NullLoggerFactory.Instance);
+        return cfg.CreateMapper();
+    }
+
     private sealed class RecordingDispatcher : IDispatcher
     {
         public List<object> Dispatched { get; } = [];
@@ -101,5 +194,70 @@ public sealed class ScheduleUpdateProcessorTests
         var schedule = new ScheduleStateItem { Id = 8, Name = "Z" };
         var action = new UpdateScheduleFromViewModelAction(schedule, shouldSave: false);
         ScheduleUpdateProcessor.LogUpdateStart(action);
+    }
+
+    [Fact]
+    public async Task UpdateAlarmAsync_forwards_saved_schedule_to_alarm_service()
+    {
+        var alarms = new RecordingAlarmUpdateService();
+        var sut = new ScheduleUpdateProcessor(
+            CreateScheduleMapper(),
+            new IdleAlarmScheduleService(),
+            alarms,
+            new IdleScheduleDisplayNameService());
+
+        var saved = new AlarmSchedule { Id = 701, Name = "Z" };
+        await sut.UpdateAlarmAsync(saved);
+
+        Assert.Same(saved, Assert.Single(alarms.Updated));
+    }
+
+    [Fact]
+    public async Task MapAndPreserveDisplayNames_copies_music_language_display_from_action_when_codes_align()
+    {
+        var mapper = CreateScheduleMapper();
+        var sut = new ScheduleUpdateProcessor(
+            mapper,
+            new IdleAlarmScheduleService(),
+            new RecordingAlarmUpdateService(),
+            new IdleScheduleDisplayNameService());
+
+        var saved = new AlarmSchedule
+        {
+            Id = 200,
+            Name = "Morning",
+            IsEnabled = true,
+            Hour = 6,
+            Minute = 0,
+            Second = 0,
+            DaysOfWeek = WeekDays.Monday,
+            NotificationEnabled = true,
+            MusicEnabled = true,
+            Music = new AlarmMusic
+            {
+                PublicationCode = "iam",
+                LanguageCode = "E",
+                SectionCode = "1",
+                TrackCode = "3",
+                Repeat = false,
+                AlarmScheduleId = 200,
+            },
+        };
+
+        var vm = new ScheduleStateItem
+        {
+            Id = 200,
+            MusicPublicationCode = "iam",
+            MusicLanguageCode = "E",
+            MusicTrackCode = "3",
+            MusicLanguageName = "Language display from draft",
+            MusicLanguageDirection = "rtl",
+        };
+
+        var action = new UpdateScheduleFromViewModelAction(vm);
+        var mapped = await sut.MapAndPreserveDisplayNames(action, saved);
+
+        Assert.Equal("Language display from draft", mapped.MusicLanguageName);
+        Assert.Equal("rtl", mapped.MusicLanguageDirection);
     }
 }

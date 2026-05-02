@@ -146,4 +146,15 @@ public sealed class ScheduleEntityUpdaterTests
         Assert.Equal("iam", existing.Music.PublicationCode);
         Assert.Equal(5, existing.Music.AlarmScheduleId);
     }
+
+    [Fact]
+    public void UpdateMusicFromDbSchedule_leaves_existing_unchanged_when_db_music_absent()
+    {
+        var existing = new AlarmSchedule { Id = 3, Music = null };
+        var dbSchedule = new AlarmSchedule { Music = null };
+
+        ScheduleEntityUpdater.UpdateMusicFromDbSchedule(existing, dbSchedule);
+
+        Assert.Null(existing.Music);
+    }
 }
