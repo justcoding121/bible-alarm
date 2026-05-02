@@ -1,8 +1,11 @@
 #nullable enable
 
 using AutoMapper;
-using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 using Bible.Alarm.Stores.Mapping;
@@ -10,6 +13,7 @@ using Bible.Alarm.Stores.Models;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Linq.Expressions;
 
 namespace Bible.Alarm.Tests;
 
@@ -32,6 +36,82 @@ public sealed class ScheduleCreateHandlerTests
     {
         public Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule) =>
             Task.CompletedTask;
+    }
+
+    private sealed class RecordingAlarmService : IAlarmService
+    {
+        public List<AlarmSchedule> Created { get; } = [];
+
+        public Task Create(AlarmSchedule schedule)
+        {
+            Created.Add(schedule);
+            return Task.CompletedTask;
+        }
+
+        public Task Update(AlarmSchedule schedule) =>
+            throw new NotImplementedException();
+
+        public Task Delete(int scheduleId) =>
+            throw new NotImplementedException();
+    }
+
+    private sealed class CreateAlarmScheduleStub : IAlarmScheduleService
+    {
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default)
+        {
+            schedule.Id = 101;
+            return Task.FromResult(schedule);
+        }
+
+        public void Dispose()
+        {
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true, bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
     }
 
     private static IMapper CreateMapper()
@@ -66,5 +146,37 @@ public sealed class ScheduleCreateHandlerTests
         var action = Assert.IsType<CreateScheduleFailureAction>(fail);
         Assert.Same(vm, action.Schedule);
         Assert.Equal("Service unavailable", action.Error);
+    }
+
+    [Fact]
+    public async Task HandleAsync_persists_dispatches_success_and_creates_alarm_when_enabled()
+    {
+        var mapper = CreateMapper();
+        var vm = mapper.Map<ScheduleStateItem>(new AlarmSchedule
+        {
+            Id = 0,
+            Name = "Morning",
+            IsEnabled = true,
+            Hour = 8,
+            Minute = 30,
+            Second = 0,
+            DaysOfWeek = WeekDays.Tuesday,
+            NotificationEnabled = true,
+            MusicEnabled = false,
+        });
+
+        var alarmSvc = new RecordingAlarmService();
+        var scheduleSvc = new CreateAlarmScheduleStub();
+        var sut = new ScheduleCreateHandler(mapper, scheduleSvc, alarmSvc, new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new CreateScheduleAction(vm), dispatcher);
+
+        var success = Assert.Single(dispatcher.Dispatched);
+        var ok = Assert.IsType<CreateScheduleSuccessAction>(success);
+        Assert.Equal(101, ok.Schedule.Id);
+
+        var scheduled = Assert.Single(alarmSvc.Created);
+        Assert.Equal(101, scheduled.Id);
     }
 }

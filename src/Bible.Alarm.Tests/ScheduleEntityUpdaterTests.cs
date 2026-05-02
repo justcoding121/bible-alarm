@@ -120,4 +120,30 @@ public sealed class ScheduleEntityUpdaterTests
         Assert.Equal("2", existing.TrackCode);
         Assert.Equal(TimeSpan.Zero, existing.FinishedDuration);
     }
+
+    [Fact]
+    public void UpdateMusicFromDbSchedule_creates_music_entity_when_existing_alarm_had_none()
+    {
+        var existing = new AlarmSchedule { Id = 5, Music = null };
+        var dbSchedule = new AlarmSchedule
+        {
+            Music = new AlarmMusic
+            {
+                Id = 9,
+                PublicationCode = "iam",
+                LanguageCode = null,
+                SectionCode = "1",
+                TrackCode = "2",
+                Repeat = false,
+                AlarmScheduleId = 5,
+            },
+        };
+
+        ScheduleEntityUpdater.UpdateMusicFromDbSchedule(existing, dbSchedule);
+
+        Assert.NotNull(existing.Music);
+        Assert.Equal(9, existing.Music.Id);
+        Assert.Equal("iam", existing.Music.PublicationCode);
+        Assert.Equal(5, existing.Music.AlarmScheduleId);
+    }
 }

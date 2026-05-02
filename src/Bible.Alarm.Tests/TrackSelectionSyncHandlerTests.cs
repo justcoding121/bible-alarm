@@ -112,6 +112,19 @@ public sealed class TrackSelectionSyncHandlerTests
     }
 
     [Fact]
+    public async Task Bible_HandleTrackSelected_NoDispatch_When_Action_BiblePublication_Null()
+    {
+        var schedule = BuildSchedule();
+        var state = new FakeApplicationState(new ApplicationState([], schedule));
+        var sut = new TrackSelectionSyncHandler(state);
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleTrackSelected(new BiblePubTrackSelectedAction(null!), dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
     public async Task Bible_HandleTrackSelected_Dispatches_Update_When_Track_Changes()
     {
         var schedule = BuildSchedule();
