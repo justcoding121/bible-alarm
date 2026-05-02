@@ -108,6 +108,10 @@
 		<NoWarn>$(NoWarn);XC0022</NoWarn>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="Bible.Alarm.Tests" />
+	</ItemGroup>
+
 	<!-- Interpreter + AOT together is unsupported (XA0119). Release publish defaults RunAOTCompilation=true; AndroidAotEnable alone does not disable it. -->
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
 		<AndroidAotEnable>false</AndroidAotEnable>
