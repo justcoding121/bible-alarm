@@ -134,4 +134,177 @@ public sealed class ScheduleDbContextTests
             Assert.Equal(scheduleId, rt.Music.AlarmScheduleId);
         }
     }
+
+    [Fact]
+    public async Task Model_Persists_AlarmNotifications_On_Schedule()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<ScheduleDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new ScheduleDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        int scheduleId;
+        var t1 = new DateTimeOffset(2027, 3, 1, 14, 0, 0, TimeSpan.Zero);
+        var t2 = new DateTimeOffset(2027, 3, 1, 14, 5, 0, TimeSpan.Zero);
+
+        await using (var db = new ScheduleDbContext(options))
+        {
+            var schedule = MinimalSchedule(name: "WithNotifications");
+
+            schedule.AlarmNotifications.Add(new AlarmNotification
+            {
+                ScheduledTime = t1,
+                Sent = false,
+                Fired = false,
+                CancellationRequested = true,
+                Cancelled = false,
+                AlarmSchedule = schedule,
+            });
+
+            schedule.AlarmNotifications.Add(new AlarmNotification
+            {
+                ScheduledTime = t2,
+                Sent = true,
+                Fired = false,
+                CancellationRequested = false,
+                Cancelled = true,
+                AlarmSchedule = schedule,
+            });
+
+            db.AlarmSchedules.Add(schedule);
+            await db.SaveChangesAsync();
+
+            scheduleId = schedule.Id;
+        }
+
+        await using var read = new ScheduleDbContext(options);
+        var roundTrip = await read.AlarmSchedules
+            .AsNoTracking()
+            .Include(a => a.AlarmNotifications)
+            .SingleAsync(a => a.Id == scheduleId);
+
+        var ordered = roundTrip.AlarmNotifications.OrderBy(n => n.ScheduledTime).ToList();
+
+        Assert.Equal(2, ordered.Count);
+        Assert.Equal(t1, ordered[0].ScheduledTime);
+        Assert.False(ordered[0].Sent);
+        Assert.False(ordered[0].Cancelled);
+        Assert.True(ordered[0].CancellationRequested);
+
+        Assert.Equal(t2, ordered[1].ScheduledTime);
+        Assert.True(ordered[1].Sent);
+        Assert.True(ordered[1].Cancelled);
+        Assert.False(ordered[1].CancellationRequested);
+        Assert.False(ordered[1].Fired);
+    }
+
+    [Fact]
+    public async Task Model_AlarmMusic_Unique_Per_Schedule_Rejects_Duplicate_Fk_From_New_Context()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<ScheduleDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new ScheduleDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        int scheduleId;
+
+        await using (var db = new ScheduleDbContext(options))
+        {
+            var schedule = MinimalSchedule(name: "MusicUnique");
+            schedule.MusicEnabled = true;
+
+            var music = new AlarmMusic
+            {
+                PublicationCode = "iam",
+                LanguageCode = null,
+                SectionCode = "iam-9",
+                TrackCode = "1",
+                Repeat = false,
+                AlarmSchedule = schedule,
+            };
+
+            schedule.Music = music;
+            db.AlarmSchedules.Add(schedule);
+            await db.SaveChangesAsync();
+            scheduleId = schedule.Id;
+        }
+
+        await using var conflicting = new ScheduleDbContext(options);
+        conflicting.AlarmMusic.Add(new AlarmMusic
+        {
+            PublicationCode = "other",
+            LanguageCode = "E",
+            SectionCode = null,
+            TrackCode = "99",
+            Repeat = true,
+            AlarmScheduleId = scheduleId,
+        });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => conflicting.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Model_BiblePublicationSchedule_Unique_Per_Schedule_Rejects_Duplicate_Fk_From_New_Context()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<ScheduleDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new ScheduleDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        int scheduleId;
+
+        await using (var db = new ScheduleDbContext(options))
+        {
+            var schedule = MinimalSchedule(name: "BibleDuplicate");
+
+            var bible = new BiblePublicationSchedule
+            {
+                PublicationCode = "nw",
+                LanguageCode = "E",
+                SectionCode = "2",
+                TrackCode = "3",
+                FinishedDuration = TimeSpan.FromMinutes(12),
+                AlarmSchedule = schedule,
+            };
+
+            schedule.BiblePublicationSchedule = bible;
+            db.AlarmSchedules.Add(schedule);
+            await db.SaveChangesAsync();
+            scheduleId = schedule.Id;
+        }
+
+        await using var conflicting = new ScheduleDbContext(options);
+        conflicting.BiblePublicationSchedules.Add(new BiblePublicationSchedule
+        {
+            PublicationCode = "nw",
+            LanguageCode = "M",
+            SectionCode = null,
+            TrackCode = "400",
+            FinishedDuration = TimeSpan.Zero,
+            AlarmScheduleId = scheduleId,
+        });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => conflicting.SaveChangesAsync());
+    }
 }
