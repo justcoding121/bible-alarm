@@ -104,9 +104,11 @@ public sealed class PlaybackResetExecutorTests
 
         public bool IsActuallyPlayingOrPaused => false;
 
+#pragma warning disable CS0067
         public event EventHandler<EventArgs>? MediaEnded;
 
         public event EventHandler<EventArgs>? MediaFailed;
+#pragma warning restore CS0067
 
         public void Dispose()
         {

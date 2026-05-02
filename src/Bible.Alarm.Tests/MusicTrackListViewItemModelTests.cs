@@ -11,8 +11,8 @@ public sealed class MusicTrackListViewItemModelTests
         new()
         {
             TrackCode = code,
-            Title = title,
-            Url = url,
+            Title = title ?? string.Empty,
+            Url = url ?? string.Empty,
         };
 
     [Fact]
