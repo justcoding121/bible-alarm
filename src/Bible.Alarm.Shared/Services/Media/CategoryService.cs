@@ -41,11 +41,14 @@ public sealed class CategoryService(IServiceScopeFactory scopeFactory, ILogger l
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var categories = await dbContext.Categories
+            var rows = await dbContext.Categories
                 .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            var categories = rows
                 .OrderBy(c => c.CategoryCode == AppConstants.Media.BiblePublicationCategoryBible ? 0 : 1)
                 .ThenBy(c => c.CategoryCode, StringComparer.OrdinalIgnoreCase)
-                .ToListAsync(cancellationToken);
+                .ToList();
 
             logger.Debug("CategoryService.GetAllCategoriesAsync: Found {CategoryCount} categories", categories.Count);
 
