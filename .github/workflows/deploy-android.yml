@@ -24,13 +24,13 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Apply CI SDK pin (global.ci.json → global.json)
-      run: cp -f global.ci.json global.json
+    - name: Apply CI SDK pin (.github/dotnet/global.ci.json → global.json)
+      run: cp -f .github/dotnet/global.ci.json global.json
         
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
-        # global.ci.json (copied to global.json) pins 10.0.1xx so ubuntu-latest’s newer 10.x SDK is not used (NU1102 Mono.linux-x64).
+        # .github/dotnet/global.ci.json (copied to global.json) pins 10.0.1xx so ubuntu-latest’s newer 10.x SDK is not used (NU1102 Mono.linux-x64).
         global-json-file: global.json
         
     # Install MAUI Android workload (required by NETSDK1147 for net10.0-android).
@@ -130,7 +130,7 @@ jobs:
     # Artifacts only when store publish succeeded.
     - name: Upload Build Artifacts
       if: steps.store_upload.outcome == 'success'
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: BibleAlarm-${{ github.ref_name }}-android
         path: |

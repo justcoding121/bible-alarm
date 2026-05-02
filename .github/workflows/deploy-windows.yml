@@ -24,8 +24,8 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Apply CI SDK pin (global.ci.json → global.json)
-      run: Copy-Item -Path global.ci.json -Destination global.json -Force
+    - name: Apply CI SDK pin (.github/dotnet/global.ci.json → global.json)
+      run: Copy-Item -Path .github/dotnet/global.ci.json -Destination global.json -Force
       shell: pwsh
         
     - name: Setup .NET
@@ -413,7 +413,7 @@ jobs:
     # Artifacts when build+bundle succeeded (run even if upload fails).
     - name: Upload Build Artifacts
       if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: BibleAlarm-${{ github.ref_name }}-windows
         path: |

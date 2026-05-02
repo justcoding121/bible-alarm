@@ -75,4 +75,4 @@ Original work in this repository is licensed under the **PolyForm Noncommercial 
 - **Forks and derivatives** must stay **noncommercial** and **revenue-free**: anyone who receives a copy must receive the same terms; commercial use and monetization of the software or derivatives are not licensed except where PolyForm Noncommercial explicitly allows.
 - **Third-party / vendored code** (for example under `libraries/`) stays under its own license files.
 
-Official license terms: [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/).
+Official license terms: [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0).
