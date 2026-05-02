@@ -72,4 +72,19 @@ public sealed class TrackNavigatorCrossPublicationHelperTests
 
         Assert.Null(result);
     }
+
+    [Fact]
+    public async Task TryGetPreviousAsync_returns_null_when_publication_is_Bible_category()
+    {
+        var bible = new BibleCategoryStubService();
+        Task<(BiblePublicationSection? Section, BiblePublicationTrack Track)?> Idle(string lang, string pub,
+            IFetchProgress? _) =>
+            Task.FromResult<(BiblePublicationSection?, BiblePublicationTrack)?>(null);
+
+        var sut = new TrackNavigatorCrossPublicationHelper(bible, TestLogging.CreateLogger(), Idle, Idle);
+
+        var result = await sut.TryGetPreviousAsync("E", "nwt", sectionFetchProgress: null);
+
+        Assert.Null(result);
+    }
 }
