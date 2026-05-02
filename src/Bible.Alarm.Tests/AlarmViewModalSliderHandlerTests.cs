@@ -1,0 +1,244 @@
+#nullable enable
+
+using System.Windows.Input;
+using Bible.Alarm.Tests.Support;
+using Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
+
+namespace Bible.Alarm.Tests;
+
+public sealed class AlarmViewModalSliderHandlerTests
+{
+    private sealed class RecordingSeekCommand : ICommand
+    {
+        public List<TimeSpan> Executed { get; } = [];
+        public bool CanExecuteResult { get; set; } = true;
+#pragma warning disable CS0067
+        public event EventHandler? CanExecuteChanged;
+#pragma warning restore CS0067
+
+        public bool CanExecute(object? parameter) => CanExecuteResult;
+
+        public void Execute(object? parameter)
+        {
+            if (parameter is TimeSpan ts)
+            {
+                Executed.Add(ts);
+            }
+        }
+    }
+
+    [Fact]
+    public void OnSliderTapped_WhenControlsDisabled_DoesNothing()
+    {
+        List<double> progress = [];
+        var notifyCount = 0;
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => false,
+            () => TimeSpan.FromSeconds(60),
+            p => progress.Add(p),
+            () => notifyCount++);
+
+        handler.OnSliderTapped(0.5);
+
+        Assert.Empty(progress);
+        Assert.Equal(0, notifyCount);
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void OnSliderTapped_WhenDurationZero_DoesNothing()
+    {
+        List<double> progress = [];
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.Zero,
+            progress.Add,
+            () => { });
+
+        handler.OnSliderTapped(0.5);
+
+        Assert.Empty(progress);
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void OnSliderTapped_ClampsProgressAndStartsInteraction()
+    {
+        List<double> progress = [];
+        var notifies = 0;
+        var command = new RecordingSeekCommand();
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(100),
+            progress.Add,
+            () => notifies++);
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderTapped(1.5);
+
+        Assert.Equal(1.0, Assert.Single(progress));
+        Assert.Equal(1, notifies);
+        Assert.True(handler.IsUserInteracting);
+        var expected = TimeSpan.FromSeconds(100);
+        Assert.Equal(expected, Assert.Single(command.Executed));
+    }
+
+    [Fact]
+    public void OnSliderTapped_NegativeValue_ClampedToZero()
+    {
+        List<double> progress = [];
+        var command = new RecordingSeekCommand();
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(40),
+            progress.Add,
+            () => { });
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderTapped(-0.5);
+
+        Assert.Equal(0.0, Assert.Single(progress));
+        Assert.Equal(TimeSpan.Zero, Assert.Single(command.Executed));
+    }
+
+    [Fact]
+    public void OnSliderDragStarted_SetsUserInteracting()
+    {
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(10),
+            _ => { },
+            () => { });
+
+        handler.OnSliderDragStarted();
+
+        Assert.True(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void OnSliderDragCompleted_WhenControlsDisabled_ClearsInteraction()
+    {
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => false,
+            () => TimeSpan.FromSeconds(10),
+            _ => { },
+            () => { });
+        handler.OnSliderDragStarted();
+
+        handler.OnSliderDragCompleted(0.3);
+
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void OnSliderDragCompleted_WhenEligible_SeeksAtClampedProgress()
+    {
+        List<double> progress = [];
+        var command = new RecordingSeekCommand();
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(80),
+            progress.Add,
+            () => { });
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderDragCompleted(0.25);
+
+        Assert.Equal(0.25, Assert.Single(progress));
+        Assert.Equal(TimeSpan.FromSeconds(20), Assert.Single(command.Executed));
+    }
+
+    [Fact]
+    public void ShouldIgnorePositionUpdate_WhenNotInteracting_ReturnsFalse()
+    {
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(50),
+            _ => { },
+            () => { });
+
+        Assert.False(handler.ShouldIgnorePositionUpdate(0.3));
+    }
+
+    [Fact]
+    public void ShouldIgnorePositionUpdate_WhenCloseToTarget_EndsInteraction()
+    {
+        var command = new RecordingSeekCommand();
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(100),
+            _ => { },
+            () => { });
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderTapped(0.5);
+        Assert.True(handler.IsUserInteracting);
+
+        Assert.False(handler.ShouldIgnorePositionUpdate(0.51));
+
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void ShouldIgnorePositionUpdate_WhenFarFromTarget_ReturnsTrueWhileInteracting()
+    {
+        var command = new RecordingSeekCommand();
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(100),
+            _ => { },
+            () => { });
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderTapped(0.5);
+
+        Assert.True(handler.ShouldIgnorePositionUpdate(0.0));
+        Assert.True(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void OnSliderTapped_WhenSeekCommandCannotExecute_LogsAndStillDelaysInteractionEnd()
+    {
+        var command = new RecordingSeekCommand { CanExecuteResult = false };
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(100),
+            _ => { },
+            () => { });
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderTapped(0.4);
+
+        Assert.Empty(command.Executed);
+        Assert.True(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public async Task OnSliderTapped_AfterDelay_EndsUserInteraction()
+    {
+        var command = new RecordingSeekCommand();
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(50),
+            _ => { },
+            () => { });
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderTapped(0.2);
+
+        await Task.Delay(600);
+        Assert.False(handler.IsUserInteracting);
+    }
+}
