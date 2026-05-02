@@ -1,6 +1,8 @@
 using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Shared.Tests;
+
+public sealed class DisplayTextHelperTests
 {
     [Theory]
     [InlineData(null)]
