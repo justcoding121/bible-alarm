@@ -172,4 +172,77 @@ public sealed class DisplayNamePreservationHelperTests
         Assert.Equal("Español", action.BiblePublicationLanguageName);
         Assert.Equal("Track", action.MusicTrackName);
     }
+
+    [Fact]
+    public void PreserveBiblePublicationDisplayNames_keeps_action_category_when_already_set()
+    {
+        var action = new ScheduleStateItem { BiblePublicationCategoryId = 1, BiblePublicationCategoryName = "Videos" };
+        var existing = new ScheduleStateItem { BiblePublicationCategoryId = 99, BiblePublicationCategoryName = "Music" };
+
+        DisplayNamePreservationHelper.PreserveBiblePublicationDisplayNames(action, existing);
+
+        Assert.Equal(1, action.BiblePublicationCategoryId);
+        Assert.Equal("Videos", action.BiblePublicationCategoryName);
+    }
+
+    [Fact]
+    public void PreserveBiblePublicationDisplayNames_does_not_copy_section_when_section_code_differs()
+    {
+        var action = new ScheduleStateItem
+        {
+            BiblePublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+            BiblePublicationSectionCode = "40",
+            BiblePublicationSectionName = "",
+        };
+        var existing = new ScheduleStateItem
+        {
+            BiblePublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+            BiblePublicationSectionCode = "41",
+            BiblePublicationSectionName = "Other Book",
+        };
+
+        DisplayNamePreservationHelper.PreserveBiblePublicationDisplayNames(action, existing);
+
+        Assert.Equal(string.Empty, action.BiblePublicationSectionName);
+    }
+
+    [Fact]
+    public void PreserveBiblePublicationDisplayNames_does_not_copy_track_title_when_track_code_differs_on_flat_pub()
+    {
+        var action = new ScheduleStateItem
+        {
+            BiblePublicationCode = AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+            BiblePublicationTrackCode = "99",
+            BiblePublicationTrackTitle = "",
+        };
+        var existing = new ScheduleStateItem
+        {
+            BiblePublicationCode = AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+            BiblePublicationTrackCode = "12",
+            BiblePublicationTrackTitle = "Kept Only When Codes Match",
+        };
+
+        DisplayNamePreservationHelper.PreserveBiblePublicationDisplayNames(action, existing);
+
+        Assert.Equal(string.Empty, action.BiblePublicationTrackTitle);
+    }
+
+    [Fact]
+    public void PreserveMusicDisplayNames_does_not_copy_section_when_music_publication_structure_differs()
+    {
+        var action = new ScheduleStateItem
+        {
+            MusicPublicationCode = "osg",
+            MusicSectionName = "",
+        };
+        var existing = new ScheduleStateItem
+        {
+            MusicPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+            MusicSectionName = "Disc 1",
+        };
+
+        DisplayNamePreservationHelper.PreserveMusicDisplayNames(action, existing);
+
+        Assert.Equal(string.Empty, action.MusicSectionName);
+    }
 }
