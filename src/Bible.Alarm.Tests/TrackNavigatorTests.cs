@@ -162,4 +162,17 @@ public sealed class TrackNavigatorTests
         Assert.Equal(pub.PublicationCode, next.PublicationCode);
         Assert.Equal("2", next.Track.TrackCode);
     }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationTrack_without_section_delegates_to_flat_navigation()
+    {
+        var pub = ThreeTrackPublication();
+        var bible = new StubBiblePublicationService { Publication = pub };
+        var sut = new TrackNavigator(new IdleMediaService(), bible, TestLogging.CreateLogger());
+
+        var prev = await sut.GetPreviousBiblePublicationTrack("E", pub.PublicationCode, sectionCode: null, trackCode: "2");
+
+        Assert.Equal(pub.PublicationCode, prev.PublicationCode);
+        Assert.Equal("1", prev.Track.TrackCode);
+    }
 }
