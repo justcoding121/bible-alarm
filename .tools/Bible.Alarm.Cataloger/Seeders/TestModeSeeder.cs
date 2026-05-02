@@ -92,23 +92,23 @@ internal sealed class TestModeSeeder
     /// Uses LanguageContentService from Shared project with data-driven approach.
     /// Only runs in test mode to validate the on-demand fetching logic.
     /// </summary>
-    public async Task TestOnDemandFetching()
+    public Task TestOnDemandFetching() => RunTestOnDemandFetchingAsync();
+
+    private async Task RunTestOnDemandFetchingAsync()
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
         var httpClient = scope.ServiceProvider.GetRequiredService<System.Net.Http.HttpClient>();
         var languageContentService = new LanguageContentService(scopeFactory, logger, httpClient);
 
-        // Test languages: Malayalam (MY) and Arabic (A)
         var testLanguages = new[] { "MY", "A" };
 
         logger.Debug("=== TEST MODE: Testing on-demand fetching for languages {Languages} ===",
             string.Join(", ", testLanguages));
 
-        // Get all publication codes from PublicationLanguages (these are the ones available for non-English)
         var publicationCodes = await db.PublicationLanguages
             .Include(pl => pl.Language)
-            .Where(pl => pl.Language != null && pl.Language.LanguageCode != AppConstants.Media.DefaultLanguageCode) // Exclude English
+            .Where(pl => pl.Language != null && pl.Language.LanguageCode != AppConstants.Media.DefaultLanguageCode)
             .Select(pl => pl.PublicationCode)
             .Distinct()
             .ToListAsync();
@@ -311,13 +311,15 @@ internal sealed class TestModeSeeder
         }
     }
 
-    private readonly record struct FetchSectionedPublicationForTestRequest(
-        string PublicationCode,
-        string TestLanguageCode,
-        string NormalizedPublicationCode,
-        string NormalizedTestLanguageCode,
-        Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)> LanguageTimes,
-        DateTime LanguageStartTime);
+    private sealed class FetchSectionedPublicationForTestRequest
+    {
+        public required string PublicationCode { get; init; }
+        public required string TestLanguageCode { get; init; }
+        public required string NormalizedPublicationCode { get; init; }
+        public required string NormalizedTestLanguageCode { get; init; }
+        public required Dictionary<string, (TimeSpan Total, TimeSpan? Sections, TimeSpan? SectionTracks, int? SectionCount, TimeSpan? PublicationTracks)> LanguageTimes { get; init; }
+        public required DateTime LanguageStartTime { get; init; }
+    }
 
     private async Task FetchSectionedPublicationForTestAsync(
         MediaDbContext db,
@@ -401,13 +403,15 @@ internal sealed class TestModeSeeder
             if (hasSections)
             {
                 await FetchSectionedPublicationForTestAsync(db, languageContentService,
-                    new FetchSectionedPublicationForTestRequest(
-                        publicationCode,
-                        testLanguageCode,
-                        normalizedPublicationCode,
-                        normalizedTestLanguageCode,
-                        languageTimes,
-                        languageStartTime));
+                    new FetchSectionedPublicationForTestRequest
+                    {
+                        PublicationCode = publicationCode,
+                        TestLanguageCode = testLanguageCode,
+                        NormalizedPublicationCode = normalizedPublicationCode,
+                        NormalizedTestLanguageCode = normalizedTestLanguageCode,
+                        LanguageTimes = languageTimes,
+                        LanguageStartTime = languageStartTime
+                    });
                 return;
             }
 

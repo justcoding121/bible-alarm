@@ -58,24 +58,29 @@ public static class Program
             logger.Information("=== TEST RUN MODE: Processing English (E), Malayalam (MY), and Arabic (A) languages per publication ===");
         }
 
-        int exitCode;
+        int pipelineExitCode;
         try
         {
-            exitCode = await RunCatalogerPipelineAsync(serviceProvider, logger, publicationFilter, isTestRun);
+            pipelineExitCode = await RunCatalogerPipelineAsync(serviceProvider, logger, publicationFilter, isTestRun);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error during cataloging");
-            exitCode = 1;
+            pipelineExitCode = 1;
         }
         finally
         {
             await Log.CloseAndFlushAsync();
         }
 
-        if (exitCode != 0)
+        return CompleteCatalogerMainAfterPipeline(logger, pipelineExitCode);
+    }
+
+    private static int CompleteCatalogerMainAfterPipeline(ILogger logger, int pipelineExitCode)
+    {
+        if (pipelineExitCode != 0)
         {
-            return exitCode;
+            return pipelineExitCode;
         }
 
         var zipIndex = $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexZipFileName}";

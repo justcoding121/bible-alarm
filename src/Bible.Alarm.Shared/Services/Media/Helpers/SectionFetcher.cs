@@ -165,24 +165,28 @@ internal sealed class SectionFetcher
         }
 
         return await InsertNewPublicationForSectionFetchAsync(db,
-            new InsertNewPublicationForSectionFetchSpec(
-                normalizedPublicationCode,
-                englishPublication,
-                language,
-                categoriesForPub,
-                isMusicPub,
-                determinedCatalogType,
-                effectiveToken));
+            new InsertNewPublicationForSectionFetchSpec
+            {
+                NormalizedPublicationCode = normalizedPublicationCode,
+                EnglishPublication = englishPublication,
+                Language = language,
+                CategoriesForPub = categoriesForPub,
+                IsMusicPub = isMusicPub,
+                DeterminedCatalogType = determinedCatalogType,
+                EffectiveToken = effectiveToken
+            });
     }
 
-    private readonly record struct InsertNewPublicationForSectionFetchSpec(
-        string NormalizedPublicationCode,
-        BiblePublication EnglishPublication,
-        Language Language,
-        List<Category> CategoriesForPub,
-        bool IsMusicPub,
-        CatalogType? DeterminedCatalogType,
-        CancellationToken EffectiveToken);
+    private sealed class InsertNewPublicationForSectionFetchSpec
+    {
+        public required string NormalizedPublicationCode { get; init; }
+        public required BiblePublication EnglishPublication { get; init; }
+        public required Language Language { get; init; }
+        public required List<Category> CategoriesForPub { get; init; }
+        public required bool IsMusicPub { get; init; }
+        public required CatalogType? DeterminedCatalogType { get; init; }
+        public required CancellationToken EffectiveToken { get; init; }
+    }
 
     private static bool ComputeIsMusicPublication(List<Category> categoriesForPub, string normalizedPublicationCode) =>
         categoriesForPub.Any(c =>
