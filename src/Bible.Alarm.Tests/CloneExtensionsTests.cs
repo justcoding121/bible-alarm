@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Bible.Alarm.Tests;
 
@@ -10,6 +11,12 @@ public sealed class CloneExtensionsTests
     {
         public string Name { get; set; } = "";
         public int Id { get; set; }
+    }
+
+    private sealed class DtoWithCommand
+    {
+        public string Name { get; set; } = "";
+        public RelayCommand Save { get; set; } = null!;
     }
 
     [Fact]
@@ -36,5 +43,21 @@ public sealed class CloneExtensionsTests
     public void DeepClone_throws_when_value_is_default_struct()
     {
         Assert.Throws<ArgumentNullException>(() => 0.DeepClone());
+    }
+
+    [Fact]
+    public void DeepClone_omits_command_like_properties_via_type_info_resolver()
+    {
+        var original = new DtoWithCommand
+        {
+            Name = "alarm",
+            Save = new RelayCommand(() => { }),
+        };
+
+        var clone = original.DeepClone();
+
+        Assert.NotSame(original, clone);
+        Assert.Equal(original.Name, clone.Name);
+        Assert.Null(clone.Save);
     }
 }
