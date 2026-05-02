@@ -20,7 +20,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<ShowProgressBarMessage>, IRecipient<HideProgressBarMessage>
+public sealed partial class HomeViewModel : ObservableObject, IDisposable, IRecipient<ShowProgressBarMessage>, IRecipient<HideProgressBarMessage>
 {
     private readonly ILogger logger;
     private readonly IDispatcher dispatcher;

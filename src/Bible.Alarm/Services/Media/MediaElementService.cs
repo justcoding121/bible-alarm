@@ -24,7 +24,7 @@ namespace Bible.Alarm.Services.Media;
 /// MediaElement is created on-demand when playback starts and disposed when playback stops.
 /// MediaElement operates headlessly and does not require UI attachment.
 /// </summary>
-public sealed class MediaElementService : IMediaElementService
+public sealed partial class MediaElementService : IMediaElementService
 {
     private readonly ILogger logger;
     // Local lock for this service

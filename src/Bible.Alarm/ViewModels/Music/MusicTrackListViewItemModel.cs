@@ -8,7 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable, IComparable<MusicTrackListViewItemModel>, IEquatable<MusicTrackListViewItemModel>
+public sealed partial class MusicTrackListViewItemModel : ObservableObject, IComparable, IComparable<MusicTrackListViewItemModel>, IEquatable<MusicTrackListViewItemModel>
 {
     private readonly MusicTrack track;
 

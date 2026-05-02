@@ -7,11 +7,9 @@ public abstract class ToastService : IToastService
 {
     private bool disposed;
 
-    protected const int DefaultToastDurationSeconds = 3;
+    public abstract Task ShowMessage(string message, int seconds = 3);
 
-    public abstract Task ShowMessage(string message, int seconds = DefaultToastDurationSeconds);
-
-    public async Task ShowScheduledNotification(AlarmSchedule schedule, int seconds = DefaultToastDurationSeconds)
+    public async Task ShowScheduledNotification(AlarmSchedule schedule, int seconds = 3)
     {
         var nextFire = schedule.NextFireDate();
         var timeSpan = nextFire - DateTimeOffset.Now;

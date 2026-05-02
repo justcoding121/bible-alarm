@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class NumberOfTracksListViewItemModel : ObservableObject, IComparable, IComparable<NumberOfTracksListViewItemModel>, IEquatable<NumberOfTracksListViewItemModel>
+public sealed partial class NumberOfTracksListViewItemModel : ObservableObject, IComparable, IComparable<NumberOfTracksListViewItemModel>, IEquatable<NumberOfTracksListViewItemModel>
 {
     private string unitSingular;
     private string unitPlural;

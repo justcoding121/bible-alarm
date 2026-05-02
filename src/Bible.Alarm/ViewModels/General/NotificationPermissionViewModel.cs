@@ -22,7 +22,7 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.General;
 
-public sealed class NotificationPermissionViewModel : ObservableObject, IDisposable
+public sealed partial class NotificationPermissionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;

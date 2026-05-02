@@ -78,7 +78,7 @@ public static class Program
 
     private static int CompleteCatalogerMainAfterPipeline(ILogger logger, int pipelineExitCode)
     {
-        if (pipelineExitCode != 0)
+        if (pipelineExitCode != 0) // NOSONAR S2583 — value comes from RunCatalogerPipelineAsync / catch, not constant
         {
             return pipelineExitCode;
         }

@@ -7,7 +7,7 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 /// <param name="language">Language entity (Code and Direction come from here).</param>
 /// <param name="displayName">Localized name for display (e.g. from LanguageNamesByLanguage for "E").</param>
-public sealed class LanguageListViewItemModel(Language language, string displayName)
+public sealed partial class LanguageListViewItemModel(Language language, string displayName)
     : ObservableObject, IComparable, IComparable<LanguageListViewItemModel>, IEquatable<LanguageListViewItemModel>
 {
     public string Name { get; set; } = displayName;

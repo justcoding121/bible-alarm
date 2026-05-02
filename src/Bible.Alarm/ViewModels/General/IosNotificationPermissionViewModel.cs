@@ -14,7 +14,7 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.General;
 
-public sealed class IosNotificationPermissionViewModel : ObservableObject, IDisposable
+public sealed partial class IosNotificationPermissionViewModel : ObservableObject, IDisposable
 {
     [SuppressMessage("SonarAnalyzer.CSharp", "S4487", Justification = "Used only in IOS preprocessor blocks; unreachable on other targets.")]
     private readonly ILogger logger;

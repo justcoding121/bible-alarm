@@ -22,7 +22,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class BiblePublicationSelectionContainerViewModel : ObservableObject, IDisposable
+public sealed partial class BiblePublicationSelectionContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;

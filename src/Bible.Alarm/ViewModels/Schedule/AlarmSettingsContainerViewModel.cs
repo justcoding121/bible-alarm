@@ -23,7 +23,7 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposable
+public sealed partial class AlarmSettingsContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     [SuppressMessage("SonarAnalyzer.CSharp", "S4487", Justification = "Read only inside ANDROID||IOS permission handlers; neutral targets see no reads.")]

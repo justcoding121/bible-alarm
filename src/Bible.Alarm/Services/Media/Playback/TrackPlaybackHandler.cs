@@ -58,9 +58,9 @@ public sealed class TrackPlaybackHandler
             var preparationOk = await TryPrepareTrackSourceAsync(
                 track,
                 currentTrackIndex,
-                cancellationToken,
                 isPreparingOrPlaying,
-                getPlaylist);
+                getPlaylist,
+                cancellationToken);
             if (!preparationOk)
             {
                 return false;
@@ -303,9 +303,9 @@ public sealed class TrackPlaybackHandler
     private async Task<bool> TryPrepareTrackSourceAsync(
         AudioPlayerTrack track,
         int currentTrackIndex,
-        CancellationToken cancellationToken,
         Func<bool> isPreparingOrPlaying,
-        Func<List<AudioPlayerTrack>?> getPlaylist)
+        Func<List<AudioPlayerTrack>?> getPlaylist,
+        CancellationToken cancellationToken)
     {
         // Sync metadata (including artwork) before opening the file for playback.
         // When the track is cached, the same file is used for playback and for TagLib artwork extraction.

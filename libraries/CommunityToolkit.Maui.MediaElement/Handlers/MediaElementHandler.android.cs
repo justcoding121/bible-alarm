@@ -123,6 +123,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
         Dispose();
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance partial method must match declaration; iOS implementation uses instance fields.")]
     partial void PlatformDispose()
     {
         // Intentionally empty: DisconnectHandler disposes the MediaManager and releases platform resources.

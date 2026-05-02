@@ -260,7 +260,7 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
     }
 }
 
-public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, IComparable, IComparable<BiblePublicationTrackListViewItemModel>, IEquatable<BiblePublicationTrackListViewItemModel>
+public sealed partial class BiblePublicationTrackListViewItemModel : ObservableObject, IComparable, IComparable<BiblePublicationTrackListViewItemModel>, IEquatable<BiblePublicationTrackListViewItemModel>
 {
     private readonly BiblePublicationTrack track;
 

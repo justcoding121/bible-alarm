@@ -22,7 +22,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSelectionViewModel : ObservableObject, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
+public sealed partial class BiblePublicationSelectionViewModel : ObservableObject, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly IState<ApplicationState> state;
     private readonly INavigationService navigationService;

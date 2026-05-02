@@ -7,7 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSection section)
+public sealed partial class BiblePublicationSectionListViewItemModel(BiblePublicationSection section)
     : ObservableObject, IComparable, IComparable<BiblePublicationSectionListViewItemModel>, IEquatable<BiblePublicationSectionListViewItemModel>
 {
     private bool isSelected;

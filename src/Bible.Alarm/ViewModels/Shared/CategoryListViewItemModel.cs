@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class CategoryListViewItemModel : ObservableObject, IComparable, IComparable<CategoryListViewItemModel>, IEquatable<CategoryListViewItemModel>
+public sealed partial class CategoryListViewItemModel : ObservableObject, IComparable, IComparable<CategoryListViewItemModel>, IEquatable<CategoryListViewItemModel>
 {
     public CategoryListViewItemModel(Category category, string? displayName = null)
     {

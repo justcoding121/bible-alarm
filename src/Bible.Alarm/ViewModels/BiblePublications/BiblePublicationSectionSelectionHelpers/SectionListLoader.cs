@@ -204,8 +204,8 @@ internal sealed class SectionListLoader
                 languageCode,
                 publicationCode,
                 progress,
-                cancellationToken,
-                retryDelay);
+                retryDelay,
+                cancellationToken);
             sectionsData = loopOutcome.SectionsData;
             allCataloged = loopOutcome.AllCataloged;
             attempt = loopOutcome.Attempt;
@@ -237,8 +237,8 @@ internal sealed class SectionListLoader
         string languageCode,
         string publicationCode,
         IFetchProgress? progress,
-        CancellationToken cancellationToken,
-        int retryDelay)
+        int retryDelay,
+        CancellationToken cancellationToken)
     {
         const int maxRetries = 10;
         var maxWaitTime = TimeSpan.FromSeconds(60);
@@ -260,10 +260,10 @@ internal sealed class SectionListLoader
                     languageCode,
                     publicationCode,
                     progress,
-                    cancellationToken,
                     attempt,
                     retryDelay,
-                    previousCatalogedCount);
+                    previousCatalogedCount,
+                    cancellationToken);
 
                 if (ApplyBibleSectionCatalogIterationOutcome(
                         iterationOutcome,
@@ -370,10 +370,10 @@ internal sealed class SectionListLoader
         string languageCode,
         string publicationCode,
         IFetchProgress? progress,
-        CancellationToken cancellationToken,
         int attempt,
         int retryDelayBase,
-        int previousCatalogedCount)
+        int previousCatalogedCount,
+        CancellationToken cancellationToken)
     {
         var fetchedWithProgress =
             await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);

@@ -24,7 +24,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public sealed class ScheduleListItemViewModel : ObservableObject, IComparable, IComparable<ScheduleListItemViewModel>, IEquatable<ScheduleListItemViewModel>, IDisposable
+public sealed partial class ScheduleListItemViewModel : ObservableObject, IComparable, IComparable<ScheduleListItemViewModel>, IEquatable<ScheduleListItemViewModel>, IDisposable
 {
     private readonly ILogger logger;
     private readonly ISchedulePlaybackService playbackService;

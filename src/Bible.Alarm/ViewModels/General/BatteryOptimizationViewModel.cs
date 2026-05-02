@@ -11,7 +11,7 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.General;
 
-public sealed class BatteryOptimizationViewModel : ObservableObject, IDisposable
+public sealed partial class BatteryOptimizationViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;

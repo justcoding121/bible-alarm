@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Maui.Core.Views;
 using Microsoft.Maui.Handlers;
 using Microsoft.UI.Xaml;
@@ -77,6 +78,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
         }
     }
 
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance partial method must match declaration; iOS implementation uses instance fields.")]
     partial void PlatformDispose()
     {
         /*

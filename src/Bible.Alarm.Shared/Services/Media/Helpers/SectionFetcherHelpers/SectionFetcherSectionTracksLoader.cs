@@ -366,7 +366,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         return tracks;
     }
 
-    private BiblePublicationTrack? TryBuildSingleSectionTrackFromFile(
+    private static BiblePublicationTrack? TryBuildSingleSectionTrackFromFile(
         JsonElement trackFile,
         bool isBible,
         bool isIssueSectioned,

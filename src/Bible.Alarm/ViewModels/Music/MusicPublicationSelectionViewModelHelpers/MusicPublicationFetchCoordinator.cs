@@ -140,7 +140,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
         try
         {
-            var loopOutcome = await RunMusicPublicationCatalogRetryLoopAsync(languageCode, progress, cancellationToken, retryDelay);
+            var loopOutcome = await RunMusicPublicationCatalogRetryLoopAsync(languageCode, progress, retryDelay, cancellationToken);
             publicationsData = loopOutcome.PublicationsData;
             allCataloged = loopOutcome.AllCataloged;
             attempt = loopOutcome.Attempt;
@@ -171,8 +171,8 @@ internal sealed class MusicPublicationFetchCoordinator
     private async Task<MusicPublicationCatalogRetryLoopOutcome> RunMusicPublicationCatalogRetryLoopAsync(
         string languageCode,
         IFetchProgress? progress,
-        CancellationToken cancellationToken,
-        int retryDelay)
+        int retryDelay,
+        CancellationToken cancellationToken)
     {
         const int maxRetries = 10;
         var maxWaitTime = TimeSpan.FromSeconds(60);
@@ -191,8 +191,8 @@ internal sealed class MusicPublicationFetchCoordinator
             try
             {
                 var outcome =
-                    await RunMusicPublicationRetryIterationAsync(languageCode, progress, cancellationToken, attempt,
-                        retryDelay, previousCatalogedCount);
+                    await RunMusicPublicationRetryIterationAsync(languageCode, progress, attempt,
+                        retryDelay, previousCatalogedCount, cancellationToken);
 
                 if (ApplyMusicPublicationCatalogIterationOutcome(
                         outcome,
@@ -297,10 +297,10 @@ internal sealed class MusicPublicationFetchCoordinator
     private async Task<MusicPublicationRetryIterationOutcome> RunMusicPublicationRetryIterationAsync(
         string languageCode,
         IFetchProgress? progress,
-        CancellationToken cancellationToken,
         int attempt,
         int retryDelayBase,
-        int previousCatalogedCount)
+        int previousCatalogedCount,
+        CancellationToken cancellationToken)
     {
         var fetchedWithProgress =
             await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,

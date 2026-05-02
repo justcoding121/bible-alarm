@@ -47,7 +47,7 @@ internal sealed class MusicInstrumentalSectionListLoader
             allSectionsCataloged);
 
         var (items, selected) = await Task.Run(async () =>
-            await ProcessInstrumentalSectionsBackgroundAsync(publicationCode, selectedSectionCode, progress, cancellationToken, prefetch));
+            await ProcessInstrumentalSectionsBackgroundAsync(publicationCode, selectedSectionCode, progress, prefetch, cancellationToken));
 
         if (!prefetch.AllSectionsCataloged)
         {
@@ -62,10 +62,10 @@ internal sealed class MusicInstrumentalSectionListLoader
         string publicationCode,
         string? selectedSectionCode,
         IFetchProgress? progress,
-        CancellationToken cancellationToken,
-        InstrumentalSectionsPrefetchState prefetch)
+        InstrumentalSectionsPrefetchState prefetch,
+        CancellationToken cancellationToken)
     {
-        var sectionsFromDb = await ResolveSectionsFromPrefetchAsync(publicationCode, progress, cancellationToken, prefetch);
+        var sectionsFromDb = await ResolveSectionsFromPrefetchAsync(publicationCode, progress, prefetch, cancellationToken);
 
         if (sectionsFromDb == null || sectionsFromDb.Count == 0)
         {
@@ -95,8 +95,8 @@ internal sealed class MusicInstrumentalSectionListLoader
     private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> ResolveSectionsFromPrefetchAsync(
         string publicationCode,
         IFetchProgress? progress,
-        CancellationToken cancellationToken,
-        InstrumentalSectionsPrefetchState prefetch)
+        InstrumentalSectionsPrefetchState prefetch,
+        CancellationToken cancellationToken)
     {
         if (prefetch.AllSectionsCataloged)
         {
@@ -199,7 +199,7 @@ internal sealed class MusicInstrumentalSectionListLoader
 
         try
         {
-            var loopOutcome = await RunInstrumentalCatalogRetryLoopAsync(publicationCode, cancellationToken, retryDelay: 1000);
+            var loopOutcome = await RunInstrumentalCatalogRetryLoopAsync(publicationCode, retryDelay: 1000, cancellationToken);
             sectionsData = loopOutcome.SectionsData;
             allCataloged = loopOutcome.AllCataloged;
             attempt = loopOutcome.Attempt;
@@ -229,8 +229,8 @@ internal sealed class MusicInstrumentalSectionListLoader
 
     private async Task<InstrumentalCatalogRetryLoopOutcome> RunInstrumentalCatalogRetryLoopAsync(
         string publicationCode,
-        CancellationToken cancellationToken,
-        int retryDelay)
+        int retryDelay,
+        CancellationToken cancellationToken)
     {
         const int maxRetries = 10;
         var maxWaitTime = TimeSpan.FromSeconds(60);
@@ -250,10 +250,10 @@ internal sealed class MusicInstrumentalSectionListLoader
             {
                 var iterationOutcome = await RunInstrumentalCatalogRetryIterationAsync(
                     publicationCode,
-                    cancellationToken,
                     attempt,
                     retryDelay,
-                    previousCatalogedCount);
+                    previousCatalogedCount,
+                    cancellationToken);
 
                 if (ApplyInstrumentalCatalogIterationOutcome(
                         iterationOutcome,
@@ -353,10 +353,10 @@ internal sealed class MusicInstrumentalSectionListLoader
 
     private async Task<InstrumentalCatalogRetryIterationOutcome> RunInstrumentalCatalogRetryIterationAsync(
         string publicationCode,
-        CancellationToken cancellationToken,
         int attempt,
         int retryDelayBase,
-        int previousCatalogedCount)
+        int previousCatalogedCount,
+        CancellationToken cancellationToken)
     {
         var fetchedWithProgress =
             await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);

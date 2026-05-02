@@ -28,7 +28,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
+public sealed partial class BiblePublicationSectionSelectionViewModel : ObservableObject, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private BiblePublicationSchedule? current;
 

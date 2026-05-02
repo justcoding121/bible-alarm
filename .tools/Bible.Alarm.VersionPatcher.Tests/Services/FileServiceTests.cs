@@ -81,5 +81,7 @@ public class FileServiceTests : IDisposable
         {
             Directory.Delete(tempDirectory, true);
         }
+
+        GC.SuppressFinalize(this);
     }
 }
