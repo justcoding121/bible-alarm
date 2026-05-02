@@ -50,6 +50,24 @@ public sealed class ScheduleEffectsMusicSectionPopulatorTests
     }
 
     [Fact]
+    public async Task PopulateMusicSectionNameForStateAsync_no_op_when_melody_but_track_missing()
+    {
+        var dispatcher = new RecordingDispatcher();
+        await ScheduleEffectsMusicSectionPopulator.PopulateMusicSectionNameForStateAsync(
+            new ScheduleStateItem
+            {
+                MusicPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+                MusicTrackCode = "   ",
+                MusicSectionName = null,
+            },
+            dispatcher,
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
     public async Task PopulateMusicSectionNameForStateAsync_no_op_when_section_name_already_populated()
     {
         var dispatcher = new RecordingDispatcher();
