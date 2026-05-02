@@ -46,4 +46,15 @@ public sealed class ScheduleSuccessHandlerTests
         var action = Assert.Single(dispatcher.Dispatched);
         Assert.IsType<SetCarPlayScreenAction>(action);
     }
+
+    [Fact]
+    public async Task HandleRemoveScheduleSuccess_dispatches_set_car_play_screen()
+    {
+        var dispatcher = new RecordingDispatcher();
+
+        await ScheduleSuccessHandler.HandleRemoveScheduleSuccess(new RemoveScheduleSuccessAction(404), dispatcher);
+
+        var action = Assert.Single(dispatcher.Dispatched);
+        Assert.IsType<SetCarPlayScreenAction>(action);
+    }
 }

@@ -15,6 +15,9 @@ public sealed class ScheduleUpdaterTests
     {
         public AlarmSchedule Schedule { get; set; } = null!;
 
+        /// <summary>When true, <see cref="GetScheduleByIdAsync"/> returns null (schedule row missing).</summary>
+        public bool ReturnNullFromGetById { get; init; }
+
         public void Dispose()
         {
         }
@@ -28,7 +31,9 @@ public sealed class ScheduleUpdaterTests
 
         public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
             bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
-            Task.FromResult<AlarmSchedule?>(Schedule);
+            ReturnNullFromGetById
+                ? Task.FromResult<AlarmSchedule?>(null)
+                : Task.FromResult<AlarmSchedule?>(Schedule);
 
         public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
             bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
@@ -164,5 +169,14 @@ public sealed class ScheduleUpdaterTests
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             sut.UpdateScheduleToPreviousTrackAsync(8, Nav("pub", null, "2")));
+    }
+
+    [Fact]
+    public async Task GetScheduleWithBiblePublicationAsync_throws_when_schedule_row_missing()
+    {
+        var schedules = new StubAlarmScheduleService { ReturnNullFromGetById = true };
+        var sut = new ScheduleUpdater(schedules, CancellationToken.None);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => sut.GetScheduleWithBiblePublicationAsync(404));
     }
 }
