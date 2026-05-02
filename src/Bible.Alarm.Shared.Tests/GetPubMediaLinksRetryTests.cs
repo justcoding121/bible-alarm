@@ -7,6 +7,8 @@ namespace Bible.Alarm.Shared.Tests;
 
 public sealed class GetPubMediaLinksRetryTests
 {
+    private static readonly string[] StubLocalBaseUrls = ["https://stub.local"];
+
     [Fact]
     public async Task GetStringAsync_ReturnsNull_WhenBaseUrlListEmpty()
     {
@@ -48,7 +50,7 @@ public sealed class GetPubMediaLinksRetryTests
 
         var result = await GetPubMediaLinksRetry.GetStringAsync(
             client,
-            new[] { "https://stub.local" },
+            StubLocalBaseUrls,
             "/path?x=1");
 
         Assert.Equal("{ \"ok\": true }", result);
@@ -64,7 +66,7 @@ public sealed class GetPubMediaLinksRetryTests
 
         var result = await GetPubMediaLinksRetry.GetStringAsync(
             client,
-            new[] { "https://stub.local" },
+            StubLocalBaseUrls,
             "?");
 
         Assert.Null(result);

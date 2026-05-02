@@ -12,6 +12,8 @@ namespace Bible.Alarm.Shared.Tests;
 
 public sealed class LanguageNameServiceTests : IAsyncLifetime
 {
+    private static readonly int[] SingleLanguageId = [1];
+
     private readonly SqliteConnection connection = new("Data Source=:memory:");
 
     private DbContextOptions<MediaDbContext> Options =>
@@ -127,7 +129,7 @@ public sealed class LanguageNameServiceTests : IAsyncLifetime
         await SeedSingleLanguageAsync(languageCode: "E", englishName: "English");
         var sut = CreateSut();
 
-        Assert.Empty(await sut.GetNamesAsync(new[] { 1 }, ""));
+        Assert.Empty(await sut.GetNamesAsync(SingleLanguageId, ""));
         Assert.Empty(await sut.GetNamesAsync(Array.Empty<int>(), "E"));
     }
 

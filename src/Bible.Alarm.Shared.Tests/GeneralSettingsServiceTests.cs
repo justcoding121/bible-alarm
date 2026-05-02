@@ -61,7 +61,7 @@ public sealed class GeneralSettingsServiceTests : IAsyncLifetime
     {
         var service = CreateService();
         service.Dispose();
-        service.Dispose();
+        Assert.Null(Record.Exception(() => service.Dispose()));
     }
 
     private GeneralSettingsService CreateService() =>

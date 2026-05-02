@@ -77,7 +77,9 @@ public sealed class NetworkExceptionHelperTests
     public async Task ThrowIfNoInternetAsync_DoesNothingWhenCheckerIsNull()
     {
         var task = NetworkExceptionHelper.ThrowIfNoInternetAsync(null);
+        Assert.NotNull(task);
         await task;
+        Assert.Equal(TaskStatus.RanToCompletion, task.Status);
     }
 
     [Fact]

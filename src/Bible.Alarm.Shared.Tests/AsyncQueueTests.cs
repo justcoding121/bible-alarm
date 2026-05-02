@@ -44,7 +44,7 @@ public sealed class AsyncQueueTests
     {
         var queue = new AsyncQueue<int>();
         queue.Dispose();
-        queue.Dispose();
+        Assert.Null(Record.Exception(() => queue.Dispose()));
     }
 
     [Fact]
