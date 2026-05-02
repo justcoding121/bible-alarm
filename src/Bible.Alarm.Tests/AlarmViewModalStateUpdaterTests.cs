@@ -165,4 +165,98 @@ public sealed class AlarmViewModalStateUpdaterTests
         Assert.Equal("oops", cap.ErrorMessage);
         Assert.True(cap.ProgressTextNotifyCount > 0);
     }
+
+    [Fact]
+    public void UpdateControlsFromState_preparing_but_stopped_leaves_nav_enabled_when_already_enabled()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdateControlsFromState(new PlaybackState
+        {
+            IsPreparingOrPlaying = true,
+            Status = PlayStatus.Playing,
+        });
+
+        Assert.True(cap.NextEnabled);
+
+        sut.UpdateControlsFromState(new PlaybackState
+        {
+            IsPreparingOrPlaying = true,
+            Status = PlayStatus.Stopped,
+        });
+
+        Assert.True(cap.NextEnabled);
+    }
+
+    [Fact]
+    public void UpdateMetadataFromState_idle_merges_default_schedule_artwork()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdateMetadataFromState(new PlaybackState
+        {
+            CurrentScheduleId = null,
+            Title = "Idle",
+            Artist = "A",
+            Album = "B",
+            ArtworkUrl = null,
+            DefaultScheduleArtworkUrl = "https://wallpaper",
+            Status = PlayStatus.Paused,
+            IsTransitioningTrack = false,
+        }, trackChanged: true);
+
+        Assert.Single(cap.ArtworkCalls);
+        Assert.Equal("https://wallpaper", cap.ArtworkCalls[0].Url);
+        Assert.Null(cap.ArtworkCalls[0].Fallback);
+    }
+
+    [Fact]
+    public void UpdateMetadataFromState_idle_when_artwork_present_passes_fallback_default_url()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdateMetadataFromState(new PlaybackState
+        {
+            CurrentScheduleId = null,
+            ArtworkUrl = "https://idle-thumb",
+            DefaultScheduleArtworkUrl = "https://schedule-default",
+            Title = "T",
+            Status = PlayStatus.Paused,
+            IsTransitioningTrack = false,
+        }, trackChanged: true);
+
+        Assert.Single(cap.ArtworkCalls);
+        Assert.Equal("https://idle-thumb", cap.ArtworkCalls[0].Url);
+        Assert.Equal("https://schedule-default", cap.ArtworkCalls[0].Fallback);
+    }
+
+    [Fact]
+    public void UpdateMetadataFromState_transition_end_refires_artwork_even_when_url_unchanged()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdateMetadataFromState(new PlaybackState
+        {
+            CurrentScheduleId = 1,
+            Title = "T",
+            ArtworkUrl = "https://art",
+            Status = PlayStatus.Paused,
+            IsTransitioningTrack = true,
+        }, trackChanged: false);
+
+        sut.UpdateMetadataFromState(new PlaybackState
+        {
+            CurrentScheduleId = 1,
+            Title = "T",
+            ArtworkUrl = "https://art",
+            Status = PlayStatus.Playing,
+            IsTransitioningTrack = false,
+        }, trackChanged: false);
+
+        Assert.Equal(2, cap.ArtworkCalls.Count);
+    }
 }

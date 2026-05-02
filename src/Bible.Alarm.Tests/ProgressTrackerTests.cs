@@ -248,4 +248,63 @@ public sealed class ProgressTrackerTests
 
         Assert.Single(playlist.MarkedAsPlayed);
     }
+
+    [Fact]
+    public async Task SaveProgressAsync_music_when_paused_does_not_mark_finished()
+    {
+        var playlist = new RecordingPlaylist();
+        var audio = new StubAudioPlayer
+        {
+            Status = PlayStatus.Paused,
+            CurrentPosition = TimeSpan.FromSeconds(1),
+        };
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+        var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(MusicMeta(), "u") } };
+
+        await sut.SaveProgressAsync(list, 0);
+
+        Assert.Empty(playlist.MarkedAsFinished);
+    }
+
+    [Fact]
+    public async Task SaveProgressAsync_bible_force_save_persists_without_live_player_position()
+    {
+        var playlist = new RecordingPlaylist();
+        var audio = new StubAudioPlayer { Status = PlayStatus.Stopped, CurrentPosition = null };
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+        var meta = BibleMeta();
+        meta.FinishedDuration = TimeSpan.FromMinutes(2);
+        var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(meta, "u") } };
+
+        await sut.SaveProgressAsync(list, 0, forceSave: true);
+
+        Assert.Single(playlist.MarkedAsPlayed);
+    }
+
+    [Fact]
+    public void StartIfBiblePublicationTrack_invalid_playlist_does_not_start_timer()
+    {
+        var playlist = new RecordingPlaylist();
+        var audio = new StubAudioPlayer();
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+
+        sut.StartIfBiblePublicationTrack(null, 0);
+
+        Assert.False(sut.Timer.Enabled);
+    }
+
+    [Fact]
+    public void StartIfBiblePublicationTrack_then_stop_stops_timer()
+    {
+        var playlist = new RecordingPlaylist();
+        var audio = new StubAudioPlayer();
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+        var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(BibleMeta(), "u") } };
+
+        sut.StartIfBiblePublicationTrack(list, 0);
+        Assert.True(sut.Timer.Enabled);
+
+        sut.Stop();
+        Assert.False(sut.Timer.Enabled);
+    }
 }
