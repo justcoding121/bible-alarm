@@ -135,4 +135,42 @@ public sealed class BiblePublicationCascadeScheduleUpdaterTests
         Assert.Equal(AppConstants.Media.DefaultLanguageCode, vmAction.Schedule.BiblePublicationLanguageCode);
         Assert.Equal("b", vmAction.Schedule.BiblePublicationTrackCode);
     }
+
+    [Fact]
+    public void UpdateSchedule_dispatches_when_track_modal_item_count_changes()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var current = new ScheduleStateItem
+        {
+            Id = 5,
+            BiblePublicationCode = "nwt",
+            BiblePublicationSectionCode = "40",
+            BiblePublicationTrackCode = "1",
+            BiblePublicationTrackTitle = "Same",
+            BiblePublicationModalItemCount = 1,
+            BiblePublicationSectionModalItemCount = 2,
+            BiblePublicationTrackModalItemCount = 3,
+        };
+
+        var mutation = new BiblePublicationCascadeScheduleMutation(
+            PublicationCode: "nwt",
+            PublicationName: "NWT",
+            SectionCode: "40",
+            SectionName: "Matthew",
+            TrackCode: "1",
+            TrackTitle: "Same",
+            PublicationModalItemCount: 1,
+            SectionModalItemCount: 2,
+            TrackModalItemCount: 9);
+
+        BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
+            TestLogging.CreateLogger(),
+            current,
+            mutation,
+            dispatcher);
+
+        var action = Assert.Single(dispatcher.Dispatched);
+        var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+        Assert.Equal(9, update.Schedule.BiblePublicationTrackModalItemCount);
+    }
 }

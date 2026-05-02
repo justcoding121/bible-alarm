@@ -7,6 +7,7 @@ using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
@@ -171,6 +172,28 @@ public sealed class MusicCascadeHandlerTests
             new FakeApplicationState(new ApplicationState([])),
             new UnexpectedScopeFactory(),
             logger);
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_swallows_exception_when_language_cascade_cannot_open_scope()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var current = new ScheduleStateItem
+        {
+            MusicEnabled = true,
+            MusicPublicationCode = "",
+            MusicLanguageCode = "E",
+        };
+        var handler = new MusicCascadeHandler(
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            new FakeApplicationState(new ApplicationState([], current)),
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
 
         await handler.HandleAsync(dispatcher);
 

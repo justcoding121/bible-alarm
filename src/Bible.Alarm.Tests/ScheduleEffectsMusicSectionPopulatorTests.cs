@@ -84,4 +84,30 @@ public sealed class ScheduleEffectsMusicSectionPopulatorTests
 
         Assert.Empty(dispatcher.Dispatched);
     }
+
+    [Fact]
+    public async Task PopulateMusicSectionNameForStateAsync_no_op_when_scope_factory_fails()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var throwingFactory = new ThrowingScopeFactory();
+
+        await ScheduleEffectsMusicSectionPopulator.PopulateMusicSectionNameForStateAsync(
+            new ScheduleStateItem
+            {
+                MusicPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+                MusicTrackCode = "1",
+                MusicSectionName = null,
+            },
+            dispatcher,
+            throwingFactory,
+            TestLogging.CreateLogger());
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    private sealed class ThrowingScopeFactory : IServiceScopeFactory
+    {
+        public IServiceScope CreateScope() =>
+            throw new InvalidOperationException("Database scope unavailable.");
+    }
 }
