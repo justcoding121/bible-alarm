@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- MAUI app is multi-targeted; unit tests reference the Windows TFM (matches CI build agents). -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- Referencing the MAUI app pulls Resizetizer; it can see the same appicon twice in the graph (dotnet/maui#19840). Tests do not ship MAUI assets. -->
+    <ResizetizerErrorOnDuplicateOutputFilename>false</ResizetizerErrorOnDuplicateOutputFilename>
+    <!-- Exclude from SonarScanner analysis (no injected Sonar Roslyn diagnostics during dotnet build under scan). -->
+    <SonarQubeExclude>true</SonarQubeExclude>
+    <SonarQubeTestProject>true</SonarQubeTestProject>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bible.Alarm\Bible.Alarm.csproj" AdditionalProperties="TargetFramework=net10.0-windows10.0.19041.0" />
+  </ItemGroup>
+
+</Project>
