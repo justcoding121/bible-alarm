@@ -223,6 +223,68 @@ public sealed class PlaybackViewModelTests
     }
 
     [Fact]
+    public void HasError_true_when_playback_state_reports_error()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = new PlaybackState { ErrorMessage = "Playback failed" };
+        state.NotifyStateChanged();
+
+        Assert.True(vm.HasError);
+        Assert.Equal("Playback failed", vm.ErrorMessage);
+    }
+
+    [Fact]
+    public void ShowMainPlayerContent_false_when_state_has_error()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = new PlaybackState { ErrorMessage = "e", Status = PlayStatus.Playing };
+        state.NotifyStateChanged();
+
+        Assert.False(vm.ShowMainPlayerContent);
+    }
+
+    [Fact]
+    public void IsShowProgressBarAnimation_true_when_transitioning_track()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = new PlaybackState
+        {
+            Status = PlayStatus.Paused,
+            IsTransitioningTrack = true,
+        };
+        state.NotifyStateChanged();
+
+        Assert.True(vm.IsShowProgressBarAnimation);
+    }
+
+    [Fact]
+    public void IsBuffering_false_while_preparing_even_if_status_loading()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        vm.Receive(
+            new PlaybackPreparationProgressMessage
+            {
+                LoadedTracks = 0,
+                TotalTracks = 2,
+                TotalBytesDownloaded = 0,
+                CurrentTrackProgress = 0,
+            });
+
+        state.Value = new PlaybackState { Status = PlayStatus.Loading };
+        state.NotifyStateChanged();
+
+        Assert.False(vm.IsBuffering);
+    }
+
+    [Fact]
     public void SetIsLandscape_UpdatesLayoutFlags()
     {
         using var vm = CreateSut();
