@@ -87,6 +87,39 @@ public sealed class MusicTrackModelTests
     }
 
     [Fact]
+    public void ComparisonOperators_GtAndGte_FalseWhenEitherSideNull()
+    {
+        MusicTrack? nul = null;
+        Assert.False(T("1") > nul);
+        Assert.False(nul > T("1"));
+        Assert.False(T("3") >= nul);
+        Assert.False(nul >= T("3"));
+    }
+
+    [Fact]
+    public void Operator_Equality_UsesStructuralEquals_WithSameReferenceShortcut()
+    {
+        var a = T("9");
+        var b = a;
+        Assert.True(a == b);
+
+        var left = T(null);
+        var right = T(null);
+        Assert.False(ReferenceEquals(left, right));
+        Assert.True(left == right);
+    }
+
+    [Fact]
+    public void Equals_Structural_WithBothTrackCodesNull_DistinctInstances()
+    {
+        var left = T(null);
+        var right = T(null);
+        Assert.True(left.Equals(right));
+        Assert.Equal(0, left.CompareTo(right));
+        Assert.False(ReferenceEquals(left, right));
+    }
+
+    [Fact]
     public void Equals_OverObject_NullsAndForeignTypes_ReturnFalse()
     {
         Assert.False(T("z").Equals((object?)null));
