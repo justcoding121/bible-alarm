@@ -264,6 +264,100 @@ public sealed class BiblePublicationTrackServiceTests
             sut.GetTrackAsync("E", "p", null, "1"));
     }
 
+    [Fact]
+    public async Task GetTracksBySectionAsync_wraps_scope_errors()
+    {
+        var sut = new BiblePublicationTrackService(new ThrowingScopeFactory(), TestLogging.CreateLogger());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetTracksBySectionAsync("E", "p", null));
+    }
+
+    [Fact]
+    public async Task GetTrackAsync_whitespace_section_treats_as_flat_track_query()
+    {
+        var (factory, connection) = CreateFactory();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var db = new MediaDbContext(opts))
+            {
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                db.Languages.Add(lang);
+                await db.SaveChangesAsync();
+
+                var pub = new BiblePublication
+                {
+                    Name = "Flat only",
+                    PublicationCode = "flax-w2",
+                    LanguageId = lang.Id,
+                    Language = lang,
+                    IsVideo = false,
+                    IsMusic = false,
+                };
+                pub.Tracks.Add(new BiblePublicationTrack
+                {
+                    TrackCode = "42",
+                    Title = "Ambient",
+                    Publication = pub,
+                    Section = null,
+                    BiblePublicationSectionId = null,
+                });
+                db.BiblePublications.Add(pub);
+                await db.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationTrackService(factory, TestLogging.CreateLogger());
+            var hit = await sut.GetTrackAsync("E", "flax-w2", "   ", "42");
+            Assert.NotNull(hit);
+            Assert.Equal("Ambient", hit!.Title);
+        }
+    }
+
+    [Fact]
+    public async Task GetTrackAsync_returns_null_when_track_not_in_given_section()
+    {
+        var (factory, connection) = CreateFactory();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var db = new MediaDbContext(opts))
+            {
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                db.Languages.Add(lang);
+                await db.SaveChangesAsync();
+
+                var pub = new BiblePublication
+                {
+                    Name = "Sec pub",
+                    PublicationCode = "sec-w2",
+                    LanguageId = lang.Id,
+                    Language = lang,
+                    IsVideo = false,
+                    IsMusic = false,
+                };
+                var secGen = new BiblePublicationSection { Name = "G", SectionCode = "gen", BiblePublication = pub };
+                pub.Sections.Add(secGen);
+                secGen.Tracks.Add(new BiblePublicationTrack
+                {
+                    TrackCode = "9",
+                    Title = "Nine",
+                    Publication = pub,
+                    Section = secGen,
+                });
+
+                db.BiblePublications.Add(pub);
+                await db.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationTrackService(factory, TestLogging.CreateLogger());
+
+            Assert.Null(await sut.GetTrackAsync("e", "sec-w2", "mat", "9"));
+            var ok = await sut.GetTrackAsync("e", "sec-w2", "gen", "9");
+            Assert.NotNull(ok);
+        }
+    }
+
     private sealed class ThrowingScopeFactory : IServiceScopeFactory
     {
         public IServiceScope CreateScope() =>
