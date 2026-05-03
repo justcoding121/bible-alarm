@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 
@@ -83,14 +84,41 @@ public sealed class JwSourceHelperTests
 
     [Theory]
     [InlineData(201512, true)]
+    [InlineData(209901, true)]
     [InlineData(185012, false)]
     [InlineData(209912, true)]
     [InlineData(209913, false)]
     [InlineData(201500, false)]
     [InlineData(201513, false)]
+    [InlineData(201515, false)]
     public void LooksLikeIssueNumber_AppliesYmBounds(int trackNumber, bool expected)
     {
         Assert.Equal(expected, JwSourceHelper.LooksLikeIssueNumber(trackNumber));
+    }
+
+    [Fact]
+    public void SectionCodesFrozenSets_Match_GetPubSpecialCaseCatalogs()
+    {
+        IEnumerable<string> issue = JwSourceHelper.SectionCodesUsingIssueParameter;
+        IEnumerable<string> noParam = JwSourceHelper.SectionCodesSingleTrackNoParam;
+        IEnumerable<string> zero = JwSourceHelper.SectionCodesSingleTrackZero;
+
+        Assert.Contains("mwbv", issue);
+        Assert.Contains("ivdd", noParam);
+        Assert.Contains("bhat", zero);
+    }
+
+    [Fact]
+    public void CategoryNameToCode_Normalizes_verbose_labels_with_and_and_spaces()
+    {
+        var method = typeof(JwSourceHelper).GetMethod(
+            "CategoryNameToCode",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.NotNull(method);
+
+        Assert.Equal("BrochuresAndBooklets", method!.Invoke(null, ["Brochures and Booklets"]));
+        Assert.Equal("MeetingsAndMinistry", method.Invoke(null, ["Meetings and Ministry"]));
+        Assert.Equal("FaithAndBible", method.Invoke(null, ["Faith and Bible"]));
     }
 
     [Fact]
