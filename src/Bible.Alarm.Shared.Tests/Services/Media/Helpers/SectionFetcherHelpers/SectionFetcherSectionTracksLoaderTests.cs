@@ -3,7 +3,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
-using Bible.Alarm.Shared.Constants;
+using System.Text.Json;using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
@@ -44,6 +44,12 @@ public sealed class SectionFetcherSectionTracksLoaderTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+    }
+
+    private sealed class TimeoutHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromException<HttpResponseMessage>(new TimeoutException("simulated"));
     }
 
     private static async Task<(SqliteConnection Connection, MediaDbContext Db, Category BibleCat, Language Lang)>
@@ -474,6 +480,169 @@ public sealed class SectionFetcherSectionTracksLoaderTests
 
             await db.Entry(section).Collection(s => s.Tracks).LoadAsync();
             Assert.Single(section.Tracks);
+        }
+    }
+
+    [Fact]
+    public async Task FetchSectionTracksAsync_ReturnsFalse_When_IssueSection_File_Emits_No_Track_Without_Number()
+    {
+        var year = Math.Min(DateTime.UtcNow.Year, MagazineHelper.MagazineEndYear - 1);
+        var pubCode = $"w{year}";
+        var sectionCode = $"{year}0101-wp";
+
+        var json =
+            "{\"files\":{\"E\":{\"MP3\":[{\"file\":{\"url\":\"https://mag.example/z.mp3\"},\"title\":{\"text\":\"Article\"}}]}},\"pubName\":\"Watchtower\",\"formattedDate\":\"Jan\"}";
+
+        var (connection, db, _, lang) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var wtCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine };
+            db.Categories.Add(wtCat);
+            await db.SaveChangesAsync();
+
+            var pub = new BiblePublication
+            {
+                Name = "WT",
+                PublicationCode = pubCode,
+                Language = lang,
+                LanguageId = lang.Id,
+                BiblePublicationCategories =
+                [
+                    new BiblePublicationCategory { Category = wtCat, CategoryId = wtCat.Id }
+                ],
+                Sections =
+                [
+                    new BiblePublicationSection { Name = "Placeholder", SectionCode = sectionCode, Tracks = [] }
+                ],
+                Tracks = [],
+                IsVideo = false,
+                IsMusic = false,
+                CatalogType = CatalogType.IssueSectioned
+            };
+            db.BiblePublications.Add(pub);
+            await db.SaveChangesAsync();
+
+            var section = pub.Sections[0];
+            using var handler = new JsonHandler(json);
+            var sut = CreateLoader(handler);
+
+            Assert.False(await sut.FetchSectionTracksAsync(BuildRequest(db, pub, section, handler)));
+        }
+    }
+
+    [Fact]
+    public async Task FetchSectionTracksAsync_Music_Uses_Sequential_Track_Code_When_Api_Number_Absent()
+    {
+        var json =
+            "{\"files\":{\"E\":{\"MP3\":[{\"file\":{\"url\":\"https://music.example/o.mp3\"},\"title\":\"Orphan\"}]}},\"pubName\":\"Book\"}";
+
+        var (connection, db, _, lang) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+            db.Categories.Add(musicCat);
+            await db.SaveChangesAsync();
+
+            var pub = new BiblePublication
+            {
+                Name = "Vocal",
+                PublicationCode = "sjj-seq-music",
+                Language = lang,
+                LanguageId = lang.Id,
+                BiblePublicationCategories =
+                [
+                    new BiblePublicationCategory { Category = musicCat, CategoryId = musicCat.Id }
+                ],
+                Sections =
+                [
+                    new BiblePublicationSection { Name = "Disc", SectionCode = "iam-2", Tracks = [] }
+                ],
+                Tracks = [],
+                IsVideo = false,
+                IsMusic = true,
+                CatalogType = CatalogType.Sectioned
+            };
+            db.BiblePublications.Add(pub);
+            await db.SaveChangesAsync();
+
+            var section = pub.Sections[0];
+            using var handler = new JsonHandler(json);
+            var sut = CreateLoader(handler);
+
+            Assert.True(await sut.FetchSectionTracksAsync(BuildRequest(db, pub, section, handler)));
+
+            await db.Entry(section).Collection(s => s.Tracks).LoadAsync();
+            Assert.Single(section.Tracks);
+            Assert.Equal("1", section.Tracks[0].TrackCode);
+        }
+    }
+
+    [Fact]
+    public async Task FetchSectionTracksAsync_Bible_Accepts_File_Element_As_String_Url()
+    {
+        const string json =
+            "{\"files\":{\"E\":{\"MP3\":[{\"file\":\"https://cdn.example/string-file.mp3\",\"title\":\"Acts \u2013 Chapter 10\"}]}},\"pubName\":\"NWT\"}";
+
+        var (connection, db, bibleCat, lang) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var pub = CreateBiblePublication(bibleCat, lang);
+            db.BiblePublications.Add(pub);
+            await db.SaveChangesAsync();
+
+            var section = pub.Sections[0];
+            using var handler = new JsonHandler(json);
+            var sut = CreateLoader(handler);
+
+            Assert.True(await sut.FetchSectionTracksAsync(BuildRequest(db, pub, section, handler)));
+
+            await db.Entry(section).Collection(s => s.Tracks).LoadAsync();
+            Assert.Single(section.Tracks);
+            Assert.Contains("Chapter 10", section.Tracks[0].Title, StringComparison.Ordinal);
+            Assert.Contains("string-file", section.Tracks[0].TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task FetchSectionTracksAsync_Propagates_Timeout_From_Http()
+    {
+        var (connection, db, bibleCat, lang) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var pub = CreateBiblePublication(bibleCat, lang);
+            db.BiblePublications.Add(pub);
+            await db.SaveChangesAsync();
+
+            var section = pub.Sections[0];
+            using var handler = new TimeoutHandler();
+            var sut = CreateLoader(handler);
+
+            await Assert.ThrowsAsync<TimeoutException>(() =>
+                sut.FetchSectionTracksAsync(BuildRequest(db, pub, section, handler)));
+        }
+    }
+
+    [Fact]
+    public async Task FetchSectionTracksAsync_Invalid_Json_Throws_From_Parse()
+    {
+        var (connection, db, bibleCat, lang) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var pub = CreateBiblePublication(bibleCat, lang);
+            db.BiblePublications.Add(pub);
+            await db.SaveChangesAsync();
+
+            var section = pub.Sections[0];
+            using var handler = new JsonHandler("{");
+            var sut = CreateLoader(handler);
+
+            await Assert.ThrowsAnyAsync<JsonException>(() =>
+                sut.FetchSectionTracksAsync(BuildRequest(db, pub, section, handler)));
         }
     }
 }
