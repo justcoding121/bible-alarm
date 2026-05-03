@@ -225,6 +225,79 @@ public sealed class AlarmViewModalSliderHandlerTests
     }
 
     [Fact]
+    public void OnSliderDragCompleted_WhenDurationZero_ClearsInteraction()
+    {
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.Zero,
+            _ => { },
+            () => { });
+        handler.OnSliderDragStarted();
+
+        handler.OnSliderDragCompleted(0.3);
+
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public async Task OnSliderTapped_WithoutSeekCommand_EndsInteractionAfterDelay()
+    {
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(60),
+            _ => { },
+            () => { });
+
+        handler.OnSliderTapped(0.3);
+
+        Assert.True(handler.IsUserInteracting);
+        await Task.Delay(600);
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void ShouldIgnorePositionUpdate_when_duration_becomes_zero_does_not_match_target_to_end_early()
+    {
+        var durationBox = new[] { TimeSpan.FromSeconds(100) };
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => durationBox[0],
+            _ => { },
+            () => { });
+        var command = new RecordingSeekCommand();
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderTapped(0.5);
+
+        durationBox[0] = TimeSpan.Zero;
+
+        Assert.True(handler.ShouldIgnorePositionUpdate(0.5));
+        Assert.True(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void OnSliderDragCompleted_NegativeValue_ClampedToZero()
+    {
+        List<double> progress = [];
+        var command = new RecordingSeekCommand();
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(50),
+            progress.Add,
+            () => { });
+        handler.SetSeekCommand(command);
+
+        handler.OnSliderDragCompleted(-0.25);
+
+        Assert.Equal(0.0, Assert.Single(progress));
+        Assert.Equal(TimeSpan.Zero, Assert.Single(command.Executed));
+    }
+
+    [Fact]
     public async Task OnSliderTapped_AfterDelay_EndsUserInteraction()
     {
         var command = new RecordingSeekCommand();
