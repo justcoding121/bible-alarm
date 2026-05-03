@@ -14,6 +14,20 @@ public sealed class PublicationSortHelperTests
     }
 
     [Fact]
+    public void SortByPriority_when_getName_omitted_uses_code_for_name_tiebreak()
+    {
+        IEnumerable<BiblePublicationCodeItem> pubs =
+        [
+            new("rho", "Late alpha"),
+            new("phi", "Early beta"),
+        ];
+
+        var ordered = PublicationSortHelper.SortByPriority(pubs, static p => p.Code).ToList();
+
+        Assert.Equal(["phi", "rho"], ordered.Select(static o => o.Code).ToArray());
+    }
+
+    [Fact]
     public void SortByPriority_OrdersBibleEditionsThenByName()
     {
         IEnumerable<BiblePublicationCodeItem> pubs =
@@ -101,6 +115,89 @@ public sealed class PublicationSortHelperTests
             .ToList();
 
         Assert.Equal(AppConstants.Media.MusicPublicationCodeOsg, ordered[0].Code);
+    }
+
+    [Fact]
+    public void SortByPriorityForCategory_when_getName_omitted_uses_code_for_name_tiebreak_with_null_category()
+    {
+        IEnumerable<BiblePublicationCodeItem> pubs =
+        [
+            new("zeta", "B"),
+            new("alfa", "A"),
+        ];
+
+        var ordered = PublicationSortHelper.SortByPriorityForCategory(
+                pubs,
+                static p => p.Code,
+                getName: null,
+                categoryName: null)
+            .ToList();
+
+        Assert.Equal(["alfa", "zeta"], ordered.Select(static o => o.Code).ToArray());
+    }
+
+    [Fact]
+    public void SortByPriorityForCategory_WatchtowerMagazine_orders_newer_year_first_for_display()
+    {
+        const string newer = "w2026";
+        const string older = "w2015";
+
+        IEnumerable<BiblePublicationCodeItem> pubs =
+        [
+            new(older, "older"),
+            new(newer, "newer"),
+        ];
+
+        var ordered = PublicationSortHelper.SortByPriorityForCategory(
+                pubs,
+                static p => p.Code,
+                static p => p.Name,
+                AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine)
+            .ToList();
+
+        Assert.Equal(newer, ordered[0].Code);
+        Assert.Equal(older, ordered[1].Code);
+    }
+
+    [Fact]
+    public void SortByPriorityForCategory_trims_whitespace_when_selecting_music_comparer()
+    {
+        IEnumerable<BiblePublicationCodeItem> pubs =
+        [
+            new(AppConstants.Media.MusicPublicationCodeSjjc, "Sing"),
+            new(AppConstants.Media.MusicPublicationCodeOsg, "Original"),
+        ];
+
+        var ordered = PublicationSortHelper.SortByPriorityForCategory(
+                pubs,
+                static p => p.Code,
+                static p => p.Name,
+                $" \t {AppConstants.Media.BiblePublicationCategoryMusic}{Environment.NewLine}")
+            .ToList();
+
+        Assert.Equal(AppConstants.Media.MusicPublicationCodeOsg, ordered[0].Code);
+    }
+
+    [Fact]
+    public void SortByPriorityForCategory_BibleCategory_matches_publication_priority_and_name_tiebreak()
+    {
+        IEnumerable<BiblePublicationCodeItem> pubs =
+        [
+            new(AppConstants.Media.BiblePublicationCodeBi12, "B"),
+            new("zzz", "Z"),
+            new(AppConstants.Media.BiblePublicationCodeNwt, "A"),
+        ];
+
+        var ordered = PublicationSortHelper.SortByPriorityForCategory(
+                pubs,
+                static p => p.Code,
+                static p => p.Name,
+                AppConstants.Media.BiblePublicationCategoryBible)
+            .ToList();
+
+        Assert.Equal(AppConstants.Media.BiblePublicationCodeNwt, ordered[0].Code);
+        Assert.Equal(AppConstants.Media.BiblePublicationCodeBi12, ordered[1].Code);
+        Assert.Equal("zzz", ordered[2].Code);
     }
 
     [Fact]
