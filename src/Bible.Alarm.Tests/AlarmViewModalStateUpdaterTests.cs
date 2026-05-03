@@ -259,4 +259,113 @@ public sealed class AlarmViewModalStateUpdaterTests
 
         Assert.Equal(2, cap.ArtworkCalls.Count);
     }
+
+    [Fact]
+    public void UpdateMetadataFromState_sets_waiting_when_schedule_has_text_but_no_artwork()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdateMetadataFromState(
+            new PlaybackState
+            {
+                CurrentScheduleId = 1,
+                Title = "Chapter",
+                Artist = "",
+                Album = "",
+                ArtworkUrl = null,
+                Status = PlayStatus.Playing,
+                IsTransitioningTrack = false,
+            },
+            trackChanged: false);
+
+        Assert.True(cap.WaitingForArtwork);
+    }
+
+    [Fact]
+    public void UpdateMetadataFromState_refires_artwork_when_status_first_becomes_playing()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdateMetadataFromState(
+            new PlaybackState
+            {
+                CurrentScheduleId = 1,
+                Title = "T",
+                ArtworkUrl = "https://cover",
+                Status = PlayStatus.Loading,
+                IsTransitioningTrack = false,
+            },
+            trackChanged: false);
+
+        var afterLoading = cap.ArtworkCalls.Count;
+
+        sut.UpdateMetadataFromState(
+            new PlaybackState
+            {
+                CurrentScheduleId = 1,
+                Title = "T",
+                ArtworkUrl = "https://cover",
+                Status = PlayStatus.Playing,
+                IsTransitioningTrack = false,
+            },
+            trackChanged: false);
+
+        Assert.True(cap.ArtworkCalls.Count > afterLoading);
+    }
+
+    [Fact]
+    public void UpdatePlaybackStateFromState_pause_visible_when_auto_advancing()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdatePlaybackStateFromState(
+            new PlaybackState
+            {
+                Status = PlayStatus.Stopped,
+                IsAutoAdvancing = true,
+                Duration = TimeSpan.Zero,
+            });
+
+        Assert.False(cap.PlayVisible);
+        Assert.True(cap.PauseVisible);
+    }
+
+    [Fact]
+    public void UpdatePlaybackStateFromState_pause_visible_when_transitioning_track()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdatePlaybackStateFromState(
+            new PlaybackState
+            {
+                Status = PlayStatus.Paused,
+                IsTransitioningTrack = true,
+                Duration = TimeSpan.Zero,
+            });
+
+        Assert.False(cap.PlayVisible);
+        Assert.True(cap.PauseVisible);
+    }
+
+    [Fact]
+    public void UpdatePlaybackStateFromState_pause_visible_when_transient_stopped_during_session()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdatePlaybackStateFromState(
+            new PlaybackState
+            {
+                Status = PlayStatus.Stopped,
+                IsPreparingOrPlaying = true,
+                Duration = TimeSpan.Zero,
+            });
+
+        Assert.False(cap.PlayVisible);
+        Assert.True(cap.PauseVisible);
+    }
 }
