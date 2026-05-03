@@ -69,6 +69,22 @@ public sealed class ScheduleDisplayMetadataHelperTests
     }
 
     [Fact]
+    public void BuildScheduleSubtitle_music_only_disabled_includes_status_and_time()
+    {
+        var item = new ScheduleStateItem
+        {
+            BiblePublicationScheduleId = null,
+            IsEnabled = false,
+            Hour = 6,
+            Minute = 0,
+        };
+
+        var subtitle = ScheduleDisplayMetadataHelper.BuildScheduleSubtitle(item);
+        Assert.Contains(AppConstants.Media.ScheduleUiStatusDisabled, subtitle);
+        Assert.Contains("06:00", subtitle);
+    }
+
+    [Fact]
     public void BuildScheduleSubtitle_bible_joins_distinct_parts_and_section_when_sectioned_non_bible_category()
     {
         var item = new ScheduleStateItem

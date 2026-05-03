@@ -26,6 +26,10 @@ public static class AndroidAutoRotationHelper
         }
     }
 
+    internal static int? ToNullableScheduleId(int raw) => raw >= 0 ? raw : null;
+
+    internal static bool ShouldPersistScheduleId(int? scheduleId) => scheduleId.HasValue && scheduleId.Value > 0;
+
     /// <summary>
     /// Gets the last schedule ID shown in Android Auto rotation, or null if none.
     /// </summary>
@@ -35,7 +39,7 @@ public static class AndroidAutoRotationHelper
         {
             var prefs = TryGetPreferencesService();
             var raw = prefs != null ? prefs.Get(LastRotationScheduleIdKey, -1) : Preferences.Get(LastRotationScheduleIdKey, -1);
-            return raw >= 0 ? raw : null;
+            return ToNullableScheduleId(raw);
         }
         catch (Exception ex)
         {
@@ -52,12 +56,13 @@ public static class AndroidAutoRotationHelper
         try
         {
             var prefs = TryGetPreferencesService();
-            if (scheduleId.HasValue && scheduleId.Value > 0)
+            if (ShouldPersistScheduleId(scheduleId))
             {
+                var id = scheduleId!.Value;
                 if (prefs != null)
-                    prefs.Set(LastRotationScheduleIdKey, scheduleId.Value);
+                    prefs.Set(LastRotationScheduleIdKey, id);
                 else
-                    Preferences.Set(LastRotationScheduleIdKey, scheduleId.Value);
+                    Preferences.Set(LastRotationScheduleIdKey, id);
             }
             else
             {
