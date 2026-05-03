@@ -54,4 +54,48 @@ public sealed class CodeComparisonHelperTests
     {
         Assert.Equal(0, CodeComparisonHelper.Compare("Jw", "jW"));
     }
+
+    [Theory]
+    [InlineData("Jw", "10")]
+    [InlineData("10", "Jw")]
+    public void Compare_UsesOrdinalIgnoreCase_WhenOneOrBothSidesAreNotInts(string left, string right)
+    {
+        var c = CodeComparisonHelper.Compare(left, right);
+        var mirrored = CodeComparisonHelper.Compare(right, left);
+        Assert.True(c != 0);
+        Assert.Equal(-Math.Sign(c), Math.Sign(mirrored));
+        Assert.True(CodeComparisonHelper.Equals(left, left));
+        Assert.True(CodeComparisonHelper.Equals(right, right));
+        Assert.False(CodeComparisonHelper.Equals(left, right));
+    }
+
+    [Fact]
+    public void Compare_AndEquals_StringPath_WhenValueDoesNotFitInt32()
+    {
+        var tooWide = ((long)int.MaxValue + 1L).ToString();
+        Assert.False(int.TryParse(tooWide, out _));
+        Assert.Equal(0, CodeComparisonHelper.Compare(tooWide, tooWide));
+        Assert.True(CodeComparisonHelper.Equals(tooWide, tooWide.ToUpperInvariant()));
+    }
+
+    [Fact]
+    public void Compare_NegativeVersusPositive_UsesInvariantIntegerSemantics()
+    {
+        Assert.True(CodeComparisonHelper.Compare("-1", "1") < 0);
+        Assert.False(CodeComparisonHelper.Equals("-3", "+3"));
+    }
+
+    [Fact]
+    public void Equals_WithLeadingWhitespace_SeesSameInvariantIntegerWhenParsingSucceeds()
+    {
+        Assert.True(CodeComparisonHelper.Equals(" 42", "+42"));
+        Assert.Equal(0, CodeComparisonHelper.Compare("\t010", "+10")); // LeadingWhite + LeadingSign
+    }
+
+    [Fact]
+    public void Compare_WithNonDigitSuffixUsesOrdinalIgnoreCasePath()
+    {
+        Assert.False(CodeComparisonHelper.Equals("01a", "01b")); // Neither side is a lone int32 token
+        Assert.True(CodeComparisonHelper.Compare("episode-01", "Episode-09") < 0);
+    }
 }
