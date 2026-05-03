@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -9,6 +10,7 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.Shared;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 
 namespace Bible.Alarm.Tests;
@@ -19,19 +21,66 @@ public sealed class PlaybackViewModelTests
     {
         public bool IsAlarmPlaybackSession { get; set; }
 
-        private void Add([CallerMemberName] string name = "") { }
+        public List<string> Calls { get; } = [];
 
-        public Task PlayAsync() => Task.CompletedTask;
-        public Task PauseAsync() => Task.CompletedTask;
-        public Task PlayPreviousAsync() => Task.CompletedTask;
-        public Task PlayNextAsync() => Task.CompletedTask;
-        public Task SeekForwardAsync() => Task.CompletedTask;
-        public Task SeekBackwardAsync() => Task.CompletedTask;
-        public Task SeekToAsync(TimeSpan position) => Task.CompletedTask;
+        private void Record([CallerMemberName] string name = "") => Calls.Add(name);
+
+        public Task PlayAsync()
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
+        public Task PauseAsync()
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
+        public Task PlayPreviousAsync()
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
+        public Task PlayNextAsync()
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
+        public Task SeekForwardAsync()
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
+        public Task SeekBackwardAsync()
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
+        public Task SeekToAsync(TimeSpan position)
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
         public Task PrepareAndPlayAsync(int scheduleId, bool isAlarm) => Task.CompletedTask;
-        public Task StopAsync() => Task.CompletedTask;
+        public Task StopAsync()
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
         public Task StopForTeardownAsync() => Task.CompletedTask;
-        public Task ResetAndRetryAsync(int scheduleId) => Task.CompletedTask;
+        public Task ResetAndRetryAsync(int scheduleId)
+        {
+            Record();
+            return Task.CompletedTask;
+        }
+
         public void Dispose()
         {
         }
@@ -39,7 +88,14 @@ public sealed class PlaybackViewModelTests
 
     private sealed class RecordingSchedulePlaybackService : ISchedulePlaybackService
     {
-        public Task PlayScheduleAsync(int scheduleId) => Task.CompletedTask;
+        public List<string> Calls { get; } = [];
+
+        public Task PlayScheduleAsync(int scheduleId)
+        {
+            Calls.Add($"PlayScheduleAsync({scheduleId})");
+            return Task.CompletedTask;
+        }
+
         public Task<bool> CanMoveTrackAsync(int scheduleId) => Task.FromResult(true);
     }
 
@@ -93,19 +149,45 @@ public sealed class PlaybackViewModelTests
 
     private static PlaybackViewModel CreateSut(
         IAudioPlayer? audio = null,
-        IState<PlaybackState>? playbackState = null)
+        IState<PlaybackState>? playbackState = null,
+        RecordingPlaybackService? playback = null,
+        RecordingSchedulePlaybackService? schedulePlayback = null)
     {
         audio ??= new FakeAudioPlayer();
         playbackState ??= new MutablePlaybackState(new PlaybackState());
+        playback ??= new RecordingPlaybackService();
+        schedulePlayback ??= new RecordingSchedulePlaybackService();
         return new PlaybackViewModel(
             new PlaybackViewModelDeps(
                 TestLogging.CreateLogger(),
-                new RecordingPlaybackService(),
-                new RecordingSchedulePlaybackService(),
+                playback,
+                schedulePlayback,
                 playbackState,
                 new NoReviewPromptService(),
                 audio,
                 new SyncMainThreadScheduler()));
+    }
+
+    private static async Task ExecuteAsync(ICommand command)
+    {
+        if (command is IAsyncRelayCommand asyncRelay)
+        {
+            await asyncRelay.ExecuteAsync(null);
+            return;
+        }
+
+        throw new InvalidOperationException("Expected IAsyncRelayCommand");
+    }
+
+    private static async Task ExecuteSeekAsync(ICommand command, TimeSpan position)
+    {
+        if (command is IAsyncRelayCommand<TimeSpan> seek)
+        {
+            await seek.ExecuteAsync(position);
+            return;
+        }
+
+        throw new InvalidOperationException("Expected IAsyncRelayCommand<TimeSpan>");
     }
 
     private static PlaybackState PlayingWithDuration(TimeSpan duration) =>
@@ -352,8 +434,127 @@ public sealed class PlaybackViewModelTests
     [Fact]
     public void Dispose_IsIdempotent()
     {
-        var vm = CreateSut();
+        using var vm = CreateSut();
         vm.Dispose();
         vm.Dispose();
+    }
+
+    [Fact]
+    public async Task PlayCommand_invokes_playback_PlayAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        using var vm = CreateSut(playback: playback);
+
+        await ExecuteAsync(vm.PlayCommand);
+
+        Assert.Equal(["PlayAsync"], playback.Calls);
+    }
+
+    [Fact]
+    public async Task PauseCommand_invokes_playback_PauseAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        using var vm = CreateSut(playback: playback);
+
+        await ExecuteAsync(vm.PauseCommand);
+
+        Assert.Equal(["PauseAsync"], playback.Calls);
+    }
+
+    [Fact]
+    public async Task ForwardCommand_invokes_playback_SeekForwardAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        using var vm = CreateSut(playback: playback);
+
+        await ExecuteAsync(vm.ForwardCommand);
+
+        Assert.Equal(["SeekForwardAsync"], playback.Calls);
+    }
+
+    [Fact]
+    public async Task BackwardCommand_invokes_playback_SeekBackwardAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        using var vm = CreateSut(playback: playback);
+
+        await ExecuteAsync(vm.BackwardCommand);
+
+        Assert.Equal(["SeekBackwardAsync"], playback.Calls);
+    }
+
+    [Fact]
+    public async Task SeekCommand_invokes_playback_SeekToAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        using var vm = CreateSut(playback: playback);
+
+        await ExecuteSeekAsync(vm.SeekCommand, TimeSpan.FromSeconds(12));
+
+        Assert.Equal(["SeekToAsync"], playback.Calls);
+    }
+
+    [Fact]
+    public async Task PreviousCommand_invokes_playback_PlayPreviousAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        using var vm = CreateSut(playback: playback);
+
+        await ExecuteAsync(vm.PreviousCommand);
+
+        Assert.Equal(["PlayPreviousAsync"], playback.Calls);
+    }
+
+    [Fact]
+    public async Task NextCommand_invokes_playback_PlayNextAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        using var vm = CreateSut(playback: playback);
+
+        await ExecuteAsync(vm.NextCommand);
+
+        Assert.Equal(["PlayNextAsync"], playback.Calls);
+    }
+
+    [Fact]
+    public async Task RetryCommand_when_not_alarm_session_invokes_ResetAndRetryAsync()
+    {
+        var playback = new RecordingPlaybackService { IsAlarmPlaybackSession = false };
+        var schedule = new RecordingSchedulePlaybackService();
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playback: playback, playbackState: state, schedulePlayback: schedule);
+
+        state.Value = new PlaybackState
+        {
+            CurrentScheduleId = 55,
+            ErrorMessage = "failed",
+        };
+        state.NotifyStateChanged();
+
+        await ExecuteAsync(vm.RetryCommand);
+
+        Assert.Contains(nameof(RecordingPlaybackService.ResetAndRetryAsync), playback.Calls);
+        Assert.Empty(schedule.Calls);
+    }
+
+    [Fact]
+    public async Task RetryCommand_when_alarm_session_invokes_PlayScheduleAsync()
+    {
+        var playback = new RecordingPlaybackService { IsAlarmPlaybackSession = true };
+        var schedule = new RecordingSchedulePlaybackService();
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playback: playback, playbackState: state, schedulePlayback: schedule);
+
+        state.Value = new PlaybackState
+        {
+            CurrentScheduleId = 99,
+            ErrorMessage = "failed",
+        };
+        state.NotifyStateChanged();
+
+        await ExecuteAsync(vm.RetryCommand);
+
+        Assert.Equal(["PlayScheduleAsync(99)"], schedule.Calls);
+        Assert.DoesNotContain(nameof(RecordingPlaybackService.ResetAndRetryAsync), playback.Calls);
     }
 }
