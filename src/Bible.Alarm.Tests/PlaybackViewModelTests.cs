@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Runtime.CompilerServices;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -48,13 +49,15 @@ public sealed class PlaybackViewModelTests
         public Task RecordDismissEngagementAndRequestIfEligibleAsync() => Task.CompletedTask;
     }
 
-    private sealed class MutablePlaybackState(PlaybackState value) : IState<PlaybackState>
+    private sealed class MutablePlaybackState : IState<PlaybackState>
     {
-        public PlaybackState Value { get; set; } = value;
+        public MutablePlaybackState(PlaybackState initial) => Value = initial;
 
-#pragma warning disable CS0067
+        public PlaybackState Value { get; set; }
+
         public event EventHandler? StateChanged;
-#pragma warning restore CS0067
+
+        public void NotifyStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private sealed class FakeAudioPlayer : IAudioPlayer
@@ -93,7 +96,7 @@ public sealed class PlaybackViewModelTests
         IState<PlaybackState>? playbackState = null)
     {
         audio ??= new FakeAudioPlayer();
-        playbackState ??= new MutablePlaybackState(new PlaybackState { Status = PlayStatus.Stopped });
+        playbackState ??= new MutablePlaybackState(new PlaybackState());
         return new PlaybackViewModel(
             new PlaybackViewModelDeps(
                 TestLogging.CreateLogger(),
@@ -103,6 +106,80 @@ public sealed class PlaybackViewModelTests
                 new NoReviewPromptService(),
                 audio,
                 new SyncMainThreadScheduler()));
+    }
+
+    private static PlaybackState PlayingWithDuration(TimeSpan duration) =>
+        new(
+            new PlaybackTransportSlice(1, true, true, true, PlayStatus.Playing, false, false),
+            new PlaybackMediaSlice("t", null, null, null, duration, null),
+            new PlaybackDefaultScheduleSlice(null, null, null, null, null));
+
+    [Fact]
+    public void Receive_BeginStopping_sets_IsStopping()
+    {
+        using var vm = CreateSut();
+        Assert.False(vm.IsStopping);
+
+        vm.Receive(new BeginStoppingPlaybackMessage());
+
+        Assert.True(vm.IsStopping);
+    }
+
+    [Fact]
+    public void Receive_PlaybackPosition_does_not_update_time_while_stopping()
+    {
+        using var vm = CreateSut();
+        Assert.Equal("00:00", vm.CurrentTime);
+
+        vm.BeginStoppingUi();
+        vm.Receive(new PlaybackPositionChangedMessage { CurrentPosition = TimeSpan.FromSeconds(45) });
+
+        Assert.Equal("00:00", vm.CurrentTime);
+    }
+
+    [Fact]
+    public void Receive_PlaybackPosition_updates_time_when_duration_known()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(2));
+        state.NotifyStateChanged();
+
+        vm.Receive(new PlaybackPositionChangedMessage { CurrentPosition = TimeSpan.FromSeconds(30) });
+
+        Assert.Equal("00:30", vm.CurrentTime);
+    }
+
+    [Fact]
+    public void Receive_PreparationProgress_sets_preparing_when_tracks_remain()
+    {
+        using var vm = CreateSut();
+
+        vm.Receive(new PlaybackPreparationProgressMessage
+        {
+            LoadedTracks = 0,
+            TotalTracks = 2,
+            TotalBytesDownloaded = 0,
+            CurrentTrackProgress = 0,
+            ShowPercent = true,
+        });
+
+        Assert.True(vm.IsPreparing);
+        Assert.True(vm.ShowPreparationPercent);
+    }
+
+    [Fact]
+    public void NotifyLandscapeInteraction_when_stopping_does_not_toggle_overlay()
+    {
+        using var vm = CreateSut();
+        vm.SetIsLandscape(true);
+        Assert.True(vm.AreLandscapeOverlayControlsVisible);
+
+        vm.BeginStoppingUi();
+        vm.NotifyLandscapeInteraction();
+
+        Assert.True(vm.AreLandscapeOverlayControlsVisible);
     }
 
     [Fact]
