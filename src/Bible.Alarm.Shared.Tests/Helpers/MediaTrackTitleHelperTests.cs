@@ -28,4 +28,17 @@ public sealed class MediaTrackTitleHelperTests
     {
         Assert.Equal("", MediaTrackTitleHelper.DecodeHtmlTitleNullable(""));
     }
+
+    [Fact]
+    public void DecodeHtmlTitle_EmptyRaw_YieldsEmptyString_NotUnknownPlaceholder()
+    {
+        Assert.Equal("", MediaTrackTitleHelper.DecodeHtmlTitle(""));
+    }
+
+    [Fact]
+    public void DecodeHtmlTitle_AndNullable_DecodesNumericEntitiesQuotesAndCombinedNbspChain()
+    {
+        Assert.Equal("‹Quoted›", MediaTrackTitleHelper.DecodeHtmlTitle("&#8249;Quoted&#8250;"));
+        Assert.Equal("Line —  next", MediaTrackTitleHelper.DecodeHtmlTitleNullable($"Line&nbsp;&mdash;&#32;{'\u00A0'}next"));
+    }
 }

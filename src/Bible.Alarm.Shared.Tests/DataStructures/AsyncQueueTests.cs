@@ -106,6 +106,7 @@ public sealed class AsyncQueueTests
 
         Assert.Throws<ObjectDisposedException>(() => queue.PeekAsync().GetAwaiter().GetResult());
         Assert.Throws<ObjectDisposedException>(() => queue.EnqueueAsync(3).GetAwaiter().GetResult());
+        Assert.Throws<ObjectDisposedException>(() => queue.DequeueAsync().GetAwaiter().GetResult());
     }
 
     [Fact]
