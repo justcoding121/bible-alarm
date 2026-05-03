@@ -47,6 +47,72 @@ public sealed class ConcurrencyHelperTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_Generic_ReturnsNull_WhenTimedWaitFails_StringResult()
+    {
+        using var gate = new SemaphoreSlim(0);
+
+        var value = await ConcurrencyHelper.ExecuteAsync(gate, async () =>
+        {
+            await Task.CompletedTask;
+            return "no-timeout";
+        }, timeoutMs: 40);
+
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ActionWithToken_Completes_And_ReleaseLock()
+    {
+        using var gate = new SemaphoreSlim(1);
+        var ran = false;
+
+        await ConcurrencyHelper.ExecuteAsync(gate, async () =>
+        {
+            ran = true;
+            await Task.CompletedTask;
+        }, cancellationToken: CancellationToken.None);
+
+        Assert.True(ran);
+        Assert.Equal(1, gate.CurrentCount);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_GenericWithToken_ReturnsResult()
+    {
+        using var gate = new SemaphoreSlim(1);
+
+        var v = await ConcurrencyHelper.ExecuteAsync(
+            gate,
+            async () =>
+            {
+                await Task.CompletedTask;
+                return "ok";
+            },
+            cancellationToken: default);
+
+        Assert.Equal("ok", v);
+        Assert.Equal(1, gate.CurrentCount);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Action_ReportsDisposedReleaseViaCallbackWhenSemaphoreDisposedEarly()
+    {
+        var gate = new SemaphoreSlim(1);
+        ObjectDisposedException? seen = null;
+
+        await ConcurrencyHelper.ExecuteAsync(
+            gate,
+            async () =>
+            {
+                gate.Dispose();
+                await Task.CompletedTask;
+            },
+            onDisposedException: ex => seen = ex);
+
+        Assert.NotNull(seen);
+    }
+
+    [Fact]
     public async Task ExecuteWithTimeoutAsync_ReturnsNull_WhenLockUnavailable()
     {
         using var gate = new SemaphoreSlim(0);

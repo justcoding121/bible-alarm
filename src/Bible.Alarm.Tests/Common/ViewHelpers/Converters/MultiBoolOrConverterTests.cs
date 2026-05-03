@@ -16,6 +16,7 @@ public sealed class MultiBoolOrConverterTests
     {
         Assert.False((bool)sut.Convert([], typeof(bool), null!, Cul));
         Assert.False((bool)sut.Convert(Array.Empty<object>(), typeof(bool), null!, Cul));
+        Assert.False((bool)sut.Convert(null!, typeof(bool), null!, Cul));
     }
 
     [Fact]
