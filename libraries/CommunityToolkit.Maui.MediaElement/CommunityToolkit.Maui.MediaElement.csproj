@@ -112,6 +112,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="CommunityToolkit.Maui.MediaElement.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="ResourceDictionary.windows.xaml">
       <LogicalName>ResourceDictionary.windows.xaml</LogicalName>
     </EmbeddedResource>
