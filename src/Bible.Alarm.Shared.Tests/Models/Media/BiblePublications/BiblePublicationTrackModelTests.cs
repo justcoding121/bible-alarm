@@ -37,6 +37,20 @@ public sealed class BiblePublicationTrackModelTests
         => Assert.True(Track(DummyPub(), "1").CompareTo(new object()) > 0);
 
     [Fact]
+    public void CompareTo_Object_Null_ReturnsGreater()
+        => Assert.Equal(1, Track(DummyPub(), "1").CompareTo((object?)null));
+
+    [Fact]
+    public void CompareTo_Object_BoxedSameType_DelegatesTo_CompareCodes()
+    {
+        var pub = DummyPub();
+        var a = Track(pub, "4");
+        var b = Track(pub, "4");
+        Assert.Equal(0, a.CompareTo((object)b));
+        Assert.True(a >= b && a <= b);
+    }
+
+    [Fact]
     public void CompareTo_Nulls_And_NumericInterpretation_Order()
     {
         Assert.Equal(1, Track(DummyPub(), "1").CompareTo(null));
@@ -77,6 +91,35 @@ public sealed class BiblePublicationTrackModelTests
         var u = Track(pub, "4", trackId: 0);
         var v = Track(pub, "4", trackId: 0);
         Assert.False(u.Equals(v));
+    }
+
+    [Fact]
+    public void CompareTo_OrderingTies_WithNumericEquivalence_Use_CompoundOrderingOperators()
+    {
+        var pub = DummyPub();
+        var sevenA = Track(pub, "07", trackId: 1);
+        var sevenB = Track(pub, "7", trackId: 2);
+        Assert.Equal(0, sevenA.CompareTo(sevenB));
+        Assert.True(sevenA <= sevenB);
+        Assert.True(sevenA >= sevenB);
+    }
+
+    [Fact]
+    public void Equals_ObjectOverload_RejectsNullAndForeignReference()
+    {
+        var sut = Track(DummyPub(), "z");
+        Assert.False(sut.Equals((object?)null));
+        Assert.False(sut.Equals("chapter"));
+    }
+
+    [Fact]
+    public void Operator_NotEquals_WithDifferentStructuralRules()
+    {
+        var pub = DummyPub();
+        Assert.True(Track(pub, "x", trackId: 101) != Track(pub, "x", trackId: 102));
+        var za = Track(pub, "z", trackId: 0);
+        var zb = Track(pub, "z", trackId: 0);
+        Assert.True(za != zb);
     }
 
     [Fact]
