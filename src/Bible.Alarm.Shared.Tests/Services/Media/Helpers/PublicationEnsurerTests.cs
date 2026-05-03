@@ -806,6 +806,225 @@ public sealed class PublicationEnsurerTests
     }
 
     [Fact]
+    public async Task EnsurePublicationExistsAsync_MediatorSectioned_Calls_FetchPublicationTracks()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedCategoryLanguageAsync(seed);
+                var lang = await seed.Languages.SingleAsync();
+                var cat = await seed.Categories.SingleAsync();
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "drama-med-z",
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    CatalogType = CatalogType.MediatorSectioned,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var stub = new StubLanguageContentService
+            {
+                FetchPublicationTracksAsyncHandler = (_, _, _) => Task.FromResult(true)
+            };
+            var sut = new PublicationEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            Assert.True(await sut.EnsurePublicationExistsAsync("drama-med-z", "M"));
+
+            Assert.Single(stub.FetchTracksCalls);
+            Assert.Equal(("drama-med-z", "M"), stub.FetchTracksCalls[0]);
+            Assert.Empty(stub.FetchSectionTracksCalls);
+            Assert.Empty(stub.FetchFirstSectionOnlyCalls);
+        }
+    }
+
+    [Fact]
+    public async Task EnsurePublicationExistsAsync_Looks_Up_Pl_Using_Canonical_Publication_Code()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedCategoryLanguageAsync(seed);
+                var lang = await seed.Languages.SingleAsync();
+                var cat = await seed.Categories.SingleAsync();
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    CatalogType = CatalogType.MediatorSectioned,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var stub = new StubLanguageContentService
+            {
+                FetchPublicationTracksAsyncHandler = (_, _, _) => Task.FromResult(true)
+            };
+            var sut = new PublicationEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            Assert.True(await sut.EnsurePublicationExistsAsync("vodmoviesbibletimes", "M"));
+
+            Assert.Single(stub.FetchTracksCalls);
+            Assert.Equal("vodmoviesbibletimes", stub.FetchTracksCalls[0].Pub);
+        }
+    }
+
+    [Fact]
+    public async Task FetchFirstPublicationForLanguageAsync_MediatorSectioned_Uncataloged_Calls_FetchTracks()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedCategoryLanguageAsync(seed);
+                var lang = await seed.Languages.SingleAsync();
+                var cat = await seed.Categories.SingleAsync();
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "ffpl-med-only",
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    CatalogType = CatalogType.MediatorSectioned,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var stub = new StubLanguageContentService
+            {
+                FetchPublicationTracksAsyncHandler = (_, _, _) => Task.FromResult(true)
+            };
+            var sut = new PublicationEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            Assert.True(await sut.FetchFirstPublicationForLanguageAsync("M"));
+
+            Assert.Single(stub.FetchTracksCalls);
+            Assert.Equal("ffpl-med-only", stub.FetchTracksCalls[0].Pub);
+        }
+    }
+
+    [Fact]
+    public async Task EnsurePublicationExistsAsync_Rethrows_OperationCanceledException()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedCategoryLanguageAsync(seed);
+                var lang = await seed.Languages.SingleAsync();
+                var cat = await seed.Categories.SingleAsync();
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "flat-oce",
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    CatalogType = CatalogType.Flat,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var stub = new StubLanguageContentService
+            {
+                FetchPublicationTracksAsyncHandler = (_, _, _) =>
+                    throw new OperationCanceledException()
+            };
+            var sut = new PublicationEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                sut.EnsurePublicationExistsAsync("flat-oce", "M"));
+        }
+    }
+
+    [Fact]
+    public async Task FetchFirstPublicationForLanguageAsync_Skips_Cataloged_Candidates_In_Order()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedCategoryLanguageAsync(seed);
+                var lang = await seed.Languages.SingleAsync();
+                var cat = await seed.Categories.SingleAsync();
+
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "alpha-skip-flat",
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    CatalogType = CatalogType.Flat,
+                    IsMusic = false
+                });
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "zebra-flat",
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    CatalogType = CatalogType.Flat,
+                    IsMusic = false
+                });
+
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = "alpha-skip-flat",
+                    Name = "Has rows",
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    CatalogType = CatalogType.Flat,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = cat, CategoryId = cat.Id }
+                    ],
+                    Sections = [],
+                    Tracks = [],
+                    IsVideo = false,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var stub = new StubLanguageContentService
+            {
+                FetchPublicationTracksAsyncHandler = (_, _, _) => Task.FromResult(true)
+            };
+            var sut = new PublicationEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            Assert.True(await sut.FetchFirstPublicationForLanguageAsync("M"));
+
+            Assert.Single(stub.FetchTracksCalls);
+            Assert.Equal("zebra-flat", stub.FetchTracksCalls[0].Pub);
+        }
+    }
+
+    [Fact]
     public async Task EnsureAllPublicationsForLanguageAsync_ReturnsTrue_For_English()
     {
         var (factory, connection) = await CreateFactoryAsync();
