@@ -166,6 +166,20 @@ public sealed class GetPubMediaLinksRetryTests
         Assert.Equal(2, calls);
     }
 
+    [Fact]
+    public async Task GetStringAsync_PropagatesCancellation_WhenTokenCanceledBeforeAttempts()
+    {
+        using var inner = new CallbackHandler(_ =>
+            throw new TaskCanceledException("stopped"));
+        using var client = new HttpClient(inner);
+        using var cts = new CancellationTokenSource();
+
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<TaskCanceledException>(() =>
+            GetPubMediaLinksRetry.GetStringAsync(client, StubLocalBaseUrls, "?", cts.Token));
+    }
+
     private sealed class CallbackHandler(Func<int, HttpResponseMessage> onCall) : HttpMessageHandler
     {
         private int _callSeq;

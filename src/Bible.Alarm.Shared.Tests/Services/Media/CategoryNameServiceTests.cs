@@ -28,6 +28,15 @@ public sealed class CategoryNameServiceTests
     }
 
     [Fact]
+    public void GetName_ReturnsNull_WhenWarmCacheNeverInvoked()
+    {
+        using var logger = TestLogging.CreateLogger();
+        var sut = new CategoryNameService(logger);
+
+        Assert.Null(sut.GetName("Bible", "E"));
+    }
+
+    [Fact]
     public async Task GetName_ReturnsNull_WhenDisplayLanguageMismatch()
     {
         using var logger = TestLogging.CreateLogger();
@@ -36,6 +45,17 @@ public sealed class CategoryNameServiceTests
         await sut.WarmCacheForDisplayLanguageAsync("E");
 
         Assert.Null(sut.GetName("Bible", "F"));
+    }
+
+    [Fact]
+    public async Task GetName_ReturnsNull_WhenDisplayLanguageCodeHasPadding_NotEqualityMatch()
+    {
+        using var logger = TestLogging.CreateLogger();
+        var sut = new CategoryNameService(logger);
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Null(sut.GetName("Bible", " E "));
     }
 
     [Fact]
