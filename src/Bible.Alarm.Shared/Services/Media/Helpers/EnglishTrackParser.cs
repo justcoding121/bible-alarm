@@ -95,7 +95,8 @@ internal static class EnglishTrackParser
         string? normalizedLanguageCode = null)
     {
         if (!trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileElement) ||
-            !fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement))
+            !fileElement.TryGetProperty(AppConstants.Media.PubMediaJson.Url, out var urlElement) ||
+            urlElement.ValueKind != JsonValueKind.String)
         {
             return null;
         }

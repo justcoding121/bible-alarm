@@ -163,6 +163,7 @@ public sealed class PublicationTypeHelperTests
     public void IsDrama_True_ForVodCodesRegisteredBesideTraditionalDramas()
     {
         Assert.True(PublicationTypeHelper.IsDrama(AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes));
+        Assert.True(PublicationTypeHelper.IsDrama(AppConstants.Media.BiblePublicationCodeVODMoviesModernDay));
         Assert.True(PublicationTypeHelper.IsDrama(AppConstants.Media.BiblePublicationCodeVODMoviesExtras));
     }
 

@@ -24,6 +24,14 @@ public sealed class EnglishTrackParserTests
     }
 
     [Fact]
+    public void ParseIamTracks_ReturnsEmpty_WhenEnglishNodeExists_ButMp3BranchMissing()
+    {
+        const string json = """{"E":{}}""";
+
+        Assert.Empty(EnglishTrackParser.ParseIamTracks(Root(json)));
+    }
+
+    [Fact]
     public void ParseIamTracks_ParsesAllEntries_Under_DefaultLanguage_MP3()
     {
         const string json =
@@ -147,6 +155,26 @@ public sealed class EnglishTrackParserTests
         var tr = Assert.Single(EnglishTrackParser.ParseIamTracks(Root(json)));
         Assert.Equal(MediaTrackTitleHelper.UnknownTitle, tr.Title);
         Assert.Equal("2", tr.TrackCode);
+    }
+
+    [Fact]
+    public void ParseTrackFromJson_DefaultsTitle_WhenTitleJsonIsNull()
+    {
+        const string json =
+            """{"E":{"MP3":[{"file":{"url":"https://u"},"track":3,"title":null}]}}""";
+
+        var tr = Assert.Single(EnglishTrackParser.ParseIamTracks(Root(json)));
+        Assert.Equal(MediaTrackTitleHelper.UnknownTitle, tr.Title);
+        Assert.Equal("3", tr.TrackCode);
+    }
+
+    [Fact]
+    public void ParseTrackFromJson_Rejects_WhenFileUrlIsNotAString()
+    {
+        const string json =
+            """{"E":{"MP3":[{"file":{"url":404},"track":5}]}}""";
+
+        Assert.Empty(EnglishTrackParser.ParseIamTracks(Root(json)));
     }
 
     [Fact]
