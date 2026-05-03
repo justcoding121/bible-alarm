@@ -16,6 +16,33 @@ public sealed class MagazineHelperTests
     }
 
     [Fact]
+    public void IsWatchtowerMagazineCode_False_ForAwakeLetterOrMalformedYearTrailingCharacters()
+    {
+        Assert.False(MagazineHelper.IsWatchtowerMagazineCode($"g{MagazineHelper.MagazineStartYear}"));
+        Assert.False(MagazineHelper.IsWatchtowerMagazineCode("watchtower2009")); // lacks leading w...
+        Assert.False(MagazineHelper.IsWatchtowerMagazineCode($"{MagazineHelper.MagazineStartYear}w")); // wrong shape
+        Assert.False(MagazineHelper.IsWatchtowerMagazineCode($"w{MagazineHelper.MagazineStartYear}z"));
+    }
+
+    [Fact]
+    public void IsAwakeMagazineCode_False_ForWatchtowerLetterOrMalformedYearTrailingCharacters()
+    {
+        Assert.False(MagazineHelper.IsAwakeMagazineCode($"w{MagazineHelper.MagazineStartYear}"));
+        Assert.False(MagazineHelper.IsAwakeMagazineCode($"g{MagazineHelper.MagazineStartYear}book"));
+        Assert.False(MagazineHelper.IsAwakeMagazineCode("gab2008")); // trailing letters block year parse
+    }
+
+    [Fact]
+    public void MagazineEndYear_Applies_AsUpperInclusiveBound_ForYearDetectors()
+    {
+        Assert.True(MagazineHelper.MagazineEndYear >= DateTime.UtcNow.Year);
+
+        var end = $"w{MagazineHelper.MagazineEndYear}";
+        Assert.True(MagazineHelper.IsWatchtowerMagazineCode(end));
+        Assert.True(MagazineHelper.IsMagazinePublicationCode($"g{MagazineHelper.MagazineEndYear}"));
+    }
+
+    [Fact]
     public void IsWatchtowerMagazineCode_False_BeforeMinimumYearOrAfterEndYear()
     {
         Assert.False(MagazineHelper.IsWatchtowerMagazineCode("w2007"));
@@ -77,6 +104,7 @@ public sealed class MagazineHelperTests
 
     [Theory]
     [InlineData(null, null, "")]
+    [InlineData("", "", "")]
     [InlineData("Pub", null, "Pub")]
     [InlineData(null, "Jan", "Jan")]
     [InlineData("Pub", "Jan", "Pub — Jan")]
