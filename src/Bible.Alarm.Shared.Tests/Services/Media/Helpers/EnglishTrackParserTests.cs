@@ -99,6 +99,33 @@ public sealed class EnglishTrackParserTests
     }
 
     [Fact]
+    public void ParseIamTracks_Rejects_FileWithEmptyUrl()
+    {
+        const string json =
+            """{"E":{"MP3":[{"file":{"url":""},"track":11}]}}""";
+
+        Assert.Empty(EnglishTrackParser.ParseIamTracks(Root(json)));
+    }
+
+    [Fact]
+    public void ParseIamTracks_Rejects_EntryMissingTrackNumber()
+    {
+        const string json =
+            """{"E":{"MP3":[{"file":{"url":"https://u"},"title":"NoNum"}]}}""";
+
+        Assert.Empty(EnglishTrackParser.ParseIamTracks(Root(json)));
+    }
+
+    [Fact]
+    public void ParseGenericTracks_ReturnsEmpty_WhenFormatSubtreeMissing()
+    {
+        const string json = """{"E":{ }}""";
+
+        Assert.Empty(
+            EnglishTrackParser.ParseGenericTracks(Root(json), "E", AppConstants.Media.MediaStreamFormatMp3));
+    }
+
+    [Fact]
     public void ParseTrackFromJson_Applies_AudioDescription_Filter()
     {
         const string json =

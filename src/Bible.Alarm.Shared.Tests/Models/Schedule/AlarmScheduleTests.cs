@@ -112,4 +112,49 @@ public sealed class AlarmScheduleTests
         var bDistinct = Create(id: 0);
         Assert.False(aDistinct.Equals(bDistinct));
     }
+
+    [Fact]
+    public void CompareTo_Object_Null_ReturnsGreater()
+        => Assert.Equal(1, Create().CompareTo(null));
+
+    [Fact]
+    public void CompareTo_Object_NotAlarmSchedule_TreatsAsNull()
+        => Assert.Equal(1, Create().CompareTo(new object()));
+
+    [Fact]
+    public void CompareTo_AlarmScheduleNull_ReturnsGreater()
+        => Assert.Equal(1, Create().CompareTo((AlarmSchedule?)null));
+
+    [Fact]
+    public void GetHashCode_Matches_OnSameNonZero_Id()
+    {
+        var a = Create(id: 55, hour: 1);
+        var b = Create(id: 55, hour: 22);
+        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+        Assert.True(a.Equals(b));
+    }
+
+    [Fact]
+    public void Comparison_operators_require_non_null_operands()
+    {
+        AlarmSchedule? n = null;
+        var s = Create();
+        Assert.False(s < n);
+        Assert.False(n < s);
+        Assert.False(s > n);
+        Assert.False(n > s);
+        Assert.False(s <= n);
+        Assert.False(n <= s);
+        Assert.False(s >= n);
+        Assert.False(n >= s);
+    }
+
+    [Fact]
+    public void NextFireDate_ThrowsInvalidOperation_WhenMinuteOutOfRange()
+    {
+        var sut = Create(WeekDays.Monday);
+        sut.Minute = 60;
+
+        Assert.Throws<InvalidOperationException>(() => sut.NextFireDate(DateTimeOffset.UtcNow));
+    }
 }

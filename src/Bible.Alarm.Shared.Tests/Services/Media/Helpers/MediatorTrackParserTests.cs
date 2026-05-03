@@ -40,6 +40,21 @@ public sealed class MediatorTrackParserTests
     }
 
     [Fact]
+    public void ParseTracksFromJson_FallsBack_ToLowerMp4Key_OnUppercaseAbsent()
+    {
+        const string json =
+            """{"E":{"mp4":[{"file":"https://v/x.mp4","title":"Vid"}]}}""";
+
+        var tracks = Parse(
+            json,
+            Ctx("E", "chapter-1", isVideo: true));
+
+        Assert.Single(tracks);
+        Assert.Equal("chapter-1", tracks[0].TrackCode);
+        Assert.Equal("https://v/x.mp4", tracks[0].TrackUrl?.Url);
+    }
+
+    [Fact]
     public void ParseTracksFromJson_UseVideoFormat_WhenIsVideoTrue()
     {
         const string json =
@@ -160,6 +175,17 @@ public sealed class MediatorTrackParserTests
         var tracks = Parse(json, Ctx("E", docSection, trackNumber: 2, useDocidParam: true));
 
         Assert.Equal("abc987-2", tracks[0].TrackCode);
+    }
+
+    [Fact]
+    public void ResolveTrackCode_DocIdWithoutTrackNumber_ReturnsDocIdValueOnly()
+    {
+        var docSection = $"{AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix}abc987";
+        const string json = """{"E":{"MP3":[{"file":"https://d.mp3","title":"D"}]}}""";
+
+        var tracks = Parse(json, Ctx("E", docSection, useDocidParam: true));
+
+        Assert.Equal("abc987", tracks[0].TrackCode);
     }
 
     [Fact]
