@@ -145,4 +145,82 @@ public sealed class PlayItemAndTrackMetadataTests
         Assert.True(item.CdnStaleUrlRefetchReplayIssued);
         Assert.True(item.StreamingOpenPhaseMediaFailedRetryDone);
     }
+
+    [Fact]
+    public void PlayItem_ToString_Bible_With_empty_section_string_keeps_spacing_before_track()
+    {
+        var meta = new TrackMetadata
+        {
+            LanguageCode = "q",
+            PublicationCode = "r",
+            IsBibleContent = true,
+            SectionCode = "",
+            TrackCode = "9",
+        };
+        meta.LookUpPath = "?";
+
+        Assert.Equal("q r  9", new PlayItem(meta, string.Empty).ToString());
+    }
+
+    [Fact]
+    public void PlayItem_ToString_Music_with_empty_track_code_ends_after_publication_space()
+    {
+        var meta = new TrackMetadata
+        {
+            LanguageCode = "E",
+            PublicationCode = "sing",
+            IsBibleContent = false,
+            TrackCode = string.Empty,
+        };
+        meta.LookUpPath = "?";
+
+        Assert.Equal("E sing ", new PlayItem(meta, string.Empty).ToString());
+    }
+
+    [Fact]
+    public void PlayItem_recovery_flags_Default_false_until_set()
+    {
+        var meta = new TrackMetadata
+        {
+            LanguageCode = "E",
+            PublicationCode = "flat",
+            TrackCode = "1",
+            IsBibleContent = false,
+        };
+        meta.LookUpPath = "?";
+        var sut = new PlayItem(meta, string.Empty);
+
+        Assert.False(sut.CdnStaleUrlRecoveryConsumed);
+        Assert.False(sut.CdnStaleUrlRefetchReplayIssued);
+        Assert.False(sut.StreamingOpenPhaseMediaFailedRetryDone);
+    }
+
+    [Fact]
+    public void PlayItem_metadata_setter_Rebinds_and_ToString_uses_updated_metadata()
+    {
+        var bible = new TrackMetadata
+        {
+            LanguageCode = "E",
+            PublicationCode = "nwt",
+            IsBibleContent = true,
+            SectionCode = "1",
+            TrackCode = "2",
+            LookUpPath = "?",
+        };
+        var music = new TrackMetadata
+        {
+            LanguageCode = "F",
+            PublicationCode = "iam",
+            IsBibleContent = false,
+            TrackCode = "8",
+            LookUpPath = "?",
+        };
+
+        var sut = new PlayItem(bible, "a");
+        Assert.Equal("E nwt 1 2", sut.ToString());
+
+        sut.Metadata = music;
+        Assert.Same(music, sut.Metadata);
+        Assert.Equal("F iam 8", sut.ToString());
+    }
 }
