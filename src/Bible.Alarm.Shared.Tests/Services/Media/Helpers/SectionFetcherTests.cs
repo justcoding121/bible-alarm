@@ -1,8 +1,7 @@
 #nullable enable
 
 using System.Net;
-using System.Net.Http;
-using Bible.Alarm.Shared.Constants;
+using System.Net.Http;using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -18,6 +17,12 @@ public sealed class SectionFetcherTests
 {
     private const string MinimalBiblePubMediaJson =
         "{\"files\":{\"E\":{\"MP3\":[{\"file\":{\"url\":\"https://cdn.example/t.mp3\"},\"track\":1,\"title\":\"Matt\"}]}},\"pubName\":\"NWT\"}";
+
+    private const string MinimalMagazineIssuePubMediaJson =
+        "{\"files\":{\"E\":{\"MP3\":[{\"file\":{\"url\":\"https://cdn.example/wt.mp3\"},\"track\":1,\"title\":\"Study\"}]}},\"pubName\":\"Watchtower\",\"formattedDate\":\"Feb\"}";
+
+    private const string MinimalVideoMediatorPubMediaJson =
+        "{\"files\":{\"E\":{\"MP4\":[{\"file\":\"https://v/a.mp4\",\"title\":\"Scene\"}]}}}";
 
     private sealed class JsonResponseHandler(string body) : HttpMessageHandler
     {
@@ -100,6 +105,84 @@ public sealed class SectionFetcherTests
         return (connection, db, bibleCat, lang, englishStub);
     }
 
+    private static async Task<(SqliteConnection Connection, MediaDbContext Db, Category WatchtowerCat, Language Lang, BiblePublication EnglishStub)>
+        CreatePreparedWatchtowerMagazineDbAsync()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        var db = new MediaDbContext(options);
+        var watchtowerCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine };
+        var lang = new Language { LanguageCode = AppConstants.Media.DefaultLanguageCode, Direction = AppConstants.Media.TextDirectionLeftToRight };
+        db.Categories.Add(watchtowerCat);
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var englishStub = new BiblePublication
+        {
+            Name = "Watchtower Stub",
+            PublicationCode = "w2020",
+            BiblePublicationCategories =
+            [
+                new BiblePublicationCategory { Category = watchtowerCat, CategoryId = watchtowerCat.Id }
+            ],
+            Sections = [],
+            Tracks = [],
+            IsVideo = false,
+            IsMusic = false
+        };
+
+        return (connection, db, watchtowerCat, lang, englishStub);
+    }
+
+    private static async Task<(SqliteConnection Connection, MediaDbContext Db, Category DramaCat, Language Lang, BiblePublication EnglishStub)>
+        CreatePreparedVideoDramaDbAsync()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        var db = new MediaDbContext(options);
+        var dramaCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryDramas };
+        var lang = new Language { LanguageCode = AppConstants.Media.DefaultLanguageCode, Direction = AppConstants.Media.TextDirectionLeftToRight };
+        db.Categories.Add(dramaCat);
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var englishStub = new BiblePublication
+        {
+            Name = "Drama Stub",
+            PublicationCode = AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+            BiblePublicationCategories =
+            [
+                new BiblePublicationCategory { Category = dramaCat, CategoryId = dramaCat.Id }
+            ],
+            Sections = [],
+            Tracks = [],
+            IsVideo = true,
+            IsMusic = false
+        };
+
+        return (connection, db, dramaCat, lang, englishStub);
+    }
+
     private static FetchPublicationSectionsRequest BuildRequest(
         MediaDbContext db,
         BiblePublication english,
@@ -112,6 +195,42 @@ public sealed class SectionFetcherTests
             NormalizedPublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
             NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
             PublicationCodeForDb = AppConstants.Media.BiblePublicationCodeNwt,
+            EnglishPublication = english,
+            SectionCodes = sectionCodes,
+            CancellationToken = cancellationToken,
+            Progress = progress
+        };
+
+    private static FetchPublicationSectionsRequest BuildWatchtowerMagazineRequest(
+        MediaDbContext db,
+        BiblePublication english,
+        IReadOnlyList<string> sectionCodes,
+        CancellationToken cancellationToken = default,
+        IFetchProgress? progress = null) =>
+        new()
+        {
+            Db = db,
+            NormalizedPublicationCode = "w2020",
+            NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+            PublicationCodeForDb = "w2020",
+            EnglishPublication = english,
+            SectionCodes = sectionCodes,
+            CancellationToken = cancellationToken,
+            Progress = progress
+        };
+
+    private static FetchPublicationSectionsRequest BuildVideoDramaRequest(
+        MediaDbContext db,
+        BiblePublication english,
+        IReadOnlyList<string> sectionCodes,
+        CancellationToken cancellationToken = default,
+        IFetchProgress? progress = null) =>
+        new()
+        {
+            Db = db,
+            NormalizedPublicationCode = AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+            NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+            PublicationCodeForDb = AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
             EnglishPublication = english,
             SectionCodes = sectionCodes,
             CancellationToken = cancellationToken,
@@ -321,6 +440,87 @@ public sealed class SectionFetcherTests
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat"], cancellationToken: cts.Token)));
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Persists_Magazine_Issue_Section_With_Year_Localized_As_Name()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedWatchtowerMagazineDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            using var client = new HttpClient(new JsonResponseHandler(MinimalMagazineIssuePubMediaJson));
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(
+                BuildWatchtowerMagazineRequest(db, englishStub, ["20090201-wp"])));
+
+            var bp = await db.BiblePublications
+                .Include(b => b.Sections)
+                .ThenInclude(s => s.Tracks)
+                .ThenInclude(t => t.TrackUrl)
+                .SingleAsync();
+            Assert.Equal("2020", bp.Name);
+            Assert.Single(bp.Sections);
+            Assert.Contains("Feb", bp.Sections[0].Name, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(bp.Sections[0].Tracks);
+            Assert.Contains("wt.mp3", bp.Sections[0].Tracks[0].TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Persists_Video_Mediator_Section_Using_Mp4_Files_Element()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedVideoDramaDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            using var client = new HttpClient(new JsonResponseHandler(MinimalVideoMediatorPubMediaJson));
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(
+                BuildVideoDramaRequest(db, englishStub, ["m-1"])));
+
+            var bp = await db.BiblePublications
+                .Include(b => b.Sections)
+                .ThenInclude(s => s.Tracks)
+                .ThenInclude(t => t.TrackUrl)
+                .SingleAsync();
+            Assert.Single(bp.Sections);
+            Assert.Equal("m-1", bp.Sections[0].SectionCode);
+            Assert.Single(bp.Sections[0].Tracks);
+            Assert.Contains("v/a.mp4", bp.Sections[0].Tracks[0].TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Propagates_TimeoutException_From_Http()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            using var client = new HttpClient(new ThrowingHandler(new TimeoutException("simulated stall")));
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            await Assert.ThrowsAsync<TimeoutException>(() =>
+                sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat"])));
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_ReturnsFalse_When_Response_Is_Invalid_Json()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            using var client = new HttpClient(new JsonResponseHandler("{"));
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.False(await sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat"])));
+            Assert.Equal(0, await db.BiblePublications.CountAsync());
         }
     }
 
