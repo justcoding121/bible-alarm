@@ -180,13 +180,15 @@ public sealed class PlaybackViewModelTests
         IState<PlaybackState>? playbackState = null,
         RecordingPlaybackService? playback = null,
         RecordingSchedulePlaybackService? schedulePlayback = null,
-        IReviewPromptService? reviewPrompt = null)
+        IReviewPromptService? reviewPrompt = null,
+        IMainThreadScheduler? mainThread = null)
     {
         audio ??= new FakeAudioPlayer();
         playbackState ??= new MutablePlaybackState(new PlaybackState());
         playback ??= new RecordingPlaybackService();
         schedulePlayback ??= new RecordingSchedulePlaybackService();
         reviewPrompt ??= new NoReviewPromptService();
+        mainThread ??= new SyncMainThreadScheduler();
         return new PlaybackViewModel(
             new PlaybackViewModelDeps(
                 TestLogging.CreateLogger(),
@@ -195,7 +197,7 @@ public sealed class PlaybackViewModelTests
                 playbackState,
                 reviewPrompt,
                 audio,
-                new SyncMainThreadScheduler()));
+                mainThread));
     }
 
     private static async Task ExecuteAsync(ICommand command)
@@ -616,5 +618,77 @@ public sealed class PlaybackViewModelTests
 
         Assert.True(vm.IsMinimizing);
         Assert.Single(recipient.Received);
+    }
+
+    [Fact]
+    public void Receive_PreparationProgress_when_all_tracks_loaded_clears_IsPreparing()
+    {
+        using var vm = CreateSut();
+
+        vm.Receive(
+            new PlaybackPreparationProgressMessage
+            {
+                LoadedTracks = 0,
+                TotalTracks = 2,
+                TotalBytesDownloaded = 0,
+                CurrentTrackProgress = 0,
+            });
+
+        Assert.True(vm.IsPreparing);
+
+        vm.Receive(
+            new PlaybackPreparationProgressMessage
+            {
+                LoadedTracks = 2,
+                TotalTracks = 2,
+                TotalBytesDownloaded = 0,
+                CurrentTrackProgress = 0,
+            });
+
+        Assert.False(vm.IsPreparing);
+    }
+
+    [Fact]
+    public void Receive_BeginStopping_routes_through_main_thread_scheduler_when_not_on_main_thread()
+    {
+        using var vm = CreateSut(mainThread: new OffMainThreadSyncScheduler());
+        Assert.False(vm.IsStopping);
+
+        vm.Receive(new BeginStoppingPlaybackMessage());
+
+        Assert.True(vm.IsStopping);
+    }
+
+    [Fact]
+    public void ResetProgressUi_resets_displayed_time_when_not_slider_interacting()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(2));
+        state.NotifyStateChanged();
+
+        vm.Receive(new PlaybackPositionChangedMessage { CurrentPosition = TimeSpan.FromSeconds(30) });
+        Assert.Equal("00:30", vm.CurrentTime);
+
+        vm.ResetProgressUi();
+
+        Assert.Equal("00:00", vm.CurrentTime);
+        Assert.Equal(0.0, vm.Progress);
+    }
+
+    [Fact]
+    public void OnSliderTapped_when_playing_invokes_SeekToAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playback: playback, playbackState: state);
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(2));
+        state.NotifyStateChanged();
+
+        vm.OnSliderTapped(0.5);
+
+        Assert.Contains(nameof(RecordingPlaybackService.SeekToAsync), playback.Calls);
     }
 }
