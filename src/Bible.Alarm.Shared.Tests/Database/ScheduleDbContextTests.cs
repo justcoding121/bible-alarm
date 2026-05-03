@@ -307,4 +307,33 @@ public sealed class ScheduleDbContextTests
 
         await Assert.ThrowsAsync<DbUpdateException>(() => conflicting.SaveChangesAsync());
     }
+
+    [Fact]
+    public async Task Model_Persists_GeneralSettings_Row()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<ScheduleDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new ScheduleDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        const string key = "pref.sync-test";
+        await using (var db = new ScheduleDbContext(options))
+        {
+            db.GeneralSettings.Add(new GeneralSettings { Key = key, Value = "active" });
+            await db.SaveChangesAsync();
+        }
+
+        await using var read = new ScheduleDbContext(options);
+        var row = await read.GeneralSettings.AsNoTracking().SingleAsync();
+
+        Assert.Equal(key, row.Key);
+        Assert.Equal("active", row.Value);
+    }
 }

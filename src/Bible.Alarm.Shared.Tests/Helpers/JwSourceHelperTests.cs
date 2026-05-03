@@ -75,6 +75,12 @@ public sealed class JwSourceHelperTests
         Assert.Equal(expected, JwSourceHelper.GetMediatorCategoryKey(publicationCode));
     }
 
+    [Fact]
+    public void GetMediatorCategoryKey_ReturnsEmpty_ForNull()
+    {
+        Assert.Equal(string.Empty, JwSourceHelper.GetMediatorCategoryKey(null!));
+    }
+
     [Theory]
     [InlineData(201512, true)]
     [InlineData(185012, false)]
@@ -167,6 +173,14 @@ public sealed class JwSourceHelperTests
         Assert.Equal(
             AppConstants.Media.PublicationDisplayNameDigForTreasuresInGodsWord,
             JwSourceHelper.GetPublicationDisplayNameFallback(AppConstants.Media.NormalizedPublicationCodeSeriesDigForTreasures));
+    }
+
+    [Fact]
+    public void GetPublicationDisplayNameFallback_ReturnsBibleStoriesForLittleOnes_WhenSeriesBJFCode()
+    {
+        Assert.Equal(
+            AppConstants.Media.PublicationDisplayNameBibleStoriesForLittleOnes,
+            JwSourceHelper.GetPublicationDisplayNameFallback(AppConstants.Media.NormalizedPublicationCodeSeriesBJFLessons));
     }
 
     [Fact]

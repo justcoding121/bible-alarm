@@ -116,6 +116,28 @@ public sealed class UrlConstructionServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ConstructTrackUrlsAsync_ByCodes_NullTrackCode_MatchesEmptyStoredTrackCode()
+    {
+        await using var db = new MediaDbContext(Options);
+        const string publicationCode = "pcb-null-track-arg";
+        var track = await SeedTrackWithLanguageSectionAsync(
+            db,
+            publicationCode,
+            sectionCodeStored: "sec-a",
+            trackCode: "",
+            url: "https://empty-code-match");
+
+        var sut = CreateSut();
+        var lang = DerivedLanguage(publicationCode);
+
+        var urls = await sut.ConstructTrackUrlsAsync(publicationCode, lang, sectionCode: "sec-a", trackCode: null!);
+
+        Assert.Single(urls);
+        Assert.Equal("https://empty-code-match", urls[0]);
+        Assert.True(track.Id > 0);
+    }
+
+    [Fact]
     public async Task ConstructTrackLookUpPathAsync_ReturnsNull_WhenNoRow()
     {
         var sut = CreateSut();
