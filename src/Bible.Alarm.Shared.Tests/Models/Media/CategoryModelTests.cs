@@ -14,6 +14,24 @@ public sealed class CategoryModelTests
         => Assert.True(Cat(code: "A").CompareTo(new object()) > 0);
 
     [Fact]
+    public void CompareTo_Object_Null_ReturnsGreater()
+        => Assert.Equal(1, Cat(code: "A").CompareTo((object?)null));
+
+    [Fact]
+    public void CompareTo_Object_BoxedCategory_DelegatesTo_CodeOrdinalComparison()
+    {
+        var left = Cat(id: 1, code: "Same");
+        var right = Cat(id: 99, code: "Same");
+        Assert.Equal(0, left.CompareTo((object)right));
+        Assert.True(left >= right);
+        Assert.True(left <= right);
+    }
+
+    [Fact]
+    public void CompareTo_UsesOrdinal_CaseSensitive_OnCategoryCodes()
+        => Assert.NotEqual(0, Cat(code: "Bible").CompareTo(Cat(id: 3, code: "bible")));
+
+    [Fact]
     public void CompareTo_Nulls_And_OrderByOrdinalCategoryCode()
     {
         Assert.Equal(1, Cat(code: "x").CompareTo(null));
@@ -25,6 +43,38 @@ public sealed class CategoryModelTests
         Assert.True(left <= right);
         Assert.True(right > left);
         Assert.True(right >= left);
+    }
+
+    [Fact]
+    public void ComparisonOperators_ReturnFalse_when_Either_operand_null()
+    {
+        Category? n = null;
+        var c = Cat(code: "Q");
+        Assert.False(c < n);
+        Assert.False(n < c);
+        Assert.False(c > n);
+        Assert.False(n > c);
+        Assert.False(c <= n);
+        Assert.False(n <= c);
+        Assert.False(c >= n);
+        Assert.False(n >= c);
+    }
+
+    [Fact]
+    public void Equals_ObjectOverload_RejectsNullAndForeignReference()
+    {
+        var sut = Cat(code: "D");
+        Assert.False(sut.Equals((object?)null));
+        Assert.False(sut.Equals("D"));
+    }
+
+    [Fact]
+    public void Operator_NotEquals_WithDifferentStructuralRules()
+    {
+        Assert.True(Cat(id: 10, code: "Books") != Cat(id: 11, code: "Books"));
+        var u = Cat(id: 0, code: "u");
+        var v = Cat(id: 0, code: "u");
+        Assert.True(u != v);
     }
 
     [Fact]
