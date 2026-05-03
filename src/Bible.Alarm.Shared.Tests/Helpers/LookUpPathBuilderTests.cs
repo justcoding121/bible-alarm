@@ -46,6 +46,22 @@ public sealed class LookUpPathBuilderTests
     }
 
     [Fact]
+    public void BuildBiblePublicationTrackLookUpPath_UsesBookNum_WhenHyphenSectionIsNotDiscStyle()
+    {
+        const string section = "dram-episode-1";
+
+        var q = LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(
+            "E",
+            AppConstants.Media.BiblePublicationCodeNwt,
+            section,
+            "1");
+
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamName.BookNum}={section}", q);
+        Assert.Contains(AppConstants.Media.GetPubQueryAllLangsOff, q);
+        Assert.DoesNotContain($"pub={section}", q);
+    }
+
+    [Fact]
     public void BuildBiblePublicationTrackLookUpPath_UsesDiscSectionAsPub_WhenSectionMatchesDiscPattern()
     {
         var discSection = $"{AppConstants.Media.MelodyMusicPublicationCodeIam}-9";
@@ -131,6 +147,55 @@ public sealed class LookUpPathBuilderTests
             downloadCode: $"{AppConstants.Media.MelodyMusicPublicationCodeIam}-1");
 
         Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}", q);
+    }
+
+    [Fact]
+    public void BuildMusicTrackLookUpPath_UsesDefaultLanguage_WhenLanguageNullAndNotDiscStyle()
+    {
+        var q = LookUpPathBuilder.BuildMusicTrackLookUpPath(
+            AppConstants.Media.MusicPublicationCodeSjjc,
+            languageCode: null,
+            trackCode: "1");
+
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}", q);
+    }
+
+    [Fact]
+    public void BuildMusicTrackLookUpPath_ForcesDefaultLanguage_WhenMarkedNoLanguagePublication()
+    {
+        var q = LookUpPathBuilder.BuildMusicTrackLookUpPath(
+            AppConstants.Media.MusicPublicationCodeSjjc,
+            "DE",
+            "1",
+            isNoLanguagePublication: true);
+
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}", q);
+    }
+
+    [Fact]
+    public void BuildMusicTrackLookUpPath_KeepsLanguage_WhenHyphenDownloadIsNotDiscStyle()
+    {
+        var q = LookUpPathBuilder.BuildMusicTrackLookUpPath(
+            AppConstants.Media.MelodyMusicPublicationCodeIam,
+            "KO",
+            "1",
+            downloadCode: $"other-{AppConstants.Media.MelodyMusicPublicationCodeIam}-1");
+
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}=KO", q);
+        Assert.Contains("pub=other-iam-1", q);
+    }
+
+    [Fact]
+    public void BuildMusicTrackLookUpPath_UsesAlternatePub_WhenPlainDownloadOverrideProvided()
+    {
+        var q = LookUpPathBuilder.BuildMusicTrackLookUpPath(
+            AppConstants.Media.MusicPublicationCodeSjjc,
+            "ZH",
+            "2",
+            downloadCode: "altpub");
+
+        Assert.Contains("pub=altpub", q);
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}=ZH", q);
     }
 
     [Fact]
