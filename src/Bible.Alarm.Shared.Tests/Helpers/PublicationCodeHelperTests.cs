@@ -57,6 +57,67 @@ public sealed class PublicationCodeHelperTests
     }
 
     [Fact]
+    public void GetPublicationCodeComparerForCategory_BibleCategory_matches_PublicationCodeComparer()
+    {
+        var cat = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryBible);
+        var bibleDefault = PublicationCodeHelper.PublicationCodeComparer;
+
+        Assert.Equal(
+            bibleDefault.Compare(AppConstants.Media.BiblePublicationCodeNwt, AppConstants.Media.BiblePublicationCodeBi12),
+            cat.Compare(AppConstants.Media.BiblePublicationCodeNwt, AppConstants.Media.BiblePublicationCodeBi12));
+        Assert.Equal(
+            bibleDefault.Compare(null, AppConstants.Media.BiblePublicationCodeNwt),
+            cat.Compare(null, AppConstants.Media.BiblePublicationCodeNwt));
+        Assert.Equal(
+            bibleDefault.Compare("zzz", "aab"),
+            cat.Compare("zzz", "aab"));
+    }
+
+    [Fact]
+    public void GetNavigationComparerForCategory_non_magazine_categories_match_display_comparer()
+    {
+        var nav = PublicationCodeHelper.GetNavigationComparerForCategory(AppConstants.Media.BiblePublicationCategoryBible);
+        var display = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryBible);
+
+        Assert.Equal(
+            display.Compare("z", "a"),
+            nav.Compare("z", "a"));
+    }
+
+    [Fact]
+    public void GetPublicationCodeComparerForCategory_Magazine_sorts_recognized_code_before_non_magazine_string()
+    {
+        var cmp = PublicationCodeHelper.GetPublicationCodeComparerForCategory(
+            AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine);
+        var mag = $"w{MagazineHelper.MagazineStartYear + 3}";
+
+        Assert.True(cmp.Compare(mag, "plain") < 0);
+        Assert.True(cmp.Compare("plain", mag) > 0);
+    }
+
+    [Fact]
+    public void GetPublicationCodeComparerForCategory_Magazine_when_neither_code_is_magazine_uses_string_ordering()
+    {
+        var cmp = PublicationCodeHelper.GetPublicationCodeComparerForCategory(
+            AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine);
+
+        Assert.True(cmp.Compare("apple", "banana") < 0);
+    }
+
+    [Fact]
+    public void GetNavigationComparerForCategory_trims_whitespace_before_magazine_branch()
+    {
+        var padded = $"  {AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine}\t";
+        var nav = PublicationCodeHelper.GetNavigationComparerForCategory(padded);
+        var display = PublicationCodeHelper.GetPublicationCodeComparerForCategory(
+            AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine);
+        var yOld = $"w{MagazineHelper.MagazineStartYear}";
+        var yNew = $"w{MagazineHelper.MagazineStartYear + 5}";
+
+        Assert.NotEqual(nav.Compare(yOld, yNew), display.Compare(yOld, yNew));
+    }
+
+    [Fact]
     public void GetPublicationCodeComparerForCategory_Magazines_SortsDescendingByYearWhenBothRecognized()
     {
         var wt = PublicationCodeHelper.GetPublicationCodeComparerForCategory(
