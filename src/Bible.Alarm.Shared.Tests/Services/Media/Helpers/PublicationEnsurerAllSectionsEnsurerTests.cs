@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Net.Http;
+using System.Net.Sockets;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
@@ -149,12 +151,17 @@ public sealed class PublicationEnsurerAllSectionsEnsurerTests
     {
         public CancellationToken CancellationToken => CancellationToken.None;
         public bool SawVisibleTrue { get; private set; }
+        public bool SawVisibleFalse { get; private set; }
 
         public void SetIsVisible(bool isVisible)
         {
             if (isVisible)
             {
                 SawVisibleTrue = true;
+            }
+            else
+            {
+                SawVisibleFalse = true;
             }
         }
 
@@ -163,8 +170,7 @@ public sealed class PublicationEnsurerAllSectionsEnsurerTests
         public void UpdateProgressText(string text) { }
     }
 
-    private const string TestPubCode = "secw-pub-01";
-    private static readonly string LangCodeSections = "HS";
+    private const string TestPubCode = "secw-pub-01";    private static readonly string LangCodeSections = "HS";
 
     private static async Task SeedPublicationWithSectionsAsync(
         MediaDbContext db,
@@ -369,6 +375,7 @@ public sealed class PublicationEnsurerAllSectionsEnsurerTests
             Assert.Equal(LangCodeSections, stub.FetchCalls[0].Lang, StringComparer.OrdinalIgnoreCase);
             Assert.Same(progress, stub.FetchCalls[0].Progress);
             Assert.True(progress.SawVisibleTrue);
+            Assert.True(progress.SawVisibleFalse);
         }
     }
 
@@ -424,6 +431,282 @@ public sealed class PublicationEnsurerAllSectionsEnsurerTests
 
             Assert.False(ok);
             Assert.Single(stub.FetchCalls);
+        }
+    }
+
+    [Fact]
+    public async Task Ensure_Rethrows_HttpRequestException_From_Fetch()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedPublicationWithSectionsAsync(seed, secondSectionListed: true, secondSectionStored: false);
+            }
+
+            var unused = new UnusedLanguageServices();
+            var stub = new StubFetchSections(unused)
+            {
+                FetchHandler = (_, _, _, _) =>
+                    Task.FromException<bool>(new HttpRequestException("simulated")),
+            };
+
+            var sut = new PublicationEnsurerAllSectionsEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            await Assert.ThrowsAsync<HttpRequestException>(() =>
+                sut.EnsureAllSectionsForPublicationAsync(TestPubCode, LangCodeSections));
+            Assert.Single(stub.FetchCalls);
+        }
+    }
+
+    [Fact]
+    public async Task Ensure_Rethrows_SocketException_From_Fetch()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedPublicationWithSectionsAsync(seed, secondSectionListed: true, secondSectionStored: false);
+            }
+
+            var unused = new UnusedLanguageServices();
+            var stub = new StubFetchSections(unused)
+            {
+                FetchHandler = (_, _, _, _) =>
+                    Task.FromException<bool>(new SocketException(111)),
+            };
+
+            var sut = new PublicationEnsurerAllSectionsEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            await Assert.ThrowsAsync<SocketException>(() =>
+                sut.EnsureAllSectionsForPublicationAsync(TestPubCode, LangCodeSections));
+            Assert.Single(stub.FetchCalls);
+        }
+    }
+
+    [Fact]
+    public async Task Ensure_Rethrows_OperationCanceledException_From_Fetch()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedPublicationWithSectionsAsync(seed, secondSectionListed: true, secondSectionStored: false);
+            }
+
+            var unused = new UnusedLanguageServices();
+            var stub = new StubFetchSections(unused)
+            {
+                FetchHandler = (_, _, _, ct) =>
+                    Task.FromException<bool>(new OperationCanceledException(ct)),
+            };
+
+            var sut = new PublicationEnsurerAllSectionsEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                sut.EnsureAllSectionsForPublicationAsync(TestPubCode, LangCodeSections));
+
+            Assert.Single(stub.FetchCalls);
+        }
+    }
+
+    [Fact]
+    public async Task Ensure_ReturnsFalse_When_Publication_Exists_In_Different_Language()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedPublicationWithSectionsAsync(seed, secondSectionListed: false, secondSectionStored: false);
+            }
+
+            var unused = new UnusedLanguageServices();
+            var stub = new StubFetchSections(unused)
+            {
+                FetchHandler = (_, _, _, _) => throw new InvalidOperationException("unexpected fetch"),
+            };
+
+            var sut = new PublicationEnsurerAllSectionsEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            Assert.False(await sut.EnsureAllSectionsForPublicationAsync(TestPubCode, "ZZ"));
+            Assert.Empty(stub.FetchCalls);
+        }
+    }
+
+    [Fact]
+    public async Task Ensure_Uses_Canonical_PublicationCode_For_Gap_With_Lowercase_Input()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            var canonicalPub = AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var language = new Language
+                {
+                    LanguageCode = "HV",
+                    Direction = AppConstants.Media.TextDirectionLeftToRight,
+                };
+                var category = new Category { CategoryCode = "CanonSecCat" };
+
+                seed.Languages.Add(language);
+                seed.Categories.Add(category);
+                await seed.SaveChangesAsync();
+
+                var publicationLanguage = new PublicationLanguage
+                {
+                    PublicationCode = canonicalPub,
+                    Category = category,
+                    Language = language,
+                    IsMusic = false,
+                    CatalogType = CatalogType.Flat,
+                };
+                seed.PublicationLanguages.Add(publicationLanguage);
+                await seed.SaveChangesAsync();
+
+                void AddSectionLanguage(string sectionCode)
+                {
+                    seed.SectionLanguages.Add(new SectionLanguage
+                    {
+                        PublicationCode = canonicalPub,
+                        SectionCode = sectionCode,
+                        LanguageId = language.Id,
+                        Language = language,
+                        PublicationLanguageId = publicationLanguage.Id,
+                        PublicationLanguage = publicationLanguage,
+                    });
+                }
+
+                AddSectionLanguage("dram-sec-1");
+                AddSectionLanguage("dram-sec-2");
+                await seed.SaveChangesAsync();
+
+                var biblePublication = new BiblePublication
+                {
+                    Name = "Video drama canon",
+                    PublicationCode = canonicalPub,
+                    LanguageId = language.Id,
+                    Language = language,
+                    IsVideo = true,
+                    IsMusic = false,
+                };
+
+                seed.BiblePublicationSections.Add(new BiblePublicationSection
+                {
+                    Name = "One",
+                    SectionCode = "dram-sec-1",
+                    BiblePublication = biblePublication,
+                });
+
+                seed.BiblePublications.Add(biblePublication);
+                await seed.SaveChangesAsync();
+            }
+
+            var unused = new UnusedLanguageServices();
+            var capturedCodes = new List<string>();
+
+            Task<bool> Record(string pub, string lc, IFetchProgress? prog, CancellationToken ct)
+            {
+                capturedCodes.Add(pub);
+                return Task.FromResult(true);
+            }
+
+            var stub = new StubFetchSections(unused) { FetchHandler = Record };
+
+            var sut = new PublicationEnsurerAllSectionsEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            Assert.True(await sut.EnsureAllSectionsForPublicationAsync("vodmoviesbibletimes", "hv"));
+
+            Assert.Single(capturedCodes);
+            Assert.Equal("vodmoviesbibletimes", capturedCodes[0], StringComparer.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task Ensure_NoFetch_When_SectionLanguages_Order_Differs_Only_ByCase_From_StoredRows()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var language = new Language
+                {
+                    LanguageCode = "QX",
+                    Direction = AppConstants.Media.TextDirectionLeftToRight,
+                };
+                var category = new Category { CategoryCode = "CaseFoldSecEns" };
+
+                seed.Languages.Add(language);
+                seed.Categories.Add(category);
+                await seed.SaveChangesAsync();
+
+                const string pubFold = "sec-fold-pub-x";
+                var publicationLanguage = new PublicationLanguage
+                {
+                    PublicationCode = pubFold,
+                    Category = category,
+                    Language = language,
+                    IsMusic = false,
+                    CatalogType = CatalogType.Flat,
+                };
+                seed.PublicationLanguages.Add(publicationLanguage);
+                await seed.SaveChangesAsync();
+
+                seed.SectionLanguages.Add(new SectionLanguage
+                {
+                    PublicationCode = pubFold,
+                    SectionCode = "Aa-Bb",
+                    LanguageId = language.Id,
+                    Language = language,
+                    PublicationLanguageId = publicationLanguage.Id,
+                    PublicationLanguage = publicationLanguage,
+                });
+                await seed.SaveChangesAsync();
+
+                var biblePublication = new BiblePublication
+                {
+                    Name = "Case fold sections",
+                    PublicationCode = pubFold,
+                    LanguageId = language.Id,
+                    Language = language,
+                    IsVideo = false,
+                    IsMusic = false,
+                };
+
+                seed.BiblePublicationSections.Add(new BiblePublicationSection
+                {
+                    Name = "Folded already",
+                    SectionCode = "aa-bb",
+                    BiblePublication = biblePublication,
+                });
+
+                seed.BiblePublications.Add(biblePublication);
+                await seed.SaveChangesAsync();
+            }
+
+            var unused = new UnusedLanguageServices();
+            var stub = new StubFetchSections(unused)
+            {
+                FetchHandler = (_, _, _, _) =>
+                    Task.FromException<bool>(new InvalidOperationException("unexpected fetch")),
+            };
+
+            var sut = new PublicationEnsurerAllSectionsEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            Assert.True(await sut.EnsureAllSectionsForPublicationAsync("sec-fold-pub-x", "qx"));
+            Assert.Empty(stub.FetchCalls);
         }
     }
 }
