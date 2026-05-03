@@ -38,4 +38,16 @@ public sealed class AudioDescriptionTitlePhrasesTests
         Assert.NotEmpty(spaced);
         Assert.True(AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase("  E ", "With Audio Descriptions"));
     }
+
+    [Fact]
+    public void GetPhrasesForLanguage_null_or_trimmed_empty_behaves_like_default_language_list()
+    {
+        var english = AudioDescriptionTitlePhrases.GetPhrasesForLanguage(AppConstants.Media.DefaultLanguageCode);
+
+        Assert.Equal(english, AudioDescriptionTitlePhrases.GetPhrasesForLanguage(null));
+
+        Assert.Equal(english, AudioDescriptionTitlePhrases.GetPhrasesForLanguage(""));
+
+        Assert.Equal(english, AudioDescriptionTitlePhrases.GetPhrasesForLanguage("    "));
+    }
 }

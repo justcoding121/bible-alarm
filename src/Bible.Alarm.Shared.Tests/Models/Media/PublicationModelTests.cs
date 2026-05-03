@@ -47,6 +47,16 @@ public sealed class PublicationModelTests
     }
 
     [Fact]
+    public void Publication_Equals_and_hash_use_name_only_ignore_publication_code()
+    {
+        var left = Pub("SharedTitle", code: "pub-a");
+        var right = Pub("SharedTitle", code: "pub-b");
+
+        Assert.True(left.Equals((Publication?)right));
+        Assert.Equal(left.GetHashCode(), right.GetHashCode());
+    }
+
+    [Fact]
     public void Publication_not_equal_operator_when_names_differ()
     {
         Assert.True(Pub("left") != Pub("right"));
