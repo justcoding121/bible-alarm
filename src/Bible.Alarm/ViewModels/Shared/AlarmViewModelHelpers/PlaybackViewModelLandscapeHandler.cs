@@ -1,11 +1,13 @@
 #nullable enable
 
+using Bible.Alarm.Services.UI.Interfaces;
+
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
 /// <summary>
 /// Handles landscape overlay controls visibility and auto-hide for PlaybackViewModel.
 /// </summary>
-public sealed class PlaybackViewModelLandscapeHandler
+public sealed class PlaybackViewModelLandscapeHandler(IMainThreadScheduler mainThread)
 {
     private const int AutoHideMs = 3000;
 
@@ -59,7 +61,7 @@ public sealed class PlaybackViewModelLandscapeHandler
                 return;
             }
 
-            MainThread.BeginInvokeOnMainThread(() =>
+            mainThread.BeginInvokeOnMainThread(() =>
             {
                 if (!isLandscape() || shouldCancel())
                 {

@@ -14,4 +14,5 @@ public sealed record PlaybackViewModelDeps(
     ISchedulePlaybackService SchedulePlaybackService,
     IState<PlaybackState> PlaybackState,
     IReviewPromptService ReviewPromptService,
-    IAudioPlayer AudioPlayer);
+    IAudioPlayer AudioPlayer,
+    IMainThreadScheduler MainThreadScheduler);

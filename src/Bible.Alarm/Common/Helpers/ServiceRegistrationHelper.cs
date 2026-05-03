@@ -232,6 +232,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBiblePublicationNavigationService, BiblePublicationNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<IMainThreadScheduler, MauiMainThreadScheduler>();
         services.AddSingleton<IScheduleItemStateService, ScheduleItemStateService>();
         services.AddSingleton<IExceptionHandlingService, ExceptionHandlingService>();
         services.AddSingleton<IWindowSetupService, WindowSetupService>();
@@ -471,7 +472,8 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<ISchedulePlaybackService>(),
             sp.GetRequiredService<IState<PlaybackState>>(),
             sp.GetRequiredService<IReviewPromptService>(),
-            sp.GetRequiredService<IAudioPlayer>())));
+            sp.GetRequiredService<IAudioPlayer>(),
+            sp.GetRequiredService<IMainThreadScheduler>())));
         services.AddSingleton<MiniPlaybackBarViewModel>();
         services.AddTransient<BiblePublicationSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>(sp => new MusicSelectionContainerViewModel(new MusicSelectionContainerViewModelDeps(

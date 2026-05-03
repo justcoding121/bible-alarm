@@ -18,6 +18,7 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;
     private readonly IState<PlaybackState> playbackState;
+    private readonly IMainThreadScheduler mainThread;
 
     private bool isDisposed;
     private TimeSpan currentDuration = TimeSpan.Zero;
@@ -53,6 +54,7 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
         logger = deps.Logger;
         playbackService = deps.PlaybackService;
         playbackState = deps.PlaybackState;
+        mainThread = deps.MainThreadScheduler;
 
         // Initialize string fields to avoid nullable warnings
         title = "";
@@ -67,8 +69,8 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
             playbackService,
             deps.SchedulePlaybackService,
             reviewHandler.HandleReviewRequestAsync,
-            () => PlaybackViewModelStoppingHandler.BeginStoppingUi(ApplyBeginStopping),
-            () => PlaybackViewModelStoppingHandler.ResetProgressUi(() => IsUserInteracting, ApplyResetProgress));
+            () => PlaybackViewModelStoppingHandler.BeginStoppingUi(mainThread, ApplyBeginStopping),
+            () => PlaybackViewModelStoppingHandler.ResetProgressUi(mainThread, () => IsUserInteracting, ApplyResetProgress));
         stateUpdater = new AlarmViewModalStateUpdater(new AlarmViewModalStateUpdater.Options
         {
             SetTitle = (t) => Title = t,
@@ -98,7 +100,7 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
         artworkManager = new ArtworkManager(logger);
         var positionManager = new PositionManager();
         messageHandler = new MessageHandler(positionManager);
-        landscapeHandler = new PlaybackViewModelLandscapeHandler();
+        landscapeHandler = new PlaybackViewModelLandscapeHandler(mainThread);
 
         // Subscribe to Fluxor state changes for reactive updates
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -220,9 +222,9 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
             () => IsStopping || IsPreparing || HasError,
             () => SetLandscapeOverlayControlsVisible(false));
 
-    public void BeginStoppingUi() => PlaybackViewModelStoppingHandler.BeginStoppingUi(ApplyBeginStopping);
+    public void BeginStoppingUi() => PlaybackViewModelStoppingHandler.BeginStoppingUi(mainThread, ApplyBeginStopping);
 
-    public void ResetProgressUi() => PlaybackViewModelStoppingHandler.ResetProgressUi(() => IsUserInteracting, ApplyResetProgress);
+    public void ResetProgressUi() => PlaybackViewModelStoppingHandler.ResetProgressUi(mainThread, () => IsUserInteracting, ApplyResetProgress);
 
     private void ApplyBeginStopping()
     {
@@ -671,7 +673,7 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
 
     private void UpdateFromState()
     {
-        MainThread.BeginInvokeOnMainThread(() =>
+        mainThread.BeginInvokeOnMainThread(() =>
         {
             var state = playbackState.Value;
 
@@ -692,7 +694,7 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
 
     public void Receive(PlaybackPositionChangedMessage message)
     {
-        MainThread.BeginInvokeOnMainThread(() =>
+        mainThread.BeginInvokeOnMainThread(() =>
         {
             // While stopping, ignore position updates so the progress bar stays frozen.
             // This prevents the slider from visually moving after dismiss is tapped.
@@ -717,20 +719,20 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
 
     public void Receive(BeginStoppingPlaybackMessage message)
     {
-        if (MainThread.IsMainThread)
+        if (mainThread.IsMainThread)
         {
             BeginStoppingUi();
         }
         else
         {
-            MainThread.BeginInvokeOnMainThread(() => BeginStoppingUi());
+            mainThread.BeginInvokeOnMainThread(() => BeginStoppingUi());
         }
     }
 
     public void Receive(PlaybackPreparationProgressMessage message)
     {
         var showPercentForThisMessage = message.ShowPercent;
-        MainThread.BeginInvokeOnMainThread(() =>
+        mainThread.BeginInvokeOnMainThread(() =>
         {
             if (showPercentForThisMessage != showPreparationPercent)
             {

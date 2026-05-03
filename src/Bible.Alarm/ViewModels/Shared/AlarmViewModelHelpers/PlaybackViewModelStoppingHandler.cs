@@ -1,3 +1,5 @@
+using Bible.Alarm.Services.UI.Interfaces;
+
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
 /// <summary>
@@ -5,27 +7,27 @@ namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 /// </summary>
 public static class PlaybackViewModelStoppingHandler
 {
-    public static void BeginStoppingUi(Action apply)
+    public static void BeginStoppingUi(IMainThreadScheduler mainThread, Action apply)
     {
-        if (MainThread.IsMainThread)
+        if (mainThread.IsMainThread)
         {
             apply();
             return;
         }
-        MainThread.BeginInvokeOnMainThread(apply);
+        mainThread.BeginInvokeOnMainThread(apply);
     }
 
-    public static void ResetProgressUi(Func<bool> isUserInteracting, Action apply)
+    public static void ResetProgressUi(IMainThreadScheduler mainThread, Func<bool> isUserInteracting, Action apply)
     {
         if (isUserInteracting())
         {
             return;
         }
-        if (MainThread.IsMainThread)
+        if (mainThread.IsMainThread)
         {
             apply();
             return;
         }
-        MainThread.BeginInvokeOnMainThread(apply);
+        mainThread.BeginInvokeOnMainThread(apply);
     }
 }
