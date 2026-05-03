@@ -69,9 +69,21 @@ public sealed class PositionManagerTests
     }
 
     [Fact]
+    public void ShouldIgnorePositionUpdate_false_when_delta_at_or_above_threshold()
+    {
+        Assert.False(PositionManager.ShouldIgnorePositionUpdate(0.52, 0.5, TimeSpan.FromSeconds(60)));
+    }
+
+    [Fact]
     public void FormatTime_uses_hms_when_at_least_one_hour()
     {
         Assert.Equal("1:02:03", PositionManager.FormatTime(new TimeSpan(1, 2, 3)));
+    }
+
+    [Fact]
+    public void FormatTime_exact_one_hour_uses_hms()
+    {
+        Assert.Equal("1:00:00", PositionManager.FormatTime(new TimeSpan(1, 0, 0)));
     }
 
     [Fact]

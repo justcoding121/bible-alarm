@@ -786,6 +786,23 @@ public sealed class PlaybackViewModelTests
     }
 
     [Fact]
+    public void ProgressText_shows_zero_percent_while_preparing_without_byte_totals()
+    {
+        using var vm = CreateSut();
+
+        vm.Receive(
+            new PlaybackPreparationProgressMessage
+            {
+                LoadedTracks = 0,
+                TotalTracks = 3,
+                TotalBytesDownloaded = 0,
+                CurrentTrackProgress = 0,
+            });
+
+        Assert.Equal("0%", vm.ProgressText);
+    }
+
+    [Fact]
     public void ResetProgressUi_applies_when_main_thread_scheduler_reports_background_thread()
     {
         var state = new MutablePlaybackState(new PlaybackState());

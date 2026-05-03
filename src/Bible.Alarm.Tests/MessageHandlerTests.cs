@@ -109,4 +109,23 @@ public sealed class MessageHandlerTests
 
         Assert.Equal(1, progressTextCalls);
     }
+
+    [Fact]
+    public void HandlePlaybackPositionMessage_zero_duration_skips_ignore_predicate_and_formats_time()
+    {
+        string? timeText = null;
+        var progressTextCalls = 0;
+
+        MessageHandler.HandlePlaybackPositionMessage(
+            new PlaybackPositionChangedMessage { CurrentPosition = TimeSpan.FromSeconds(7) },
+            TimeSpan.Zero,
+            currentUiProgress: 0,
+            _ => true,
+            t => timeText = t,
+            _ => { },
+            () => progressTextCalls++);
+
+        Assert.Equal("00:07", timeText);
+        Assert.Equal(1, progressTextCalls);
+    }
 }
