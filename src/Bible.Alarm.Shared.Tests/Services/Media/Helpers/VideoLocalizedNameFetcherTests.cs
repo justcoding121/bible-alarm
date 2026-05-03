@@ -125,6 +125,35 @@ public sealed class VideoLocalizedNameFetcherTests
     }
 
     [Fact]
+    public async Task Fetch_Returns_Localized_Name_With_Decoded_Html_And_NBSP()
+    {
+        using var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(CategoryNameJson("Video&nbsp;Titles&nbsp;A")),
+        });
+
+        var sut = CreateSut(handler);
+
+        var result = await sut.FetchVideoLocalizedNameFromMediatorAsync(
+            AppConstants.Media.NormalizedPublicationCodeDramasGoodNews,
+            normalizedLanguageCode: "E");
+
+        Assert.Equal("Video Titles A", result);
+    }
+
+    [Fact]
+    public async Task Fetch_Returns_Null_When_Http_Handler_Throws_Non_Transient_Exception()
+    {
+        using var handler = new StubHandler(_ => throw new InvalidOperationException("simulated Transport failure"));
+
+        var sut = CreateSut(handler);
+
+        Assert.Null(await sut.FetchVideoLocalizedNameFromMediatorAsync(
+            AppConstants.Media.NormalizedPublicationCodeDramasGoodNews,
+            normalizedLanguageCode: "E"));
+    }
+
+    [Fact]
     public async Task Fetch_Returns_Null_When_Response_Is_Not_Valid_Json()
     {
         using var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
