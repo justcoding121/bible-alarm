@@ -38,6 +38,14 @@ public sealed class BiblePublicationSectionModelTests
         => Assert.True(Section(DummyPub(), "1").CompareTo(new object()) > 0);
 
     [Fact]
+    public void CompareTo_Object_Null_ReturnsGreater()
+        => Assert.Equal(1, Section(DummyPub(), "1").CompareTo(null));
+
+    [Fact]
+    public void CompareTo_SectionNull_ReturnsGreater()
+        => Assert.Equal(1, Section(DummyPub(), "1").CompareTo((BiblePublicationSection?)null));
+
+    [Fact]
     public void CompareTo_Orders_SectionCodes_NaturallyIncludingNumericInterpretation()
     {
         var pub = DummyPub();
@@ -75,6 +83,30 @@ public sealed class BiblePublicationSectionModelTests
         var u = Section(pub, "2", sectionId: 0);
         var v = Section(pub, "2", sectionId: 0);
         Assert.False(u.Equals(v));
+    }
+
+    [Fact]
+    public void GetHashCode_Matches_OnSameNonZero_Id()
+    {
+        var pub = DummyPub();
+        var a = Section(pub, "a", sectionId: 101);
+        var b = Section(pub, "b", sectionId: 101);
+        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+    }
+
+    [Fact]
+    public void Comparison_operators_require_non_null_operands()
+    {
+        BiblePublicationSection? n = null;
+        var s = Section(DummyPub(), "1");
+        Assert.False(s < n);
+        Assert.False(n < s);
+        Assert.False(s > n);
+        Assert.False(n > s);
+        Assert.False(s <= n);
+        Assert.False(n <= s);
+        Assert.False(s >= n);
+        Assert.False(n >= s);
     }
 
     [Fact]

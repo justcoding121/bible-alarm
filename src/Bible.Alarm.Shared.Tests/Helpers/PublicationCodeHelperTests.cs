@@ -68,6 +68,17 @@ public sealed class PublicationCodeHelperTests
     }
 
     [Fact]
+    public void GetPublicationCodeComparerForCategory_AwakeMagazine_SortsDescendingByYearWhenBothRecognized()
+    {
+        var awake = PublicationCodeHelper.GetPublicationCodeComparerForCategory(
+            AppConstants.Media.BiblePublicationCategoryAwakeMagazine);
+        var yearA = $"g{MagazineHelper.MagazineStartYear + 10}";
+        var yearB = $"g{MagazineHelper.MagazineStartYear}";
+        Assert.True(awake.Compare(yearA, yearB) < 0);
+        Assert.True(awake.Compare(yearB, yearA) > 0);
+    }
+
+    [Fact]
     public void GetPublicationCodeComparerForCategory_Unknown_IsOrdinalFallback()
     {
         var cmp = PublicationCodeHelper.GetPublicationCodeComparerForCategory("SomeFutureCategory");

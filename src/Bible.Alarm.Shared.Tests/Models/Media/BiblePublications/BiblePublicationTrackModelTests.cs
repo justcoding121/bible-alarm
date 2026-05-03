@@ -80,6 +80,30 @@ public sealed class BiblePublicationTrackModelTests
     }
 
     [Fact]
+    public void GetHashCode_Matches_OnSameNonZero_Id()
+    {
+        var pub = DummyPub();
+        var a = Track(pub, "z", trackId: 33);
+        var b = Track(pub, "y", trackId: 33);
+        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+    }
+
+    [Fact]
+    public void Comparison_operators_require_non_null_operands()
+    {
+        BiblePublicationTrack? n = null;
+        var t = Track(DummyPub(), "1");
+        Assert.False(t < n);
+        Assert.False(n < t);
+        Assert.False(t > n);
+        Assert.False(n > t);
+        Assert.False(t <= n);
+        Assert.False(n <= t);
+        Assert.False(t >= n);
+        Assert.False(n >= t);
+    }
+
+    [Fact]
     public void GetHashCode_Differs_When_IdIsZero_OnDistinctInstances()
     {
         var pub = DummyPub();
