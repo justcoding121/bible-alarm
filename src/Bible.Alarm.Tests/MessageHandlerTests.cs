@@ -70,6 +70,29 @@ public sealed class MessageHandlerTests
     }
 
     [Fact]
+    public void HandlePreparationProgressMessage_byte_complete_not_throttled_through_handler()
+    {
+        var manager = new PositionManager();
+        var sut = new MessageHandler(manager);
+        var stateCalls = 0;
+        var textCalls = 0;
+        var msg = new PlaybackPreparationProgressMessage
+        {
+            LoadedTracks = 1,
+            TotalTracks = 4,
+            TotalBytesDownloaded = 500,
+            TotalBytesExpected = 500,
+            CurrentTrackProgress = 0,
+        };
+
+        sut.HandlePreparationProgressMessage(msg, (_, _, _, _) => stateCalls++, () => textCalls++);
+        sut.HandlePreparationProgressMessage(msg, (_, _, _, _) => stateCalls++, () => textCalls++);
+
+        Assert.Equal(2, stateCalls);
+        Assert.Equal(2, textCalls);
+    }
+
+    [Fact]
     public void HandlePreparationProgressMessage_when_throttled_skips_progress_text()
     {
         var manager = new PositionManager();

@@ -266,6 +266,19 @@ public sealed class PlaybackViewModelTests
     }
 
     [Fact]
+    public void Duration_and_EndTime_reflect_playback_state_after_update()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(7));
+        state.NotifyStateChanged();
+
+        Assert.Equal(TimeSpan.FromMinutes(7), vm.Duration);
+        Assert.Equal("07:00", vm.EndTime);
+    }
+
+    [Fact]
     public void Receive_PreparationProgress_sets_preparing_when_tracks_remain()
     {
         using var vm = CreateSut();

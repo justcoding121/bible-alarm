@@ -128,6 +128,25 @@ public sealed class PositionManagerTests
     }
 
     [Fact]
+    public void HandlePreparationProgressMessage_byte_complete_applies_even_when_throttled_otherwise()
+    {
+        var sut = new PositionManager();
+        var calls = 0;
+        var msg = new PlaybackPreparationProgressMessage
+        {
+            LoadedTracks = 1,
+            TotalTracks = 4,
+            TotalBytesDownloaded = 1000,
+            TotalBytesExpected = 1000,
+            CurrentTrackProgress = 0,
+        };
+
+        Assert.True(sut.HandlePreparationProgressMessage(msg, (_, _, _, _) => calls++));
+        Assert.True(sut.HandlePreparationProgressMessage(msg, (_, _, _, _) => calls++));
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
     public void HandlePreparationProgressMessage_second_update_applies_after_throttle_window()
     {
         var sut = new PositionManager();
