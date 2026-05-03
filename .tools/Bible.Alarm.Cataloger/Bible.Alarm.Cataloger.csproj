@@ -17,7 +17,6 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
   </ItemGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
   </ItemGroup>
