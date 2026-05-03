@@ -1,4 +1,5 @@
 using Bible.Alarm.Shared.DataStructures;
+using System.Collections;
 using System.Collections.Specialized;
 
 namespace Bible.Alarm.Shared.Tests;
@@ -91,5 +92,35 @@ public sealed class ObservableHashSetTests
         Assert.Equal(0, target[0]);
         Assert.Equal(1, target[1]);
         Assert.Equal(9, target[2]);
+    }
+
+    [Fact]
+    public void ElementAt_ReturnsItemAtSortedZeroBasedIndex()
+    {
+        var set = new ObservableHashSet<int>();
+        set.Add(3);
+        set.Add(1);
+        Assert.Equal(1, set.ElementAt(0));
+        Assert.Equal(3, set.ElementAt(1));
+    }
+
+    [Fact]
+    public void AsNonGeneric_ICollection_CopyTo_Boxes_sorted_values_and_reports_metadata()
+    {
+        var set = new ObservableHashSet<int>();
+        set.Add(40);
+        set.Add(2);
+        ICollection nonGeneric = set;
+
+        Assert.False(nonGeneric.IsSynchronized);
+        Assert.Same(nonGeneric, nonGeneric.SyncRoot);
+        Assert.Equal(2, nonGeneric.Count);
+
+        var destination = new object?[4];
+        nonGeneric.CopyTo(destination, 2);
+
+        Assert.Equal(2, destination[2]);
+        Assert.Equal(40, destination[3]);
+        Assert.Null(destination[1]);
     }
 }

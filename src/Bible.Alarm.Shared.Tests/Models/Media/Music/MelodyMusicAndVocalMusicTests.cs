@@ -9,7 +9,7 @@ namespace Bible.Alarm.Shared.Tests;
 
 public sealed class MelodyMusicAndVocalMusicTests
 {
-    private static BiblePublication BuildPublication(int id, Language? lang, int? languageId)
+    private static BiblePublication BuildPublication(int id, Language? lang, int? languageId, bool isVideo = false)
     {
         var category = new Category { Id = 90, CategoryCode = "Music" };
         var junction = new BiblePublicationCategory
@@ -27,7 +27,7 @@ public sealed class MelodyMusicAndVocalMusicTests
             LanguageId = languageId,
             Sections = [],
             Tracks = [],
-            IsVideo = false,
+            IsVideo = isVideo,
             IsMusic = true,
             BiblePublicationCategories = [junction],
         };
@@ -57,6 +57,16 @@ public sealed class MelodyMusicAndVocalMusicTests
     }
 
     [Fact]
+    public void MelodyMusic_forwards_IsVideo_from_publication()
+    {
+        var pub = BuildPublication(id: 7, lang: null, languageId: null, isVideo: true);
+
+        MelodyMusic melody = pub;
+
+        Assert.True(melody.IsVideo);
+    }
+
+    [Fact]
     public void VocalMusic_ImplicitCast_Includes_Language_AndRoundTrips()
     {
         var lang = new Language
@@ -75,5 +85,22 @@ public sealed class MelodyMusicAndVocalMusicTests
         Assert.Equal(pub.PublicationCode, vocal.Code);
         Assert.Same(pub, (BiblePublication)vocal);
         Assert.Equal(90, vocal.CategoryId);
+    }
+
+    [Fact]
+    public void VocalMusic_forwards_IsVideo_from_publication()
+    {
+        var lang = new Language
+        {
+            Id = 3,
+            LanguageCode = "E",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+
+        var pub = BuildPublication(id: 55, lang: lang, languageId: lang.Id, isVideo: true);
+
+        VocalMusic vocal = pub;
+
+        Assert.True(vocal.IsVideo);
     }
 }
