@@ -103,4 +103,63 @@ public sealed class MelodyMusicAndVocalMusicTests
 
         Assert.True(vocal.IsVideo);
     }
+
+    [Fact]
+    public void VocalMusic_Sections_And_Tracks_delegate_to_underlying_publication_lists()
+    {
+        var lang = new Language { Id = 2, LanguageCode = "S", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        var pub = BuildPublication(id: 303, lang: lang, languageId: lang.Id);
+        VocalMusic vocal = pub;
+
+        var section = new BiblePublicationSection
+        {
+            BiblePublication = pub,
+            BiblePublicationId = pub.Id,
+            Name = "Part",
+            SectionCode = "01",
+            Tracks = [],
+        };
+        pub.Sections.Add(section);
+
+        var track = new BiblePublicationTrack
+        {
+            TrackCode = "7",
+            Title = "Seven",
+            BiblePublicationId = pub.Id,
+            Publication = pub,
+            Section = null,
+        };
+        pub.Tracks.Add(track);
+
+        Assert.Single(vocal.Sections);
+        Assert.Single(vocal.Tracks);
+        Assert.Same(section, vocal.Sections[0]);
+        Assert.Same(track, vocal.Tracks[0]);
+    }
+
+    [Fact]
+    public void VocalMusic_Category_property_reflects_primary_category_absence_when_junction_missing()
+    {
+        var lang = new Language { Id = 9, LanguageCode = "X", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        var pub = new BiblePublication
+        {
+            Id = 400,
+            Name = "Standalone vocal",
+            PublicationCode = "vocal-flat",
+            Language = lang,
+            LanguageId = lang.Id,
+            BiblePublicationCategories = [],
+            Sections = [],
+            Tracks = [],
+            IsMusic = true,
+            IsVideo = false,
+        };
+
+        Assert.Null(pub.PrimaryCategory);
+
+        VocalMusic vocal = pub;
+
+        object? viaWrapper = vocal.Category;
+        Assert.Null(viaWrapper);
+    }
 }
