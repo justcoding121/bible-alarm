@@ -9,6 +9,118 @@ namespace Bible.Alarm.Shared.Tests;
 public sealed class SectionLanguageModelTests
 {
     [Fact]
+    public void Default_ctor_uses_clr_defaults_for_keys_optional_language_and_publication_nav()
+    {
+        var sut = new SectionLanguage();
+
+        Assert.Equal(0, sut.Id);
+        Assert.Equal(string.Empty, sut.PublicationCode);
+        Assert.Equal(string.Empty, sut.SectionCode);
+        Assert.Null(sut.LanguageId);
+        Assert.Null(sut.Language);
+        Assert.Equal(0, sut.PublicationLanguageId);
+        Assert.Null(sut.PublicationLanguage);
+
+        sut.PublicationCode = "nwt";
+        sut.SectionCode = "mk";
+        sut.PublicationLanguageId = 99;
+        sut.LanguageId = 3;
+
+        Assert.Equal("nwt", sut.PublicationCode);
+        Assert.Equal("mk", sut.SectionCode);
+        Assert.Equal(99, sut.PublicationLanguageId);
+        Assert.Equal(3, sut.LanguageId);
+        Assert.Null(sut.Language);
+        Assert.Null(sut.PublicationLanguage);
+    }
+
+    [Fact]
+    public void Publication_and_section_codes_accept_exactly_max_annotation_length()
+    {
+        var fifty = new string('p', 50);
+        var fiftySect = new string('s', 50);
+
+        var sut = new SectionLanguage { PublicationCode = fifty, SectionCode = fiftySect };
+
+        Assert.Equal(50, sut.PublicationCode.Length);
+        Assert.Equal(50, sut.SectionCode.Length);
+        Assert.All(sut.PublicationCode, c => Assert.Equal('p', c));
+        Assert.All(sut.SectionCode, c => Assert.Equal('s', c));
+    }
+
+    [Fact]
+    public void Publication_language_navigation_can_attach_after_primitive_fields()
+    {
+        var category = new Category { Id = 21, CategoryCode = "Mag" };
+        var language = new Language
+        {
+            Id = 4,
+            LanguageCode = "E",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+
+        var pubLang = new PublicationLanguage
+        {
+            Id = 910,
+            PublicationCode = "g",
+            CategoryId = category.Id,
+            Category = category,
+            LanguageId = language.Id,
+            Language = language,
+        };
+
+        var sut = new SectionLanguage
+        {
+            PublicationCode = pubLang.PublicationCode,
+            SectionCode = "sec-attached-later",
+            PublicationLanguageId = pubLang.Id,
+        };
+
+        Assert.Null(sut.PublicationLanguage);
+
+        sut.PublicationLanguage = pubLang;
+        Assert.Same(pubLang, sut.PublicationLanguage);
+        Assert.Equal(pubLang.Id, sut.PublicationLanguageId);
+    }
+
+    [Fact]
+    public void Optional_Language_navigation_can_attach_after_language_id_primitive()
+    {
+        var category = new Category { Id = 41, CategoryCode = "Vid" };
+        var language = new Language
+        {
+            Id = 55,
+            LanguageCode = "M",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+
+        var pubLang = new PublicationLanguage
+        {
+            Id = 700,
+            PublicationCode = "sjjm",
+            CategoryId = category.Id,
+            Category = category,
+            LanguageId = language.Id,
+            Language = language,
+        };
+
+        var sut = new SectionLanguage
+        {
+            PublicationCode = "sjjm",
+            SectionCode = "song-1",
+            PublicationLanguageId = pubLang.Id,
+            PublicationLanguage = pubLang,
+            LanguageId = language.Id,
+        };
+
+        Assert.Null(sut.Language);
+
+        sut.Language = language;
+        Assert.Same(language, sut.Language);
+        Assert.Equal(language.Id, sut.LanguageId);
+    }
+
+    [Fact]
     public void SectionLanguage_links_publication_language_and_optional_language_row()
     {
         var category = new Category { Id = 12, CategoryCode = "Bible" };
