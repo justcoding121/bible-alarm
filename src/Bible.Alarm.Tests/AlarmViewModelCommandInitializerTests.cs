@@ -16,6 +16,7 @@ public sealed class AlarmViewModelCommandInitializerTests
         public bool IsAlarmPlaybackSession { get; set; }
         public List<string> Calls { get; } = [];
         public Func<Task>? StopAsyncBehavior { get; set; }
+        public Exception? ThrowFromResetAndRetry { get; set; }
 
         private void Add([CallerMemberName] string name = "") => Calls.Add(name);
 
@@ -85,7 +86,9 @@ public sealed class AlarmViewModelCommandInitializerTests
         public Task ResetAndRetryAsync(int scheduleId)
         {
             Calls.Add($"{nameof(ResetAndRetryAsync)}:{scheduleId}");
-            return Task.CompletedTask;
+            return ThrowFromResetAndRetry is { } ex
+                ? Task.FromException(ex)
+                : Task.CompletedTask;
         }
 
         public void Dispose()
@@ -182,6 +185,25 @@ public sealed class AlarmViewModelCommandInitializerTests
     }
 
     [Fact]
+    public async Task CreateDismissCommand_WhenReviewThrowsAfterStop_SwallowsAndLogs()
+    {
+        var playback = new RecordingPlaybackService();
+        var reviews = 0;
+        var sut = CreateSut(
+            playback,
+            handleReview: async () =>
+            {
+                reviews++;
+                await Task.FromException(new IOException("review"));
+            });
+
+        await ExecuteAsync(sut.CreateDismissCommand());
+
+        Assert.Contains(nameof(RecordingPlaybackService.StopAsync), playback.Calls);
+        Assert.Equal(1, reviews);
+    }
+
+    [Fact]
     public void CreateCancelCommand_IsNoOp()
     {
         var cmd = AlarmViewModelCommandInitializer.CreateCancelCommand();
@@ -227,6 +249,19 @@ public sealed class AlarmViewModelCommandInitializerTests
     }
 
     [Fact]
+    public async Task CreatePreviousCommand_WithoutOnBeginTrackChange_StillResetsAndSeeksPrevious()
+    {
+        var playback = new RecordingPlaybackService();
+        var resets = 0;
+        var sut = CreateSut(playback, resetProgress: () => resets++);
+
+        await ExecuteAsync(sut.CreatePreviousCommand());
+
+        Assert.Equal(1, resets);
+        Assert.Contains(nameof(RecordingPlaybackService.PlayPreviousAsync), playback.Calls);
+    }
+
+    [Fact]
     public async Task CreateNextCommand_InvokesCallbacksAndPlayNext()
     {
         var playback = new RecordingPlaybackService();
@@ -237,6 +272,19 @@ public sealed class AlarmViewModelCommandInitializerTests
         await ExecuteAsync(sut.CreateNextCommand(() => begun++));
 
         Assert.Equal(1, begun);
+        Assert.Equal(1, resets);
+        Assert.Contains(nameof(RecordingPlaybackService.PlayNextAsync), playback.Calls);
+    }
+
+    [Fact]
+    public async Task CreateNextCommand_WithoutOnBeginTrackChange_StillResetsAndSeeksNext()
+    {
+        var playback = new RecordingPlaybackService();
+        var resets = 0;
+        var sut = CreateSut(playback, resetProgress: () => resets++);
+
+        await ExecuteAsync(sut.CreateNextCommand());
+
         Assert.Equal(1, resets);
         Assert.Contains(nameof(RecordingPlaybackService.PlayNextAsync), playback.Calls);
     }
@@ -326,6 +374,24 @@ public sealed class AlarmViewModelCommandInitializerTests
 
         Assert.Equal("ResetAndRetryAsync:7", Assert.Single(playback.Calls));
         Assert.Empty(schedule.PlayScheduleIds);
+    }
+
+    [Fact]
+    public async Task CreateRetryCommand_WhenResetAndRetryThrows_StillClearsBusy()
+    {
+        var playback = new RecordingPlaybackService
+        {
+            IsAlarmPlaybackSession = false,
+            ThrowFromResetAndRetry = new InvalidOperationException("retry failed"),
+        };
+        var sut = CreateSut(playback);
+        var busy = new List<bool>();
+        var cmd = sut.CreateRetryCommand(() => 42, () => true, busy.Add);
+
+        await ExecuteAsync(cmd);
+
+        Assert.Equal("ResetAndRetryAsync:42", Assert.Single(playback.Calls));
+        Assert.Equal(new[] { true, false }, busy);
     }
 
     [Fact]

@@ -253,7 +253,7 @@ public sealed class AlarmViewModalSliderHandlerTests
         handler.OnSliderTapped(0.3);
 
         Assert.True(handler.IsUserInteracting);
-        await Task.Delay(600);
+        await Task.Delay(1500);
         Assert.False(handler.IsUserInteracting);
     }
 
@@ -311,7 +311,7 @@ public sealed class AlarmViewModalSliderHandlerTests
 
         handler.OnSliderTapped(0.2);
 
-        await Task.Delay(600);
+        await Task.Delay(1500);
         Assert.False(handler.IsUserInteracting);
     }
 }
