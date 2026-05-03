@@ -398,4 +398,32 @@ public sealed class PublicationEnsurerAllSectionsEnsurerTests
             Assert.Single(stub.FetchCalls);
         }
     }
+
+    [Fact]
+    public async Task Ensure_ReturnsFalse_When_Fetch_Propagates_As_Generic_Exception()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedPublicationWithSectionsAsync(seed, secondSectionListed: true, secondSectionStored: false);
+            }
+
+            var unused = new UnusedLanguageServices();
+            var stub = new StubFetchSections(unused)
+            {
+                FetchHandler = (_, _, _, _) =>
+                    Task.FromException<bool>(new InvalidOperationException("simulated downstream failure")),
+            };
+
+            var sut = new PublicationEnsurerAllSectionsEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            var ok = await sut.EnsureAllSectionsForPublicationAsync(TestPubCode, LangCodeSections);
+
+            Assert.False(ok);
+            Assert.Single(stub.FetchCalls);
+        }
+    }
 }

@@ -193,4 +193,97 @@ public sealed class FlatPublicationFetcherTests
             Assert.Contains("cdn.example", pub.Tracks[0].TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
         }
     }
+
+    [Fact]
+    public async Task Fetch_Replaces_Tracks_When_Publication_Already_Exists_In_Database()
+    {
+        const string jsonFirst =
+            "{\"files\":{\"E\":{\"MP3\":[{\"track\":1,\"file\":{\"url\":\"https://cdn/update-first.mp3\"},\"title\":\"One\"}]}},\"pubName\":\"First&nbsp;Name\"}";
+        const string jsonSecond =
+            "{\"files\":{\"E\":{\"MP3\":[{\"track\":9,\"file\":{\"url\":\"https://cdn/update-second.mp3\"},\"title\":\"Nine\"}]}},\"pubName\":\"Second&nbsp;Name\"}";
+
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            await SeedOsgCategoriesAndLanguageAsync(db);
+            var lang = await db.Languages.SingleAsync();
+
+            using (var handler = new JsonHandler(jsonFirst))
+            using (var httpClient = new HttpClient(handler))
+            {
+                var sut = new FlatPublicationFetcher(
+                    httpClient,
+                    TestLogging.CreateLogger(),
+                    new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+                var englishStub = new BiblePublication
+                {
+                    Name = "Songs EN",
+                    PublicationCode = "osg",
+                    IsVideo = false,
+                    IsMusic = true,
+                    Sections = [],
+                    Tracks = []
+                };
+
+                var req = new FetchFlatPublicationTracksRequest
+                {
+                    Db = db,
+                    NormalizedPublicationCode = "osg",
+                    NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                    EnglishPublication = englishStub,
+                    IsVideo = false,
+                    IsMusic = true,
+                    FileFormat = AppConstants.Media.MediaStreamFormatMp3,
+                    Language = lang,
+                    CancellationToken = CancellationToken.None
+                };
+
+                Assert.True(await sut.FetchFlatPublicationTracksAsync(req));
+            }
+
+            using (var handlerSecond = new JsonHandler(jsonSecond))
+            using (var httpSecond = new HttpClient(handlerSecond))
+            {
+                var sutSecond = new FlatPublicationFetcher(
+                    httpSecond,
+                    TestLogging.CreateLogger(),
+                    new VideoLocalizedNameFetcher(httpSecond, TestLogging.CreateLogger()));
+
+                var reqSecond = new FetchFlatPublicationTracksRequest
+                {
+                    Db = db,
+                    NormalizedPublicationCode = "osg",
+                    NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                    EnglishPublication = new BiblePublication
+                    {
+                        Name = "Songs EN v2",
+                        PublicationCode = "osg",
+                        IsVideo = false,
+                        IsMusic = true,
+                        Sections = [],
+                        Tracks = []
+                    },
+                    IsVideo = false,
+                    IsMusic = true,
+                    FileFormat = AppConstants.Media.MediaStreamFormatMp3,
+                    Language = lang,
+                    CancellationToken = CancellationToken.None
+                };
+
+                Assert.True(await sutSecond.FetchFlatPublicationTracksAsync(reqSecond));
+            }
+
+            var pub = await db.BiblePublications
+                .Include(p => p.Tracks)
+                .ThenInclude(t => t.TrackUrl)
+                .SingleAsync();
+
+            Assert.Equal("Second Name", pub.Name);
+            var track = Assert.Single(pub.Tracks);
+            Assert.Equal("9", track.TrackCode);
+            Assert.Contains("update-second.mp3", track.TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }
