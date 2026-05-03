@@ -45,4 +45,28 @@ public sealed class PlaybackViewModelProgressTextHelperTests
 
         Assert.Equal("50%", text);
     }
+
+    [Fact]
+    public void Byte_percentage_takes_precedence_over_preparation_progress()
+    {
+        var text = PlaybackViewModelProgressTextHelper.GetProgressText(1, 5, 400, 1000L, 0.9);
+
+        Assert.Equal("40%", text);
+    }
+
+    [Fact]
+    public void With_bytes_but_no_expected_total_uses_preparation_progress()
+    {
+        var text = PlaybackViewModelProgressTextHelper.GetProgressText(1, 5, 50, null, 0.44);
+
+        Assert.Equal("44%", text);
+    }
+
+    [Fact]
+    public void Track_based_percentage_rounds_to_whole_percent()
+    {
+        var text = PlaybackViewModelProgressTextHelper.GetProgressText(1, 5, 0, null, 1.0 / 3.0);
+
+        Assert.Equal("33%", text);
+    }
 }

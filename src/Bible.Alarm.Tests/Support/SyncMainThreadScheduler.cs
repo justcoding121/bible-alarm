@@ -13,3 +13,14 @@ public sealed class SyncMainThreadScheduler : IMainThreadScheduler
 
     public void BeginInvokeOnMainThread(Action action) => action();
 }
+
+/// <summary>
+/// Simulates a background thread: <see cref="IMainThreadScheduler.IsMainThread"/> is false, but
+/// <see cref="IMainThreadScheduler.BeginInvokeOnMainThread"/> still runs work synchronously for tests.
+/// </summary>
+public sealed class OffMainThreadSyncScheduler : IMainThreadScheduler
+{
+    public bool IsMainThread => false;
+
+    public void BeginInvokeOnMainThread(Action action) => action();
+}
