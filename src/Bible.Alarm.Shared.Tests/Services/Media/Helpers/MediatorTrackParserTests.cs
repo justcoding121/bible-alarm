@@ -189,6 +189,20 @@ public sealed class MediatorTrackParserTests
     }
 
     [Fact]
+    public void ResolveTrackCode_DocIdSectionPrefix_IsMatchedCaseInsensitively()
+    {
+        const string json = """{"E":{"MP3":[{"file":"https://d.mp3","title":"D"}]}}""";
+
+        var upper = Parse(json, Ctx("E", "DOCID:mix", useDocidParam: true));
+        Assert.Single(upper);
+        Assert.Equal("mix", upper[0].TrackCode);
+
+        var camel = Parse(json, Ctx("E", "DocId:z9", trackNumber: 1, useDocidParam: true));
+        Assert.Single(camel);
+        Assert.Equal("z9-1", camel[0].TrackCode);
+    }
+
+    [Fact]
     public void ResolveTrackCode_OmitTrack_IgnoresTrackNumber_AppendsNothing()
     {
         const string json = """{"E":{"MP3":[{"file":"https://omit.mp3","title":"O"}]}}""";
@@ -229,6 +243,24 @@ public sealed class MediatorTrackParserTests
         var fromEmpty = Parse(emptyUrlString, Ctx("E", "sect"));
         Assert.Single(fromEmpty);
         Assert.Equal("https://kept.mp3", fromEmpty[0].TrackUrl?.Url);
+    }
+
+    [Fact]
+    public void ParseTracksFromJson_Skips_FileObject_WithMissingUrl_ThenParsesLaterEntry()
+    {
+        const string json =
+            """
+            {"E":{"MP3":[
+              {"file":{},"title":"skip"},
+              {"file":{"other":"x"},"title":"also skip"},
+              {"file":{"url":"https://ok.mp3"},"title":"Held"}
+            ]}}
+            """;
+
+        var tracks = Parse(json, Ctx("E", "sect"));
+        Assert.Single(tracks);
+        Assert.Equal("https://ok.mp3", tracks[0].TrackUrl?.Url);
+        Assert.Equal("Held", tracks[0].Title);
     }
 
     [Fact]
