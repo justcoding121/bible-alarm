@@ -306,6 +306,24 @@ public sealed class SectionFetcherTests
         }
     }
 
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Uses_Request_CancellationToken_When_Progress_Absent()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            using var client = new HttpClient(new JsonResponseHandler(MinimalBiblePubMediaJson));
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat"], cancellationToken: cts.Token)));
+        }
+    }
+
     private sealed class CallbackHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
