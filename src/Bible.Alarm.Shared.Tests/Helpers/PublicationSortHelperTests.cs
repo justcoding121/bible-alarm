@@ -54,6 +54,27 @@ public sealed class PublicationSortHelperTests
     }
 
     [Fact]
+    public void SortByPriority_Dictionary_when_code_priority_tie_breaks_via_get_name_display_order()
+    {
+        var dict = new Dictionary<string, string>
+        {
+            ["002"] = "ZZZ",
+            ["2"] = "AAA",
+        };
+
+        var withDisplayNameSecondary = PublicationSortHelper
+            .SortByPriority(dict, static v => v)
+            .Select(static kvp => kvp.Key)
+            .ToList();
+
+        Assert.Equal(["2", "002"], withDisplayNameSecondary);
+
+        var keyOnlySecondary = PublicationSortHelper.SortByPriority(dict).Select(static kvp => kvp.Key).ToList();
+
+        Assert.Equal(["002", "2"], keyOnlySecondary);
+    }
+
+    [Fact]
     public void SortByPriorityForCategory_ReturnsEmpty_WhenInputNull()
     {
         Assert.Empty(PublicationSortHelper.SortByPriorityForCategory<BiblePublicationCodeItem>(

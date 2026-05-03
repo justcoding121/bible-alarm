@@ -43,6 +43,36 @@ public sealed class PublicationModelTests
         Assert.True(left.Equals(same));
         Assert.Equal(left.GetHashCode(), same.GetHashCode());
         Assert.True(left == same);
+        Assert.False(left != same);
+    }
+
+    [Fact]
+    public void Publication_not_equal_operator_when_names_differ()
+    {
+        Assert.True(Pub("left") != Pub("right"));
+    }
+
+    [Fact]
+    public void Publication_comparison_operators_require_non_nulloperands()
+    {
+        Publication? nul = null;
+
+        Assert.False(Pub("a") < nul);
+        Assert.False(nul <= Pub("b"));
+    }
+
+    [Fact]
+    public void TranslatedPublication_Equals_Object_ReferenceEquals_matches_same_instance()
+    {
+        var tp = new TranslatedPublication
+        {
+            Name = "N",
+            PublicationCode = "p",
+            LanguageId = 7,
+            Language = Lang("E"),
+        };
+
+        Assert.True(tp.Equals((object)tp));
     }
 
     [Fact]
