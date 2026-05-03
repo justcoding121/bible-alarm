@@ -149,4 +149,35 @@ public sealed class PublicationTypeHelperTests
             CatalogType.Sectioned,
             PublicationTypeHelper.GetCatalogType(AppConstants.Media.MelodyMusicPublicationCodeIam));
     }
+
+    [Fact]
+    public void HasSectionStructure_False_ForFlatBooksYearbooksBrochuresAndArticleSeries()
+    {
+        Assert.False(PublicationTypeHelper.HasSectionStructure("wcg"));
+        Assert.False(PublicationTypeHelper.HasSectionStructure("yb12"));
+        Assert.False(PublicationTypeHelper.HasSectionStructure("lmd"));
+        Assert.False(PublicationTypeHelper.HasSectionStructure("mrt"));
+    }
+
+    [Fact]
+    public void IsDrama_True_ForVodCodesRegisteredBesideTraditionalDramas()
+    {
+        Assert.True(PublicationTypeHelper.IsDrama(AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes));
+        Assert.True(PublicationTypeHelper.IsDrama(AppConstants.Media.BiblePublicationCodeVODMoviesExtras));
+    }
+
+    [Fact]
+    public void GetCanonicalPublicationCodeForDatabase_NormalizesListedVodDiscoveryCodes_ToDramaticReadingsSlug()
+    {
+        Assert.Equal(
+            AppConstants.Media.BiblePublicationCodeDramaticBibleReadings,
+            PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(AppConstants.Media.BiblePublicationCodeVODMoviesAnimated));
+    }
+
+    [Fact]
+    public void IsVideo_True_ForVodMoviesListedAsVideo()
+    {
+        Assert.True(PublicationTypeHelper.IsVideo(AppConstants.Media.BiblePublicationCodeVODMoviesModernDay));
+        Assert.True(PublicationTypeHelper.IsVideo(AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes));
+    }
 }
