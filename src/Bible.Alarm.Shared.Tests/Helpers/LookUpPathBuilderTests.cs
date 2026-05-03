@@ -21,6 +21,20 @@ public sealed class LookUpPathBuilderTests
     }
 
     [Fact]
+    public void BuildBiblePublicationTrackLookUpPath_WhitespaceSectionOnly_TreatedAsFlatVocalMusicQuery()
+    {
+        var q = LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(
+            "E",
+            AppConstants.Media.MusicPublicationCodeOsg,
+            "   ",
+            "1");
+
+        Assert.Contains($"pub={AppConstants.Media.MusicPublicationCodeOsg}", q);
+        Assert.Contains($"fileformat={AppConstants.Media.MediaStreamFormatMp3}", q, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(AppConstants.Media.GetPubQueryParamName.BookNum, q);
+    }
+
+    [Fact]
     public void BuildBiblePublicationTrackLookUpPath_UsesMp4FlatQuery_WhenNoSection_AndPublicationIsNotVocalMusic()
     {
         var q = LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(
@@ -73,6 +87,21 @@ public sealed class LookUpPathBuilderTests
 
         Assert.Contains($"pub={discSection}", q);
         Assert.Contains($"fileformat={AppConstants.Media.MediaStreamFormatMp3}", q, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}", q);
+    }
+
+    [Fact]
+    public void BuildBiblePublicationTrackLookUpPath_DiscSectionPrefixMatch_IsOrdinalIgnoreCase()
+    {
+        var upperIam = AppConstants.Media.MelodyMusicPublicationCodeIam.ToUpperInvariant();
+        var discSection = $"{upperIam}-9";
+        var q = LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(
+            "DE",
+            upperIam,
+            discSection,
+            "12");
+
+        Assert.Contains($"pub={discSection}", q);
         Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}", q);
     }
 
@@ -146,6 +175,20 @@ public sealed class LookUpPathBuilderTests
             "1",
             downloadCode: $"{AppConstants.Media.MelodyMusicPublicationCodeIam}-1");
 
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}", q);
+    }
+
+    [Fact]
+    public void BuildMusicTrackLookUpPath_DiscDownloadForcesEnglish_WhenPublicationCasingDiffersFromDownloadCode()
+    {
+        var iam = AppConstants.Media.MelodyMusicPublicationCodeIam;
+        var q = LookUpPathBuilder.BuildMusicTrackLookUpPath(
+            iam.ToUpperInvariant(),
+            "KO",
+            "2",
+            downloadCode: $"{iam}-3");
+
+        Assert.Contains("pub=iam-3", q);
         Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}", q);
     }
 
