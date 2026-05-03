@@ -11,6 +11,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 
 namespace Bible.Alarm.Tests;
@@ -105,6 +106,33 @@ public sealed class PlaybackViewModelTests
         public Task RecordDismissEngagementAndRequestIfEligibleAsync() => Task.CompletedTask;
     }
 
+    private sealed class RecordingReviewPromptService : IReviewPromptService
+    {
+        public int DismissEngagementCalls { get; private set; }
+
+        public Task RecordAppOpenAsync() => Task.CompletedTask;
+
+        public Task RecordDismissEngagementAndRequestIfEligibleAsync()
+        {
+            DismissEngagementCalls++;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class MessengerRecipient<T> : IRecipient<T>, IDisposable
+        where T : class
+    {
+        public List<T> Received { get; } = [];
+
+        public MessengerRecipient() =>
+            WeakReferenceMessenger.Default.Register<T>(this);
+
+        public void Receive(T message) => Received.Add(message);
+
+        public void Dispose() =>
+            WeakReferenceMessenger.Default.Unregister<T>(this);
+    }
+
     private sealed class MutablePlaybackState : IState<PlaybackState>
     {
         public MutablePlaybackState(PlaybackState initial) => Value = initial;
@@ -151,19 +179,21 @@ public sealed class PlaybackViewModelTests
         IAudioPlayer? audio = null,
         IState<PlaybackState>? playbackState = null,
         RecordingPlaybackService? playback = null,
-        RecordingSchedulePlaybackService? schedulePlayback = null)
+        RecordingSchedulePlaybackService? schedulePlayback = null,
+        IReviewPromptService? reviewPrompt = null)
     {
         audio ??= new FakeAudioPlayer();
         playbackState ??= new MutablePlaybackState(new PlaybackState());
         playback ??= new RecordingPlaybackService();
         schedulePlayback ??= new RecordingSchedulePlaybackService();
+        reviewPrompt ??= new NoReviewPromptService();
         return new PlaybackViewModel(
             new PlaybackViewModelDeps(
                 TestLogging.CreateLogger(),
                 playback,
                 schedulePlayback,
                 playbackState,
-                new NoReviewPromptService(),
+                reviewPrompt,
                 audio,
                 new SyncMainThreadScheduler()));
     }
@@ -556,5 +586,35 @@ public sealed class PlaybackViewModelTests
 
         Assert.Equal(["PlayScheduleAsync(99)"], schedule.Calls);
         Assert.DoesNotContain(nameof(RecordingPlaybackService.ResetAndRetryAsync), playback.Calls);
+    }
+
+    [Fact]
+    public async Task DismissCommand_sets_IsStopping_calls_StopAsync_and_review_engagement()
+    {
+        var playback = new RecordingPlaybackService();
+        var review = new RecordingReviewPromptService();
+        using var vm = CreateSut(playback: playback, reviewPrompt: review);
+
+        Assert.False(vm.IsStopping);
+
+        await ExecuteAsync(vm.DismissCommand);
+
+        Assert.True(vm.IsStopping);
+        Assert.Contains(nameof(RecordingPlaybackService.StopAsync), playback.Calls);
+        Assert.Equal(1, review.DismissEngagementCalls);
+    }
+
+    [Fact]
+    public async Task MinimizeCommand_sets_IsMinimizing_and_sends_MinimizePlaybackMessage()
+    {
+        using var recipient = new MessengerRecipient<MinimizePlaybackMessage>();
+        using var vm = CreateSut();
+
+        Assert.False(vm.IsMinimizing);
+
+        await ExecuteAsync(vm.MinimizeCommand);
+
+        Assert.True(vm.IsMinimizing);
+        Assert.Single(recipient.Received);
     }
 }
