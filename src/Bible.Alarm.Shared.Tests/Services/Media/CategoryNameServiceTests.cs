@@ -21,6 +21,7 @@ public sealed class CategoryNameServiceTests
 
         await sut.WarmCacheForDisplayLanguageAsync("E");
 
+        Assert.Null(sut.GetName(null!, "E"));
         Assert.Null(sut.GetName("", "E"));
         Assert.Null(sut.GetName(" ", "E"));
         Assert.Null(sut.GetName("\t", "E"));
@@ -70,6 +71,44 @@ public sealed class CategoryNameServiceTests
         await sut.WarmCacheForDisplayLanguageAsync("E");
 
         Assert.Equal("Music", sut.GetName("Music", "e"));
+    }
+
+    [Fact]
+    public async Task GetName_CategoryLookup_IsInsensitiveToKeyCasing_FromEmbeddedEnglish()
+    {
+        using var logger = TestLogging.CreateLogger();
+        var sut = new CategoryNameService(logger);
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Equal("Bible", sut.GetName("bible", "E"));
+        Assert.Equal("Faith and Bible", sut.GetName("faithandbible", "E"));
+    }
+
+    [Fact]
+    public async Task GetName_ReturnsNull_WhenCategoryCodeAbsentFromWarmBundle()
+    {
+        using var logger = TestLogging.CreateLogger();
+        var sut = new CategoryNameService(logger);
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Null(sut.GetName("NonexistentCatalogCategory", "E"));
+    }
+
+    [Fact]
+    public async Task WarmCache_Overwrites_PreviousDisplayLanguage_Context()
+    {
+        using var logger = TestLogging.CreateLogger();
+        var sut = new CategoryNameService(logger);
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+        Assert.Equal("Books", sut.GetName("Books", "E"));
+
+        await sut.WarmCacheForDisplayLanguageAsync("__NoSuchBundle__");
+
+        Assert.Null(sut.GetName("Books", "E"));
+        Assert.Null(sut.GetName("Books", "__NoSuchBundle__"));
     }
 
     [Fact]
