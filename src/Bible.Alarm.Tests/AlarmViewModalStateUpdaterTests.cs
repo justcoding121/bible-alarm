@@ -79,6 +79,16 @@ public sealed class AlarmViewModalStateUpdaterTests
     }
 
     [Fact]
+    public void DetectTrackChange_true_when_album_changes_after_initial_state()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+        sut.HandleTrackChange(trackChanged: false, Playing("Same", "Same", "Album1"));
+
+        Assert.True(sut.DetectTrackChange(Playing("Same", "Same", "Album2")));
+    }
+
+    [Fact]
     public void UpdateControlsFromState_enables_nav_when_preparing_or_playing_and_play_or_paused()
     {
         var cap = new CaptureOptions();
@@ -164,6 +174,27 @@ public sealed class AlarmViewModalStateUpdaterTests
         Assert.True(cap.PauseVisible);
         Assert.Equal("oops", cap.ErrorMessage);
         Assert.True(cap.ProgressTextNotifyCount > 0);
+    }
+
+    [Fact]
+    public void UpdatePlaybackStateFromState_stopped_without_session_flags_shows_play_button()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdatePlaybackStateFromState(
+            new PlaybackState
+            {
+                Status = PlayStatus.Stopped,
+                Duration = TimeSpan.FromMinutes(2),
+                IsAutoAdvancing = false,
+                IsTransitioningTrack = false,
+                IsPreparingOrPlaying = false,
+            });
+
+        Assert.True(cap.PlayVisible);
+        Assert.False(cap.PauseVisible);
+        Assert.Equal(TimeSpan.FromMinutes(2), cap.CurrentDuration);
     }
 
     [Fact]
@@ -272,6 +303,28 @@ public sealed class AlarmViewModalStateUpdaterTests
                 CurrentScheduleId = 1,
                 Title = "Chapter",
                 Artist = "",
+                Album = "",
+                ArtworkUrl = null,
+                Status = PlayStatus.Playing,
+                IsTransitioningTrack = false,
+            },
+            trackChanged: false);
+
+        Assert.True(cap.WaitingForArtwork);
+    }
+
+    [Fact]
+    public void UpdateMetadataFromState_sets_waiting_when_artist_only_but_no_artwork()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdateMetadataFromState(
+            new PlaybackState
+            {
+                CurrentScheduleId = 1,
+                Title = "",
+                Artist = "Narrator",
                 Album = "",
                 ArtworkUrl = null,
                 Status = PlayStatus.Playing,
