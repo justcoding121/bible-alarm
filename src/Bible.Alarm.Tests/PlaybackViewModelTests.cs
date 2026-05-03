@@ -784,4 +784,43 @@ public sealed class PlaybackViewModelTests
 
         Assert.True(vm.ShowPreparationPercent);
     }
+
+    [Fact]
+    public void ResetProgressUi_applies_when_main_thread_scheduler_reports_background_thread()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state, mainThread: new OffMainThreadSyncScheduler());
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(2));
+        state.NotifyStateChanged();
+
+        vm.Receive(new PlaybackPositionChangedMessage { CurrentPosition = TimeSpan.FromSeconds(10) });
+        Assert.Equal("00:10", vm.CurrentTime);
+
+        vm.ResetProgressUi();
+
+        Assert.Equal("00:00", vm.CurrentTime);
+    }
+
+    [Fact]
+    public void Receive_PlaybackPosition_leaves_progress_unchanged_when_delta_below_threshold()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(2));
+        state.NotifyStateChanged();
+
+        var atHalf = TimeSpan.FromSeconds(30);
+        vm.Receive(new PlaybackPositionChangedMessage { CurrentPosition = atHalf });
+        var progress = vm.Progress;
+
+        vm.Receive(
+            new PlaybackPositionChangedMessage
+            {
+                CurrentPosition = atHalf + TimeSpan.FromMilliseconds(20),
+            });
+
+        Assert.Equal(progress, vm.Progress);
+    }
 }

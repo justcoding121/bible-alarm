@@ -40,4 +40,51 @@ public sealed class PlaybackViewModelLandscapeHandlerTests
 
         Assert.Equal(0, overlayInvocations);
     }
+
+    [Fact]
+    public async Task ScheduleAutoHide_after_delay_invokes_callback_when_still_valid()
+    {
+        var sut = new PlaybackViewModelLandscapeHandler(new SyncMainThreadScheduler());
+        var overlayInvocations = 0;
+
+        sut.ScheduleAutoHide(() => true, () => false, () => overlayInvocations++);
+
+        await Task.Delay(3500);
+
+        Assert.Equal(1, overlayInvocations);
+    }
+
+    [Fact]
+    public async Task ScheduleAutoHide_when_shouldCancel_at_fire_time_does_not_invoke()
+    {
+        var sut = new PlaybackViewModelLandscapeHandler(new SyncMainThreadScheduler());
+        var overlayInvocations = 0;
+        var shouldCancel = false;
+
+        sut.ScheduleAutoHide(() => true, () => shouldCancel, () => overlayInvocations++);
+
+        await Task.Delay(500);
+        shouldCancel = true;
+
+        await Task.Delay(3200);
+
+        Assert.Equal(0, overlayInvocations);
+    }
+
+    [Fact]
+    public async Task ScheduleAutoHide_when_no_longer_landscape_at_fire_time_does_not_invoke()
+    {
+        var sut = new PlaybackViewModelLandscapeHandler(new SyncMainThreadScheduler());
+        var overlayInvocations = 0;
+        var isLandscape = true;
+
+        sut.ScheduleAutoHide(() => isLandscape, () => false, () => overlayInvocations++);
+
+        await Task.Delay(500);
+        isLandscape = false;
+
+        await Task.Delay(3200);
+
+        Assert.Equal(0, overlayInvocations);
+    }
 }
