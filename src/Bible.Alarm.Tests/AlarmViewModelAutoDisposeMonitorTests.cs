@@ -63,4 +63,32 @@ public sealed class AlarmViewModelAutoDisposeMonitorTests
 
         Assert.False(disposed);
     }
+
+    [Fact]
+    public async Task Start_WhenPlayback_resumes_during_idle_poll_does_not_dispose()
+    {
+        var state = new MutablePlaybackState(new PlaybackState
+        {
+            IsPreparingOrPlaying = false,
+            Status = PlayStatus.Stopped,
+        });
+
+        var disposed = false;
+        AlarmViewModelAutoDisposeMonitor.Start(
+            state,
+            () => disposed,
+            () => disposed = true);
+
+        await Task.Delay(1100);
+
+        state.Value = new PlaybackState
+        {
+            IsPreparingOrPlaying = true,
+            Status = PlayStatus.Playing,
+        };
+
+        await Task.Delay(8000);
+
+        Assert.False(disposed);
+    }
 }

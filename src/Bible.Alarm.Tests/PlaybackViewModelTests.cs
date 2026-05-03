@@ -183,6 +183,14 @@ public sealed class PlaybackViewModelTests
     }
 
     [Fact]
+    public void CurrentScheduleId_reflects_playback_state()
+    {
+        var state = new MutablePlaybackState(new PlaybackState { CurrentScheduleId = 42 });
+        using var vm = CreateSut(playbackState: state);
+        Assert.Equal(42, vm.CurrentScheduleId);
+    }
+
+    [Fact]
     public void SetIsLandscape_UpdatesLayoutFlags()
     {
         using var vm = CreateSut();
