@@ -112,4 +112,67 @@ public sealed class CommonValueConvertersTests
 
         Assert.Equal(0.0, sut.ConvertBack("nope", typeof(double), null, Cul));
     }
+
+    [Theory]
+    [InlineData("", true)]
+    [InlineData(0, true)]
+    public void IsNotNullConverter_Convert_truthy_when_value_present(object? value, bool expected)
+    {
+        var sut = new IsNotNullConverter();
+
+        Assert.Equal(expected, sut.Convert(value, typeof(bool), null, Cul));
+    }
+
+    [Fact]
+    public void IsNotNullConverter_Convert_false_when_reference_null()
+    {
+        var sut = new IsNotNullConverter();
+
+        Assert.False((bool)sut.Convert(null, typeof(bool), null, Cul)!);
+    }
+
+    [Fact]
+    public void IsNotNullConverter_ConvertBack_throws()
+    {
+        var sut = new IsNotNullConverter();
+
+        Assert.Throws<NotImplementedException>(() => sut.ConvertBack(true, typeof(object), null, Cul));
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData(0, false)]
+    public void IsNullConverter_Convert_false_when_value_present(object? value, bool expected)
+    {
+        var sut = new IsNullConverter();
+
+        Assert.Equal(expected, sut.Convert(value, typeof(bool), null, Cul));
+    }
+
+    [Fact]
+    public void IsNullConverter_Convert_true_when_reference_null()
+    {
+        var sut = new IsNullConverter();
+
+        Assert.True((bool)sut.Convert(null, typeof(bool), null, Cul)!);
+    }
+
+    [Fact]
+    public void IsNullConverter_ConvertBack_throws()
+    {
+        var sut = new IsNullConverter();
+
+        Assert.Throws<NotImplementedException>(() => sut.ConvertBack(false, typeof(object), null, Cul));
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void NegateBooleanConverter_Convert_and_ConvertBack_invert(bool input, bool expected)
+    {
+        var sut = new NegateBooleanConverter();
+
+        Assert.Equal(expected, (bool)sut.Convert(input, typeof(bool), null!, Cul)!);
+        Assert.Equal(input, (bool)sut.ConvertBack(expected, typeof(bool), null!, Cul)!);
+    }
 }

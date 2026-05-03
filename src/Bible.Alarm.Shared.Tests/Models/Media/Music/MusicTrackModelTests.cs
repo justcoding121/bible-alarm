@@ -54,4 +54,42 @@ public sealed class MusicTrackModelTests
         Assert.True(left.Equals(right));
         Assert.Equal(left.GetHashCode(), right.GetHashCode());
     }
+
+    [Fact]
+    public void GetHashCode_WhenTrackCodeNull_UsesDistinctInstanceIdentityPerObject()
+    {
+        var left = T(null);
+        var right = T(null);
+
+        Assert.NotEqual(left.GetHashCode(), right.GetHashCode());
+    }
+
+    [Fact]
+    public void Operator_NotEquals_DisjoinsUnequalTracks()
+        => Assert.True(T("1") != T("2"));
+
+    [Fact]
+    public void ComparisonOperators_CoverGtGteLtLte_WithNumericCodes()
+    {
+        Assert.True(T("10") > T("2"));
+        Assert.True(T("10") >= T("2"));
+        Assert.True(T("2") <= T("10"));
+        Assert.False(T("2") <= T(""));
+    }
+
+    [Fact]
+    public void ComparisonOperators_FalseWhenEitherSideNull()
+    {
+        MusicTrack? nul = null;
+        Assert.False(T("1") < nul);
+        Assert.False(nul < T("1"));
+        Assert.False(T("2") <= nul);
+    }
+
+    [Fact]
+    public void Equals_OverObject_NullsAndForeignTypes_ReturnFalse()
+    {
+        Assert.False(T("z").Equals((object?)null));
+        Assert.False(T("z").Equals("strings-are-not-music-tracks"));
+    }
 }
