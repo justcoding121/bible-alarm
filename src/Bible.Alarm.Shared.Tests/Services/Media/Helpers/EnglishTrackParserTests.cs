@@ -158,4 +158,60 @@ public sealed class EnglishTrackParserTests
         var tr = Assert.Single(EnglishTrackParser.ParseBibleTracks(Root(json), "JV"));
         Assert.Equal("A & B", tr.Title);
     }
+
+    [Fact]
+    public void ParseBibleTracks_ReturnsEmpty_WhenLanguageNodeExistsButMp3BranchMissing()
+    {
+        const string json = """{"JV":{"WAV":[{"file":{"url":"https://u"},"track":1}]}}""";
+
+        Assert.Empty(EnglishTrackParser.ParseBibleTracks(Root(json), "JV"));
+    }
+
+    [Fact]
+    public void ParseGenericTracks_IsCaseSensitive_OnFormatKey()
+    {
+        const string lowerKey = """{"E":{"mp4":[{"file":{"url":"https://v"},"track":2}]}}""";
+        const string upperKey = """{"E":{"MP4":[{"file":{"url":"https://v"},"track":2}]}}""";
+
+        Assert.Empty(EnglishTrackParser.ParseGenericTracks(Root(lowerKey), "E", AppConstants.Media.MediaStreamFormatMp4));
+        Assert.Single(EnglishTrackParser.ParseGenericTracks(Root(upperKey), "E", AppConstants.Media.MediaStreamFormatMp4));
+    }
+
+    [Fact]
+    public void ParseIamTracks_KeepsLaterValidTrack_AfterDiscardingInvalidNeighbors()
+    {
+        const string json =
+            """
+            {"E":{"MP3":[
+              {"file":{"url":""},"track":1},
+              {"file":{"url":"https://cdn/ok"},"track":2},
+              {"file":{"url":"https://drop"},"track":0},
+              {"track":99,"title":"skipped"}
+            ]}}
+            """;
+
+        var list = EnglishTrackParser.ParseIamTracks(Root(json));
+
+        Assert.Single(list);
+        Assert.Equal("2", list[0].TrackCode);
+        Assert.Equal("https://cdn/ok", list[0].TrackUrl?.Url);
+    }
+
+    [Fact]
+    public void ParseGenericTracks_Filters_AudioDescriptionPhrases_ForNonEnglishLanguageCatalog()
+    {
+        const string json =
+            """
+            {"F":{"MP4":[
+              {"file":{"url":"https://keep"},"track":1,"title":"Court"},
+              {"file":{"url":"https://drop"},"track":2,"title":"Version AVEC audiodescription"}
+            ]}}
+            """;
+
+        var list = EnglishTrackParser.ParseGenericTracks(Root(json), "F", AppConstants.Media.MediaStreamFormatMp4);
+
+        Assert.Single(list);
+        Assert.Equal("1", list[0].TrackCode);
+        Assert.Equal("https://keep", list[0].TrackUrl?.Url);
+    }
 }
