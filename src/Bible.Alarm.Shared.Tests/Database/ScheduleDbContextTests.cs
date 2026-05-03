@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.IO;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -336,4 +338,55 @@ public sealed class ScheduleDbContextTests
         Assert.Equal(key, row.Key);
         Assert.Equal("active", row.Value);
     }
+
+    [Fact]
+    public void Parameterless_ctor_is_supported()
+    {
+        using var db = new ScheduleDbContext();
+
+        Assert.NotNull(db.AlarmSchedules);
+    }
 }
+
+#if DEBUG
+
+[CollectionDefinition("ScheduleDbContextDesignTimeFallback", DisableParallelization = true)]
+public sealed class ScheduleDbContextDesignTimeFallbackCollection { }
+
+[Collection("ScheduleDbContextDesignTimeFallback")]
+public sealed class ScheduleDbContextDesignTimeFallbackTests
+{
+    [Fact]
+    public async Task OnConfiguring_uses_sqlite_file_when_builder_not_preconfigured()
+    {
+        var temp = Path.Combine(
+            Path.GetTempPath(),
+            $"bible-alarm-scheduledb-design-{Guid.NewGuid():n}");
+        Directory.CreateDirectory(temp);
+        var expectedDb = Path.Combine(temp, AppConstants.Database.ScheduleDatabaseFileName);
+        var previous = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(temp);
+
+            Assert.False(File.Exists(expectedDb));
+
+            await using var db = new ScheduleDbContext();
+            await db.Database.EnsureCreatedAsync();
+
+            Assert.True(File.Exists(expectedDb));
+            Assert.Equal(0, await db.AlarmSchedules.CountAsync());
+
+            await db.Database.EnsureDeletedAsync();
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(previous);
+            if (Directory.Exists(temp))
+                Directory.Delete(temp, recursive: true);
+        }
+    }
+}
+
+#endif
