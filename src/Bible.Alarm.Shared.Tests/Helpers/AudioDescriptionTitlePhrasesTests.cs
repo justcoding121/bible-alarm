@@ -50,4 +50,30 @@ public sealed class AudioDescriptionTitlePhrasesTests
 
         Assert.Equal(english, AudioDescriptionTitlePhrases.GetPhrasesForLanguage("    "));
     }
+
+    [Fact]
+    public void ContainsAudioDescriptionPhrase_ReturnsFalse_WhenTitleOmitsConfiguredMarkers()
+    {
+        Assert.False(AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase("E", "Chapter review only"));
+        Assert.False(AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase("F", "Court métrage"));
+    }
+
+    [Fact]
+    public void ContainsAudioDescriptionPhrase_MatchesNonEnglishEmbeddedPhrasesIgnoringCase()
+    {
+        Assert.True(AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase("AF", "Program MET AUDIObeskrywings"));
+        Assert.True(AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase("F", "Version AVEC Audiodescription"));
+        Assert.True(AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase("VT", "Bản có Với Mô Tả Âm Thanh phụ đề"));
+    }
+
+    [Fact]
+    public void GetPhrasesForLanguage_ReturnsDistinctList_WhenCultureSpecificEntryRegistered()
+    {
+        var french = AudioDescriptionTitlePhrases.GetPhrasesForLanguage("F");
+        var english = AudioDescriptionTitlePhrases.GetPhrasesForLanguage("E");
+
+        Assert.NotEqual(english, french);
+        Assert.Contains("avec audiodescription", french);
+        Assert.DoesNotContain("With Audio Descriptions", french);
+    }
 }
