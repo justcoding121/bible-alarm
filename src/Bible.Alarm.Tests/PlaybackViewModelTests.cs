@@ -691,4 +691,97 @@ public sealed class PlaybackViewModelTests
 
         Assert.Contains(nameof(RecordingPlaybackService.SeekToAsync), playback.Calls);
     }
+
+    [Fact]
+    public void OnSliderDragCompleted_when_playing_invokes_SeekToAsync()
+    {
+        var playback = new RecordingPlaybackService();
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playback: playback, playbackState: state);
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(2));
+        state.NotifyStateChanged();
+
+        vm.OnSliderDragCompleted(0.4);
+
+        Assert.Contains(nameof(RecordingPlaybackService.SeekToAsync), playback.Calls);
+    }
+
+    [Fact]
+    public void OnSliderTapped_while_stopping_does_not_seek()
+    {
+        var playback = new RecordingPlaybackService();
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playback: playback, playbackState: state);
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(2));
+        state.NotifyStateChanged();
+        vm.BeginStoppingUi();
+
+        vm.OnSliderTapped(0.5);
+
+        Assert.DoesNotContain(nameof(RecordingPlaybackService.SeekToAsync), playback.Calls);
+    }
+
+    [Fact]
+    public void ResetProgressUi_while_slider_interacting_does_not_reset_time()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = PlayingWithDuration(TimeSpan.FromMinutes(2));
+        state.NotifyStateChanged();
+
+        vm.Receive(new PlaybackPositionChangedMessage { CurrentPosition = TimeSpan.FromSeconds(30) });
+        Assert.Equal("00:30", vm.CurrentTime);
+
+        vm.OnSliderDragStarted();
+        vm.ResetProgressUi();
+
+        Assert.Equal("00:30", vm.CurrentTime);
+    }
+
+    [Fact]
+    public void SetProgressDirectly_clamps_and_updates_Progress()
+    {
+        using var vm = CreateSut();
+
+        vm.SetProgressDirectly(1.25);
+
+        Assert.Equal(1.0, vm.Progress);
+
+        vm.SetProgressDirectly(-0.5);
+
+        Assert.Equal(0.0, vm.Progress);
+    }
+
+    [Fact]
+    public void Receive_PreparationProgress_ShowPercent_changes_reflect_on_view_model()
+    {
+        using var vm = CreateSut();
+
+        vm.Receive(
+            new PlaybackPreparationProgressMessage
+            {
+                LoadedTracks = 0,
+                TotalTracks = 2,
+                TotalBytesDownloaded = 0,
+                CurrentTrackProgress = 0,
+                ShowPercent = false,
+            });
+
+        Assert.False(vm.ShowPreparationPercent);
+
+        vm.Receive(
+            new PlaybackPreparationProgressMessage
+            {
+                LoadedTracks = 0,
+                TotalTracks = 2,
+                TotalBytesDownloaded = 0,
+                CurrentTrackProgress = 0,
+                ShowPercent = true,
+            });
+
+        Assert.True(vm.ShowPreparationPercent);
+    }
 }
