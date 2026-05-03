@@ -98,6 +98,25 @@ public sealed class PublicationLookupKeyComparersTests
     }
 
     [Fact]
+    public void PublicationLanguage_HashSetDedup_IgnoringCaseOnBothCodes()
+    {
+        var c = PublicationLookupKeyComparers.PublicationLanguage.Instance;
+        var set = new HashSet<(string Pub, string Lang)>(c);
+        Assert.True(set.Add(("nwt", "e")));
+        Assert.False(set.Add(("NWT", "E")));
+    }
+
+    [Fact]
+    public void PublicationSection_GetHashCode_AlignsWhenEqualsIgnoringCase()
+    {
+        var c = PublicationLookupKeyComparers.PublicationSection.Instance;
+        var a = ("NW", "1");
+        var b = ("nw", "1");
+        Assert.True(c.Equals(a, b));
+        Assert.Equal(c.GetHashCode(a), c.GetHashCode(b));
+    }
+
+    [Fact]
     public void LanguagePublication_FalseWhenPublicationOrLanguageNormalizeDiffersBeyondCasePairs()
     {
         var c = PublicationLookupKeyComparers.LanguagePublication.Instance;
@@ -112,6 +131,16 @@ public sealed class PublicationLookupKeyComparersTests
         Assert.False(c.Equals(("E", "nw", "1"), ("F", "nw", "1")));
         Assert.False(c.Equals(("E", "nw", "1"), ("E", "bi12", "1")));
         Assert.False(c.Equals(("E", "nw", "1"), ("E", "nw", "2")));
+    }
+
+    [Fact]
+    public void LanguagePublicationSection_GetHashCode_AlignsWhenEqualsIgnoringCase()
+    {
+        var c = PublicationLookupKeyComparers.LanguagePublicationSection.Instance;
+        var a = ("e", "nw", "song-2");
+        var b = ("E", "NW", "SONG-2");
+        Assert.True(c.Equals(a, b));
+        Assert.Equal(c.GetHashCode(a), c.GetHashCode(b));
     }
 
     [Fact]
@@ -151,6 +180,24 @@ public sealed class PublicationLookupKeyComparersTests
     {
         var c = PublicationLookupKeyComparers.PublicationLanguage.Instance;
         Assert.False(c.Equals(("nw", "E"), ("nw", "M")));
+    }
+
+    [Fact]
+    public void All_nested_comparer_Instance_properties_return_stable_singletons()
+    {
+        Assert.Same(PublicationLookupKeyComparers.LanguagePublication.Instance, PublicationLookupKeyComparers.LanguagePublication.Instance);
+        Assert.Same(PublicationLookupKeyComparers.LanguagePublicationSection.Instance, PublicationLookupKeyComparers.LanguagePublicationSection.Instance);
+        Assert.Same(
+            PublicationLookupKeyComparers.LanguagePublicationNullableSectionTrack.Instance,
+            PublicationLookupKeyComparers.LanguagePublicationNullableSectionTrack.Instance);
+        Assert.Same(PublicationLookupKeyComparers.PublicationSection.Instance, PublicationLookupKeyComparers.PublicationSection.Instance);
+        Assert.Same(
+            PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance,
+            PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance);
+        Assert.Same(
+            PublicationLookupKeyComparers.PublicationNullableLanguageCode.Instance,
+            PublicationLookupKeyComparers.PublicationNullableLanguageCode.Instance);
+        Assert.Same(PublicationLookupKeyComparers.PublicationLanguage.Instance, PublicationLookupKeyComparers.PublicationLanguage.Instance);
     }
 
     /// <summary>Equal tuples must collapse to identical hash codes for dictionaries/sets.</summary>
