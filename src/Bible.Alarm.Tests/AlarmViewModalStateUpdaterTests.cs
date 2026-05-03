@@ -368,4 +368,87 @@ public sealed class AlarmViewModalStateUpdaterTests
         Assert.False(cap.PlayVisible);
         Assert.True(cap.PauseVisible);
     }
+
+    [Fact]
+    public void HandleTrackChange_when_track_changed_resets_initial_state_until_playing_or_paused()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.HandleTrackChange(trackChanged: false, Playing());
+        Assert.True(sut.HasReceivedInitialState);
+
+        var notifiesBefore = cap.ControlsNotifyCount;
+        sut.HandleTrackChange(
+            trackChanged: true,
+            new PlaybackState
+            {
+                Status = PlayStatus.Loading,
+                Title = "Next",
+                Artist = "a",
+                Album = "b",
+            });
+
+        Assert.False(sut.HasReceivedInitialState);
+        Assert.Equal(notifiesBefore + 1, cap.ControlsNotifyCount);
+    }
+
+    [Fact]
+    public void HandleTrackChange_paused_establishes_initial_state()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.HandleTrackChange(
+            trackChanged: false,
+            new PlaybackState
+            {
+                Status = PlayStatus.Paused,
+                Title = "T",
+            });
+
+        Assert.True(sut.HasReceivedInitialState);
+        Assert.True(cap.ControlsNotifyCount > 0);
+    }
+
+    [Fact]
+    public void UpdateMetadataFromState_not_waiting_while_transitioning_without_artwork()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        sut.UpdateMetadataFromState(
+            new PlaybackState
+            {
+                CurrentScheduleId = 1,
+                Title = "T",
+                ArtworkUrl = null,
+                Status = PlayStatus.Playing,
+                IsTransitioningTrack = true,
+            },
+            trackChanged: false);
+
+        Assert.False(cap.WaitingForArtwork);
+    }
+
+    [Fact]
+    public void UpdateMetadataFromState_repeated_stable_playing_state_skips_redundant_artwork()
+    {
+        var cap = new CaptureOptions();
+        var sut = new AlarmViewModalStateUpdater(cap.BuildOptions());
+
+        var stable = new PlaybackState
+        {
+            CurrentScheduleId = 1,
+            Title = "T",
+            ArtworkUrl = "https://art",
+            Status = PlayStatus.Playing,
+            IsTransitioningTrack = false,
+        };
+
+        sut.UpdateMetadataFromState(stable, trackChanged: true);
+        sut.UpdateMetadataFromState(stable, trackChanged: false);
+
+        Assert.Single(cap.ArtworkCalls);
+    }
 }
