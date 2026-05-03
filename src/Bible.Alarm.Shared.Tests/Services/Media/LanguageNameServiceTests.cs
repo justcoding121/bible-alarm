@@ -253,6 +253,57 @@ public sealed class LanguageNameServiceTests : IAsyncLifetime
         Assert.Null(sut.GetNameCached(1));
     }
 
+    [Fact]
+    public async Task GetNamesAsync_ReadsWarmCacheWhen_DisplayLanguage_matches_by_ordinal_ignore_case()
+    {
+        await using var db = new MediaDbContext(Options);
+
+        var l1 = new Language { LanguageCode = "QA", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        db.Languages.Add(l1);
+        await db.SaveChangesAsync();
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = l1.Id,
+            DisplayLanguageCode = "E",
+            Name = "Queue Alpha",
+            Language = l1,
+        });
+
+        var l2 = new Language { LanguageCode = "QB", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        db.Languages.Add(l2);
+        await db.SaveChangesAsync();
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = l2.Id,
+            DisplayLanguageCode = "E",
+            Name = "Queue Bravo",
+            Language = l2,
+        });
+
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut();
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        var map = await sut.GetNamesAsync(new[] { l1.Id, l2.Id }, displayLanguageCode: "e");
+
+        Assert.Equal(2, map.Count);
+        Assert.Equal("Queue Alpha", map[l1.Id]);
+        Assert.Equal("Queue Bravo", map[l2.Id]);
+    }
+
+    [Fact]
+    public async Task WarmCacheForDisplayLanguage_with_no_matching_rows_keepsCachesEmpty()
+    {
+        await SeedSingleLanguageAsync(languageCode: "ZH", englishName: "Chinese");
+        var sut = CreateSut();
+
+        await sut.WarmCacheForDisplayLanguageAsync("M");
+
+        Assert.Null(sut.GetNameCached(1));
+        Assert.Null(sut.GetNameByLanguageCodeCached("zh"));
+    }
+
     private LanguageNameService CreateSut() =>
         new(new MediaTestScopeFactory(Options), TestLogging.CreateLogger());
 
