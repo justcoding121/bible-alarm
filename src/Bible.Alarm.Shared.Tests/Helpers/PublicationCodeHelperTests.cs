@@ -49,6 +49,15 @@ public sealed class PublicationCodeHelperTests
     }
 
     [Fact]
+    public void GetPublicationCodeComparerForCategory_Music_trims_unicode_whitespace_around_category_name()
+    {
+        var padded =
+            $"{Environment.NewLine}\t\t {AppConstants.Media.BiblePublicationCategoryMusic} \v\f";
+        var cmp = PublicationCodeHelper.GetPublicationCodeComparerForCategory(padded);
+        Assert.True(cmp.Compare(AppConstants.Media.MusicPublicationCodeOsg, AppConstants.Media.MusicPublicationCodeSjjc) < 0);
+    }
+
+    [Fact]
     public void GetPublicationCodeComparerForCategory_Music_PrioritizesOsg()
     {
         var cmp = PublicationCodeHelper.GetPublicationCodeComparerForCategory(AppConstants.Media.BiblePublicationCategoryMusic);
@@ -164,6 +173,18 @@ public sealed class PublicationCodeHelperTests
             AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine);
         var yOld = $"w{MagazineHelper.MagazineStartYear}";
         var yNew = $"w{MagazineHelper.MagazineStartYear + 5}";
+        Assert.NotEqual(nav.Compare(yOld, yNew), display.Compare(yOld, yNew));
+    }
+
+    [Fact]
+    public void GetNavigationComparerForCategory_AwakeMagazine_orders_differently_from_display_comparer_like_watchtower()
+    {
+        var nav = PublicationCodeHelper.GetNavigationComparerForCategory(
+            AppConstants.Media.BiblePublicationCategoryAwakeMagazine);
+        var display = PublicationCodeHelper.GetPublicationCodeComparerForCategory(
+            AppConstants.Media.BiblePublicationCategoryAwakeMagazine);
+        var yOld = $"g{MagazineHelper.MagazineStartYear}";
+        var yNew = $"g{MagazineHelper.MagazineStartYear + 5}";
         Assert.NotEqual(nav.Compare(yOld, yNew), display.Compare(yOld, yNew));
     }
 

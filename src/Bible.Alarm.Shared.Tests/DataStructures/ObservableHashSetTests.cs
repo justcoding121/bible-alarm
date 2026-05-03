@@ -7,6 +7,27 @@ namespace Bible.Alarm.Shared.Tests;
 public sealed class ObservableHashSetTests
 {
     [Fact]
+    public void Contains_reports_membership_against_underlying_sorted_set()
+    {
+        var set = new ObservableHashSet<int>();
+        set.Add(2);
+        Assert.Contains(2, set);
+        Assert.DoesNotContain(3, set);
+        Assert.DoesNotContain(1, set);
+    }
+
+    [Fact]
+    public void NonGeneric_IEnumerable_iterations_yield_sorted_members()
+    {
+        var set = new ObservableHashSet<int>();
+        set.Add(40);
+        set.Add(-1);
+        set.Add(5);
+        IEnumerable raw = set;
+        Assert.Equal([-1, 5, 40], raw.Cast<int>().ToArray());
+    }
+
+    [Fact]
     public void Add_RaisesAddNotification_WhenNewItemInserted()
     {
         var observed = new List<NotifyCollectionChangedEventArgs>();
