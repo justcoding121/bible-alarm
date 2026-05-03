@@ -57,6 +57,38 @@ public sealed class MelodyMusicAndVocalMusicTests
     }
 
     [Fact]
+    public void MelodyMusic_Sections_And_Tracks_delegate_to_underlying_publication_lists()
+    {
+        var pub = BuildPublication(id: 909, lang: null, languageId: null);
+        MelodyMusic melody = pub;
+
+        var section = new BiblePublicationSection
+        {
+            BiblePublication = pub,
+            BiblePublicationId = pub.Id,
+            Name = "IAM disc",
+            SectionCode = "iam-1",
+            Tracks = [],
+        };
+        pub.Sections.Add(section);
+
+        var track = new BiblePublicationTrack
+        {
+            TrackCode = "3",
+            Title = "Track three",
+            BiblePublicationId = pub.Id,
+            Publication = pub,
+            Section = null,
+        };
+        pub.Tracks.Add(track);
+
+        Assert.Single(melody.Sections);
+        Assert.Single(melody.Tracks);
+        Assert.Same(section, melody.Sections[0]);
+        Assert.Same(track, melody.Tracks[0]);
+    }
+
+    [Fact]
     public void MelodyMusic_forwards_IsVideo_from_publication()
     {
         var pub = BuildPublication(id: 7, lang: null, languageId: null, isVideo: true);
@@ -160,6 +192,31 @@ public sealed class MelodyMusicAndVocalMusicTests
         VocalMusic vocal = pub;
 
         object? viaWrapper = vocal.Category;
+        Assert.Null(viaWrapper);
+    }
+
+    [Fact]
+    public void MelodyMusic_Category_property_reflects_primary_category_absence_when_junction_missing()
+    {
+        var pub = new BiblePublication
+        {
+            Id = 401,
+            Name = "Standalone melody",
+            PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+            Language = null,
+            LanguageId = null,
+            BiblePublicationCategories = [],
+            Sections = [],
+            Tracks = [],
+            IsMusic = true,
+            IsVideo = false,
+        };
+
+        Assert.Null(pub.PrimaryCategory);
+
+        MelodyMusic melody = pub;
+
+        object? viaWrapper = melody.Category;
         Assert.Null(viaWrapper);
     }
 }
