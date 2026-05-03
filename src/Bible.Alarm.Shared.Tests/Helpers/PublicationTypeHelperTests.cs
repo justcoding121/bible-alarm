@@ -97,6 +97,17 @@ public sealed class PublicationTypeHelperTests
     }
 
     [Fact]
+    public void GetTrackLabel_returns_track_label_when_publication_code_missing_matches_section_default()
+    {
+        Assert.Equal(
+            AppConstants.Media.PublicationUiTrackSingular,
+            PublicationTypeHelper.GetTrackLabel(null));
+        Assert.Equal(
+            AppConstants.Media.PublicationUiTrackSingular,
+            PublicationTypeHelper.GetTrackLabel(""));
+    }
+
+    [Fact]
     public void GetCatalogType_Defaults_ToSectioned_WhenPublicationUnknown()
     {
         Assert.Equal(CatalogType.Sectioned, PublicationTypeHelper.GetCatalogType(null));

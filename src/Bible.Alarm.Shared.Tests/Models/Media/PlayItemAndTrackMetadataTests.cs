@@ -117,4 +117,32 @@ public sealed class PlayItemAndTrackMetadataTests
 
         Assert.Equal("fr vod  x", new PlayItem(meta, "u").ToString());
     }
+
+    [Fact]
+    public void PlayItem_mutates_playback_URL_and_recovery_state_flags_after_construction()
+    {
+        var meta = new TrackMetadata
+        {
+            LanguageCode = "E",
+            PublicationCode = "osg",
+            IsBibleContent = false,
+            TrackCode = "5",
+        };
+        meta.LookUpPath = "?playback=1";
+
+        var item = new PlayItem(meta, "https://first.example/track");
+
+        Assert.Equal("https://first.example/track", item.Url);
+        Assert.Same(meta, item.Metadata);
+
+        item.Url = "https://second.example/track";
+        item.CdnStaleUrlRecoveryConsumed = true;
+        item.CdnStaleUrlRefetchReplayIssued = true;
+        item.StreamingOpenPhaseMediaFailedRetryDone = true;
+
+        Assert.Equal("https://second.example/track", item.Url);
+        Assert.True(item.CdnStaleUrlRecoveryConsumed);
+        Assert.True(item.CdnStaleUrlRefetchReplayIssued);
+        Assert.True(item.StreamingOpenPhaseMediaFailedRetryDone);
+    }
 }
