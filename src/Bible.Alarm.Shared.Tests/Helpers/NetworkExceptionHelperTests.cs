@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using Bible.Alarm.Shared.Helpers;
@@ -35,6 +36,32 @@ public sealed class NetworkExceptionHelperTests
         var inner = new HttpRequestException();
         var outer = new InvalidOperationException("wrap", inner);
         Assert.True(NetworkExceptionHelper.IsNetworkFailure(outer));
+    }
+
+    [Fact]
+    public void IsNetworkFailure_ReturnsTrue_ForWebException()
+    {
+        Assert.True(NetworkExceptionHelper.IsNetworkFailure(new WebException()));
+    }
+
+    [Fact]
+    public void IsNetworkFailure_UnwrapsInnerWebException()
+    {
+        var inner = new WebException();
+        var outer = new InvalidOperationException("wrap", inner);
+        Assert.True(NetworkExceptionHelper.IsNetworkFailure(outer));
+    }
+
+    [Fact]
+    public void IsRetryableForNetworkOperation_ReturnsFalse_ForWebException()
+    {
+        Assert.False(NetworkExceptionHelper.IsRetryableForNetworkOperation(new WebException()));
+    }
+
+    [Fact]
+    public void ShouldRethrowFromCatalogRetryLoop_ReturnsTrue_ForWebException()
+    {
+        Assert.True(NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(new WebException()));
     }
 
     [Fact]
