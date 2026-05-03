@@ -18,6 +18,23 @@ public sealed class PublicationModelTests
         => Assert.True(Pub("a").CompareTo(new object()) > 0);
 
     [Fact]
+    public void Publication_CompareTo_ObjectNull_ReturnsGreater()
+        => Assert.Equal(1, Pub("a").CompareTo((object?)null));
+
+    [Fact]
+    public void Publication_CompareTo_PublicationNull_ReturnsGreater()
+        => Assert.Equal(1, Pub("a").CompareTo((Publication?)null));
+
+    [Fact]
+    public void Publication_CompareTo_BoxedPublication_DelegatesTo_NameOrdinal_StringCompareTo()
+    {
+        var q = Pub("ribbon");
+        var r = Pub("ribbon");
+        Assert.Equal(0, q.CompareTo((object)r));
+        Assert.True(q <= r && q >= r);
+    }
+
+    [Fact]
     public void Publication_CompareToAndRelationalOps_OrderByName()
     {
         var first = Pub("a");
@@ -28,6 +45,31 @@ public sealed class PublicationModelTests
         Assert.True(first <= second);
         Assert.True(second > first);
         Assert.True(second >= first);
+    }
+
+    [Fact]
+    public void Publication_ComparisonOperators_AllFalse_when_EitherOperandNull()
+    {
+        Publication? nul = null;
+        var pub = Pub("q");
+        Assert.False(pub < nul);
+        Assert.False(nul < pub);
+        Assert.False(pub <= nul);
+        Assert.False(nul <= pub);
+        Assert.False(pub > nul);
+        Assert.False(nul > pub);
+        Assert.False(pub >= nul);
+        Assert.False(nul >= pub);
+    }
+
+    [Fact]
+    public void Publication_CompareTo_nameTie_reflects_equals_for_relational_operators()
+    {
+        var x = Pub("paired");
+        var y = Pub("paired");
+        Assert.Equal(0, x.CompareTo(y));
+        Assert.True(x <= y);
+        Assert.True(x >= y);
     }
 
     [Fact]
@@ -63,12 +105,41 @@ public sealed class PublicationModelTests
     }
 
     [Fact]
-    public void Publication_comparison_operators_require_non_nulloperands()
+    public void Publication_Equals_Object_rejects_null_and_non_publication_reference()
     {
-        Publication? nul = null;
+        var sut = Pub("novel");
+        Assert.False(sut.Equals((object?)null));
+        Assert.False(sut.Equals("novel"));
+    }
 
-        Assert.False(Pub("a") < nul);
-        Assert.False(nul <= Pub("b"));
+    [Fact]
+    public void TranslatedPublication_IEquatable_uses_structural_name_and_LanguageId_match()
+    {
+        var langE = Lang("E");
+        var left = new TranslatedPublication
+        {
+            Name = "Shared",
+            PublicationCode = "code-a",
+            LanguageId = 50,
+            Language = langE,
+        };
+        IEquatable<TranslatedPublication> asEquatable = left;
+        var right = new TranslatedPublication
+        {
+            Name = "Shared",
+            PublicationCode = "code-b",
+            LanguageId = 50,
+            Language = langE,
+        };
+
+        Assert.True(asEquatable.Equals(right));
+        Assert.False(asEquatable.Equals(new TranslatedPublication
+        {
+            Name = "Shared",
+            PublicationCode = "code-b",
+            LanguageId = 51,
+            Language = langE,
+        }));
     }
 
     [Fact]
