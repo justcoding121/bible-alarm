@@ -105,6 +105,50 @@ public sealed class ObservableHashSetTests
     }
 
     [Fact]
+    public void Remove_ReturnsFalse_Without_Notification_When_ItemMissing()
+    {
+        var notifications = 0;
+        var set = new ObservableHashSet<int>();
+        set.CollectionChanged += (_, _) => notifications++;
+
+        Assert.False(set.Remove(42));
+
+        Assert.Equal(0, notifications);
+    }
+
+    [Fact]
+    public void CopyTo_TArray_Throws_When_ArrayNull()
+    {
+        var set = new ObservableHashSet<int>();
+        set.Add(1);
+
+        Assert.Throws<ArgumentNullException>(() => set.CopyTo(null!, 0));
+    }
+
+    [Fact]
+    public void CopyTo_TArray_Throws_When_ArrayIndexNegative()
+    {
+        var set = new ObservableHashSet<int>();
+        set.Add(1);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => set.CopyTo(new int[2], -1));
+    }
+
+    [Fact]
+    public void CopyTo_Array_Throws_When_ArrayNull_Or_IndexNegative_Or_TooSmall()
+    {
+        var set = new ObservableHashSet<int>();
+        set.Add(1);
+        ICollection nonGeneric = set;
+
+        Assert.Throws<ArgumentNullException>(() => nonGeneric.CopyTo(null!, 0));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => nonGeneric.CopyTo(new object?[2], -1));
+
+        Assert.Throws<ArgumentException>(() => nonGeneric.CopyTo(new object?[1], 1));
+    }
+
+    [Fact]
     public void AsNonGeneric_ICollection_CopyTo_Boxes_sorted_values_and_reports_metadata()
     {
         var set = new ObservableHashSet<int>();
