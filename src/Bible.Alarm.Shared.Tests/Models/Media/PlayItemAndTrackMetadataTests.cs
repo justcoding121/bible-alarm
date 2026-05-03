@@ -20,6 +20,45 @@ public sealed class PlayItemAndTrackMetadataTests
     }
 
     [Fact]
+    public void TrackMetadata_Default_ctor_uses_clr_defaults_then_IsBibleContent_flips_play_kind()
+    {
+        var sut = new TrackMetadata();
+
+        Assert.Equal(0L, sut.ScheduleId);
+        Assert.Equal(default, sut.NotificationTime);
+        Assert.False(sut.IsBibleContent);
+        Assert.Equal(PlayType.Music, sut.PlayType);
+        Assert.True(sut.IsAlarmMusic);
+        Assert.Equal(string.Empty, sut.LanguageCode);
+        Assert.Equal(string.Empty, sut.PublicationCode);
+        Assert.Null(sut.NaturalKey);
+        Assert.Null(sut.DownloadCode);
+        Assert.Null(sut.OriginalTrackCode);
+        Assert.Null(sut.SectionCode);
+        Assert.Equal(string.Empty, sut.TrackCode);
+        Assert.Equal(TimeSpan.Zero, sut.FinishedDuration);
+        Assert.False(sut.IsLastTrack);
+        Assert.Throws<InvalidOperationException>(() => _ = sut.LookUpPath);
+
+        sut.IsBibleContent = true;
+        Assert.Equal(PlayType.Bible, sut.PlayType);
+        Assert.False(sut.IsAlarmMusic);
+        sut.IsBibleContent = false;
+        Assert.Equal(PlayType.Music, sut.PlayType);
+        Assert.True(sut.IsAlarmMusic);
+    }
+
+    [Fact]
+    public void TrackMetadata_LookUpPath_get_throws_after_assigning_null()
+    {
+        var meta = new TrackMetadata { LookUpPath = "indexed" };
+        Assert.Equal("indexed", meta.LookUpPath);
+
+        meta.LookUpPath = null!;
+        Assert.Throws<InvalidOperationException>(() => _ = meta.LookUpPath);
+    }
+
+    [Fact]
     public void TrackMetadata_LookUpPath_Throws_WhenNeverOrEmpty_OnGet()
     {
         var meta = new TrackMetadata();
