@@ -153,4 +153,315 @@ public sealed class EnglishPublicationBuilderTests
         var section = Assert.Single(persisted.Sections);
         Assert.Equal("Genesis second pass", section.Name);
     }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_UsesNormalizedCode_AsName_When_PublicationName_Null()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var pubCode = AppConstants.Media.BiblePublicationCodeNwt;
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(pubCode))
+        {
+            if (await db.Categories.AnyAsync(c => c.CategoryCode == categoryCode))
+            {
+                continue;
+            }
+
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        var lang = new Language
+        {
+            LanguageCode = "ENG-BLDR-2",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sut = new EnglishPublicationBuilder(TestLogging.CreateLogger());
+        var sectionCode = AppConstants.Media.BiblePublicationGenesisBookNumber;
+        var sections = new List<BiblePublicationSection>
+        {
+            new()
+            {
+                Name = "Genesis",
+                SectionCode = sectionCode,
+                Tracks = [],
+            },
+        };
+
+        var req = new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: null,
+            Language: lang,
+            IsVideo: false,
+            IsBible: true,
+            PublicationWithoutLanguage: false,
+            Sections: sections,
+            CancellationToken: CancellationToken.None);
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(req));
+
+        var persisted = await db.BiblePublications.SingleAsync(p =>
+            p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+        Assert.Equal(pubCode, persisted.Name);
+    }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_BiblePublication_Restores_StagedTrack_ForeignKeys_OnInsert()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var pubCode = AppConstants.Media.BiblePublicationCodeNwt;
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(pubCode))
+        {
+            if (await db.Categories.AnyAsync(c => c.CategoryCode == categoryCode))
+            {
+                continue;
+            }
+
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        var lang = new Language
+        {
+            LanguageCode = "ENG-BLDR-3",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sectionCode = AppConstants.Media.BiblePublicationGenesisBookNumber;
+        var sections = new List<BiblePublicationSection>
+        {
+            new()
+            {
+                Name = "Genesis",
+                SectionCode = sectionCode,
+                Tracks =
+                [
+                    new BiblePublicationTrack
+                    {
+                        TrackCode = "1",
+                        Title = "Genesis 1",
+                    },
+                ],
+            },
+        };
+
+        var sut = new EnglishPublicationBuilder(TestLogging.CreateLogger());
+        var req = new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "NWT",
+            Language: lang,
+            IsVideo: false,
+            IsBible: true,
+            PublicationWithoutLanguage: false,
+            Sections: sections,
+            CancellationToken: CancellationToken.None);
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(req));
+
+        var persisted = await db.BiblePublications
+            .Include(p => p.Sections)
+            .ThenInclude(s => s.Tracks)
+            .SingleAsync(p => p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+        var section = Assert.Single(persisted.Sections);
+        var track = Assert.Single(section.Tracks);
+        var pubId = persisted.Id;
+        Assert.True(track.BiblePublicationId > 0);
+        Assert.Equal(pubId, track.BiblePublicationId);
+        Assert.True(track.BiblePublicationSectionId.HasValue);
+        Assert.Equal(section.Id, track.BiblePublicationSectionId!.Value);
+    }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_Update_Removes_TrackUrls_From_Replaced_Tracks_ForNonBiblePublication()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var pubCode = AppConstants.Media.NormalizedPublicationCodeDramasGoodNews;
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(pubCode))
+        {
+            if (await db.Categories.AnyAsync(c => c.CategoryCode == categoryCode))
+            {
+                continue;
+            }
+
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        var lang = new Language
+        {
+            LanguageCode = "ENG-BLDR-4",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sectionCodeFirst = "drama-a";
+        var firstSections = new List<BiblePublicationSection>
+        {
+            new()
+            {
+                Name = "Act I",
+                SectionCode = sectionCodeFirst,
+                Tracks =
+                [
+                    new BiblePublicationTrack
+                    {
+                        TrackCode = "1",
+                        Title = "Pilot",
+                        TrackUrl = new TrackUrl { Url = "https://cdn/first-track.mp4" },
+                    },
+                ],
+            },
+        };
+
+        var sut = new EnglishPublicationBuilder(TestLogging.CreateLogger());
+        var reqInsert = new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "Drama v1",
+            Language: lang,
+            IsVideo: true,
+            IsBible: false,
+            PublicationWithoutLanguage: false,
+            Sections: firstSections,
+            CancellationToken: CancellationToken.None);
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(reqInsert));
+        Assert.Equal(1, await db.TrackUrls.CountAsync());
+
+        var secondSections = new List<BiblePublicationSection>
+        {
+            new()
+            {
+                Name = "Act II",
+                SectionCode = "drama-b",
+                Tracks =
+                [
+                    new BiblePublicationTrack { TrackCode = "2", Title = "Episode 2" },
+                ],
+            },
+        };
+
+        var reqUpdate = new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "Drama v2",
+            Language: lang,
+            IsVideo: true,
+            IsBible: false,
+            PublicationWithoutLanguage: false,
+            Sections: secondSections,
+            CancellationToken: CancellationToken.None);
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(reqUpdate));
+
+        Assert.Equal(0, await db.TrackUrls.CountAsync());
+    }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_SeriesBjfSongs_Sets_IsMusic()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var pubCode = AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs.ToLowerInvariant();
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(pubCode))
+        {
+            if (await db.Categories.AnyAsync(c => c.CategoryCode == categoryCode))
+            {
+                continue;
+            }
+
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        var lang = new Language
+        {
+            LanguageCode = "ENG-BLDR-5",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sut = new EnglishPublicationBuilder(TestLogging.CreateLogger());
+        var sections = new List<BiblePublicationSection>
+        {
+            new()
+            {
+                Name = "Song A",
+                SectionCode = "s1",
+                Tracks = [],
+            },
+        };
+
+        var req = new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "BJF Songs",
+            Language: lang,
+            IsVideo: false,
+            IsBible: false,
+            PublicationWithoutLanguage: false,
+            Sections: sections,
+            CancellationToken: CancellationToken.None);
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(req));
+
+        var persisted = await db.BiblePublications.SingleAsync(p =>
+            p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+        Assert.True(persisted.IsMusic);
+    }
 }
