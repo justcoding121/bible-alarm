@@ -8,6 +8,12 @@ namespace Bible.Alarm.Shared.Tests;
 public sealed class CategoryNameServiceTests
 {
     [Fact]
+    public void Constructor_WithNullLogger_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => new CategoryNameService(null!));
+    }
+
+    [Fact]
     public async Task GetName_ReturnsNull_WhenCategoryCodeBlank()
     {
         using var logger = TestLogging.CreateLogger();

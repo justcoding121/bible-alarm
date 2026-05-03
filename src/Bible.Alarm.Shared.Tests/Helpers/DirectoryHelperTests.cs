@@ -26,4 +26,13 @@ public sealed class DirectoryHelperTests
             }
         }
     }
+
+    [Fact]
+    public void IndexDirectory_Resolves_ToSrcTools_IndexRoot()
+    {
+        var path = Path.GetFullPath(DirectoryHelper.IndexDirectory);
+        var suffix = $"{Path.DirectorySeparatorChar}_tools{Path.DirectorySeparatorChar}_index";
+
+        Assert.Contains(suffix, path, StringComparison.Ordinal);
+    }
 }

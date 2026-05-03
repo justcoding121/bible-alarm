@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using Bible.Alarm.Shared.Constants;
@@ -72,6 +73,75 @@ public sealed class GetPubMediaLinksRetryTests
         Assert.Null(result);
     }
 
+    [Fact]
+    public async Task GetStringAsync_WithNonMaterializedEnumerableBaseUrls_SelectsSuccessfully()
+    {
+        using var inner = new CallbackHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{ }")
+        });
+        using var client = new HttpClient(inner);
+
+        var result = await GetPubMediaLinksRetry.GetStringAsync(
+            client,
+            TwoYieldedBaseUrls(),
+            "/q");
+
+        Assert.Equal("{ }", result);
+    }
+
+    [Fact]
+    public async Task GetStringAsync_Retries_AfterHttpRequestException()
+    {
+        var calls = 0;
+        using var inner = new HttpMessageHandlerExceptionThenOk(onAttempt: attempt =>
+        {
+            calls++;
+            if (attempt < 2)
+            {
+                throw new HttpRequestException("simulated");
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("recovered")
+            };
+        });
+
+        using var client = new HttpClient(inner);
+
+        var result = await GetPubMediaLinksRetry.GetStringAsync(client, StubLocalBaseUrls, "?x=y");
+
+        Assert.Equal("recovered", result);
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public async Task GetStringAsync_Retries_AfterTaskCanceled_WhenCancellationNotRequested()
+    {
+        var calls = 0;
+        using var inner = new HttpMessageHandlerExceptionThenOk(onAttempt: attempt =>
+        {
+            calls++;
+            if (attempt == 1)
+            {
+                throw new TaskCanceledException("simulated timeout");
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("after-timeout")
+            };
+        });
+
+        using var client = new HttpClient(inner);
+
+        var result = await GetPubMediaLinksRetry.GetStringAsync(client, StubLocalBaseUrls, "?z=1");
+
+        Assert.Equal("after-timeout", result);
+        Assert.Equal(2, calls);
+    }
+
     private sealed class CallbackHandler(Func<int, HttpResponseMessage> onCall) : HttpMessageHandler
     {
         private int _callSeq;
@@ -89,5 +159,26 @@ public sealed class GetPubMediaLinksRetryTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => throw new InvalidOperationException("unexpected HTTP call");
+    }
+
+    private static IEnumerable<string> TwoYieldedBaseUrls()
+    {
+        yield return "https://stub.host-one";
+        yield return "https://stub.host-two";
+    }
+
+    private sealed class HttpMessageHandlerExceptionThenOk(Func<int, HttpResponseMessage> onAttempt)
+        : HttpMessageHandler
+    {
+        private int _attempt;
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            var n = Interlocked.Increment(ref _attempt);
+            var response = onAttempt(n);
+            return Task.FromResult(response);
+        }
     }
 }
