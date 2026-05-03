@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Threading;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
@@ -204,6 +205,63 @@ public sealed class UrlConstructionServiceTests : IAsyncLifetime
                 trackCode: "1"));
     }
 
+    [Fact]
+    public async Task ConstructTrackLookUpPathAsync_Retries_After_Transient_ScopeFailure_Evicts_CacheEntry()
+    {
+        await using var db = new MediaDbContext(Options);
+        const string publicationCode = "pcb-cache-retry";
+        var lang = DerivedLanguage(publicationCode);
+        await SeedTrackWithLanguageSectionAsync(db, publicationCode: publicationCode, url: "https://recover");
+
+        var inner = new MediaTestScopeFactory(Options);
+        var sut = new UrlConstructionService(new FailFirstScopeThenInnerFactory(inner));
+
+        await Assert.ThrowsAsync<DivideByZeroException>(() =>
+            sut.ConstructTrackLookUpPathAsync(
+                publicationCode,
+                lang.ToLowerInvariant(),
+                sectionCode: "mat-1",
+                trackCode: "1"));
+
+        Assert.Equal(
+            "https://recover",
+            await sut.ConstructTrackLookUpPathAsync(
+                publicationCode,
+                lang.ToLowerInvariant(),
+                sectionCode: "mat-1",
+                trackCode: "1"));
+    }
+
+    [Fact]
+    public async Task ConstructTrackUrlsAsync_ByCodes_ReturnsEmpty_When_TrackCode_CaseMismatch()
+    {
+        await using var db = new MediaDbContext(Options);
+        const string publicationCode = "pcb-tcode-case";
+        var lang = DerivedLanguage(publicationCode);
+        await SeedTrackWithLanguageSectionAsync(db, publicationCode, trackCode: "Ab", url: "https://case/track");
+
+        var sut = CreateSut();
+
+        Assert.Empty(await sut.ConstructTrackUrlsAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "ab"));
+        Assert.Single(await sut.ConstructTrackUrlsAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "Ab"));
+    }
+
+    [Fact]
+    public async Task ConstructTrackLookUpPathAsync_ReturnsNull_When_TrackCodeCaseMismatch()
+    {
+        await using var db = new MediaDbContext(Options);
+        const string publicationCode = "pcb-lookup-tcode-case";
+        var lang = DerivedLanguage(publicationCode);
+        await SeedTrackWithLanguageSectionAsync(db, publicationCode, trackCode: "Zz", url: "https://z-only");
+
+        var sut = CreateSut();
+
+        Assert.Null(await sut.ConstructTrackLookUpPathAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "zz"));
+        Assert.Equal(
+            "https://z-only",
+            await sut.ConstructTrackLookUpPathAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "Zz"));
+    }
+
     /// <summary>Deterministic codes ≤10 chars, distinct across varied publication prefixes in these tests.</summary>
     private static string DerivedLanguage(string publicationCode)
     {
@@ -218,6 +276,21 @@ public sealed class UrlConstructionServiceTests : IAsyncLifetime
     }
 
     private UrlConstructionService CreateSut() => new(new MediaTestScopeFactory(Options));
+
+    private sealed class FailFirstScopeThenInnerFactory(MediaTestScopeFactory inner) : Microsoft.Extensions.DependencyInjection.IServiceScopeFactory
+    {
+        private int scopeSequence;
+
+        public Microsoft.Extensions.DependencyInjection.IServiceScope CreateScope()
+        {
+            if (Interlocked.Increment(ref scopeSequence) == 1)
+            {
+                throw new DivideByZeroException("simulated transient scope failure");
+            }
+
+            return inner.CreateScope();
+        }
+    }
 
     private static async Task<BiblePublicationTrack> SeedTrackWithLanguageSectionAsync(
         MediaDbContext db,
