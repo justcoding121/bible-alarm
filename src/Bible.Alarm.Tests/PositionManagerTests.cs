@@ -147,6 +147,24 @@ public sealed class PositionManagerTests
     }
 
     [Fact]
+    public void HandlePreparationProgressMessage_start_preparing_never_skipped_by_throttle()
+    {
+        var sut = new PositionManager();
+        var calls = 0;
+        var msg = new PlaybackPreparationProgressMessage
+        {
+            LoadedTracks = 0,
+            TotalTracks = 3,
+            TotalBytesDownloaded = 0,
+            CurrentTrackProgress = 0,
+        };
+
+        Assert.True(sut.HandlePreparationProgressMessage(msg, (_, _, _, _) => calls++));
+        Assert.True(sut.HandlePreparationProgressMessage(msg, (_, _, _, _) => calls++));
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
     public void HandlePreparationProgressMessage_second_update_applies_after_throttle_window()
     {
         var sut = new PositionManager();

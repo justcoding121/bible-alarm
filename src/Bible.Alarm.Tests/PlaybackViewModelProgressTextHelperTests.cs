@@ -15,6 +15,14 @@ public sealed class PlaybackViewModelProgressTextHelperTests
     }
 
     [Fact]
+    public void Zero_total_tracks_returns_100_percent()
+    {
+        var text = PlaybackViewModelProgressTextHelper.GetProgressText(0, 0, 0, null, 0);
+
+        Assert.Equal("100%", text);
+    }
+
+    [Fact]
     public void Bytes_totals_show_download_percentage_when_tracks_remain()
     {
         var text = PlaybackViewModelProgressTextHelper.GetProgressText(1, 5, 250, 1000L, 0);

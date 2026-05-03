@@ -279,6 +279,28 @@ public sealed class PlaybackViewModelTests
     }
 
     [Fact]
+    public void Title_subtitle_and_description_reflect_playback_state_after_update()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = new PlaybackState
+        {
+            CurrentScheduleId = 1,
+            Status = PlayStatus.Playing,
+            Title = "Chapter 1",
+            Artist = "Reader",
+            Album = "Study",
+            Duration = TimeSpan.FromMinutes(1),
+        };
+        state.NotifyStateChanged();
+
+        Assert.Equal("Chapter 1", vm.Title);
+        Assert.Equal("Reader", vm.SubTitle);
+        Assert.Equal("Study", vm.Description);
+    }
+
+    [Fact]
     public void Receive_PreparationProgress_sets_preparing_when_tracks_remain()
     {
         using var vm = CreateSut();
