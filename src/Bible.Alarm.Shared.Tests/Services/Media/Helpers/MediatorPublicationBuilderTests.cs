@@ -135,4 +135,30 @@ public sealed class MediatorPublicationBuilderTests
         Assert.Equal("2", track.TrackCode);
         Assert.Contains("second.example", track.TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void GetPublicationCodeForDb_Returns_JwCanonical_When_Mediator_Code_Known()
+    {
+        var sut = new MediatorPublicationBuilder(TestLogging.CreateLogger());
+        var input = AppConstants.Media.NormalizedPublicationCodeDramasGoodNews;
+        var expected = JwSourceHelper.GetCanonicalMediatorPublicationCode(input);
+        Assert.NotNull(expected);
+        Assert.Equal(expected, sut.GetPublicationCodeForDb(input));
+    }
+
+    [Fact]
+    public void GetPublicationCodeForDb_Returns_Input_When_Mediator_Code_Unknown()
+    {
+        var sut = new MediatorPublicationBuilder(TestLogging.CreateLogger());
+        const string code = "no-such-mediator-w4";
+        Assert.Equal(code, sut.GetPublicationCodeForDb(code));
+    }
+
+    [Fact]
+    public void GetPublicationCodeForDb_Returns_Null_Or_Empty_For_Null_Or_Blank()
+    {
+        var sut = new MediatorPublicationBuilder(TestLogging.CreateLogger());
+        Assert.Null(sut.GetPublicationCodeForDb(null!));
+        Assert.Equal("", sut.GetPublicationCodeForDb(""));
+    }
 }
