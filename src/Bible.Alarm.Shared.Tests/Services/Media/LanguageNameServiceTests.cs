@@ -146,6 +146,102 @@ public sealed class LanguageNameServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetNamesAsync_HitsDatabase_WhenWarmCacheAbsent()
+    {
+        await using var db = new MediaDbContext(Options);
+
+        var lang = new Language
+        {
+            LanguageCode = "DBX",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = lang.Id,
+            DisplayLanguageCode = "E",
+            Name = "Database Only Batch",
+            Language = lang,
+        });
+
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut();
+        var map = await sut.GetNamesAsync([lang.Id], displayLanguageCode: "E");
+
+        Assert.Single(map);
+        Assert.Equal("Database Only Batch", map[lang.Id]);
+    }
+
+    [Fact]
+    public async Task CachedReads_ReturnNullUntilWarmEvenWhenSeedDataExists()
+    {
+        await SeedSingleLanguageAsync(languageCode: "XU", englishName: "Xuanyi");
+        var sut = CreateSut();
+
+        Assert.Null(sut.GetNameCached(1));
+        Assert.Null(sut.GetNameByLanguageCodeCached("xu"));
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Equal("Xuanyi", sut.GetNameCached(1));
+        Assert.Equal("Xuanyi", sut.GetNameByLanguageCodeCached("XU"));
+    }
+
+    [Fact]
+    public async Task GetNameAsync_QueriesDatabaseWhenDisplayLocaleDiffersFromWarmedCache()
+    {
+        await using var db = new MediaDbContext(Options);
+
+        var lang = new Language
+        {
+            LanguageCode = "ZJ",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = lang.Id,
+            DisplayLanguageCode = "E",
+            Name = "ZJ Displayed In English",
+            Language = lang,
+        });
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = lang.Id,
+            DisplayLanguageCode = "M",
+            Name = "ZJ Displayed Alternate",
+            Language = lang,
+        });
+
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut();
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Equal("ZJ Displayed In English", sut.GetNameCached(lang.Id));
+
+        Assert.Equal(
+            "ZJ Displayed Alternate",
+            await sut.GetNameAsync(lang.Id, displayLanguageCode: "M"));
+    }
+
+    [Fact]
+    public async Task GetNameByLanguageCodeCached_ReturnsNull_ForWhitespaceEvenWhenCacheWarmed()
+    {
+        await SeedSingleLanguageAsync(languageCode: "NL", englishName: "Netherlands");
+        var sut = CreateSut();
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Null(sut.GetNameByLanguageCodeCached(" "));
+    }
+
+    [Fact]
     public async Task WarmCache_IgnoresBlank_DisplayLanguageCodes()
     {
         await SeedSingleLanguageAsync(languageCode: "JP", englishName: "Japanese");
