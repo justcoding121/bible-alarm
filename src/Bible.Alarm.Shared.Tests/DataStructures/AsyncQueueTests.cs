@@ -74,6 +74,31 @@ public sealed class AsyncQueueTests
     }
 
     [Fact]
+    public async Task EnqueueAsync_ThrowsOperationCanceled_WhenTokenCanceledBeforeWait()
+    {
+        using var queue = new AsyncQueue<int>();
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            queue.EnqueueAsync(1, taskCancellationToken: cts.Token));
+    }
+
+    [Fact]
+    public async Task PeekAsync_ReturnsNullWhenEmpty_ForNullableValueType()
+    {
+        using var queue = new AsyncQueue<int?>();
+        Assert.Null(await queue.PeekAsync());
+    }
+
+    [Fact]
+    public async Task PeekAsync_ReturnsNullWhenEmpty_ForReferenceType()
+    {
+        using var queue = new AsyncQueue<string>();
+        Assert.Null(await queue.PeekAsync());
+    }
+
+    [Fact]
     public void Operations_after_Dispose_throw_ObjectDisposedIncluding_EnqueueAsync()
     {
         var queue = new AsyncQueue<int>();
