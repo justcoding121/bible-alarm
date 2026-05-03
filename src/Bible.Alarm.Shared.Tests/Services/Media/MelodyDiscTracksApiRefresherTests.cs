@@ -10,6 +10,7 @@ using Bible.Alarm.Shared.Services.Media;
 using Bible.Alarm.Shared.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Shared.Tests;
 
@@ -58,8 +59,8 @@ public sealed class MelodyDiscTracksApiRefresherTests
     {
         var (connection, options) = await CreateConnectionAndOptionsAsync();
         await using (connection)
-        await using (var db = new MediaDbContext(options))
         {
+            await using var db = new MediaDbContext(options);
             var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
             db.Categories.Add(musicCat);
             await db.SaveChangesAsync();
@@ -93,7 +94,74 @@ public sealed class MelodyDiscTracksApiRefresherTests
     }
 
     [Fact]
-    public async Task ReplaceDiscSectionTracks_ReturnsTrue_When_Fetch_Succeeds()
+    public async Task ReplaceDiscSectionTracks_ReturnsFalse_When_ScopeFactoryThrows()
+    {
+        var sut = new MelodyDiscTracksApiRefresher(
+            new ThrowingScopeFactory(),
+            new HttpClient(new JsonHandler("{}")),
+            TestLogging.CreateLogger());
+
+        Assert.False(await sut.ReplaceDiscSectionTracksFromApiAsync(
+            AppConstants.Media.MelodyMusicPublicationCodeIam,
+            "iam-1"));
+    }
+
+    [Fact]
+    public async Task ReplaceDiscSectionTracks_ReturnsFalse_When_NoLanguagePublication_Row_Has_Language_Id()
+    {
+        var (connection, options) = await CreateConnectionAndOptionsAsync();
+        await using (connection)
+        {
+            await using var db = new MediaDbContext(options);
+            var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+            db.Categories.Add(musicCat);
+
+            var lang = new Language
+            {
+                LanguageCode = AppConstants.Media.DefaultLanguageCode,
+                Direction = AppConstants.Media.TextDirectionLeftToRight,
+            };
+            db.Languages.Add(lang);
+            await db.SaveChangesAsync();
+
+            db.BiblePublications.Add(new BiblePublication
+            {
+                Name = "Not instrumental row",
+                PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+                LanguageId = lang.Id,
+                Language = lang,
+                IsVideo = false,
+                IsMusic = true,
+                BiblePublicationCategories =
+                [
+                    new BiblePublicationCategory { Category = musicCat, CategoryId = musicCat.Id },
+                ],
+                Sections =
+                [
+                    new BiblePublicationSection
+                    {
+                        Name = "Disc",
+                        SectionCode = "iam-9",
+                        Tracks = [],
+                    },
+                ],
+                Tracks = [],
+            });
+            await db.SaveChangesAsync();
+
+            var sut = new MelodyDiscTracksApiRefresher(
+                new MediaTestScopeFactory(options),
+                new HttpClient(new JsonHandler("{}")),
+                TestLogging.CreateLogger());
+
+            Assert.False(await sut.ReplaceDiscSectionTracksFromApiAsync(
+                AppConstants.Media.MelodyMusicPublicationCodeIam,
+                "iam-9"));
+        }
+    }
+
+    [Fact]
+    public async Task ReplaceDiscSectionTracks_ReturnsTrue_When_Fetch_Succeeds_With_Trimmed_Codes_And_MixedSectionCasing()
     {
         const string json =
             "{\"files\":{\"E\":{\"MP3\":[{\"file\":{\"url\":\"https://melody.example/t.mp3\"},\"track\":7,\"title\":\"Track\"}]}},\"pubName\":\"Melody\"}";
@@ -140,8 +208,8 @@ public sealed class MelodyDiscTracksApiRefresherTests
                     TestLogging.CreateLogger());
 
                 Assert.True(await sut.ReplaceDiscSectionTracksFromApiAsync(
-                    AppConstants.Media.MelodyMusicPublicationCodeIam,
-                    "Iam-9"));
+                    " " + AppConstants.Media.MelodyMusicPublicationCodeIam + "  ",
+                    "IAM-9"));
             }
 
             await using (var verify = new MediaDbContext(options))
@@ -156,5 +224,11 @@ public sealed class MelodyDiscTracksApiRefresherTests
                 Assert.Contains("melody.example", track.TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
             }
         }
+    }
+
+    private sealed class ThrowingScopeFactory : IServiceScopeFactory
+    {
+        public IServiceScope CreateScope() =>
+            throw new InvalidOperationException("scope failure");
     }
 }
