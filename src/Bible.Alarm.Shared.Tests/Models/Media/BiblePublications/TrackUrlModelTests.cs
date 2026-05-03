@@ -7,6 +7,15 @@ namespace Bible.Alarm.Shared.Tests;
 public sealed class TrackUrlModelTests
 {
     [Fact]
+    public void Url_accepts_MaxLength_annotation_2000()
+    {
+        var url2000 = new string('x', 2000);
+        var sut = new TrackUrl { Url = url2000 };
+
+        Assert.Equal(2000, sut.Url.Length);
+    }
+
+    [Fact]
     public void Default_ctor_uses_clr_defaults_for_all_fields()
     {
         var sut = new TrackUrl();

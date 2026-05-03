@@ -6,6 +6,47 @@ namespace Bible.Alarm.Shared.Tests;
 public sealed class PublicationSortHelperTests
 {
     [Fact]
+    public void SortByPriority_returns_single_element_without_altering_identity()
+    {
+        IEnumerable<BiblePublicationCodeItem> pubs = [new("only", "Solo")];
+
+        var ordered = PublicationSortHelper.SortByPriority(pubs, static p => p.Code, static p => p.Name).ToList();
+
+        Assert.Single(ordered);
+        Assert.Equal("only", ordered[0].Code);
+    }
+
+    [Fact]
+    public void SortByPriorityForCategory_music_single_item_keeps_that_row()
+    {
+        IEnumerable<BiblePublicationCodeItem> pubs = [new(AppConstants.Media.MusicPublicationCodeSjjc, "Sing")];
+
+        var ordered = PublicationSortHelper.SortByPriorityForCategory(
+                pubs,
+                static p => p.Code,
+                static p => p.Name,
+                AppConstants.Media.BiblePublicationCategoryMusic)
+            .ToList();
+
+        Assert.Single(ordered);
+        Assert.Equal(AppConstants.Media.MusicPublicationCodeSjjc, ordered[0].Code);
+    }
+
+    [Fact]
+    public void SortByPriority_DictionaryOverload_WithSingle_Returns_ordered_pair()
+    {
+        var dict = new Dictionary<string, string>
+        {
+            ["zzz"] = "Z",
+        };
+
+        var ordered = PublicationSortHelper.SortByPriority(dict);
+
+        Assert.Single(ordered);
+        Assert.Equal("zzz", ordered[0].Key);
+    }
+
+    [Fact]
     public void SortByPriority_ReturnsEmpty_WhenPublicationsNull()
     {
         Assert.Empty(PublicationSortHelper.SortByPriority<BiblePublicationCodeItem>(
