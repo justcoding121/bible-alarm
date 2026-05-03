@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Shared.Tests;
@@ -117,6 +116,31 @@ public sealed class GetPubMediaLinksRetryTests
     }
 
     [Fact]
+    public async Task GetStringAsync_TrimsTrailingSlash_FromBaseUrls_BeforeConcatenatingQuery()
+    {
+        using var inner = new CallbackHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("trimmed"),
+            });
+
+        using var client = new HttpClient(inner);
+
+        var result = await GetPubMediaLinksRetry.GetStringAsync(
+            client,
+            ["https://stub.local///"],
+            "?q=z");
+
+        Assert.Equal("trimmed", result);
+
+        var actual = inner.LastRequestUri;
+        Assert.StartsWith("https://stub.local", actual, StringComparison.Ordinal);
+        Assert.EndsWith("?q=z", actual, StringComparison.Ordinal);
+        Assert.False(actual.Contains("local///", StringComparison.Ordinal));
+        Assert.Equal(1, inner.AttemptCount);
+    }
+
+    [Fact]
     public async Task GetStringAsync_Retries_AfterTaskCanceled_WhenCancellationNotRequested()
     {
         var calls = 0;
@@ -145,6 +169,9 @@ public sealed class GetPubMediaLinksRetryTests
     private sealed class CallbackHandler(Func<int, HttpResponseMessage> onCall) : HttpMessageHandler
     {
         private int _callSeq;
+
+        public int AttemptCount => Volatile.Read(ref _callSeq);
+
         public string LastRequestUri { get; private set; } = "";
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
