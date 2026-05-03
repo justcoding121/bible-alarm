@@ -28,6 +28,18 @@ public sealed class GeneralSettingsServiceTests : IAsyncLifetime
     public Task DisposeAsync() => connection.DisposeAsync().AsTask();
 
     [Fact]
+    public void Constructor_ThrowsWhenScopeFactoryNull()
+        => Assert.Throws<ArgumentNullException>(() =>
+            new GeneralSettingsService(null!, TestLogging.CreateLogger()));
+
+    [Fact]
+    public void Constructor_ThrowsWhenLoggerNull()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            new GeneralSettingsService(new ScheduleTestScopeFactory(Options), null!));
+    }
+
+    [Fact]
     public async Task SetGetAndExist_Roundtrip()
     {
         using var service = CreateService();

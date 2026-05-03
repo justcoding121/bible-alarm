@@ -32,6 +32,18 @@ public sealed class LanguageNameServiceTests : IAsyncLifetime
     public Task DisposeAsync() => connection.DisposeAsync().AsTask();
 
     [Fact]
+    public void Constructor_ThrowsWhenScopeFactoryNull()
+        => Assert.Throws<ArgumentNullException>(() =>
+            new LanguageNameService(null!, TestLogging.CreateLogger()));
+
+    [Fact]
+    public void Constructor_ThrowsWhenLoggerNull()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            new LanguageNameService(new MediaTestScopeFactory(Options), null!));
+    }
+
+    [Fact]
     public async Task GetNameAsync_ReturnsNull_WhenDisplayLanguageBlank()
     {
         await SeedSingleLanguageAsync(languageCode: "E", englishName: "English");

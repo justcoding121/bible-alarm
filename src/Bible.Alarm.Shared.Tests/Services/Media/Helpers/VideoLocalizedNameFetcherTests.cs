@@ -140,4 +140,42 @@ public sealed class VideoLocalizedNameFetcherTests
 
         Assert.Null(result);
     }
+
+    public static TheoryData<string, string> MediatorMappedVideoPublicationPairs { get; } =
+        new()
+        {
+            { AppConstants.Media.NormalizedPublicationCodeVODMoviesBibleTimes, AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes },
+            { AppConstants.Media.NormalizedPublicationCodeVODMoviesModernDay, AppConstants.Media.BiblePublicationCodeVODMoviesModernDay },
+            { AppConstants.Media.NormalizedPublicationCodeVODMoviesAnimated, AppConstants.Media.BiblePublicationCodeVODMoviesAnimated },
+            { AppConstants.Media.NormalizedPublicationCodeVODMoviesExtras, AppConstants.Media.BiblePublicationCodeVODMoviesExtras },
+            { AppConstants.Media.NormalizedPublicationCodeSeriesDigForTreasures, AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures },
+            { AppConstants.Media.NormalizedPublicationCodeSeriesBJFLessons, AppConstants.Media.BiblePublicationCodeSeriesBJFLessons },
+        };
+
+    [Theory]
+    [MemberData(nameof(MediatorMappedVideoPublicationPairs))]
+    public async Task Fetch_HitsMediatorPath_ForEachMappedVideoPublication(string normalizedPublicationCode, string expectedCategorySegment)
+    {
+        var expectedSubstring =
+            $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/E/{expectedCategorySegment}";
+
+        using var handler = new StubHandler(request =>
+        {
+            Assert.True(
+                request.RequestUri?.AbsoluteUri.Contains(expectedSubstring, StringComparison.OrdinalIgnoreCase) == true,
+                $"Unexpected request URI for {normalizedPublicationCode}: {request.RequestUri}");
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(CategoryNameJson("Localized")),
+            };
+        });
+
+        var sut = CreateSut(handler);
+
+        var result = await sut.FetchVideoLocalizedNameFromMediatorAsync(
+            normalizedPublicationCode,
+            normalizedLanguageCode: "E");
+
+        Assert.Equal("Localized", result);
+    }
 }
