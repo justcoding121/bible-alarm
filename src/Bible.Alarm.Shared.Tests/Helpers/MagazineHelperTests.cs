@@ -32,6 +32,14 @@ public sealed class MagazineHelperTests
     }
 
     [Fact]
+    public void IsMagazineCode_DetectorsIgnoreCase_OnYearPrefixLetter()
+    {
+        Assert.True(MagazineHelper.IsWatchtowerMagazineCode($"W{MagazineHelper.MagazineStartYear}"));
+        Assert.True(MagazineHelper.IsAwakeMagazineCode($"G{MagazineHelper.MagazineStartYear}"));
+        Assert.True(MagazineHelper.IsMagazinePublicationCode($"G{MagazineHelper.MagazineStartYear}"));
+    }
+
+    [Fact]
     public void GetYear_ParsesTrailingYearDigits()
     {
         Assert.Equal(2012, MagazineHelper.GetYear("w2012"));

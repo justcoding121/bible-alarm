@@ -37,4 +37,21 @@ public sealed class SectionFetcherSqliteExceptionHelperTests
         sqlite = new SqliteException("other", 1);
         Assert.False(SectionFetcherSqliteExceptionHelper.IsUniqueConstraintViolation(sqlite));
     }
+
+    [Fact]
+    public void IsUniqueConstraintViolation_UnwrapsInnerSqliteExceptions()
+    {
+        var sqlite = new SqliteException("constraint", 19);
+        var outer = new Exception("wrapped", sqlite);
+        Assert.True(SectionFetcherSqliteExceptionHelper.IsUniqueConstraintViolation(outer));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(19)]
+    public void IsBusyOrLocked_ReturnsFalse_WhenSqliteCodeIsNotBusyOrLocked(int sqliteErrorCode)
+    {
+        var sqlite = new SqliteException("other", sqliteErrorCode);
+        Assert.False(SectionFetcherSqliteExceptionHelper.IsBusyOrLocked(sqlite));
+    }
 }

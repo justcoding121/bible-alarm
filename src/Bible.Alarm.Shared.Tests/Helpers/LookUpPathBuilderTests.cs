@@ -73,6 +73,42 @@ public sealed class LookUpPathBuilderTests
     }
 
     [Fact]
+    public void BuildBiblePublicationTrackLookUpPath_TrimsLanguageCode_WhenProvided()
+    {
+        var q = LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(
+            "  X  ",
+            AppConstants.Media.BiblePublicationCodeNwt,
+            "1",
+            "1");
+
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}=X", q);
+    }
+
+    [Fact]
+    public void BuildBiblePublicationTrackLookUpPath_ForcesDefaultLanguage_WhenMarkedNoLanguagePublication()
+    {
+        var q = LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(
+            "RU",
+            AppConstants.Media.BiblePublicationCodeNwt,
+            "1",
+            "1",
+            isNoLanguagePublication: true);
+
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}", q);
+    }
+
+    [Fact]
+    public void BuildMusicTrackLookUpPath_UsesProvidedLanguage_WhenNotDiscStyleDownload()
+    {
+        var q = LookUpPathBuilder.BuildMusicTrackLookUpPath(
+            AppConstants.Media.MusicPublicationCodeSjjc,
+            "FR",
+            "1");
+
+        Assert.Contains($"{AppConstants.Media.GetPubQueryParamLangWritten}=FR", q);
+    }
+
+    [Fact]
     public void BuildMusicTrackLookUpPath_PrefersDownloadCode_OverPublicationCode()
     {
         var q = LookUpPathBuilder.BuildMusicTrackLookUpPath(
