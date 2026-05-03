@@ -22,6 +22,8 @@ public sealed class MagazineHelperTests
         Assert.False(MagazineHelper.IsWatchtowerMagazineCode("watchtower2009")); // lacks leading w...
         Assert.False(MagazineHelper.IsWatchtowerMagazineCode($"{MagazineHelper.MagazineStartYear}w")); // wrong shape
         Assert.False(MagazineHelper.IsWatchtowerMagazineCode($"w{MagazineHelper.MagazineStartYear}z"));
+        Assert.False(MagazineHelper.IsWatchtowerMagazineCode($"{MagazineHelper.MagazineStartYear}")); // numeric-only, no prefix
+        Assert.False(MagazineHelper.IsWatchtowerMagazineCode($"w{MagazineHelper.MagazineStartYear}x")); // trailing garbage
     }
 
     [Fact]
@@ -83,6 +85,10 @@ public sealed class MagazineHelperTests
         var (apiNested, issueNested) = MagazineHelper.ParseSectionCode("prefix-suffix-issue-wp");
         Assert.Equal("wp", apiNested);
         Assert.Equal("prefix-suffix-issue", issueNested);
+
+        var (apiLeadingDash, emptyIssue) = MagazineHelper.ParseSectionCode("-wp");
+        Assert.Equal("wp", apiLeadingDash);
+        Assert.Empty(emptyIssue);
     }
 
     [Fact]
@@ -108,9 +114,27 @@ public sealed class MagazineHelperTests
     [InlineData("Pub", null, "Pub")]
     [InlineData(null, "Jan", "Jan")]
     [InlineData("Pub", "Jan", "Pub — Jan")]
+    [InlineData("Watchtower &amp; Study", null, "Watchtower & Study")]
+    [InlineData("Issue", "Jan \u00A01", "Issue — Jan  1")]
     public void BuildSectionName_FormatsDecodedStrings(string? pub, string? date, string expected)
     {
         Assert.Equal(expected, MagazineHelper.BuildSectionName(pub, date));
+    }
+
+    [Fact]
+    public void BuildSectionName_CombinesHtmlDecodedPubAndPlainDate()
+    {
+        Assert.Equal(
+            "A & B — Jan",
+            MagazineHelper.BuildSectionName("A &amp; B", "Jan"));
+    }
+
+    [Fact]
+    public void GetPossibleIssues_Awake_EmitsMonthlyCodesEndingWithDecember()
+    {
+        var issues = MagazineHelper.GetPossibleIssues(MagazineHelper.MagazineStartYear, isWatchtower: false);
+        Assert.Equal(12, issues.Count);
+        Assert.Contains(("g", $"{MagazineHelper.MagazineStartYear}12"), issues);
     }
 
     [Fact]
