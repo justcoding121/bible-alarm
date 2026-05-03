@@ -51,4 +51,14 @@ public sealed class CategoryModelTests
         var b = Cat(id: 0, code: "A");
         Assert.NotEqual(a.GetHashCode(), b.GetHashCode());
     }
+
+    [Fact]
+    public void GetHashCode_Uses_stable_identifier_hash_when_id_non_zero()
+    {
+        var x = Cat(id: 602, code: "Bible");
+        var sameIdDifferentCode = Cat(id: 602, code: "Other");
+
+        Assert.Equal(x.GetHashCode(), sameIdDifferentCode.GetHashCode());
+        Assert.True(x.Equals(sameIdDifferentCode));
+    }
 }

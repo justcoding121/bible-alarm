@@ -48,11 +48,39 @@ public sealed class AsyncQueueTests
     }
 
     [Fact]
-    public void OperationsAfterDispose_ThrowObjectDisposedException()
+    public async Task Count_tracks_buffered_items_not_yet_consumed()
+    {
+        using var queue = new AsyncQueue<int>();
+
+        Assert.Equal(0, queue.Count);
+        await queue.EnqueueAsync(9);
+        await queue.EnqueueAsync(8);
+
+        Assert.Equal(2, queue.Count);
+        Assert.Equal(9, await queue.DequeueAsync());
+        Assert.Equal(1, queue.Count);
+    }
+
+    [Fact]
+    public async Task DequeueAsync_waiting_consumer_completes_canceled_when_token_pre_canceled()
+    {
+        using var queue = new AsyncQueue<int>();
+        using var cts = new CancellationTokenSource();
+
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<TaskCanceledException>(() =>
+            queue.DequeueAsync(taskCancellationToken: cts.Token));
+    }
+
+    [Fact]
+    public void Operations_after_Dispose_throw_ObjectDisposedIncluding_EnqueueAsync()
     {
         var queue = new AsyncQueue<int>();
         queue.Dispose();
+
         Assert.Throws<ObjectDisposedException>(() => queue.PeekAsync().GetAwaiter().GetResult());
+        Assert.Throws<ObjectDisposedException>(() => queue.EnqueueAsync(3).GetAwaiter().GetResult());
     }
 
     [Fact]
