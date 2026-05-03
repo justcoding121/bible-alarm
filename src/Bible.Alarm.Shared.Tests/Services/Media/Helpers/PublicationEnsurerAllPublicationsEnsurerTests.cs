@@ -281,4 +281,47 @@ public sealed class PublicationEnsurerAllPublicationsEnsurerTests
             Assert.False(ok);
         }
     }
+
+    [Fact]
+    public async Task Ensure_ReturnsFalse_When_Delegate_Throws_Generic_Exception()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var langGq = new Language
+                {
+                    LanguageCode = "GQ",
+                    Direction = AppConstants.Media.TextDirectionLeftToRight,
+                };
+                var cat = new Category { CategoryCode = "EnsPubThrowCat" };
+
+                seed.Languages.Add(langGq);
+                seed.Categories.Add(cat);
+                await seed.SaveChangesAsync();
+
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "throw-pl",
+                    Category = cat,
+                    Language = langGq,
+                    IsMusic = false,
+                    CatalogType = CatalogType.Flat,
+                });
+
+                await seed.SaveChangesAsync();
+            }
+
+            Task<bool> Boom(string publicationCode, string languageCode, IFetchProgress? progress, CancellationToken ct) =>
+                throw new InvalidOperationException("delegated fetch failure simulation");
+
+            var sut = new PublicationEnsurerAllPublicationsEnsurer(
+                factory, TestLogging.CreateLogger(), Boom);
+
+            Assert.False(await sut.EnsureAllPublicationsForLanguageAsync("gq"));
+        }
+    }
 }

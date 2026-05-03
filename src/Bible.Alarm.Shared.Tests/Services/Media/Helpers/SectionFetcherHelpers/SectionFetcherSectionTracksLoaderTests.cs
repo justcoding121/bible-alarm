@@ -186,6 +186,25 @@ public sealed class SectionFetcherSectionTracksLoaderTests
     }
 
     [Fact]
+    public async Task FetchSectionTracksAsync_ReturnsFalse_When_Format_Array_Is_Empty()
+    {
+        var (connection, db, bibleCat, lang) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var pub = CreateBiblePublication(bibleCat, lang);
+            db.BiblePublications.Add(pub);
+            await db.SaveChangesAsync();
+
+            var section = pub.Sections[0];
+            using var handler = new JsonHandler("{\"files\":{\"E\":{\"MP3\":[]}},\"pubName\":\"NWT\"}");
+            var sut = CreateLoader(handler);
+
+            Assert.False(await sut.FetchSectionTracksAsync(BuildRequest(db, pub, section, handler)));
+        }
+    }
+
+    [Fact]
     public async Task FetchSectionTracksAsync_ReturnsFalse_When_Language_Or_Format_Missing_In_Files()
     {
         var (connection, db, bibleCat, lang) = await CreateDbAsync();
