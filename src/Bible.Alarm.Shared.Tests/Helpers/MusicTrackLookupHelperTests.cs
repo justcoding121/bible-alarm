@@ -23,6 +23,7 @@ public sealed class MusicTrackLookupHelperTests
     {
         var tracks = Tracks((0, "1", "A"));
 
+        Assert.False(MusicTrackLookupHelper.TryGetByCode(null!, "1", out _));
         Assert.False(MusicTrackLookupHelper.TryGetByCode(tracks, (string?)null, out _));
         Assert.False(MusicTrackLookupHelper.TryGetByCode(tracks, "", out _));
         Assert.False(MusicTrackLookupHelper.TryGetByCode(tracks, "   ", out _));
@@ -61,5 +62,25 @@ public sealed class MusicTrackLookupHelperTests
         Assert.Equal(5, MusicTrackLookupHelper.GetKeyByCode(tracks, "010"));
         Assert.Null(MusicTrackLookupHelper.GetKeyByCode(tracks, ""));
         Assert.Null(MusicTrackLookupHelper.GetKeyByCode(tracks, "z"));
+    }
+
+    [Fact]
+    public void GetKeyByCode_ReturnsNull_WhenTracksNull()
+    {
+        Assert.Null(MusicTrackLookupHelper.GetKeyByCode(null!, "1"));
+    }
+
+    [Fact]
+    public void TryGetByCode_FirstDictionaryEnumeration_WinsWhenMultipleEquivalentNumericCodesExist()
+    {
+        var tracks = Tracks((42, "1", "Older"), (7, "01", "Newer"));
+        Assert.True(MusicTrackLookupHelper.TryGetByCode(tracks, "000001", out var hit));
+        Assert.Equal(42, hit.Key);
+        Assert.Equal("1", hit.Track.TrackCode);
+
+        tracks = Tracks((7, "01", "Newer"), (42, "1", "Older"));
+        Assert.True(MusicTrackLookupHelper.TryGetByCode(tracks, "1", out hit));
+        Assert.Equal(7, hit.Key);
+        Assert.Equal("01", hit.Track.TrackCode);
     }
 }

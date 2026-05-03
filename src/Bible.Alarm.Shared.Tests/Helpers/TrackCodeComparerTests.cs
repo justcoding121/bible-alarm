@@ -18,4 +18,13 @@ public sealed class TrackCodeComparerTests
         var cmp = TrackCodeComparer.Comparer;
         Assert.Equal(0, cmp.Compare("Jw", "jW"));
     }
+
+    [Fact]
+    public void Compare_DelegatesToCodeComparison_NullSemantics()
+    {
+        var cmp = TrackCodeComparer.Comparer;
+        Assert.Equal(0, cmp.Compare(null!, null!));
+        Assert.True(cmp.Compare(null!, "b") < 0);
+        Assert.True(cmp.Compare("a", null!) > 0);
+    }
 }
