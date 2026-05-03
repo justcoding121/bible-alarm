@@ -68,4 +68,45 @@ public sealed class MessageHandlerTests
         Assert.Equal(1, stateCalls);
         Assert.Equal(1, textCalls);
     }
+
+    [Fact]
+    public void HandlePreparationProgressMessage_when_throttled_skips_progress_text()
+    {
+        var manager = new PositionManager();
+        var sut = new MessageHandler(manager);
+        var stateCalls = 0;
+        var textCalls = 0;
+
+        var msg = new PlaybackPreparationProgressMessage
+        {
+            LoadedTracks = 1,
+            TotalTracks = 4,
+            TotalBytesDownloaded = 10,
+            TotalBytesExpected = null,
+            CurrentTrackProgress = 0,
+        };
+
+        sut.HandlePreparationProgressMessage(msg, (_, _, _, _) => stateCalls++, () => textCalls++);
+        sut.HandlePreparationProgressMessage(msg, (_, _, _, _) => stateCalls++, () => textCalls++);
+
+        Assert.Equal(1, stateCalls);
+        Assert.Equal(1, textCalls);
+    }
+
+    [Fact]
+    public void HandlePlaybackPositionMessage_null_position_still_refreshes_progress_text()
+    {
+        var progressTextCalls = 0;
+
+        MessageHandler.HandlePlaybackPositionMessage(
+            new PlaybackPositionChangedMessage(),
+            TimeSpan.FromMinutes(1),
+            currentUiProgress: 0,
+            _ => false,
+            _ => { },
+            _ => { },
+            () => progressTextCalls++);
+
+        Assert.Equal(1, progressTextCalls);
+    }
 }

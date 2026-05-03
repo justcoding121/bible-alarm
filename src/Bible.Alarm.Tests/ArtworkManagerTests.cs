@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
@@ -50,5 +51,92 @@ public sealed class ArtworkManagerTests
         sut.UpdateArtwork("https://example.com/z.png", _ => { }, _ => { }, forceReload: true);
 
         Assert.False(sut.HasArtwork);
+    }
+
+    [Fact]
+    public void UpdateArtwork_zero_byte_file_skips_load_and_clears()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"alarm_artwork_empty_{Guid.NewGuid():N}.bin");
+        File.WriteAllText(path, string.Empty);
+        try
+        {
+            var loadings = new List<bool>();
+            var sut = new ArtworkManager(TestLogging.CreateLogger());
+
+            sut.UpdateArtwork(path, _ => { }, loadings.Add);
+
+            Assert.False(sut.HasArtwork);
+            Assert.False(loadings[^1]);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(path);
+            }
+            catch
+            {
+                // best effort
+            }
+        }
+    }
+
+    [Fact]
+    public void UpdateArtwork_nonexistent_rooted_path_clears()
+    {
+        var missing = Path.Combine(Path.GetTempPath(), $"missing_artwork_{Guid.NewGuid():N}.png");
+        var loadings = new List<bool>();
+        var sut = new ArtworkManager(TestLogging.CreateLogger());
+
+        sut.UpdateArtwork(missing, _ => { }, loadings.Add);
+
+        Assert.False(sut.HasArtwork);
+        Assert.False(loadings[^1]);
+    }
+
+    [Fact]
+    public void UpdateArtwork_uses_file_scheme_uri_when_file_exists()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"alarm_artwork_bin_{Guid.NewGuid():N}.bin");
+        File.WriteAllBytes(path, [0x01, 0x02]);
+        try
+        {
+            var fileUrl = new Uri(path).AbsoluteUri;
+            Assert.StartsWith(MediaUriSchemeConstants.FilePrefix, fileUrl, StringComparison.OrdinalIgnoreCase);
+
+            ImageSource? bound = null;
+            var loadings = new List<bool>();
+            var sut = new ArtworkManager(TestLogging.CreateLogger());
+
+            sut.UpdateArtwork(fileUrl, s => bound = s, loadings.Add);
+
+            _ = bound;
+            Assert.False(loadings[^1]);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(path);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    [Fact]
+    public void UpdateArtwork_primary_failure_loads_https_fallback()
+    {
+        var loadings = new List<bool>();
+        var sut = new ArtworkManager(TestLogging.CreateLogger());
+
+        sut.UpdateArtwork(
+            "not-a-uri-or-path",
+            _ => { },
+            loadings.Add,
+            fallbackUrl: "https://example.com/fallback.png");
+
+        Assert.False(loadings[^1]);
     }
 }
