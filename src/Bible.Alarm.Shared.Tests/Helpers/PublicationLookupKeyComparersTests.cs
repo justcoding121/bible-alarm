@@ -42,6 +42,15 @@ public sealed class PublicationLookupKeyComparersTests
     }
 
     [Fact]
+    public void LanguagePublicationNullableSectionTrack_Tracks_UseOrdinal_ComparesNullAgainstEmptyDistinctly()
+    {
+        var c = PublicationLookupKeyComparers.LanguagePublicationNullableSectionTrack.Instance;
+        Assert.False(c.Equals(("E", "nw", null, null!), ("e", "NW", "", "")));
+        Assert.True(c.Equals(("E", "nw", null, null!), ("e", "NW", null, null!)));
+        Assert.True(setEqualsHash(c, ("E", "nw", null, null!), ("e", "nw", "", null!)));
+    }
+
+    [Fact]
     public void PublicationSection_TwoPartsOrdinalIgnoreCase()
     {
         var c = PublicationLookupKeyComparers.PublicationSection.Instance;
@@ -58,6 +67,15 @@ public sealed class PublicationLookupKeyComparersTests
         Assert.False(c.Equals(("nw", "", "a"), ("nw", "", "A")));
 
         Assert.True(setEqualsHash(c, ("nw", "", "t"), ("NW", null, "t")));
+    }
+
+    [Fact]
+    public void PublicationNullableSectionTrack_Tracks_UseOrdinal_ComparesNullAgainstEmptyDistinctly()
+    {
+        var c = PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance;
+        Assert.False(c.Equals(("nw", null, null!), ("NW", "", "")));
+        Assert.True(c.Equals(("nw", null, null!), ("NW", null, null!)));
+        Assert.True(setEqualsHash(c, ("mel", "", null!), ("MEL", null, null!)));
     }
 
     [Fact]

@@ -47,6 +47,38 @@ public sealed class PlayItemAndTrackMetadataTests
     }
 
     [Fact]
+    public void TrackMetadata_OptionalKeys_AndFlags_Roundtrip()
+    {
+        var now = DateTimeOffset.Parse("2026-03-02T06:05:04Z");
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 42,
+            NotificationTime = now,
+            NaturalKey = "natural",
+            DownloadCode = "disc-01",
+            OriginalTrackCode = 9,
+            IsLastTrack = true,
+            FinishedDuration = TimeSpan.FromMinutes(12),
+            SectionCode = "sec-x",
+            TrackCode = "3",
+            LanguageCode = "E",
+            PublicationCode = "nwt",
+            IsBibleContent = true,
+            LookUpPath = "/?q=1",
+        };
+
+        Assert.Equal(42L, meta.ScheduleId);
+        Assert.Equal(now, meta.NotificationTime);
+        Assert.Equal("natural", meta.NaturalKey);
+        Assert.Equal("disc-01", meta.DownloadCode);
+        Assert.Equal(9, meta.OriginalTrackCode);
+        Assert.True(meta.IsLastTrack);
+        Assert.Equal(TimeSpan.FromMinutes(12), meta.FinishedDuration);
+        Assert.Equal("/?q=1", meta.LookUpPath);
+    }
+
+    [Fact]
     public void PlayItem_ToString_Formats_BibleVsMusicSuffix()
     {
         var bibleMeta = new TrackMetadata
