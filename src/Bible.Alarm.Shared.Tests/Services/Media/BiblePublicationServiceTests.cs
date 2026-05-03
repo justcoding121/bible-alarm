@@ -357,6 +357,84 @@ public sealed class BiblePublicationServiceTests
     }
 
     [Fact]
+    public async Task GetDistinctLanguagesAsync_NoCategory_Second_Call_Uses_Cached_AllLanguages()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var bibleCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryBible };
+                var lang = new Language { LanguageCode = "X", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(bibleCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "pl-all-lang",
+                    Category = bibleCat,
+                    CategoryId = bibleCat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            _ = await sut.GetDistinctLanguagesAsync();
+            Assert.Equal(1, counting.CreateScopeCallCount);
+
+            _ = await sut.GetDistinctLanguagesAsync();
+            Assert.Equal(1, counting.CreateScopeCallCount);
+        }
+    }
+
+    [Fact]
+    public async Task GetDistinctLanguagesAsync_Music_With_IsMusicFilter_Second_Call_Uses_Separate_Cache_Key()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(musicCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "vocal-pl",
+                    Category = musicCat,
+                    CategoryId = musicCat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    IsMusic = true
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            _ = await sut.GetDistinctLanguagesAsync(
+                AppConstants.Media.BiblePublicationCategoryMusic,
+                filterIsMusicWhenMusicCategory: true);
+            Assert.Equal(1, counting.CreateScopeCallCount);
+
+            _ = await sut.GetDistinctLanguagesAsync(
+                AppConstants.Media.BiblePublicationCategoryMusic,
+                filterIsMusicWhenMusicCategory: true);
+            Assert.Equal(1, counting.CreateScopeCallCount);
+        }
+    }
+
+    [Fact]
     public async Task GetDistinctLanguagesAsync_Second_Call_Uses_Cache()
     {
         var (_, counting, connection) = await CreateFactoryAsync();
@@ -558,6 +636,273 @@ public sealed class BiblePublicationServiceTests
             Assert.NotNull(info);
             Assert.Equal(AppConstants.Media.BiblePublicationCategoryMusic, info!.Value.CategoryCode);
             Assert.True(info.Value.IsMusic);
+        }
+    }
+
+    [Fact]
+    public async Task GetPublicationCategoryInfoAsync_From_PublicationLanguage_When_Not_Cataloged()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(musicCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "discovery-only-cc",
+                    Category = musicCat,
+                    CategoryId = musicCat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            var info = await sut.GetPublicationCategoryInfoAsync("E", "discovery-only-cc");
+
+            Assert.NotNull(info);
+            Assert.Equal(AppConstants.Media.BiblePublicationCategoryMusic, info!.Value.CategoryCode);
+            Assert.True(info.Value.IsMusic);
+        }
+    }
+
+    [Fact]
+    public async Task GetPublicationCategoryInfoAsync_ForMakingMusic_Pl_Inference_Has_IsMusic_False_Even_With_Music_Category()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(musicCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = AppConstants.Media.MediatorPublicationCodeMakingMusic,
+                    Category = musicCat,
+                    CategoryId = musicCat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    IsMusic = true
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            var info = await sut.GetPublicationCategoryInfoAsync("E", AppConstants.Media.MediatorPublicationCodeMakingMusic);
+
+            Assert.NotNull(info);
+            Assert.Equal(AppConstants.Media.BiblePublicationCategoryMusic, info!.Value.CategoryCode);
+            Assert.False(info.Value.IsMusic);
+        }
+    }
+
+    [Fact]
+    public async Task GetByLanguageCodeAsync_When_Music_Category_And_FilterIsMusic_Includes_IsMusic_Publications_Only()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(musicCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = "not-music-song-list",
+                    Name = "A",
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = musicCat, CategoryId = musicCat.Id }
+                    ],
+                    Sections = [],
+                    Tracks = [],
+                    IsVideo = false,
+                    IsMusic = false
+                });
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = "music-song-list",
+                    Name = "B",
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = musicCat, CategoryId = musicCat.Id }
+                    ],
+                    Sections = [],
+                    Tracks = [],
+                    IsVideo = false,
+                    IsMusic = true
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            var map = await sut.GetByLanguageCodeAsync(
+                "E",
+                AppConstants.Media.BiblePublicationCategoryMusic,
+                filterIsMusicWhenMusicCategory: true);
+
+            Assert.Single(map);
+            Assert.True(map.TryGetValue("music-song-list", out var pub));
+            Assert.Equal("B", pub.Name);
+        }
+    }
+
+    [Fact]
+    public async Task GetAvailablePublicationCodesAsync_Includes_PublicationLanguage_Rows_With_Null_LanguageId()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var cat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(cat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "lang-backed",
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    IsMusic = false
+                });
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "no-lang-id-row",
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    LanguageId = null,
+                    Language = null,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            var codes = await sut.GetAvailablePublicationCodesAsync("E", AppConstants.Media.BiblePublicationCategoryMusic);
+
+            Assert.Contains("lang-backed", codes);
+            Assert.Contains("no-lang-id-row", codes);
+        }
+    }
+
+    [Fact]
+    public async Task GetByLanguageAndCodeWithTracksAsync_Second_Call_Reuses_Cache_Within_Ttl()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var bibleCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryBible };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(bibleCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = "bps-tracks-cache",
+                    Name = "Tracks cached",
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = bibleCat, CategoryId = bibleCat.Id }
+                    ],
+                    Sections = [],
+                    Tracks = [],
+                    IsVideo = false,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            _ = await sut.GetByLanguageAndCodeWithTracksAsync("E", "bps-tracks-cache");
+            _ = await sut.GetByLanguageAndCodeWithTracksAsync("E", "bps-tracks-cache");
+
+            Assert.Equal(1, counting.CreateScopeCallCount);
+        }
+    }
+
+    [Fact]
+    public async Task GetByLanguageAndCodeWithTracksAsync_Canonicalizes_Mediator_Publication_Code_For_Query_And_Invalidate()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var bibleCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryBible };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(bibleCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+                    Name = "Canonical drama",
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = bibleCat, CategoryId = bibleCat.Id }
+                    ],
+                    Sections = [],
+                    Tracks = [],
+                    IsVideo = false,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            _ = await sut.GetByLanguageAndCodeWithTracksAsync("E", "vodmoviesbibletimes");
+
+            sut.InvalidatePublicationCaches("e", "VODmoviesBIBLEtimes");
+
+            _ = await sut.GetByLanguageAndCodeWithTracksAsync("E", "vodmoviesbibletimes");
+
+            Assert.Equal(2, counting.CreateScopeCallCount);
         }
     }
 
