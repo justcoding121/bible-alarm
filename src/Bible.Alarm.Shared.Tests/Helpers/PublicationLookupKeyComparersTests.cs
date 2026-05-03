@@ -97,6 +97,62 @@ public sealed class PublicationLookupKeyComparersTests
         Assert.False(c.Equals(("nw", "E"), ("aw", "E")));
     }
 
+    [Fact]
+    public void LanguagePublication_FalseWhenPublicationOrLanguageNormalizeDiffersBeyondCasePairs()
+    {
+        var c = PublicationLookupKeyComparers.LanguagePublication.Instance;
+        Assert.False(c.Equals(("E", "nw"), ("E", "bi12")));
+        Assert.False(c.Equals(("e", "nw"), ("EN", "nw")));
+    }
+
+    [Fact]
+    public void LanguagePublicationSection_FalseWhenLanguagePublicationOrSectionDiffersIgnoringCaseAgreement()
+    {
+        var c = PublicationLookupKeyComparers.LanguagePublicationSection.Instance;
+        Assert.False(c.Equals(("E", "nw", "1"), ("F", "nw", "1")));
+        Assert.False(c.Equals(("E", "nw", "1"), ("E", "bi12", "1")));
+        Assert.False(c.Equals(("E", "nw", "1"), ("E", "nw", "2")));
+    }
+
+    [Fact]
+    public void PublicationSection_FalseWhenPublicationOrSectionDiffersIgnoringCaseAgreement()
+    {
+        var c = PublicationLookupKeyComparers.PublicationSection.Instance;
+        Assert.False(c.Equals(("nw", "mat"), ("bi12", "mat")));
+        Assert.False(c.Equals(("nw", "mat"), ("nw", "mrk")));
+    }
+
+    [Fact]
+    public void PublicationNullableLanguageCode_FalseWhenPublicationDiffersIgnoringLanguageNormalization()
+    {
+        var c = PublicationLookupKeyComparers.PublicationNullableLanguageCode.Instance;
+        Assert.False(c.Equals(("nw", ""), ("nwt", "")));
+        Assert.False(c.Equals(("osg", null), ("IAM", "")));
+    }
+
+    [Fact]
+    public void LanguagePublicationNullableSectionTrack_FalseWhenSectionOrOrdinalTrackMismatch()
+    {
+        var c = PublicationLookupKeyComparers.LanguagePublicationNullableSectionTrack.Instance;
+        Assert.False(c.Equals(("e", "nw", "mk-1", "1"), ("e", "nw", "jn-9", "1")));
+        Assert.False(c.Equals(("e", "nw", "", "2"), ("e", "nw", "", "2 ")));
+    }
+
+    [Fact]
+    public void PublicationNullableSectionTrack_FalseWhenSectionOrOrdinalTrackMismatch()
+    {
+        var c = PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance;
+        Assert.False(c.Equals(("nw", "10", "1"), ("NW", "11", "1")));
+        Assert.False(c.Equals(("nw", "", "a"), ("nw", "", "A")));
+    }
+
+    [Fact]
+    public void PublicationLanguage_FalseWhenLanguageCodeMismatchIgnoringPublicationCaseAgreement()
+    {
+        var c = PublicationLookupKeyComparers.PublicationLanguage.Instance;
+        Assert.False(c.Equals(("nw", "E"), ("nw", "M")));
+    }
+
     /// <summary>Equal tuples must collapse to identical hash codes for dictionaries/sets.</summary>
     private static bool setEqualsHash<T>(IEqualityComparer<T> comparer, T x, T y)
         where T : notnull
