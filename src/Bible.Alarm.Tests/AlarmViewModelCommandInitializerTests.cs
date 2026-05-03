@@ -99,10 +99,16 @@ public sealed class AlarmViewModelCommandInitializerTests
     private sealed class RecordingSchedulePlaybackService : ISchedulePlaybackService
     {
         public List<int> PlayScheduleIds { get; } = [];
+        public Exception? ThrowFromPlaySchedule { get; set; }
 
         public Task PlayScheduleAsync(int scheduleId)
         {
             PlayScheduleIds.Add(scheduleId);
+            if (ThrowFromPlaySchedule is { } ex)
+            {
+                throw ex;
+            }
+
             return Task.CompletedTask;
         }
 
@@ -359,6 +365,21 @@ public sealed class AlarmViewModelCommandInitializerTests
 
         Assert.Equal(99, Assert.Single(schedule.PlayScheduleIds));
         Assert.Empty(playback.Calls);
+        Assert.Equal(new[] { true, false }, busy);
+    }
+
+    [Fact]
+    public async Task CreateRetryCommand_WhenAlarmPlayScheduleThrows_StillClearsBusy()
+    {
+        var playback = new RecordingPlaybackService { IsAlarmPlaybackSession = true };
+        var schedule = new RecordingSchedulePlaybackService { ThrowFromPlaySchedule = new IOException("schedule") };
+        var sut = CreateSut(playback, schedule);
+        var busy = new List<bool>();
+        var cmd = sut.CreateRetryCommand(() => 22, () => true, busy.Add);
+
+        await ExecuteAsync(cmd);
+
+        Assert.Equal(22, Assert.Single(schedule.PlayScheduleIds));
         Assert.Equal(new[] { true, false }, busy);
     }
 

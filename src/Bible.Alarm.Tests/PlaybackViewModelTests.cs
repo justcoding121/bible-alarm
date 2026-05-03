@@ -191,6 +191,38 @@ public sealed class PlaybackViewModelTests
     }
 
     [Fact]
+    public void IsBuffering_true_when_loading_and_not_preparing()
+    {
+        var state = new MutablePlaybackState(new PlaybackState());
+        using var vm = CreateSut(playbackState: state);
+
+        state.Value = new PlaybackState { Status = PlayStatus.Loading };
+        state.NotifyStateChanged();
+
+        Assert.True(vm.IsBuffering);
+    }
+
+    [Fact]
+    public void ShowLandscapeOverlayControls_false_while_preparing()
+    {
+        using var vm = CreateSut();
+        vm.SetIsLandscape(true);
+        Assert.True(vm.ShowLandscapeOverlayControls);
+
+        vm.Receive(
+            new PlaybackPreparationProgressMessage
+            {
+                LoadedTracks = 0,
+                TotalTracks = 2,
+                TotalBytesDownloaded = 0,
+                CurrentTrackProgress = 0,
+            });
+
+        Assert.True(vm.IsPreparing);
+        Assert.False(vm.ShowLandscapeOverlayControls);
+    }
+
+    [Fact]
     public void SetIsLandscape_UpdatesLayoutFlags()
     {
         using var vm = CreateSut();
