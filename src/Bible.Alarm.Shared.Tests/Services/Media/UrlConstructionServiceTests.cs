@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Collections;
+using System.Reflection;
 using System.Threading;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -88,6 +90,20 @@ public sealed class UrlConstructionServiceTests : IAsyncLifetime
         Assert.Single(urls);
         Assert.Equal("https://u/b", urls[0]);
         Assert.True(track.Id > 0);
+    }
+
+    [Fact]
+    public async Task ConstructTrackUrlsAsync_ByCodes_ReturnsEmpty_When_LanguageDoesNotMatchPublication()
+    {
+        await using var db = new MediaDbContext(Options);
+        const string publicationCode = "pcb-lang-mismatch";
+        var lang = DerivedLanguage(publicationCode);
+        await SeedTrackWithLanguageSectionAsync(db, publicationCode, url: "https://only-for-lang-rows");
+
+        var sut = CreateSut();
+
+        Assert.Empty(await sut.ConstructTrackUrlsAsync(publicationCode, languageCode: "ZZZZ", sectionCode: "mat-1", trackCode: "1"));
+        Assert.Single(await sut.ConstructTrackUrlsAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "1"));
     }
 
     [Fact]
@@ -206,6 +222,38 @@ public sealed class UrlConstructionServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ConstructTrackLookUpPathAsync_ReQueriesDatabase_After_CacheEntry_AgedPast_Ttl()
+    {
+        await using var db = new MediaDbContext(Options);
+        const string publicationCode = "pcb-lookup-ttl";
+        var lang = DerivedLanguage(publicationCode);
+        var track = await SeedTrackWithLanguageSectionAsync(db, publicationCode, url: "https://ttl-first");
+
+        var sut = CreateSut();
+
+        Assert.Equal(
+            "https://ttl-first",
+            await sut.ConstructTrackLookUpPathAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "1"));
+
+        await using (var edit = new MediaDbContext(Options))
+        {
+            var urlRow = await edit.TrackUrls.SingleAsync(u => u.BiblePublicationTrackId == track.Id);
+            urlRow.Url = "https://ttl-second";
+            await edit.SaveChangesAsync();
+        }
+
+        Assert.Equal(
+            "https://ttl-first",
+            await sut.ConstructTrackLookUpPathAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "1"));
+
+        StampLookupPathCacheCreatedAtUtc(sut, DateTimeOffset.UtcNow.AddMinutes(-6));
+
+        Assert.Equal(
+            "https://ttl-second",
+            await sut.ConstructTrackLookUpPathAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "1"));
+    }
+
+    [Fact]
     public async Task ConstructTrackLookUpPathAsync_Retries_After_Transient_ScopeFailure_Evicts_CacheEntry()
     {
         await using var db = new MediaDbContext(Options);
@@ -276,6 +324,37 @@ public sealed class UrlConstructionServiceTests : IAsyncLifetime
     }
 
     private UrlConstructionService CreateSut() => new(new MediaTestScopeFactory(Options));
+
+    /// <summary>
+    /// Forces cache entries older than <see cref="UrlConstructionService" /> TTL (5 minutes) without waiting.
+    /// </summary>
+    private static void StampLookupPathCacheCreatedAtUtc(UrlConstructionService sut, DateTimeOffset createdAtUtc)
+    {
+        var serviceType = typeof(UrlConstructionService);
+        var cacheField = serviceType.GetField("lookUpPathCache", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"Missing field lookUpPathCache on {serviceType.FullName}");
+
+        var dict = cacheField.GetValue(sut);
+        Assert.NotNull(dict);
+
+        var entryType = serviceType.GetNestedType("LookUpPathCacheEntry", BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"Missing nested type LookUpPathCacheEntry on {serviceType.FullName}");
+
+        var createdAtField =
+            entryType.GetField("<CreatedAt>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? entryType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance).Single(static f =>
+                f.FieldType == typeof(DateTimeOffset));
+
+        var sawEntry = false;
+        foreach (var kv in (IEnumerable)dict)
+        {
+            sawEntry = true;
+            var value = kv.GetType().GetProperty("Value")!.GetValue(kv)!;
+            createdAtField.SetValue(value, createdAtUtc);
+        }
+
+        Assert.True(sawEntry, "Expected at least one lookup-path cache entry to stamp.");
+    }
 
     private sealed class FailFirstScopeThenInnerFactory(MediaTestScopeFactory inner) : Microsoft.Extensions.DependencyInjection.IServiceScopeFactory
     {
