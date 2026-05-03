@@ -201,6 +201,57 @@ public sealed class MediatorTrackParserTests
         Assert.Equal("solo", tracks[0].TrackCode);
     }
 
+    [Fact]
+    public void ParseTracksFromJson_ReturnsMultipleEntries_WhenTrackNumberNotConstraining()
+    {
+        const string json =
+            """{"E":{"MP3":[{"file":"https://1.mp3","title":"One"},{"file":"https://2.mp3","title":"Two"}]}}""";
+
+        var tracks = Parse(json, Ctx("E", "ch"));
+
+        Assert.Equal(2, tracks.Count);
+        Assert.Equal("https://2.mp3", tracks[1].TrackUrl?.Url);
+        Assert.Equal("Two", tracks[1].Title);
+    }
+
+    [Fact]
+    public void ParseTracksFromJson_Rejects_InvalidFileKinds_AndEmptyStringFiles()
+    {
+        const string primitiveFile =
+            """{"E":{"MP3":[{"file":99,"title":"bad"},{"file":"https://good.mp3","title":"Fine"}]}}""";
+        const string emptyUrlString =
+            """{"E":{"MP3":[{"file":"","title":"x"},{"file":"https://kept.mp3","title":"Held"}]}}""";
+
+        var fromPrimitive = Parse(primitiveFile, Ctx("E", "sect", trackNumber: 1));
+        Assert.Single(fromPrimitive);
+        Assert.Equal("https://good.mp3", fromPrimitive[0].TrackUrl?.Url);
+
+        var fromEmpty = Parse(emptyUrlString, Ctx("E", "sect"));
+        Assert.Single(fromEmpty);
+        Assert.Equal("https://kept.mp3", fromEmpty[0].TrackUrl?.Url);
+    }
+
+    [Fact]
+    public void ParseTracksFromJson_Filters_AudioDescriptionTitles_ForLanguageF_WhenNotAllowed()
+    {
+        const string json =
+            """{"F":{"MP3":[{"file":"https://drop.mp3","title":"avec AUDIODEScription mixed"}]}}""";
+
+        Assert.Empty(Parse(json, Ctx("F", "sc", allowAudioDescriptionTitles: false)));
+        Assert.NotEmpty(Parse(json, Ctx("F", "sc", allowAudioDescriptionTitles: true)));
+    }
+
+    [Fact]
+    public void ResolveTrackCode_When_UseDocParamTrue_But_section_Lacks_doc_prefix_uses_hyphen_scheme()
+    {
+        const string json = """{"E":{"MP3":[{"file":"https://n.mp3","title":"N"}]}}""";
+
+        var tracks = Parse(json, Ctx("E", "regular-sec", trackNumber: 4, useDocidParam: true));
+
+        Assert.Single(tracks);
+        Assert.Equal("regular-sec-4", tracks[0].TrackCode);
+    }
+
     private static MediatorTrackParseContext Ctx(
         string normalizedLanguageCode,
         string sectionCode,
