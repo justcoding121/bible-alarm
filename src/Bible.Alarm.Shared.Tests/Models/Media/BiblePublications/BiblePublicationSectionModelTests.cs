@@ -95,6 +95,50 @@ public sealed class BiblePublicationSectionModelTests
     }
 
     [Fact]
+    public void CompareTo_Object_When_BiblePublicationSection_Unboxes_AndComparedBySectionCode()
+    {
+        var pub = DummyPub();
+        var sut = Section(pub, "3");
+        var boxed = Section(pub, "3");
+        Assert.Equal(0, sut.CompareTo((object)boxed));
+        Assert.True(sut >= boxed && sut <= boxed);
+    }
+
+    [Fact]
+    public void Equals_ObjectOverload_RejectsNonSection_AndNull()
+    {
+        var sut = Section(DummyPub(), "1");
+        Assert.False(sut.Equals((object?)null));
+        Assert.False(sut.Equals("section"));
+    }
+
+    [Fact]
+    public void Operator_NotEquals_Disjoins_ByStructuralOr_IdRules()
+    {
+        var pub = DummyPub();
+        Assert.True(Section(pub, "1", sectionId: 1) != Section(pub, "1", sectionId: 2));
+        var zeroA = Section(pub, "z", sectionId: 0);
+        var zeroB = Section(pub, "z", sectionId: 0);
+        Assert.True(zeroA != zeroB);
+    }
+
+    [Fact]
+    public void CompareTo_TrimsWhitespaceInSectionCodes_BeforeComparing()
+    {
+        var pub = DummyPub();
+        var spaced = Section(pub, "  10 ");
+        var compact = Section(pub, "10");
+        Assert.Equal(0, spaced.CompareTo(compact));
+    }
+
+    [Fact]
+    public void CompareTo_UsesOrdinalIgnoreCase_WhenNeitherSideParsesAsInteger()
+    {
+        var pub = DummyPub();
+        Assert.Equal(0, Section(pub, "iam-a").CompareTo(Section(pub, "IAM-A")));
+    }
+
+    [Fact]
     public void Comparison_operators_require_non_null_operands()
     {
         BiblePublicationSection? n = null;
