@@ -20,6 +20,23 @@ public sealed class LanguageModelTests
         => Assert.True(Lang(code: "AA").CompareTo(new object()) > 0);
 
     [Fact]
+    public void CompareTo_Object_Null_ReturnsGreater()
+        => Assert.Equal(1, Lang(code: "AA").CompareTo((object?)null));
+
+    [Fact]
+    public void CompareTo_Object_BoxedLanguage_DelegatesTo_OrdinalLanguageCode()
+    {
+        var a = Lang(id: 1, code: "MX");
+        var b = Lang(id: 99, code: "MX");
+        Assert.Equal(0, a.CompareTo((object)b));
+        Assert.True(a <= b && a >= b);
+    }
+
+    [Fact]
+    public void CompareTo_IsOrdinal_CaseSensitive_OnLanguageCode()
+        => Assert.NotEqual(0, Lang(code: "e").CompareTo(Lang(id: 2, code: "E")));
+
+    [Fact]
     public void CompareTo_Null_And_Relational_OrderByOrdinalLanguageCode()
     {
         Assert.Equal(1, Lang().CompareTo(null));
@@ -32,6 +49,38 @@ public sealed class LanguageModelTests
         Assert.True(en <= fr);
         Assert.True(fr >= en);
         Assert.True(fr > en);
+    }
+
+    [Fact]
+    public void ComparisonOperators_AllFalse_When_EitherOperandNull()
+    {
+        Language? n = null;
+        var lang = Lang(code: "Q");
+        Assert.False(lang < n);
+        Assert.False(n < lang);
+        Assert.False(lang <= n);
+        Assert.False(n <= lang);
+        Assert.False(lang > n);
+        Assert.False(n > lang);
+        Assert.False(lang >= n);
+        Assert.False(n >= lang);
+    }
+
+    [Fact]
+    public void Equals_Object_RejectsNullAndForeignReference()
+    {
+        var sut = Lang(code: "GL");
+        Assert.False(sut.Equals((object?)null));
+        Assert.False(sut.Equals("GL"));
+    }
+
+    [Fact]
+    public void Operator_NotEquals_WithDifferentStructuralRules()
+    {
+        Assert.True(Lang(id: 10, code: "A") != Lang(id: 11, code: "A"));
+        var u = Lang(id: 0, code: "Z");
+        var v = Lang(id: 0, code: "Z");
+        Assert.True(u != v);
     }
 
     [Fact]
