@@ -59,4 +59,14 @@ public sealed class LanguageModelTests
 
         Assert.NotEqual(z1.GetHashCode(), z2.GetHashCode());
     }
+
+    [Fact]
+    public void GetHashCode_Uses_stable_identifier_hash_when_id_non_zero()
+    {
+        var a = Lang(id: 404, code: "E");
+        var b = Lang(id: 404, code: "F");
+
+        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+        Assert.True(a.Equals(b));
+    }
 }
