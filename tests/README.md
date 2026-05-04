@@ -5,6 +5,7 @@ This folder ships:
 - `Platforms/Android/**` — Android-only smoke tests, only compiled by `Bible.Alarm.Tests.Android` (`net10.0-android`).
 - `Platforms/iOS/**` — iOS-only smoke tests, only compiled by `Bible.Alarm.Tests.iOS` (`net10.0-ios`).
 - `run-tests.ps1` — local orchestrator that drives the same three test passes CI runs (`test-windows`, `test-android`, `test-ios`).
+- `Bible.Alarm.UITests/` + `run-ui-tests.ps1` — Appium-driven UI integration tests against the *deployed* production app (Windows / Android / iOS). See [`UITESTS.md`](./UITESTS.md). These run on a separate gate from the coverage pass.
 
 The cross-platform tests now live under `tests/Bible.Alarm.Tests/` (Windows host) and `tests/Bible.Alarm.Shared.Tests/` (cross-platform host); the Android/iOS hosts include them via a `Compile` glob so test code is not duplicated.
 

@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Repo layout — where do tests live?
 
-All 9 test projects live in a flat `tests/` directory at the repo root, and the solution lives at the repo root too:
+All 10 test projects live in a flat `tests/` directory at the repo root, and the solution lives at the repo root too:
 
 ```
 Bible.Alarm.sln                                  # solution file (repo root)
@@ -23,36 +23,42 @@ tests/
 ├── Bible.Alarm.Shared.Tests/                    # net10.0 tests over Bible.Alarm.Shared (no MAUI)
 ├── Bible.Alarm.Tests.Android/                   # device-test host (.apk via xharness)
 ├── Bible.Alarm.Tests.iOS/                       # device-test host (.app via xharness)
+├── Bible.Alarm.UITests/                         # Appium UI integration tests (Windows/Android/iOS) — see UITESTS.md
 ├── Bible.Alarm.Cataloger.Tests/                 # tools/ test
 ├── Bible.Alarm.DbMigration.Tests/               #
 ├── Bible.Alarm.IosScreenshotResizer.Tests/      #
 ├── Bible.Alarm.VersionPatcher.Tests/            #
 ├── CommunityToolkit.Maui.MediaElement.Tests/    # libraries/ test
-├── README.md                                    # local-dev workflow
-└── run-tests.ps1                                # local orchestrator (Windows + Android + iOS over SSH)
+├── README.md                                    # local-dev workflow (host + device unit tests)
+├── UITESTS.md                                   # local-dev workflow (Appium UI tests + install steps)
+├── run-tests.ps1                                # local orchestrator (Windows + Android + iOS over SSH)
+└── run-ui-tests.ps1                             # local orchestrator (Appium-driven UI tests, all 3 platforms)
 ```
 
-**On disk: flat. In the IDE: bucketed.** The .sln defines four nested SolutionFolders so the IDE tree shows `tests / { app, tools, libraries }`:
+**On disk: flat. In the IDE: bucketed.** The .sln defines five nested SolutionFolders so the IDE tree shows `tests / { app, tools, libraries, ui }`:
 
 - `tests / app`   → Bible.Alarm.Tests, Bible.Alarm.Shared.Tests, Bible.Alarm.Tests.Android, Bible.Alarm.Tests.iOS
 - `tests / tools` → Cataloger.Tests, DbMigration.Tests, IosScreenshotResizer.Tests, VersionPatcher.Tests
 - `tests / libraries` → CommunityToolkit.Maui.MediaElement.Tests
+- `tests / ui` → Bible.Alarm.UITests
 
-If you `dotnet sln Bible.Alarm.sln list` you should see exactly **16 csprojs** (7 production + 9 tests). Anything else means a project moved or a path drifted.
+If you `dotnet sln Bible.Alarm.sln list` you should see exactly **17 csprojs** (7 production + 10 tests). Anything else means a project moved or a path drifted.
 
 ## Status snapshot — what already exists (do NOT recreate)
 
 Last verified on `develop`:
 
-- All 9 test projects sit under `tests/`, the .sln is at the repo root, IDE folders nest correctly.
-- `dotnet sln Bible.Alarm.sln list` returns 16 csprojs.
-- `dotnet test Bible.Alarm.sln --filter "Platform!=Android&Platform!=iOS"` runs 1,899 tests in 7 host-based projects, exit 0.
+- All 10 test projects sit under `tests/`, the .sln is at the repo root, IDE folders nest correctly.
+- `dotnet sln Bible.Alarm.sln list` returns 17 csprojs.
+- `dotnet test Bible.Alarm.sln --filter "Platform!=Android&Platform!=iOS&UI!=Windows&UI!=Android&UI!=iOS"` runs 1,899 tests in 7 host-based projects, exit 0. (The four trait clauses are load-bearing — see [Hard rules](#hard-rules--do-not-break) #10.)
 - `tests/Bible.Alarm.Tests.Android` builds for `net10.0-android` and is wired to xharness with `Microsoft.DotNet.XHarness.DefaultAndroidEntryPoint.Xunit`.
 - `tests/Bible.Alarm.Tests.iOS` builds for `net10.0-ios` and is wired to xharness with `Microsoft.DotNet.XHarness.TestRunners.Xunit`.
+- `tests/Bible.Alarm.UITests` builds for `net10.0` and uses `Appium.WebDriver` 8.2.0. Three smoke tests (one per platform), each tagged `[Trait("UI","<platform>")]`. They never run in the coverage pass — see the dedicated section below.
 - One platform-only smoke test exists per device-test host (do **not** duplicate them — extend or replace if the production type they touch ever moves):
   - Android: `tests/Platforms/Android/NotificationPermissionHelperSmokeTests.cs` exercises `Bible.Alarm.Platforms.Android.Services.Helpers.NotificationPermissionHelper`.
   - iOS: `tests/Platforms/iOS/IosNotificationPermissionServiceSmokeTests.cs` exercises `Bible.Alarm.Platforms.iOS.Services.Helpers.IosNotificationPermissionService`.
-- The CI fan-out is `test-windows`, `test-android`, `test-ios` → `sonar` (single SonarCloud analysis with merged OpenCover XML).
+- One Appium UI smoke test exists per platform (`tests/Bible.Alarm.UITests/Smoke/{Windows,Android,Ios}HomePageUITests.cs`) — they all assert the home page renders by waiting for `MobileBy.AccessibilityId("HomePage")`. Do **not** add more UI tests until the corresponding `ui-*` CI job is wired up; flaky UI tests with no gate quickly bit-rot.
+- The CI fan-out for *coverage* is `test-windows`, `test-android`, `test-ios` → `sonar` (single SonarCloud analysis with merged OpenCover XML). UI tests are NOT part of this fan-out and do not contribute coverage.
 
 If you came here to "add an Android/iOS test that proves the runner works", that's already done — write coverage tests instead, following the workflow below.
 
@@ -142,10 +148,13 @@ Skipping the merge for fast iteration: `-SkipMerge` avoids the ReportGenerator s
 | `test-windows` only: `error CS0122: 'XYZ' is inaccessible due to its protection level` | A new `internal` consumer references a type but the test project isn't in `InternalsVisibleTo`.                      | Add the test project name to `<InternalsVisibleTo Include="..." />` in `Bible.Alarm.csproj`.     |
 | `test-windows`: `Testhost process for source(s) '...Bible.Alarm.Tests.Android.dll' exited with error: You must install or update .NET to run this application.` | Someone removed `<IsTestProject>false</IsTestProject>` from `Bible.Alarm.Tests.Android.csproj` / `Bible.Alarm.Tests.iOS.csproj`. | Restore it from `git`. The device-test hosts must opt out of vstest discovery; they run via xharness only. |
 | Any job: `error MSB1009: Project file does not exist` on `src/Bible.Alarm.sln` or `tests/Bible.Alarm.Tests/...` | A workflow or script still has the pre-consolidation path. | Search the affected file for `src/Bible.Alarm.sln` / `src/Bible.Alarm.Tests*` / `.tools/Bible.Alarm.*.Tests` — they should all be `Bible.Alarm.sln` / `tests/Bible.Alarm.*` now. |
+| `test-windows` / `Run-WindowsTests`: 3 unexpected failures with `Driver not initialised` or `BIBLE_ALARM_AUMID env var is not set`. | The coverage-pass `--filter` lost a `UI!=...` clause and pulled the Appium UI tests in. | Restore `Platform!=Android&Platform!=iOS&UI!=Windows&UI!=Android&UI!=iOS` in both `tests/run-tests.ps1` and `.github/workflows/build.yml`. UI tests must be opted into via `tests/run-ui-tests.ps1`, never the coverage pass. |
+| `ui-windows` (when wired): `Could not discover Bible Alarm AUMID via Get-StartApps` | Production MSIX wasn't deployed before the test run, OR Developer Mode is disabled on the runner. | Ensure the `dotnet build … -t:Build,Deploy` step runs first, then sanity-check `Get-StartApps \| ? Name -eq 'Bible Alarm'` returns a row before invoking `dotnet test`. |
+| `ui-windows` (when wired): WinAppDriver reports `WindowsApplicationDriver did not start` | Either WinAppDriver isn't installed, or the Appium `windows` driver never installed (`appium driver list --installed` doesn't show `windows`). | Re-run `appium driver install --source=npm appium-windows-driver` and confirm `WinAppDriver.exe` is present at `C:\Program Files (x86)\Windows Application Driver\` (or installed via winget). |
 
 On any failure, download the job's `xharness-*-logs` artifact (Android/iOS) — it has the on-device stdout that the GitHub Actions log truncates.
 
-Tests in this repo live across **nine projects** that all run xunit but use different hosts:
+Tests in this repo live across **ten projects** that all run xunit but use different hosts:
 
 | Project                                      | TFM                            | Host               | CI job         | What runs here                                                                                       |
 | -------------------------------------------- | ------------------------------ | ------------------ | -------------- | ---------------------------------------------------------------------------------------------------- |
@@ -158,6 +167,7 @@ Tests in this repo live across **nine projects** that all run xunit but use diff
 | `Bible.Alarm.IosScreenshotResizer.Tests`     | `net10.0`                      | `dotnet test`      | `test-windows` | `.tools/Bible.Alarm.IosScreenshotResizer` coverage.                                                  |
 | `Bible.Alarm.VersionPatcher.Tests`           | `net10.0`                      | `dotnet test`      | `test-windows` | `.tools/Bible.Alarm.VersionPatcher` coverage.                                                        |
 | `CommunityToolkit.Maui.MediaElement.Tests`   | `net10.0-windows10.0.19041.0`  | `dotnet test`      | `test-windows` | Coverage for the forked MediaElement under `libraries/`.                                             |
+| `Bible.Alarm.UITests`                        | `net10.0`                      | `dotnet test` (UI=*) | *(future) `ui-windows`/`ui-android`/`ui-ios`* | Appium-driven UI integration tests against the *deployed* app. **Not** part of the coverage pass; opt-in via `tests/run-ui-tests.ps1`. 3 smoke tests today (one per platform), tagged `[Trait("UI","<platform>")]`. |
 
 Total host-based pass on a clean Windows build today: **~1,899 tests** in 7 projects (the Android/iOS device-test host counts are reported only after their xharness run and are not part of `dotnet test Bible.Alarm.sln`). If your local count drops below this without you having intentionally deleted tests, something glitched — check the `Compile` glob in the device-test hosts and the `--filter` in `tests/run-tests.ps1`.
 
@@ -180,6 +190,39 @@ Each device-test host references `Bible.Alarm.csproj` with `UndefineProperties="
 
 If you ever flip `IsTestProject` back to `true`, you must also remove the device-test hosts from the sln *or* invoke `dotnet test` with explicit per-project paths — the two are mutually exclusive given today's CI runners.
 
+### UI integration tests (Appium) — separate axis, separate gate
+
+`tests/Bible.Alarm.UITests/` is **not** a coverage project. It targets `net10.0` and references **only** `Appium.WebDriver` (no `Bible.Alarm` project ref). Tests drive the *deployed* production app via the Appium 2 WebDriver protocol:
+
+- Windows → Appium `windows` driver → WinAppDriver (legacy, archived in 2024 but still the only stable Windows option; we accept this trade-off because Windows cannot be excluded).
+- Android → Appium `uiautomator2` driver.
+- iOS    → Appium `xcuitest` driver (runs on a networked Mac via SSH, like the device-test pass).
+
+Why a separate project (instead of folding UI tests into `Bible.Alarm.Tests`):
+
+1. **Different runtime contract.** Coverage tests instrument production assemblies and run *in the same process* as the SUT. Appium tests run *out-of-process* and exercise a deployed binary — coverlet has no way to instrument across that boundary, so they produce zero coverage XML.
+2. **Different prerequisites.** Coverage tests need only `dotnet test`. UI tests need a running Appium server, the platform driver, the deployed app, and (on Windows) a discoverable AUMID. None of those are ever true on a naive `dotnet test Bible.Alarm.sln`.
+3. **Different flakiness profile.** UI tests time out on slow simulator boots, splash screens, animation frames. Mixing them into the coverage gate would block SonarCloud rollups on cosmetic glitches.
+
+How `dotnet test Bible.Alarm.sln` skips them: every UI test class carries `[Trait("UI","<Windows|Android|iOS>")]`. The coverage filter in `tests/run-tests.ps1` (and `.github/workflows/build.yml` `test-windows`) is:
+
+```text
+--filter "Platform!=Android&Platform!=iOS&UI!=Windows&UI!=Android&UI!=iOS"
+```
+
+UI tests opt INTO execution via `--filter "UI=Windows"` (or `=Android`/`=iOS`), driven by `tests/run-ui-tests.ps1`. That orchestrator: starts Appium 2 on `127.0.0.1:4723`, deploys/installs the production app, discovers the Windows AUMID via `Get-StartApps`, sets the env vars the fixtures read (`APPIUM_URL`, `BIBLE_ALARM_AUMID`, etc.), runs the trait-filtered slice, and tears Appium down.
+
+Fixture pattern (in `tests/Bible.Alarm.UITests/Fixtures/`):
+
+- `AppiumFixtureBase` owns the lifecycle (xunit `IAsyncLifetime`), the `WaitForAccessibilityId` helper, and screenshot-on-failure dump. Tests reach the helper through the public surface — keep it public; the fixtures are themselves test-only types so widening here costs nothing.
+- `WindowsAppiumFixture` / `AndroidAppiumFixture` / `IosAppiumFixture` build the platform-specific `AppiumOptions` and construct the right driver (`WindowsDriver` / `AndroidDriver` / `IOSDriver`).
+
+Test pattern: each smoke test class is `IClassFixture<TFixture>`, has `[Trait("UI","<platform>")]`, and asserts on `_fixture.WaitForAccessibilityId("<AutomationId>")`. The home-page smokes anchor on `AutomationId="HomePage"` set in `src/Bible.Alarm/Views/Home.xaml`. **When you write a new UI test, prefer adding an `AutomationId` to the production XAML over relying on XPath/text-based queries — XPath queries in WinAppDriver are O(n) over the entire tree and brittle across MAUI versions.**
+
+Local install steps (Windows host, one-time): `npm i -g appium@2`; `appium driver install --source=npm appium-windows-driver`; `appium driver install uiautomator2`; `winget install Microsoft.WinAppDriver`. Full guide: [`tests/UITESTS.md`](../../../tests/UITESTS.md).
+
+CI today: UI tests build but do **not** run in any GitHub Actions job. Wiring `ui-windows` / `ui-android` / `ui-ios` jobs (each starting Appium on the runner before invoking `dotnet test --filter UI=<platform>`) is a follow-up. Do not gate `sonar` on those jobs when added — keep the coverage pass cleanly separate.
+
 ### Why the device-test hosts have *no* `MainApplication` / `MainActivity` / `Program.cs` of their own
 
 The Android host (`tests/Bible.Alarm.Tests.Android/`) intentionally ships **only** `Platforms/Android/AndroidManifest.xml` and `Platforms/Android/TestInstrumentation.cs`. There is no `MainApplication`, no `MainActivity`, no `MauiProgram`, no `App.xaml`. Reason: when the test host references `Bible.Alarm.csproj`, the production app's `[Application]`-attributed `Bible.Alarm.Platforms.Android.MainApplication` ends up in the same merged manifest. Defining a second `[Application]` class trips Xamarin.Android's manifest merger with `XAGMM7009: There can be only one type with an [Application] attribute`. So the device-test bundle uses the production `MainApplication` (which boots the real MAUI app), and `xharness` invokes `am instrument -w com.jthomas.info.Bible.Alarm.Tests/.TestInstrumentation` — instrumentation runs alongside the production `Application` without ever touching `MainActivity`. xunit reflects over the test assembly via `DefaultAndroidEntryPoint.Xunit` and writes the OpenCover XML into the path xharness pulls back.
@@ -199,6 +242,7 @@ The iOS host (`tests/Bible.Alarm.Tests.iOS/`) **does** keep its own `Program.cs`
 | `src/Bible.Alarm/Platforms/iOS/**` or `*.ios.cs` or `#if IOS`        | `tests/Platforms/iOS/<mirror-folder>/`                       | `[Trait("Platform","iOS")]`                                                     |
 | `.tools/<Tool>/**`                                                   | `tests/Bible.Alarm.<Tool>.Tests/<mirror-folder>/`            | none                                                                            |
 | `libraries/<Library>/**`                                             | `tests/<Library>.Tests/<mirror-folder>/`                     | none                                                                            |
+| Production UI flow exercised through the *deployed* app (no in-process state) | `tests/Bible.Alarm.UITests/<Smoke\|FlowName>/`         | `[Trait("UI","<Windows\|Android\|iOS>")]` per class — required, no exceptions   |
 
 **Trait enforcement**: the Windows job runs with `--filter "Platform!=Android&Platform!=iOS"`. A platform-only test that forgets its trait will load on the Windows runner where its `using Bible.Alarm.Platforms.Android.*` references don't compile — so the failure is "this build, this file" instead of an opaque cross-job breakage. **Always tag platform tests.**
 
@@ -304,8 +348,11 @@ Sonar unions covered lines across all three reports — a line in `Services/Medi
    - **Do not** add a `[Application]`-attributed `MainApplication`, a `[Activity(MainLauncher=true)]` `MainActivity`, or a `MauiProgram.cs` to `Bible.Alarm.Tests.Android`. The test host inherits Bible.Alarm's `MainApplication` via project ref; declaring a second one trips `XAGMM7009` at manifest-merge time.
 6. **Do not** swap `coverlet.collector` for `coverlet.msbuild` (or vice-versa) inside a project. Host-based tests use the collector (`--collect:"XPlat Code Coverage"`); device-test hosts use the msbuild instrumenter (`-p:CollectCoverage=true`) because the collector cannot inject into a running APK/.app.
 7. **Do not** flip `<IsTestProject>false</IsTestProject>` to `true` in `Bible.Alarm.Tests.Android.csproj` or `Bible.Alarm.Tests.iOS.csproj`. They must opt out of vstest discovery so `dotnet test Bible.Alarm.sln` skips them; xharness still finds and runs them via the built APK/.app. See the device-test hosts subsection above.
-8. **Do not** flatten the IDE solution folders by reassigning the 9 test-project GUIDs in `GlobalSection(NestedProjects)` in `Bible.Alarm.sln`. The four nesting folders (`tests`, plus `tests/{app,tools,libraries}`) carry stable GUIDs `{F3E5C812-A100-4C76-8C1B-1A2B3C4D5E6{0,1,2,3}}`. If the IDE shows tests at the top level of the solution after a merge, those nesting rows got dropped — restore them from `git`.
-9. **Do not** move `Bible.Alarm.sln` back into `src/`. Workflows (`.github/workflows/build.yml`, `deploy-windows.yml`, `deploy-ios.yml`) and `tests/run-tests.ps1` all reference the root path; relocating the .sln is a wide-radius change that breaks CI silently (the `dotnet restore <path>` step succeeds against either location, but `dotnet build`/`dotnet test` on the wrong path will pick up a missing-projects build).
+8. **Do not** flatten the IDE solution folders by reassigning the 10 test-project GUIDs in `GlobalSection(NestedProjects)` in `Bible.Alarm.sln`. The five nesting folders (`tests`, plus `tests/{app,tools,libraries,ui}`) carry stable GUIDs `{F3E5C812-A100-4C76-8C1B-1A2B3C4D5E6{0,1,2,3,4}}`. If the IDE shows tests at the top level of the solution after a merge, those nesting rows got dropped — restore them from `git`.
+9. **Do not** move `Bible.Alarm.sln` back into `src/`. Workflows (`.github/workflows/build.yml`, `deploy-windows.yml`, `deploy-ios.yml`) and `tests/run-tests.ps1` / `tests/run-ui-tests.ps1` all reference the root path; relocating the .sln is a wide-radius change that breaks CI silently (the `dotnet restore <path>` step succeeds against either location, but `dotnet build`/`dotnet test` on the wrong path will pick up a missing-projects build).
+10. **Do not** drop any of the four trait clauses (`Platform!=Android`, `Platform!=iOS`, `UI!=Windows`, `UI!=Android`, `UI!=iOS`) from the `--filter` in `tests/run-tests.ps1` and `.github/workflows/build.yml`. The `Platform!=` pair excludes the device-test hosts' xharness-only tests; the three `UI!=` clauses exclude `Bible.Alarm.UITests` (which fails fast without an Appium server). Removing any clause turns a clean coverage pass into a hard failure on every CI run.
+11. **Do not** add a `<ProjectReference>` to `Bible.Alarm.csproj` (or any production project) inside `tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj`. UI tests must talk to the *deployed* app over WebDriver — coupling the test project to the production graph at compile time would let in-process state leak into "integration" tests and defeat the point of using Appium.
+12. **Do not** remove `AutomationId="HomePage"` from `src/Bible.Alarm/Views/Home.xaml`. It is the anchor for `WindowsHomePageUITests`, `AndroidHomePageUITests`, and `IosHomePageUITests`. If you rename it, update all three smoke tests at once.
 
 ## Quick-reference paths to known-good exemplars
 
@@ -318,5 +365,7 @@ When writing a new test, copy the closest exemplar and adapt:
 - **Android-only smoke test** → `tests/Platforms/Android/NotificationPermissionHelperSmokeTests.cs`
 - **iOS-only smoke test** → `tests/Platforms/iOS/IosNotificationPermissionServiceSmokeTests.cs`
 - **`net10.0` (Shared) fixture** → any file under `tests/Bible.Alarm.Shared.Tests/`
+- **Appium UI smoke test (Windows/Android/iOS)** → `tests/Bible.Alarm.UITests/Smoke/{Windows,Android,Ios}HomePageUITests.cs` (each is a 6-line `[Fact]` that calls `_fixture.WaitForAccessibilityId(...)`)
+- **Appium fixture pattern** → `tests/Bible.Alarm.UITests/Fixtures/AppiumFixtureBase.cs` + per-platform subclasses
 
-For end-to-end context (CI fan-out, SDK pins, secrets), read `.github/workflows/build.yml` and `tests/README.md`.
+For end-to-end context (CI fan-out, SDK pins, secrets), read `.github/workflows/build.yml` and `tests/README.md`. For UI test setup specifically, read `tests/UITESTS.md`.

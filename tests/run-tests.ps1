@@ -140,7 +140,10 @@ function Run-WindowsTests {
         '--logger', 'trx;LogFileName=windows.trx',
         '--results-directory', $coverageDir,
         '--collect:XPlat Code Coverage;Format=opencover',
-        '--filter', 'Platform!=Android&Platform!=iOS'
+        # Exclude both: (a) device-test smoke tests (they run via xharness in their own jobs)
+        # and (b) Appium UI smoke tests (they need a running Appium server + deployed app and
+        # are driven by run-ui-tests.ps1, not this orchestrator).
+        '--filter', 'Platform!=Android&Platform!=iOS&UI!=Windows&UI!=Android&UI!=iOS'
     )
 
     # Collect into a deterministic location so the merge step finds it without globbing the random GUID directories.

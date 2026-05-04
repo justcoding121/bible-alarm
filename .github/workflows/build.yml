@@ -70,7 +70,7 @@ jobs:
             --verbosity normal `
             --logger "trx;LogFileName=test-results.trx" `
             --collect:"XPlat Code Coverage;Format=opencover,cobertura" `
-            --filter "Platform!=Android&Platform!=iOS"
+            --filter "Platform!=Android&Platform!=iOS&UI!=Windows&UI!=Android&UI!=iOS"
         shell: pwsh
 
       - name: Stage coverage artifact

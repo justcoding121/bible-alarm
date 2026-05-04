@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      net10.0 is enough: Appium tests are pure WebDriver clients that talk to an out-of-process
+      Appium server (Windows/Android/iOS specific). They never load the MAUI runtime themselves
+      and never reference Bible.Alarm.csproj.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+
+    <!-- Sonar test-project flags (these tests do not contribute to production coverage). -->
+    <SonarQubeExclude>true</SonarQubeExclude>
+    <SonarQubeTestProject>true</SonarQubeTestProject>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+
+    <!--
+      Discovered via `dotnet test`, but ONLY when the corresponding Appium server is up and the
+      production app is installed on the target. The `[Trait("UI","<platform>")]` filters in the
+      run scripts and CI jobs gate execution per platform; default `dotnet test` invocations from
+      tests/run-tests.ps1 pass a UI!=Windows ampersand UI!=Android ampersand UI!=iOS filter so
+      UI tests never run accidentally during a coverage pass.
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+
+    <!--
+      Appium.WebDriver 8.2.0 (Mar 2026): targets netstandard2.0, depends on Selenium.WebDriver
+      4.36.0. Compatible with Appium server 2.x and the windows / uiautomator2 / xcuitest drivers.
+    -->
+    <PackageReference Include="Appium.WebDriver" Version="8.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
