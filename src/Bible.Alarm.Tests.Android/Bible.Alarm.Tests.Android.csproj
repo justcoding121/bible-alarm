@@ -1,0 +1,125 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Device-test host for Android. This project compiles all the cross-platform tests in
+    ..\Bible.Alarm.Tests\**\*.cs *plus* the Android-only smoke tests under tests/Platforms/Android,
+    packs them into an APK, and runs them via Microsoft.DotNet.XHarness.* on an Android emulator.
+
+    See tests/README.md for local prerequisites and tests/run-tests.ps1 -Platform Android for the
+    end-to-end flow.
+
+    Sonar excludes this project (test project; no production source emits coverage from here).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Bible.Alarm.Tests.Android</RootNamespace>
+    <AssemblyName>Bible.Alarm.Tests.Android</AssemblyName>
+    <ApplicationId>com.jthomas.info.Bible.Alarm.Tests</ApplicationId>
+    <ApplicationTitle>Bible Alarm Tests</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion>26.0</SupportedOSPlatformVersion>
+    <AndroidMinSdkVersion>26</AndroidMinSdkVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <!--
+      Single-RID Android build: emulators in CI run x86_64; xharness installs the same APK on whatever
+      device is booted locally. Pin to one RID so MSBuild does not fan-out per-RID and try to write
+      bin/Debug/net10.0-android/{android-x64,android-arm64}/Bible.Alarm.runtimeconfig.json into
+      directories the tooling forgets to mkdir for transitively built ProjectReferences.
+    -->
+    <RuntimeIdentifier>android-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>android-x64</RuntimeIdentifiers>
+    <!-- Match the production app: interpreter on, AOT off (avoids XA0119 + the EF Mono JIT issue). -->
+    <UseInterpreter>true</UseInterpreter>
+    <AndroidAotEnable>false</AndroidAotEnable>
+    <RunAOTCompilation>false</RunAOTCompilation>
+
+    <!-- Skip Sonar Roslyn analyzers and identify this as a test project (parity with Bible.Alarm.Tests). -->
+    <SonarQubeExclude>true</SonarQubeExclude>
+    <SonarQubeTestProject>true</SonarQubeTestProject>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+
+    <!-- Don't fail on transitively-warned MAUI/EF analyzer noise inside the test app. -->
+    <NoWarn>$(NoWarn);XC0022;NU1608;IL2026;IL2037;IL2072;IL2111</NoWarn>
+
+    <!-- Resizetizer: same dedupe relaxation Bible.Alarm.Tests already applies. -->
+    <ResizetizerErrorOnDuplicateOutputFilename>false</ResizetizerErrorOnDuplicateOutputFilename>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Reference Bible.Alarm so its Android-built assembly (with Platforms/Android/** compiled in) flows into
+      the APK and into coverlet's instrumentation graph.
+
+      We deliberately strip RuntimeIdentifier/RuntimeIdentifiers via UndefineProperties: when the test host
+      has a RID set, MSBuild propagates it to Bible.Alarm via project ref, which makes Bible.Alarm try to
+      write its runtimeconfig.json to bin/Debug/net10.0-android/android-x64/ — a directory the MAUI
+      targets do not create for transitively built ProjectReferences (GenerateRuntimeConfigurationFiles
+      throws DirectoryNotFoundException). Bible.Alarm doesn't need a RID to produce the .dll we consume.
+
+      Bible.Alarm.Shared is referenced transitively via Bible.Alarm; an explicit reference is unnecessary
+      and would re-trigger the same RID propagation issue.
+    -->
+    <ProjectReference Include="..\Bible.Alarm\Bible.Alarm.csproj"
+                      UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Pin Microsoft.Maui.Controls to the same version Bible.Alarm.csproj uses so the package downgrade
+      check (NU1605) does not trip during restore. The implicit version that .NET 8+ resolves from the
+      MAUI workload (currently 10.0.20) is older than what Bible.Alarm references (10.0.41).
+    -->
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
+
+    <!-- xunit core: runner is pulled in via Microsoft.DotNet.XHarness.* below; no xunit.runner.visualstudio here. -->
+    <PackageReference Include="xunit" Version="2.9.3" />
+
+    <!--
+      XHarness runner stack (public dotnet-eng feed; pinned via NuGet.config packageSourceMapping).
+      DefaultAndroidEntryPoint.Xunit transitively pulls TestRunners.Common + TestRunners.Xunit.
+    -->
+    <PackageReference Include="Microsoft.DotNet.XHarness.DefaultAndroidEntryPoint.Xunit" Version="10.0.0-prerelease.26230.1" />
+
+    <!--
+      coverlet.msbuild emits OpenCover XML during the test run (collector cannot run on-device).
+      Output path is set on the xharness command line via -p:CoverletOutput=...
+    -->
+    <PackageReference Include="coverlet.msbuild" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!--
+    Share the cross-platform test source. Each .cs file under Bible.Alarm.Tests is compiled here too;
+    the Link metadata keeps the IDE tree readable and avoids duplicate-output conflicts.
+    Platforms/Windows/** is excluded because those tests reference Bible.Alarm.Platforms.Windows.* types
+    that do not exist in the Android-targeted Bible.Alarm assembly.
+    (xunit auto-discovers tests by reflection; no further wiring needed.)
+  -->
+  <ItemGroup>
+    <Compile Include="..\Bible.Alarm.Tests\**\*.cs"
+             Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**">
+      <Link>SharedTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+  </ItemGroup>
+
+  <!-- Platform-only smoke tests live in the repo-root tests/ folder so they only ever build on the matching TFM. -->
+  <ItemGroup>
+    <Compile Include="..\..\tests\Platforms\Android\**\*.cs"
+             Exclude="..\..\tests\Platforms\Android\bin\**;..\..\tests\Platforms\Android\obj\**">
+      <Link>PlatformTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+  </ItemGroup>
+
+</Project>

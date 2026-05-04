@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.jthomas.info.Bible.Alarm.Tests">
+	<application android:allowBackup="false"
+	             android:label="Bible Alarm Tests"
+	             android:supportsRtl="true"
+	             android:debuggable="true" />
+	<!--
+	  Permissions required by Bible.Alarm services exercised under tests (notifications, alarms, network).
+	  Keep this list a strict superset of what tests under Platforms/Android/** can touch so that
+	  Android does not throw SecurityException during the test run.
+	-->
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+	<!-- xharness reads test results from this instrumentation; the @targetPackage must match @package. -->
+	<instrumentation
+		android:name="com.jthomas.info.Bible.Alarm.Tests.TestInstrumentation"
+		android:label="Bible Alarm Tests Instrumentation"
+		android:targetPackage="com.jthomas.info.Bible.Alarm.Tests" />
+</manifest>

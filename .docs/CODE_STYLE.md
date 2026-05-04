@@ -128,3 +128,26 @@ public int Value { get; set; }
 - Use comments to explain "why", not "what"
 - Prefer self-documenting code over comments
 - When comments are needed, place them on the line above the code they describe
+
+## 5. Multi-Platform Test Layout
+
+**Rule**: When adding tests, place them according to which runtime they need:
+
+| Test type            | Location                                            | Built by                                  | Runs in CI job |
+| -------------------- | --------------------------------------------------- | ----------------------------------------- | -------------- |
+| Cross-platform       | `src/Bible.Alarm.Tests/**` (outside `Platforms/`)   | All three test hosts via `Compile` glob   | All three      |
+| Cross-platform (no MAUI) | `src/Bible.Alarm.Shared.Tests/**`               | `dotnet test` host (`net10.0`)            | `test-windows` |
+| Windows-only         | `src/Bible.Alarm.Tests/Platforms/Windows/**`        | `Bible.Alarm.Tests` only                  | `test-windows` |
+| Android-only         | `tests/Platforms/Android/**`                        | `Bible.Alarm.Tests.Android` only (xharness) | `test-android` |
+| iOS-only             | `tests/Platforms/iOS/**`                            | `Bible.Alarm.Tests.iOS` only (xharness)   | `test-ios`     |
+
+**Rationale**: device-test hosts (`Bible.Alarm.Tests.Android`, `Bible.Alarm.Tests.iOS`) include cross-platform tests via a `<Compile Include="..\Bible.Alarm.Tests\**\*.cs" />` glob. They exclude `..\Bible.Alarm.Tests\Platforms\**` so that Windows-only tests do not leak into the Android/iOS APK/.app bundles. Platform-only smoke tests live under `tests/Platforms/{Android,iOS}/` so the host folders stay focused on the test-runner glue.
+
+**Required attributes**:
+- Mark Windows-only test classes with `[Trait("Platform", "Windows")]`.
+- Mark Android-only test classes with `[Trait("Platform", "Android")]`.
+- Mark iOS-only test classes with `[Trait("Platform", "iOS")]`.
+
+The `test-windows` job filters `Platform!=Android&Platform!=iOS` so a forgotten trait causes a single localised failure rather than an opaque cross-platform breakage.
+
+See `tests/README.md` for the local-developer workflow (`tests/run-tests.ps1 -Platform {Windows|Android|iOS|All}`) and `.github/workflows/build.yml` for the matching CI fan-out.

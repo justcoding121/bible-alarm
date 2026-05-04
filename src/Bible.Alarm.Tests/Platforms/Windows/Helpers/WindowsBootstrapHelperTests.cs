@@ -4,6 +4,7 @@ using Bible.Alarm.Platforms.Windows.Helpers;
 
 namespace Bible.Alarm.Tests;
 
+[Trait("Platform", "Windows")]
 public sealed class WindowsBootstrapHelperTests
 {
     [Fact]

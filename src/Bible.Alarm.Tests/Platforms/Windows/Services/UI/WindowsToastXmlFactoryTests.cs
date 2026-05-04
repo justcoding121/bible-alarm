@@ -5,6 +5,7 @@ using Windows.Data.Xml.Dom;
 
 namespace Bible.Alarm.Tests;
 
+[Trait("Platform", "Windows")]
 public sealed class WindowsToastXmlFactoryTests
 {
     [Fact]

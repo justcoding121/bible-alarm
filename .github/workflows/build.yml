@@ -1,5 +1,14 @@
 name: Build
 
+# Fan-out / fan-in:
+#   test-windows  ─┐
+#   test-android  ─┼──► sonar (one analysis with merged coverage)
+#   test-ios      ─┘
+#
+# The three test jobs run in parallel and each uploads a coverage-* artifact. The sonar job downloads
+# all three, runs SonarScanner once with comma-separated sonar.cs.opencover.reportsPaths, and pushes a
+# single analysis to SonarCloud. See tests/README.md and the multi-platform_coverage plan for context.
+
 on:
   push:
     branches:
@@ -10,9 +19,12 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  XHARNESS_VERSION: 10.0.0-prerelease.26230.1
+  XHARNESS_FEED: https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json
 
 jobs:
-  build:
+  # ----- Windows + Shared host-based test pass --------------------------------------------------
+  test-windows:
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -21,6 +33,251 @@ jobs:
           fetch-depth: 0
 
       - name: Apply CI SDK pin (.github/dotnet/global.ci.json → global.json)
+        run: Copy-Item -Path .github/dotnet/global.ci.json -Destination global.json -Force
+        shell: pwsh
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore workloads
+        run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
+
+      - name: Restore dependencies
+        run: dotnet restore src/Bible.Alarm.sln
+
+      # Sonar's analyzer-based scan still runs in the sonar job; here we only need a self-signed cert
+      # so the WinUI MSIX targets can stage during `dotnet build`.
+      - name: Create Windows package signing certificate
+        run: |
+          $cert = New-SelfSignedCertificate -Subject "CN=Bible.Alarm" -KeyAlgorithm RSA -KeyLength 2048 -KeyUsage DigitalSignature -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(10)
+          $pwd = New-Object System.Security.SecureString
+          Export-PfxCertificate -Cert $cert -FilePath "src/Bible.Alarm/Bible.Alarm_TemporaryKey.pfx" -Password $pwd
+        shell: pwsh
+
+      - name: Build solution
+        run: dotnet build src/Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
+
+      # Filter Out the Android/iOS-tagged smoke tests; they run in their own job and would fail here
+      # (their assemblies are not built for net10.0-windows). Coverage from this pass writes to a
+      # deterministic path that we copy into TestResults/coverage-windows.xml below.
+      - name: Run Windows + Shared tests
+        run: |
+          dotnet test src/Bible.Alarm.sln `
+            --configuration Release `
+            --no-build `
+            --verbosity normal `
+            --logger "trx;LogFileName=test-results.trx" `
+            --collect:"XPlat Code Coverage;Format=opencover,cobertura" `
+            --filter "Platform!=Android&Platform!=iOS"
+        shell: pwsh
+
+      - name: Stage coverage artifact
+        run: |
+          New-Item -ItemType Directory -Path artifacts/coverage-windows -Force | Out-Null
+          $cov = Get-ChildItem -Path . -Recurse -Filter coverage.opencover.xml -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($cov) {
+            Copy-Item -Force $cov.FullName artifacts/coverage-windows/coverage-windows.xml
+          } else {
+            Write-Error "No OpenCover XML produced by the Windows test pass"
+          }
+        shell: pwsh
+
+      - name: Upload Windows coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-windows
+          path: artifacts/coverage-windows/coverage-windows.xml
+          if-no-files-found: error
+
+      - name: Upload Windows test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results-windows
+          path: |
+            **/test-results.trx
+            **/coverage.cobertura.xml
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ----- Android device-test pass via xharness on a Linux runner with KVM -----------------------
+  test-android:
+    runs-on: ubuntu-latest
+    # Required by the reactivecircus emulator runner action below: the action mounts /dev/kvm.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Apply CI SDK pin
+        run: cp -f .github/dotnet/global.ci.json global.json
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android --skip-manifest-update
+
+      - name: Install xharness CLI
+        run: |
+          dotnet tool install --global Microsoft.DotNet.XHarness.CLI \
+            --version "$XHARNESS_VERSION" \
+            --add-source "$XHARNESS_FEED"
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Restore (Android-only)
+        run: dotnet restore src/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj -p:BUILD_ANDROID_ONLY=true
+
+      # coverlet.msbuild instruments at build time; the resulting OpenCover XML is written when the
+      # APK exits cleanly under xharness.
+      - name: Build Android test APK
+        run: |
+          mkdir -p artifacts/coverage-android
+          dotnet build src/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj \
+            -c Release \
+            -f net10.0-android \
+            -p:BUILD_ANDROID_ONLY=true \
+            -p:CollectCoverage=true \
+            -p:CoverletOutputFormat=opencover \
+            -p:CoverletOutput="$GITHUB_WORKSPACE/artifacts/coverage-android/coverage-android.xml"
+
+      - name: Enable KVM (required by the AVD runner)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run xharness on AVD
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            APK=$(find src/Bible.Alarm.Tests.Android/bin/Release/net10.0-android -name '*-Signed.apk' | head -n 1)
+            if [ -z "$APK" ]; then echo "No signed APK produced"; exit 1; fi
+            dotnet xharness android test \
+              --app="$APK" \
+              --package-name=com.jthomas.info.Bible.Alarm.Tests \
+              --instrumentation=com.jthomas.info.Bible.Alarm.Tests.TestInstrumentation \
+              --output-directory="$GITHUB_WORKSPACE/artifacts/coverage-android"
+
+      - name: Upload Android coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-android
+          path: artifacts/coverage-android/coverage-android.xml
+          if-no-files-found: error
+
+      - name: Upload Android xharness logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xharness-android-logs
+          path: artifacts/coverage-android/**
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ----- iOS device-test pass via xharness on a macOS runner ------------------------------------
+  test-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Apply CI SDK pin
+        run: cp -f .github/dotnet/global.ci.json global.json
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Install MAUI iOS workload
+        run: dotnet workload install maui-ios --skip-manifest-update
+
+      - name: Install xharness CLI
+        run: |
+          dotnet tool install --global Microsoft.DotNet.XHarness.CLI \
+            --version "$XHARNESS_VERSION" \
+            --add-source "$XHARNESS_FEED"
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Boot iOS simulator
+        # Use whichever iPhone simulator the runner image ships; macos-latest currently includes 17.x
+        # and 18.x runtimes. xharness picks the booted device automatically with --target=ios-simulator-64.
+        run: |
+          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+ \(" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          echo "Booting simulator $DEVICE"
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+
+      - name: Restore (iOS-only)
+        run: dotnet restore src/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj -p:BUILD_IOS_ONLY=true
+
+      - name: Build iOS test bundle
+        run: |
+          mkdir -p artifacts/coverage-ios
+          dotnet build src/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
+            -c Debug \
+            -f net10.0-ios \
+            -p:BUILD_IOS_ONLY=true \
+            -p:RuntimeIdentifier=iossimulator-arm64 \
+            -p:CollectCoverage=true \
+            -p:CoverletOutputFormat=opencover \
+            -p:CoverletOutput="$GITHUB_WORKSPACE/artifacts/coverage-ios/coverage-ios.xml"
+
+      - name: Run xharness on simulator
+        run: |
+          APP_PATH=$(find src/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)
+          if [ -z "$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
+          dotnet xharness apple test \
+            --app="$APP_PATH" \
+            --target=ios-simulator-64 \
+            --output-directory="$GITHUB_WORKSPACE/artifacts/coverage-ios"
+
+      - name: Upload iOS coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-ios
+          path: artifacts/coverage-ios/coverage-ios.xml
+          if-no-files-found: error
+
+      - name: Upload iOS xharness logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xharness-ios-logs
+          path: artifacts/coverage-ios/**
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ----- Single Sonar analysis with all three coverage files merged -----------------------------
+  sonar:
+    runs-on: windows-latest
+    needs: [test-windows, test-android, test-ios]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Apply CI SDK pin
         run: Copy-Item -Path .github/dotnet/global.ci.json -Destination global.json -Force
         shell: pwsh
 
@@ -45,9 +302,23 @@ jobs:
           Export-PfxCertificate -Cert $cert -FilePath "src/Bible.Alarm/Bible.Alarm_TemporaryKey.pfx" -Password $pwd
         shell: pwsh
 
+      # download-artifact creates one folder per artifact name; layout becomes:
+      #   TestResults/coverage-windows/coverage-windows.xml
+      #   TestResults/coverage-android/coverage-android.xml
+      #   TestResults/coverage-ios/coverage-ios.xml
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: coverage-*
+          path: TestResults
+
       - name: SonarScanner begin
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # sonar.cs.opencover.reportsPaths is comma-separated; the analyzer unions covered lines
+        # across all three reports (a line is covered if any platform covered it).
+        # New test host projects (Bible.Alarm.Tests.{Android,iOS}) are excluded from analysis but
+        # their coverage hits on production source are still imported.
         run: |
           dotnet sonarscanner begin `
             /k:"justcoding121_bible-alarm" `
@@ -56,29 +327,18 @@ jobs:
             /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.language="cs" `
             /d:sonar.dotnet.excludeTestProjects="true" `
-            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/Database/Migrations/**" `
-            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
+            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**" `
+            /d:sonar.cs.opencover.reportsPaths="TestResults/coverage-windows/coverage-windows.xml,TestResults/coverage-android/coverage-android.xml,TestResults/coverage-ios/coverage-ios.xml"
         shell: pwsh
 
-      - name: Build solution
+      # Sonar requires a build between begin and end so the analyzer can attach to the compilers.
+      # We rebuild only the Windows + net10.0 TFMs here (Android/iOS source is read by Sonar from disk
+      # via the .NET analyzer; we don't need the compiled Android/iOS assemblies for analysis).
+      - name: Build solution under SonarScanner
         run: dotnet build src/Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
-
-      - name: Run tests
-        run: dotnet test src/Bible.Alarm.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage;Format=opencover,cobertura"
 
       - name: SonarScanner end
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: dotnet sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
         shell: pwsh
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: test-results
-          path: |
-            **/test-results.trx
-            **/coverage.cobertura.xml
-          retention-days: 30
-          if-no-files-found: ignore

@@ -5,6 +5,10 @@
     <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
     <!-- CI: restrict to Android only when BUILD_ANDROID_ONLY is set (e.g. Linux runner). -->
     <TargetFrameworks Condition="'$(BUILD_ANDROID_ONLY)'=='true'">net10.0-android</TargetFrameworks>
+    <!-- CI: restrict to iOS only when BUILD_IOS_ONLY is set (e.g. macOS runner). -->
+    <TargetFrameworks Condition="'$(BUILD_IOS_ONLY)'=='true'">net10.0-ios</TargetFrameworks>
+    <!-- CI: restrict to Windows only when BUILD_WINDOWS_ONLY is set. -->
+    <TargetFrameworks Condition="'$(BUILD_WINDOWS_ONLY)'=='true'">net10.0-windows10.0.19041.0</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <UseMaui>true</UseMaui>
     <ImplicitUsings>enable</ImplicitUsings>

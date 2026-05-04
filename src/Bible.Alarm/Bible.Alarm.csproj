@@ -3,6 +3,10 @@
 		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
 		<!-- CI: restrict to Android only on Linux so iOS workload is not required (Shared stays net10.0). -->
 		<TargetFrameworks Condition="'$(BUILD_ANDROID_ONLY)'=='true'">net10.0-android</TargetFrameworks>
+		<!-- CI: restrict to iOS only on macOS so Android workload is not required (Shared stays net10.0). -->
+		<TargetFrameworks Condition="'$(BUILD_IOS_ONLY)'=='true'">net10.0-ios</TargetFrameworks>
+		<!-- CI: restrict to Windows only on Windows runners that are not building cross-platform (Shared stays net10.0). -->
+		<TargetFrameworks Condition="'$(BUILD_WINDOWS_ONLY)'=='true'">net10.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>Bible.Alarm</RootNamespace>
 		<UseMaui>true</UseMaui>
@@ -110,6 +114,9 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="Bible.Alarm.Tests" />
+		<!-- Device-test hosts share the same source globs as Bible.Alarm.Tests, so they must inherit the same internal access. -->
+		<InternalsVisibleTo Include="Bible.Alarm.Tests.Android" />
+		<InternalsVisibleTo Include="Bible.Alarm.Tests.iOS" />
 	</ItemGroup>
 
 	<!-- Interpreter + AOT together is unsupported (XA0119). Release publish defaults RunAOTCompilation=true; AndroidAotEnable alone does not disable it. -->

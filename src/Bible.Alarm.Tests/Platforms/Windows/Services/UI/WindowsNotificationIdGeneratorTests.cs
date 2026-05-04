@@ -4,6 +4,7 @@ using Bible.Alarm.Platforms.Windows.Services.UI;
 
 namespace Bible.Alarm.Tests;
 
+[Trait("Platform", "Windows")]
 public sealed class WindowsNotificationIdGeneratorTests
 {
     private static readonly DateTimeOffset SampleFire =

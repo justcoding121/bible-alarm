@@ -1,0 +1,243 @@
+---
+description: "How tests are organised in Bible.Alarm (Windows/Android/iOS test hosts via xharness, shared cross-platform test source via Compile glob, SonarCloud coverage merge). Read first when asked to add tests, improve coverage, or debug a failing test job."
+globs: "**"
+alwaysApply: false
+---
+
+# Bible.Alarm test architecture
+
+## If you're here to improve coverage — agent workflow
+
+Follow these steps in order. Do **not** push to CI before step 5 passes locally; the Android/iOS jobs are 10–20 min each and CI minutes are a finite resource.
+
+1. **Locate the gap.** Get the latest OpenCover/Cobertura report. Two ways:
+   - From CI artifacts: download `coverage-windows`, `coverage-android`, `coverage-ios` from the most recent green Actions run, drop them in `TestResults/coverage-{windows,android,ios}/`, then merge:
+     ```pwsh
+     dotnet tool restore
+     dotnet reportgenerator `
+         "-reports:TestResults/coverage-windows/coverage-windows.xml;TestResults/coverage-android/coverage-android.xml;TestResults/coverage-ios/coverage-ios.xml" `
+         "-targetdir:TestResults/merged" `
+         -reporttypes:Html
+     start TestResults/merged/index.html
+     ```
+   - Or run locally end-to-end: `./tests/run-tests.ps1 -Platform All -MacHost user@mac.local`. Same merge step happens automatically; report at `TestResults/merged/index.html`.
+   - Sort by **uncovered LOC × file weight** (biggest gains first). In the OpenCover XML, `<SequencePoint vc="0" ... />` is an uncovered line; `<Method ... visited="false">` is an entirely uncovered method.
+2. **Pick a target file.** Match it against the placement table in [Where does a new test go?](#where-does-a-new-test-go). The decision drives which test project, folder, and `[Trait]` you need.
+3. **Find the closest exemplar.** See [Quick-reference paths to known-good exemplars](#quick-reference-paths-to-known-good-exemplars). Copy structure, naming, and assertion style.
+4. **Write the test.** Mirror the production folder, follow the [xunit conventions](#test-fixture-style-xunit-conventions-used-in-this-repo). One assertion idea per `[Fact]`; no `Task.Delay`; no real I/O.
+5. **Validate locally** (the platform-specific paths below). Coverage XML must regenerate and show the new lines covered. `dotnet test` exit code must be `0`. Do not skip this even for "trivial" tests — the device-test hosts have non-obvious build interactions documented under [Hard rules](#hard-rules--do-not-break).
+6. **Commit and push.** CI will rerun all three platforms in parallel and feed the merged coverage to SonarCloud automatically (`sonar` job).
+
+If a step fails, do **not** loosen `[Trait]`, the Compile glob excludes, or the SonarScanner exclusions to "make it green". Those are load-bearing — fix the underlying issue or escalate.
+
+## Pre-flight — what your dev box needs before you can run platform tests locally
+
+| Platform | Required tools                                                                                  | One-time setup                                                                                                                                          |
+| -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows  | .NET SDK matching `global.json` (10.0.202 today). PowerShell 7+. Visual Studio MAUI workload.   | `dotnet workload install maui`                                                                                                                          |
+| Android  | All of Windows + Android Studio SDK Platform-Tools (`adb`, `emulator`) on `PATH` *or* `$env:ANDROID_HOME` set. At least one AVD (API 30+). | `dotnet workload install maui-android`. Create an AVD in Android Studio (Pixel 8, API 34 works). xharness installs itself via `tests/run-tests.ps1`. |
+| iOS      | A reachable Mac on the LAN with passwordless SSH, .NET 10 SDK, `maui-ios` workload, Xcode 16+ with iOS 18 simulator runtime. | On the Mac: `dotnet workload install maui-ios`, install Xcode + simulator runtime. On Windows: `ssh-keygen` + copy key to Mac. Confirm with `ssh user@mac.local 'dotnet --info'`. |
+
+Verify before running `tests/run-tests.ps1`:
+
+```pwsh
+# Sanity checks the script itself does not perform up-front
+dotnet --info | Select-String -Pattern '^\s*Version:'        # matches global.json
+adb devices                                                  # only matters for Android
+ssh user@mac.local 'xcrun simctl list runtimes | head -2'    # only matters for iOS
+```
+
+If any check fails, fix the prerequisite before retrying — the script's error messages assume the workload is installed and the host is reachable.
+
+## Validate locally — exact commands per platform
+
+Pick the **smallest** scope that covers your change, not "All", to keep the inner loop fast.
+
+```pwsh
+# After editing a cross-platform fixture under src/Bible.Alarm.Tests/ (no platform-only deps)
+./tests/run-tests.ps1 -Platform Windows
+# ~30s on a warm tree. Coverage at TestResults/windows/coverage.windows.opencover.xml.
+
+# After editing tests/Platforms/Android/** or any production code under src/Bible.Alarm/Platforms/Android/**
+./tests/run-tests.ps1 -Platform Android -AndroidAvd <your-avd-name>
+# ~3-5 min cold (AVD boot + APK build + xharness). Coverage at TestResults/android/coverage.android.opencover.xml.
+
+# After editing tests/Platforms/iOS/** or any production code under src/Bible.Alarm/Platforms/iOS/**
+./tests/run-tests.ps1 -Platform iOS -MacHost user@mac.local
+# ~5-8 min (rsync + simulator boot + build + xharness). Coverage at TestResults/ios/coverage.ios.opencover.xml.
+
+# Pre-push smoke (only when changes span platforms or you've touched the test infrastructure itself)
+./tests/run-tests.ps1 -Platform All -MacHost user@mac.local
+```
+
+What "passing" means before you push:
+
+1. Script exits with `Done.` in green and exit code 0 (`$LASTEXITCODE` is 0).
+2. The relevant `coverage.<platform>.opencover.xml` exists and is non-empty.
+3. The new lines you intended to cover show `vc="1"` (or higher) in that XML, *not* `vc="0"`. If they're still `vc="0"`, your test isn't actually exercising the path — fix the test, don't merge.
+4. No build warnings introduced (`-Verbose` to surface them).
+
+Skipping the merge for fast iteration: `-SkipMerge` avoids the ReportGenerator step but keeps the per-platform XML.
+
+## Diagnosing a failing CI job (matrix → fix path)
+
+| Failure                                                                              | First place to look                                                                                                  | Likely fix                                                                                       |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `test-windows`: `error CS0246: The type or namespace 'Bible.Alarm.Platforms.Android.*'` | A platform-only test file got added under `src/Bible.Alarm.Tests/` outside `Platforms/Windows/`.                  | Move it to `tests/Platforms/{Android,iOS}/` and add the matching `[Trait("Platform","...")]`.    |
+| `test-android`: `XAGMM7009: There can be only one type with an [Application] attribute` | Someone added a `MainApplication.cs`/`MauiProgram.cs` to `Bible.Alarm.Tests.Android`.                              | Delete it. The test host inherits Bible.Alarm's `MainApplication` via project ref by design.     |
+| `test-ios`: app crashes immediately at launch with `NSObject ... already registered`  | A second `[Register("AppDelegate")]` slipped into the test bundle.                                                   | Make sure the test AppDelegate uses `[Register("BibleAlarmTestsAppDelegate")]`.                 |
+| `test-android`/`test-ios`: build fails with `NU1100: package not found Microsoft.DotNet.XHarness.*` | `NuGet.config` was overwritten or the `dotnet-eng` source / `packageSourceMapping` was removed.                | Restore `NuGet.config` from `git` — the `dotnet-eng` feed is mandatory.                          |
+| `sonar`: SonarScanner reports 0% coverage even after green tests                     | Either an artifact name drifted (`coverage-windows.xml` etc.), or `sonar.cs.opencover.reportsPaths` lost a path.   | Check `actions/upload-artifact` `name:` matches `actions/download-artifact` `pattern:` (`coverage-*`) and the three paths in `sonar.cs.opencover.reportsPaths`. |
+| `test-android`: `error MSB4018: GenerateRuntimeConfigurationFiles … android-x64/runtimeconfig.json directory not found` | `UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers"` was removed from the `<ProjectReference>` to `Bible.Alarm.csproj`. | Restore it; without the strip, the test-host RID propagates and trips MAUI's runtimeconfig task. |
+| `test-windows` only: `error CS0122: 'XYZ' is inaccessible due to its protection level` | A new `internal` consumer references a type but the test project isn't in `InternalsVisibleTo`.                      | Add the test project name to `<InternalsVisibleTo Include="..." />` in `Bible.Alarm.csproj`.     |
+
+On any failure, download the job's `xharness-*-logs` artifact (Android/iOS) — it has the on-device stdout that the GitHub Actions log truncates.
+
+Tests in this repo live across **five projects** that all run xunit but use different hosts:
+
+| Project                       | TFM                            | Host             | CI job         | What runs here                                                                                       |
+| ----------------------------- | ------------------------------ | ---------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| `Bible.Alarm.Shared.Tests`    | `net10.0`                      | `dotnet test`    | `test-windows` | Pure-`net10.0` tests over `Bible.Alarm.Shared` (no MAUI runtime).                                    |
+| `Bible.Alarm.Tests`           | `net10.0-windows10.0.19041.0`  | `dotnet test`    | `test-windows` | Cross-platform xunit fixtures + Windows-only tests under `Platforms/Windows/`.                       |
+| `Bible.Alarm.Tests.Android`   | `net10.0-android` (`.apk`)     | `xharness android` | `test-android` | Same cross-platform fixtures **+** smoke tests from `tests/Platforms/Android/`.                      |
+| `Bible.Alarm.Tests.iOS`       | `net10.0-ios` (`.app`)         | `xharness apple` | `test-ios`     | Same cross-platform fixtures **+** smoke tests from `tests/Platforms/iOS/`.                          |
+| `.tools/*.Tests`              | `net10.0`                      | `dotnet test`    | `test-windows` | Tests for the dev tools (`Cataloger`, `DbMigration`, `VersionPatcher`, `IosScreenshotResizer`).      |
+
+Cross-platform tests are physically owned by `src/Bible.Alarm.Tests/`. The Android and iOS *device-test hosts* don't duplicate that source — they include it via `<Compile Include="..\Bible.Alarm.Tests\**\*.cs" Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**" />`. Each device-test host references `Bible.Alarm.csproj` with `UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers"` so MSBuild does not propagate the test-host RID into the production project (which would make Bible.Alarm try to write `runtimeconfig.json` into a per-RID subdirectory the MAUI targets don't pre-create — `GenerateRuntimeConfigurationFiles` then throws `DirectoryNotFoundException`).
+
+### Why the device-test hosts have *no* `MainApplication` / `MainActivity` / `Program.cs` of their own
+
+The Android host (`src/Bible.Alarm.Tests.Android/`) intentionally ships **only** `Platforms/Android/AndroidManifest.xml` and `Platforms/Android/TestInstrumentation.cs`. There is no `MainApplication`, no `MainActivity`, no `MauiProgram`, no `App.xaml`. Reason: when the test host references `Bible.Alarm.csproj`, the production app's `[Application]`-attributed `Bible.Alarm.Platforms.Android.MainApplication` ends up in the same merged manifest. Defining a second `[Application]` class trips Xamarin.Android's manifest merger with `XAGMM7009: There can be only one type with an [Application] attribute`. So the device-test bundle uses the production `MainApplication` (which boots the real MAUI app), and `xharness` invokes `am instrument -w com.jthomas.info.Bible.Alarm.Tests/.TestInstrumentation` — instrumentation runs alongside the production `Application` without ever touching `MainActivity`. xunit reflects over the test assembly via `DefaultAndroidEntryPoint.Xunit` and writes the OpenCover XML into the path xharness pulls back.
+
+The iOS host (`src/Bible.Alarm.Tests.iOS/`) **does** keep its own `Program.cs` and `AppDelegate.cs`, but the AppDelegate is registered with `[Register("BibleAlarmTestsAppDelegate")]` — *not* `"AppDelegate"`. That ObjC class name has to differ from the one Bible.Alarm's production AppDelegate registers, otherwise the ObjC runtime sees two classes with the same name in the same process and rejects the bundle. `Program.Main` then explicitly wires UIKit to the test AppDelegate via `UIApplication.Main(args, null, typeof(AppDelegate))` (resolved in our namespace). Bible.Alarm's `Program.Main` is dead code in this build because only the entry assembly's `Main` is the executable entry point.
+
+## Where does a new test go?
+
+**Before writing the test, ask: "What does the production code under test compile against?"**
+
+| Production code lives in...                                          | Test goes in...                                              | Trait required                                                                  |
+| -------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `src/Bible.Alarm.Shared/**` (no MAUI dependency)                     | `src/Bible.Alarm.Shared.Tests/<mirror-folder>/`              | none                                                                            |
+| `src/Bible.Alarm/**` outside `Platforms/` (incl. ViewModels, Views, Services) | `src/Bible.Alarm.Tests/<mirror-folder>/`            | none — runs on **all three** test jobs                                          |
+| `src/Bible.Alarm/Platforms/Windows/**` or `*.windows.cs`             | `src/Bible.Alarm.Tests/Platforms/Windows/<mirror-folder>/`   | `[Trait("Platform","Windows")]`                                                 |
+| `src/Bible.Alarm/Platforms/Android/**` or `*.android.cs` or `#if ANDROID` | `tests/Platforms/Android/<mirror-folder>/`              | `[Trait("Platform","Android")]`                                                 |
+| `src/Bible.Alarm/Platforms/iOS/**` or `*.ios.cs` or `#if IOS`        | `tests/Platforms/iOS/<mirror-folder>/`                       | `[Trait("Platform","iOS")]`                                                     |
+| `.tools/<Tool>/**`                                                   | `.tools/<Tool>.Tests/<mirror-folder>/`                       | none                                                                            |
+
+**Trait enforcement**: the Windows job runs with `--filter "Platform!=Android&Platform!=iOS"`. A platform-only test that forgets its trait will load on the Windows runner where its `using Bible.Alarm.Platforms.Android.*` references don't compile — so the failure is "this build, this file" instead of an opaque cross-job breakage. **Always tag platform tests.**
+
+## Folder layout follows production code
+
+Under each test project, mirror the production folder. Examples (use these as the pattern when adding new tests):
+
+- Production `src/Bible.Alarm/Stores/ApplicationState.cs` → test `src/Bible.Alarm.Tests/Stores/ApplicationStateTests.cs`.
+- Production `src/Bible.Alarm/ViewModels/HomeViewModelHelpers/HomeNavigationHelper.cs` → test `src/Bible.Alarm.Tests/ViewModels/HomeViewModelHelpers/HomeNavigationHelperTests.cs`.
+- Production `src/Bible.Alarm/Services/UI/ToastService.cs` → test `src/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs`.
+- Platform-only `src/Bible.Alarm/Platforms/Windows/Services/UI/WindowsNotificationIdGenerator.cs` → test `src/Bible.Alarm.Tests/Platforms/Windows/Services/UI/WindowsNotificationIdGeneratorTests.cs`.
+- Platform-only `src/Bible.Alarm/Platforms/Android/Services/Helpers/NotificationPermissionHelper.cs` → test `tests/Platforms/Android/NotificationPermissionHelperSmokeTests.cs`.
+
+## Test-fixture style (xunit conventions used in this repo)
+
+- `#nullable enable` at the top of every test file.
+- `public sealed class FooTests { ... }` — sealed, no inheritance.
+- `namespace Bible.Alarm.Tests;` (file-scoped). Platform-only tests under `tests/Platforms/{Android,iOS}/` use `Bible.Alarm.Tests.Platforms.{Android,iOS}`.
+- `[Fact]` for single-shot tests, `[Theory]` + `[InlineData]` for parameterised.
+- One assertion idea per `[Fact]`; method name reads like a sentence (`Constructor_accepts_schedules_and_overlay_flags`).
+- Prefer **hand-rolled stub/recording subclasses** over Moq when the SUT exposes virtual methods (see `RecordingToastService` in `src/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs`). This repo does not use NSubstitute/Moq for new tests.
+- Avoid `Task.Delay` and real I/O. If the SUT awaits time, inject an `Func<DateTime>` / `TimeProvider` and assert on synchronous state.
+- Don't depend on a `MauiApp` host being initialised inside a test; the Android/iOS hosts boot one but the Windows host does not.
+
+## How to invoke tests locally
+
+The orchestrator script handles the boring parts (xharness install, AVD boot, SSH-to-Mac, coverage merge):
+
+```pwsh
+# Windows host-based pass (all net10.0 + net10.0-windows test projects). Filters out platform-only tests.
+./tests/run-tests.ps1 -Platform Windows
+
+# Android device-test pass (boots an AVD if none is online; xharness installs the APK and instruments it)
+./tests/run-tests.ps1 -Platform Android -AndroidAvd Pixel_8_API_34
+
+# iOS device-test pass over SSH to a networked Mac (must have dotnet, maui-ios workload, Xcode, xharness)
+./tests/run-tests.ps1 -Platform iOS -MacHost user@mac.local
+
+# All three, then merge into TestResults/merged/index.html via ReportGenerator
+./tests/run-tests.ps1 -Platform All -MacHost user@mac.local
+```
+
+If you need to drop down to raw CLI (e.g. running a single test):
+
+```pwsh
+# Single-fixture filter via dotnet test (Windows pass)
+dotnet test src/Bible.Alarm.Tests/Bible.Alarm.Tests.csproj `
+    --filter "FullyQualifiedName~ApplicationStateTests" `
+    --logger "console;verbosity=detailed"
+
+# Build + run an Android test APK manually (after dotnet workload install maui-android)
+dotnet build src/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj `
+    -c Release -f net10.0-android -p:BUILD_ANDROID_ONLY=true `
+    -p:CollectCoverage=true -p:CoverletOutputFormat=opencover `
+    -p:CoverletOutput=TestResults/android/coverage.opencover.xml
+dotnet xharness android test `
+    --app=src/Bible.Alarm.Tests.Android/bin/Release/net10.0-android/com.jthomas.info.Bible.Alarm.Tests-Signed.apk `
+    --package-name=com.jthomas.info.Bible.Alarm.Tests `
+    --instrumentation=com.jthomas.info.Bible.Alarm.Tests.TestInstrumentation `
+    --output-directory=TestResults/android
+
+# iOS equivalent — must run on macOS (maui-ios workload + Xcode)
+dotnet build src/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
+    -c Debug -f net10.0-ios -p:BUILD_IOS_ONLY=true \
+    -p:RuntimeIdentifier=iossimulator-arm64 \
+    -p:CollectCoverage=true -p:CoverletOutputFormat=opencover \
+    -p:CoverletOutput=TestResults/ios/coverage.ios.opencover.xml
+dotnet xharness apple test \
+    --app="$(find src/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)" \
+    --target=ios-simulator-64 \
+    --output-directory=TestResults/ios
+```
+
+## Coverage feedback loop
+
+After a successful run, OpenCover XML reports land at:
+
+- Windows: `TestResults/<guid>/coverage.opencover.xml` (whatever folder coverlet.collector picked).
+- Android: `TestResults/android/coverage.android.opencover.xml`.
+- iOS: `TestResults/ios/coverage.ios.opencover.xml`.
+- Merged HTML report: `TestResults/merged/index.html` (only after `-Platform All` or running `dotnet reportgenerator` manually against the three).
+
+Open the merged HTML to see exactly which lines are uncovered. If working against an OpenCover XML by hand, search for `<SequencePoint vc="0"` to find uncovered lines (`vc` = visit count).
+
+## SonarCloud coverage merge
+
+The `sonar` CI job downloads the three artifacts (`coverage-windows`, `coverage-android`, `coverage-ios`) and feeds them via:
+
+```
+/d:sonar.cs.opencover.reportsPaths="TestResults/coverage-windows/coverage-windows.xml,TestResults/coverage-android/coverage-android.xml,TestResults/coverage-ios/coverage-ios.xml"
+```
+
+Sonar unions covered lines across all three reports — a line in `Services/Media/PlaybackService.cs` covered by either Windows tests *or* Android tests counts once. The new test host projects themselves are excluded from analysis via `sonar.exclusions="...,**/*.Tests.Android/**,**/*.Tests.iOS/**"` and `sonar.dotnet.excludeTestProjects="true"`.
+
+## Hard rules — do not break
+
+1. **Do not** add MAUI-runtime-dependent tests to `src/Bible.Alarm.Shared.Tests/`. That project has no MAUI dependency by design.
+2. **Do not** put files referencing `Bible.Alarm.Platforms.Android.*` or `Bible.Alarm.Platforms.iOS.*` types under `src/Bible.Alarm.Tests/` outside `Platforms/Windows/`. The Android/iOS hosts exclude only `Platforms/**` from the cross-platform glob; everything else gets dragged into the APK/.app. References to types that don't exist for that TFM = build failure on that runner.
+3. **Do not** remove the `BUILD_ANDROID_ONLY`, `BUILD_IOS_ONLY`, or `BUILD_WINDOWS_ONLY` switches in `src/Bible.Alarm/Bible.Alarm.csproj` and `libraries/CommunityToolkit.Maui.MediaElement/CommunityToolkit.Maui.MediaElement.csproj`. The Linux/macOS CI runners use them to skip the TFMs whose workloads they cannot install.
+4. **Do not** remove the `dotnet-eng` feed entry or `packageSourceMapping` in repo-root `NuGet.config`. The `Microsoft.DotNet.XHarness.*` packages are not on `nuget.org`.
+5. **Do not** rename `com.jthomas.info.Bible.Alarm.Tests` (Android `ApplicationId` + iOS `CFBundleIdentifier`) or `com.jthomas.info.Bible.Alarm.Tests.TestInstrumentation` (the Android `[Instrumentation(Name=...)]`). The `--package-name=`, `--instrumentation=`, and `AndroidManifest.xml`'s `<instrumentation android:targetPackage=...>` must all line up — change one and `xharness android test` exits with `INSTRUMENTATION_FAILED`.
+   - Likewise on iOS, the `[Register("BibleAlarmTestsAppDelegate")]` name on `Bible.Alarm.Tests.iOS.AppDelegate` must stay distinct from Bible.Alarm's `[Register("AppDelegate")]`. Two classes with the same Objective-C name = ObjC runtime rejection at startup.
+   - **Do not** add a `[Application]`-attributed `MainApplication`, a `[Activity(MainLauncher=true)]` `MainActivity`, or a `MauiProgram.cs` to `Bible.Alarm.Tests.Android`. The test host inherits Bible.Alarm's `MainApplication` via project ref; declaring a second one trips `XAGMM7009` at manifest-merge time.
+6. **Do not** swap `coverlet.collector` for `coverlet.msbuild` (or vice-versa) inside a project. Host-based tests use the collector (`--collect:"XPlat Code Coverage"`); device-test hosts use the msbuild instrumenter (`-p:CollectCoverage=true`) because the collector cannot inject into a running APK/.app.
+
+## Quick-reference paths to known-good exemplars
+
+When writing a new test, copy the closest exemplar and adapt:
+
+- **Plain xunit fact + `[Fact]`** → `src/Bible.Alarm.Tests/Stores/ApplicationStateTests.cs`
+- **`[Theory]` + `[InlineData]`** → `src/Bible.Alarm.Tests/Common/Helpers/ConcurrencyHelperTests.cs`
+- **Hand-rolled recording subclass** → `src/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs` (`RecordingToastService`)
+- **Windows-only fixture (with trait)** → `src/Bible.Alarm.Tests/Platforms/Windows/Services/UI/WindowsNotificationIdGeneratorTests.cs`
+- **Android-only smoke test** → `tests/Platforms/Android/NotificationPermissionHelperSmokeTests.cs`
+- **iOS-only smoke test** → `tests/Platforms/iOS/IosNotificationPermissionServiceSmokeTests.cs`
+- **`net10.0` (Shared) fixture** → any file under `src/Bible.Alarm.Shared.Tests/`
+
+For end-to-end context (CI fan-out, SDK pins, secrets), read `.github/workflows/build.yml` and `tests/README.md`.

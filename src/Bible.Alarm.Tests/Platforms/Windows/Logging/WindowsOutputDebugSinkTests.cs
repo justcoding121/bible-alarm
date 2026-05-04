@@ -5,6 +5,7 @@ using Serilog;
 
 namespace Bible.Alarm.Tests;
 
+[Trait("Platform", "Windows")]
 public sealed class WindowsOutputDebugSinkTests
 {
     [Fact]
