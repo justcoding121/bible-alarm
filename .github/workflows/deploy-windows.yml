@@ -67,7 +67,7 @@ jobs:
         Write-Host "Exported public certificate: $cerFile"
         
     - name: Restore dependencies
-      run: dotnet restore src/Bible.Alarm.sln
+      run: dotnet restore Bible.Alarm.sln
 
     - name: Get Windows version
       id: get_version

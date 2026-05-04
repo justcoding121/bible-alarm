@@ -45,7 +45,7 @@ jobs:
         run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
 
       - name: Restore dependencies
-        run: dotnet restore src/Bible.Alarm.sln
+        run: dotnet restore Bible.Alarm.sln
 
       # Sonar's analyzer-based scan still runs in the sonar job; here we only need a self-signed cert
       # so the WinUI MSIX targets can stage during `dotnet build`.
@@ -57,14 +57,14 @@ jobs:
         shell: pwsh
 
       - name: Build solution
-        run: dotnet build src/Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
+        run: dotnet build Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
 
       # Filter Out the Android/iOS-tagged smoke tests; they run in their own job and would fail here
       # (their assemblies are not built for net10.0-windows). Coverage from this pass writes to a
       # deterministic path that we copy into TestResults/coverage-windows.xml below.
       - name: Run Windows + Shared tests
         run: |
-          dotnet test src/Bible.Alarm.sln `
+          dotnet test Bible.Alarm.sln `
             --configuration Release `
             --no-build `
             --verbosity normal `
@@ -138,14 +138,14 @@ jobs:
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Restore (Android-only)
-        run: dotnet restore src/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj -p:BUILD_ANDROID_ONLY=true
+        run: dotnet restore tests/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj -p:BUILD_ANDROID_ONLY=true
 
       # coverlet.msbuild instruments at build time; the resulting OpenCover XML is written when the
       # APK exits cleanly under xharness.
       - name: Build Android test APK
         run: |
           mkdir -p artifacts/coverage-android
-          dotnet build src/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj \
+          dotnet build tests/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj \
             -c Release \
             -f net10.0-android \
             -p:BUILD_ANDROID_ONLY=true \
@@ -169,7 +169,7 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            APK=$(find src/Bible.Alarm.Tests.Android/bin/Release/net10.0-android -name '*-Signed.apk' | head -n 1)
+            APK=$(find tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android -name '*-Signed.apk' | head -n 1)
             if [ -z "$APK" ]; then echo "No signed APK produced"; exit 1; fi
             dotnet xharness android test \
               --app="$APK" \
@@ -228,12 +228,12 @@ jobs:
           xcrun simctl bootstatus "$DEVICE" -b
 
       - name: Restore (iOS-only)
-        run: dotnet restore src/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj -p:BUILD_IOS_ONLY=true
+        run: dotnet restore tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj -p:BUILD_IOS_ONLY=true
 
       - name: Build iOS test bundle
         run: |
           mkdir -p artifacts/coverage-ios
-          dotnet build src/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
+          dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
             -c Debug \
             -f net10.0-ios \
             -p:BUILD_IOS_ONLY=true \
@@ -244,7 +244,7 @@ jobs:
 
       - name: Run xharness on simulator
         run: |
-          APP_PATH=$(find src/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)
+          APP_PATH=$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)
           if [ -z "$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
           dotnet xharness apple test \
             --app="$APP_PATH" \
@@ -293,7 +293,7 @@ jobs:
         run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
 
       - name: Restore dependencies
-        run: dotnet restore src/Bible.Alarm.sln
+        run: dotnet restore Bible.Alarm.sln
 
       - name: Create Windows package signing certificate
         run: |
@@ -335,7 +335,7 @@ jobs:
       # We rebuild only the Windows + net10.0 TFMs here (Android/iOS source is read by Sonar from disk
       # via the .NET analyzer; we don't need the compiled Android/iOS assemblies for analysis).
       - name: Build solution under SonarScanner
-        run: dotnet build src/Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
+        run: dotnet build Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
 
       - name: SonarScanner end
         env:

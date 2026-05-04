@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Bible.Alarm.VersionPatcher\Bible.Alarm.VersionPatcher.csproj" />
+    <ProjectReference Include="..\..\.tools\Bible.Alarm.VersionPatcher\Bible.Alarm.VersionPatcher.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -135,7 +135,7 @@ function Run-WindowsTests {
     $null = New-Item -ItemType Directory -Path $coverageDir -Force
 
     Invoke-CommandChecked -File 'dotnet' -ArgList @(
-        'test', (Join-Path $repoRoot 'src/Bible.Alarm.sln'),
+        'test', (Join-Path $repoRoot 'Bible.Alarm.sln'),
         '--configuration', $Configuration,
         '--logger', 'trx;LogFileName=windows.trx',
         '--results-directory', $coverageDir,
@@ -160,7 +160,7 @@ function Run-AndroidTests {
     }
     Ensure-Xharness
 
-    $androidProj = Join-Path $repoRoot 'src/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj'
+    $androidProj = Join-Path $repoRoot 'tests/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj'
     $coverageDir = Join-Path $testResultsRoot 'android'
     $null = New-Item -ItemType Directory -Path $coverageDir -Force
 
@@ -208,7 +208,7 @@ function Run-AndroidTests {
     )
 
     # Resolve the actual APK path produced by the build (Signed APK suffix varies between configurations).
-    $apk = Get-ChildItem -Path (Join-Path $repoRoot "src/Bible.Alarm.Tests.Android/bin/$Configuration/net10.0-android") `
+    $apk = Get-ChildItem -Path (Join-Path $repoRoot "tests/Bible.Alarm.Tests.Android/bin/$Configuration/net10.0-android") `
         -Filter '*-Signed.apk' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $apk) {
         throw 'Could not locate the signed APK after build. Did the build succeed?'
@@ -252,7 +252,7 @@ function Run-IOSTests {
 set -euo pipefail
 cd "$MacRepoRoot"
 dotnet tool restore
-dotnet build src/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
+dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
     -c $Configuration \
     -f net10.0-ios \
     -p:BUILD_IOS_ONLY=true \
@@ -260,7 +260,7 @@ dotnet build src/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
     -p:CollectCoverage=true \
     -p:CoverletOutputFormat=opencover \
     -p:CoverletOutput=TestResults/ios/coverage.ios.opencover.xml
-APP_PATH=`$(find src/Bible.Alarm.Tests.iOS/bin/$Configuration/net10.0-ios -maxdepth 3 -name "*.app" | head -n 1)
+APP_PATH=`$(find tests/Bible.Alarm.Tests.iOS/bin/$Configuration/net10.0-ios -maxdepth 3 -name "*.app" | head -n 1)
 if [ -z "`$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
 dotnet xharness apple test \
     --app="`$APP_PATH" \

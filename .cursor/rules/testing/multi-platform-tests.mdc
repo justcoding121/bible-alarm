@@ -54,7 +54,7 @@ If any check fails, fix the prerequisite before retrying — the script's error 
 Pick the **smallest** scope that covers your change, not "All", to keep the inner loop fast.
 
 ```pwsh
-# After editing a cross-platform fixture under src/Bible.Alarm.Tests/ (no platform-only deps)
+# After editing a cross-platform fixture under tests/Bible.Alarm.Tests/ (no platform-only deps)
 ./tests/run-tests.ps1 -Platform Windows
 # ~30s on a warm tree. Coverage at TestResults/windows/coverage.windows.opencover.xml.
 
@@ -83,7 +83,7 @@ Skipping the merge for fast iteration: `-SkipMerge` avoids the ReportGenerator s
 
 | Failure                                                                              | First place to look                                                                                                  | Likely fix                                                                                       |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `test-windows`: `error CS0246: The type or namespace 'Bible.Alarm.Platforms.Android.*'` | A platform-only test file got added under `src/Bible.Alarm.Tests/` outside `Platforms/Windows/`.                  | Move it to `tests/Platforms/{Android,iOS}/` and add the matching `[Trait("Platform","...")]`.    |
+| `test-windows`: `error CS0246: The type or namespace 'Bible.Alarm.Platforms.Android.*'` | A platform-only test file got added under `tests/Bible.Alarm.Tests/` outside `Platforms/Windows/`.                  | Move it to `tests/Platforms/{Android,iOS}/` and add the matching `[Trait("Platform","...")]`.    |
 | `test-android`: `XAGMM7009: There can be only one type with an [Application] attribute` | Someone added a `MainApplication.cs`/`MauiProgram.cs` to `Bible.Alarm.Tests.Android`.                              | Delete it. The test host inherits Bible.Alarm's `MainApplication` via project ref by design.     |
 | `test-ios`: app crashes immediately at launch with `NSObject ... already registered`  | A second `[Register("AppDelegate")]` slipped into the test bundle.                                                   | Make sure the test AppDelegate uses `[Register("BibleAlarmTestsAppDelegate")]`.                 |
 | `test-android`/`test-ios`: build fails with `NU1100: package not found Microsoft.DotNet.XHarness.*` | `NuGet.config` was overwritten or the `dotnet-eng` source / `packageSourceMapping` was removed.                | Restore `NuGet.config` from `git` — the `dotnet-eng` feed is mandatory.                          |
@@ -101,15 +101,15 @@ Tests in this repo live across **five projects** that all run xunit but use diff
 | `Bible.Alarm.Tests`           | `net10.0-windows10.0.19041.0`  | `dotnet test`    | `test-windows` | Cross-platform xunit fixtures + Windows-only tests under `Platforms/Windows/`.                       |
 | `Bible.Alarm.Tests.Android`   | `net10.0-android` (`.apk`)     | `xharness android` | `test-android` | Same cross-platform fixtures **+** smoke tests from `tests/Platforms/Android/`.                      |
 | `Bible.Alarm.Tests.iOS`       | `net10.0-ios` (`.app`)         | `xharness apple` | `test-ios`     | Same cross-platform fixtures **+** smoke tests from `tests/Platforms/iOS/`.                          |
-| `.tools/*.Tests`              | `net10.0`                      | `dotnet test`    | `test-windows` | Tests for the dev tools (`Cataloger`, `DbMigration`, `VersionPatcher`, `IosScreenshotResizer`).      |
+| `tests/Bible.Alarm.<Tool>.Tests` | `net10.0`                   | `dotnet test`    | `test-windows` | Tests for the dev tools (`Cataloger`, `DbMigration`, `VersionPatcher`, `IosScreenshotResizer`).      |
 
-Cross-platform tests are physically owned by `src/Bible.Alarm.Tests/`. The Android and iOS *device-test hosts* don't duplicate that source — they include it via `<Compile Include="..\Bible.Alarm.Tests\**\*.cs" Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**" />`. Each device-test host references `Bible.Alarm.csproj` with `UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers"` so MSBuild does not propagate the test-host RID into the production project (which would make Bible.Alarm try to write `runtimeconfig.json` into a per-RID subdirectory the MAUI targets don't pre-create — `GenerateRuntimeConfigurationFiles` then throws `DirectoryNotFoundException`).
+Cross-platform tests are physically owned by `tests/Bible.Alarm.Tests/`. The Android and iOS *device-test hosts* don't duplicate that source — they include it via `<Compile Include="..\Bible.Alarm.Tests\**\*.cs" Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**" />` (the path is a sibling reference because all four `Bible.Alarm*.Tests*` projects now live next to each other under `tests/`). Each device-test host references `Bible.Alarm.csproj` with `UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers"` so MSBuild does not propagate the test-host RID into the production project (which would make Bible.Alarm try to write `runtimeconfig.json` into a per-RID subdirectory the MAUI targets don't pre-create — `GenerateRuntimeConfigurationFiles` then throws `DirectoryNotFoundException`).
 
 ### Why the device-test hosts have *no* `MainApplication` / `MainActivity` / `Program.cs` of their own
 
-The Android host (`src/Bible.Alarm.Tests.Android/`) intentionally ships **only** `Platforms/Android/AndroidManifest.xml` and `Platforms/Android/TestInstrumentation.cs`. There is no `MainApplication`, no `MainActivity`, no `MauiProgram`, no `App.xaml`. Reason: when the test host references `Bible.Alarm.csproj`, the production app's `[Application]`-attributed `Bible.Alarm.Platforms.Android.MainApplication` ends up in the same merged manifest. Defining a second `[Application]` class trips Xamarin.Android's manifest merger with `XAGMM7009: There can be only one type with an [Application] attribute`. So the device-test bundle uses the production `MainApplication` (which boots the real MAUI app), and `xharness` invokes `am instrument -w com.jthomas.info.Bible.Alarm.Tests/.TestInstrumentation` — instrumentation runs alongside the production `Application` without ever touching `MainActivity`. xunit reflects over the test assembly via `DefaultAndroidEntryPoint.Xunit` and writes the OpenCover XML into the path xharness pulls back.
+The Android host (`tests/Bible.Alarm.Tests.Android/`) intentionally ships **only** `Platforms/Android/AndroidManifest.xml` and `Platforms/Android/TestInstrumentation.cs`. There is no `MainApplication`, no `MainActivity`, no `MauiProgram`, no `App.xaml`. Reason: when the test host references `Bible.Alarm.csproj`, the production app's `[Application]`-attributed `Bible.Alarm.Platforms.Android.MainApplication` ends up in the same merged manifest. Defining a second `[Application]` class trips Xamarin.Android's manifest merger with `XAGMM7009: There can be only one type with an [Application] attribute`. So the device-test bundle uses the production `MainApplication` (which boots the real MAUI app), and `xharness` invokes `am instrument -w com.jthomas.info.Bible.Alarm.Tests/.TestInstrumentation` — instrumentation runs alongside the production `Application` without ever touching `MainActivity`. xunit reflects over the test assembly via `DefaultAndroidEntryPoint.Xunit` and writes the OpenCover XML into the path xharness pulls back.
 
-The iOS host (`src/Bible.Alarm.Tests.iOS/`) **does** keep its own `Program.cs` and `AppDelegate.cs`, but the AppDelegate is registered with `[Register("BibleAlarmTestsAppDelegate")]` — *not* `"AppDelegate"`. That ObjC class name has to differ from the one Bible.Alarm's production AppDelegate registers, otherwise the ObjC runtime sees two classes with the same name in the same process and rejects the bundle. `Program.Main` then explicitly wires UIKit to the test AppDelegate via `UIApplication.Main(args, null, typeof(AppDelegate))` (resolved in our namespace). Bible.Alarm's `Program.Main` is dead code in this build because only the entry assembly's `Main` is the executable entry point.
+The iOS host (`tests/Bible.Alarm.Tests.iOS/`) **does** keep its own `Program.cs` and `AppDelegate.cs`, but the AppDelegate is registered with `[Register("BibleAlarmTestsAppDelegate")]` — *not* `"AppDelegate"`. That ObjC class name has to differ from the one Bible.Alarm's production AppDelegate registers, otherwise the ObjC runtime sees two classes with the same name in the same process and rejects the bundle. `Program.Main` then explicitly wires UIKit to the test AppDelegate via `UIApplication.Main(args, null, typeof(AppDelegate))` (resolved in our namespace). Bible.Alarm's `Program.Main` is dead code in this build because only the entry assembly's `Main` is the executable entry point.
 
 ## Where does a new test go?
 
@@ -117,12 +117,13 @@ The iOS host (`src/Bible.Alarm.Tests.iOS/`) **does** keep its own `Program.cs` a
 
 | Production code lives in...                                          | Test goes in...                                              | Trait required                                                                  |
 | -------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `src/Bible.Alarm.Shared/**` (no MAUI dependency)                     | `src/Bible.Alarm.Shared.Tests/<mirror-folder>/`              | none                                                                            |
-| `src/Bible.Alarm/**` outside `Platforms/` (incl. ViewModels, Views, Services) | `src/Bible.Alarm.Tests/<mirror-folder>/`            | none — runs on **all three** test jobs                                          |
-| `src/Bible.Alarm/Platforms/Windows/**` or `*.windows.cs`             | `src/Bible.Alarm.Tests/Platforms/Windows/<mirror-folder>/`   | `[Trait("Platform","Windows")]`                                                 |
+| `src/Bible.Alarm.Shared/**` (no MAUI dependency)                     | `tests/Bible.Alarm.Shared.Tests/<mirror-folder>/`            | none                                                                            |
+| `src/Bible.Alarm/**` outside `Platforms/` (incl. ViewModels, Views, Services) | `tests/Bible.Alarm.Tests/<mirror-folder>/`          | none — runs on **all three** test jobs                                          |
+| `src/Bible.Alarm/Platforms/Windows/**` or `*.windows.cs`             | `tests/Bible.Alarm.Tests/Platforms/Windows/<mirror-folder>/` | `[Trait("Platform","Windows")]`                                                 |
 | `src/Bible.Alarm/Platforms/Android/**` or `*.android.cs` or `#if ANDROID` | `tests/Platforms/Android/<mirror-folder>/`              | `[Trait("Platform","Android")]`                                                 |
 | `src/Bible.Alarm/Platforms/iOS/**` or `*.ios.cs` or `#if IOS`        | `tests/Platforms/iOS/<mirror-folder>/`                       | `[Trait("Platform","iOS")]`                                                     |
-| `.tools/<Tool>/**`                                                   | `.tools/<Tool>.Tests/<mirror-folder>/`                       | none                                                                            |
+| `.tools/<Tool>/**`                                                   | `tests/Bible.Alarm.<Tool>.Tests/<mirror-folder>/`            | none                                                                            |
+| `libraries/<Library>/**`                                             | `tests/<Library>.Tests/<mirror-folder>/`                     | none                                                                            |
 
 **Trait enforcement**: the Windows job runs with `--filter "Platform!=Android&Platform!=iOS"`. A platform-only test that forgets its trait will load on the Windows runner where its `using Bible.Alarm.Platforms.Android.*` references don't compile — so the failure is "this build, this file" instead of an opaque cross-job breakage. **Always tag platform tests.**
 
@@ -130,10 +131,10 @@ The iOS host (`src/Bible.Alarm.Tests.iOS/`) **does** keep its own `Program.cs` a
 
 Under each test project, mirror the production folder. Examples (use these as the pattern when adding new tests):
 
-- Production `src/Bible.Alarm/Stores/ApplicationState.cs` → test `src/Bible.Alarm.Tests/Stores/ApplicationStateTests.cs`.
-- Production `src/Bible.Alarm/ViewModels/HomeViewModelHelpers/HomeNavigationHelper.cs` → test `src/Bible.Alarm.Tests/ViewModels/HomeViewModelHelpers/HomeNavigationHelperTests.cs`.
-- Production `src/Bible.Alarm/Services/UI/ToastService.cs` → test `src/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs`.
-- Platform-only `src/Bible.Alarm/Platforms/Windows/Services/UI/WindowsNotificationIdGenerator.cs` → test `src/Bible.Alarm.Tests/Platforms/Windows/Services/UI/WindowsNotificationIdGeneratorTests.cs`.
+- Production `src/Bible.Alarm/Stores/ApplicationState.cs` → test `tests/Bible.Alarm.Tests/Stores/ApplicationStateTests.cs`.
+- Production `src/Bible.Alarm/ViewModels/HomeViewModelHelpers/HomeNavigationHelper.cs` → test `tests/Bible.Alarm.Tests/ViewModels/HomeViewModelHelpers/HomeNavigationHelperTests.cs`.
+- Production `src/Bible.Alarm/Services/UI/ToastService.cs` → test `tests/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs`.
+- Platform-only `src/Bible.Alarm/Platforms/Windows/Services/UI/WindowsNotificationIdGenerator.cs` → test `tests/Bible.Alarm.Tests/Platforms/Windows/Services/UI/WindowsNotificationIdGeneratorTests.cs`.
 - Platform-only `src/Bible.Alarm/Platforms/Android/Services/Helpers/NotificationPermissionHelper.cs` → test `tests/Platforms/Android/NotificationPermissionHelperSmokeTests.cs`.
 
 ## Test-fixture style (xunit conventions used in this repo)
@@ -143,7 +144,7 @@ Under each test project, mirror the production folder. Examples (use these as th
 - `namespace Bible.Alarm.Tests;` (file-scoped). Platform-only tests under `tests/Platforms/{Android,iOS}/` use `Bible.Alarm.Tests.Platforms.{Android,iOS}`.
 - `[Fact]` for single-shot tests, `[Theory]` + `[InlineData]` for parameterised.
 - One assertion idea per `[Fact]`; method name reads like a sentence (`Constructor_accepts_schedules_and_overlay_flags`).
-- Prefer **hand-rolled stub/recording subclasses** over Moq when the SUT exposes virtual methods (see `RecordingToastService` in `src/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs`). This repo does not use NSubstitute/Moq for new tests.
+- Prefer **hand-rolled stub/recording subclasses** over Moq when the SUT exposes virtual methods (see `RecordingToastService` in `tests/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs`). This repo does not use NSubstitute/Moq for new tests.
 - Avoid `Task.Delay` and real I/O. If the SUT awaits time, inject an `Func<DateTime>` / `TimeProvider` and assert on synchronous state.
 - Don't depend on a `MauiApp` host being initialised inside a test; the Android/iOS hosts boot one but the Windows host does not.
 
@@ -169,29 +170,29 @@ If you need to drop down to raw CLI (e.g. running a single test):
 
 ```pwsh
 # Single-fixture filter via dotnet test (Windows pass)
-dotnet test src/Bible.Alarm.Tests/Bible.Alarm.Tests.csproj `
+dotnet test tests/Bible.Alarm.Tests/Bible.Alarm.Tests.csproj `
     --filter "FullyQualifiedName~ApplicationStateTests" `
     --logger "console;verbosity=detailed"
 
 # Build + run an Android test APK manually (after dotnet workload install maui-android)
-dotnet build src/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj `
+dotnet build tests/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj `
     -c Release -f net10.0-android -p:BUILD_ANDROID_ONLY=true `
     -p:CollectCoverage=true -p:CoverletOutputFormat=opencover `
     -p:CoverletOutput=TestResults/android/coverage.opencover.xml
 dotnet xharness android test `
-    --app=src/Bible.Alarm.Tests.Android/bin/Release/net10.0-android/com.jthomas.info.Bible.Alarm.Tests-Signed.apk `
+    --app=tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android/com.jthomas.info.Bible.Alarm.Tests-Signed.apk `
     --package-name=com.jthomas.info.Bible.Alarm.Tests `
     --instrumentation=com.jthomas.info.Bible.Alarm.Tests.TestInstrumentation `
     --output-directory=TestResults/android
 
 # iOS equivalent — must run on macOS (maui-ios workload + Xcode)
-dotnet build src/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
+dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
     -c Debug -f net10.0-ios -p:BUILD_IOS_ONLY=true \
     -p:RuntimeIdentifier=iossimulator-arm64 \
     -p:CollectCoverage=true -p:CoverletOutputFormat=opencover \
     -p:CoverletOutput=TestResults/ios/coverage.ios.opencover.xml
 dotnet xharness apple test \
-    --app="$(find src/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)" \
+    --app="$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)" \
     --target=ios-simulator-64 \
     --output-directory=TestResults/ios
 ```
@@ -219,9 +220,10 @@ Sonar unions covered lines across all three reports — a line in `Services/Medi
 
 ## Hard rules — do not break
 
-1. **Do not** add MAUI-runtime-dependent tests to `src/Bible.Alarm.Shared.Tests/`. That project has no MAUI dependency by design.
-2. **Do not** put files referencing `Bible.Alarm.Platforms.Android.*` or `Bible.Alarm.Platforms.iOS.*` types under `src/Bible.Alarm.Tests/` outside `Platforms/Windows/`. The Android/iOS hosts exclude only `Platforms/**` from the cross-platform glob; everything else gets dragged into the APK/.app. References to types that don't exist for that TFM = build failure on that runner.
+1. **Do not** add MAUI-runtime-dependent tests to `tests/Bible.Alarm.Shared.Tests/`. That project has no MAUI dependency by design.
+2. **Do not** put files referencing `Bible.Alarm.Platforms.Android.*` or `Bible.Alarm.Platforms.iOS.*` types under `tests/Bible.Alarm.Tests/` outside `Platforms/Windows/`. The Android/iOS hosts exclude only `Platforms/**` from the cross-platform glob; everything else gets dragged into the APK/.app. References to types that don't exist for that TFM = build failure on that runner.
 3. **Do not** remove the `BUILD_ANDROID_ONLY`, `BUILD_IOS_ONLY`, or `BUILD_WINDOWS_ONLY` switches in `src/Bible.Alarm/Bible.Alarm.csproj` and `libraries/CommunityToolkit.Maui.MediaElement/CommunityToolkit.Maui.MediaElement.csproj`. The Linux/macOS CI runners use them to skip the TFMs whose workloads they cannot install.
+7. **Do not** add a top-level `tests/` SolutionFolder to the .sln without nesting all 9 test projects under it (or its `app`/`tools`/`libraries` children). The current .sln depends on those nesting GUIDs to keep the IDE tree readable; bare reparenting will collapse all tests into a flat list.
 4. **Do not** remove the `dotnet-eng` feed entry or `packageSourceMapping` in repo-root `NuGet.config`. The `Microsoft.DotNet.XHarness.*` packages are not on `nuget.org`.
 5. **Do not** rename `com.jthomas.info.Bible.Alarm.Tests` (Android `ApplicationId` + iOS `CFBundleIdentifier`) or `com.jthomas.info.Bible.Alarm.Tests.TestInstrumentation` (the Android `[Instrumentation(Name=...)]`). The `--package-name=`, `--instrumentation=`, and `AndroidManifest.xml`'s `<instrumentation android:targetPackage=...>` must all line up — change one and `xharness android test` exits with `INSTRUMENTATION_FAILED`.
    - Likewise on iOS, the `[Register("BibleAlarmTestsAppDelegate")]` name on `Bible.Alarm.Tests.iOS.AppDelegate` must stay distinct from Bible.Alarm's `[Register("AppDelegate")]`. Two classes with the same Objective-C name = ObjC runtime rejection at startup.
@@ -232,12 +234,12 @@ Sonar unions covered lines across all three reports — a line in `Services/Medi
 
 When writing a new test, copy the closest exemplar and adapt:
 
-- **Plain xunit fact + `[Fact]`** → `src/Bible.Alarm.Tests/Stores/ApplicationStateTests.cs`
-- **`[Theory]` + `[InlineData]`** → `src/Bible.Alarm.Tests/Common/Helpers/ConcurrencyHelperTests.cs`
-- **Hand-rolled recording subclass** → `src/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs` (`RecordingToastService`)
-- **Windows-only fixture (with trait)** → `src/Bible.Alarm.Tests/Platforms/Windows/Services/UI/WindowsNotificationIdGeneratorTests.cs`
+- **Plain xunit fact + `[Fact]`** → `tests/Bible.Alarm.Tests/Stores/ApplicationStateTests.cs`
+- **`[Theory]` + `[InlineData]`** → `tests/Bible.Alarm.Tests/Common/Helpers/ConcurrencyHelperTests.cs`
+- **Hand-rolled recording subclass** → `tests/Bible.Alarm.Tests/Services/UI/ToastServiceTests.cs` (`RecordingToastService`)
+- **Windows-only fixture (with trait)** → `tests/Bible.Alarm.Tests/Platforms/Windows/Services/UI/WindowsNotificationIdGeneratorTests.cs`
 - **Android-only smoke test** → `tests/Platforms/Android/NotificationPermissionHelperSmokeTests.cs`
 - **iOS-only smoke test** → `tests/Platforms/iOS/IosNotificationPermissionServiceSmokeTests.cs`
-- **`net10.0` (Shared) fixture** → any file under `src/Bible.Alarm.Shared.Tests/`
+- **`net10.0` (Shared) fixture** → any file under `tests/Bible.Alarm.Shared.Tests/`
 
 For end-to-end context (CI fan-out, SDK pins, secrets), read `.github/workflows/build.yml` and `tests/README.md`.

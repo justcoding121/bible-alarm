@@ -135,9 +135,9 @@ public int Value { get; set; }
 
 | Test type            | Location                                            | Built by                                  | Runs in CI job |
 | -------------------- | --------------------------------------------------- | ----------------------------------------- | -------------- |
-| Cross-platform       | `src/Bible.Alarm.Tests/**` (outside `Platforms/`)   | All three test hosts via `Compile` glob   | All three      |
-| Cross-platform (no MAUI) | `src/Bible.Alarm.Shared.Tests/**`               | `dotnet test` host (`net10.0`)            | `test-windows` |
-| Windows-only         | `src/Bible.Alarm.Tests/Platforms/Windows/**`        | `Bible.Alarm.Tests` only                  | `test-windows` |
+| Cross-platform       | `tests/Bible.Alarm.Tests/**` (outside `Platforms/`) | All three test hosts via `Compile` glob   | All three      |
+| Cross-platform (no MAUI) | `tests/Bible.Alarm.Shared.Tests/**`             | `dotnet test` host (`net10.0`)            | `test-windows` |
+| Windows-only         | `tests/Bible.Alarm.Tests/Platforms/Windows/**`      | `Bible.Alarm.Tests` only                  | `test-windows` |
 | Android-only         | `tests/Platforms/Android/**`                        | `Bible.Alarm.Tests.Android` only (xharness) | `test-android` |
 | iOS-only             | `tests/Platforms/iOS/**`                            | `Bible.Alarm.Tests.iOS` only (xharness)   | `test-ios`     |
 

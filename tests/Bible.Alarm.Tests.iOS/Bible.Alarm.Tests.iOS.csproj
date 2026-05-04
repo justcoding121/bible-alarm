@@ -42,6 +42,15 @@
     <SonarQubeTestProject>true</SonarQubeTestProject>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
 
+    <!--
+      Device-test hosts run via `xharness apple test` against the built .app; vstest cannot launch a
+      net10.0-ios testhost on a Windows/Linux desktop. Telling MSBuild this is *not* a vstest target
+      makes `dotnet test Bible.Alarm.sln` skip the .dll instead of failing with hostpolicy.dll-not-
+      found / "Failed to run as a self-contained app". Coverage from the xharness run still flows
+      through coverlet.msbuild + SonarQubeTestProject=true.
+    -->
+    <IsTestProject>false</IsTestProject>
+
     <NoWarn>$(NoWarn);XC0022;NU1608;IL2026;IL2037;IL2072;IL2111</NoWarn>
 
     <ResizetizerErrorOnDuplicateOutputFilename>false</ResizetizerErrorOnDuplicateOutputFilename>
@@ -58,7 +67,7 @@
 
       Bible.Alarm.Shared comes in transitively; an explicit reference re-triggers the same RID issue.
     -->
-    <ProjectReference Include="..\Bible.Alarm\Bible.Alarm.csproj"
+    <ProjectReference Include="..\..\src\Bible.Alarm\Bible.Alarm.csproj"
                       UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers" />
   </ItemGroup>
 
@@ -93,8 +102,8 @@
              Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**">
       <Link>SharedTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
-    <Compile Include="..\..\tests\Platforms\iOS\**\*.cs"
-             Exclude="..\..\tests\Platforms\iOS\bin\**;..\..\tests\Platforms\iOS\obj\**">
+    <Compile Include="..\Platforms\iOS\**\*.cs"
+             Exclude="..\Platforms\iOS\bin\**;..\Platforms\iOS\obj\**">
       <Link>PlatformTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
   </ItemGroup>

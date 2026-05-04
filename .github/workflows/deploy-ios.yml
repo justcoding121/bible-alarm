@@ -80,7 +80,7 @@ jobs:
         echo "$B64" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
         
     - name: Restore dependencies
-      run: dotnet restore src/Bible.Alarm.sln -p:TargetFramework=net10.0-ios
+      run: dotnet restore Bible.Alarm.sln -p:TargetFramework=net10.0-ios
 
     # Build iOS release (secrets via env to avoid expanding in run - S7636)
     - name: Build iOS Release

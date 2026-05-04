@@ -6,15 +6,15 @@ This folder ships:
 - `Platforms/iOS/**` — iOS-only smoke tests, only compiled by `Bible.Alarm.Tests.iOS` (`net10.0-ios`).
 - `run-tests.ps1` — local orchestrator that drives the same three test passes CI runs (`test-windows`, `test-android`, `test-ios`).
 
-The cross-platform tests still live under `src/Bible.Alarm.Tests/` (Windows host) and `src/Bible.Alarm.Shared.Tests/` (cross-platform host); the Android/iOS hosts include them via a `Compile` glob so test code is not duplicated.
+The cross-platform tests now live under `tests/Bible.Alarm.Tests/` (Windows host) and `tests/Bible.Alarm.Shared.Tests/` (cross-platform host); the Android/iOS hosts include them via a `Compile` glob so test code is not duplicated.
 
 ## Test-host architecture
 
 ```
-src/Bible.Alarm.Tests              net10.0-windows10.0.19041.0   dotnet test (host-based)
-src/Bible.Alarm.Shared.Tests       net10.0                       dotnet test (host-based)
-src/Bible.Alarm.Tests.Android      net10.0-android (.apk)        xharness android test (emulator)
-src/Bible.Alarm.Tests.iOS          net10.0-ios     (.app)        xharness apple test  (simulator)
+tests/Bible.Alarm.Tests              net10.0-windows10.0.19041.0   dotnet test (host-based)
+tests/Bible.Alarm.Shared.Tests       net10.0                       dotnet test (host-based)
+tests/Bible.Alarm.Tests.Android      net10.0-android (.apk)        xharness android test (emulator)
+tests/Bible.Alarm.Tests.iOS          net10.0-ios     (.app)        xharness apple test  (simulator)
 ```
 
 Each host runs the *same* xunit fixtures plus its own platform-only smoke tests. Output is a single OpenCover XML per platform; SonarCloud unions them in the `sonar` job (see `.github/workflows/build.yml`).
@@ -93,8 +93,8 @@ The merged HTML report is written to `TestResults/merged/index.html`. The per-pl
 
 1. **Android**: drop a `.cs` file under `tests/Platforms/Android/` (or any subfolder). Tag the class with `[Trait("Platform","Android")]` so the Windows runner can filter it out (`--filter Platform!=Android`). It will be picked up by the `Bible.Alarm.Tests.Android` Compile glob.
 2. **iOS**: same, under `tests/Platforms/iOS/` with `[Trait("Platform","iOS")]`.
-3. **Windows**: drop the file under `src/Bible.Alarm.Tests/Platforms/Windows/`. The Android/iOS hosts already exclude `..\Bible.Alarm.Tests\Platforms\**` from their Compile glob.
-4. **Cross-platform** (the common case): drop it anywhere under `src/Bible.Alarm.Tests/` *outside* `Platforms/`. All three hosts (Windows / Android / iOS) compile and run it.
+3. **Windows**: drop the file under `tests/Bible.Alarm.Tests/Platforms/Windows/`. The Android/iOS hosts already exclude `..\Bible.Alarm.Tests\Platforms\**` from their Compile glob.
+4. **Cross-platform** (the common case): drop it anywhere under `tests/Bible.Alarm.Tests/` *outside* `Platforms/`. All three hosts (Windows / Android / iOS) compile and run it.
 
 ## Troubleshooting
 

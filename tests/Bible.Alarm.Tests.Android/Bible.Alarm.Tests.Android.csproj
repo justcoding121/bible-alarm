@@ -45,6 +45,15 @@
     <SonarQubeTestProject>true</SonarQubeTestProject>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
 
+    <!--
+      Device-test hosts run via `xharness android test` against the built APK; vstest cannot launch a
+      net10.0-android testhost on a Windows/Linux desktop. Telling MSBuild this is *not* a vstest
+      target makes `dotnet test Bible.Alarm.sln` skip the .dll instead of failing with
+      "You must install or update .NET to run this application". Coverage from the xharness run
+      still flows through coverlet.msbuild + SonarQubeTestProject=true.
+    -->
+    <IsTestProject>false</IsTestProject>
+
     <!-- Don't fail on transitively-warned MAUI/EF analyzer noise inside the test app. -->
     <NoWarn>$(NoWarn);XC0022;NU1608;IL2026;IL2037;IL2072;IL2111</NoWarn>
 
@@ -66,7 +75,7 @@
       Bible.Alarm.Shared is referenced transitively via Bible.Alarm; an explicit reference is unnecessary
       and would re-trigger the same RID propagation issue.
     -->
-    <ProjectReference Include="..\Bible.Alarm\Bible.Alarm.csproj"
+    <ProjectReference Include="..\..\src\Bible.Alarm\Bible.Alarm.csproj"
                       UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers" />
   </ItemGroup>
 
@@ -114,10 +123,10 @@
     </Compile>
   </ItemGroup>
 
-  <!-- Platform-only smoke tests live in the repo-root tests/ folder so they only ever build on the matching TFM. -->
+  <!-- Platform-only smoke tests live alongside this host under tests/Platforms/Android/ so they only ever build on the matching TFM. -->
   <ItemGroup>
-    <Compile Include="..\..\tests\Platforms\Android\**\*.cs"
-             Exclude="..\..\tests\Platforms\Android\bin\**;..\..\tests\Platforms\Android\obj\**">
+    <Compile Include="..\Platforms\Android\**\*.cs"
+             Exclude="..\Platforms\Android\bin\**;..\Platforms\Android\obj\**">
       <Link>PlatformTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
   </ItemGroup>
