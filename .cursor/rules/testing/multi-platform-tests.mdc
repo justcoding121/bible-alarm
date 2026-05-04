@@ -6,6 +6,56 @@ alwaysApply: false
 
 # Bible.Alarm test architecture
 
+## Repo layout — where do tests live?
+
+All 9 test projects live in a flat `tests/` directory at the repo root, and the solution lives at the repo root too:
+
+```
+Bible.Alarm.sln                                  # solution file (repo root)
+src/                                             # production app + shared lib
+.tools/                                          # CLI dev tools (cataloger, db migration, etc.)
+libraries/                                       # vendored / forked libraries
+tests/
+├── Platforms/
+│   ├── Android/                                 # Android-only smoke tests (compiled by Bible.Alarm.Tests.Android only)
+│   └── iOS/                                     # iOS-only smoke tests (compiled by Bible.Alarm.Tests.iOS only)
+├── Bible.Alarm.Tests/                           # cross-platform xunit fixtures + Platforms/Windows/ host-only
+├── Bible.Alarm.Shared.Tests/                    # net10.0 tests over Bible.Alarm.Shared (no MAUI)
+├── Bible.Alarm.Tests.Android/                   # device-test host (.apk via xharness)
+├── Bible.Alarm.Tests.iOS/                       # device-test host (.app via xharness)
+├── Bible.Alarm.Cataloger.Tests/                 # tools/ test
+├── Bible.Alarm.DbMigration.Tests/               #
+├── Bible.Alarm.IosScreenshotResizer.Tests/      #
+├── Bible.Alarm.VersionPatcher.Tests/            #
+├── CommunityToolkit.Maui.MediaElement.Tests/    # libraries/ test
+├── README.md                                    # local-dev workflow
+└── run-tests.ps1                                # local orchestrator (Windows + Android + iOS over SSH)
+```
+
+**On disk: flat. In the IDE: bucketed.** The .sln defines four nested SolutionFolders so the IDE tree shows `tests / { app, tools, libraries }`:
+
+- `tests / app`   → Bible.Alarm.Tests, Bible.Alarm.Shared.Tests, Bible.Alarm.Tests.Android, Bible.Alarm.Tests.iOS
+- `tests / tools` → Cataloger.Tests, DbMigration.Tests, IosScreenshotResizer.Tests, VersionPatcher.Tests
+- `tests / libraries` → CommunityToolkit.Maui.MediaElement.Tests
+
+If you `dotnet sln Bible.Alarm.sln list` you should see exactly **16 csprojs** (7 production + 9 tests). Anything else means a project moved or a path drifted.
+
+## Status snapshot — what already exists (do NOT recreate)
+
+Last verified on `develop`:
+
+- All 9 test projects sit under `tests/`, the .sln is at the repo root, IDE folders nest correctly.
+- `dotnet sln Bible.Alarm.sln list` returns 16 csprojs.
+- `dotnet test Bible.Alarm.sln --filter "Platform!=Android&Platform!=iOS"` runs 1,899 tests in 7 host-based projects, exit 0.
+- `tests/Bible.Alarm.Tests.Android` builds for `net10.0-android` and is wired to xharness with `Microsoft.DotNet.XHarness.DefaultAndroidEntryPoint.Xunit`.
+- `tests/Bible.Alarm.Tests.iOS` builds for `net10.0-ios` and is wired to xharness with `Microsoft.DotNet.XHarness.TestRunners.Xunit`.
+- One platform-only smoke test exists per device-test host (do **not** duplicate them — extend or replace if the production type they touch ever moves):
+  - Android: `tests/Platforms/Android/NotificationPermissionHelperSmokeTests.cs` exercises `Bible.Alarm.Platforms.Android.Services.Helpers.NotificationPermissionHelper`.
+  - iOS: `tests/Platforms/iOS/IosNotificationPermissionServiceSmokeTests.cs` exercises `Bible.Alarm.Platforms.iOS.Services.Helpers.IosNotificationPermissionService`.
+- The CI fan-out is `test-windows`, `test-android`, `test-ios` → `sonar` (single SonarCloud analysis with merged OpenCover XML).
+
+If you came here to "add an Android/iOS test that proves the runner works", that's already done — write coverage tests instead, following the workflow below.
+
 ## If you're here to improve coverage — agent workflow
 
 Follow these steps in order. Do **not** push to CI before step 5 passes locally; the Android/iOS jobs are 10–20 min each and CI minutes are a finite resource.
@@ -90,20 +140,45 @@ Skipping the merge for fast iteration: `-SkipMerge` avoids the ReportGenerator s
 | `sonar`: SonarScanner reports 0% coverage even after green tests                     | Either an artifact name drifted (`coverage-windows.xml` etc.), or `sonar.cs.opencover.reportsPaths` lost a path.   | Check `actions/upload-artifact` `name:` matches `actions/download-artifact` `pattern:` (`coverage-*`) and the three paths in `sonar.cs.opencover.reportsPaths`. |
 | `test-android`: `error MSB4018: GenerateRuntimeConfigurationFiles … android-x64/runtimeconfig.json directory not found` | `UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers"` was removed from the `<ProjectReference>` to `Bible.Alarm.csproj`. | Restore it; without the strip, the test-host RID propagates and trips MAUI's runtimeconfig task. |
 | `test-windows` only: `error CS0122: 'XYZ' is inaccessible due to its protection level` | A new `internal` consumer references a type but the test project isn't in `InternalsVisibleTo`.                      | Add the test project name to `<InternalsVisibleTo Include="..." />` in `Bible.Alarm.csproj`.     |
+| `test-windows`: `Testhost process for source(s) '...Bible.Alarm.Tests.Android.dll' exited with error: You must install or update .NET to run this application.` | Someone removed `<IsTestProject>false</IsTestProject>` from `Bible.Alarm.Tests.Android.csproj` / `Bible.Alarm.Tests.iOS.csproj`. | Restore it from `git`. The device-test hosts must opt out of vstest discovery; they run via xharness only. |
+| Any job: `error MSB1009: Project file does not exist` on `src/Bible.Alarm.sln` or `tests/Bible.Alarm.Tests/...` | A workflow or script still has the pre-consolidation path. | Search the affected file for `src/Bible.Alarm.sln` / `src/Bible.Alarm.Tests*` / `.tools/Bible.Alarm.*.Tests` — they should all be `Bible.Alarm.sln` / `tests/Bible.Alarm.*` now. |
 
 On any failure, download the job's `xharness-*-logs` artifact (Android/iOS) — it has the on-device stdout that the GitHub Actions log truncates.
 
-Tests in this repo live across **five projects** that all run xunit but use different hosts:
+Tests in this repo live across **nine projects** that all run xunit but use different hosts:
 
-| Project                       | TFM                            | Host             | CI job         | What runs here                                                                                       |
-| ----------------------------- | ------------------------------ | ---------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
-| `Bible.Alarm.Shared.Tests`    | `net10.0`                      | `dotnet test`    | `test-windows` | Pure-`net10.0` tests over `Bible.Alarm.Shared` (no MAUI runtime).                                    |
-| `Bible.Alarm.Tests`           | `net10.0-windows10.0.19041.0`  | `dotnet test`    | `test-windows` | Cross-platform xunit fixtures + Windows-only tests under `Platforms/Windows/`.                       |
-| `Bible.Alarm.Tests.Android`   | `net10.0-android` (`.apk`)     | `xharness android` | `test-android` | Same cross-platform fixtures **+** smoke tests from `tests/Platforms/Android/`.                      |
-| `Bible.Alarm.Tests.iOS`       | `net10.0-ios` (`.app`)         | `xharness apple` | `test-ios`     | Same cross-platform fixtures **+** smoke tests from `tests/Platforms/iOS/`.                          |
-| `tests/Bible.Alarm.<Tool>.Tests` | `net10.0`                   | `dotnet test`    | `test-windows` | Tests for the dev tools (`Cataloger`, `DbMigration`, `VersionPatcher`, `IosScreenshotResizer`).      |
+| Project                                      | TFM                            | Host               | CI job         | What runs here                                                                                       |
+| -------------------------------------------- | ------------------------------ | ------------------ | -------------- | ---------------------------------------------------------------------------------------------------- |
+| `Bible.Alarm.Shared.Tests`                   | `net10.0`                      | `dotnet test`      | `test-windows` | Pure-`net10.0` tests over `Bible.Alarm.Shared` (no MAUI runtime). ~885 tests today.                  |
+| `Bible.Alarm.Tests`                          | `net10.0-windows10.0.19041.0`  | `dotnet test`      | `test-windows` | Cross-platform xunit fixtures + Windows-only tests under `Platforms/Windows/`. ~956 tests today.     |
+| `Bible.Alarm.Tests.Android`                  | `net10.0-android` (`.apk`)     | `xharness android` | `test-android` | Same cross-platform fixtures **+** Android-only smoke tests from `tests/Platforms/Android/` (~957 today). |
+| `Bible.Alarm.Tests.iOS`                      | `net10.0-ios` (`.app`)         | `xharness apple`   | `test-ios`     | Same cross-platform fixtures **+** iOS-only smoke tests from `tests/Platforms/iOS/` (~958 today).    |
+| `Bible.Alarm.Cataloger.Tests`                | `net10.0`                      | `dotnet test`      | `test-windows` | `.tools/Bible.Alarm.Cataloger` coverage.                                                             |
+| `Bible.Alarm.DbMigration.Tests`              | `net10.0`                      | `dotnet test`      | `test-windows` | `.tools/Bible.Alarm.DbMigration` coverage.                                                           |
+| `Bible.Alarm.IosScreenshotResizer.Tests`     | `net10.0`                      | `dotnet test`      | `test-windows` | `.tools/Bible.Alarm.IosScreenshotResizer` coverage.                                                  |
+| `Bible.Alarm.VersionPatcher.Tests`           | `net10.0`                      | `dotnet test`      | `test-windows` | `.tools/Bible.Alarm.VersionPatcher` coverage.                                                        |
+| `CommunityToolkit.Maui.MediaElement.Tests`   | `net10.0-windows10.0.19041.0`  | `dotnet test`      | `test-windows` | Coverage for the forked MediaElement under `libraries/`.                                             |
 
-Cross-platform tests are physically owned by `tests/Bible.Alarm.Tests/`. The Android and iOS *device-test hosts* don't duplicate that source — they include it via `<Compile Include="..\Bible.Alarm.Tests\**\*.cs" Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**" />` (the path is a sibling reference because all four `Bible.Alarm*.Tests*` projects now live next to each other under `tests/`). Each device-test host references `Bible.Alarm.csproj` with `UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers"` so MSBuild does not propagate the test-host RID into the production project (which would make Bible.Alarm try to write `runtimeconfig.json` into a per-RID subdirectory the MAUI targets don't pre-create — `GenerateRuntimeConfigurationFiles` then throws `DirectoryNotFoundException`).
+Total host-based pass on a clean Windows build today: **~1,899 tests** in 7 projects (the Android/iOS device-test host counts are reported only after their xharness run and are not part of `dotnet test Bible.Alarm.sln`). If your local count drops below this without you having intentionally deleted tests, something glitched — check the `Compile` glob in the device-test hosts and the `--filter` in `tests/run-tests.ps1`.
+
+### How shared code is wired without duplication
+
+Cross-platform tests are physically owned by `tests/Bible.Alarm.Tests/`. The Android and iOS *device-test hosts* don't duplicate that source — they include it via:
+
+```xml
+<Compile Include="..\Bible.Alarm.Tests\**\*.cs"
+         Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**" />
+```
+
+The path is a **sibling reference** because all four `Bible.Alarm*.Tests*` projects now live next to each other under `tests/`. The `Platforms/**` exclusion is what keeps Windows-only fixtures (e.g. `WindowsToastXmlFactoryTests.cs`) out of the Android/iOS APK/.app — those types reference `Microsoft.UI.Xaml.*` which doesn't compile against `net10.0-android`.
+
+Each device-test host references `Bible.Alarm.csproj` with `UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers"` so MSBuild does not propagate the test-host RID into the production project (which would make Bible.Alarm try to write `runtimeconfig.json` into a per-RID subdirectory the MAUI targets don't pre-create — `GenerateRuntimeConfigurationFiles` then throws `DirectoryNotFoundException`).
+
+### `<IsTestProject>false</IsTestProject>` on the device-test hosts
+
+`Bible.Alarm.Tests.Android.csproj` and `Bible.Alarm.Tests.iOS.csproj` both set `<IsTestProject>false</IsTestProject>`. **This is intentional.** Their tests run via `xharness android test` / `xharness apple test` against the built APK/.app, *never* via `dotnet test` / vstest. Without this opt-out, `dotnet test Bible.Alarm.sln` (used by both `test-windows` in CI and `tests/run-tests.ps1 -Platform Windows`) tries to spawn a `net10.0-android` testhost process on the Windows runner and crashes with `You must install or update .NET to run this application` (Android testhost runtime is not installable on Windows). `<SonarQubeTestProject>true</SonarQubeTestProject>` is preserved so SonarCloud still classifies them as test code and excludes them from the production-coverage denominator.
+
+If you ever flip `IsTestProject` back to `true`, you must also remove the device-test hosts from the sln *or* invoke `dotnet test` with explicit per-project paths — the two are mutually exclusive given today's CI runners.
 
 ### Why the device-test hosts have *no* `MainApplication` / `MainActivity` / `Program.cs` of their own
 
@@ -223,12 +298,14 @@ Sonar unions covered lines across all three reports — a line in `Services/Medi
 1. **Do not** add MAUI-runtime-dependent tests to `tests/Bible.Alarm.Shared.Tests/`. That project has no MAUI dependency by design.
 2. **Do not** put files referencing `Bible.Alarm.Platforms.Android.*` or `Bible.Alarm.Platforms.iOS.*` types under `tests/Bible.Alarm.Tests/` outside `Platforms/Windows/`. The Android/iOS hosts exclude only `Platforms/**` from the cross-platform glob; everything else gets dragged into the APK/.app. References to types that don't exist for that TFM = build failure on that runner.
 3. **Do not** remove the `BUILD_ANDROID_ONLY`, `BUILD_IOS_ONLY`, or `BUILD_WINDOWS_ONLY` switches in `src/Bible.Alarm/Bible.Alarm.csproj` and `libraries/CommunityToolkit.Maui.MediaElement/CommunityToolkit.Maui.MediaElement.csproj`. The Linux/macOS CI runners use them to skip the TFMs whose workloads they cannot install.
-7. **Do not** add a top-level `tests/` SolutionFolder to the .sln without nesting all 9 test projects under it (or its `app`/`tools`/`libraries` children). The current .sln depends on those nesting GUIDs to keep the IDE tree readable; bare reparenting will collapse all tests into a flat list.
 4. **Do not** remove the `dotnet-eng` feed entry or `packageSourceMapping` in repo-root `NuGet.config`. The `Microsoft.DotNet.XHarness.*` packages are not on `nuget.org`.
 5. **Do not** rename `com.jthomas.info.Bible.Alarm.Tests` (Android `ApplicationId` + iOS `CFBundleIdentifier`) or `com.jthomas.info.Bible.Alarm.Tests.TestInstrumentation` (the Android `[Instrumentation(Name=...)]`). The `--package-name=`, `--instrumentation=`, and `AndroidManifest.xml`'s `<instrumentation android:targetPackage=...>` must all line up — change one and `xharness android test` exits with `INSTRUMENTATION_FAILED`.
    - Likewise on iOS, the `[Register("BibleAlarmTestsAppDelegate")]` name on `Bible.Alarm.Tests.iOS.AppDelegate` must stay distinct from Bible.Alarm's `[Register("AppDelegate")]`. Two classes with the same Objective-C name = ObjC runtime rejection at startup.
    - **Do not** add a `[Application]`-attributed `MainApplication`, a `[Activity(MainLauncher=true)]` `MainActivity`, or a `MauiProgram.cs` to `Bible.Alarm.Tests.Android`. The test host inherits Bible.Alarm's `MainApplication` via project ref; declaring a second one trips `XAGMM7009` at manifest-merge time.
 6. **Do not** swap `coverlet.collector` for `coverlet.msbuild` (or vice-versa) inside a project. Host-based tests use the collector (`--collect:"XPlat Code Coverage"`); device-test hosts use the msbuild instrumenter (`-p:CollectCoverage=true`) because the collector cannot inject into a running APK/.app.
+7. **Do not** flip `<IsTestProject>false</IsTestProject>` to `true` in `Bible.Alarm.Tests.Android.csproj` or `Bible.Alarm.Tests.iOS.csproj`. They must opt out of vstest discovery so `dotnet test Bible.Alarm.sln` skips them; xharness still finds and runs them via the built APK/.app. See the device-test hosts subsection above.
+8. **Do not** flatten the IDE solution folders by reassigning the 9 test-project GUIDs in `GlobalSection(NestedProjects)` in `Bible.Alarm.sln`. The four nesting folders (`tests`, plus `tests/{app,tools,libraries}`) carry stable GUIDs `{F3E5C812-A100-4C76-8C1B-1A2B3C4D5E6{0,1,2,3}}`. If the IDE shows tests at the top level of the solution after a merge, those nesting rows got dropped — restore them from `git`.
+9. **Do not** move `Bible.Alarm.sln` back into `src/`. Workflows (`.github/workflows/build.yml`, `deploy-windows.yml`, `deploy-ios.yml`) and `tests/run-tests.ps1` all reference the root path; relocating the .sln is a wide-radius change that breaks CI silently (the `dotnet restore <path>` step succeeds against either location, but `dotnet build`/`dotnet test` on the wrong path will pick up a missing-projects build).
 
 ## Quick-reference paths to known-good exemplars
 
