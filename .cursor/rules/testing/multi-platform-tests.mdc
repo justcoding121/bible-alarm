@@ -370,6 +370,7 @@ dotnet xharness apple test \
     --app="$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)" \
     --target=ios-simulator-64 \
     --reset-simulator \
+    --launch-timeout=00:20:00 \
     --output-directory=TestResults/ios
 ```
 

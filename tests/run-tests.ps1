@@ -407,6 +407,7 @@ dotnet xharness apple test \
     --app="`$APP_PATH" \
     --target=ios-simulator-64 \
     --reset-simulator \
+    --launch-timeout=00:20:00 \
     --output-directory=TestResults/ios
 "@
 
