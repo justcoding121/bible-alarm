@@ -93,19 +93,21 @@
     <NoWarn>$(NoWarn);XC0022;NU1608;IL2026;IL2037;IL2072;IL2111</NoWarn>
 
     <!--
-      KNOWN GAP: coverlet.msbuild cannot instrument Bible.Alarm.dll on Android.
-      coverlet's Cecil-based instrumenter resolves every reference of the assembly it instruments,
-      including Microsoft.Maui.Controls, which lives inside the maui-android workload cache and
-      is not on Cecil's default search path. The obvious fixes
-      (CopyLocalLockFileAssemblies=true / PreserveCompilationContext=true) flood the test DLL's
-      output folder with framework assemblies, which then trip Xamarin.Android's
-      AssemblyModifierPipeline with `XAAMP7004: An item with the same key has already been added`
-      (per-arch assembly map collisions on Microsoft.CSharp et al.). Result: Android slice produces
-      TestResults.xml + done.txt but no coverage.android.opencover.xml; the SonarCloud merge picks up
-      the Windows + iOS slices only and treats Android tests as "no coverage" (still green for
-      passes/fails). Re-attempt with coverlet.collector and a manual XHarness-style invocation
-      after we move off coverlet.msbuild for the device-test hosts. See the diagnostic row in
-      [.cursor/rules/testing/multi-platform-tests.mdc] for the symptom.
+      coverlet.msbuild (Cecil) must resolve every assembly reference transitively reachable from the
+      instrumented dependency graph — especially Microsoft.Maui.* / Microsoft.Maui.Controls.* —
+      whose DLLs ship under NuGet package lib/ folders, not beside Bible.Alarm.dll in bin. Without
+      extra resolver paths Cecil fails silently for Bible.Alarm.dll and the emulator run produces no
+      OpenCover file. Adding IncludeDirectory avoids CopyLocalLockFileAssemblies flooding (XAAMP7004).
+      Paths use the pinned Microsoft.Maui.Controls package version below; bump them when Maui is upgraded.
+      _CoverletMauiAndroidTfm aligns with ResolvedTargetFramework/NuGet TFM folder (currently net10.0-android36.0).
+    -->
+    <MauiInstrumentationPackageVersion>10.0.41</MauiInstrumentationPackageVersion>
+    <_CoverletMauiAndroidTfm Condition="'$(TargetFramework)'=='net10.0-android'">net10.0-android36.0</_CoverletMauiAndroidTfm>
+    <IncludeDirectory Condition="'$(CollectCoverage)' == 'true'">$(NuGetPackageRoot)microsoft.maui.core\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm);$(NuGetPackageRoot)microsoft.maui.essentials\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm);$(NuGetPackageRoot)microsoft.maui.controls.core\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm);$(NuGetPackageRoot)microsoft.maui.controls.xaml\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm);$(NuGetPackageRoot)microsoft.maui.controls.compatibility\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm)</IncludeDirectory>
+
+    <!--
+      If Cecil still misses a transitive ref after the Maui dirs above (e.g. Syncfusion.*), instrumenting
+      Bible.Alarm.dll can still omit OpenCover slices; Sonar merges Windows+iOS anchors in that case.
     -->
 
     <!-- Resizetizer: same dedupe relaxation Bible.Alarm.Tests already applies. -->

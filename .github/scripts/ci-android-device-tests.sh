@@ -38,6 +38,12 @@ done
 
 adb logcat -d -t 5000 > "${ART_DIR}/logcat.log" || true
 adb pull "${DEVICE_RESULTS}/." "${ART_DIR}/" || true
+
+# Equivalent to a discrete "Pull Android coverage from device" workflow step: adb dies when
+# reactivecircus/android-emulator-runner finishes, so this must run here while the emulator is up.
+adb shell ls "${DEVICE_RESULTS}" || true
+adb pull "${DEVICE_RESULTS}/coverage.android.opencover.xml" "${ART_DIR}/coverage-android.xml" || true
+
 adb uninstall "${PKG}" >/dev/null 2>&1 || true
 
 if [ -d "${ART_DIR}/TestResults.xml" ]; then
@@ -58,7 +64,7 @@ if [ -z "${DONE}" ]; then
   exit 1
 fi
 
-if [ -f "${ART_DIR}/coverage.android.opencover.xml" ]; then
+if [ ! -f "${ART_DIR}/coverage-android.xml" ] && [ -f "${ART_DIR}/coverage.android.opencover.xml" ]; then
   cp "${ART_DIR}/coverage.android.opencover.xml" "${ART_DIR}/coverage-android.xml"
 fi
 

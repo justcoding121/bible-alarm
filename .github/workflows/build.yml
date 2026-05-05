@@ -183,6 +183,8 @@ jobs:
           # android-emulator-runner's script-parser splits on newlines and runs EACH line as a
           # separate `sh -c` — shell variables do not persist (APK was always empty → "No signed APK").
           # Use one line that invokes a checked-in bash script. See .github/scripts/ci-android-device-tests.sh.
+          # OpenCover pull (adb shell ls + adb pull coverage → artifacts/coverage-android/coverage-android.xml)
+          # runs at the END of that script: adb is not available after this action (emulator stopped).
           script: bash "${GITHUB_WORKSPACE}/.github/scripts/ci-android-device-tests.sh"
 
       - name: Upload Android coverage
