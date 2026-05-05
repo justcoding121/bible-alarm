@@ -33,8 +33,8 @@ jobs:
       with:
         global-json-file: global.json
         
-    - name: Restore workloads
-      run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
+    - name: Install MAUI workloads (Windows)
+      run: dotnet workload install maui --skip-manifest-update
 
     # Decode and install the code signing certificate
     - name: Install Certificate

@@ -46,8 +46,10 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Restore workloads
-        run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
+      # Explicit install matches test-android / test-ios and avoids dotnet workload restore NuGet
+      # resolution regressions on windows-latest (restore can exit 1 while setup-dotnet succeeds).
+      - name: Install MAUI workloads (Windows)
+        run: dotnet workload install maui --skip-manifest-update
 
       - name: Restore dependencies
         run: dotnet restore Bible.Alarm.sln
@@ -315,8 +317,8 @@ jobs:
       - name: Install SonarScanner
         run: dotnet tool install --global dotnet-sonarscanner
 
-      - name: Restore workloads
-        run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
+      - name: Install MAUI workloads (Windows)
+        run: dotnet workload install maui --skip-manifest-update
 
       - name: Restore dependencies
         run: dotnet restore Bible.Alarm.sln
