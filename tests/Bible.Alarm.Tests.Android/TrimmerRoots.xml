@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Trim-roots descriptor for the Android device-test host.
+
+    The IL trimmer is enabled here (must be: it is the pass that produces the ACW typemap
+    used for JNI native-method registration; disabling it crashes the app at start with
+    UnsatisfiedLinkError on MainApplication.n_onCreate). But xunit discovers test methods
+    via reflection, which the trimmer cannot prove are reachable, so it strips them by
+    default.
+
+    Listing assemblies here with `preserve="all"` tells the trimmer "keep every type and
+    every member of these assemblies, regardless of static reachability". That keeps:
+      * the test types under Bible.Alarm.Tests.Android (cross-platform fixtures via the
+        Compile glob + Android-only smoke tests under tests/Platforms/Android/),
+      * xunit's runner reflection paths (xunit.execution.dotnet) and its assertion +
+        attribute surfaces (xunit.assert, xunit.core), and
+      * the XHarness runners' xunit reflection helpers — they Activator-create test
+        classes by name from the test assembly.
+
+    Production assemblies (Bible.Alarm, Bible.Alarm.Shared, Microsoft.Maui.*) are NOT
+    listed: tests reference them by symbol so the trimmer keeps the reachable subset
+    automatically, the same way the production app build does. Adding them here would
+    bloat the APK with unused MAUI surface for no gain.
+-->
+<linker>
+  <assembly fullname="Bible.Alarm.Tests.Android" preserve="all" />
+  <assembly fullname="xunit.core" preserve="all" />
+  <assembly fullname="xunit.assert" preserve="all" />
+  <assembly fullname="xunit.execution.dotnet" preserve="all" />
+  <assembly fullname="Microsoft.DotNet.XHarness.TestRunners.Common" preserve="all" />
+  <assembly fullname="Microsoft.DotNet.XHarness.TestRunners.Xunit" preserve="all" />
+  <assembly fullname="Microsoft.DotNet.XHarness.DefaultAndroidEntryPoint.Xunit" preserve="all" />
+</linker>

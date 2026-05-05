@@ -157,8 +157,12 @@ function Invoke-IosUITests {
     Write-Host "[ui] iOS Appium runs on the Mac itself; this script is a thin SSH driver." -ForegroundColor Yellow
     Write-Host "[ui] One-time Mac setup is in tests/UITESTS.md ('Mac side' section)." -ForegroundColor Yellow
 
-    $remoteCmd = "cd ~/bible-alarm && ./tests/run-ui-tests-mac.sh"
-    Write-Host "[ui] running on $MacHost: $remoteCmd" -ForegroundColor Cyan
+    # Invoke via explicit `bash` so the script doesn't need its executable bit preserved across the
+    # Windows -> Mac sync. The repo must already be at ~/bible-alarm — typically synced by a
+    # preceding `./tests/run-tests.ps1 -Platform iOS -MacHost ...` pass; if you're running the UI
+    # smoke standalone, run that orchestrator first or set up the sync separately.
+    $remoteCmd = "cd ~/bible-alarm && bash ./tests/run-ui-tests-mac.sh"
+    Write-Host "[ui] running on ${MacHost}: $remoteCmd" -ForegroundColor Cyan
     & ssh $MacHost $remoteCmd
     if ($LASTEXITCODE -ne 0) { throw "Remote iOS UI tests failed ($LASTEXITCODE)." }
 }

@@ -3,7 +3,18 @@
   <!--
     Device-test host for Android. This project compiles all the cross-platform tests in
     ..\Bible.Alarm.Tests\**\*.cs *plus* the Android-only smoke tests under tests/Platforms/Android,
-    packs them into an APK, and runs them via Microsoft.DotNet.XHarness.* on an Android emulator.
+    packs them into an APK, and runs them via TestRunnerActivity (Platforms/Android/TestRunnerActivity.cs)
+    on an Android emulator.
+
+    Tests are launched by the orchestrator (`tests/run-tests.ps1` locally, the test-android job in
+    `.github/workflows/build.yml` in CI) via plain adb:
+        adb install -r <signed-apk>
+        adb shell am start -W -n com.jthomas.info.Bible.Alarm.Tests/.TestRunnerActivity
+        # poll /sdcard/Documents/test-results/done.txt
+        adb pull /sdcard/Documents/test-results/. <local-coverage-dir>
+    See [.cursor/rules/testing/multi-platform-tests.mdc] for the rationale (xharness + custom
+    Instrumentation hits UnsatisfiedLinkError because Mono is not initialized when Android calls
+    Instrumentation.onCreate).
 
     See tests/README.md for local prerequisites and tests/run-tests.ps1 -Platform Android for the
     end-to-end flow.
@@ -40,22 +51,62 @@
     <AndroidAotEnable>false</AndroidAotEnable>
     <RunAOTCompilation>false</RunAOTCompilation>
 
+    <!--
+      Disable the assembly blob so individual .dll files are extracted to disk on install and
+      Assembly.Location returns a real path. xharness's xunit runner ultimately calls
+      `new XunitFrontController(assemblyFileName: assembly.Location, ...)` which fails its
+      `Guard.FileExists` check when Location is the empty string (the default when assemblies
+      live inside `assemblies.blob`). We do not ship this APK to users, so the on-disk size hit
+      is irrelevant.
+    -->
+    <AndroidUseAssemblyStore>false</AndroidUseAssemblyStore>
+
+    <!--
+      Trimming MUST stay enabled here (the default for MAUI Android Release builds). The trimmer
+      pass is what produces the ACW typemap — the data structure mono uses to map Java class
+      names to managed types for JNI native-method registration. Disabling it via
+      <PublishTrimmed>false</PublishTrimmed> leaves the typemap empty, and the very first call
+      from Java into managed code (MainApplication.onCreate) crashes with
+      "UnsatisfiedLinkError: No implementation found for void ...MainApplication.n_onCreate".
+
+      We instead whitelist the test assembly + xunit assemblies via TrimmerRoots.xml below so
+      xunit's reflection-based test discovery still finds [Fact]/[Theory] methods at runtime.
+    -->
+
+    <!-- Default trimming (PublishTrimmed=true, TrimMode=full) stays as inherited from the SDK. -->
+
     <!-- Skip Sonar Roslyn analyzers and identify this as a test project (parity with Bible.Alarm.Tests). -->
     <SonarQubeExclude>true</SonarQubeExclude>
     <SonarQubeTestProject>true</SonarQubeTestProject>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
 
     <!--
-      Device-test hosts run via `xharness android test` against the built APK; vstest cannot launch a
-      net10.0-android testhost on a Windows/Linux desktop. Telling MSBuild this is *not* a vstest
-      target makes `dotnet test Bible.Alarm.sln` skip the .dll instead of failing with
-      "You must install or update .NET to run this application". Coverage from the xharness run
+      Device-test hosts run via the adb/Activity flow against the built APK; vstest cannot launch
+      a net10.0-android testhost on a Windows/Linux desktop. Telling MSBuild this is *not* a
+      vstest target makes `dotnet test Bible.Alarm.sln` skip the .dll instead of failing with
+      "You must install or update .NET to run this application". Coverage from the on-device run
       still flows through coverlet.msbuild + SonarQubeTestProject=true.
     -->
     <IsTestProject>false</IsTestProject>
 
     <!-- Don't fail on transitively-warned MAUI/EF analyzer noise inside the test app. -->
     <NoWarn>$(NoWarn);XC0022;NU1608;IL2026;IL2037;IL2072;IL2111</NoWarn>
+
+    <!--
+      KNOWN GAP: coverlet.msbuild cannot instrument Bible.Alarm.dll on Android.
+      coverlet's Cecil-based instrumenter resolves every reference of the assembly it instruments,
+      including Microsoft.Maui.Controls, which lives inside the maui-android workload cache and
+      is not on Cecil's default search path. The obvious fixes
+      (CopyLocalLockFileAssemblies=true / PreserveCompilationContext=true) flood the test DLL's
+      output folder with framework assemblies, which then trip Xamarin.Android's
+      AssemblyModifierPipeline with `XAAMP7004: An item with the same key has already been added`
+      (per-arch assembly map collisions on Microsoft.CSharp et al.). Result: Android slice produces
+      TestResults.xml + done.txt but no coverage.android.opencover.xml; the SonarCloud merge picks up
+      the Windows + iOS slices only and treats Android tests as "no coverage" (still green for
+      passes/fails). Re-attempt with coverlet.collector and a manual XHarness-style invocation
+      after we move off coverlet.msbuild for the device-test hosts. See the diagnostic row in
+      [.cursor/rules/testing/multi-platform-tests.mdc] for the symptom.
+    -->
 
     <!-- Resizetizer: same dedupe relaxation Bible.Alarm.Tests already applies. -->
     <ResizetizerErrorOnDuplicateOutputFilename>false</ResizetizerErrorOnDuplicateOutputFilename>
@@ -98,15 +149,37 @@
 
     <!--
       coverlet.msbuild emits OpenCover XML during the test run (collector cannot run on-device).
-      Output path is set on the xharness command line via -p:CoverletOutput=...
+      The output path is *device-side* (resolved at runtime on the emulator) and supplied via
+      -p:CoverletOutput=/sdcard/Documents/test-results/coverage.android.opencover.xml from the
+      orchestrator. coverlet's AppDomain.ProcessExit hook normally flushes coverage at exit; on
+      Mono Android the event is unreliable, so TestRunnerActivity invokes the trackers manually
+      before calling System.Environment.Exit (see FlushCoverletTrackers there).
     -->
     <PackageReference Include="coverlet.msbuild" Version="6.0.4">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
 
+  <!--
+    coverlet.msbuild's stock instrumentation target (`InstrumentModulesAfterBuild`) is wired with
+    `AfterTargets="BuildProject"`. MAUI Android's build pipeline does not fire `BuildProject`, so
+    the target never runs and the test DLL ships without coverlet's IL counters or the
+    `Coverlet.Core.Instrumentation.Tracker.*` tracker types. We hook `InstrumentModules` directly
+    after `CoreCompile` instead — it runs against `$(TargetPath)`, which is set the moment csc
+    finishes, and well before the IL linker / Android packaging consumes the DLL. With
+    PublishTrimmed=true plus our TrimmerRoots whitelist, the injected tracker types survive
+    trimming and end up inside `lib/<abi>/lib_Bible.Alarm.Tests.Android.dll.so`.
+  -->
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!--
+    Whitelist test + xunit assemblies for the IL trimmer so [Fact]/[Theory] reflection still
+    discovers tests at runtime. See TrimmerRoots.xml for the rationale.
+  -->
+  <ItemGroup>
+    <TrimmerRootDescriptor Include="TrimmerRoots.xml" />
   </ItemGroup>
 
   <!--
@@ -130,5 +203,10 @@
       <Link>PlatformTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
   </ItemGroup>
+
+  <Target Name="_BibleAlarmHookCoverletInstrumentation"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="InstrumentModules"
+          Condition="'$(CollectCoverage)' == 'true'" />
 
 </Project>
