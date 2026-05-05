@@ -402,9 +402,11 @@ dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
     -p:CoverletOutput=TestResults/ios/coverage.ios.opencover.xml
 APP_PATH=`$(find tests/Bible.Alarm.Tests.iOS/bin/$Configuration/net10.0-ios -maxdepth 3 -name "*.app" | head -n 1)
 if [ -z "`$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
+# Tear down simulator after the run (also resets before), so repeated runs do not leave booted instances.
 dotnet xharness apple test \
     --app="`$APP_PATH" \
     --target=ios-simulator-64 \
+    --reset-simulator \
     --output-directory=TestResults/ios
 "@
 

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using AutoMapper;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.DataStructures;

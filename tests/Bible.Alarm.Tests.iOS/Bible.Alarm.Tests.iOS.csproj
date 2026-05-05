@@ -2,7 +2,8 @@
 
   <!--
     Device-test host for iOS. Builds an .app bundle that xharness installs into a booted iOS simulator and
-    runs via `xharness apple test`. Coverage XML is written to the simulator sandbox and pulled back to
+    runs via `xharness apple test` (pass xharness reset-simulator so the simulator shuts down after the run).
+    Coverage XML is written to the simulator sandbox and pulled back to
     the host machine by xharness.
 
     iOS device tests must be built on macOS (Xcode required); the project file is also evaluable on

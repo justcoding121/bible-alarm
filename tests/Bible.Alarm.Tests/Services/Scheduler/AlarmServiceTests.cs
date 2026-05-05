@@ -95,6 +95,7 @@ public sealed class AlarmServiceTests
         Assert.Empty(notifications.Scheduled);
     }
 
+#if WINDOWS
     [Fact]
     public async Task Create_WhenEligible_SchedulesWithNameAndConstantBody()
     {
@@ -135,6 +136,8 @@ public sealed class AlarmServiceTests
         Assert.Equal(42, Assert.Single(notifications.Removed));
         Assert.Single(notifications.Scheduled);
     }
+
+#endif
 
     [Fact]
     public async Task Update_WhenCannotSchedule_DoesNotRemoveOrSchedule()
