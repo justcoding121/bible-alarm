@@ -47,6 +47,17 @@
 		<!-- iOS-specific -->
 		<!-- Allow Xcode 26.3 with .NET for iOS 26.2 workload (Xcode 26.3 has no new APIs; see https://github.com/dotnet/macios/issues/24464) -->
 		<ValidateXcodeVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">false</ValidateXcodeVersion>
+		<!--
+		  GitHub Actions `macos-latest` still ships Xcode 16.x, while the Microsoft.iOS workload bundled with
+		  .NET 10 expects the iOS 26 / Xcode 26 SDK for the default managed linker "Setup" step. Without a
+		  workaround the build fails with MT0180 / MT2301 / NETSDK1144 ("requires the iOS 26.0 SDK … or set
+		  the managed linker behaviour to Link Framework SDKs Only"). `MtouchLink=SdkOnly` is that setting.
+		  Scope to CI only: `GITHUB_ACTIONS` is `true` on every Actions job and unset locally, so developers
+		  with Xcode 26 keep the default linker behaviour. Remove this block once `macos-latest` provides Xcode 26+.
+		-->
+		<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' AND '$(GITHUB_ACTIONS)' == 'true'">
+			<MtouchLink>SdkOnly</MtouchLink>
+		</PropertyGroup>
 		<!-- Use interpreter for iOS (EF Core/reflection AOT crashes) and all Android builds (EF queries; Mono JIT !ji->async on MediaTek/ARM64, see dotnet/runtime#122881). Managed AOT must stay off on Android (RunAOTCompilation + AndroidAotEnable) or XA0119. -->
 		<UseInterpreter Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' OR $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">true</UseInterpreter>
 		<!-- Minimum OS version set to iOS 16.0 to support modern UNUserNotificationCenter.SetBadgeCount API -->
