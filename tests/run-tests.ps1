@@ -106,6 +106,32 @@ function Test-Tool {
     return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Resolve-AndroidEmulatorExe {
+    $first = Get-Command emulator -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($first) {
+        foreach ($propName in @('Path', 'Source')) {
+            $prop = $first.PSObject.Properties[$propName]
+            if (-not $prop) { continue }
+            $candidate = [string]$prop.Value
+            if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+                return $candidate
+            }
+        }
+    }
+
+    foreach ($root in @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT)) {
+        if ([string]::IsNullOrWhiteSpace($root)) { continue }
+        $exe = Join-Path $root 'emulator/emulator.exe'
+        if (Test-Path -LiteralPath $exe) { return $exe }
+    }
+
+    $defaultSdk = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
+    $defaultExe = Join-Path $defaultSdk 'emulator/emulator.exe'
+    if (Test-Path -LiteralPath $defaultExe) { return $defaultExe }
+
+    return $null
+}
+
 function Run-WindowsTests {
     Write-Section 'Windows + Shared (host-based dotnet test)'
     $coverageDir = Join-Path $testResultsRoot 'windows'
@@ -155,12 +181,9 @@ function Run-AndroidTests {
     # keep the same emulator warm for iteration.
     $deviceList = & adb devices | Select-String -Pattern '\bdevice\b' | Where-Object { $_ -notmatch 'List of devices' }
     if (-not $deviceList) {
-        $emulatorExe = (Get-Command emulator -ErrorAction SilentlyContinue).Source
-        if (-not $emulatorExe -and $env:ANDROID_HOME) {
-            $emulatorExe = Join-Path $env:ANDROID_HOME 'emulator/emulator.exe'
-        }
-        if (-not $emulatorExe -or -not (Test-Path $emulatorExe)) {
-            throw 'No running emulator and `emulator` is not on PATH. Boot an AVD manually then re-run.'
+        $emulatorExe = Resolve-AndroidEmulatorExe
+        if (-not $emulatorExe) {
+            throw 'No running emulator and emulator.exe could not be found (PATH, ANDROID_HOME, ANDROID_SDK_ROOT, or "%LOCALAPPDATA%\Android\Sdk"). Boot an AVD manually or install the Android Emulator package, then re-run.'
         }
         $avd = if ($AndroidAvd) { $AndroidAvd } else {
             (& $emulatorExe -list-avds | Select-Object -First 1)

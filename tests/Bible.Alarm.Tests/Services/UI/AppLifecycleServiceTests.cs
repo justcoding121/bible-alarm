@@ -300,7 +300,14 @@ public sealed class AppLifecycleServiceTests
 
         ReconcileViaReflection(sut);
 
+#if ANDROID || IOS
+        Assert.Collection(
+            dispatcher.Dispatched,
+            a => Assert.IsType<PlaybackStoppedAction>(a),
+            a => Assert.IsType<SetCarPlayScreenAction>(a));
+#else
         Assert.IsType<PlaybackStoppedAction>(Assert.Single(dispatcher.Dispatched));
+#endif
     }
 
     [Fact]

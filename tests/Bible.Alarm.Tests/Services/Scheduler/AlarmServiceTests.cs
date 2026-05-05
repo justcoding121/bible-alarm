@@ -42,7 +42,8 @@ public sealed class AlarmServiceTests
         int id = 1,
         string name = "Morning",
         bool isEnabled = true,
-        WeekDays daysOfWeek = WeekDays.Monday) =>
+        WeekDays daysOfWeek = WeekDays.Monday,
+        bool notificationEnabled = true) =>
         new()
         {
             Id = id,
@@ -52,7 +53,7 @@ public sealed class AlarmServiceTests
             Minute = 0,
             Second = 0,
             DaysOfWeek = daysOfWeek,
-            NotificationEnabled = true,
+            NotificationEnabled = notificationEnabled,
             MusicEnabled = true,
             CurrentPlayItem = PlayType.Music,
             LatestAlarmNotificationId = 0,
@@ -99,7 +100,8 @@ public sealed class AlarmServiceTests
     {
         var notifications = new FakeNotificationService();
         var svc = new AlarmService(notifications);
-        var schedule = MinimalSchedule(name: "Custom");
+        // Android skips scheduling when NotificationEnabled is true but notification permission is not granted.
+        var schedule = MinimalSchedule(name: "Custom", notificationEnabled: false);
 
         await svc.Create(schedule);
 
@@ -115,7 +117,7 @@ public sealed class AlarmServiceTests
         var notifications = new FakeNotificationService();
         var svc = new AlarmService(notifications);
 
-        await svc.Create(MinimalSchedule(name: "   "));
+        await svc.Create(MinimalSchedule(name: "   ", notificationEnabled: false));
 
         var call = Assert.Single(notifications.Scheduled);
         Assert.Equal(string.Empty, call.Title);
@@ -126,7 +128,7 @@ public sealed class AlarmServiceTests
     {
         var notifications = new FakeNotificationService();
         var svc = new AlarmService(notifications);
-        var schedule = MinimalSchedule(id: 42);
+        var schedule = MinimalSchedule(id: 42, notificationEnabled: false);
 
         await svc.Update(schedule);
 

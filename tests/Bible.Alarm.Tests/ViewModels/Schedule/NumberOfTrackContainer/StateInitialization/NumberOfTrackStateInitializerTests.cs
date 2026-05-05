@@ -19,7 +19,7 @@ public sealed class NumberOfTrackStateInitializerTests
     }
 
     [Fact]
-    public void TryInitialize_maps_schedule_fields_for_windows_tfm()
+    public void TryInitialize_maps_schedule_fields_when_notification_permission_granted()
     {
         var logger = TestLogging.CreateLogger();
         var schedule = new ScheduleStateItem
@@ -31,7 +31,9 @@ public sealed class NumberOfTrackStateInitializerTests
             BiblePublicationCategoryName = "Audio Bible",
         };
 
-        var result = NumberOfTrackStateInitializer.TryInitialize(schedule, () => false, logger);
+        // On Android/iOS, SyncValueWithPermission clears NotificationEnabled when grant is false;
+        // use granted=true so this asserts pure field mapping on every host.
+        var result = NumberOfTrackStateInitializer.TryInitialize(schedule, () => true, logger);
 
         Assert.NotNull(result);
         Assert.Equal(15, result.ScheduleId);

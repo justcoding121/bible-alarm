@@ -1,15 +1,22 @@
 #nullable enable
 
 using Bible.Alarm.Common;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Tests;
 
 public sealed class ThemeColorsTests
 {
     [Fact]
-    public void GetCurrentTheme_defaults_to_light_when_application_missing()
+    public void GetCurrentTheme_follows_requested_theme_or_defaults_to_light_without_app()
     {
-        Assert.Equal(AppTheme.Light, ThemeColors.GetCurrentTheme());
+        // Device-test hosts boot a real MAUI application; ThemeColors resolves Application.Current.RequestedTheme.
+        // Host-based Windows runs without an app shell — Current is null and production code falls back to Light.
+        var expected = Application.Current is null
+            ? AppTheme.Light
+            : Application.Current!.RequestedTheme;
+        Assert.Equal(expected, ThemeColors.GetCurrentTheme());
     }
 
     [Fact]

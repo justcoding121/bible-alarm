@@ -18,7 +18,7 @@ public sealed class ArtworkManager(ILogger logger)
     /// </summary>
     public void UpdateArtwork(string? artworkUrl, Action<ImageSource?> setArtworkSource, Action<bool> setIsArtworkLoading, bool forceReload = false, string? fallbackUrl = null)
     {
-        if (lastArtworkUrl == artworkUrl && (!forceReload || artworkSource != null))
+        if (lastArtworkUrl == artworkUrl && !forceReload && artworkSource != null)
         {
             setIsArtworkLoading(false);
             return;

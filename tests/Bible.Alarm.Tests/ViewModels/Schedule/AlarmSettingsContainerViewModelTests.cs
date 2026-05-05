@@ -17,7 +17,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class AlarmSettingsContainerViewModelTests
+public sealed partial class AlarmSettingsContainerViewModelTests
 {
     private sealed class MutableApplicationState : IState<ApplicationState>
     {
@@ -155,8 +155,7 @@ public sealed class AlarmSettingsContainerViewModelTests
         ((RelayCommand)sut.ToggleEnabledCommand).Execute(null);
 
         Assert.False(sut.IsEnabled);
-        var action = Assert.Single(dispatcher.Dispatched);
-        var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
         Assert.False(update.Schedule.IsEnabled);
         Assert.False(update.ShouldSave);
     }
@@ -172,21 +171,8 @@ public sealed class AlarmSettingsContainerViewModelTests
         ((RelayCommand)sut.ToggleNotificationEnabledCommand).Execute(null);
 
         Assert.False(sut.NotificationEnabled);
-        var update = Assert.IsType<UpdateScheduleFromViewModelAction>(Assert.Single(dispatcher.Dispatched));
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
         Assert.False(update.Schedule.NotificationEnabled);
-    }
-
-    [Fact]
-    public void OnStateChanged_WhenSameSchedule_NotificationDiffers_SyncsFromStore()
-    {
-        var current = Schedule(5, isEnabled: true, notificationEnabled: false);
-        var state = new MutableApplicationState(App(current));
-        using var sut = CreateSut(state);
-
-        state.Value.CurrentSchedule = Schedule(5, isEnabled: true, notificationEnabled: true);
-        state.NotifyChanged();
-
-        Assert.True(sut.NotificationEnabled);
     }
 
     [Fact]

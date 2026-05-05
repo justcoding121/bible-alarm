@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using Bible.Alarm.Common.ViewHelpers.Converters;
+using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Tests;
 
@@ -10,13 +11,22 @@ public sealed class SelectableTextColorConverterTests
     private static readonly CultureInfo Cul = CultureInfo.InvariantCulture;
 
     [Fact]
-    public void Convert_without_application_resources_returns_purple_fallback()
+    public void Convert_uses_primary_resource_when_available_otherwise_purple()
     {
         var sut = new SelectableTextColorConverter();
 
         var result = sut.Convert(false, typeof(Color), null!, Cul);
 
-        Assert.Equal(Colors.Purple, result);
+        var color = Assert.IsType<Color>(result);
+        if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryObj) is true &&
+            primaryObj is Color primary)
+        {
+            Assert.Equal(primary, color);
+        }
+        else
+        {
+            Assert.Equal(Colors.Purple, color);
+        }
     }
 
     [Fact]

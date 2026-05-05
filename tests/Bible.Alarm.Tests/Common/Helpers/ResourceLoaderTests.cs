@@ -39,7 +39,9 @@ public sealed class ResourceLoaderTests
         {
             var fi = ResourceLoader.GetFileInfo(asm);
 
-            Assert.Equal(asm.Location.ToLowerInvariant(), fi.FullName.ToLowerInvariant());
+            var expectedFull = new FileInfo(asm.Location).FullName;
+            var actualFull = fi.FullName;
+            Assert.Equal(expectedFull, actualFull, StringComparer.OrdinalIgnoreCase);
         }
     }
 }

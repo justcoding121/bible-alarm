@@ -15,16 +15,22 @@ internal static class ToastMiniBarInsetHelper
     private const double FallbackMiniPlaybackBarHeightDip = 80;
     private const double GapAboveMiniBarDip = 16;
 
-    public static double GetBottomInsetDip()
+    public static double GetBottomInsetDip() =>
+        GetBottomInsetDip(MiniPlaybackBarViewModel.Instance, MiniPlaybackBar.LastMeasuredHeight);
+
+    /// <summary>
+    /// Parameterized inset calculation: the parameterless overload supplies the live singleton and
+    /// <see cref="MiniPlaybackBar.LastMeasuredHeight"/>.
+    /// </summary>
+    internal static double GetBottomInsetDip(MiniPlaybackBarViewModel? vm, double lastMeasuredHeightDip)
     {
-        var vm = MiniPlaybackBarViewModel.Instance;
         if (vm == null || !vm.IsVisible)
         {
             return 0;
         }
 
-        var barHeight = MiniPlaybackBar.LastMeasuredHeight > 0
-            ? MiniPlaybackBar.LastMeasuredHeight
+        var barHeight = lastMeasuredHeightDip > 0
+            ? lastMeasuredHeightDip
             : FallbackMiniPlaybackBarHeightDip;
 
         return barHeight + GapAboveMiniBarDip;
