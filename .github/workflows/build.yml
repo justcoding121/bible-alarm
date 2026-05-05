@@ -257,6 +257,7 @@ jobs:
             -m:1 \
             -p:BUILD_IOS_ONLY=true \
             -p:RuntimeIdentifier=iossimulator-arm64 \
+            -p:MtouchLink=SdkOnly \
             -p:CollectCoverage=true \
             -p:CoverletOutputFormat=opencover \
             -p:CoverletOutput="$GITHUB_WORKSPACE/artifacts/coverage-ios/coverage-ios.xml"

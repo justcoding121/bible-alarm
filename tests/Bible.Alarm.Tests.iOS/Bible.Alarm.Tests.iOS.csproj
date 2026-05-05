@@ -56,6 +56,16 @@
     <ResizetizerErrorOnDuplicateOutputFilename>false</ResizetizerErrorOnDuplicateOutputFilename>
   </PropertyGroup>
 
+  <!--
+    Same MT0180 / MT2301 / NETSDK1144 workaround as src/Bible.Alarm/Bible.Alarm.csproj: this project is
+    its own net10.0-ios executable, so it runs the managed linker independently. GitHub macos-latest
+    still ships Xcode 16.x while Microsoft.iOS 26 expects Xcode 26 SDK headers for the default full
+    link pass. Scope to Actions via GITHUB_ACTIONS only; local Xcode 26+ keeps default linker behaviour.
+  -->
+  <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' AND '$(GITHUB_ACTIONS)' == 'true'">
+    <MtouchLink>SdkOnly</MtouchLink>
+  </PropertyGroup>
+
   <ItemGroup>
     <!--
       Reference Bible.Alarm so its iOS-built assembly (with Platforms/iOS/** compiled in) flows into the
