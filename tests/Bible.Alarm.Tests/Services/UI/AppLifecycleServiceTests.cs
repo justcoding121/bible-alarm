@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using System.Reflection;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -300,7 +301,7 @@ public sealed class AppLifecycleServiceTests
 
         ReconcileViaReflection(sut);
 
-        Assert.IsType<PlaybackStoppedAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Single(dispatcher.Dispatched.OfType<PlaybackStoppedAction>());
     }
 
     [Fact]

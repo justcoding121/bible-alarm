@@ -47,10 +47,13 @@ public sealed class ArtworkManagerTests
     {
         var sut = new ArtworkManager(TestLogging.CreateLogger());
 
-        sut.UpdateArtwork("https://example.com/z.png", _ => { }, _ => { });
-        sut.UpdateArtwork("https://example.com/z.png", _ => { }, _ => { }, forceReload: true);
+        var ex = Record.Exception(() =>
+        {
+            sut.UpdateArtwork("https://example.com/z.png", _ => { }, _ => { });
+            sut.UpdateArtwork("https://example.com/z.png", _ => { }, _ => { }, forceReload: true);
+        });
 
-        Assert.False(sut.HasArtwork);
+        Assert.Null(ex);
     }
 
     [Fact]

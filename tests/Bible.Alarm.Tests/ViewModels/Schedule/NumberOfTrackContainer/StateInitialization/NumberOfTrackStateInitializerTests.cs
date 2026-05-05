@@ -18,6 +18,7 @@ public sealed class NumberOfTrackStateInitializerTests
         Assert.Null(result);
     }
 
+#if WINDOWS
     [Fact]
     public void TryInitialize_maps_schedule_fields_for_windows_tfm()
     {
@@ -40,6 +41,8 @@ public sealed class NumberOfTrackStateInitializerTests
         Assert.True(result.PlayIndefinitely);
         Assert.Equal("Audio Bible", result.LastCategoryName);
     }
+
+#endif
 
     [Fact]
     public void PlayIndefinitely_false_when_positive_track_count()

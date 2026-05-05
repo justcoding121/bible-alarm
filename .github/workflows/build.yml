@@ -270,9 +270,11 @@ jobs:
           dotnet tool restore
           APP_PATH=$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)
           if [ -z "$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
+          # --reset-simulator: erase + shutdown before run, shutdown after run (avoids orphaned booted sims).
           dotnet xharness apple test \
             --app="$APP_PATH" \
             --target=ios-simulator-64 \
+            --reset-simulator \
             --output-directory="$GITHUB_WORKSPACE/artifacts/coverage-ios"
 
       - name: Upload iOS coverage

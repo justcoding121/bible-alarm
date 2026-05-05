@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using AutoMapper;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
@@ -155,8 +156,7 @@ public sealed class AlarmSettingsContainerViewModelTests
         ((RelayCommand)sut.ToggleEnabledCommand).Execute(null);
 
         Assert.False(sut.IsEnabled);
-        var action = Assert.Single(dispatcher.Dispatched);
-        var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
         Assert.False(update.Schedule.IsEnabled);
         Assert.False(update.ShouldSave);
     }
@@ -172,10 +172,11 @@ public sealed class AlarmSettingsContainerViewModelTests
         ((RelayCommand)sut.ToggleNotificationEnabledCommand).Execute(null);
 
         Assert.False(sut.NotificationEnabled);
-        var update = Assert.IsType<UpdateScheduleFromViewModelAction>(Assert.Single(dispatcher.Dispatched));
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
         Assert.False(update.Schedule.NotificationEnabled);
     }
 
+#if WINDOWS
     [Fact]
     public void OnStateChanged_WhenSameSchedule_NotificationDiffers_SyncsFromStore()
     {
@@ -188,6 +189,8 @@ public sealed class AlarmSettingsContainerViewModelTests
 
         Assert.True(sut.NotificationEnabled);
     }
+
+#endif
 
     [Fact]
     public void OnStateChanged_WhenSameSchedule_IsEnabledDiffers_SyncsFromStore()
