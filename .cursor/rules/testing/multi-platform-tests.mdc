@@ -365,6 +365,49 @@ dotnet xharness apple test \
     --output-directory=TestResults/ios
 ```
 
+## How to invoke UI tests locally
+
+`tests/run-ui-tests.ps1` is the dedicated orchestrator for the Appium-driven smoke tests in `tests/Bible.Alarm.UITests/`. It is **separate** from `run-tests.ps1` because UI tests require completely different prerequisites (running Appium server, deployed production app, platform-specific driver) and never contribute coverage. Full one-time install steps are in [`tests/UITESTS.md`](../../../tests/UITESTS.md); the commands below assume that's already done.
+
+The script always: (1) builds + deploys the production app to the target platform (skip with `-SkipDeploy`), (2) starts a local Appium 2 server on `127.0.0.1:4723` (override with `-AppiumPort`), (3) sets the env vars the fixtures read (`APPIUM_URL`, `BIBLE_ALARM_AUMID` on Windows), (4) runs `dotnet test --filter UI=<platform>` against `Bible.Alarm.UITests`, and (5) tears Appium back down.
+
+```pwsh
+# Windows: deploys Bible.Alarm MSIX (Debug, win-x64) via dotnet build -t:Build,Deploy, auto-discovers
+# AUMID via Get-StartApps, then drives WinAppDriver through the Appium 'windows' driver.
+./tests/run-ui-tests.ps1 -Platform Windows
+# Pass -Aumid '<AppUserModelId>' to override auto-discovery (rare; only when Get-StartApps misses
+# the app). Pass -SkipDeploy to reuse an already-deployed MSIX (saves ~3 min on iteration).
+
+# Android: deploys the production APK (release-signed Debug) to the currently-online emulator/device,
+# then drives uiautomator2. Requires `adb devices` to show exactly one device. The script does NOT
+# boot an AVD for you — start one yourself before invoking, or run `run-tests.ps1 -Platform Android`
+# first to warm an emulator.
+./tests/run-ui-tests.ps1 -Platform Android
+./tests/run-ui-tests.ps1 -Platform Android -SkipDeploy   # if the app is already installed
+
+# iOS: thin SSH driver. SSHes into the Mac and runs `tests/run-ui-tests-mac.sh`, which performs the
+# build/deploy + Appium + xcuitest dance on the Mac. The repo must already be at ~/bible-alarm on
+# the Mac — typically synced by a preceding `./tests/run-tests.ps1 -Platform iOS -MacHost ...` pass.
+./tests/run-ui-tests.ps1 -Platform iOS -MacHost user@mac.local
+
+# All three (Windows then Android then iOS, sequentially)
+./tests/run-ui-tests.ps1 -Platform All -MacHost user@mac.local
+```
+
+When a UI test fails, screenshots and the Appium server log dump out to `%TEMP%/appium-ui-tests.log` (Windows) or `~/appium-ui-tests.log` (Mac). The fixture's `WaitForAccessibilityId` retries with exponential back-off and dumps a screenshot before throwing, so the failure mode is always "test threw with a PNG attached" rather than "test hung".
+
+If you only want to run a single UI test (no Appium boot, no deploy — useful when iterating against an already-running Appium and an already-deployed app), bypass the orchestrator:
+
+```pwsh
+$env:APPIUM_URL = 'http://127.0.0.1:4723/'
+$env:BIBLE_ALARM_AUMID = (Get-StartApps | ? Name -eq 'Bible Alarm').AppId   # Windows only
+dotnet test tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj `
+    --filter "UI=Windows&FullyQualifiedName~WindowsHomePageUITests" `
+    --logger "console;verbosity=detailed"
+```
+
+UI tests do **not** run in any CI job today (see [UI integration tests (Appium)](#ui-integration-tests-appium--separate-axis-separate-gate)). When `ui-windows` / `ui-android` / `ui-ios` jobs are eventually wired up, they'll mirror the local script: install Appium 2 + the platform driver, deploy the app, then `dotnet test --filter UI=<platform>`. Do not gate `sonar` on those jobs — UI tests stay on a separate axis.
+
 ## Coverage feedback loop
 
 After a successful run, OpenCover XML reports land at:
