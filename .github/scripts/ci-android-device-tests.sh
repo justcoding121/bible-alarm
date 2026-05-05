@@ -8,9 +8,12 @@ set -euo pipefail
 
 cd "${GITHUB_WORKSPACE:?}"
 
-APK="$(find tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android -name '*-Signed.apk' -print -quit)"
+## Bin layout intentionally tracks the build.yml `Build Android test APK` step (Debug + PublishTrimmed=true
+## chosen so coverlet's Cecil resolver can find MAUI workload assemblies in bin/Debug; see that step's
+## comment block for the full rationale).
+APK="$(find tests/Bible.Alarm.Tests.Android/bin/Debug/net10.0-android -name '*-Signed.apk' -print -quit)"
 if [ -z "${APK}" ]; then
-  echo "No signed APK produced under tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android"
+  echo "No signed APK produced under tests/Bible.Alarm.Tests.Android/bin/Debug/net10.0-android"
   exit 1
 fi
 
@@ -37,11 +40,15 @@ while [ "$(date +%s)" -lt "${DEADLINE}" ]; do
 done
 
 adb logcat -d -t 5000 > "${ART_DIR}/logcat.log" || true
-adb pull "${DEVICE_RESULTS}/." "${ART_DIR}/" || true
 
-# Equivalent to a discrete "Pull Android coverage from device" workflow step: adb dies when
-# reactivecircus/android-emulator-runner finishes, so this must run here while the emulator is up.
+# All test artefacts (TestResults.xml, done.txt, error.txt, coverage.android.opencover.xml) live
+# under one device dir; pulling the dir in one shot is atomic-enough and avoids races where the
+# next adb command's connection drops mid-pull. Belt-and-braces explicit pulls of the two files we
+# absolutely need (results + coverage) follow, so a partial first pull still recovers the artefact.
+# adb is gone after reactivecircus/android-emulator-runner stops the emulator, so all of this MUST
+# happen here, not in a downstream workflow step.
 adb shell ls "${DEVICE_RESULTS}" || true
+adb pull "${DEVICE_RESULTS}/." "${ART_DIR}/" || true
 adb pull "${DEVICE_RESULTS}/coverage.android.opencover.xml" "${ART_DIR}/coverage-android.xml" || true
 
 adb uninstall "${PKG}" >/dev/null 2>&1 || true

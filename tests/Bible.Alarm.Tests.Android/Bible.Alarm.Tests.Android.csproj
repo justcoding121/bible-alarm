@@ -93,21 +93,23 @@
     <NoWarn>$(NoWarn);XC0022;NU1608;IL2026;IL2037;IL2072;IL2111</NoWarn>
 
     <!--
-      coverlet.msbuild (Cecil) must resolve every assembly reference transitively reachable from the
-      instrumented dependency graph — especially Microsoft.Maui.* / Microsoft.Maui.Controls.* —
-      whose DLLs ship under NuGet package lib/ folders, not beside Bible.Alarm.dll in bin. Without
-      extra resolver paths Cecil fails silently for Bible.Alarm.dll and the emulator run produces no
-      OpenCover file. Adding IncludeDirectory avoids CopyLocalLockFileAssemblies flooding (XAAMP7004).
-      Paths use the pinned Microsoft.Maui.Controls package version below; bump them when Maui is upgraded.
-      _CoverletMauiAndroidTfm aligns with ResolvedTargetFramework/NuGet TFM folder (currently net10.0-android36.0).
-    -->
-    <MauiInstrumentationPackageVersion>10.0.41</MauiInstrumentationPackageVersion>
-    <_CoverletMauiAndroidTfm Condition="'$(TargetFramework)'=='net10.0-android'">net10.0-android36.0</_CoverletMauiAndroidTfm>
-    <IncludeDirectory Condition="'$(CollectCoverage)' == 'true'">$(NuGetPackageRoot)microsoft.maui.core\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm);$(NuGetPackageRoot)microsoft.maui.essentials\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm);$(NuGetPackageRoot)microsoft.maui.controls.core\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm);$(NuGetPackageRoot)microsoft.maui.controls.xaml\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm);$(NuGetPackageRoot)microsoft.maui.controls.compatibility\$(MauiInstrumentationPackageVersion)\lib\$(_CoverletMauiAndroidTfm)</IncludeDirectory>
+      coverlet.msbuild (Cecil) instruments Bible.Alarm.dll at build time. Its NetstandardAwareAssemblyResolver
+      only looks beside the instrumented assembly in $(TargetDir) and at a few framework paths, so
+      when Bible.Alarm.dll's metadata transitively reaches Microsoft.Maui.Controls (which lives under
+      ~/.nuget/packages/microsoft.maui.controls/<ver>/lib/<tfm>/, NOT in bin/) Cecil throws
+      AssemblyResolutionException and coverlet silently skips Bible.Alarm.dll — no OpenCover file is
+      produced on the emulator. Documented workarounds (PreserveCompilationContext / CopyLocalLockFileAssemblies)
+      fix the resolver but flood bin/ with framework assemblies, which then trips Xamarin.Android's
+      AssemblyModifierPipeline with `XAAMP7004: An item with the same key has already been added`.
 
-    <!--
-      If Cecil still misses a transitive ref after the Maui dirs above (e.g. Syncfusion.*), instrumenting
-      Bible.Alarm.dll can still omit OpenCover slices; Sonar merges Windows+iOS anchors in that case.
+      Workaround in CI (.github/workflows/build.yml `test-android`): build the host with `-c Debug
+      -p:PublishTrimmed=true`. MAUI Android Debug builds copy more workload assemblies into
+      bin/Debug/<tfm>/ (the linker is a single-pass copy in Debug rather than the Release in-place
+      link), so Cecil finds Microsoft.Maui.Controls.dll alongside Bible.Alarm.dll and instruments
+      successfully. PublishTrimmed=true is forced (not the Debug default of false) because the
+      trimmer pass is what produces the ACW typemap — without it MainApplication.n_onCreate dies with
+      UnsatisfiedLinkError before any test runs. See the "Android coverage" row in
+      [.cursor/rules/testing/multi-platform-tests.mdc] and Hard rule #7's PublishTrimmed warning.
     -->
 
     <!-- Resizetizer: same dedupe relaxation Bible.Alarm.Tests already applies. -->

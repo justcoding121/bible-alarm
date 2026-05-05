@@ -212,23 +212,36 @@ function Run-AndroidTests {
     $deviceResultsDir = '/sdcard/Documents/test-results'
     $deviceCoveragePath = "$deviceResultsDir/coverage.android.opencover.xml"
 
-    Write-Host 'Building Android test APK with coverlet instrumentation...'
+    # Android device-test host is built Debug regardless of $Configuration. -c Release plus the
+    # MAUI Android in-place linker leaves Microsoft.Maui.Controls.dll under the workload cache
+    # (~/.nuget/packages/...) instead of bin/Release/<tfm>/, so coverlet's Cecil resolver throws
+    # CecilAssemblyResolutionException and silently skips Bible.Alarm.dll — no OpenCover XML on
+    # the device. Debug copies the workload assemblies into bin/Debug/<tfm>/ where the resolver
+    # finds them. PublishTrimmed=true is forced (Debug default is false) because the trimmer
+    # pass produces the ACW typemap; without it MainApplication.n_onCreate dies with
+    # UnsatisfiedLinkError before any test runs (Hard rule #7). Mirrors `.github/workflows/build.yml`
+    # `test-android`. See the "Android coverage" diagnostic row in
+    # [.cursor/rules/testing/multi-platform-tests.mdc] for the rationale.
+    $androidConfig = 'Debug'
+
+    Write-Host "Building Android test APK with coverlet instrumentation (-c $androidConfig)..."
     # -m:1 (single-threaded MSBuild): MAUI's XamlCTask races against itself on parallel builds and
     # intermittently fails with `MSB3371: ...XamlC.stamp ... being used by another process` while
     # building MediaElement. Linux CI hits this every run; Windows local less often, but applying
     # uniformly keeps local repros green and matches build.yml. ~10s extra build time on first run.
     Invoke-CommandChecked -File 'dotnet' -ArgList @(
         'build', $androidProj,
-        '-c', $Configuration,
+        '-c', $androidConfig,
         '-f', 'net10.0-android',
         '-m:1',
         '-p:BUILD_ANDROID_ONLY=true',
+        '-p:PublishTrimmed=true',
         '-p:CollectCoverage=true',
         '-p:CoverletOutputFormat=opencover',
         "-p:CoverletOutput=$deviceCoveragePath"
     )
 
-    $apk = Get-ChildItem -Path (Join-Path $repoRoot "tests/Bible.Alarm.Tests.Android/bin/$Configuration/net10.0-android") `
+    $apk = Get-ChildItem -Path (Join-Path $repoRoot "tests/Bible.Alarm.Tests.Android/bin/$androidConfig/net10.0-android") `
         -Filter '*-Signed.apk' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $apk) {
         throw 'Could not locate the signed APK after build. Did the build succeed?'
@@ -388,6 +401,16 @@ function Run-IOSTests {
     # `set: pipefail: invalid option name`). Base64-encoding side-steps argv handling entirely:
     # we ship one opaque token, decode on the Mac, then exec the script via stdin into a fresh
     # bash. Newlines, quotes, and `$` substitution all round-trip cleanly.
+    #
+    # NOTE on coverage path: CoverletOutput is *relative* (just `coverage-ios.xml`). coverlet
+    # bakes the literal string into the recorder at build time; at runtime the simulator app's
+    # File.Open resolves it against the current working directory, which AppDelegate.FinishedLaunching
+    # relocates to NSDocumentDirectory. The file therefore lands inside the iOS app's sandbox at
+    # ~/Library/Developer/CoreSimulator/Devices/<UUID>/data/Containers/Data/Application/<UUID>/Documents/coverage-ios.xml
+    # which we `find` after xharness exits. An absolute path on the Mac silently no-ops because of
+    # the simulator's seatbelt sandbox. We deliberately drop --reset-simulator (CI does the same)
+    # so the container survives long enough for the find/cp; the unused booted sim is fine to leak
+    # locally and cleanup is left to the developer.
     $remoteScript = @"
 set -euo pipefail
 cd "$MacRepoRoot"
@@ -399,17 +422,23 @@ dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
     -p:RuntimeIdentifier=iossimulator-arm64 \
     -p:CollectCoverage=true \
     -p:CoverletOutputFormat=opencover \
-    -p:CoverletOutput=TestResults/ios/coverage.ios.opencover.xml
+    -p:CoverletOutput=coverage-ios.xml
 APP_PATH=`$(find tests/Bible.Alarm.Tests.iOS/bin/$Configuration/net10.0-ios -maxdepth 3 -name "*.app" | head -n 1)
 if [ -z "`$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
-# Local-only (SSH Mac): reset shuts down xharness sim after each pass so repeats do not stack booted sims.
-# --launch-timeout avoids xharness exit 90 after a cold erase/boot on slower hosts (skip both flags when mimicking CI).
+mkdir -p TestResults/ios
 dotnet xharness apple test \
     --app="`$APP_PATH" \
     --target=ios-simulator-64 \
-    --reset-simulator \
     --launch-timeout=00:20:00 \
     --output-directory=TestResults/ios
+SRC=`$(find "`$HOME/Library/Developer/CoreSimulator/Devices" -path '*/Documents/coverage-ios.xml' -print -quit 2>/dev/null || true)
+if [ -z "`$SRC" ] || [ ! -f "`$SRC" ]; then
+    echo "WARNING: coverage-ios.xml not found inside any iOS simulator container."
+    find "`$HOME/Library/Developer/CoreSimulator/Devices" -name 'coverage*' -print 2>/dev/null | head -n 20 || true
+else
+    echo "Found coverage at `$SRC"
+    cp "`$SRC" TestResults/ios/coverage.ios.opencover.xml
+fi
 "@
 
     # PowerShell here-strings emit CRLF endings; macOS bash treats the trailing \r as part of the

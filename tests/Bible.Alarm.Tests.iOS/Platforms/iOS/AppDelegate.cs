@@ -28,20 +28,56 @@ public sealed class AppDelegate : UIApplicationDelegate
         };
         Window.MakeKeyAndVisible();
 
+        // coverlet.msbuild bakes CoverletOutput into the recorder at build time as a literal string.
+        // We pass a *relative* path (`coverage-ios.xml`) from .github/workflows/build.yml so the
+        // recorder's File.Open call resolves against the current working directory at runtime.
+        // The simulator-app default CWD is the read-only bundle parent, so we relocate to
+        // NSDocumentDirectory here — that path lives at
+        //   ~/Library/Developer/CoreSimulator/Devices/<UUID>/data/Containers/Data/Application/<UUID>/Documents/
+        // on the macOS host, which the workflow's "Pull iOS coverage from simulator container"
+        // step then `find`s and copies into artifacts/coverage-ios/coverage-ios.xml.
+        try
+        {
+            var docs = Foundation.NSSearchPath.GetDirectories(
+                Foundation.NSSearchPathDirectory.DocumentDirectory,
+                Foundation.NSSearchPathDomain.User);
+            if (docs is { Length: > 0 } && !string.IsNullOrEmpty(docs[0]))
+            {
+                System.Environment.CurrentDirectory = docs[0];
+            }
+        }
+        catch
+        {
+            // Failure to relocate just means coverage-ios.xml lands wherever Mono's default CWD is;
+            // the workflow's host-side `find` step still searches the whole simulator container
+            // tree, so this is best-effort, not load-bearing.
+        }
+
         // Defer until the runloop is pumping so xunit can post completion to the main thread.
         UIApplication.SharedApplication.BeginInvokeOnMainThread(async () =>
         {
             var entryPoint = new TestEntryPoint();
+            int exitCode;
             try
             {
                 await entryPoint.RunAsync().ConfigureAwait(true);
-                // xharness reads the simulator's exit code: 0 = success.
-                System.Environment.Exit(0);
+                exitCode = 0;
             }
             catch
             {
-                System.Environment.Exit(1);
+                exitCode = 1;
             }
+            finally
+            {
+                // coverlet's AppDomain.ProcessExit hook is unreliable on Mono iOS during
+                // System.Environment.Exit (the main run loop tears down before .NET walks the
+                // handler chain), so we invoke each per-module tracker's UnloadModule manually
+                // here. Mirrors FlushCoverletTrackers in the Android TestRunnerActivity.
+                try { CoverletTrackerFlush.InvokeAll(); } catch { /* best-effort */ }
+            }
+
+            // xharness reads the simulator's exit code: 0 = success.
+            System.Environment.Exit(exitCode);
         });
 
         return true;

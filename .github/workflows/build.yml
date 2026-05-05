@@ -148,6 +148,17 @@ jobs:
       # coverlet.msbuild instruments at build time; the OpenCover XML is written by coverlet's
       # AppDomain.ProcessExit hook (fired by Environment.Exit inside TestRunnerActivity), so the
       # path we set here must be a *device-side* path the activity can write to.
+      # `-c Debug -p:PublishTrimmed=true` is the load-bearing combination for Android coverage:
+      # Release builds aggressively in-place link MAUI workload references straight out of
+      # ~/.nuget/packages/microsoft.maui.controls/<ver>/lib/<tfm>/, never copying them into bin/.
+      # coverlet's Cecil resolver only looks beside Bible.Alarm.dll, so it cannot find
+      # Microsoft.Maui.Controls and silently skips instrumentation
+      # (CecilAssemblyResolutionException → no coverage.android.opencover.xml on the device).
+      # Debug builds copy workload assemblies into bin/Debug/<tfm>/ which lets the resolver succeed.
+      # PublishTrimmed=true is forced (not the Debug default of false) because the trimmer pass
+      # produces the ACW typemap; without it MainApplication.n_onCreate dies with
+      # UnsatisfiedLinkError before any test runs. See the Bible.Alarm.Tests.Android.csproj header
+      # comment and the "Android coverage" row in [.cursor/rules/testing/multi-platform-tests.mdc].
       # `-m:1` forces single-threaded MSBuild: with parallelism on, Microsoft.Maui.Controls.Build.Tasks's
       # XamlCTask occasionally fails on Linux with `MSB3371: ...XamlC.stamp ... being used by another
       # process` while building MediaElement (see dotnet/maui#12112). Forcing sequential build is
@@ -157,10 +168,11 @@ jobs:
         run: |
           mkdir -p artifacts/coverage-android
           dotnet build tests/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj \
-            -c Release \
+            -c Debug \
             -f net10.0-android \
             -m:1 \
             -p:BUILD_ANDROID_ONLY=true \
+            -p:PublishTrimmed=true \
             -p:CollectCoverage=true \
             -p:CoverletOutputFormat=opencover \
             -p:CoverletOutput=/sdcard/Documents/test-results/coverage.android.opencover.xml
@@ -183,8 +195,9 @@ jobs:
           # android-emulator-runner's script-parser splits on newlines and runs EACH line as a
           # separate `sh -c` — shell variables do not persist (APK was always empty → "No signed APK").
           # Use one line that invokes a checked-in bash script. See .github/scripts/ci-android-device-tests.sh.
-          # OpenCover pull (adb shell ls + adb pull coverage → artifacts/coverage-android/coverage-android.xml)
-          # runs at the END of that script: adb is not available after this action (emulator stopped).
+          # IMPORTANT: every adb-against-the-emulator step must live in that script. Once this action
+          # returns, the emulator process is stopped, adb commands hang or fail, and we lose
+          # /sdcard/Documents/test-results/coverage.android.opencover.xml forever.
           script: bash "${GITHUB_WORKSPACE}/.github/scripts/ci-android-device-tests.sh"
 
       - name: Upload Android coverage
@@ -192,12 +205,10 @@ jobs:
         with:
           name: coverage-android
           path: artifacts/coverage-android/coverage-android.xml
-          # Known gap: coverlet.msbuild cannot resolve Microsoft.Maui.Controls during instrumentation
-          # for the Android slice, so coverage-android.xml may legitimately be missing while the run
-          # still produces TestResults.xml. The SonarCloud merge step gracefully no-ops on missing
-          # slices, so we warn rather than fail the job here. See
-          # [.cursor/rules/testing/multi-platform-tests.mdc] "Android coverage" diagnostic row.
-          if-no-files-found: warn
+          # We want a hard failure when the device produced no OpenCover XML — that's the signal
+          # that coverlet's Cecil instrumentation regressed (e.g. someone swapped Debug back to
+          # Release) and Sonar would otherwise silently lose the Android slice.
+          if-no-files-found: error
 
       - name: Upload Android test logs
         if: always()
@@ -255,6 +266,15 @@ jobs:
       - name: Build iOS test bundle
         run: |
           mkdir -p artifacts/coverage-ios
+          # CoverletOutput is a *relative* path. coverlet.msbuild bakes it into the recorder at
+          # build time as a literal string; at runtime the simulator app's File.Open call resolves
+          # it against the current working directory. AppDelegate.FinishedLaunching relocates CWD
+          # to NSDocumentDirectory at launch (see tests/Bible.Alarm.Tests.iOS/Platforms/iOS/AppDelegate.cs)
+          # so coverage-ios.xml lands at
+          #   ~/Library/Developer/CoreSimulator/Devices/<UUID>/data/Containers/Data/Application/<UUID>/Documents/coverage-ios.xml
+          # which the next "Pull iOS coverage from simulator container" step `find`s and copies
+          # back into artifacts/coverage-ios/. An absolute $GITHUB_WORKSPACE path silently no-ops
+          # because the iOS simulator's seatbelt sandbox blocks writes outside the app container.
           dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
             -c Debug \
             -f net10.0-ios \
@@ -264,7 +284,7 @@ jobs:
             -p:MtouchLink=SdkOnly \
             -p:CollectCoverage=true \
             -p:CoverletOutputFormat=opencover \
-            -p:CoverletOutput="$GITHUB_WORKSPACE/artifacts/coverage-ios/coverage-ios.xml"
+            -p:CoverletOutput=coverage-ios.xml
 
       - name: Run xharness on simulator
         run: |
@@ -275,11 +295,33 @@ jobs:
           APP_PATH=$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)
           if [ -z "$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
           # Hosted macOS runners often exceed xharness default TCP handshake budget (exit 90 APP_LAUNCH_TIMEOUT).
+          # We deliberately do NOT pass --reset-simulator: the next step needs the app's container
+          # (under ~/Library/Developer/CoreSimulator/Devices/<UUID>/data/Containers/Data/Application/<UUID>/)
+          # to still exist so we can `find` and copy coverage-ios.xml out of it.
           dotnet xharness apple test \
             --app="$APP_PATH" \
             --target=ios-simulator-64 \
             --launch-timeout=00:20:00 \
             --output-directory="$GITHUB_WORKSPACE/artifacts/coverage-ios"
+
+      - name: Pull iOS coverage from simulator container
+        run: |
+          # AppDelegate.FinishedLaunching relocates CWD to NSDocumentDirectory before xunit runs;
+          # coverlet's recorder then writes the (relative) coverage-ios.xml into that directory,
+          # which the host sees at the long CoreSimulator container path below. -print -quit picks
+          # the first hit; even if multiple booted simulators exist, the only one our build wrote
+          # to is the one xharness picked, and any other coverage-ios.xml in the tree would be
+          # stale from a previous run on the same image (extremely unlikely on a fresh runner).
+          SRC="$(find "$HOME/Library/Developer/CoreSimulator/Devices" \
+                      -path '*/Documents/coverage-ios.xml' -print -quit 2>/dev/null || true)"
+          if [ -z "$SRC" ] || [ ! -f "$SRC" ]; then
+            echo "::error::coverage-ios.xml not found inside any iOS simulator container."
+            echo "Diagnostic: scanning for any coverage* file in the simulator tree:"
+            find "$HOME/Library/Developer/CoreSimulator/Devices" -name 'coverage*' -print 2>/dev/null | head -n 20 || true
+            exit 1
+          fi
+          echo "Found coverage at $SRC"
+          cp "$SRC" "$GITHUB_WORKSPACE/artifacts/coverage-ios/coverage-ios.xml"
 
       - name: Upload iOS coverage
         uses: actions/upload-artifact@v6
