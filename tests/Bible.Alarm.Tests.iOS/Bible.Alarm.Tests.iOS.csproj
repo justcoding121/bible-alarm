@@ -65,10 +65,19 @@
       the project ref makes Bible.Alarm.csproj try to write a per-RID runtimeconfig.json into a directory
       MAUI's targets don't pre-create when the project is built transitively.
 
+      AdditionalProperties=EnableCodeSigning=false: undefining RuntimeIdentifier means Bible.Alarm.csproj's
+      CodesignKey gate (which keys off RuntimeIdentifier.StartsWith('iossimulator')) sees an empty RID,
+      falls through to "set CodesignKey", and then trips Xamarin.Shared.targets(2054) with
+      "iOS code signing key '...' not found in keychain" on any host without the matching developer
+      identity. Test bundles never need signing — they only ever target the simulator — so we explicitly
+      pass EnableCodeSigning=false through the project reference to short-circuit the codesign step in
+      the transitive build.
+
       Bible.Alarm.Shared comes in transitively; an explicit reference re-triggers the same RID issue.
     -->
     <ProjectReference Include="..\..\src\Bible.Alarm\Bible.Alarm.csproj"
-                      UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers" />
+                      UndefineProperties="RuntimeIdentifier;RuntimeIdentifiers"
+                      AdditionalProperties="EnableCodeSigning=false" />
   </ItemGroup>
 
   <ItemGroup>

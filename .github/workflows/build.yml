@@ -146,12 +146,18 @@ jobs:
       # coverlet.msbuild instruments at build time; the OpenCover XML is written by coverlet's
       # AppDomain.ProcessExit hook (fired by Environment.Exit inside TestRunnerActivity), so the
       # path we set here must be a *device-side* path the activity can write to.
+      # `-m:1` forces single-threaded MSBuild: with parallelism on, Microsoft.Maui.Controls.Build.Tasks's
+      # XamlCTask occasionally fails on Linux with `MSB3371: ...XamlC.stamp ... being used by another
+      # process` while building MediaElement (see dotnet/maui#12112). Forcing sequential build is
+      # the standard workaround; it adds ~10s to a build that already takes 2 min, which we will
+      # gladly accept for stability. Local Windows builds do not hit this race.
       - name: Build Android test APK
         run: |
           mkdir -p artifacts/coverage-android
           dotnet build tests/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj \
             -c Release \
             -f net10.0-android \
+            -m:1 \
             -p:BUILD_ANDROID_ONLY=true \
             -p:CollectCoverage=true \
             -p:CoverletOutputFormat=opencover \
@@ -301,12 +307,20 @@ jobs:
       - name: Restore (iOS-only)
         run: dotnet restore tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj -p:BUILD_IOS_ONLY=true
 
+      # `-m:1` mirrors the Android slice — defensive against MAUI's XamlCTask file-lock race on
+      # parallel builds. iOS hits this less often than Android (likely because the iOS pipeline
+      # doesn't fan out the IL linker the same way), but the cost of single-threaded build is small
+      # enough to apply uniformly. RuntimeIdentifier is set on the *test* project; Bible.Alarm.csproj
+      # is built transitively without RID (UndefineProperties) and explicitly with EnableCodeSigning=false
+      # (AdditionalProperties on the ProjectReference) so the codesign step is skipped on the hosted
+      # macOS runner that has no developer keychain identity.
       - name: Build iOS test bundle
         run: |
           mkdir -p artifacts/coverage-ios
           dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
             -c Debug \
             -f net10.0-ios \
+            -m:1 \
             -p:BUILD_IOS_ONLY=true \
             -p:RuntimeIdentifier=iossimulator-arm64 \
             -p:CollectCoverage=true \

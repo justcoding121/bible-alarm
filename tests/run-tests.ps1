@@ -190,10 +190,15 @@ function Run-AndroidTests {
     $deviceCoveragePath = "$deviceResultsDir/coverage.android.opencover.xml"
 
     Write-Host 'Building Android test APK with coverlet instrumentation...'
+    # -m:1 (single-threaded MSBuild): MAUI's XamlCTask races against itself on parallel builds and
+    # intermittently fails with `MSB3371: ...XamlC.stamp ... being used by another process` while
+    # building MediaElement. Linux CI hits this every run; Windows local less often, but applying
+    # uniformly keeps local repros green and matches build.yml. ~10s extra build time on first run.
     Invoke-CommandChecked -File 'dotnet' -ArgList @(
         'build', $androidProj,
         '-c', $Configuration,
         '-f', 'net10.0-android',
+        '-m:1',
         '-p:BUILD_ANDROID_ONLY=true',
         '-p:CollectCoverage=true',
         '-p:CoverletOutputFormat=opencover',
