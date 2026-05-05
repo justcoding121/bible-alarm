@@ -165,10 +165,15 @@
     `AfterTargets="BuildProject"`. MAUI Android's build pipeline does not fire `BuildProject`, so
     the target never runs and the test DLL ships without coverlet's IL counters or the
     `Coverlet.Core.Instrumentation.Tracker.*` tracker types. We hook `InstrumentModules` directly
-    after `CoreCompile` instead — it runs against `$(TargetPath)`, which is set the moment csc
-    finishes, and well before the IL linker / Android packaging consumes the DLL. With
-    PublishTrimmed=true plus our TrimmerRoots whitelist, the injected tracker types survive
-    trimming and end up inside `lib/<abi>/lib_Bible.Alarm.Tests.Android.dll.so`.
+    after `CopyFilesToOutputDirectory` instead — by that point csc has produced the DLL AND it has
+    been copied to `$(TargetPath)` (= `bin/<config>/<tfm>/<asm>.dll`), which is the path coverlet
+    reads when constructing its `SourceRootTranslator`. Hooking `AfterTargets="CoreCompile"`
+    appears to work on incremental local builds because `bin/` carries a stale DLL from a previous
+    build, but a clean CI build trips `Module test path '...bin/...Tests.Android.dll' not found`
+    because CopyFilesToOutputDirectory hasn't run yet. We hook it before the IL linker /
+    Android packaging consumes the DLL. With PublishTrimmed=true plus our TrimmerRoots whitelist,
+    the injected tracker types survive trimming and end up inside
+    `lib/<abi>/lib_Bible.Alarm.Tests.Android.dll.so`.
   -->
   <ItemGroup>
     <Using Include="Xunit" />
@@ -205,7 +210,7 @@
   </ItemGroup>
 
   <Target Name="_BibleAlarmHookCoverletInstrumentation"
-          AfterTargets="CoreCompile"
+          AfterTargets="CopyFilesToOutputDirectory"
           DependsOnTargets="InstrumentModules"
           Condition="'$(CollectCoverage)' == 'true'" />
 

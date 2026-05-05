@@ -294,11 +294,17 @@
 	<PropertyGroup Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
 		<PublishTrimmed>false</PublishTrimmed>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios' AND '$(Configuration)'=='Debug'">
-	  <CodesignKey>Apple Development: Created via API (65WTR3TZ7L)</CodesignKey>
-	  <CodesignProvision>VS: com.jthomas.info.Bible.Alarm Development</CodesignProvision>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios'">
+	<!--
+	  iOS code-signing: only applies to physical-device builds. Simulator RIDs
+	  (`iossimulator-x64`, `iossimulator-arm64`) skip codesigning entirely — there is no keychain
+	  identity to verify against on a Mac that has not been provisioned for development. CI uses
+	  `-p:RuntimeIdentifier=iossimulator-arm64` for the test slice, so without this gate the build
+	  fails with `iOS code signing key '...' not found in keychain.` against this very project,
+	  which is transitively built by `Bible.Alarm.Tests.iOS.csproj`. Empty `RuntimeIdentifier`
+	  (the IDE default for a Debug build) keeps the original behaviour for developers — VS picks
+	  a target deployment device and the keychain has the signing identity.
+	-->
+	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios' AND !$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('iossimulator'))">
 	  <CodesignKey>Apple Development: Created via API (65WTR3TZ7L)</CodesignKey>
 	  <CodesignProvision>VS: com.jthomas.info.Bible.Alarm Development</CodesignProvision>
 	</PropertyGroup>
