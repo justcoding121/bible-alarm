@@ -360,7 +360,9 @@ adb shell am start -W -n com.jthomas.info.Bible.Alarm.Tests/com.jthomas.info.Bib
 while (-not (adb shell 'if [ -f /sdcard/Documents/test-results/done.txt ]; then cat /sdcard/Documents/test-results/done.txt; fi')) { Start-Sleep 5 }
 adb pull /sdcard/Documents/test-results/. TestResults/android/
 
-# iOS equivalent — must run on macOS (maui-ios workload + Xcode)
+# iOS equivalent — must run on macOS (maui-ios workload + Xcode).
+# GitHub Actions matches build.yml: plain xharness apple test (no reset).
+# When iterating locally and xharness keeps booting simulators, add xharness reset-simulator and a longer launch-timeout (see tests/run-tests.ps1 -Platform iOS).
 dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
     -c Debug -f net10.0-ios -p:BUILD_IOS_ONLY=true \
     -p:RuntimeIdentifier=iossimulator-arm64 \
@@ -369,8 +371,6 @@ dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
 dotnet xharness apple test \
     --app="$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)" \
     --target=ios-simulator-64 \
-    --reset-simulator \
-    --launch-timeout=00:20:00 \
     --output-directory=TestResults/ios
 ```
 

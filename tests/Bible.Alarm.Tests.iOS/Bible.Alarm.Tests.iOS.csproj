@@ -2,7 +2,8 @@
 
   <!--
     Device-test host for iOS. Builds an .app bundle that xharness installs into a booted iOS simulator and
-    runs via `xharness apple test` (pass xharness reset-simulator so the simulator shuts down after the run).
+    runs via `xharness apple test`. For repetitive local runs, `tests/run-tests.ps1 -Platform iOS`
+    passes xharness reset-simulator so simulators are torn down afterward; CI uses plain apple test.
     Coverage XML is written to the simulator sandbox and pulled back to
     the host machine by xharness.
 

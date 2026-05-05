@@ -272,13 +272,9 @@ jobs:
           dotnet tool restore
           APP_PATH=$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)
           if [ -z "$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
-          # --reset-simulator cold-boots the sim; GitHub runners often need more than xharness default
-          # launch handshake time (exit 90 APP_LAUNCH_TIMEOUT otherwise).
           dotnet xharness apple test \
             --app="$APP_PATH" \
             --target=ios-simulator-64 \
-            --reset-simulator \
-            --launch-timeout=00:20:00 \
             --output-directory="$GITHUB_WORKSPACE/artifacts/coverage-ios"
 
       - name: Upload iOS coverage
