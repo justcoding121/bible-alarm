@@ -178,79 +178,10 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: |
-            # reactivecircus/android-emulator-runner invokes this block with `/usr/bin/sh -c` on
-            # ubuntu-latest — that is **dash**, not bash. `pipefail` is a bashism; dash aborts with
-            # `set: Illegal option -o pipefail`. Stick to POSIX `set -eu` (see sh(1) dash(1)).
-            set -eu
-            APK=$(find tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android -name '*-Signed.apk' | head -n 1)
-            if [ -z "$APK" ]; then echo "No signed APK produced"; exit 1; fi
-
-            PKG=com.jthomas.info.Bible.Alarm.Tests
-            ACTIVITY="$PKG/$PKG.TestRunnerActivity"
-            DEVICE_RESULTS=/sdcard/Documents/test-results
-            ART_DIR="$GITHUB_WORKSPACE/artifacts/coverage-android"
-            mkdir -p "$ART_DIR"
-
-            adb uninstall "$PKG" >/dev/null 2>&1 || true
-            adb install -r "$APK"
-
-            # Reset device-side results dir before launch so the new install's UID owns it (otherwise
-            # the previous-UID-owned dir denies writes and we get an empty XML / no done.txt).
-            adb shell rm -rf "$DEVICE_RESULTS" >/dev/null 2>&1 || true
-            adb shell mkdir -p "$DEVICE_RESULTS"
-
-            adb shell am start -W -n "$ACTIVITY"
-
-            # Poll for done.txt (15-min cap). The activity always writes done.txt before
-            # Environment.Exit, so absence here means the test process hung or crashed early.
-            DEADLINE=$(( $(date +%s) + 900 ))
-            DONE=""
-            while [ "$(date +%s)" -lt "$DEADLINE" ]; do
-              PROBE=$(adb shell "if [ -f $DEVICE_RESULTS/done.txt ]; then cat $DEVICE_RESULTS/done.txt; fi" 2>/dev/null | tr -d '\r\n')
-              if [ -n "$PROBE" ]; then DONE="$PROBE"; break; fi
-              sleep 5
-            done
-
-            adb logcat -d -t 5000 > "$ART_DIR/logcat.log" || true
-            adb pull "$DEVICE_RESULTS/." "$ART_DIR/" || true
-            adb uninstall "$PKG" >/dev/null 2>&1 || true
-
-            # Flatten xharness's `<resultsPath>/TestResults.xml` directory-as-results layout into a
-            # single file. xharness's DefaultAndroidEntryPoint creates the supplied results path as
-            # a *directory* and writes the actual xunit XML inside it, but SonarCloud merge expects
-            # a regular XML file. We do this on the host side only — write-after-delete on /sdcard
-            # is racy under FUSE-backed MediaStore. We also handle a leftover staging file in case a
-            # previous flatten attempt was interrupted.
-            if [ -d "$ART_DIR/TestResults.xml" ]; then
-              INNER=$(find "$ART_DIR/TestResults.xml" -maxdepth 1 -name '*.xml' | head -n 1)
-              if [ -n "$INNER" ]; then
-                mv "$INNER" "$ART_DIR/TestResults.xml.__hostflatten"
-                rm -rf "$ART_DIR/TestResults.xml"
-                mv "$ART_DIR/TestResults.xml.__hostflatten" "$ART_DIR/TestResults.xml"
-              else
-                rm -rf "$ART_DIR/TestResults.xml"
-              fi
-            elif [ -f "$ART_DIR/TestResults.xml.__tmp" ] && [ ! -f "$ART_DIR/TestResults.xml" ]; then
-              mv "$ART_DIR/TestResults.xml.__tmp" "$ART_DIR/TestResults.xml"
-            fi
-
-            if [ -z "$DONE" ]; then
-              echo "TestRunnerActivity did not produce $DEVICE_RESULTS/done.txt within 15 minutes."
-              exit 1
-            fi
-
-            # The sonar job globs TestResults/coverage-android/coverage-android.xml (see lines below);
-            # keep that exact filename to avoid touching the downstream config.
-            if [ -f "$ART_DIR/coverage.android.opencover.xml" ]; then
-              cp "$ART_DIR/coverage.android.opencover.xml" "$ART_DIR/coverage-android.xml"
-            fi
-
-            if [ "$DONE" != "0" ]; then
-              echo "Android test run reported failure (exit $DONE)."
-              [ -f "$ART_DIR/error.txt" ] && cat "$ART_DIR/error.txt"
-              exit "$DONE"
-            fi
+          # android-emulator-runner's script-parser splits on newlines and runs EACH line as a
+          # separate `sh -c` — shell variables do not persist (APK was always empty → "No signed APK").
+          # Use one line that invokes a checked-in bash script. See .github/scripts/ci-android-device-tests.sh.
+          script: bash "${GITHUB_WORKSPACE}/.github/scripts/ci-android-device-tests.sh"
 
       - name: Upload Android coverage
         uses: actions/upload-artifact@v6
