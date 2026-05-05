@@ -179,7 +179,10 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            set -euo pipefail
+            # reactivecircus/android-emulator-runner invokes this block with `/usr/bin/sh -c` on
+            # ubuntu-latest — that is **dash**, not bash. `pipefail` is a bashism; dash aborts with
+            # `set: Illegal option -o pipefail`. Stick to POSIX `set -eu` (see sh(1) dash(1)).
+            set -eu
             APK=$(find tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android -name '*-Signed.apk' | head -n 1)
             if [ -z "$APK" ]; then echo "No signed APK produced"; exit 1; fi
 
