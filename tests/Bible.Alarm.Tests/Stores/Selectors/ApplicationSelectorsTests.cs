@@ -35,6 +35,56 @@ public sealed class ApplicationSelectorsTests
         };
 
     [Fact]
+    public void GetCurrentMusicEntity_returns_music_when_music_id_set_without_publication_code()
+    {
+        var schedule = Row(3);
+        schedule.MusicId = 99;
+        var state = new ApplicationState([], currentSchedule: schedule);
+        var mapper = CreateMapper();
+
+        var music = ApplicationSelectors.GetCurrentMusicEntity(state, mapper);
+
+        Assert.NotNull(music);
+        Assert.Equal(99, music!.Id);
+    }
+
+    [Fact]
+    public void GetCurrentBiblePublicationEntity_returns_child_when_only_bible_publication_row_id_set()
+    {
+        var schedule = Row(4);
+        schedule.BiblePublicationScheduleId = 100;
+        schedule.BiblePublicationCode = "nwt";
+
+        var state = new ApplicationState([], currentSchedule: schedule);
+        var mapper = CreateMapper();
+
+        var bible = ApplicationSelectors.GetCurrentBiblePublicationEntity(state, mapper);
+
+        Assert.NotNull(bible);
+        Assert.Equal("nwt", bible!.PublicationCode);
+    }
+
+    [Fact]
+    public void GetAllSchedulesEntities_returns_empty_when_schedules_property_null()
+    {
+        var state = new ApplicationState([]);
+        state.Schedules = null!;
+        var mapper = CreateMapper();
+
+        Assert.Empty(ApplicationSelectors.GetAllSchedulesEntities(state, mapper));
+    }
+
+    [Fact]
+    public void GetScheduleByIdEntity_returns_null_when_schedules_property_null()
+    {
+        var state = new ApplicationState([]);
+        state.Schedules = null!;
+        var mapper = CreateMapper();
+
+        Assert.Null(ApplicationSelectors.GetScheduleByIdEntity(state, 1, mapper));
+    }
+
+    [Fact]
     public void GetCurrentScheduleEntity_returns_null_when_no_current()
     {
         var state = new ApplicationState([]);
