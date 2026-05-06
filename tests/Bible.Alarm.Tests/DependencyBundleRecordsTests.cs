@@ -15,6 +15,7 @@ using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects;
+using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels;
@@ -566,5 +567,16 @@ public sealed class DependencyBundleRecordsTests
         var sut = new InitializeAction(list);
 
         Assert.Same(list, sut.ScheduleList);
+    }
+
+    [Fact]
+    public void CategorySelectionAutoPopulateHandlerDeps_primary_ctor_round_trips()
+    {
+        var logger = TestLogging.CreateLogger();
+        var sut = new CategorySelectionAutoPopulateHandlerDeps(
+            null!, null!, null!, null!, null!, null!, null!, logger);
+
+        Assert.Null(sut.BiblePublicationService);
+        Assert.Same(logger, sut.Logger);
     }
 }
