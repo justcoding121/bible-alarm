@@ -42,6 +42,23 @@ public sealed class MediaUrlRefreshServiceTests
     }
 
     [Fact]
+    public async Task RefreshUrlAsync_returns_null_when_lookup_never_set_without_throwing()
+    {
+        var sut = new MediaUrlRefreshService(TestLogging.CreateLogger());
+
+        Assert.Null(await sut.RefreshUrlAsync(new TrackMetadata()));
+    }
+
+    [Fact]
+    public async Task RefreshUrlAsync_returns_null_when_lookup_explicitly_empty_without_throwing()
+    {
+        var sut = new MediaUrlRefreshService(TestLogging.CreateLogger());
+        var meta = new TrackMetadata { LookUpPath = string.Empty };
+
+        Assert.Null(await sut.RefreshUrlAsync(meta));
+    }
+
+    [Fact]
     public async Task RefreshUrlAsync_returns_null_when_lookup_is_whitespace_only()
     {
         var sut = new MediaUrlRefreshService(TestLogging.CreateLogger());

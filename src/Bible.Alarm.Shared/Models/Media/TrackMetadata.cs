@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Shared.Models.Enums;
 
 namespace Bible.Alarm.Shared.Models.Media;
@@ -63,6 +64,16 @@ public class TrackMetadata
             return _lookUpPath;
         }
         set => _lookUpPath = value;
+    }
+
+    /// <summary>
+    /// Returns whether a non-empty lookup path is present, without throwing.
+    /// Used for optional URL refresh; playback still requires <see cref="LookUpPath"/> to be loaded.
+    /// </summary>
+    public bool TryGetLookUpPath([NotNullWhen(true)] out string? lookUpPath)
+    {
+        lookUpPath = _lookUpPath;
+        return !string.IsNullOrEmpty(lookUpPath);
     }
 
     public string? SectionCode { get; set; }

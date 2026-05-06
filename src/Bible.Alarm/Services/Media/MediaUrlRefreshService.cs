@@ -13,8 +13,7 @@ public sealed class MediaUrlRefreshService(ILogger logger) : IMediaUrlRefreshSer
 {
     public Task<string?> RefreshUrlAsync(TrackMetadata trackMetadata)
     {
-        var lookUpPath = trackMetadata.LookUpPath;
-        if (string.IsNullOrEmpty(lookUpPath))
+        if (!trackMetadata.TryGetLookUpPath(out var lookUpPath))
         {
             return Task.FromResult<string?>(null);
         }
