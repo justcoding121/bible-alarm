@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Reflection;
 using Bible.Alarm.Services.Media.AudioPlayerHelpers;
 using Bible.Alarm.Tests.Support;
 
@@ -83,5 +84,21 @@ public sealed class BufferingWatchdogTests
         await Task.Delay(150);
 
         Assert.Equal(2, invocations);
+    }
+
+    [Fact]
+    public void Cancel_swallows_ObjectDisposedException_when_internal_cts_was_pre_disposed()
+    {
+        var sut = new BufferingWatchdog(TestLogging.CreateLogger(), () => { }, TimeSpan.FromMilliseconds(60));
+        var field = typeof(BufferingWatchdog).GetField("watchdogCts", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+
+        var leaked = new CancellationTokenSource();
+        leaked.Dispose();
+        field!.SetValue(sut, leaked);
+
+        sut.Cancel();
+
+        Assert.Null(field.GetValue(sut));
     }
 }
