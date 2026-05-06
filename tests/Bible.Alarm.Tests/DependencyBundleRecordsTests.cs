@@ -10,6 +10,7 @@ using Bible.Alarm.Services.Media.Playback;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -22,6 +23,7 @@ using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
@@ -578,5 +580,58 @@ public sealed class DependencyBundleRecordsTests
 
         Assert.Null(sut.BiblePublicationService);
         Assert.Same(logger, sut.Logger);
+    }
+
+    [Fact]
+    public void TrackSelectionProgressBindings_invokes_callbacks()
+    {
+        var showCalls = 0;
+        double lastPct = 0;
+        var lastText = "";
+        var sut = new TrackSelectionProgressBindings(
+            busy => showCalls += busy ? 1 : 0,
+            d => lastPct = d,
+            t => lastText = t);
+
+        sut.SetShowProgress(true);
+        sut.SetProgressPercent(0.33);
+        sut.SetProgressText("loading");
+
+        Assert.Equal(1, showCalls);
+        Assert.Equal(0.33, lastPct);
+        Assert.Equal("loading", lastText);
+    }
+
+    [Fact]
+    public void HandleMusicLanguageSelectionUiCallbacks_round_trips_delegates()
+    {
+        Action<LanguageListViewItemModel?> setLang = _ => { };
+        Action<LanguageListViewItemModel> updLang = _ => { };
+        Action<bool> setShow = _ => { };
+        Action<double> setPct = _ => { };
+        Action<string> setText = _ => { };
+        Action<bool> setBusy = _ => { };
+
+        var sut = new HandleMusicLanguageSelectionUiCallbacks(
+            setLang, updLang, setShow, setPct, setText, setBusy);
+
+        Assert.Same(setLang, sut.SetCurrentLanguage);
+        Assert.Same(setBusy, sut.SetIsBusy);
+    }
+
+    [Fact]
+    public void HandleMusicPublicationTrackSelectionArgs_exposes_publication_and_progress()
+    {
+        var song = new PublicationListViewItemModel(new Publication { Name = "Pub", PublicationCode = "p1" });
+        var progress = new TrackSelectionProgressBindings(_ => { }, _ => { }, _ => { });
+        var sut = new HandleMusicPublicationTrackSelectionArgs(
+            song,
+            null,
+            null!,
+            null,
+            progress);
+
+        Assert.Same(song, sut.SongPublication);
+        Assert.Same(progress, sut.Progress);
     }
 }
