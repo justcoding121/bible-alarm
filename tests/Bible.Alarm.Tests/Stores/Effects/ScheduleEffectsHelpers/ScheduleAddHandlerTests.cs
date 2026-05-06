@@ -40,6 +40,12 @@ public sealed class ScheduleAddHandlerTests
         }
     }
 
+    private sealed class ThrowingScheduleDisplayNameService : IScheduleDisplayNameService
+    {
+        public Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule) =>
+            throw new InvalidOperationException("test");
+    }
+
     private static IMapper CreateMapper()
     {
         var cfg = new MapperConfiguration(
@@ -94,5 +100,16 @@ public sealed class ScheduleAddHandlerTests
         var call = Assert.Single(displayNames.PopulateCalls);
         Assert.Same(action.Schedule, call.Dto);
         Assert.Same(entity, call.Entity);
+    }
+
+    [Fact]
+    public async Task HandleAsync_swallows_exception_when_populate_display_names_fails()
+    {
+        var sut = new ScheduleAddHandler(CreateMapper(), new ThrowingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new AddScheduleAction(Alarm(7, "E")), dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
     }
 }
