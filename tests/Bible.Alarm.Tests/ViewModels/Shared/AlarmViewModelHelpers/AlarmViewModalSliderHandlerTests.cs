@@ -27,6 +27,18 @@ public sealed class AlarmViewModalSliderHandlerTests
         }
     }
 
+    private sealed class ThrowingSeekCommand : ICommand
+    {
+        public bool CanExecute(object? parameter) => true;
+
+        public void Execute(object? parameter) =>
+            throw new InvalidOperationException("seek failed");
+
+#pragma warning disable CS0067
+        public event EventHandler? CanExecuteChanged;
+#pragma warning restore CS0067
+    }
+
     [Fact]
     public void OnSliderTapped_WhenControlsDisabled_DoesNothing()
     {
@@ -312,6 +324,40 @@ public sealed class AlarmViewModalSliderHandlerTests
         handler.OnSliderTapped(0.2);
 
         await Task.Delay(1500);
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void OnSliderTapped_WhenSeekCommandExecuteThrows_resets_interaction()
+    {
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(30),
+            _ => { },
+            () => { });
+        handler.SetSeekCommand(new ThrowingSeekCommand());
+
+        var ex = Record.Exception(() => handler.OnSliderTapped(0.5));
+
+        Assert.Null(ex);
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
+    public void OnSliderDragCompleted_WhenSeekCommandExecuteThrows_resets_interaction()
+    {
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => TimeSpan.FromSeconds(45),
+            _ => { },
+            () => { });
+        handler.SetSeekCommand(new ThrowingSeekCommand());
+
+        var ex = Record.Exception(() => handler.OnSliderDragCompleted(0.33));
+
+        Assert.Null(ex);
         Assert.False(handler.IsUserInteracting);
     }
 }
