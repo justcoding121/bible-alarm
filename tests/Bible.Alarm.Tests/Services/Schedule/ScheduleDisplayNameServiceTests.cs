@@ -127,4 +127,56 @@ public sealed class ScheduleDisplayNameServiceTests
 
         await sut.PopulateDisplayNamesAsync(stateItem, schedule);
     }
+
+    [Fact]
+    public async Task PopulateDisplayNamesAsync_runs_bible_helper_when_bible_schedule_present()
+    {
+        var sut = new ScheduleDisplayNameService(
+            TestLogging.CreateLogger(),
+            biblePublicationService: null,
+            new StubMediaService(),
+            new StubLanguageNameService(),
+            new EmptyServiceProvider());
+
+        var stateItem = new ScheduleStateItem { Id = 1, Name = "One" };
+        var schedule = new AlarmSchedule
+        {
+            Id = 1,
+            Name = "One",
+            BiblePublicationSchedule = new BiblePublicationSchedule
+            {
+                PublicationCode = "nwtsty",
+                LanguageCode = "E",
+                TrackCode = "1",
+            },
+        };
+
+        await sut.PopulateDisplayNamesAsync(stateItem, schedule);
+    }
+
+    [Fact]
+    public async Task PopulateDisplayNamesAsync_runs_music_helper_when_music_present()
+    {
+        var sut = new ScheduleDisplayNameService(
+            TestLogging.CreateLogger(),
+            biblePublicationService: null,
+            new StubMediaService(),
+            new StubLanguageNameService(),
+            new EmptyServiceProvider());
+
+        var stateItem = new ScheduleStateItem { Id = 1, Name = "One" };
+        var schedule = new AlarmSchedule
+        {
+            Id = 1,
+            Name = "One",
+            Music = new AlarmMusic
+            {
+                LanguageCode = "E",
+                PublicationCode = "songpub",
+                TrackCode = "1",
+            },
+        };
+
+        await sut.PopulateDisplayNamesAsync(stateItem, schedule);
+    }
 }
