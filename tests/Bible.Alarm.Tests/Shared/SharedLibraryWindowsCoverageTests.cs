@@ -5,6 +5,7 @@ using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Tests;
@@ -126,5 +127,59 @@ public sealed class SharedLibraryWindowsCoverageTests
             AppConstants.Media.DefaultLanguageCode,
             "With Audio Descriptions"));
         Assert.NotEmpty(AudioDescriptionTitlePhrases.GetPhrasesForLanguage(AppConstants.Media.DefaultLanguageCode));
+    }
+
+    [Fact]
+    public void MusicTrack_orders_by_track_code_and_handles_null_code_hash()
+    {
+        var two = new MusicTrack { TrackCode = "2", Title = "b" };
+        var ten = new MusicTrack { TrackCode = "10", Title = "a" };
+        Assert.True(two < ten);
+        Assert.True(ten > two);
+        Assert.Equal(1, two.CompareTo("x"));
+
+        var dupLeft = new MusicTrack { TrackCode = "01", Title = "a" };
+        var dupRight = new MusicTrack { TrackCode = "1", Title = "b" };
+        Assert.Equal(0, dupLeft.CompareTo(dupRight));
+        Assert.True(dupLeft.Equals(dupRight));
+
+        var nullCode = new MusicTrack { TrackCode = null, Title = "z" };
+        Assert.Equal(1, nullCode.CompareTo(null));
+    }
+
+    [Fact]
+    public void CodeComparisonHelper_orders_numeric_and_string_and_nulls()
+    {
+        Assert.Equal(0, CodeComparisonHelper.Compare(null, null));
+        Assert.True(CodeComparisonHelper.Compare(null, "a") < 0);
+        Assert.True(CodeComparisonHelper.Compare("b", null) > 0);
+        Assert.True(CodeComparisonHelper.Compare("2", "10") < 0);
+        Assert.True(CodeComparisonHelper.Compare("b", "a") > 0);
+
+        Assert.True(CodeComparisonHelper.Equals("01", "1"));
+        Assert.False(CodeComparisonHelper.Equals(null, "x"));
+        Assert.True(CodeComparisonHelper.Equals(null, null));
+    }
+
+    [Fact]
+    public void PublicationTypeHelper_track_label_and_catalog_types()
+    {
+        Assert.Equal(AppConstants.Media.PublicationUiTrackSingular,
+            PublicationTypeHelper.GetTrackLabel(AppConstants.Media.BiblePublicationCodeNwt));
+        Assert.Equal(AppConstants.Media.PublicationUiPartSingular,
+            PublicationTypeHelper.GetTrackLabel(AppConstants.Media.MusicPublicationCodeOsg));
+
+        Assert.Equal(CatalogType.IssueSectioned,
+            PublicationTypeHelper.GetCatalogType($"w{MagazineHelper.MagazineStartYear}"));
+        Assert.Equal(CatalogType.Flat,
+            PublicationTypeHelper.GetCatalogType(AppConstants.Media.MusicPublicationCodeOsg));
+    }
+
+    [Fact]
+    public void AppConstants_logging_and_media_codes_are_non_empty()
+    {
+        Assert.Equal("nwt", AppConstants.Media.BiblePublicationCodeNwt);
+        Assert.False(string.IsNullOrEmpty(
+            AppConstants.Logging.MauiPlatformUiDiagnosticsLog.KeyboardHelperFailedToHideKeyboardAndroid));
     }
 }
