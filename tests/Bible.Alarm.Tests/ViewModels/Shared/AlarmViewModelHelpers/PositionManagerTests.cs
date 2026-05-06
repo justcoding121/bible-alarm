@@ -231,4 +231,29 @@ public sealed class PositionManagerTests
 
         Assert.InRange(lastProgress!.Value, 0.74, 0.76);
     }
+
+    [Fact]
+    public void HandlePreparationProgressMessage_uses_zero_progress_when_no_tracks_and_no_byte_total()
+    {
+        var sut = new PositionManager();
+        double? lastProgress = null;
+        var msg = new PlaybackPreparationProgressMessage
+        {
+            LoadedTracks = 0,
+            TotalTracks = 0,
+            TotalBytesDownloaded = 100,
+            TotalBytesExpected = null,
+            CurrentTrackProgress = 0.5,
+        };
+
+        Assert.True(sut.HandlePreparationProgressMessage(
+            msg,
+            (_, _, p, preparing) =>
+            {
+                lastProgress = p;
+                Assert.False(preparing);
+            }));
+
+        Assert.Equal(0.0, lastProgress);
+    }
 }
