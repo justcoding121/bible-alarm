@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics;
 using System.Windows.Input;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
@@ -8,6 +9,25 @@ namespace Bible.Alarm.Tests;
 
 public sealed class AlarmViewModalSliderHandlerTests
 {
+    /// <summary>
+    /// AlarmViewModalSliderHandler ends interaction via <c>Task.Delay(500).ContinueWith(...)</c> on the
+    /// thread pool. Under CI load the continuation can be scheduled noticeably after the 500 ms delay,
+    /// so a single fixed sleep (e.g. 1500 ms) flakes. Poll until the predicate holds or timeout.
+    /// </summary>
+    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout, TimeSpan pollInterval)
+    {
+        var sw = Stopwatch.StartNew();
+        while (!condition())
+        {
+            if (sw.Elapsed > timeout)
+            {
+                Assert.True(false, $"Condition not satisfied within {timeout.TotalMilliseconds} ms (elapsed {sw.ElapsedMilliseconds} ms).");
+            }
+
+            await Task.Delay(pollInterval).ConfigureAwait(false);
+        }
+    }
+
     private sealed class RecordingSeekCommand : ICommand
     {
         public List<TimeSpan> Executed { get; } = [];
@@ -265,7 +285,7 @@ public sealed class AlarmViewModalSliderHandlerTests
         handler.OnSliderTapped(0.3);
 
         Assert.True(handler.IsUserInteracting);
-        await Task.Delay(1500);
+        await WaitUntilAsync(() => !handler.IsUserInteracting, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(50)).ConfigureAwait(false);
         Assert.False(handler.IsUserInteracting);
     }
 
@@ -323,7 +343,7 @@ public sealed class AlarmViewModalSliderHandlerTests
 
         handler.OnSliderTapped(0.2);
 
-        await Task.Delay(1500);
+        await WaitUntilAsync(() => !handler.IsUserInteracting, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(50)).ConfigureAwait(false);
         Assert.False(handler.IsUserInteracting);
     }
 
