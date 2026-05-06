@@ -126,4 +126,19 @@
     </Compile>
   </ItemGroup>
 
+  <!--
+    Mirror tests/Bible.Alarm.Tests/Bible.Alarm.Tests.csproj EmbeddedResource entries.
+    ResourceLoaderTests.GetEmbeddedResourceStream_throws_when_multiple_resources_share_suffix expects
+    two manifest resources whose names share the suffix coverage_dup.marker; without this ItemGroup
+    the iOS .app hits the "not found" branch (same root cause as the Android host — shared .cs only).
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Bible.Alarm.Tests\Common\Helpers\ResourceLoaderCoverageDupA.bin">
+      <LogicalName>Bible.Alarm.Tests.ResourceLoaderDup.First.coverage_dup.marker</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Bible.Alarm.Tests\Common\Helpers\ResourceLoaderCoverageDupB.bin">
+      <LogicalName>Bible.Alarm.Tests.ResourceLoaderDup.Second.coverage_dup.marker</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>
