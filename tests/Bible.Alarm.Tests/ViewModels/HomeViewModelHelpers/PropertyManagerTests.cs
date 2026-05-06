@@ -49,4 +49,57 @@ public sealed class PropertyManagerTests
         Assert.True(args.Single());
         Assert.True(sut.IsAddBusy);
     }
+
+    [Fact]
+    public void Schedules_setter_does_not_raise_when_reference_unchanged()
+    {
+        var set = new ObservableHashSet<ScheduleListItemViewModel>();
+        var sut = new PropertyManager { Schedules = set };
+        var raised = 0;
+        sut.SchedulesChanged += () => raised++;
+
+        sut.Schedules = set;
+
+        Assert.Equal(0, raised);
+    }
+
+    [Fact]
+    public void IsBusy_setter_does_not_raise_when_value_unchanged()
+    {
+        var sut = new PropertyManager();
+        var busyRaised = 0;
+        var loadedRaised = 0;
+        sut.IsBusyChanged += _ => busyRaised++;
+        sut.LoadedChanged += _ => loadedRaised++;
+
+        sut.IsBusy = true;
+
+        Assert.Equal(0, busyRaised);
+        Assert.Equal(0, loadedRaised);
+    }
+
+    [Fact]
+    public void Loaded_setter_raises_when_value_changes()
+    {
+        var sut = new PropertyManager();
+        var args = new List<bool>();
+        sut.LoadedChanged += args.Add;
+
+        sut.Loaded = true;
+
+        Assert.True(args.Single());
+        Assert.True(sut.Loaded);
+    }
+
+    [Fact]
+    public void IsAddBusy_setter_does_not_raise_when_value_unchanged()
+    {
+        var sut = new PropertyManager();
+        var raised = 0;
+        sut.IsAddBusyChanged += _ => raised++;
+
+        sut.IsAddBusy = false;
+
+        Assert.Equal(0, raised);
+    }
 }
