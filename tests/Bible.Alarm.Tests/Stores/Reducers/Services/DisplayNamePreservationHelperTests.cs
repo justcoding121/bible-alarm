@@ -245,4 +245,68 @@ public sealed class DisplayNamePreservationHelperTests
 
         Assert.Equal(string.Empty, action.MusicSectionName);
     }
+
+    [Fact]
+    public void PreserveBiblePublicationDisplayNames_warns_when_category_name_missing_on_both()
+    {
+        var action = new ScheduleStateItem();
+        var existing = new ScheduleStateItem();
+
+        DisplayNamePreservationHelper.PreserveBiblePublicationDisplayNames(action, existing);
+
+        Assert.Null(action.BiblePublicationCategoryName);
+    }
+
+    [Fact]
+    public void PreserveBiblePublicationDisplayNames_keeps_action_language_when_already_set()
+    {
+        var action = new ScheduleStateItem { BiblePublicationLanguageName = "French" };
+        var existing = new ScheduleStateItem { BiblePublicationLanguageName = "English" };
+
+        DisplayNamePreservationHelper.PreserveBiblePublicationDisplayNames(action, existing);
+
+        Assert.Equal("French", action.BiblePublicationLanguageName);
+    }
+
+    [Fact]
+    public void PreserveBiblePublicationDisplayNames_keeps_action_track_title_when_flat_pub_and_code_matches()
+    {
+        var action = new ScheduleStateItem
+        {
+            BiblePublicationCode = AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+            BiblePublicationTrackCode = "12",
+            BiblePublicationTrackTitle = "Chosen title",
+        };
+        var existing = new ScheduleStateItem
+        {
+            BiblePublicationCode = AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+            BiblePublicationTrackCode = "12",
+            BiblePublicationTrackTitle = "Existing title",
+        };
+
+        DisplayNamePreservationHelper.PreserveBiblePublicationDisplayNames(action, existing);
+
+        Assert.Equal("Chosen title", action.BiblePublicationTrackTitle);
+    }
+
+    [Fact]
+    public void PreserveBiblePublicationDisplayNames_does_not_copy_track_when_section_structure_differs()
+    {
+        var action = new ScheduleStateItem
+        {
+            BiblePublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+            BiblePublicationTrackCode = "12",
+            BiblePublicationTrackTitle = "",
+        };
+        var existing = new ScheduleStateItem
+        {
+            BiblePublicationCode = AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+            BiblePublicationTrackCode = "12",
+            BiblePublicationTrackTitle = "Should not copy",
+        };
+
+        DisplayNamePreservationHelper.PreserveBiblePublicationDisplayNames(action, existing);
+
+        Assert.Equal(string.Empty, action.BiblePublicationTrackTitle);
+    }
 }
