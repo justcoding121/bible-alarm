@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -140,6 +141,40 @@ public sealed class ScheduleStateSyncHelperTests
         Assert.NotSame(current, result);
         Assert.Equal("New", result.Name);
         Assert.Equal(5, result.Id);
+    }
+
+    [Fact]
+    public void UpdateCurrentScheduleIfMatches_preserves_days_of_week_and_time_when_action_cleared_them()
+    {
+        var current = new ScheduleStateItem
+        {
+            Id = 5,
+            Name = "Wake",
+            DaysOfWeek = WeekDays.Monday,
+            Hour = 6,
+            Minute = 30,
+            Second = 45,
+        };
+        var action = new ScheduleStateItem
+        {
+            Id = 5,
+            Name = "Wake renamed",
+            DaysOfWeek = 0,
+            Hour = 0,
+            Minute = 0,
+            Second = 0,
+        };
+        var state = new ApplicationState([], currentSchedule: current);
+
+        var result = ScheduleStateSyncHelper.UpdateCurrentScheduleIfMatches(state, action);
+
+        Assert.NotNull(result);
+        Assert.NotSame(current, result);
+        Assert.Equal("Wake renamed", result.Name);
+        Assert.Equal(WeekDays.Monday, result.DaysOfWeek);
+        Assert.Equal(6, result.Hour);
+        Assert.Equal(30, result.Minute);
+        Assert.Equal(45, result.Second);
     }
 
     [Fact]
