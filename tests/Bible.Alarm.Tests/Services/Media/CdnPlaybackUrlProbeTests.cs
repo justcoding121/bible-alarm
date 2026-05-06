@@ -86,6 +86,28 @@ public sealed class CdnPlaybackUrlProbeTests
         Assert.Equal(CdnUrlProbeOutcome.ResourceReachable, await Create(h).ProbeStreamingUrlAsync("https://cdn.example/audio.mp4"));
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.OK)]
+    [InlineData(HttpStatusCode.NoContent)]
+    public async Task Head_405_range_get_success_2xx_is_reachable(HttpStatusCode getCode)
+    {
+        var h = new ScriptedHttpHandler();
+        h.RespondWith(new HttpResponseMessage(HttpStatusCode.MethodNotAllowed));
+        h.RespondWith(new HttpResponseMessage(getCode));
+
+        Assert.Equal(CdnUrlProbeOutcome.ResourceReachable, await Create(h).ProbeStreamingUrlAsync("https://cdn.example/audio.mp4"));
+    }
+
+    [Fact]
+    public async Task Head_405_range_get_forbidden_returns_indeterminate()
+    {
+        var h = new ScriptedHttpHandler();
+        h.RespondWith(new HttpResponseMessage(HttpStatusCode.MethodNotAllowed));
+        h.RespondWith(new HttpResponseMessage(HttpStatusCode.Forbidden));
+
+        Assert.Equal(CdnUrlProbeOutcome.Indeterminate, await Create(h).ProbeStreamingUrlAsync("https://cdn.example/audio.mp4"));
+    }
+
     [Fact]
     public async Task Head_503_returns_indeterminate()
     {
@@ -120,5 +142,16 @@ public sealed class CdnPlaybackUrlProbeTests
         Assert.Equal(
             CdnUrlProbeOutcome.Indeterminate,
             await Create(new ThrowingHttpHandler()).ProbeStreamingUrlAsync("https://cdn.example/audio.mp4"));
+    }
+
+    [Fact]
+    public async Task Already_canceled_token_returns_indeterminate()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        Assert.Equal(
+            CdnUrlProbeOutcome.Indeterminate,
+            await Create(new ScriptedHttpHandler()).ProbeStreamingUrlAsync("https://cdn.example/audio.mp4", cts.Token));
     }
 }
