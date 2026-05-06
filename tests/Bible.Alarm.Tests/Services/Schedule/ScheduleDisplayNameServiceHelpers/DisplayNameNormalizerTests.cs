@@ -32,4 +32,13 @@ public sealed class DisplayNameNormalizerTests
     {
         Assert.Null(DisplayNameNormalizer.NormalizeTrackTitle("\u00A0"));
     }
+
+    [Theory]
+    [InlineData("&nbsp;")]
+    [InlineData("&#160;")]
+    [InlineData("  &nbsp;  ")]
+    public void NormalizeTrackTitle_returns_null_when_nbsp_entity_trims_empty(string raw)
+    {
+        Assert.Null(DisplayNameNormalizer.NormalizeTrackTitle(raw));
+    }
 }
