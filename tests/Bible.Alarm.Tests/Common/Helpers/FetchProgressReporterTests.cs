@@ -20,6 +20,24 @@ public sealed class FetchProgressReporterTests
     }
 
     [Fact]
+    public void CategoryFetchProgressReporter_ctor_stores_cancellation_token()
+    {
+        using var cts = new CancellationTokenSource();
+        var sut = new CategoryFetchProgressReporter(9, cts.Token);
+
+        Assert.Equal(cts.Token, sut.CancellationToken);
+    }
+
+    [Fact]
+    public void CategoryFetchProgressReporter_UpdateProgressText_and_SetIsVisible_are_no_ops()
+    {
+        var sut = new CategoryFetchProgressReporter(1);
+
+        sut.UpdateProgressText("ignored");
+        sut.SetIsVisible(true);
+    }
+
+    [Fact]
     public void SectionFetchProgressReporter_UpdateProgress_clamps_and_does_not_throw()
     {
         using var cts = new CancellationTokenSource();

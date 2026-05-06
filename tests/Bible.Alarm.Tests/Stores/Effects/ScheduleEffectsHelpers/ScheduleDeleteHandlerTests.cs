@@ -1,7 +1,10 @@
 #nullable enable
 
 using AutoMapper;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -45,6 +48,10 @@ public sealed class ScheduleDeleteHandlerTests
 
         public List<int> DeletedScheduleIds { get; } = [];
 
+        public Exception? DeleteScheduleException { get; init; }
+
+        public List<string>? DeleteStepTrace { get; init; }
+
         public void Dispose()
         {
         }
@@ -59,6 +66,12 @@ public sealed class ScheduleDeleteHandlerTests
 
         public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default)
         {
+            if (DeleteScheduleException != null)
+            {
+                throw DeleteScheduleException;
+            }
+
+            DeleteStepTrace?.Add($"db:{scheduleId}");
             DeletedScheduleIds.Add(scheduleId);
             return Task.CompletedTask;
         }
@@ -173,5 +186,130 @@ public sealed class ScheduleDeleteHandlerTests
         var success = Assert.Single(dispatcher.Dispatched);
         var action = Assert.IsType<RemoveScheduleSuccessAction>(success);
         Assert.Equal(2, action.ScheduleId);
+    }
+
+    [Fact]
+    public async Task HandleAsync_returns_without_dispatch_when_action_is_null()
+    {
+        var sut = new ScheduleDeleteHandler(CreateMapper(), null, null, null, new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(null!, dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_returns_without_dispatch_when_dispatcher_is_null()
+    {
+        var svc = new DeleteAlarmScheduleStub { AllSchedules = [Alarm(1, "A"), Alarm(2, "B")] };
+        var sut = new ScheduleDeleteHandler(CreateMapper(), svc, null, null, new RecordingScheduleDisplayNameService());
+
+        await sut.HandleAsync(new DeleteScheduleAction(2), null!);
+
+        Assert.Empty(svc.DeletedScheduleIds);
+    }
+
+    [Fact]
+    public async Task HandleAsync_dispatches_failure_when_delete_throws()
+    {
+        var a = Alarm(1, "First");
+        var b = Alarm(2, "Second");
+        var svc = new DeleteAlarmScheduleStub
+        {
+            AllSchedules = [a, b],
+            DeleteScheduleException = new InvalidOperationException("db error"),
+        };
+        var sut = new ScheduleDeleteHandler(CreateMapper(), svc, null, null, new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new DeleteScheduleAction(2), dispatcher);
+
+        var fail = Assert.Single(dispatcher.Dispatched);
+        var action = Assert.IsType<DeleteScheduleFailureAction>(fail);
+        Assert.Equal(2, action.ScheduleId);
+        Assert.Equal("db error", action.Error);
+    }
+
+    [Fact]
+    public async Task HandleAsync_cleans_cache_and_alarm_before_database_when_optional_services_provided()
+    {
+        var a = Alarm(1, "First");
+        var b = Alarm(2, "Second");
+        var ordered = new List<string>();
+        var svc = new DeleteAlarmScheduleStub { AllSchedules = [a, b], DeleteStepTrace = ordered };
+        var media = new OrderRecordingMediaCacheService(ordered);
+        var alarms = new OrderRecordingAlarmService(ordered);
+        var sut = new ScheduleDeleteHandler(
+            CreateMapper(),
+            svc,
+            alarms,
+            media,
+            new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new DeleteScheduleAction(2), dispatcher);
+
+        Assert.Equal(["cache:2", "alarm:2", "db:2"], ordered);
+        Assert.Equal([2], svc.DeletedScheduleIds);
+        Assert.IsType<RemoveScheduleSuccessAction>(Assert.Single(dispatcher.Dispatched));
+    }
+
+    private sealed class OrderRecordingMediaCacheService : IMediaCacheService
+    {
+        private readonly List<string> order;
+
+        public OrderRecordingMediaCacheService(List<string> order) =>
+            this.order = order;
+
+        public void Dispose()
+        {
+        }
+
+        public Task<bool> ExistsAsync(string lookUpPath, int scheduleId) =>
+            Task.FromResult(false);
+
+        public string GetCacheFileName(string lookUpPath) => string.Empty;
+
+        public string GetCacheFilePath(string lookUpPath, int scheduleId) => string.Empty;
+
+        public Task<bool> SetupAlarmCacheAsync(int alarmScheduleId) =>
+            Task.FromResult(false);
+
+        public Task CleanUpAsync() =>
+            Task.CompletedTask;
+
+        public Task<string?> ResolveTrackUriAsync(PlayItem playItem, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<bool> CacheTrackAsync(PlayItem playItem, int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task DeleteScheduleCacheAsync(int scheduleId)
+        {
+            order.Add($"cache:{scheduleId}");
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class OrderRecordingAlarmService : IAlarmService
+    {
+        private readonly List<string> order;
+
+        public OrderRecordingAlarmService(List<string> order) =>
+            this.order = order;
+
+        public Task Create(AlarmSchedule schedule) =>
+            Task.CompletedTask;
+
+        public Task Update(AlarmSchedule schedule) =>
+            Task.CompletedTask;
+
+        public Task Delete(int scheduleId)
+        {
+            order.Add($"alarm:{scheduleId}");
+            return Task.CompletedTask;
+        }
     }
 }
