@@ -4,6 +4,8 @@ using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Tests;
 
@@ -67,5 +69,62 @@ public sealed class SharedLibraryWindowsCoverageTests
         Assert.True(PublicationTypeHelper.IsDrama(AppConstants.Media.BiblePublicationCategoryDramas));
         Assert.Equal(CatalogType.Sectioned, PublicationTypeHelper.GetCatalogType(null));
         Assert.False(PublicationTypeHelper.IsVideo(AppConstants.Media.BiblePublicationCodeDramaticBibleReadings));
+    }
+
+    [Fact]
+    public void Publication_compare_equals_operators_and_non_publication_compare()
+    {
+        var alpha = new Publication { Name = "Alpha", PublicationCode = "a" };
+        var beta = new Publication { Name = "Beta", PublicationCode = "b" };
+        Assert.True(alpha < beta);
+        Assert.True(beta > alpha);
+        Assert.Equal(1, alpha.CompareTo("x"));
+
+        var alphaAgain = new Publication { Name = "Alpha", PublicationCode = "z" };
+        Assert.True(alpha.Equals(alphaAgain));
+        Assert.True(alpha == alphaAgain);
+        Assert.False(alpha != alphaAgain);
+    }
+
+    [Fact]
+    public void TranslatedPublication_distinguishes_language_in_equality()
+    {
+        var a = new TranslatedPublication { Name = "N", PublicationCode = "c", LanguageId = 1 };
+        var b = new TranslatedPublication { Name = "N", PublicationCode = "c", LanguageId = 2 };
+        Assert.NotEqual(a, b);
+        Assert.Equal(a, new TranslatedPublication { Name = "N", PublicationCode = "c", LanguageId = 1 });
+    }
+
+    [Fact]
+    public void AlarmSchedule_meridian_meridian_hour_time_text_and_ordering()
+    {
+        var midnight = new AlarmSchedule { Hour = 0, Minute = 5, DaysOfWeek = WeekDays.Monday };
+        Assert.Equal(Meridian.Am, midnight.Meridian);
+        Assert.Equal(12, midnight.MeridianHour);
+        Assert.Equal("12:05", midnight.TimeText);
+
+        var noon = new AlarmSchedule { Hour = 12, Minute = 0, DaysOfWeek = WeekDays.Monday };
+        Assert.Equal(Meridian.Pm, noon.Meridian);
+        Assert.Equal(12, noon.MeridianHour);
+
+        var afternoon = new AlarmSchedule { Hour = 15, Minute = 7, DaysOfWeek = WeekDays.Tuesday };
+        Assert.Equal(Meridian.Pm, afternoon.Meridian);
+        Assert.Equal(3, afternoon.MeridianHour);
+        Assert.Equal("03:07", afternoon.TimeText);
+
+        var first = new AlarmSchedule { Id = 1 };
+        var second = new AlarmSchedule { Id = 2 };
+        Assert.True(first < second);
+        Assert.True(second > first);
+        Assert.True(first.Equals(new AlarmSchedule { Id = 1 }));
+    }
+
+    [Fact]
+    public void AudioDescriptionTitlePhrases_matches_embedded_english_phrase()
+    {
+        Assert.True(AudioDescriptionTitlePhrases.ContainsAudioDescriptionPhrase(
+            AppConstants.Media.DefaultLanguageCode,
+            "With Audio Descriptions"));
+        Assert.NotEmpty(AudioDescriptionTitlePhrases.GetPhrasesForLanguage(AppConstants.Media.DefaultLanguageCode));
     }
 }
