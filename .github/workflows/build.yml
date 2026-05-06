@@ -1,13 +1,21 @@
 name: Build
 
-# Fan-out / fan-in:
-#   test-windows  ─┐
-#   test-android  ─┼──► sonar (one analysis with merged coverage)
-#   test-ios      ─┘
+# Three independent test jobs run in parallel:
+#   test-windows  — Windows + Shared host-based dotnet test pass + SonarCloud analysis (inline)
+#   test-android  — Android device-test pass via Activity-based runner on an emulator
+#   test-ios      — iOS device-test pass via xharness on a simulator
 #
-# The three test jobs run in parallel and each uploads a coverage-* artifact. The sonar job downloads
-# all three, runs SonarScanner once with comma-separated sonar.cs.opencover.reportsPaths, and pushes a
-# single analysis to SonarCloud. See tests/README.md and the multi-platform_coverage plan for context.
+# SonarCloud analysis runs INSIDE test-windows (sonarscanner begin → build → test → end) instead of
+# in a separate downstream job, eliminating ~9-12 min of duplicate workload-install + restore + build
+# work per CI run. SonarCloud reads only the Windows OpenCover XML (Android/iOS device hosts do not
+# emit coverage by design — see Hard rule #6 + the "Android/iOS coverage" rows in
+# .cursor/rules/testing/multi-platform-tests.mdc). Cross-platform business logic in
+# tests/Bible.Alarm.Tests/** runs on Windows, so the production code paths Android/iOS exercise are
+# already represented in the Windows coverage slice.
+#
+# PR merge gating: branch protection on `develop` requires test-windows + test-android + test-ios all
+# pass. There is no longer a `sonar` required check (SonarCloud's quality gate is reported by the
+# SonarCloud GitHub app via the inline analysis).
 #
 # Android is driven by adb against an Activity (TestRunnerActivity) rather than xharness's `am
 # instrument` because Mono is not initialized when Android instantiates a custom Instrumentation
@@ -46,6 +54,9 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Install SonarScanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
       # Explicit install matches test-android / test-ios and avoids dotnet workload restore NuGet
       # resolution regressions on windows-latest (restore can exit 1 while setup-dotnet succeeds).
       - name: Install MAUI workloads (Windows)
@@ -54,8 +65,8 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore Bible.Alarm.sln
 
-      # Sonar's analyzer-based scan still runs in the sonar job; here we only need a self-signed cert
-      # so the WinUI MSIX targets can stage during `dotnet build`.
+      # Self-signed cert lets the WinUI MSIX targets stage during `dotnet build`. SonarScanner's
+      # Roslyn analyzers attach to the same `dotnet build` invocation below (no second build).
       - name: Create Windows package signing certificate
         run: |
           $cert = New-SelfSignedCertificate -Subject "CN=Bible.Alarm" -KeyAlgorithm RSA -KeyLength 2048 -KeyUsage DigitalSignature -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(10)
@@ -63,12 +74,33 @@ jobs:
           Export-PfxCertificate -Cert $cert -FilePath "src/Bible.Alarm/Bible.Alarm_TemporaryKey.pfx" -Password $pwd
         shell: pwsh
 
+      # sonarscanner begin must run BEFORE the build so its Roslyn analyzers attach to the
+      # compilation. `sonar.cs.opencover.reportsPaths` points at the staged location written by the
+      # `Stage coverage artifact` step further down (which runs before `SonarScanner end`).
+      # Android/iOS device-host slices do NOT contribute coverage — see Hard rule #6 and the
+      # "Android/iOS coverage" diagnostic rows in [.cursor/rules/testing/multi-platform-tests.mdc].
+      - name: SonarScanner begin
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin `
+            /k:"justcoding121_bible-alarm" `
+            /o:"justcoding121" `
+            /d:sonar.host.url="https://sonarcloud.io" `
+            /d:sonar.token="$env:SONAR_TOKEN" `
+            /d:sonar.language="cs" `
+            /d:sonar.dotnet.excludeTestProjects="true" `
+            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**" `
+            /d:sonar.cs.opencover.reportsPaths="artifacts/coverage-windows/coverage-windows.xml"
+        shell: pwsh
+
       - name: Build solution
         run: dotnet build Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
 
-      # Filter Out the Android/iOS-tagged smoke tests; they run in their own job and would fail here
-      # (their assemblies are not built for net10.0-windows). Coverage from this pass writes to a
-      # deterministic path that we copy into TestResults/coverage-windows.xml below.
+      # Filter out the Android/iOS-tagged smoke tests; they run in their own job and would fail here
+      # (their assemblies are not built for net10.0-windows). coverlet.collector writes the OpenCover
+      # XML into TestResults/<guid>/coverage.opencover.xml; the `Stage coverage artifact` step below
+      # copies it to artifacts/coverage-windows/coverage-windows.xml where SonarScanner end reads it.
       - name: Run Windows + Shared tests
         run: |
           dotnet test Bible.Alarm.sln `
@@ -89,6 +121,15 @@ jobs:
           } else {
             Write-Error "No OpenCover XML produced by the Windows test pass"
           }
+        shell: pwsh
+
+      # sonarscanner end submits the .sonarqube/ analysis directory + the staged coverage XML to
+      # SonarCloud. Must run AFTER the test pass (so coverage exists) and AFTER staging (so Sonar
+      # finds the XML at the path declared in `sonar.cs.opencover.reportsPaths` above).
+      - name: SonarScanner end
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
         shell: pwsh
 
       - name: Upload Windows coverage
@@ -131,13 +172,13 @@ jobs:
           global-json-file: global.json
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        uses: android-actions/setup-android@v4
 
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android --skip-manifest-update
@@ -290,79 +331,3 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # ----- Single Sonar analysis with all three coverage files merged -----------------------------
-  sonar:
-    runs-on: windows-latest
-    needs: [test-windows, test-android, test-ios]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Apply CI SDK pin
-        run: Copy-Item -Path .github/dotnet/global.ci.json -Destination global.json -Force
-        shell: pwsh
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          global-json-file: global.json
-
-      - name: Install SonarScanner
-        run: dotnet tool install --global dotnet-sonarscanner
-
-      - name: Install MAUI workloads (Windows)
-        run: dotnet workload install maui --skip-manifest-update
-
-      - name: Restore dependencies
-        run: dotnet restore Bible.Alarm.sln
-
-      - name: Create Windows package signing certificate
-        run: |
-          $cert = New-SelfSignedCertificate -Subject "CN=Bible.Alarm" -KeyAlgorithm RSA -KeyLength 2048 -KeyUsage DigitalSignature -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(10)
-          $pwd = New-Object System.Security.SecureString
-          Export-PfxCertificate -Cert $cert -FilePath "src/Bible.Alarm/Bible.Alarm_TemporaryKey.pfx" -Password $pwd
-        shell: pwsh
-
-      # download-artifact creates one folder per artifact name; layout becomes:
-      #   TestResults/coverage-windows/coverage-windows.xml
-      # (Android and iOS device hosts no longer emit coverage — see "Android coverage" and
-      # "iOS coverage" rows in [.cursor/rules/testing/multi-platform-tests.mdc].)
-      - name: Download Windows coverage artifact
-        uses: actions/download-artifact@v5
-        with:
-          name: coverage-windows
-          path: TestResults/coverage-windows
-
-      - name: SonarScanner begin
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        # sonar.cs.opencover.reportsPaths only points at the Windows slice. The shared
-        # cross-platform tests in tests/Bible.Alarm.Tests/** run on Windows and exercise the same
-        # production code paths the Android/iOS test hosts run, so business logic coverage is
-        # preserved. The device-host bootstrap glue (TestRunnerActivity.cs, AppDelegate.cs,
-        # Platforms/Android/**, Platforms/iOS/**) shows as uncovered in Sonar — accepted trade-off.
-        run: |
-          dotnet sonarscanner begin `
-            /k:"justcoding121_bible-alarm" `
-            /o:"justcoding121" `
-            /d:sonar.host.url="https://sonarcloud.io" `
-            /d:sonar.token="$env:SONAR_TOKEN" `
-            /d:sonar.language="cs" `
-            /d:sonar.dotnet.excludeTestProjects="true" `
-            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**" `
-            /d:sonar.cs.opencover.reportsPaths="TestResults/coverage-windows/coverage-windows.xml"
-        shell: pwsh
-
-      # Sonar requires a build between begin and end so the analyzer can attach to the compilers.
-      # We rebuild only the Windows + net10.0 TFMs here (Android/iOS source is read by Sonar from disk
-      # via the .NET analyzer; we don't need the compiled Android/iOS assemblies for analysis).
-      - name: Build solution under SonarScanner
-        run: dotnet build Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
-
-      - name: SonarScanner end
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: dotnet sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
-        shell: pwsh
