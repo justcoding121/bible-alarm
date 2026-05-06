@@ -23,6 +23,16 @@ public sealed class MusicTrackPropertyManagerTests
     }
 
     [Fact]
+    public void IsBusy_setter_updates_value()
+    {
+        var sut = new MusicTrackPropertyManager();
+
+        sut.IsBusy = false;
+
+        Assert.False(sut.IsBusy);
+    }
+
+    [Fact]
     public void SelectedTrack_clears_previous_selection_and_marks_new_track_selected()
     {
         var sut = new MusicTrackPropertyManager();
@@ -39,6 +49,22 @@ public sealed class MusicTrackPropertyManagerTests
         Assert.False(a.Repeat);
         Assert.True(b.IsSelected);
         Assert.Same(b, sut.SelectedTrack);
+    }
+
+    [Fact]
+    public void SelectedTrack_null_clears_flags_on_previous_selection()
+    {
+        var sut = new MusicTrackPropertyManager();
+        var a = Track("1");
+        a.Repeat = true;
+        sut.SelectedTrack = a;
+        Assert.True(a.IsSelected);
+
+        sut.SelectedTrack = null;
+
+        Assert.Null(sut.SelectedTrack);
+        Assert.False(a.IsSelected);
+        Assert.False(a.Repeat);
     }
 
     [Fact]
