@@ -25,6 +25,16 @@ public sealed class ScheduleListItemSubtitleManagerTests
 #pragma warning restore CS0067
     }
 
+    private sealed class ThrowingApplicationState : IState<ApplicationState>
+    {
+        public ApplicationState Value =>
+            throw new InvalidOperationException("application state unavailable");
+
+#pragma warning disable CS0067
+        public event EventHandler? StateChanged;
+#pragma warning restore CS0067
+    }
+
     private static MutableState<PlaybackState> Playback(int scheduleId, bool preparingOrPlaying, string? title) =>
         new(new PlaybackState
         {
@@ -56,6 +66,98 @@ public sealed class ScheduleListItemSubtitleManagerTests
         Assert.Empty(subs);
         Assert.Empty(langs);
         Assert.Empty(props);
+    }
+
+    [Fact]
+    public void RefreshSubTitleFromState_negative_schedule_id_no_updates()
+    {
+        var schedules = new ObservableHashSet<ScheduleStateItem>();
+        var app = new MutableState<ApplicationState>(new ApplicationState(schedules));
+        var playback = Playback(1, true, "x");
+        var sut = new ScheduleListItemSubtitleManager(TestLogging.CreateLogger(), app, playback);
+
+        var subs = new List<string>();
+        var langs = new List<string>();
+        var props = new List<string>();
+
+        sut.RefreshSubTitleFromState(
+            -3,
+            null,
+            s => subs.Add(s),
+            langs.Add,
+            props.Add);
+
+        Assert.Empty(subs);
+        Assert.Empty(langs);
+        Assert.Empty(props);
+    }
+
+    [Fact]
+    public void RefreshSubTitleFromState_swallows_application_state_access_errors()
+    {
+        var app = new ThrowingApplicationState();
+        var playback = Playback(99, false, null);
+        var sut = new ScheduleListItemSubtitleManager(TestLogging.CreateLogger(), app, playback);
+
+        var subs = new List<string>();
+        var langs = new List<string>();
+        var props = new List<string>();
+
+        var ex = Record.Exception(() => sut.RefreshSubTitleFromState(
+            99,
+            null,
+            subs.Add,
+            langs.Add,
+            props.Add));
+
+        Assert.Null(ex);
+        Assert.Empty(subs);
+    }
+
+    [Fact]
+    public void RefreshSubTitleFromState_waiting_for_flat_catalog_track_title_leaves_subtitle_empty()
+    {
+        var item = new ScheduleStateItem
+        {
+            Id = 8,
+            BiblePublicationScheduleId = 80,
+            BiblePublicationCode = "dramas",
+            BiblePublicationTrackTitle = "",
+        };
+        var app = new MutableState<ApplicationState>(new ApplicationState([]));
+        var playback = Playback(8, false, null);
+        var sut = new ScheduleListItemSubtitleManager(TestLogging.CreateLogger(), app, playback);
+
+        var subtitles = new List<string>();
+
+        sut.RefreshSubTitleFromState(8, item, subtitles.Add, _ => { }, _ => { });
+
+        Assert.Empty(subtitles);
+    }
+
+    [Fact]
+    public void RefreshSubTitleFromState_applies_language_name_when_present()
+    {
+        var item = new ScheduleStateItem
+        {
+            Id = 12,
+            BiblePublicationScheduleId = 120,
+            BiblePublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+            BiblePublicationCategoryName = "Bible",
+            BiblePublicationName = "NWT",
+            BiblePublicationSectionName = "Gen",
+            BiblePublicationTrackCode = "1",
+            BiblePublicationLanguageName = "  French  ",
+        };
+        var app = new MutableState<ApplicationState>(new ApplicationState([]));
+        var playback = Playback(12, false, null);
+        var sut = new ScheduleListItemSubtitleManager(TestLogging.CreateLogger(), app, playback);
+
+        var langs = new List<string>();
+
+        sut.RefreshSubTitleFromState(12, item, _ => { }, langs.Add, _ => { });
+
+        Assert.Equal("French", Assert.Single(langs));
     }
 
     [Fact]
