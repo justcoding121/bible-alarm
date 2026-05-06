@@ -271,4 +271,74 @@ public sealed class SharedLibraryWindowsCoverageTests
         Assert.True(chap2 < chap10);
         Assert.Equal(1, chap2.CompareTo((object)"x"));
     }
+
+    [Fact]
+    public void Language_orders_by_code_and_equals_by_id()
+    {
+        var en = new Language { Id = 1, LanguageCode = "E", Direction = "ltr" };
+        var fr = new Language { Id = 2, LanguageCode = "F", Direction = "ltr" };
+        Assert.True(en < fr);
+        Assert.Equal(1, en.CompareTo((object)"not-a-language"));
+
+        Assert.True(en.Equals(new Language { Id = 1, LanguageCode = "Z", Direction = "ltr" }));
+    }
+
+    [Fact]
+    public void TrackCodeComparer_orders_numeric_track_codes_naturally()
+    {
+        Assert.True(TrackCodeComparer.Comparer.Compare("2", "10") < 0);
+        Assert.True(TrackCodeComparer.Comparer.Compare("b", "a") > 0);
+    }
+
+    [Fact]
+    public void MusicTrackLookupHelper_resolves_code_and_handles_edge_cases()
+    {
+        var dict = new Dictionary<int, MusicTrack>
+        {
+            [7] = new MusicTrack { TrackCode = "01", Title = "a" },
+            [8] = new MusicTrack { TrackCode = "2", Title = "b" },
+        };
+
+        Assert.True(MusicTrackLookupHelper.TryGetByCode(dict, "1", out var pair));
+        Assert.Equal(7, pair.Key);
+
+        Assert.False(MusicTrackLookupHelper.TryGetByCode(dict, "  ", out _));
+        Assert.False(MusicTrackLookupHelper.TryGetByCode(new Dictionary<int, MusicTrack>(), "1", out _));
+
+        Assert.Equal(7, MusicTrackLookupHelper.GetKeyByCode(dict, "01"));
+        Assert.Null(MusicTrackLookupHelper.GetKeyByCode(dict, "__missing__"));
+    }
+
+    [Fact]
+    public void BiblePublication_primary_category_none_when_no_categories_linked()
+    {
+        var bp = new BiblePublication
+        {
+            Id = 1,
+            Name = "Pub",
+            PublicationCode = "code",
+            LanguageId = 1,
+            Language = new Language { Id = 1, LanguageCode = "E", Direction = "ltr" },
+        };
+
+        Assert.Null(bp.PrimaryCategory);
+        Assert.Equal(0, bp.PrimaryCategoryId);
+    }
+
+    [Fact]
+    public void AlarmSchedule_cron_expression_reflects_time_and_weekdays()
+    {
+        var schedule = new AlarmSchedule
+        {
+            Hour = 9,
+            Minute = 15,
+            Second = 30,
+            DaysOfWeek = WeekDays.Monday | WeekDays.Friday,
+        };
+
+        var cron = schedule.CronExpression;
+        Assert.Contains("9", cron);
+        Assert.Contains("15", cron);
+        Assert.Contains("30", cron);
+    }
 }
