@@ -132,6 +132,21 @@ public sealed class PlaylistScheduleManagerTests
     }
 
     [Fact]
+    public async Task GetRelevantScheduleToPlay_falls_back_to_first_when_last_played_schedule_removed()
+    {
+        var settings = new FakeGeneralSettingsService
+        {
+            LastPlayedRow = new GeneralSettings { Value = "99" },
+        };
+        var schedules = new FakeAlarmScheduleService();
+        schedules.First = Sched(3);
+
+        var sut = new PlaylistScheduleManager(schedules, settings, CancellationToken.None);
+
+        Assert.Equal(3, await sut.GetRelevantScheduleToPlay());
+    }
+
+    [Fact]
     public async Task GetRelevantScheduleToPlay_throws_when_no_schedules_exist()
     {
         var settings = new FakeGeneralSettingsService { LastPlayedRow = null };
