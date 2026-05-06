@@ -22,12 +22,19 @@ public sealed class TrackMarkerTests
 
         public List<TrackMetadata> MarkedAsPlayed { get; } = [];
 
+        public Exception? ThrowOnMarkTrackAsPlayedException { get; set; }
+
         public void Dispose()
         {
         }
 
         public Task MarkTrackAsPlayed(TrackMetadata trackMetadata)
         {
+            if (ThrowOnMarkTrackAsPlayedException != null)
+            {
+                throw ThrowOnMarkTrackAsPlayedException;
+            }
+
             MarkedAsPlayed.Add(trackMetadata);
             return Task.CompletedTask;
         }
@@ -134,6 +141,22 @@ public sealed class TrackMarkerTests
 
         Assert.Single(playlists.MarkedAsPlayed);
         Assert.Same(meta, playlists.MarkedAsPlayed[0]);
+    }
+
+    [Fact]
+    public async Task MarkTrackAsPlayedAsync_swallows_exception_from_playlist()
+    {
+        var playlists = new RecordingPlaylistService
+        {
+            ThrowOnMarkTrackAsPlayedException = new InvalidOperationException("mark failed"),
+        };
+        var sut = new TrackMarker(playlists, TestLogging.CreateLogger());
+        var meta = Meta();
+        var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(meta, "https://x") } };
+
+        await sut.MarkTrackAsPlayedAsync(list, 0);
+
+        Assert.Empty(playlists.MarkedAsPlayed);
     }
 
     private static AudioPlayerTrack MakeTrack() =>
