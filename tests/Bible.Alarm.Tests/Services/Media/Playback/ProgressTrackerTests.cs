@@ -22,18 +22,31 @@ public sealed class ProgressTrackerTests
         public List<TrackMetadata> MarkedAsPlayed { get; } = [];
         public List<TrackMetadata> MarkedAsFinished { get; } = [];
 
+        public Exception? ErrorOnMarkPlayed { get; set; }
+        public Exception? ErrorOnMarkFinished { get; set; }
+
         public void Dispose()
         {
         }
 
         public Task MarkTrackAsPlayed(TrackMetadata trackMetadata)
         {
+            if (ErrorOnMarkPlayed != null)
+            {
+                throw ErrorOnMarkPlayed;
+            }
+
             MarkedAsPlayed.Add(trackMetadata);
             return Task.CompletedTask;
         }
 
         public Task MarkTrackAsFinished(TrackMetadata trackMetadata)
         {
+            if (ErrorOnMarkFinished != null)
+            {
+                throw ErrorOnMarkFinished;
+            }
+
             MarkedAsFinished.Add(trackMetadata);
             return Task.CompletedTask;
         }
@@ -291,6 +304,97 @@ public sealed class ProgressTrackerTests
         sut.StartIfBiblePublicationTrack(null, 0);
 
         Assert.False(sut.Timer.Enabled);
+    }
+
+    [Fact]
+    public void StartIfBiblePublicationTrack_invalid_index_does_not_start_timer()
+    {
+        var playlist = new RecordingPlaylist();
+        var audio = new StubAudioPlayer();
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+        var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(BibleMeta(), "u") } };
+
+        sut.StartIfBiblePublicationTrack(list, 1);
+
+        Assert.False(sut.Timer.Enabled);
+    }
+
+    [Fact]
+    public void Dispose_is_idempotent()
+    {
+        var playlist = new RecordingPlaylist();
+        var audio = new StubAudioPlayer();
+        var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+
+        sut.Dispose();
+        sut.Dispose();
+    }
+
+    [Fact]
+    public async Task SaveProgressAsync_music_swallows_error_when_mark_finished_fails()
+    {
+        var playlist = new RecordingPlaylist { ErrorOnMarkFinished = new InvalidOperationException("db") };
+        var audio = new StubAudioPlayer
+        {
+            Status = PlayStatus.Playing,
+            CurrentPosition = TimeSpan.FromSeconds(1),
+        };
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+        var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(MusicMeta(), "u") } };
+
+        var ex = await Record.ExceptionAsync(() => sut.SaveProgressAsync(list, 0));
+
+        Assert.Null(ex);
+        Assert.Empty(playlist.MarkedAsFinished);
+    }
+
+    [Fact]
+    public async Task SaveProgressAsync_bible_swallows_error_when_mark_played_fails()
+    {
+        var playlist = new RecordingPlaylist { ErrorOnMarkPlayed = new InvalidOperationException("db") };
+        var audio = new StubAudioPlayer
+        {
+            Status = PlayStatus.Playing,
+            CurrentPosition = TimeSpan.FromSeconds(5),
+        };
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+        var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(BibleMeta(), "u") } };
+
+        var ex = await Record.ExceptionAsync(() => sut.SaveProgressAsync(list, 0));
+
+        Assert.Null(ex);
+        Assert.Empty(playlist.MarkedAsPlayed);
+    }
+
+    [Fact]
+    public async Task SaveProgressAsync_music_does_not_mark_finished_when_position_null_or_zero()
+    {
+        var playlist = new RecordingPlaylist();
+        var audioNull = new StubAudioPlayer
+        {
+            Status = PlayStatus.Playing,
+            CurrentPosition = null,
+        };
+        using (var sut = new ProgressTracker(playlist, audioNull, TestLogging.CreateLogger()))
+        {
+            var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(MusicMeta(), "u") } };
+            await sut.SaveProgressAsync(list, 0);
+        }
+
+        Assert.Empty(playlist.MarkedAsFinished);
+
+        var audioZero = new StubAudioPlayer
+        {
+            Status = PlayStatus.Playing,
+            CurrentPosition = TimeSpan.Zero,
+        };
+        using (var sut2 = new ProgressTracker(playlist, audioZero, TestLogging.CreateLogger()))
+        {
+            var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(MusicMeta(), "u") } };
+            await sut2.SaveProgressAsync(list, 0);
+        }
+
+        Assert.Empty(playlist.MarkedAsFinished);
     }
 
     [Fact]
