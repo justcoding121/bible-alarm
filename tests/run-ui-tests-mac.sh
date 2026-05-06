@@ -26,7 +26,7 @@ cd "$repo_root"
 # tests/run-ui-tests.ps1 invokes us via `ssh ... "cd ~/bible-alarm && ./tests/run-ui-tests-mac.sh"`,
 # which is a non-login shell — ~/.zshrc patches added in Phase 2 may not apply.
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" >/dev/null 2>&1
+[[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh" >/dev/null 2>&1
 export DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}"
 export PATH="$DOTNET_ROOT:$PATH"
 
@@ -46,11 +46,11 @@ echo "[ui-mac] appium --version: $(appium --version)"
 # ---------------------------------------------------------------------------
 udid=$(xcrun simctl list devices "$SIM_NAME" available 2>/dev/null \
         | awk -F '[()]' '/Booted/{print $2; exit}')
-if [ -z "$udid" ]; then
+if [[ -z "$udid" ]]; then
     udid=$(xcrun simctl list devices "$SIM_NAME" available 2>/dev/null \
             | awk -F '[()]' '/Shutdown/{print $2; exit}')
 fi
-if [ -z "$udid" ]; then
+if [[ -z "$udid" ]]; then
     echo "[ui-mac] FATAL: no simulator named '$SIM_NAME' is available. Install one via Xcode > Window > Devices and Simulators."
     exit 2
 fi
@@ -74,7 +74,7 @@ dotnet build src/Bible.Alarm/Bible.Alarm.csproj \
 
 app_path=$(find src/Bible.Alarm/bin/Debug/net10.0-ios -maxdepth 4 -type d -name '*.app' \
             | sort -u | head -n 1)
-if [ -z "$app_path" ] || [ ! -d "$app_path" ]; then
+if [[ -z "$app_path" || ! -d "$app_path" ]]; then
     echo "[ui-mac] FATAL: produced .app bundle not found under src/Bible.Alarm/bin/Debug/net10.0-ios"
     exit 3
 fi
@@ -110,7 +110,7 @@ for _ in $(seq 1 60); do
     fi
     sleep 0.5
 done
-if [ "$ready" -ne 1 ]; then
+if [[ "$ready" -ne 1 ]]; then
     echo "[ui-mac] FATAL: Appium did not become ready within 30s. Tail of log:"
     tail -50 "${APPIUM_LOG}"
     exit 4

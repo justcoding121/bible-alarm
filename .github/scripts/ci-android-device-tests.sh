@@ -9,7 +9,7 @@ set -euo pipefail
 cd "${GITHUB_WORKSPACE:?}"
 
 APK="$(find tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android -name '*-Signed.apk' -print -quit)"
-if [ -z "${APK}" ]; then
+if [[ -z "${APK}" ]]; then
   echo "No signed APK produced under tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android"
   exit 1
 fi
@@ -33,9 +33,9 @@ adb shell am start -W -n "${ACTIVITY}"
 
 DEADLINE=$(( $(date +%s) + 900 ))
 DONE=""
-while [ "$(date +%s)" -lt "${DEADLINE}" ]; do
+while [[ "$(date +%s)" -lt "${DEADLINE}" ]]; do
   PROBE="$(adb shell "if [ -f ${DEVICE_RESULTS}/done.txt ]; then cat ${DEVICE_RESULTS}/done.txt; fi" 2>/dev/null | tr -d '\r\n' || true)"
-  if [ -n "${PROBE}" ]; then DONE="${PROBE}"; break; fi
+  if [[ -n "${PROBE}" ]]; then DONE="${PROBE}"; break; fi
   sleep 5
 done
 
@@ -49,26 +49,26 @@ adb pull "${DEVICE_RESULTS}/." "${ART_DIR}/" || true
 
 adb uninstall "${PKG}" >/dev/null 2>&1 || true
 
-if [ -d "${ART_DIR}/TestResults.xml" ]; then
+if [[ -d "${ART_DIR}/TestResults.xml" ]]; then
   INNER="$(find "${ART_DIR}/TestResults.xml" -maxdepth 1 -name '*.xml' -print -quit)"
-  if [ -n "${INNER}" ]; then
+  if [[ -n "${INNER}" ]]; then
     mv "${INNER}" "${ART_DIR}/TestResults.xml.__hostflatten"
     rm -rf "${ART_DIR}/TestResults.xml"
     mv "${ART_DIR}/TestResults.xml.__hostflatten" "${ART_DIR}/TestResults.xml"
   else
     rm -rf "${ART_DIR}/TestResults.xml"
   fi
-elif [ -f "${ART_DIR}/TestResults.xml.__tmp" ] && [ ! -f "${ART_DIR}/TestResults.xml" ]; then
+elif [[ -f "${ART_DIR}/TestResults.xml.__tmp" ]] && [[ ! -f "${ART_DIR}/TestResults.xml" ]]; then
   mv "${ART_DIR}/TestResults.xml.__tmp" "${ART_DIR}/TestResults.xml"
 fi
 
-if [ -z "${DONE}" ]; then
+if [[ -z "${DONE}" ]]; then
   echo "TestRunnerActivity did not produce ${DEVICE_RESULTS}/done.txt within 15 minutes."
   exit 1
 fi
 
-if [ "${DONE}" != "0" ]; then
+if [[ "${DONE}" != "0" ]]; then
   echo "Android test run reported failure (exit ${DONE})."
-  [ -f "${ART_DIR}/error.txt" ] && cat "${ART_DIR}/error.txt"
+  [[ -f "${ART_DIR}/error.txt" ]] && cat "${ART_DIR}/error.txt"
   exit "${DONE}"
 fi
