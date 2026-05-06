@@ -15,6 +15,9 @@ public sealed class TrackChangeDetectorTests
     {
         public int GetScheduleByIdAsyncCalls { get; private set; }
 
+        /// <summary>When non-null, returned by <see cref="GetScheduleByIdAsync"/> instead of always null.</summary>
+        public AlarmSchedule? ReturnForGetById { get; set; }
+
         public void Dispose()
         {
         }
@@ -32,7 +35,7 @@ public sealed class TrackChangeDetectorTests
             bool includeBiblePublication = true, CancellationToken cancellationToken = default)
         {
             GetScheduleByIdAsyncCalls++;
-            return Task.FromResult<AlarmSchedule?>(null);
+            return Task.FromResult(ReturnForGetById);
         }
 
         public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
@@ -199,6 +202,25 @@ public sealed class TrackChangeDetectorTests
     }
 
     [Fact]
+    public async Task CheckIfTrackChanged_returns_false_when_alarm_schedule_missing_in_database()
+    {
+        var alarms = new RecordingAlarmScheduleService();
+        var sut = new TrackChangeDetector(alarms, CancellationToken.None);
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 99,
+            IsBibleContent = true,
+            TrackCode = "1",
+            SectionCode = "gen",
+            LookUpPath = "path",
+        };
+
+        Assert.False(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(1, alarms.GetScheduleByIdAsyncCalls);
+    }
+
+    [Fact]
     public async Task CheckIfTrackChanged_repeated_calls_do_not_reload_schedule_when_signature_matches_after_prime()
     {
         var alarms = new MatchingBibleScheduleAlarmService();
@@ -217,6 +239,72 @@ public sealed class TrackChangeDetectorTests
         Assert.Equal(1, alarms.GetScheduleByIdAsyncCalls);
 
         Assert.False(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(1, alarms.GetScheduleByIdAsyncCalls);
+    }
+
+    [Fact]
+    public async Task CheckIfTrackChanged_returns_false_when_schedule_row_has_no_bible_publication()
+    {
+        var alarms = new RecordingAlarmScheduleService
+        {
+            ReturnForGetById = new AlarmSchedule
+            {
+                Id = 42,
+                Name = "No bible row",
+                BiblePublicationSchedule = null,
+            },
+        };
+        var sut = new TrackChangeDetector(alarms, CancellationToken.None);
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 42,
+            IsBibleContent = true,
+            TrackCode = "1",
+            SectionCode = "40",
+            LookUpPath = "path",
+        };
+
+        Assert.False(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(1, alarms.GetScheduleByIdAsyncCalls);
+    }
+
+    [Fact]
+    public async Task CheckIfTrackChanged_returns_true_when_cached_signature_differs_from_current()
+    {
+        var alarms = new RecordingAlarmScheduleService();
+        var sut = new TrackChangeDetector(alarms, CancellationToken.None);
+        sut.SetLastKnownBibleTrack(7, "gen", "1");
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 7,
+            IsBibleContent = true,
+            TrackCode = "2",
+            SectionCode = "gen",
+            LookUpPath = "path",
+        };
+
+        Assert.True(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(0, alarms.GetScheduleByIdAsyncCalls);
+    }
+
+    [Fact]
+    public async Task CheckIfTrackChanged_returns_true_when_primed_from_db_differs_from_metadata()
+    {
+        var alarms = new MatchingBibleScheduleAlarmService();
+        var sut = new TrackChangeDetector(alarms, CancellationToken.None);
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 101,
+            IsBibleContent = true,
+            TrackCode = "9",
+            SectionCode = "gen",
+            LookUpPath = "path",
+        };
+
+        Assert.True(await sut.CheckIfTrackChanged(meta));
         Assert.Equal(1, alarms.GetScheduleByIdAsyncCalls);
     }
 }
