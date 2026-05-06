@@ -35,6 +35,24 @@ public sealed class MultiBoolOrConverterTests
     }
 
     [Fact]
+    public void All_false_with_inverse_parameter_yields_true()
+    {
+        Assert.True((bool)sut.Convert([false, false], typeof(bool), "Inverse", Cul));
+    }
+
+    [Fact]
+    public void All_false_without_parameter_yields_false()
+    {
+        Assert.False((bool)sut.Convert([false, false], typeof(bool), null!, Cul));
+    }
+
+    [Fact]
+    public void Null_elements_skipped_until_first_true()
+    {
+        Assert.True((bool)sut.Convert([null!, false, true], typeof(bool), null!, Cul));
+    }
+
+    [Fact]
     public void ConvertBack_throws()
     {
         Assert.Throws<NotImplementedException>(() =>
