@@ -75,10 +75,13 @@ jobs:
         shell: pwsh
 
       # sonarscanner begin must run BEFORE the build so its Roslyn analyzers attach to the
-      # compilation. `sonar.cs.opencover.reportsPaths` points at the staged location written by the
-      # `Stage coverage artifact` step further down (which runs before `SonarScanner end`).
-      # Android/iOS device-host slices do NOT contribute coverage — see Hard rule #6 and the
-      # "Android/iOS coverage" diagnostic rows in [.cursor/rules/testing/multi-platform-tests.mdc].
+      # compilation. `sonar.cs.opencover.reportsPaths` is a WILDCARD so Sonar unions every per-test-
+      # project OpenCover XML produced by `coverlet.collector` (the solution has 7+ test projects
+      # contributing coverage; reading only one of them used to produce 0.4% — see "test-windows
+      # SonarScanner reports 0% coverage" diagnostic row in
+      # [.cursor/rules/testing/multi-platform-tests.mdc]). The staged path is written by the
+      # `Stage coverage artifacts` step further down (before `SonarScanner end`).
+      # Android/iOS device-host slices do NOT contribute coverage — see Hard rule #6.
       - name: SonarScanner begin
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -91,41 +94,59 @@ jobs:
             /d:sonar.language="cs" `
             /d:sonar.dotnet.excludeTestProjects="true" `
             /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**" `
-            /d:sonar.cs.opencover.reportsPaths="artifacts/coverage-windows/coverage-windows.xml"
+            /d:sonar.cs.opencover.reportsPaths="artifacts/coverage-windows/*.opencover.xml"
         shell: pwsh
 
       - name: Build solution
         run: dotnet build Bible.Alarm.sln --configuration Release -m:1 --verbosity minimal
 
       # Filter out the Android/iOS-tagged smoke tests; they run in their own job and would fail here
-      # (their assemblies are not built for net10.0-windows). coverlet.collector writes the OpenCover
-      # XML into TestResults/<guid>/coverage.opencover.xml; the `Stage coverage artifact` step below
-      # copies it to artifacts/coverage-windows/coverage-windows.xml where SonarScanner end reads it.
+      # (their assemblies are not built for net10.0-windows). `--results-directory TestResults` puts
+      # every per-project coverage report under `TestResults/<guid>/coverage.opencover.xml` (one
+      # GUID per test project), so the `Stage coverage artifacts` step below can collect them all
+      # in a single sweep instead of picking the alphabetically-first one.
       - name: Run Windows + Shared tests
         run: |
           dotnet test Bible.Alarm.sln `
             --configuration Release `
             --no-build `
             --verbosity normal `
+            --results-directory TestResults `
             --logger "trx;LogFileName=test-results.trx" `
             --collect:"XPlat Code Coverage;Format=opencover,cobertura" `
             --filter "Platform!=Android&Platform!=iOS&UI!=Windows&UI!=Android&UI!=iOS"
         shell: pwsh
 
-      - name: Stage coverage artifact
+      # Copy EVERY per-project OpenCover XML into the staging dir under a unique name. Previously
+      # this step did `Get-ChildItem ... | Select-Object -First 1`, which silently dropped 6+ test
+      # projects' coverage on the floor and left only the alphabetically-first project's XML
+      # (`Bible.Alarm.Cataloger.Tests`, ~0.4% of `Bible.Alarm.dll`) for SonarCloud — masked by
+      # Android/iOS slices in the old multi-platform setup, exposed once Option B made Windows the
+      # sole source. Sonar unions covered lines across all matched files via the wildcard
+      # `sonar.cs.opencover.reportsPaths` declared above.
+      - name: Stage coverage artifacts
         run: |
           New-Item -ItemType Directory -Path artifacts/coverage-windows -Force | Out-Null
-          $cov = Get-ChildItem -Path . -Recurse -Filter coverage.opencover.xml -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($cov) {
-            Copy-Item -Force $cov.FullName artifacts/coverage-windows/coverage-windows.xml
-          } else {
+          $covs = Get-ChildItem -Path TestResults -Recurse -Filter coverage.opencover.xml -ErrorAction SilentlyContinue
+          if (-not $covs) {
             Write-Error "No OpenCover XML produced by the Windows test pass"
+            exit 1
+          }
+          Write-Host "Staging $($covs.Count) OpenCover XML file(s):"
+          foreach ($cov in $covs) {
+            # `--results-directory TestResults` lays out TestResults/<guid>/coverage.opencover.xml
+            # so the parent dir's name (the GUID) is unique per test-project run. Use it to avoid
+            # filename collisions when 7+ test projects each emit `coverage.opencover.xml`.
+            $guid = $cov.Directory.Name
+            $dest = Join-Path "artifacts/coverage-windows" "coverage-$guid.opencover.xml"
+            Copy-Item -Force $cov.FullName $dest
+            Write-Host "  $($cov.FullName)  ->  $dest  ($([math]::Round($cov.Length/1KB,1)) KB)"
           }
         shell: pwsh
 
-      # sonarscanner end submits the .sonarqube/ analysis directory + the staged coverage XML to
+      # sonarscanner end submits the .sonarqube/ analysis directory + every staged coverage XML to
       # SonarCloud. Must run AFTER the test pass (so coverage exists) and AFTER staging (so Sonar
-      # finds the XML at the path declared in `sonar.cs.opencover.reportsPaths` above).
+      # finds the XMLs via the wildcard in `sonar.cs.opencover.reportsPaths` above).
       - name: SonarScanner end
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -136,7 +157,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: coverage-windows
-          path: artifacts/coverage-windows/coverage-windows.xml
+          path: artifacts/coverage-windows/**
           if-no-files-found: error
 
       - name: Upload Windows test results
