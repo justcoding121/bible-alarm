@@ -38,6 +38,43 @@ public sealed class ToastServiceTests
         return s;
     }
 
+    private static readonly WeekDays[] WeeklySingleDays =
+    [
+        WeekDays.Sunday,
+        WeekDays.Monday,
+        WeekDays.Tuesday,
+        WeekDays.Wednesday,
+        WeekDays.Thursday,
+        WeekDays.Friday,
+        WeekDays.Saturday
+    ];
+
+    private static AlarmSchedule FirstWeeklyScheduleWhereNextFireIsMoreThanOneDayAway()
+    {
+        foreach (var day in WeeklySingleDays)
+        {
+            var s = new AlarmSchedule
+            {
+                Id = 2,
+                Name = "Weekly",
+                IsEnabled = true,
+                Hour = 12,
+                Minute = 0,
+                Second = 0,
+                DaysOfWeek = day,
+                NotificationEnabled = true,
+                MusicEnabled = false,
+            };
+
+            if ((s.NextFireDate() - DateTimeOffset.Now).Days > 0)
+            {
+                return s;
+            }
+        }
+
+        throw new InvalidOperationException("Expected at least one weekday-only schedule to fire more than one calendar day away.");
+    }
+
     [Fact]
     public async Task ShowScheduledNotification_formats_message_with_next_fire_gap()
     {
@@ -49,6 +86,20 @@ public sealed class ToastServiceTests
         var call = Assert.Single(sut.Calls);
         Assert.Equal(3, call.Seconds);
         Assert.StartsWith("Reminder set for", call.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ShowScheduledNotification_includes_day_count_when_next_fire_is_over_one_day_away()
+    {
+        var sut = new RecordingToastService();
+        var schedule = FirstWeeklyScheduleWhereNextFireIsMoreThanOneDayAway();
+
+        await sut.ShowScheduledNotification(schedule, seconds: 4);
+
+        var call = Assert.Single(sut.Calls);
+        Assert.Equal(4, call.Seconds);
+        Assert.Contains(" days, ", call.Message, StringComparison.Ordinal);
+        Assert.Contains(" hours and ", call.Message, StringComparison.Ordinal);
     }
 
     [Fact]
