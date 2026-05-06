@@ -89,4 +89,65 @@ public sealed class LookupDataCollectorTests
         Assert.Empty(keys.VocalMusicKeys);
         Assert.Empty(keys.VocalTrackKeys);
     }
+
+    [Fact]
+    public void CollectKeys_BiblePublication_skips_when_publication_code_blank()
+    {
+        var schedule = new AlarmSchedule
+        {
+            BiblePublicationSchedule = new BiblePublicationSchedule
+            {
+                PublicationCode = "   ",
+                LanguageCode = "E",
+                SectionCode = "1",
+                TrackCode = "2",
+            },
+        };
+
+        var keys = LookupDataCollector.CollectKeys([schedule]);
+
+        Assert.Empty(keys.PublicationKeys);
+        Assert.Empty(keys.SectionKeys);
+        Assert.Empty(keys.BibleTrackKeys);
+    }
+
+    [Fact]
+    public void CollectKeys_VocalMusic_adds_only_language_when_publication_code_blank()
+    {
+        var schedule = new AlarmSchedule
+        {
+            Music = new AlarmMusic
+            {
+                LanguageCode = "E",
+                PublicationCode = "",
+                TrackCode = "10",
+            },
+        };
+
+        var keys = LookupDataCollector.CollectKeys([schedule]);
+
+        Assert.Contains("E", keys.VocalMusicLanguageCodes);
+        Assert.Empty(keys.VocalMusicKeys);
+        Assert.Empty(keys.VocalTrackKeys);
+    }
+
+    [Fact]
+    public void CollectKeys_VocalMusic_adds_publication_keys_but_not_track_when_track_code_blank()
+    {
+        var schedule = new AlarmSchedule
+        {
+            Music = new AlarmMusic
+            {
+                LanguageCode = "E",
+                PublicationCode = "voc2025",
+                TrackCode = "",
+            },
+        };
+
+        var keys = LookupDataCollector.CollectKeys([schedule]);
+
+        Assert.Contains("E", keys.VocalMusicLanguageCodes);
+        Assert.Contains(("E", "voc2025"), keys.VocalMusicKeys);
+        Assert.Empty(keys.VocalTrackKeys);
+    }
 }
