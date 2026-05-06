@@ -179,4 +179,60 @@ public sealed class ScheduleCreateHandlerTests
         var scheduled = Assert.Single(alarmSvc.Created);
         Assert.Equal(101, scheduled.Id);
     }
+
+    [Fact]
+    public async Task HandleAsync_dispatches_success_without_creating_alarm_when_schedule_disabled()
+    {
+        var mapper = CreateMapper();
+        var vm = mapper.Map<ScheduleStateItem>(new AlarmSchedule
+        {
+            Id = 0,
+            Name = "Off",
+            IsEnabled = false,
+            Hour = 8,
+            Minute = 30,
+            Second = 0,
+            DaysOfWeek = WeekDays.Tuesday,
+            NotificationEnabled = true,
+            MusicEnabled = false,
+        });
+
+        var alarmSvc = new RecordingAlarmService();
+        var scheduleSvc = new CreateAlarmScheduleStub();
+        var sut = new ScheduleCreateHandler(mapper, scheduleSvc, alarmSvc, new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new CreateScheduleAction(vm), dispatcher);
+
+        Assert.IsType<CreateScheduleSuccessAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Empty(alarmSvc.Created);
+    }
+
+    [Fact]
+    public async Task HandleAsync_dispatches_success_when_alarm_service_unavailable_even_if_enabled()
+    {
+        var mapper = CreateMapper();
+        var vm = mapper.Map<ScheduleStateItem>(new AlarmSchedule
+        {
+            Id = 0,
+            Name = "Morning",
+            IsEnabled = true,
+            Hour = 8,
+            Minute = 30,
+            Second = 0,
+            DaysOfWeek = WeekDays.Tuesday,
+            NotificationEnabled = true,
+            MusicEnabled = false,
+        });
+
+        var scheduleSvc = new CreateAlarmScheduleStub();
+        var sut = new ScheduleCreateHandler(mapper, scheduleSvc, null, new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new CreateScheduleAction(vm), dispatcher);
+
+        var success = Assert.Single(dispatcher.Dispatched);
+        var ok = Assert.IsType<CreateScheduleSuccessAction>(success);
+        Assert.Equal(101, ok.Schedule.Id);
+    }
 }
