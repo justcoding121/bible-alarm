@@ -8,19 +8,19 @@ set -euo pipefail
 
 cd "${GITHUB_WORKSPACE:?}"
 
-## Bin layout intentionally tracks the build.yml `Build Android test APK` step (Debug + PublishTrimmed=true
-## chosen so coverlet's Cecil resolver can find MAUI workload assemblies in bin/Debug; see that step's
-## comment block for the full rationale).
-APK="$(find tests/Bible.Alarm.Tests.Android/bin/Debug/net10.0-android -name '*-Signed.apk' -print -quit)"
+APK="$(find tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android -name '*-Signed.apk' -print -quit)"
 if [ -z "${APK}" ]; then
-  echo "No signed APK produced under tests/Bible.Alarm.Tests.Android/bin/Debug/net10.0-android"
+  echo "No signed APK produced under tests/Bible.Alarm.Tests.Android/bin/Release/net10.0-android"
   exit 1
 fi
 
 PKG=com.jthomas.info.Bible.Alarm.Tests
 ACTIVITY="${PKG}/${PKG}.TestRunnerActivity"
 DEVICE_RESULTS=/sdcard/Documents/test-results
-ART_DIR="${GITHUB_WORKSPACE}/artifacts/coverage-android"
+# Test logs only (TestResults.xml, done.txt, error.txt, logcat.log). Coverage from this slice is
+# not collected — see the build.yml `Build Android test APK` step comment and the "Android coverage"
+# row in [.cursor/rules/testing/multi-platform-tests.mdc] for the rationale.
+ART_DIR="${GITHUB_WORKSPACE}/artifacts/android-test-logs"
 mkdir -p "${ART_DIR}"
 
 adb uninstall "${PKG}" >/dev/null 2>&1 || true
@@ -41,15 +41,11 @@ done
 
 adb logcat -d -t 5000 > "${ART_DIR}/logcat.log" || true
 
-# All test artefacts (TestResults.xml, done.txt, error.txt, coverage.android.opencover.xml) live
-# under one device dir; pulling the dir in one shot is atomic-enough and avoids races where the
-# next adb command's connection drops mid-pull. Belt-and-braces explicit pulls of the two files we
-# absolutely need (results + coverage) follow, so a partial first pull still recovers the artefact.
-# adb is gone after reactivecircus/android-emulator-runner stops the emulator, so all of this MUST
-# happen here, not in a downstream workflow step.
+# Pull every test artefact (TestResults.xml, done.txt, error.txt) in one shot. adb is gone once
+# reactivecircus/android-emulator-runner stops the emulator, so all of this MUST happen here, not
+# in a downstream workflow step.
 adb shell ls "${DEVICE_RESULTS}" || true
 adb pull "${DEVICE_RESULTS}/." "${ART_DIR}/" || true
-adb pull "${DEVICE_RESULTS}/coverage.android.opencover.xml" "${ART_DIR}/coverage-android.xml" || true
 
 adb uninstall "${PKG}" >/dev/null 2>&1 || true
 
@@ -69,10 +65,6 @@ fi
 if [ -z "${DONE}" ]; then
   echo "TestRunnerActivity did not produce ${DEVICE_RESULTS}/done.txt within 15 minutes."
   exit 1
-fi
-
-if [ ! -f "${ART_DIR}/coverage-android.xml" ] && [ -f "${ART_DIR}/coverage.android.opencover.xml" ]; then
-  cp "${ART_DIR}/coverage.android.opencover.xml" "${ART_DIR}/coverage-android.xml"
 fi
 
 if [ "${DONE}" != "0" ]; then

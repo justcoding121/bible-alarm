@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.IO.Compression;
-using System.Reflection;
 using Android.App;
 using Android.Content.PM;
 using Android.OS;
@@ -27,10 +26,12 @@ namespace Bible.Alarm.Tests.Android;
 /// from <c>tests/run-tests.ps1</c> and the CI workflow.
 ///
 /// On-device contract (consumed by the host orchestrator):
-///   /sdcard/Documents/test-results/TestResults.xml                 — xunit XML
-///   /sdcard/Documents/test-results/coverage.android.opencover.xml  — coverlet (written via Environment.Exit hook)
-///   /sdcard/Documents/test-results/done.txt                        — ASCII integer return code
-///   /sdcard/Documents/test-results/error.txt                       — present only on unhandled exception
+///   /sdcard/Documents/test-results/TestResults.xml  — xunit XML
+///   /sdcard/Documents/test-results/done.txt         — ASCII integer return code
+///   /sdcard/Documents/test-results/error.txt        — present only on unhandled exception
+///
+/// Code coverage is intentionally NOT collected from this slice — see the "Android coverage" row
+/// in [.cursor/rules/testing/multi-platform-tests.mdc] for the rationale.
 /// </summary>
 // We deliberately do NOT use Theme="@android:style/Theme.NoDisplay" here. Theme.NoDisplay imposes
 // a hard contract: the activity must call Finish() synchronously inside OnCreate before onResume
@@ -59,8 +60,7 @@ public sealed class TestRunnerActivity : Activity
 
         // Fire-and-forget: the orchestrator polls /sdcard/Documents/test-results/done.txt.
         // We must not block OnCreate; RunTestsAsync calls System.Environment.Exit when finished,
-        // which both terminates the test process and triggers coverlet's ProcessExit hook so
-        // coverage.android.opencover.xml is flushed to disk.
+        // which terminates the test process so the orchestrator's adb pull sees final-state files.
         _ = Task.Run(RunTestsAsync);
     }
 
@@ -121,14 +121,6 @@ public sealed class TestRunnerActivity : Activity
         }
         finally
         {
-            // coverlet.msbuild registers AppDomain.ProcessExit as its flush hook. On Mono Android
-            // the ProcessExit event does NOT fire reliably from System.Environment.Exit (Android
-            // tears the JNI bridge down before the .NET runtime walks the handler chain), which
-            // would leave coverage.android.opencover.xml unwritten. We invoke the trackers
-            // manually here — best-effort, swallow any failure — so the orchestrator gets the
-            // OpenCover slice it needs to merge into SonarCloud.
-            FlushCoverletTrackers();
-
             try
             {
                 await File.WriteAllTextAsync(donePath, returnCode.ToString()).ConfigureAwait(false);
@@ -146,9 +138,8 @@ public sealed class TestRunnerActivity : Activity
 
             // System.Environment.Exit (fully qualified to disambiguate from Android.OS.Environment;
             // both are pulled in by `using Android.OS;` which we need for Bundle) terminates the
-            // managed process and the underlying Android process. Coverlet's flush has already run
-            // above; this is purely the "shut down cleanly so the orchestrator's adb pull sees
-            // final-state files" call.
+            // managed process and the underlying Android process so the orchestrator's adb pull
+            // sees final-state files.
             System.Environment.Exit(returnCode);
         }
     }
@@ -203,69 +194,6 @@ public sealed class TestRunnerActivity : Activity
         }
 
         return 0;
-    }
-
-    /// <summary>
-    /// Walks every loaded assembly looking for coverlet's injected <c>ModuleTrackerTemplate</c>
-    /// types and calls their static <c>UnloadModule(object, EventArgs)</c> to flush hits-data to
-    /// disk. coverlet 6 normally registers this method against <c>AppDomain.ProcessExit</c>; that
-    /// event does not fire reliably on Mono Android during <c>Environment.Exit</c>, so we invoke
-    /// it ourselves. Cheap (one cached field load + one call per instrumented module), idempotent
-    /// (each tracker dedupes its own writes), and harmless if coverlet was not enabled at build
-    /// time (the type simply does not exist).
-    /// </summary>
-    private static void FlushCoverletTrackers()
-    {
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            Type[] types;
-            try
-            {
-                types = asm.GetTypes();
-            }
-            catch (ReflectionTypeLoadException ex)
-            {
-                types = ex.Types.Where(t => t is not null).ToArray()!;
-            }
-            catch
-            {
-                continue;
-            }
-
-            foreach (var type in types)
-            {
-                // Coverlet emits one tracker per instrumented module under
-                // Coverlet.Core.Instrumentation.Tracker.* with a public static UnloadModule
-                // signature `void UnloadModule(object, EventArgs)`.
-                if (type is null
-                    || type.FullName is null
-                    || !type.FullName.StartsWith("Coverlet.Core.Instrumentation.Tracker.", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var unload = type.GetMethod(
-                    "UnloadModule",
-                    BindingFlags.Public | BindingFlags.Static,
-                    binder: null,
-                    types: new[] { typeof(object), typeof(EventArgs) },
-                    modifiers: null);
-                if (unload is null)
-                {
-                    continue;
-                }
-
-                try
-                {
-                    unload.Invoke(null, new object?[] { null, EventArgs.Empty });
-                }
-                catch
-                {
-                    // Per-module failure should not block the rest of the flush; coverlet writes
-                    // a separate file per module so a partial result is still useful.
-                }
-            }
-        }
     }
 
     private static Dictionary<string, string> ExtrasToDictionary(Bundle? extras)

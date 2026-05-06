@@ -1,16 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Device-test host for iOS. Builds an .app bundle that xharness installs into a booted iOS simulator and
-    runs via `xharness apple test`. For repetitive local runs, `tests/run-tests.ps1 -Platform iOS`
-    passes xharness reset-simulator so simulators are torn down afterward; CI uses plain apple test.
-    Coverage XML is written to the simulator sandbox and pulled back to
-    the host machine by xharness.
+    Device-test host for iOS. Builds an .app bundle that xharness installs into a booted iOS simulator
+    and runs via `xharness apple test`.
 
     iOS device tests must be built on macOS (Xcode required); the project file is also evaluable on
     Windows so `dotnet build` against the solution does not fail to load it.
 
     See tests/README.md and tests/run-tests.ps1 -Platform iOS for the local SSH-to-Mac workflow.
+
+    Code coverage is intentionally NOT collected from this device-test slice — see the "iOS coverage"
+    row in [.cursor/rules/testing/multi-platform-tests.mdc] for the decision history (coverlet bakes
+    an absolute build-time path the simulator's seatbelt sandbox blocks; AltCover and other
+    workarounds were evaluated and ruled out).
   -->
   <PropertyGroup>
     <TargetFramework>net10.0-ios</TargetFramework>
@@ -48,8 +50,7 @@
       Device-test hosts run via `xharness apple test` against the built .app; vstest cannot launch a
       net10.0-ios testhost on a Windows/Linux desktop. Telling MSBuild this is *not* a vstest target
       makes `dotnet test Bible.Alarm.sln` skip the .dll instead of failing with hostpolicy.dll-not-
-      found / "Failed to run as a self-contained app". Coverage from the xharness run still flows
-      through coverlet.msbuild + SonarQubeTestProject=true.
+      found / "Failed to run as a self-contained app".
     -->
     <IsTestProject>false</IsTestProject>
 
@@ -71,7 +72,7 @@
   <ItemGroup>
     <!--
       Reference Bible.Alarm so its iOS-built assembly (with Platforms/iOS/** compiled in) flows into the
-      .app bundle and into coverlet's instrumentation graph.
+      .app bundle.
 
       UndefineProperties: same rationale as the Android sibling — propagating a RuntimeIdentifier through
       the project ref makes Bible.Alarm.csproj try to write a per-RID runtimeconfig.json into a directory
@@ -103,10 +104,6 @@
       we subclass iOSApplicationEntryPoint from TestRunners.Xunit directly in code.
     -->
     <PackageReference Include="Microsoft.DotNet.XHarness.TestRunners.Xunit" Version="10.0.0-prerelease.26230.1" />
-
-    <PackageReference Include="coverlet.msbuild" Version="6.0.4">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

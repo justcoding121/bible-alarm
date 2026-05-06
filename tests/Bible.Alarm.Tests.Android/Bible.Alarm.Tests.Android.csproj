@@ -11,7 +11,7 @@
         adb install -r <signed-apk>
         adb shell am start -W -n com.jthomas.info.Bible.Alarm.Tests/.TestRunnerActivity
         # poll /sdcard/Documents/test-results/done.txt
-        adb pull /sdcard/Documents/test-results/. <local-coverage-dir>
+        adb pull /sdcard/Documents/test-results/. <local-results-dir>
     See [.cursor/rules/testing/multi-platform-tests.mdc] for the rationale (xharness + custom
     Instrumentation hits UnsatisfiedLinkError because Mono is not initialized when Android calls
     Instrumentation.onCreate).
@@ -20,6 +20,10 @@
     end-to-end flow.
 
     Sonar excludes this project (test project; no production source emits coverage from here).
+    Code coverage is intentionally not collected from this device-test slice — see the "Android
+    coverage" row in [.cursor/rules/testing/multi-platform-tests.mdc] for the decision history
+    (coverlet's Cecil resolver cannot find MAUI workload assemblies; AltCover and Debug-mode
+    workarounds were both evaluated and ruled out).
   -->
   <PropertyGroup>
     <TargetFramework>net10.0-android</TargetFramework>
@@ -84,33 +88,12 @@
       Device-test hosts run via the adb/Activity flow against the built APK; vstest cannot launch
       a net10.0-android testhost on a Windows/Linux desktop. Telling MSBuild this is *not* a
       vstest target makes `dotnet test Bible.Alarm.sln` skip the .dll instead of failing with
-      "You must install or update .NET to run this application". Coverage from the on-device run
-      still flows through coverlet.msbuild + SonarQubeTestProject=true.
+      "You must install or update .NET to run this application".
     -->
     <IsTestProject>false</IsTestProject>
 
     <!-- Don't fail on transitively-warned MAUI/EF analyzer noise inside the test app. -->
     <NoWarn>$(NoWarn);XC0022;NU1608;IL2026;IL2037;IL2072;IL2111</NoWarn>
-
-    <!--
-      coverlet.msbuild (Cecil) instruments Bible.Alarm.dll at build time. Its NetstandardAwareAssemblyResolver
-      only looks beside the instrumented assembly in $(TargetDir) and at a few framework paths, so
-      when Bible.Alarm.dll's metadata transitively reaches Microsoft.Maui.Controls (which lives under
-      ~/.nuget/packages/microsoft.maui.controls/<ver>/lib/<tfm>/, NOT in bin/) Cecil throws
-      AssemblyResolutionException and coverlet silently skips Bible.Alarm.dll — no OpenCover file is
-      produced on the emulator. Documented workarounds (PreserveCompilationContext / CopyLocalLockFileAssemblies)
-      fix the resolver but flood bin/ with framework assemblies, which then trips Xamarin.Android's
-      AssemblyModifierPipeline with `XAAMP7004: An item with the same key has already been added`.
-
-      Workaround in CI (.github/workflows/build.yml `test-android`): build the host with `-c Debug
-      -p:PublishTrimmed=true`. MAUI Android Debug builds copy more workload assemblies into
-      bin/Debug/<tfm>/ (the linker is a single-pass copy in Debug rather than the Release in-place
-      link), so Cecil finds Microsoft.Maui.Controls.dll alongside Bible.Alarm.dll and instruments
-      successfully. PublishTrimmed=true is forced (not the Debug default of false) because the
-      trimmer pass is what produces the ACW typemap — without it MainApplication.n_onCreate dies with
-      UnsatisfiedLinkError before any test runs. See the "Android coverage" row in
-      [.cursor/rules/testing/multi-platform-tests.mdc] and Hard rule #7's PublishTrimmed warning.
-    -->
 
     <!-- Resizetizer: same dedupe relaxation Bible.Alarm.Tests already applies. -->
     <ResizetizerErrorOnDuplicateOutputFilename>false</ResizetizerErrorOnDuplicateOutputFilename>
@@ -119,7 +102,7 @@
   <ItemGroup>
     <!--
       Reference Bible.Alarm so its Android-built assembly (with Platforms/Android/** compiled in) flows into
-      the APK and into coverlet's instrumentation graph.
+      the APK.
 
       We deliberately strip RuntimeIdentifier/RuntimeIdentifiers via UndefineProperties: when the test host
       has a RID set, MSBuild propagates it to Bible.Alarm via project ref, which makes Bible.Alarm try to
@@ -150,35 +133,8 @@
       DefaultAndroidEntryPoint.Xunit transitively pulls TestRunners.Common + TestRunners.Xunit.
     -->
     <PackageReference Include="Microsoft.DotNet.XHarness.DefaultAndroidEntryPoint.Xunit" Version="10.0.0-prerelease.26230.1" />
-
-    <!--
-      coverlet.msbuild emits OpenCover XML during the test run (collector cannot run on-device).
-      The output path is *device-side* (resolved at runtime on the emulator) and supplied via
-      -p:CoverletOutput=/sdcard/Documents/test-results/coverage.android.opencover.xml from the
-      orchestrator. coverlet's AppDomain.ProcessExit hook normally flushes coverage at exit; on
-      Mono Android the event is unreliable, so TestRunnerActivity invokes the trackers manually
-      before calling System.Environment.Exit (see FlushCoverletTrackers there).
-    -->
-    <PackageReference Include="coverlet.msbuild" Version="6.0.4">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
   </ItemGroup>
 
-  <!--
-    coverlet.msbuild's stock instrumentation target (`InstrumentModulesAfterBuild`) is wired with
-    `AfterTargets="BuildProject"`. MAUI Android's build pipeline does not fire `BuildProject`, so
-    the target never runs and the test DLL ships without coverlet's IL counters or the
-    `Coverlet.Core.Instrumentation.Tracker.*` tracker types. We hook `InstrumentModules` directly
-    after `CopyFilesToOutputDirectory` instead — by that point csc has produced the DLL AND it has
-    been copied to `$(TargetPath)` (= `bin/<config>/<tfm>/<asm>.dll`), which is the path coverlet
-    reads when constructing its `SourceRootTranslator`. Hooking `AfterTargets="CoreCompile"`
-    appears to work on incremental local builds because `bin/` carries a stale DLL from a previous
-    build, but a clean CI build trips `Module test path '...bin/...Tests.Android.dll' not found`
-    because CopyFilesToOutputDirectory hasn't run yet. We hook it before the IL linker /
-    Android packaging consumes the DLL. With PublishTrimmed=true plus our TrimmerRoots whitelist,
-    the injected tracker types survive trimming and end up inside
-    `lib/<abi>/lib_Bible.Alarm.Tests.Android.dll.so`.
-  -->
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
@@ -213,9 +169,5 @@
     </Compile>
   </ItemGroup>
 
-  <Target Name="_BibleAlarmHookCoverletInstrumentation"
-          AfterTargets="CopyFilesToOutputDirectory"
-          DependsOnTargets="InstrumentModules"
-          Condition="'$(CollectCoverage)' == 'true'" />
 
 </Project>
