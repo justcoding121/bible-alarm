@@ -1,15 +1,28 @@
 #nullable enable
 
 using System.Windows.Input;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Tests.Support;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace Bible.Alarm.Tests;
 
 public sealed class ScheduleListItemCommandHandlerTests
 {
+    private sealed class RecordingToastMessenger : IDisposable
+    {
+        public List<string> ToastValues { get; } = [];
+
+        public RecordingToastMessenger() =>
+            WeakReferenceMessenger.Default.Register<ShowToastMessage>(this, (r, m) => ToastValues.Add(m.Value));
+
+        public void Dispose() =>
+            WeakReferenceMessenger.Default.Unregister<ShowToastMessage>(this);
+    }
+
     private sealed class RecordingPlaybackService : ISchedulePlaybackService
     {
         public List<int> PlayScheduleIds { get; } = [];
@@ -28,6 +41,9 @@ public sealed class ScheduleListItemCommandHandlerTests
     {
         public List<int> PreviousCalls { get; } = [];
         public List<int> NextCalls { get; } = [];
+
+        public Exception? ThrowOnPrevious { get; set; }
+        public Exception? ThrowOnNext { get; set; }
 
         public void Dispose()
         {
@@ -52,12 +68,22 @@ public sealed class ScheduleListItemCommandHandlerTests
 
         public Task MoveToNextBiblePublicationTrack(int scheduleId)
         {
+            if (ThrowOnNext != null)
+            {
+                throw ThrowOnNext;
+            }
+
             NextCalls.Add(scheduleId);
             return Task.CompletedTask;
         }
 
         public Task MoveToPreviousBiblePublicationTrack(int scheduleId)
         {
+            if (ThrowOnPrevious != null)
+            {
+                throw ThrowOnPrevious;
+            }
+
             PreviousCalls.Add(scheduleId);
             return Task.CompletedTask;
         }
@@ -240,5 +266,106 @@ public sealed class ScheduleListItemCommandHandlerTests
         await ExecuteCommandAsync(sut.CreateNextCommand(ValidScheduleWithBible()));
 
         Assert.Equal([42], playlist.NextCalls);
+    }
+
+    [Fact]
+    public async Task CreatePlayCommand_invokes_onPlayStarted_before_playback()
+    {
+        var playback = new RecordingPlaybackService();
+        var playlist = new RecordingPlaylistService();
+        var sut = new Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers.ScheduleListItemCommandHandler(
+            TestLogging.CreateLogger(),
+            playback,
+            playlist);
+
+        var started = false;
+        await ExecuteCommandAsync(sut.CreatePlayCommand(ValidScheduleWithBible(), () => started = true));
+
+        Assert.True(started);
+        Assert.Equal([42], playback.PlayScheduleIds);
+    }
+
+    [Fact]
+    public async Task CreatePreviousCommand_sends_schedule_not_found_toast_when_schedule_null()
+    {
+        using var toasts = new RecordingToastMessenger();
+        var playback = new RecordingPlaybackService();
+        var playlist = new RecordingPlaylistService();
+        var sut = new Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers.ScheduleListItemCommandHandler(
+            TestLogging.CreateLogger(),
+            playback,
+            playlist);
+
+        await ExecuteCommandAsync(sut.CreatePreviousCommand(null));
+
+        Assert.Equal("Schedule not found", Assert.Single(toasts.ToastValues));
+        Assert.Empty(playlist.PreviousCalls);
+    }
+
+    [Fact]
+    public async Task CreateNextCommand_sends_schedule_not_found_toast_when_schedule_id_invalid()
+    {
+        using var toasts = new RecordingToastMessenger();
+        var playback = new RecordingPlaybackService();
+        var playlist = new RecordingPlaylistService();
+        var sut = new Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers.ScheduleListItemCommandHandler(
+            TestLogging.CreateLogger(),
+            playback,
+            playlist);
+
+        var schedule = ValidScheduleWithBible();
+        schedule.Id = -1;
+
+        await ExecuteCommandAsync(sut.CreateNextCommand(schedule));
+
+        Assert.Equal("Schedule not found", Assert.Single(toasts.ToastValues));
+        Assert.Empty(playlist.NextCalls);
+    }
+
+    [Fact]
+    public async Task CreateNextCommand_NoOps_When_Cannot_Move()
+    {
+        var playback = new RecordingPlaybackService { CanMoveTrack = false };
+        var playlist = new RecordingPlaylistService();
+        var sut = new Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers.ScheduleListItemCommandHandler(
+            TestLogging.CreateLogger(),
+            playback,
+            playlist);
+
+        await ExecuteCommandAsync(sut.CreateNextCommand(ValidScheduleWithBible()));
+
+        Assert.Empty(playlist.NextCalls);
+    }
+
+    [Fact]
+    public async Task CreatePreviousCommand_sends_error_toast_when_playlist_throws()
+    {
+        using var toasts = new RecordingToastMessenger();
+        var playback = new RecordingPlaybackService();
+        var playlist = new RecordingPlaylistService { ThrowOnPrevious = new InvalidOperationException("db") };
+        var sut = new Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers.ScheduleListItemCommandHandler(
+            TestLogging.CreateLogger(),
+            playback,
+            playlist);
+
+        await ExecuteCommandAsync(sut.CreatePreviousCommand(ValidScheduleWithBible()));
+
+        Assert.Equal("Error moving to previous track", Assert.Single(toasts.ToastValues));
+    }
+
+    [Fact]
+    public async Task CreateNextCommand_sends_error_toast_when_playlist_throws()
+    {
+        using var toasts = new RecordingToastMessenger();
+        var playback = new RecordingPlaybackService();
+        var playlist = new RecordingPlaylistService { ThrowOnNext = new InvalidOperationException("db") };
+        var sut = new Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers.ScheduleListItemCommandHandler(
+            TestLogging.CreateLogger(),
+            playback,
+            playlist);
+
+        await ExecuteCommandAsync(sut.CreateNextCommand(ValidScheduleWithBible()));
+
+        Assert.Equal("Error moving to next track", Assert.Single(toasts.ToastValues));
     }
 }
