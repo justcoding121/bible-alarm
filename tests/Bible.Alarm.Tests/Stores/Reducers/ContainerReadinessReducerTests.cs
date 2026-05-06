@@ -72,6 +72,49 @@ public sealed class ContainerReadinessReducerTests
     }
 
     [Fact]
+    public void OnContainerReady_sequential_readiness_sets_AllReady_when_all_containers_reported()
+    {
+        var state = new ApplicationState(Schedules(MinimalSchedule()));
+
+        state = ContainerReadinessReducer.OnContainerReady(state, new ContainerReadyAction("BiblePublicationSelection"));
+        state = ContainerReadinessReducer.OnContainerReady(state, new ContainerReadyAction("MusicSelection"));
+        state = ContainerReadinessReducer.OnContainerReady(state, new ContainerReadyAction("NumberOfTrack"));
+        state = ContainerReadinessReducer.OnContainerReady(state, new ContainerReadyAction("ScheduleDetails"));
+        state = ContainerReadinessReducer.OnContainerReady(state, new ContainerReadyAction("AlarmSettings"));
+
+        Assert.True(state.ContainerReadiness.AllReady);
+        Assert.True(state.ContainerReadiness.BiblePublicationSelection);
+        Assert.True(state.ContainerReadiness.NumberOfTrack);
+    }
+
+    [Fact]
+    public void OnContainerReady_ignores_duplicate_BiblePublicationSelection()
+    {
+        var prior = new ApplicationState(Schedules(MinimalSchedule()));
+        var once = ContainerReadinessReducer.OnContainerReady(prior, new ContainerReadyAction("BiblePublicationSelection"));
+        var twice = ContainerReadinessReducer.OnContainerReady(once, new ContainerReadyAction("BiblePublicationSelection"));
+
+        Assert.Same(once, twice);
+        Assert.True(once.ContainerReadiness.BiblePublicationSelection);
+    }
+
+    [Fact]
+    public void OnContainerReady_unknown_name_preserves_existing_flags()
+    {
+        var withMusic = ContainerReadinessReducer.OnContainerReady(
+            new ApplicationState(Schedules(MinimalSchedule())),
+            new ContainerReadyAction("MusicSelection"));
+
+        var withUnknown = ContainerReadinessReducer.OnContainerReady(
+            withMusic,
+            new ContainerReadyAction("NotARealContainer"));
+
+        Assert.NotSame(withMusic, withUnknown);
+        Assert.True(withUnknown.ContainerReadiness.MusicSelection);
+        Assert.False(withUnknown.ContainerReadiness.BiblePublicationSelection);
+    }
+
+    [Fact]
     public void OnResetContainerReadiness_clears_all_flags()
     {
         var seeded = ContainerReadinessReducer.OnContainerReady(
