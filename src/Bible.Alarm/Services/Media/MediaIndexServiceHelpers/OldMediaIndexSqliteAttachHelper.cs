@@ -16,15 +16,15 @@ internal static class OldMediaIndexSqliteAttachHelper
 
     internal static async Task AttachOldMediaDatabaseAsync(SqliteConnection connection, string oldMediaIndexDbPath)
     {
+        if (oldMediaIndexDbPath.AsSpan().IndexOf('\0') >= 0)
+        {
+            throw new ArgumentException("Path contains invalid characters.", nameof(oldMediaIndexDbPath));
+        }
+
         var resolved = Path.GetFullPath(oldMediaIndexDbPath);
         if (!File.Exists(resolved))
         {
             throw new FileNotFoundException("Old media index database not found.", resolved);
-        }
-
-        if (resolved.AsSpan().IndexOf('\0') >= 0)
-        {
-            throw new ArgumentException("Path contains invalid characters.", nameof(oldMediaIndexDbPath));
         }
 
         using var attachCmd = connection.CreateCommand();

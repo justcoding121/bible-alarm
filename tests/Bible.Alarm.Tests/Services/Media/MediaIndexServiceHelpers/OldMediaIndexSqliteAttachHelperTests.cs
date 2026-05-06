@@ -21,6 +21,18 @@ public sealed class OldMediaIndexSqliteAttachHelperTests
     }
 
     [Fact]
+    public async Task AttachOldMediaDatabaseAsync_throws_ArgumentException_when_path_contains_null_character()
+    {
+        await using var primary = new SqliteConnection("Data Source=:memory:");
+        await primary.OpenAsync();
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            OldMediaIndexSqliteAttachHelper.AttachOldMediaDatabaseAsync(primary, "any\x0path.db"));
+
+        Assert.Equal("oldMediaIndexDbPath", ex.ParamName);
+    }
+
+    [Fact]
     public async Task AttachOldMediaDatabaseAsync_attaches_existing_database()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "bible-alarm-tests-" + Guid.NewGuid());
