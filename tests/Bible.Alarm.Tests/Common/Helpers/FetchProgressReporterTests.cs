@@ -2,8 +2,22 @@
 
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Playback;
+using Bible.Alarm.Stores.Messages.ModalOverlay;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace Bible.Alarm.Tests;
+
+internal sealed class ThrowingModalOverlayRecipientForTests : IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
+{
+    public ThrowingModalOverlayRecipientForTests() =>
+        WeakReferenceMessenger.Default.Register<ModalOverlayFetchProgressMessage>(this);
+
+    public void Receive(ModalOverlayFetchProgressMessage message) =>
+        throw new InvalidOperationException("subscriber");
+
+    public void Dispose() =>
+        WeakReferenceMessenger.Default.Unregister<ModalOverlayFetchProgressMessage>(this);
+}
 
 public sealed class FetchProgressReporterTests
 {
@@ -79,6 +93,22 @@ public sealed class FetchProgressReporterTests
         sut.UpdateProgressText("Fetching...");
         sut.SetIsVisible(true);
         sut.SetIsVisible(false);
+    }
+
+    [Fact]
+    public void ModalOverlayFetchProgressReporter_swallows_exceptions_from_message_subscribers()
+    {
+        using var _ = new ThrowingModalOverlayRecipientForTests();
+        var sut = new ModalOverlayFetchProgressReporter("BiblePublication", default);
+
+        var ex = Record.Exception(() =>
+        {
+            sut.UpdateProgress(0.1);
+            sut.UpdateProgressText("x");
+            sut.SetIsVisible(false);
+        });
+
+        Assert.Null(ex);
     }
 
     [Fact]
