@@ -5,6 +5,7 @@ using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 
@@ -181,5 +182,93 @@ public sealed class SharedLibraryWindowsCoverageTests
         Assert.Equal("nwt", AppConstants.Media.BiblePublicationCodeNwt);
         Assert.False(string.IsNullOrEmpty(
             AppConstants.Logging.MauiPlatformUiDiagnosticsLog.KeyboardHelperFailedToHideKeyboardAndroid));
+    }
+
+    [Fact]
+    public void MagazineHelper_parse_build_section_year_and_filters()
+    {
+        var (apiPub, issue) = MagazineHelper.ParseSectionCode("20080115-wp");
+        Assert.Equal("wp", apiPub);
+        Assert.Equal("20080115", issue);
+        Assert.Equal("20080115-wp", MagazineHelper.BuildSectionCode(apiPub, issue));
+
+        var y = MagazineHelper.MagazineStartYear;
+        Assert.Equal(y, MagazineHelper.GetYear($"w{y}"));
+        Assert.True(MagazineHelper.IsMagazinePublicationCode($"w{y}"));
+        Assert.True(MagazineHelper.IsWatchtowerMagazineCode($"w{y}"));
+        Assert.True(MagazineHelper.IsAwakeMagazineCode($"g{y}"));
+        Assert.False(MagazineHelper.IsMagazinePublicationCode($"w{y - 20}"));
+
+        Assert.Throws<ArgumentException>(() => MagazineHelper.ParseSectionCode("nodashatall"));
+    }
+
+    [Fact]
+    public void MagazineHelper_build_section_name_and_MediaTrackTitleHelper_decode()
+    {
+        Assert.Equal("Title — Date", MagazineHelper.BuildSectionName("Title", "Date"));
+        Assert.Equal("Only", MagazineHelper.BuildSectionName("Only", null));
+        Assert.Equal(MediaTrackTitleHelper.UnknownTitle, MediaTrackTitleHelper.DecodeHtmlTitle(null));
+        Assert.Null(MediaTrackTitleHelper.DecodeHtmlTitleNullable(null));
+        Assert.Equal("A & B", MediaTrackTitleHelper.DecodeHtmlTitle("A &amp; B"));
+    }
+
+    [Fact]
+    public void SectionCodeHelper_normalize_compare_and_code_equals()
+    {
+        Assert.Null(SectionCodeHelper.Normalize("   "));
+        Assert.Equal("iam-1", SectionCodeHelper.Normalize("  iam-1  "));
+        Assert.True(SectionCodeHelper.CodeEquals(" 01 ", "1"));
+        Assert.True(SectionCodeHelper.SectionCodeComparer.Compare("2", "10") < 0);
+    }
+
+    [Fact]
+    public void BiblePublicationTrack_orders_by_track_code_equals_by_id()
+    {
+        var lang = new Language { Id = 1, LanguageCode = "E", Direction = "ltr" };
+        var publication = new BiblePublication
+        {
+            Id = 1,
+            Name = "NWT",
+            PublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+            LanguageId = 1,
+            Language = lang,
+        };
+        var left = new BiblePublicationTrack
+        {
+            Id = 10,
+            TrackCode = "02",
+            Title = "A",
+            BiblePublicationId = 1,
+            Publication = publication,
+        };
+        var right = new BiblePublicationTrack
+        {
+            Id = 10,
+            TrackCode = "2",
+            Title = "B",
+            BiblePublicationId = 1,
+            Publication = publication,
+        };
+        Assert.Equal(0, left.CompareTo(right));
+        Assert.True(left.Equals(right));
+
+        var chap10 = new BiblePublicationTrack
+        {
+            Id = 11,
+            TrackCode = "10",
+            Title = "",
+            BiblePublicationId = 1,
+            Publication = publication,
+        };
+        var chap2 = new BiblePublicationTrack
+        {
+            Id = 12,
+            TrackCode = "2",
+            Title = "",
+            BiblePublicationId = 1,
+            Publication = publication,
+        };
+        Assert.True(chap2 < chap10);
+        Assert.Equal(1, chap2.CompareTo((object)"x"));
     }
 }
