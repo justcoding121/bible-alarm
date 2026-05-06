@@ -29,6 +29,7 @@ public sealed class ResourceLoaderTests
     [Fact]
     public void GetFileInfo_matches_assembly_location_or_throws_when_unavailable()
     {
+#pragma warning disable IL3000, IL3002 // Single-file / RequiresAssemblyFiles: this test asserts real on-disk layout vs. Location being empty.
         var asm = BibleAlarmAssembly;
 
         if (string.IsNullOrEmpty(asm.Location))
@@ -43,5 +44,6 @@ public sealed class ResourceLoaderTests
             var actualFull = fi.FullName;
             Assert.Equal(expectedFull, actualFull, StringComparer.OrdinalIgnoreCase);
         }
+#pragma warning restore IL3000, IL3002
     }
 }

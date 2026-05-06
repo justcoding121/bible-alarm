@@ -223,7 +223,7 @@ public sealed class TestRunnerActivity : Activity
     ///
     /// Also overrides <see cref="GetTestAssemblies"/> to hand xharness a real on-disk path for the
     /// test DLL. Even with <c>AndroidUseAssemblyStore=false</c>, MAUI Android keeps assemblies inside
-    /// the APK (under <c>assemblies/</c>) and <see cref="Assembly.Location"/> is the empty string;
+    /// the APK (under <c>assemblies/</c>) and <see cref="P:System.Reflection.Assembly.Location"/> is the empty string;
     /// xharness's <c>XUnitTestRunner</c> then constructs <c>XunitFrontController</c> with just
     /// <c>"&lt;asmName&gt;.dll"</c> and fails its <c>Guard.FileExists</c> check before any test runs.
     /// We extract the DLL to <see cref="global::Android.Content.Context.CacheDir"/> on first call
@@ -248,7 +248,9 @@ public sealed class TestRunnerActivity : Activity
             foreach (var assembly in Tests)
             {
                 var assemblyName = assembly.GetName().Name + ".dll";
+#pragma warning disable IL3000 // Android / assembly-store: Location is often empty; APK extraction handles that below.
                 var location = assembly.Location;
+#pragma warning restore IL3000
 
                 if (string.IsNullOrEmpty(location) || !File.Exists(location))
                 {
