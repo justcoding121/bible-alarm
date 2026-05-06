@@ -1,17 +1,21 @@
 #nullable enable
 
+using System.Collections.Generic;
+using System.Threading;
 using AutoMapper;
 using Bible.Alarm.Services.Bootstrap;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.AudioPlayerHelpers;
 using Bible.Alarm.Services.Media.Playback;
 using Bible.Alarm.Services.Scheduler;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Effects;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
@@ -297,5 +301,132 @@ public sealed class DependencyBundleRecordsTests
 
         Assert.Null(sut.BiblePublicationService);
         Assert.Null(sut.State);
+    }
+
+    [Fact]
+    public void MusicSectionSelectionStateChangeHandlerCallbacks_invoke_Initialize()
+    {
+        var initLen = 0;
+        var sut = new MusicSectionSelectionStateChangeHandlerCallbacks(
+            _ => { },
+            _ => { },
+            () => true,
+            _ => { },
+            s => initLen = s.Length,
+            () => { });
+
+        sut.Initialize("xy");
+
+        Assert.Equal(2, initLen);
+    }
+
+    [Fact]
+    public void PlaybackMediaEventAdapterCallbacks_invoke_Getters()
+    {
+        var sut = new PlaybackMediaEventAdapterCallbacks(
+            () => null,
+            () => 3,
+            _ => { },
+            () => 9,
+            () => true,
+            () => Task.FromResult(true),
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            () => false,
+            () => true,
+            (_, _) => Task.CompletedTask,
+            _ => true);
+
+        Assert.Null(sut.GetPlaylist());
+        Assert.Equal(3, sut.GetCurrentTrackIndex());
+        Assert.Equal(9, sut.GetCurrentScheduleId());
+        Assert.True(sut.GetIsIndefinitePlayback());
+        Assert.True(sut.GetIsAlarm());
+        Assert.True(sut.IsPlaybackEstablishedForTrack(0));
+    }
+
+    [Fact]
+    public void PlaybackMediaFailedRequest_round_trips_GetCurrentTrackIndex()
+    {
+        var sut = new PlaybackMediaFailedRequest(
+            null,
+            () => 7,
+            "u",
+            "full",
+            _ => Task.CompletedTask,
+            () => true,
+            () => false,
+            (_, _) => Task.CompletedTask,
+            _ => false);
+
+        Assert.Equal(7, sut.GetCurrentTrackIndex());
+        Assert.Equal("u", sut.TrackUri);
+    }
+
+    [Fact]
+    public void PlaybackNavigationNextRequest_holds_manually_visited_set()
+    {
+        var visited = new HashSet<int> { 1 };
+        var sut = new PlaybackNavigationNextRequest(
+            null,
+            () => 0,
+            _ => { },
+            5,
+            true,
+            () => Task.FromResult(false),
+            visited,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            () => Task.CompletedTask,
+            () => Task.CompletedTask);
+
+        Assert.Same(visited, sut.ManuallyVisitedTrackIndices);
+        Assert.Equal(5, sut.CurrentScheduleId);
+        Assert.True(sut.IsIndefinitePlayback);
+    }
+
+    [Fact]
+    public void PlaybackNavigationPreviousRequest_holds_manually_visited_set()
+    {
+        var visited = new HashSet<int>();
+        var sut = new PlaybackNavigationPreviousRequest(
+            null,
+            () => 2,
+            _ => { },
+            null,
+            false,
+            () => Task.FromResult(true),
+            visited,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            () => Task.CompletedTask);
+
+        Assert.Same(visited, sut.ManuallyVisitedTrackIndices);
+        Assert.Equal(2, sut.GetCurrentTrackIndex());
+    }
+
+    [Fact]
+    public void PlaybackStopRequest_ResetState_invokes_action()
+    {
+        var timerStopped = false;
+        var resetCount = 0;
+        var meta = new TrackMetadata { ScheduleId = 1 };
+        var cts = new CancellationTokenSource();
+        var sut = new PlaybackStopRequest(
+            10,
+            meta,
+            true,
+            false,
+            cts,
+            () => resetCount++,
+            () => timerStopped = true);
+
+        sut.ResetState();
+        sut.StopProgressTimer();
+
+        Assert.Equal(1, resetCount);
+        Assert.True(timerStopped);
+        Assert.True(sut.SkipMarkAsPlayed);
+        Assert.Same(meta, sut.TrackMetadataToMark);
     }
 }
