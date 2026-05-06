@@ -134,6 +134,17 @@ public sealed class BatteryOptimizationServiceTests
     }
 
     [Fact]
+    public async Task MarkModalAsShownAsync_swallows_when_exists_check_errors()
+    {
+        var settings = new FakeGeneralSettings { ThrowOnExists = true };
+        using var sut = new BatteryOptimizationService(TestLogging.CreateLogger(), settings, new FakeBatteryManager());
+
+        await sut.MarkModalAsShownAsync();
+
+        Assert.Empty(settings.SetCalls);
+    }
+
+    [Fact]
     public async Task MarkModalAsShownAsync_swallows_set_errors()
     {
         var settings = new FakeGeneralSettings { ThrowOnSet = true };
