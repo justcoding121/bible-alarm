@@ -49,4 +49,32 @@ public sealed class BiblePublicationStateItemTests
         Assert.True(a <= b);
         Assert.False(a >= b);
     }
+
+    [Fact]
+    public void Comparison_operators_when_left_has_greater_id()
+    {
+        var a = new BiblePublicationStateItem { Id = 9 };
+        var b = new BiblePublicationStateItem { Id = 4 };
+
+        Assert.True(a > b);
+        Assert.False(a < b);
+        Assert.True(a >= b);
+        Assert.False(a <= b);
+    }
+
+    [Fact]
+    public void CompareTo_object_non_item_delegates_like_null_other()
+    {
+        var a = new BiblePublicationStateItem { Id = 5 };
+
+        Assert.Equal(1, ((IComparable)a).CompareTo(new object()));
+    }
+
+    [Fact]
+    public void Equals_object_non_item_returns_false()
+    {
+        var a = new BiblePublicationStateItem { Id = 1 };
+
+        Assert.False(a.Equals("not-a-publication"));
+    }
 }
