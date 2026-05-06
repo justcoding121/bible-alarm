@@ -125,4 +125,14 @@ public sealed class FontServiceSizingHelpersTests
         var b = FontServiceSizingHelpers.GetAlarmMaxSizes(true, 1.2, DevicePlatform.Android, 1.0);
         Assert.Equal(a.MaxTime, b.MaxTime);
     }
+
+    [Fact]
+    public void GetAlarmMaxSizes_uses_windows_defaults_for_winui()
+    {
+        var t = FontServiceSizingHelpers.GetAlarmMaxSizes(isPhone: false, 1.0, DevicePlatform.WinUI, deviceSizeMultiplier: 1.0);
+
+        Assert.True(t.MaxTime > 0);
+        Assert.True(t.MaxMeridian > 0);
+        Assert.True(t.MaxBellIcon > 100);
+    }
 }

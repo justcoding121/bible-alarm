@@ -50,6 +50,15 @@ public sealed class FetchProgressReporterTests
     }
 
     [Fact]
+    public void SectionFetchProgressReporter_UpdateProgressText_and_SetIsVisible_no_op()
+    {
+        var sut = new SectionFetchProgressReporter(default);
+
+        sut.UpdateProgressText("ignored");
+        sut.SetIsVisible(false);
+    }
+
+    [Fact]
     public void ModalOverlayFetchProgressReporter_UpdateProgress_clamps_and_does_not_throw()
     {
         using var cts = new CancellationTokenSource();
