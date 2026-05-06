@@ -227,4 +227,40 @@ public sealed class PlaybackIndefiniteResolverTests
         Assert.Single(playlists.PreviousCalls);
         Assert.True(PlaybackIndefiniteResolver.IsSameBibleTrack(anchor, playlists.PreviousCalls[0]));
     }
+
+    [Fact]
+    public async Task ResolveNextPlayItemAsync_with_injection_bible_other_than_pre_anchor_delegates_to_playlist()
+    {
+        var playlists = new RecordingPlaylistService();
+        var sut = new PlaybackIndefiniteResolver(playlists);
+
+        var pre = Bible("E", "nwt", "40", "2");
+        var anchor = Bible("E", "nwt", "40", "5");
+        var session = SessionMusic();
+        var currentBible = Bible("E", "nwt", "40", "3");
+
+        var result = await sut.ResolveNextPlayItemAsync(currentBible, session, anchor, pre, null);
+
+        Assert.Same(playlists.NextPlayItemResponse, result);
+        Assert.Single(playlists.NextCalls);
+        Assert.Same(currentBible, playlists.NextCalls[0]);
+    }
+
+    [Fact]
+    public async Task ResolvePreviousPlayItemAsync_with_injection_bible_other_than_anchor_delegates_to_playlist()
+    {
+        var playlists = new RecordingPlaylistService();
+        var sut = new PlaybackIndefiniteResolver(playlists);
+
+        var pre = Bible("E", "nwt", "40", "2");
+        var anchor = Bible("E", "nwt", "40", "5");
+        var session = SessionMusic();
+        var currentBible = Bible("E", "nwt", "40", "3");
+
+        var result = await sut.ResolvePreviousPlayItemAsync(currentBible, session, anchor, pre, null);
+
+        Assert.Same(playlists.PreviousPlayItemResponse, result);
+        Assert.Single(playlists.PreviousCalls);
+        Assert.Same(currentBible, playlists.PreviousCalls[0]);
+    }
 }
