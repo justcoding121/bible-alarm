@@ -17,11 +17,19 @@ public sealed class DefaultCarScreenEffectTests
         public ScheduleTrackMetadata CarPlayMeta { get; init; } = new();
         public ScheduleTrackMetadata RotationMeta { get; init; } = new();
 
+        public Exception? ThrowOnCarPlay { get; init; }
+
+        public Exception? ThrowOnRotation { get; init; }
+
         public Task<ScheduleTrackMetadata> GetNextScheduleTrackMetaDataAsync() =>
-            Task.FromResult(CarPlayMeta);
+            ThrowOnCarPlay != null
+                ? Task.FromException<ScheduleTrackMetadata>(ThrowOnCarPlay)
+                : Task.FromResult(CarPlayMeta);
 
         public Task<ScheduleTrackMetadata> GetNextScheduleInRotationMetadataAsync() =>
-            Task.FromResult(RotationMeta);
+            ThrowOnRotation != null
+                ? Task.FromException<ScheduleTrackMetadata>(ThrowOnRotation)
+                : Task.FromResult(RotationMeta);
 
         public bool ValidateScheduleIdExists(int scheduleId) => true;
 
@@ -108,5 +116,37 @@ public sealed class DefaultCarScreenEffectTests
         Assert.Equal("Artist", action.Artist);
         Assert.Null(action.Album);
         Assert.Null(action.ArtworkUrl);
+    }
+
+    [Fact]
+    public async Task HandleSetCarPlayScreen_when_service_throws_does_not_dispatch_metadata()
+    {
+        var svc = new StubDefaultScheduleService
+        {
+            ThrowOnCarPlay = new InvalidOperationException("car play metadata failed"),
+        };
+        var sut = new DefaultCarScreenEffect(svc);
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleSetCarPlayScreen(new SetCarPlayScreenAction(), dispatcher);
+
+        await Task.Delay(300);
+        Assert.DoesNotContain(dispatcher.Dispatched, a => a is SetDefaultScheduleMetadataAction);
+    }
+
+    [Fact]
+    public async Task HandleRotateDefaultSchedule_when_service_throws_does_not_dispatch_metadata()
+    {
+        var svc = new StubDefaultScheduleService
+        {
+            ThrowOnRotation = new InvalidOperationException("rotation metadata failed"),
+        };
+        var sut = new DefaultCarScreenEffect(svc);
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleRotateDefaultSchedule(new RotateDefaultScheduleAction(), dispatcher);
+
+        await Task.Delay(300);
+        Assert.DoesNotContain(dispatcher.Dispatched, a => a is SetDefaultScheduleMetadataAction);
     }
 }
