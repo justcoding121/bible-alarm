@@ -19,6 +19,41 @@ public sealed class CloneExtensionsTests
         public RelayCommand Save { get; set; } = null!;
     }
 
+    private sealed class ParentDto
+    {
+        public Dto Child { get; set; } = new();
+    }
+
+    [Fact]
+    public void DeepClone_copies_nested_dto_graph()
+    {
+        var original = new ParentDto { Child = new Dto { Name = "nested", Id = 42 } };
+
+        var clone = original.DeepClone();
+
+        Assert.NotSame(original, clone);
+        Assert.NotSame(original.Child, clone.Child);
+        Assert.Equal(original.Child.Name, clone.Child.Name);
+        Assert.Equal(original.Child.Id, clone.Child.Id);
+    }
+
+    [Fact]
+    public void DeepClone_copies_list_elements()
+    {
+        var original = new List<Dto>
+        {
+            new() { Name = "first", Id = 1 },
+            new() { Name = "second", Id = 2 },
+        };
+
+        var clone = original.DeepClone();
+
+        Assert.NotSame(original, clone);
+        Assert.Equal(2, clone.Count);
+        Assert.NotSame(original[0], clone[0]);
+        Assert.Equal("second", clone[1].Name);
+    }
+
     [Fact]
     public void DeepClone_copies_values_and_new_instance()
     {

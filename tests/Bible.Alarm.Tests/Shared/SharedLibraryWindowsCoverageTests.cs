@@ -273,6 +273,16 @@ public sealed class SharedLibraryWindowsCoverageTests
     }
 
     [Fact]
+    public void JwSourceHelper_detects_music_publications_and_bible_seed_set()
+    {
+        Assert.False(JwSourceHelper.IsMusicPublicationCode(null));
+        Assert.False(JwSourceHelper.IsMusicPublicationCode("  "));
+        Assert.False(JwSourceHelper.IsMusicPublicationCode(AppConstants.Media.MediatorPublicationCodeMakingMusic));
+        Assert.True(JwSourceHelper.IsMusicPublicationCode(AppConstants.Media.MusicPublicationCodeOsg));
+        Assert.Contains(AppConstants.Media.BiblePublicationCodeNwt, JwSourceHelper.BiblePublicationCodes);
+    }
+
+    [Fact]
     public void Language_orders_by_code_and_equals_by_id()
     {
         var en = new Language { Id = 1, LanguageCode = "E", Direction = "ltr" };
