@@ -168,6 +168,37 @@ public sealed class PlaybackSessionContextInitializerTests
     }
 
     [Fact]
+    public async Task InitializeAsync_sets_anchor_and_pre_null_when_playlist_has_only_music()
+    {
+        var musicMeta = new TrackMetadata
+        {
+            ScheduleId = 1,
+            IsBibleContent = false,
+            PublicationCode = "song",
+            TrackCode = "1",
+            LookUpPath = "?m",
+        };
+        var playlist = new List<AudioPlayerTrack> { Track(musicMeta) };
+
+        var sut = new PlaybackSessionContextInitializer(new StubPlaylistService());
+
+        PlayItem? sessionMusic = null;
+        TrackMetadata? anchor = null;
+        TrackMetadata? pre = null;
+
+        await sut.InitializeAsync(
+            playlist,
+            pi => sessionMusic = pi,
+            m => anchor = m,
+            m => pre = m);
+
+        Assert.NotNull(sessionMusic);
+        Assert.Same(musicMeta, sessionMusic.Metadata);
+        Assert.Null(anchor);
+        Assert.Null(pre);
+    }
+
+    [Fact]
     public async Task InitializeAsync_swallows_errors_resolving_pre_anchor()
     {
         var bible = BibleAnchorMeta();
