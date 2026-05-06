@@ -101,4 +101,20 @@ public sealed class FetchProgressReporterTests
         sut.UpdateProgressText("ignored");
         sut.SetIsVisible(true);
     }
+
+    [Fact]
+    public void ListItemFetchProgressReporter_UpdateProgress_without_callback_clamps_and_does_not_throw()
+    {
+        var sut = new ListItemFetchProgressReporter("ctx", "id", onProgressReported: null);
+
+        var ex = Record.Exception(() =>
+        {
+            sut.UpdateProgress(0);
+            sut.UpdateProgress(1);
+            sut.UpdateProgress(1.25);
+            sut.UpdateProgress(-0.1);
+        });
+
+        Assert.Null(ex);
+    }
 }
