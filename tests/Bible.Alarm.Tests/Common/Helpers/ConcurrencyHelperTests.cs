@@ -113,6 +113,26 @@ public sealed class ConcurrencyHelperTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_GenericWithToken_ReportsDisposedReleaseViaCallbackWhenSemaphoreDisposedEarly()
+    {
+        var gate = new SemaphoreSlim(1);
+        ObjectDisposedException? seen = null;
+
+        var result = await ConcurrencyHelper.ExecuteAsync(
+            gate,
+            async () =>
+            {
+                gate.Dispose();
+                await Task.CompletedTask;
+                return 99;
+            },
+            onDisposedException: ex => seen = ex);
+
+        Assert.Equal(99, result);
+        Assert.NotNull(seen);
+    }
+
+    [Fact]
     public async Task ExecuteWithTimeoutAsync_ReturnsNull_WhenLockUnavailable()
     {
         using var gate = new SemaphoreSlim(0);

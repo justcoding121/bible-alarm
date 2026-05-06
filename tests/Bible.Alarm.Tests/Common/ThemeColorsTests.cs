@@ -27,6 +27,8 @@ public sealed class ThemeColorsTests
 
         Assert.Equal(ThemeColors.PageBackground.Dark, ThemeColors.PageBackground.Get(AppTheme.Dark));
         Assert.Equal(ThemeColors.CardBackground.Light, ThemeColors.CardBackground.Get(AppTheme.Light));
+        Assert.Equal(ThemeColors.ControlBackground.Dark, ThemeColors.ControlBackground.Get(AppTheme.Dark));
+        Assert.Equal(ThemeColors.SelectedItemBackground.Light, ThemeColors.SelectedItemBackground.Get(AppTheme.Light));
 
         Assert.Equal(ThemeColors.TextPrimary.Dark, ThemeColors.TextPrimary.Get(AppTheme.Dark));
         Assert.Equal(ThemeColors.TextSecondary.Light, ThemeColors.TextSecondary.Get(AppTheme.Light));
@@ -44,6 +46,7 @@ public sealed class ThemeColorsTests
     public void Day_calendar_colors_track_theme()
     {
         Assert.Equal(ThemeColors.Day.EnabledText.Dark, ThemeColors.Day.EnabledText.Get(AppTheme.Dark));
+        Assert.Equal(ThemeColors.Day.EnabledText.Light, ThemeColors.Day.EnabledText.Get(AppTheme.Light));
         Assert.Equal(ThemeColors.Day.CalendarMutedText.Light, ThemeColors.Day.CalendarMutedText.Get(AppTheme.Light));
         Assert.Equal(ThemeColors.Day.EnabledBackground.Dark, ThemeColors.Day.EnabledBackground.Get(AppTheme.Dark));
         Assert.Equal(ThemeColors.Day.DisabledBackground.Light, ThemeColors.Day.DisabledBackground.Get(AppTheme.Light));
