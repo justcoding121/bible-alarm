@@ -1,13 +1,18 @@
 #nullable enable
 
 using AutoMapper;
+using Bible.Alarm.Services.Bootstrap;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.AudioPlayerHelpers;
 using Bible.Alarm.Services.Media.Playback;
 using Bible.Alarm.Services.Scheduler;
+using Bible.Alarm.Stores.Effects;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels;
+using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
+using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using Bible.Alarm.ViewModels.Shared;
@@ -214,5 +219,83 @@ public sealed class DependencyBundleRecordsTests
         Assert.Equal(9, sut.ScheduleId);
         Assert.Same(codes, sut.Codes);
         Assert.Equal(TimeSpan.FromMinutes(2), sut.FinishedDuration);
+    }
+
+    [Fact]
+    public void ScheduleViewModelDeps_primary_ctor_round_trips()
+    {
+        var sut = new ScheduleViewModelDeps(
+            null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        Assert.Null(sut.Logger);
+        Assert.Null(sut.ScheduleStateChangeHandler);
+    }
+
+    [Fact]
+    public void MusicPublicationSelectionViewModelDeps_primary_ctor_round_trips()
+    {
+        var sut = new MusicPublicationSelectionViewModelDeps(
+            null!, null!, null!, null!, null!, null!);
+
+        Assert.Null(sut.MediaService);
+        Assert.Null(sut.ServiceProvider);
+    }
+
+    [Fact]
+    public void MusicSelectionContainerViewModelDeps_primary_ctor_round_trips()
+    {
+        var sut = new MusicSelectionContainerViewModelDeps(
+            null!, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        Assert.Null(sut.ToastService);
+        Assert.Null(sut.ScheduleSelectionService);
+    }
+
+    [Fact]
+    public void BiblePublicationSelectionViewModelDeps_primary_ctor_round_trips()
+    {
+        var sut = new BiblePublicationSelectionViewModelDeps(
+            null!, null!, null!, null!, null!, null!);
+
+        Assert.Null(sut.BiblePublicationService);
+        Assert.Null(sut.NavigationService);
+    }
+
+    [Fact]
+    public void ScheduleStatePopulatorDeps_primary_ctor_round_trips()
+    {
+        var sut = new ScheduleStatePopulatorDeps(null!, null!, null!, null!, null!, null!, null!);
+
+        Assert.Null(sut.ScopeFactory);
+        Assert.Null(sut.Mapper);
+    }
+
+    [Fact]
+    public void ScheduleStateServiceDeps_primary_ctor_round_trips()
+    {
+        var sut = new ScheduleStateServiceDeps(
+            null!, null!, null!, null!, null!, null!, null!, null!);
+
+        Assert.Null(sut.AlarmService);
+        Assert.Null(sut.ServiceProvider);
+    }
+
+    [Fact]
+    public void BootstrapOrchestratorDeps_primary_ctor_round_trips()
+    {
+        var sut = new BootstrapOrchestratorDeps(null!, null!, null!, null!, null!, null!, null!);
+
+        Assert.Null(sut.PlatformBootstrapService);
+        Assert.Null(sut.LanguageNameService);
+        Assert.Null(sut.CategoryNameService);
+    }
+
+    [Fact]
+    public void ScheduleEffectsOptionalDeps_default_ctor_sets_nulls()
+    {
+        var sut = new ScheduleEffectsOptionalDeps();
+
+        Assert.Null(sut.BiblePublicationService);
+        Assert.Null(sut.State);
     }
 }
