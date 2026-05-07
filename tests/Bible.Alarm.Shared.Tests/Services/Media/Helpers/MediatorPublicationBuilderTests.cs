@@ -161,4 +161,172 @@ public sealed class MediatorPublicationBuilderTests
         Assert.Null(sut.GetPublicationCodeForDb(null!));
         Assert.Equal("", sut.GetPublicationCodeForDb(""));
     }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_Uses_Publication_Code_As_Name_When_Publication_Name_Null()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var pubCode = AppConstants.Media.BiblePublicationCodeDramasGoodNews;
+        foreach (var code in JwSourceHelper.GetCategoryCodesForPublication(pubCode))
+        {
+            if (await db.Categories.AnyAsync(c => c.CategoryCode == code))
+            {
+                continue;
+            }
+
+            db.Categories.Add(new Category { CategoryCode = code });
+        }
+
+        var lang = new Language
+        {
+            LanguageCode = "MED-NULL-NAME",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sut = new MediatorPublicationBuilder(TestLogging.CreateLogger());
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildMediatorPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: null,
+            Language: lang,
+            Tracks: [MakeTrack("1", "https://cdn/labeled-by-code.mp3")],
+            CancellationToken: CancellationToken.None)));
+
+        var persisted = await db.BiblePublications.SingleAsync(p =>
+            p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+        Assert.Equal(pubCode, persisted.Name);
+    }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_MakingMusic_Sets_IsMusic_False_Despite_Music_Categories()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var pubCode = AppConstants.Media.MediatorPublicationCodeMakingMusic;
+        foreach (var code in JwSourceHelper.GetCategoryCodesForPublication(pubCode))
+        {
+            if (await db.Categories.AnyAsync(c => c.CategoryCode == code))
+            {
+                continue;
+            }
+
+            db.Categories.Add(new Category { CategoryCode = code });
+        }
+
+        var lang = new Language
+        {
+            LanguageCode = "MED-MKMV",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sut = new MediatorPublicationBuilder(TestLogging.CreateLogger());
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildMediatorPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "Making music",
+            Language: lang,
+            Tracks: [MakeTrack("1", "https://cdn/making-music.mp3")],
+            CancellationToken: CancellationToken.None)));
+
+        var persisted = await db.BiblePublications.SingleAsync(p =>
+            p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+
+        Assert.False(persisted.IsMusic);
+    }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_Update_Adds_Second_Category_When_It_Appears_In_Database()
+    {
+        var pubCode = AppConstants.Media.BiblePublicationCodeSeriesBJFLessons;
+        var categoryCodes = JwSourceHelper.GetCategoryCodesForPublication(pubCode)
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToList();
+        Assert.True(categoryCodes.Count >= 2);
+
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        db.Categories.Add(new Category { CategoryCode = categoryCodes[0] });
+        var lang = new Language
+        {
+            LanguageCode = "MED-DUAL-CAT",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sut = new MediatorPublicationBuilder(TestLogging.CreateLogger());
+        var tracks1 = new List<BiblePublicationTrack> { MakeTrack("1", "https://cdn/bjf-a.mp3") };
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildMediatorPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "BJF round 1",
+            Language: lang,
+            Tracks: tracks1,
+            CancellationToken: CancellationToken.None)));
+
+        db.Categories.Add(new Category { CategoryCode = categoryCodes[1] });
+        await db.SaveChangesAsync();
+
+        var tracks2 = new List<BiblePublicationTrack> { MakeTrack("2", "https://cdn/bjf-b.mp3") };
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildMediatorPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "BJF round 2",
+            Language: lang,
+            Tracks: tracks2,
+            CancellationToken: CancellationToken.None)));
+
+        var persisted = await db.BiblePublications
+            .Include(p => p.BiblePublicationCategories)
+            .ThenInclude(bpc => bpc.Category)
+            .SingleAsync(p => p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+
+        Assert.Equal(2, persisted.BiblePublicationCategories.Count);
+        var linked = persisted.BiblePublicationCategories
+            .Select(bpc => bpc.Category!.CategoryCode)
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToList();
+        Assert.Equal(categoryCodes, linked);
+    }
 }
