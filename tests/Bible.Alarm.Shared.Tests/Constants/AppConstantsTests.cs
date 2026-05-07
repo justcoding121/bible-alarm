@@ -1954,30 +1954,59 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_media_cache_service_templates()
+    public void Logging_media_cache_service_diagnostics_exact_strings()
     {
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.MediaCacheDiagnosticsLog.SkippingCacheSetupInvalidScheduleId);
-
-        var skipCached = AppConstants.Logging.MediaCacheDiagnosticsLog.SkippingDownloadCachedFileExists;
-        Assert.Contains("{LookUpPath}", skipCached);
-        Assert.Contains("{Url}", skipCached);
-
-        var failedDl = AppConstants.Logging.MediaCacheDiagnosticsLog.FailedToDownloadTrackContinuingNext;
-        Assert.Contains("{Url}", failedDl);
-        Assert.Contains("{LookUpPath}", failedDl);
-        Assert.Contains("{ScheduleId}", failedDl);
-
-        var usingCached = AppConstants.Logging.MediaCacheDiagnosticsLog.UsingCachedFileForTrack;
-        Assert.Contains("{CachedPath}", usingCached);
-
-        Assert.Contains("{LookUpPath}", AppConstants.Logging.MediaCacheDiagnosticsLog.StreamingTrackFromCdnNotCached);
-        Assert.Contains(
-            "{LookUpPath}",
-            AppConstants.Logging.MediaCacheDiagnosticsLog.CdnReturnedNotFoundRefetchingSectionPub);
+        Assert.Equal(
+            "Skipping cache setup for invalid schedule ID: {ScheduleId}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.SkippingCacheSetupInvalidScheduleId);
 
         Assert.Equal(
             "An exception happened when downloading media files for caching.",
             AppConstants.Logging.MediaCacheDiagnosticsLog.ExceptionDownloadingMediaFilesForCaching);
+
+        Assert.Equal(
+            "Skipping download - cached file exists for lookup path: {LookUpPath}, URL: {Url}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.SkippingDownloadCachedFileExists);
+
+        Assert.Equal(
+            "No internet - skipping download for track: LookUpPath={LookUpPath}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.NoInternetSkippingDownloadForTrack);
+
+        Assert.Equal(
+            "Failed to download track: {Url} (lookup path: {LookUpPath}) for schedule {ScheduleId}. Continuing with next track.",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.FailedToDownloadTrackContinuingNext);
+
+        Assert.Equal(
+            "Exception downloading track: {Url} (lookup path: {LookUpPath}) for schedule {ScheduleId}. Continuing with next track.",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.ExceptionDownloadingTrackContinuingNext);
+
+        Assert.Equal(
+            "Invalid schedule ID in PlayItem metadata: {ScheduleId}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.InvalidScheduleIdInPlayItemMetadata);
+
+        Assert.Equal(
+            "Using cached file for track: LookUpPath={LookUpPath}, URL={Url}, Path={CachedPath}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.UsingCachedFileForTrack);
+
+        Assert.Equal(
+            "Track not cached and no internet. Cannot play track: LookUpPath={LookUpPath}, URL={Url}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.TrackNotCachedNoInternetCannotPlay);
+
+        Assert.Equal(
+            "Streaming track from CDN (not cached): LookUpPath={LookUpPath}, URL={Url}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.StreamingTrackFromCdnNotCached);
+
+        Assert.Equal(
+            "No internet - skipping background cache for track: LookUpPath={LookUpPath}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.NoInternetSkippingBackgroundCache);
+
+        Assert.Equal(
+            "Background cache failed for track: LookUpPath={LookUpPath}, URL={Url}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.BackgroundCacheFailedForTrack);
+
+        Assert.Equal(
+            "CDN returned not found for track; refetching section/pub: LookUpPath={LookUpPath}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.CdnReturnedNotFoundRefetchingSectionPub);
 
         Assert.Equal(
             "Refetch did not yield a new URL; failing so UI can show error",
