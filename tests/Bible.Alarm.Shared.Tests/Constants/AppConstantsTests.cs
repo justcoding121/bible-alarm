@@ -466,6 +466,78 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_music_cascade_handle_async_branch_messages_exact_strings()
+    {
+        Assert.Equal(
+            "MusicCascadeHandler: HandleAsync - No publication code, calling HandleLanguageCascadeAsync",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncNoPublicationCodeCallingLanguageCascade);
+
+        Assert.Equal(
+            "MusicCascadeHandler: HandleAsync - Sectioned publication but no section code, calling HandlePublicationCascadeAsync",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncSectionedNoSectionCodeCallingPublicationCascade);
+
+        Assert.Equal(
+            "MusicCascadeHandler: HandleAsync - Sectioned publication but no track code, calling HandleSectionCascadeAsync",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncSectionedNoTrackCodeCallingSectionCascade);
+
+        Assert.Equal(
+            "MusicCascadeHandler: HandleAsync - Flat publication but no track code, calling HandleFlatPublicationCascadeAsync",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncFlatNoTrackCodeCallingFlatCascade);
+
+        Assert.Equal(
+            "MusicCascadeHandler: HandleAsync - Everything is set, calling RefreshModalCountsIfNeededAsync",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncEverythingSetCallingRefreshModalCounts);
+    }
+
+    [Fact]
+    public void Logging_music_cascade_modal_refresh_flat_language_publication_section_exact_strings()
+    {
+        Assert.Equal(
+            "MusicCascadeHandler: Refreshing modal counts. PublicationCount={PublicationCount}, SectionCount={SectionCount}, PublicationCode={PublicationCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.RefreshingModalCounts);
+
+        Assert.Equal(
+            "MusicCascadeHandler: Error refreshing modal counts",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ErrorRefreshingModalCounts);
+
+        Assert.Equal(
+            "MusicCascadeHandler: Flat publication cascade - publication={PublicationCode}, language={LanguageCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.FlatPublicationCascade);
+
+        Assert.Equal(
+            "MusicCascadeHandler: Publication not found in database: {PublicationCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationNotFoundInDatabase);
+
+        Assert.Equal(
+            "MusicCascadeHandler: No valid track found for publication={PublicationCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication);
+
+        Assert.Equal(
+            "MusicCascadeHandler: Language cascade - language={LanguageCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.LanguageCascade);
+
+        Assert.Equal(
+            "MusicCascadeHandler: Failed to catalog publication={PublicationCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.FailedToCatalogPublication);
+
+        Assert.Equal(
+            "MusicCascadeHandler: No publication found for language={LanguageCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.NoPublicationFoundForLanguage);
+
+        Assert.Equal(
+            "MusicCascadeHandler: Publication not found: {PublicationCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationNotFound);
+
+        Assert.Equal(
+            "MusicCascadeHandler: Section cascade - section={SectionCode}, publication={PublicationCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.SectionCascade);
+
+        Assert.Equal(
+            "MusicCascadeHandler: No tracks found for sectionCode={SectionCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.NoTracksFoundForSection);
+    }
+
+    [Fact]
     public void Logging_category_auto_populate_and_bible_publication_cascade_templates()
     {
         Assert.StartsWith(
