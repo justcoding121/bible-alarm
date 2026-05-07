@@ -196,8 +196,23 @@ public sealed class AppConstantsTests
         Assert.Equal(keys.Length, keys.Distinct(StringComparer.Ordinal).Count());
 
         Assert.Equal("AlarmSeeded", AppConstants.GeneralSettingsKeys.AlarmSeeded);
+        Assert.Equal("LastPlayedScheduleId", AppConstants.GeneralSettingsKeys.LastPlayedScheduleId);
+        Assert.Equal("ReviewRequested", AppConstants.GeneralSettingsKeys.ReviewRequested);
+        Assert.Equal("DismissCount", AppConstants.GeneralSettingsKeys.DismissCount);
+        Assert.Equal("FirstDismissalDate", AppConstants.GeneralSettingsKeys.FirstDismissalDate);
+        Assert.Equal("AppInstallDate", AppConstants.GeneralSettingsKeys.AppInstallDate);
+        Assert.Equal("ReviewAppOpenCount", AppConstants.GeneralSettingsKeys.ReviewAppOpenCount);
+        Assert.Equal("ReviewFirstOpenDate", AppConstants.GeneralSettingsKeys.ReviewFirstOpenDate);
+        Assert.Equal("ReviewLastCountedAppOpenAtUtc", AppConstants.GeneralSettingsKeys.ReviewLastCountedAppOpenAtUtc);
+        Assert.Equal("ReviewAttemptCount", AppConstants.GeneralSettingsKeys.ReviewAttemptCount);
         Assert.Equal("ReviewLastAttemptAtUtc", AppConstants.GeneralSettingsKeys.ReviewLastAttemptAtUtc);
+        Assert.Equal("ReviewLastEligibleAtUtc", AppConstants.GeneralSettingsKeys.ReviewLastEligibleAtUtc);
+        Assert.Equal("ReviewCompletedOrFinalized", AppConstants.GeneralSettingsKeys.ReviewCompletedOrFinalized);
+        Assert.Equal("ReviewStateMigrated", AppConstants.GeneralSettingsKeys.ReviewStateMigrated);
         Assert.Equal("MediaIndexVersion", AppConstants.GeneralSettingsKeys.MediaIndexVersion);
+        Assert.Equal(
+            "AndroidBatteryOptimizationExclusionPromptShown",
+            AppConstants.GeneralSettingsKeys.AndroidBatteryOptimizationExclusionPromptShown);
     }
 
     [Fact]
@@ -1648,14 +1663,20 @@ public sealed class AppConstantsTests
         Assert.Equal(".m4a", AppConstants.Media.MediaM4aFileExtension);
         Assert.Equal(".aac", AppConstants.Media.MediaAacFileExtension);
 
-        Assert.Contains("BibleAlarm", AppConstants.Media.MediaHttpUserAgent, StringComparison.Ordinal);
+        Assert.Equal(
+            "BibleAlarm/1.0 (compatible; iOS; MAUI)",
+            AppConstants.Media.MediaHttpUserAgent);
         Assert.Equal("*/*", AppConstants.Media.HttpAcceptAny);
 
         Assert.Equal("403", AppConstants.Media.DownloadPermanentFailureHttpFragments.StatusCode403);
         Assert.Equal("Not Found", AppConstants.Media.DownloadPermanentFailureHttpFragments.NotFound);
 
-        Assert.Contains("Mozilla", AppConstants.Media.CatalogerHttpUserAgent, StringComparison.Ordinal);
-        Assert.Contains("application/json", AppConstants.Media.CatalogerHttpAcceptHeader);
+        Assert.Equal(
+            "Mozilla/5.0 (compatible; curl/8.0.1)",
+            AppConstants.Media.CatalogerHttpUserAgent);
+        Assert.Equal(
+            "application/json, text/plain, */*",
+            AppConstants.Media.CatalogerHttpAcceptHeader);
 
         Assert.Equal("MP3", AppConstants.Media.MediaStreamFormatMp3);
         Assert.Equal("MP4", AppConstants.Media.MediaStreamFormatMp4);
