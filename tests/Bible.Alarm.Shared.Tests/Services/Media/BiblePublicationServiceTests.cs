@@ -961,6 +961,137 @@ public sealed class BiblePublicationServiceTests
     }
 
     [Fact]
+    public async Task GetPublicationCategoryInfoAsync_Reads_From_No_Language_Shell_When_Languaged_Publication_Missing()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var bibleCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryBible };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(bibleCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = "bps-no-lang-shell",
+                    Name = "Shell without language row",
+                    LanguageId = null,
+                    Language = null,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = bibleCat, CategoryId = bibleCat.Id }
+                    ],
+                    Sections = [],
+                    Tracks = [],
+                    IsVideo = false,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            var info = await sut.GetPublicationCategoryInfoAsync("E", "bps-no-lang-shell");
+
+            Assert.NotNull(info);
+            Assert.Equal(AppConstants.Media.BiblePublicationCategoryBible, info!.Value.CategoryCode);
+            Assert.False(info.Value.IsMusic);
+        }
+    }
+
+    [Fact]
+    public async Task GetByLanguageAndCodeWithSectionsAsync_PreCanceledToken_Evicts_Cache_Then_Unblocked_Call_Succeeds()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var bibleCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryBible };
+                var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+                seed.Categories.Add(bibleCat);
+                seed.Languages.Add(lang);
+                await seed.SaveChangesAsync();
+
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = "bps-pre-cancel-retry",
+                    Name = "Cancel then OK",
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = bibleCat, CategoryId = bibleCat.Id }
+                    ],
+                    Sections = [],
+                    Tracks = [],
+                    IsVideo = false,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationService(counting, TestLogging.CreateLogger());
+
+            using var canceled = new CancellationTokenSource();
+            canceled.Cancel();
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                sut.GetByLanguageAndCodeWithSectionsAsync("E", "bps-pre-cancel-retry", canceled.Token));
+
+            Assert.Contains("Error getting BiblePublication with Sections", ex.Message, StringComparison.Ordinal);
+            Assert.NotNull(ex.InnerException);
+
+            var loaded = await sut.GetByLanguageAndCodeWithSectionsAsync("E", "bps-pre-cancel-retry");
+            Assert.NotNull(loaded);
+            Assert.Equal("Cancel then OK", loaded!.Name);
+            Assert.True(counting.CreateScopeCallCount >= 2);
+        }
+    }
+
+    [Fact]
+    public async Task GetByLanguageAndCodeWithTracksAsync_Wraps_Scope_Failure()
+    {
+        var sut = new BiblePublicationService(new ThrowingScopeFactory(), TestLogging.CreateLogger());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetByLanguageAndCodeWithTracksAsync("E", "any"));
+
+        Assert.Contains("Error getting BiblePublication with Tracks", ex.Message, StringComparison.Ordinal);
+        Assert.IsType<DivideByZeroException>(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task GetDistinctLanguagesAsync_Wraps_Scope_Failure()
+    {
+        var sut = new BiblePublicationService(new ThrowingScopeFactory(), TestLogging.CreateLogger());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetDistinctLanguagesAsync());
+
+        Assert.Contains("distinct Languages", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.IsType<DivideByZeroException>(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task GetPublicationCodesInCategoryOrderAsync_Wraps_Scope_Failure()
+    {
+        var sut = new BiblePublicationService(new ThrowingScopeFactory(), TestLogging.CreateLogger());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetPublicationCodesInCategoryOrderAsync("E", AppConstants.Media.BiblePublicationCategoryBible));
+
+        Assert.Contains("category order", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var innerIo = Assert.IsType<InvalidOperationException>(ex.InnerException);
+        Assert.IsType<DivideByZeroException>(innerIo.InnerException);
+    }
+
+    [Fact]
     public void Dispose_Is_Idempotent()
     {
         var (_, counting, connection) = CreateFactorySync();
