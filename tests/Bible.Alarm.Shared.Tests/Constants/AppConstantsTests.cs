@@ -126,6 +126,53 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void GeneralSettingsKeys_preferences_keys_are_non_empty_stable_and_unique()
+    {
+        var keys = new[]
+        {
+            AppConstants.GeneralSettingsKeys.AlarmSeeded,
+            AppConstants.GeneralSettingsKeys.LastPlayedScheduleId,
+            AppConstants.GeneralSettingsKeys.ReviewRequested,
+            AppConstants.GeneralSettingsKeys.DismissCount,
+            AppConstants.GeneralSettingsKeys.FirstDismissalDate,
+            AppConstants.GeneralSettingsKeys.AppInstallDate,
+            AppConstants.GeneralSettingsKeys.ReviewAppOpenCount,
+            AppConstants.GeneralSettingsKeys.ReviewFirstOpenDate,
+            AppConstants.GeneralSettingsKeys.ReviewLastCountedAppOpenAtUtc,
+            AppConstants.GeneralSettingsKeys.ReviewAttemptCount,
+            AppConstants.GeneralSettingsKeys.ReviewLastAttemptAtUtc,
+            AppConstants.GeneralSettingsKeys.ReviewLastEligibleAtUtc,
+            AppConstants.GeneralSettingsKeys.ReviewCompletedOrFinalized,
+            AppConstants.GeneralSettingsKeys.ReviewStateMigrated,
+            AppConstants.GeneralSettingsKeys.MediaIndexVersion,
+            AppConstants.GeneralSettingsKeys.AndroidBatteryOptimizationExclusionPromptShown,
+        };
+
+        Assert.All(keys, static k => Assert.False(string.IsNullOrWhiteSpace(k)));
+        Assert.Equal(keys.Length, keys.Distinct(StringComparer.Ordinal).Count());
+
+        Assert.Equal("AlarmSeeded", AppConstants.GeneralSettingsKeys.AlarmSeeded);
+        Assert.Equal("ReviewLastAttemptAtUtc", AppConstants.GeneralSettingsKeys.ReviewLastAttemptAtUtc);
+        Assert.Equal("MediaIndexVersion", AppConstants.GeneralSettingsKeys.MediaIndexVersion);
+    }
+
+    [Fact]
+    public void Logging_serilog_templates_environment_and_fallback_tokens()
+    {
+        Assert.Contains("{Timestamp:", AppConstants.Logging.ConsoleOutputTemplate, StringComparison.Ordinal);
+        Assert.Contains("{Level:", AppConstants.Logging.ConsoleOutputTemplate, StringComparison.Ordinal);
+        Assert.Contains("{Timestamp:", AppConstants.Logging.FileOutputTemplate, StringComparison.Ordinal);
+        Assert.EndsWith("{Exception}", AppConstants.Logging.FileOutputTemplate, StringComparison.Ordinal);
+
+        Assert.Equal("DEBUG", AppConstants.Logging.DebugEnvironment);
+        Assert.Equal("AssemblyVersionNotFound", AppConstants.Logging.AssemblyVersionFallback);
+        Assert.Equal("Unknown error", AppConstants.Logging.UnknownErrorFallback);
+
+        Assert.Contains("alarm", AppConstants.Logging.AlarmDiagnostics.RingingAlarmFailed, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("review", AppConstants.Logging.AlarmDiagnostics.ReviewRequestedFailed, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
