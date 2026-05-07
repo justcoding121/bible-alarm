@@ -542,6 +542,69 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_schedule_display_name_music_and_bible_helper_templates()
+    {
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicSectionNameForPublicationSection);
+        Assert.Contains(
+            "{SectionCode}",
+            AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.MusicSectionNameNotFoundForPublicationSection);
+
+        Assert.Contains(
+            "{MusicSectionName}",
+            AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.PopulatedMusicSectionNameForPublicationSection);
+
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.NoLanguagePublicationKeepingLanguageNameForDisplay);
+        Assert.Contains(
+            "{LanguageCode}",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.NoLanguagePublicationKeepingLanguageNameForDisplay);
+
+        Assert.Contains(
+            "{CategoryId}",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.PopulatedBiblePublicationCategoryIdAndCategoryName);
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.PopulatedBiblePublicationCategoryNameFromPublicationCode);
+
+        var melody = AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.FailedToResolveMelodyTrackTitle;
+        Assert.Contains("{PublicationCode}", melody);
+        Assert.Contains("{TrackCode}", melody);
+    }
+
+    [Fact]
+    public void Logging_default_schedule_service_foreground_notification_and_download_templates()
+    {
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInState);
+        Assert.Contains(
+            "{Index}",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleInRotationRotatedToScheduleIndex);
+        Assert.Contains(
+            "{Title}",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.SavedDefaultScheduleMetadataToPreferences);
+
+        Assert.Contains(
+            "{ArtworkPath}",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.SavedDefaultScheduleArtworkToPathAndSize);
+        Assert.Contains(
+            "{HasArtwork}",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.ReturningTrackMetadataForSchedule);
+
+        Assert.Equal(
+            "Failed to get app icon for alarm notification",
+            AppConstants.Logging.AndroidForegroundNotificationDiagnosticsLog.FailedToGetAppIconForAlarmNotification);
+
+        Assert.Contains("{Message}", AppConstants.Logging.DownloadDiagnosticsLog.SkippingRetryNetworkConnectivityFailure);
+        Assert.Contains("{RetryCount}", AppConstants.Logging.DownloadDiagnosticsLog.RetryingDownloadAttemptAfterDelay);
+        Assert.Contains("{AlternativeUrl}", AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadPrimaryTryingAlternative);
+        Assert.Contains("{Url}", AppConstants.Logging.DownloadDiagnosticsLog.HeadRequestFailedFallingBackToGet);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
