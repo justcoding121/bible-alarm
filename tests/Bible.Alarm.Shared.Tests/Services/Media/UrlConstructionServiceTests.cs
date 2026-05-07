@@ -11,12 +11,26 @@ using Bible.Alarm.Shared.Services.Media;
 using Bible.Alarm.Shared.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Shared.Tests;
 
 public sealed class UrlConstructionServiceTests : IAsyncLifetime
 {
     private readonly SqliteConnection connection = new("Data Source=:memory:");
+
+    private sealed class CountingScopeFactory(MediaTestScopeFactory inner) : IServiceScopeFactory
+    {
+        private int createScopeCallCount;
+
+        public int CreateScopeCallCount => Volatile.Read(ref createScopeCallCount);
+
+        public IServiceScope CreateScope()
+        {
+            Interlocked.Increment(ref createScopeCallCount);
+            return inner.CreateScope();
+        }
+    }
 
     private DbContextOptions<MediaDbContext> Options =>
         new DbContextOptionsBuilder<MediaDbContext>()
@@ -308,6 +322,59 @@ public sealed class UrlConstructionServiceTests : IAsyncLifetime
         Assert.Equal(
             "https://z-only",
             await sut.ConstructTrackLookUpPathAsync(publicationCode, lang, sectionCode: "mat-1", trackCode: "Zz"));
+    }
+
+    [Fact]
+    public async Task ConstructTrackLookUpPathAsync_CacheKey_NormalizesLanguageAndSectionCase_ReusesLazy_SingleDbScope()
+    {
+        await using var db = new MediaDbContext(Options);
+        const string publicationCode = "pcb-look-cc";
+        var lang = DerivedLanguage(publicationCode);
+        await SeedTrackWithLanguageSectionAsync(db, publicationCode: publicationCode, url: "https://one-scope");
+
+        var inner = new MediaTestScopeFactory(Options);
+        var counting = new CountingScopeFactory(inner);
+        var sut = new UrlConstructionService(counting);
+
+        var first = await sut.ConstructTrackLookUpPathAsync(
+            publicationCode,
+            lang.ToLowerInvariant(),
+            sectionCode: "MAT-1",
+            trackCode: "1");
+
+        var second = await sut.ConstructTrackLookUpPathAsync(
+            publicationCode,
+            lang.ToUpperInvariant(),
+            sectionCode: "mat-1",
+            trackCode: "1");
+
+        Assert.Equal("https://one-scope", first);
+        Assert.Equal("https://one-scope", second);
+        Assert.Equal(1, counting.CreateScopeCallCount);
+    }
+
+    [Fact]
+    public async Task ConstructTrackLookUpPathAsync_DistinctPublicationKeys_UseSeparateLazyEntries_TwoDbScopes()
+    {
+        await using var db = new MediaDbContext(Options);
+        await SeedTrackWithLanguageSectionAsync(db, publicationCode: "pcb-s1", url: "https://s1");
+        await SeedTrackWithLanguageSectionAsync(db, publicationCode: "pcb-s2", url: "https://s2");
+
+        var inner = new MediaTestScopeFactory(Options);
+        var counting = new CountingScopeFactory(inner);
+        var sut = new UrlConstructionService(counting);
+
+        var lang1 = DerivedLanguage("pcb-s1");
+        var lang2 = DerivedLanguage("pcb-s2");
+
+        Assert.Equal(
+            "https://s1",
+            await sut.ConstructTrackLookUpPathAsync("pcb-s1", lang1, sectionCode: "mat-1", trackCode: "1"));
+        Assert.Equal(
+            "https://s2",
+            await sut.ConstructTrackLookUpPathAsync("pcb-s2", lang2, sectionCode: "mat-1", trackCode: "1"));
+
+        Assert.Equal(2, counting.CreateScopeCallCount);
     }
 
     /// <summary>Deterministic codes ≤10 chars, distinct across varied publication prefixes in these tests.</summary>
