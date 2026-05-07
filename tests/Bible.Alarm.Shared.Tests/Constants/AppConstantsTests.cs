@@ -60,6 +60,27 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void ApiEndpoints_media_index_artifact_names_mediator_category_prefix_and_bundle_folders()
+    {
+        Assert.Equal("v2-", AppConstants.ApiEndpoints.MediaIndexFileNamePrefix);
+
+        Assert.Equal("languages.json", AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
+        Assert.Equal("publications.json", AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
+        Assert.Equal("sections.json", AppConstants.ApiEndpoints.MediaIndexSectionsFileName);
+        Assert.Equal("tracks.json", AppConstants.ApiEndpoints.MediaIndexTracksFileName);
+
+        Assert.Equal("disc.json", AppConstants.ApiEndpoints.MediaIndexMelodyDiscInfoFileName);
+        Assert.Equal("episodes.json", AppConstants.ApiEndpoints.MediaIndexVideoEpisodesFileName);
+        Assert.Equal("language-discovery.json", AppConstants.ApiEndpoints.MediaIndexLanguageDiscoveryFileName);
+
+        Assert.Equal("/categories", AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix);
+
+        Assert.Equal("Audio", AppConstants.ApiEndpoints.MediaIndexFolderAudio);
+        Assert.Equal("Melodies", AppConstants.ApiEndpoints.MediaIndexFolderMelodies);
+        Assert.Equal("Vocals", AppConstants.ApiEndpoints.MediaIndexFolderVocals);
+    }
+
+    [Fact]
     public void Database_sqlite_auxiliary_suffix_list_and_schedule_media_formats()
     {
         Assert.Equal(
@@ -75,6 +96,21 @@ public sealed class AppConstantsTests
         Assert.Equal("Filename={0}", AppConstants.Database.MediaIndexDatabaseConnectionStringFormat);
         Assert.Equal("schedule.db", AppConstants.Database.ScheduleDatabaseFileName);
         Assert.Equal("mediaIndex.db", AppConstants.Database.MediaIndexDatabaseFileName);
+    }
+
+    [Fact]
+    public void Database_legacy_schedule_filenames_media_index_upgrade_rename_suffix_contract()
+    {
+        Assert.Equal("bibleAlarm.db", AppConstants.Database.ScheduleDatabaseLegacyBibleAlarmFileName);
+        Assert.Equal("bibleAlarm2.db", AppConstants.Database.ScheduleDatabaseLegacyBibleAlarm2FileName);
+
+        Assert.Equal("_old", AppConstants.Database.MediaIndexDatabaseRenamedSuffix);
+        Assert.Equal(
+            "mediaIndex_old.db",
+            AppConstants.Database.MediaIndexDatabaseFileName.Replace(
+                ".db",
+                AppConstants.Database.MediaIndexDatabaseRenamedSuffix + ".db",
+                StringComparison.Ordinal));
     }
 
     [Fact]
