@@ -994,23 +994,71 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_bible_publication_selection_command_handler_templates()
+    public void Logging_bible_publication_selection_command_handler_exact_strings()
     {
-        Assert.Contains(
-            "{PublicationCode}",
-            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionStarting);
-        Assert.Contains(
-            "{HasService}",
+        Assert.Equal(
+            "CreateSectionSelectionCommand: Starting for publication={PublicationCode}, biblePublicationService={HasService}",
             AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionStarting);
 
-        Assert.StartsWith(
-            "BibleSelectionCommandHandler:",
-            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.SelectLanguageNetworkErrorDuringSelection,
-            StringComparison.Ordinal);
+        Assert.Equal(
+            "CreateSectionSelectionCommand: Publication is null, returning",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionPublicationNullReturning);
 
-        var categoryBug = AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateBiblePublicationItemCategoryNullBug;
-        Assert.Contains("{ScheduleId}", categoryBug);
-        Assert.Contains("{PublicationCode}", categoryBug);
+        Assert.Equal(
+            "CreateSectionSelectionCommand: CurrentSchedule is null, returning",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionCurrentScheduleNullReturning);
+
+        Assert.Equal(
+            "CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionCallingGetSectionAndTrack);
+
+        Assert.Equal(
+            "CreateSectionSelectionCommand: Network error for publication={PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionNetworkErrorForPublication);
+
+        Assert.Equal(
+            "CreateSectionSelectionCommand: Result sectionCode={SectionCode}, trackCode={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionResult);
+
+        Assert.Equal(
+            "CreateSectionSelectionCommand: Invalid trackCode={TrackCode}, returning",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionInvalidTrackCodeReturning);
+
+        Assert.Equal(
+            "CreateSectionSelectionCommand: SectionName is empty for sectionCode={SectionCode}, publication={PublicationCode}. This may cause empty section row in UI.",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionSectionNameEmptyMayCauseEmptySectionRow);
+
+        Assert.Equal(
+            "CreateSectionSelectionCommand: TrackTitle is empty for trackCode={TrackCode}, publication={PublicationCode}. This may cause empty track row in UI.",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionTrackTitleEmptyMayCauseEmptyTrackRow);
+
+        Assert.Equal(
+            "CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionCode}, track={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionDispatchingSelection);
+
+        Assert.Equal(
+            "BibleSelectionCommandHandler: Network error during language selection for {LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.SelectLanguageNetworkErrorDuringSelection);
+
+        Assert.Equal(
+            "BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - No publications found for language {LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.SelectLanguageNoPublicationsFoundForLanguage);
+
+        Assert.Equal(
+            "BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackCode}) for language {LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.SelectLanguageInvalidTrackForLanguage);
+
+        Assert.Equal(
+            "BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - CurrentSchedule is null",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.SelectLanguageCurrentScheduleNull);
+
+        Assert.Equal(
+            "BibleSelectionCommandHandler: SelectLanguageCommand - Creating item for language {LanguageCode}, publication {PublicationCode}, section {SectionCode}, track {TrackCode}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.SelectLanguageCreatingItem);
+
+        Assert.Equal(
+            "CreateBiblePublicationItemFromSelection: Category is null in current schedule. This is a bug - category must always be selected. Publication={PublicationCode}, ScheduleId={ScheduleId}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateBiblePublicationItemCategoryNullBug);
     }
 
     [Fact]
