@@ -336,31 +336,45 @@ public sealed class AppConstantsTests
     [Fact]
     public void Logging_playback_main_activity_battery_bootstrap_scheduler_database_seed_spot_checks()
     {
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlayScheduleAsyncPlayLockAlreadyHeldSkipping);
-        Assert.Contains("{Timeout}", AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlayScheduleAsyncOverallTimeoutReleasingPlayLockBackgroundContinues);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlaybackCancelledForSchedule);
+        Assert.Equal(
+            "PlayScheduleAsync: PlayLock already held — skipping (schedule {ScheduleId})",
+            AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlayScheduleAsyncPlayLockAlreadyHeldSkipping);
+
+        Assert.Equal(
+            "PlayScheduleAsync: overall timeout ({Timeout}s) for schedule {ScheduleId}. Releasing PlayLock — background task continues.",
+            AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlayScheduleAsyncOverallTimeoutReleasingPlayLockBackgroundContinues);
+
+        Assert.Equal(
+            "Playback cancelled for schedule {ScheduleId}",
+            AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlaybackCancelledForSchedule);
 
         Assert.Equal(
             "Error setting up background tasks",
             AppConstants.Logging.MainActivityBackgroundTaskHelperDiagnosticsLog.ErrorSettingUpBackgroundTasks);
 
-        Assert.Contains(
-            "battery",
-            AppConstants.Logging.BatteryOptimizationDiagnosticsLog.ErrorMarkingBatteryOptimizationModalAsShown,
-            StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            "Error marking battery optimization modal as shown",
+            AppConstants.Logging.BatteryOptimizationDiagnosticsLog.ErrorMarkingBatteryOptimizationModalAsShown);
 
-        Assert.Contains("{Value}", AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.IsBootstrapReadyChangedTo);
+        Assert.Equal(
+            "Error checking if battery optimization modal should be shown",
+            AppConstants.Logging.BatteryOptimizationDiagnosticsLog.ErrorCheckingIfBatteryOptimizationModalShouldBeShown);
 
-        Assert.Contains(
-            "bootstrap",
-            AppConstants.Logging.SchedulerDiagnosticsLog.BootstrapNotCompletedWaitingForBootstrap,
-            StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            "IsBootstrapReady changed to {Value}",
+            AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.IsBootstrapReadyChangedTo);
+
+        Assert.Equal(
+            "Bootstrap not completed yet, waiting for bootstrap before running scheduler",
+            AppConstants.Logging.SchedulerDiagnosticsLog.BootstrapNotCompletedWaitingForBootstrap);
+
         Assert.Equal(
             "An error happenned inside cleanup task.",
             AppConstants.Logging.SchedulerDiagnosticsLog.ErrorInsideCleanupTask);
 
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.DatabaseSeedDiagnosticsLog.SeededDefaultAlarmSchedule);
-        Assert.Contains("{Name}", AppConstants.Logging.DatabaseSeedDiagnosticsLog.SeededDefaultAlarmSchedule);
+        Assert.Equal(
+            "Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
+            AppConstants.Logging.DatabaseSeedDiagnosticsLog.SeededDefaultAlarmSchedule);
     }
 
     [Fact]
