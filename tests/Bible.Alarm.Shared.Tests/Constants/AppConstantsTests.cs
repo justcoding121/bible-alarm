@@ -83,6 +83,45 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void ApiEndpoints_https_origins_paths_composed_bases_and_redundant_retry_url_arrays_contract()
+    {
+        Assert.Equal("https://b.jw-cdn.org", AppConstants.ApiEndpoints.JwCdnOriginHttpsB);
+        Assert.Equal("https://app.jw-cdn.org", AppConstants.ApiEndpoints.JwCdnOriginHttpsApp);
+
+        Assert.Equal("/apis/pub-media/GETPUBMEDIALINKS", AppConstants.ApiEndpoints.PubMediaApisGetPubMedialinksPath);
+        Assert.Equal("/apis/mediator/v1", AppConstants.ApiEndpoints.MediatorApisV1Path);
+        Assert.Equal("/en/languages", AppConstants.ApiEndpoints.JwOrgLanguagesListPath);
+
+        Assert.Equal(
+            "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS",
+            AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl);
+
+        Assert.Equal(
+            new[]
+            {
+                "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS",
+                "https://app.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS",
+            },
+            AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrls);
+
+        Assert.Equal(
+            "https://app.jw-cdn.org/apis/mediator/v1",
+            AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl);
+
+        Assert.Equal(
+            new[]
+            {
+                "https://b.jw-cdn.org/apis/mediator/v1",
+                "https://app.jw-cdn.org/apis/mediator/v1",
+            },
+            AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls);
+
+        Assert.Equal(
+            "https://www.jw.org/en/languages",
+            AppConstants.ApiEndpoints.JwOrgLanguagesListUrl);
+    }
+
+    [Fact]
     public void Database_sqlite_auxiliary_suffix_list_and_schedule_media_formats()
     {
         Assert.Equal(
