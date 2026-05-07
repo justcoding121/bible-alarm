@@ -1818,33 +1818,139 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_default_schedule_service_foreground_notification_and_download_templates()
+    public void Logging_default_schedule_service_diagnostics_exact_strings()
     {
-        Assert.Contains(
-            "{ScheduleId}",
+        Assert.Equal(
+            "GetNextScheduleTrackMetaDataAsync: Failed to verify last played schedule in DB, falling back to state",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleTrackMetaDataFailedVerifyLastPlayedInDb);
+
+        Assert.Equal(
+            "Failed to save default schedule artwork to file",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.FailedToSaveDefaultScheduleArtworkToFile);
+
+        Assert.Equal(
+            "Failed to cleanup old default schedule artwork files",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.FailedToCleanupOldDefaultScheduleArtworkFiles);
+
+        Assert.Equal(
+            "GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in state)",
             AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInState);
-        Assert.Contains(
-            "{Index}",
-            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleInRotationRotatedToScheduleIndex);
-        Assert.Contains(
-            "{Title}",
+
+        Assert.Equal(
+            "GetNextScheduleTrackMetaDataAsync: Using last played schedule {ScheduleId} from preferences (verified in DB, state not yet loaded)",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleUsingLastPlayedVerifiedInDbStateNotLoaded);
+
+        Assert.Equal(
+            "GetNextScheduleTrackMetaDataAsync: Last played schedule {ScheduleId} no longer exists in DB, querying for first schedule",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleLastPlayedNoLongerInDbQueryingFirst);
+
+        Assert.Equal(
+            "GetNextScheduleTrackMetaDataAsync: Found first schedule {ScheduleId} from database",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleFoundFirstScheduleFromDatabase);
+
+        Assert.Equal(
+            "GetNextScheduleTrackMetaDataAsync: No schedules available in state; returning fallback metadata",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleTrackMetaDataNoSchedulesInStateReturningFallback);
+
+        Assert.Equal(
+            "Saved default schedule metadata to Preferences - Title: {Title}, Artist: {Artist}, ScheduleId: {ScheduleId}",
             AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.SavedDefaultScheduleMetadataToPreferences);
 
-        Assert.Contains(
-            "{ArtworkPath}",
+        Assert.Equal(
+            "GetNextScheduleInRotationMetadataAsync: No schedules in state; returning fallback",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleInRotationNoSchedulesInStateReturningFallback);
+
+        Assert.Equal(
+            "GetNextScheduleInRotationMetadataAsync: No non-Music schedules; returning fallback",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleInRotationNoNonMusicSchedulesReturningFallback);
+
+        Assert.Equal(
+            "GetNextScheduleInRotationMetadataAsync: Rotated to schedule index {Index}, ScheduleId={ScheduleId} (Music schedules skipped)",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetNextScheduleInRotationRotatedToScheduleIndex);
+
+        Assert.Equal(
+            "GetTrackMetadataForScheduleAsync: No internet - returning fallback metadata for schedule {ScheduleId} without network call",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.GetTrackMetadataNoInternetReturningFallbackForSchedule);
+
+        Assert.Equal(
+            "Failed to prepare first track for schedule {ScheduleId}, using fallback metadata",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.FailedToPrepareFirstTrackUsingFallbackMetadata);
+
+        Assert.Equal(
+            "Saved default schedule artwork to {ArtworkPath}, size: {Size} bytes",
             AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.SavedDefaultScheduleArtworkToPathAndSize);
-        Assert.Contains(
-            "{HasArtwork}",
+
+        Assert.Equal(
+            "Using listing-format metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}",
+            AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.UsingListingFormatMetadataForSchedule);
+
+        Assert.Equal(
+            "Returning track metadata for schedule {ScheduleId}: Title={Title}, Artist={Artist}, Album={Album}, HasArtwork={HasArtwork}",
             AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.ReturningTrackMetadataForSchedule);
+    }
+
+    [Fact]
+    public void Logging_android_foreground_notification_diagnostics_exact_strings()
+    {
+        Assert.Equal(
+            "Error creating notification channel (may already exist)",
+            AppConstants.Logging.AndroidForegroundNotificationDiagnosticsLog.ErrorCreatingNotificationChannelMayAlreadyExist);
+
+        Assert.Equal(
+            "CreateFallbackNotification: channel creation failed",
+            AppConstants.Logging.AndroidForegroundNotificationDiagnosticsLog.CreateFallbackNotificationChannelCreationFailed);
 
         Assert.Equal(
             "Failed to get app icon for alarm notification",
             AppConstants.Logging.AndroidForegroundNotificationDiagnosticsLog.FailedToGetAppIconForAlarmNotification);
+    }
 
-        Assert.Contains("{Message}", AppConstants.Logging.DownloadDiagnosticsLog.SkippingRetryNetworkConnectivityFailure);
-        Assert.Contains("{RetryCount}", AppConstants.Logging.DownloadDiagnosticsLog.RetryingDownloadAttemptAfterDelay);
-        Assert.Contains("{AlternativeUrl}", AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadPrimaryTryingAlternative);
-        Assert.Contains("{Url}", AppConstants.Logging.DownloadDiagnosticsLog.HeadRequestFailedFallingBackToGet);
+    [Fact]
+    public void Logging_download_diagnostics_exact_strings()
+    {
+        Assert.Equal(
+            "Skipping retry for network connectivity failure: {Message}",
+            AppConstants.Logging.DownloadDiagnosticsLog.SkippingRetryNetworkConnectivityFailure);
+
+        Assert.Equal(
+            "Skipping retry for permanent HTTP error: {Message}",
+            AppConstants.Logging.DownloadDiagnosticsLog.SkippingRetryPermanentHttpError);
+
+        Assert.Equal(
+            "Retrying download (attempt {RetryCount}/{MaxRetries}) after {DelaySeconds}s: {ExceptionMessage}",
+            AppConstants.Logging.DownloadDiagnosticsLog.RetryingDownloadAttemptAfterDelay);
+
+        Assert.Equal(
+            "Download cancelled for URL: {Url}",
+            AppConstants.Logging.DownloadDiagnosticsLog.DownloadCancelledForUrl);
+
+        Assert.Equal(
+            "Failed to download from primary URL: {Url}, trying alternative URL: {AlternativeUrl}",
+            AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadPrimaryTryingAlternative);
+
+        Assert.Equal(
+            "Failed to download from alternative URL: {AlternativeUrl}",
+            AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadAlternativeUrl);
+
+        Assert.Equal(
+            "Failed to download from primary URL: {Url}",
+            AppConstants.Logging.DownloadDiagnosticsLog.FailedToDownloadPrimaryUrl);
+
+        Assert.Equal(
+            "No alternative URL provided for failed download: {Url}",
+            AppConstants.Logging.DownloadDiagnosticsLog.NoAlternativeUrlForFailedDownload);
+
+        Assert.Equal(
+            "HEAD request failed for URL: {Url}, trying GET with headers only",
+            AppConstants.Logging.DownloadDiagnosticsLog.HeadRequestFailedTryingGetHeadersOnly);
+
+        Assert.Equal(
+            "Failed to get Content-Length for URL: {Url}",
+            AppConstants.Logging.DownloadDiagnosticsLog.FailedToGetContentLengthForUrl);
+
+        Assert.Equal(
+            "HEAD request failed for URL: {Url}, falling back to GET request",
+            AppConstants.Logging.DownloadDiagnosticsLog.HeadRequestFailedFallingBackToGet);
     }
 
     [Fact]
