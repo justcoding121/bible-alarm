@@ -939,6 +939,102 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_track_playback_handler_resume_and_seek_templates()
+    {
+        var cannotPlay = AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.CannotPlayTrackUriEmpty;
+        Assert.Contains("{TrackIndex}", cannotPlay);
+        Assert.Contains("{TrackUrl}", cannotPlay);
+
+        Assert.Equal(
+            "Playback was stopped during PrepareAsync/WaitForMediaReadyAsync - aborting PlayCurrentTrackAsync",
+            AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.PlaybackStoppedDuringPrepareAborting);
+
+        var resumeMem = AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekFromInMemoryFinishedDuration;
+        Assert.Contains("{Duration}", resumeMem);
+        Assert.Contains("{ScheduleId}", resumeMem);
+
+        var resumeExceeds = AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.ResumeSeekExceedsDurationStartingBeginning;
+        Assert.Contains("{SeekPosition}", resumeExceeds);
+        Assert.Contains("{Duration}", resumeExceeds);
+
+        var seekBudget = AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekTotalBudgetExceeded;
+        Assert.Contains("{Budget}", seekBudget);
+        Assert.Contains("{Attempts}", seekBudget);
+
+        var seekNoOp = AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekAttemptWasNoOpWillRetry;
+        Assert.Contains("{Attempt}", seekNoOp);
+        Assert.Contains("{Target}", seekNoOp);
+        Assert.Contains("{Current}", seekNoOp);
+
+        var seekInvalid = AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekAttemptFailedInvalidOperation;
+        Assert.Contains("{Message}", seekInvalid);
+
+        Assert.Contains("{MaxRetries}", AppConstants.Logging.TrackPlaybackHandlerDiagnosticsLog.SeekAllAttemptsNoOpStartingBeginning);
+
+        Assert.Contains("{Url}", AppConstants.Logging.TrackOnDemandPreparerDiagnosticsLog.FailedToResolveTrackUriOnDemand);
+        Assert.Contains("{LookUpPath}", AppConstants.Logging.TrackOnDemandPreparerDiagnosticsLog.PreDownloadingNextTrackBackground);
+        Assert.Contains("{Uri}", AppConstants.Logging.TrackOnDemandPreparerDiagnosticsLog.PreDownloadCompleteUriResolved);
+
+        Assert.Equal(
+            "Pre-download of next track failed (non-critical)",
+            AppConstants.Logging.TrackOnDemandPreparerDiagnosticsLog.PreDownloadNextTrackFailedNonCritical);
+
+        Assert.Contains(
+            "{CategoryCode}",
+            AppConstants.Logging.ScheduleDisplayMetadataDiagnosticsLog.FailedToResolveCategoryDisplayName);
+
+        Assert.Equal(
+            "[iOS NowPlaying] Failed to update metadata",
+            AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToUpdateMetadata);
+        Assert.Contains("{Url}", AppConstants.Logging.IosNowPlayingDiagnosticsLog.FailedToDownloadArtworkFromUrl);
+    }
+
+    [Fact]
+    public void Logging_carplay_ios_app_delegate_audio_session_and_media_element_templates()
+    {
+        Assert.Equal(
+            "[CarPlay] Connected to CarPlay interface controller",
+            AppConstants.Logging.CarPlayDiagnosticsLog.ConnectedToInterfaceController);
+
+        Assert.Contains("{Error}", AppConstants.Logging.CarPlayDiagnosticsLog.FailedToSetRootTemplateWithError);
+
+        var tapped = AppConstants.Logging.CarPlayDiagnosticsLog.UserTappedSchedule;
+        Assert.Contains("{Title}", tapped);
+        Assert.Contains("{ScheduleId}", tapped);
+
+        Assert.Contains("{Count}", AppConstants.Logging.CarPlayDiagnosticsLog.CreatedScheduleListTemplateWithCount);
+
+        Assert.Equal(
+            "[CarPlay] Cannot set root template - interface controller is null",
+            AppConstants.Logging.CarPlayDiagnosticsLog.CannotSetRootTemplateInterfaceControllerNull);
+
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.IosAppDelegateDiagnosticsLog.NotificationTappedStartingPlayback);
+        Assert.Contains("{Error}", AppConstants.Logging.IosAppDelegateDiagnosticsLog.FailedToResetBadgeCount);
+
+        Assert.Equal(
+            "ISchedulePlaybackService not available for notification playback",
+            AppConstants.Logging.IosAppDelegateDiagnosticsLog.ISchedulePlaybackServiceNotAvailableNotificationPlayback);
+
+        Assert.Contains("{Context}", AppConstants.Logging.IosAudioSessionDiagnosticsLog.AttemptingToConfigureAudioSessionForContext);
+        var catFail = AppConstants.Logging.IosAudioSessionDiagnosticsLog.FailedToSetAvAudioSessionCategoryForContext;
+        Assert.Contains("{Error}", catFail);
+
+        Assert.Contains(
+            "Bluetooth disconnected",
+            AppConstants.Logging.IosAudioSessionDiagnosticsLog.AudioRouteChangedOldDeviceUnavailablePausingPlayback);
+
+        Assert.Contains("{Uri}", AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.OriginalTrackUri);
+
+        var normalized = AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.NormalizedPathWithOriginal;
+        Assert.Contains("{Path}", normalized);
+        Assert.Contains("{Original}", normalized);
+
+        var setSource = AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.SetMediaElementSourceAndVolumeIos;
+        Assert.Contains("{Source}", setSource);
+        Assert.Contains("{State}", setSource);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
