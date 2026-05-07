@@ -682,6 +682,83 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_media_service_vocal_releases_and_display_metadata_templates()
+    {
+        var vocalSummary = AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesDownloadedCountSummary;
+        Assert.Contains("{CountWithoutLang}", vocalSummary);
+        Assert.Contains("{LanguageCode}", vocalSummary);
+
+        var vocalTotals = AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesReturningTotalCounts;
+        Assert.Contains("{DownloadedCount}", vocalTotals);
+        Assert.Contains("{PlaceholderCount}", vocalTotals);
+        Assert.Contains("{TotalCount}", vocalTotals);
+
+        Assert.Contains("{Uri}", AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractFileMetadataForArtworkArtistAlbum);
+        Assert.Contains("{Context}", AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractArtworkFromFileWithContext);
+
+        var disc = AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToResolveMelodyDiscNameForPublicationDisc;
+        Assert.Contains("{PublicationCode}", disc);
+        Assert.Contains("{DiscCode}", disc);
+
+        Assert.Equal(
+            "Failed to get display metadata for track",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetDisplayMetadataForTrack);
+    }
+
+    [Fact]
+    public void Logging_application_reducer_schedule_sync_and_populate_song_publications_templates()
+    {
+        var vmLog = AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelLoggingStart;
+        Assert.Contains("{ScheduleId}", vmLog);
+        Assert.Contains("{PublicationName}", vmLog);
+        Assert.Contains("{LanguageName}", vmLog);
+
+        Assert.Contains(
+            "{ActionType}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleReducerCalled);
+        Assert.Contains(
+            "{Error}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFailure);
+
+        var successEntry = AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessEntry;
+        Assert.Contains("{MusicEnabled}", successEntry);
+        Assert.Contains("{BiblePublicationTrackTitle}", successEntry);
+
+        var bibleSel = AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedUpdatedCurrentSchedule;
+        Assert.Contains("{SectionCode}", bibleSel);
+        Assert.Contains("{TrackCode}", bibleSel);
+        Assert.Contains("{CategoryName}", bibleSel);
+
+        var pubType = AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPublicationTypeChanged;
+        Assert.Contains("{ActionSectioned}", pubType);
+        Assert.Contains("{ExistingSectioned}", pubType);
+
+        var crudDel = AppConstants.Logging.ScheduleCrudReducerDiagnosticsLog.OnDeleteScheduleCalled;
+        Assert.Contains("{ScheduleId}", crudDel);
+        Assert.Contains("{IsNull}", crudDel);
+
+        var idMismatch = AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.OnUpdateScheduleFromViewModelCurrentScheduleIdMismatch;
+        Assert.Contains("{CurrentScheduleId}", idMismatch);
+        Assert.Contains("{ActionScheduleId}", idMismatch);
+
+        var preserveTime = AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.PreservingTimeFromExisting;
+        Assert.Contains("{ActionHour}", preserveTime);
+        Assert.Contains("{ExistingMinute}", preserveTime);
+
+        var skipFetch = AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedAlreadyCatalogedSkippingFetch;
+        Assert.Contains("{ExpectedCount}", skipFetch);
+        Assert.Contains("{Category}", skipFetch);
+
+        var noProgress = AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.NoProgressBetweenRetriesStopping;
+        Assert.Contains("{CatalogedCount}", noProgress);
+        Assert.Contains("{ExpectedCount}", noProgress);
+
+        var removed = AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.RemovedUnfetchablePlaceholderPublications;
+        Assert.Contains("{Count}", removed);
+        Assert.Contains("{Codes}", removed);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
