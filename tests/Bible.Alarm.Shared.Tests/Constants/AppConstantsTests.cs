@@ -2495,39 +2495,87 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_home_page_and_home_state_change_handler_templates()
+    public void Logging_home_page_and_home_state_change_handler_exact_strings()
     {
-        Assert.Contains("{TotalMs}", AppConstants.Logging.HomePageDiagnosticsLog.BootstrapHomeFullyLoadedWithData);
+        Assert.Equal(
+            "[BOOTSTRAP] ✅ Home page fully loaded with data - Total bootstrap time: {TotalMs}ms",
+            AppConstants.Logging.HomePageDiagnosticsLog.BootstrapHomeFullyLoadedWithData);
 
-        Assert.Contains("{IsBootstrapComplete}", AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleButtonClicked);
-        Assert.Contains("{CanExecute}", AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleButtonClicked);
-
-        Assert.Contains("{IsBootstrapComplete}", AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleCommandCannotExecute);
+        Assert.Equal(
+            "OnAddScheduleButtonClicked: Button clicked! IsBootstrapComplete={IsBootstrapComplete}, Command CanExecute={CanExecute}",
+            AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleButtonClicked);
 
         Assert.Equal(
             "OnAddScheduleButtonClicked: Manually executing command",
             AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleManuallyExecutingCommand);
 
-        var processing = AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ProcessingSchedulesFromStateCurrentCollectionCount;
-        Assert.Contains("{Count}", processing);
-        Assert.Contains("{CurrentCount}", processing);
+        Assert.Equal(
+            "OnAddScheduleButtonClicked: Command cannot execute. IsBootstrapComplete={IsBootstrapComplete}",
+            AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleCommandCannotExecute);
 
-        var prep = AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PreparedAddRemoveTotalsHasSchedulesNow;
-        Assert.Contains("{AddCount}", prep);
-        Assert.Contains("{RemoveCount}", prep);
-        Assert.Contains("{HasSchedulesNow}", prep);
+        Assert.Equal(
+            "OnStateChanged: Skipping processing - Schedules collection unchanged. Count: {Count}",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.SkippingProcessingSchedulesUnchangedCount);
 
-        var adding = AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.AddingScheduleToCollectionScheduleIdAndName;
-        Assert.Contains("{ScheduleId}", adding);
-        Assert.Contains("{Name}", adding);
+        Assert.Equal(
+            "OnStateChanged: Processing {Count} schedules from state. Current Schedules count: {CurrentCount}",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ProcessingSchedulesFromStateCurrentCollectionCount);
 
-        Assert.Contains(
-            "deferring list reorder until modal opens",
+        Assert.Equal(
+            "OnStateChanged: Delete detected - showing progress bar. Removing {Count} schedules",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.DeleteDetectedShowingProgressRemovingCount);
+
+        Assert.Equal(
+            "OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedulesNow}",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PreparedAddRemoveTotalsHasSchedulesNow);
+
+        Assert.Equal(
+            "OnStateChanged: Initial load - setting {Count} schedules",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.InitialLoadSettingSchedulesCount);
+
+        Assert.Equal(
+            "OnStateChanged: Initial load complete ({Count} items). Deferring progress bar hide until list items render",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.InitialLoadCompleteDeferringProgressBarHideUntilItemsRender);
+
+        Assert.Equal(
+            "OnStateChanged: Updating collection - Adding {AddCount}, Removing {RemoveCount}",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.UpdatingCollectionAddingRemoving);
+
+        Assert.Equal(
+            "OnStateChanged: Collection updated. Now has {Count} items",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.CollectionUpdatedNowHasCount);
+
+        Assert.Equal(
+            "OnStateChanged: Properties changed and sort order changed — syncing collection to reorder",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedSortOrderChangedSyncingCollectionToReorder);
+
+        Assert.Equal(
+            "OnStateChanged: Properties changed but sort order unchanged — skipping collection sync (VMs updated in place)",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedSortOrderUnchangedSkippingCollectionSync);
+
+        Assert.Equal(
+            "OnStateChanged: Properties changed but playback modal visible — deferring list reorder until modal opens",
             AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedPlaybackModalVisibleDeferringListReorder);
+
+        Assert.Equal(
+            "OnStateChanged: Delete rollback detected - hiding progress bar",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.DeleteRollbackDetectedHidingProgressBar);
 
         Assert.Equal(
             "OnStateChanged: State.Schedules is null, showing loading state",
             AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.StateSchedulesNullShowingLoading);
+
+        Assert.Equal(
+            "OnStateChanged: Progress bar hidden after list render delay",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ProgressBarHiddenAfterListRenderDelay);
+
+        Assert.Equal(
+            "ApplyDeferredReorderAsync: Applying deferred list reorder ({Count} items)",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ApplyDeferredReorderApplyingCount);
+
+        Assert.Equal(
+            "OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.AddingScheduleToCollectionScheduleIdAndName);
     }
 
     [Fact]
