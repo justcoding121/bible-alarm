@@ -1226,6 +1226,107 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_schedule_vm_manager_tail_prepare_playback_and_playback_service_templates()
+    {
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.FailedToUpdateViewModelStateNotReady);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.ViewModelNotFoundCannotUpdate);
+
+        var preparing = AppConstants.Logging.PreparePlaybackServiceDiagnosticsLog.PreparingFirstTrackForSchedule;
+        Assert.Contains("{ScheduleId}", preparing);
+        Assert.Contains("{LookUpPath}", preparing);
+
+        Assert.Contains("{Url}", AppConstants.Logging.PreparePlaybackServiceDiagnosticsLog.FailedToResolveTrackUri);
+
+        Assert.Equal(
+            "Failed to get fallback alarm track",
+            AppConstants.Logging.PlaybackFailureHandlerDiagnosticsLog.FailedToGetFallbackAlarmTrack);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.PlaybackServiceDiagnosticsLog.ErrorPreparingAndPlayingSchedule);
+
+        var switchSched = AppConstants.Logging.PlaybackServiceDiagnosticsLog.StoppingExistingPlaybackBeforeStarting;
+        Assert.Contains("{CurrentScheduleId}", switchSched);
+        Assert.Contains("{ScheduleId}", switchSched);
+
+        var forceReset = AppConstants.Logging.PlaybackServiceDiagnosticsLog.StateStillPlayingAfterStopForceResetting;
+        Assert.Contains("{Status}", forceReset);
+
+        Assert.Contains(
+            "{TrackIndex}",
+            AppConstants.Logging.PlaybackServiceDiagnosticsLog.CannotPlayTrackIndexOutOfRange);
+
+        Assert.Contains(
+            "{PlaylistCount}",
+            AppConstants.Logging.PlaybackServiceDiagnosticsLog.CannotPlayTrackIndexOutOfRange);
+
+        Assert.Contains(
+            "timed out waiting for in-progress stop",
+            AppConstants.Logging.PlaybackServiceDiagnosticsLog.PrepareAndPlayTimedOutWaitingForInFlightStop);
+
+        Assert.Contains(
+            "{PlayedTracksCount}",
+            AppConstants.Logging.PlaybackStateManagerDiagnosticsLog.ResetClearedPlayedBibleTrackKeys);
+
+        Assert.Equal(
+            "Error disposing preparation cancellation token source",
+            AppConstants.Logging.PlaybackStateManagerDiagnosticsLog.ErrorDisposingPreparationCancellationTokenSource);
+    }
+
+    [Fact]
+    public void Logging_playback_stop_handler_playlist_builder_fallback_alarm_and_category_selection_templates()
+    {
+        Assert.Equal(
+            "StopAsync called - stopping alarm completely",
+            AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.StopAsyncCalledStoppingAlarmCompletely);
+
+        Assert.Contains(
+            "dispatching in finally",
+            AppConstants.Logging.PlaybackStopHandlerDiagnosticsLog.PlaybackStoppedActionNotDispatchedDispatchingInFinally);
+
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.SectionedSchedulePublicationSectionTrackCodes);
+
+        var notInLookup = AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.TrackNotInLookupSectioned;
+        Assert.Contains("{SectionCode}", notInLookup);
+        Assert.Contains("{LanguageCode}", notInLookup);
+
+        var resolved = AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.ResolvedNonSectionedTrack;
+        Assert.Contains("{ResolvedTrackCode}", resolved);
+        Assert.Contains("{LookUpPath}", resolved);
+
+        var shouldSet = AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.ShouldSetFinishedDurationDetails;
+        Assert.Contains("{ShouldSet}", shouldSet);
+        Assert.Contains("{ScheduleFinishedDuration}", shouldSet);
+
+        Assert.Contains(
+            "{Duration}",
+            AppConstants.Logging.PlaylistBiblePublicationTrackBuilderDiagnosticsLog.SetTrackFinishedDurationForSchedule);
+
+        Assert.Equal(
+            "Failed to get fallback alarm sound URI",
+            AppConstants.Logging.FallbackAlarmSoundServiceDiagnosticsLog.FailedToGetFallbackAlarmSoundUri);
+
+        Assert.Equal(
+            "Error loading categories",
+            AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorLoadingCategories);
+
+        Assert.Contains(
+            "{CategoryCode}",
+            AppConstants.Logging.CategorySelectionDiagnosticsLog.ErrorDuringCategorySelectionCategoryCode);
+
+        Assert.Contains(
+            "{CategoryCode}",
+            AppConstants.Logging.CategorySelectionDiagnosticsLog.LoadCategoriesAsyncMarkedCategorySelected);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
