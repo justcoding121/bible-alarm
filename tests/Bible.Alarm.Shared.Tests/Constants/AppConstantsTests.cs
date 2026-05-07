@@ -605,6 +605,83 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_media_cache_service_templates()
+    {
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.MediaCacheDiagnosticsLog.SkippingCacheSetupInvalidScheduleId);
+
+        var skipCached = AppConstants.Logging.MediaCacheDiagnosticsLog.SkippingDownloadCachedFileExists;
+        Assert.Contains("{LookUpPath}", skipCached);
+        Assert.Contains("{Url}", skipCached);
+
+        var failedDl = AppConstants.Logging.MediaCacheDiagnosticsLog.FailedToDownloadTrackContinuingNext;
+        Assert.Contains("{Url}", failedDl);
+        Assert.Contains("{LookUpPath}", failedDl);
+        Assert.Contains("{ScheduleId}", failedDl);
+
+        var usingCached = AppConstants.Logging.MediaCacheDiagnosticsLog.UsingCachedFileForTrack;
+        Assert.Contains("{CachedPath}", usingCached);
+
+        Assert.Contains("{LookUpPath}", AppConstants.Logging.MediaCacheDiagnosticsLog.StreamingTrackFromCdnNotCached);
+        Assert.Contains(
+            "{LookUpPath}",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.CdnReturnedNotFoundRefetchingSectionPub);
+
+        Assert.Equal(
+            "An exception happened when downloading media files for caching.",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.ExceptionDownloadingMediaFilesForCaching);
+
+        Assert.Equal(
+            "Refetch did not yield a new URL; failing so UI can show error",
+            AppConstants.Logging.MediaCacheDiagnosticsLog.RefetchDidNotYieldNewUrl);
+    }
+
+    [Fact]
+    public void Logging_media_index_orphan_cleanup_and_media_service_templates()
+    {
+        var fileRetry = AppConstants.Logging.MediaIndexDiagnosticsLog.FileOperationFailedRetryingLocked;
+        Assert.Contains("{RetryCount}", fileRetry);
+        Assert.Contains("{DelayMs}", fileRetry);
+
+        Assert.Contains(
+            "{VersionFilePath}",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToReadVersionFromFile);
+        Assert.Contains(
+            "{Version}",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.SavedCurrentVersionToPreferences);
+
+        Assert.Equal(
+            "MediaIndexService: @lock disposed error.",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.LockDisposedError);
+
+        var bibleOrphan = AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.BibleScheduleTrackNotInFetchedTablesDeletingSchedule;
+        Assert.Contains("{ScheduleId}", bibleOrphan);
+        Assert.Contains("{PubCode}", bibleOrphan);
+        Assert.Contains("{SectionCode}", bibleOrphan);
+        Assert.Contains("{TrackCode}", bibleOrphan);
+
+        var cleanupCounts = AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.CleanedUpOrphanedSchedulesAndResetMusicCounts;
+        Assert.Contains("{DeletedCount}", cleanupCounts);
+        Assert.Contains("{ResetCount}", cleanupCounts);
+
+        Assert.Contains(
+            "{CategoryCode}",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AssignedCategoryCodeFromPublication);
+
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.PublicationHasNullLanguageUsingSectionsWithoutLanguage);
+        Assert.Contains(
+            "{Count}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.SuccessfullyLoadedSectionsForPublication);
+        Assert.Contains(
+            "{LanguageCode}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsAvailableCodesFromPublicationLanguages);
+        Assert.Contains(
+            "{TotalCount}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsReturningTotalCounts);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
