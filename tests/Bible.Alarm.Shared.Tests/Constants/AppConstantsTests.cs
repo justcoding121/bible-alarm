@@ -1062,68 +1062,407 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_track_selection_data_provider_and_schedule_effects_templates()
+    public void Logging_track_selection_data_provider_exact_strings()
     {
-        Assert.StartsWith(
-            "TrackSelectionDataProvider.PopulateTracks:",
-            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLanguagePublicationSection,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "{TrackCount}",
-            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadedSectionedTrackCount);
-        Assert.Contains(
-            "{TrackCode}",
-            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackCouldNotFindInCollection);
+        Assert.Equal(
+            "TrackSelectionDataProvider.PopulateTracks: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLanguagePublicationSection);
 
-        Assert.Contains(
-            "{ScheduleId}",
-            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleScheduleId);
-        Assert.Contains(
-            "{PublicationCode}",
-            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelPopulateMusicSectionNameInstrumental);
-        Assert.Contains(
-            "{PublicationCode}",
-            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleMusicCascadeTriggered);
-        Assert.Contains(
-            "{ScheduleId}",
-            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.CannotPopulateModalCountsScopeFactoryUnavailable);
+        Assert.Equal(
+            "TrackSelectionDataProvider.PopulateTracks: Loading non-sectioned tracks for publication={PublicationCode}",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadingNonSectionedForPublication);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} non-sectioned tracks",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadedNonSectionedTrackCount);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.PopulateTracks: Loading sectioned tracks for section={SectionCode}",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadingSectionedForSection);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} sectioned tracks",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadedSectionedTrackCount);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.PopulateTracks: current TrackCode={CurrentTrackCode}",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksCurrentTrackCode);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.PopulateTracks: Matched track {TrackCode} ({TrackTitle}) as selected",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksMatchedTrackAsSelected);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.PopulateTracks: Created {VmCount} track VMs, selectedTrack={HasSelected} (trackCode={SelectedTrackCode})",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksCreatedVmSummary);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.SetSelectedTrack: current TrackCode={CurrentTrackCode}, tracksCount={TracksCount}",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackCurrentTrackAndTracksCount);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.SetSelectedTrack: Setting selected track {TrackCode} ({TrackTitle})",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackSettingSelected);
+
+        Assert.Equal(
+            "TrackSelectionDataProvider.SetSelectedTrack: Could not find track {TrackCode} in tracks collection",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackCouldNotFindInCollection);
     }
 
     [Fact]
-    public void Logging_schedule_effects_crud_and_db_update_templates()
+    public void Logging_schedule_effects_diagnostics_exact_strings_remove_and_update_flow()
     {
-        Assert.Contains(
-            "{Name}",
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleViewSchedule (modal counts)",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleViewScheduleModalCounts);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveSchedule - ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleScheduleId);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveSchedule - Schedule is null, skipping",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleScheduleNullSkipping);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleDispatchedRemoveScheduleSuccess);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleRemoveSchedule",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleRemoveSchedule);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Schedule is null, skipping",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelScheduleNullSkipping);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - ShouldSave=false, skipping DB update. Only state was updated.",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelShouldSaveFalseSkippingDb);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Populating MusicSectionName from track for Instrumental. PublicationCode={PublicationCode}, TrackCode={TrackCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelPopulateMusicSectionNameInstrumental);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicLanguageCode={LanguageCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelDispatchedUpdateScheduleSuccess);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleUpdateScheduleFromViewModel",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleUpdateScheduleFromViewModel);
+
+        Assert.Equal(
+            "ScheduleEffects: Populated Bible display names (BiblePublicationIsMusic={IsMusic}) for ScheduleId={ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.PopulatedBibleDisplayNamesIsMusicForScheduleId);
+
+        Assert.Equal(
+            "ScheduleEffects: Error populating Bible display names after BiblePublicationUpdated",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.WarningErrorPopulatingBibleDisplayNamesAfterBiblePublicationUpdated);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModelPopulateModalCounts - Refreshing modal counts. Reason: BibleUpdated={BibleUpdated}, MusicUpdated={MusicUpdated}, MusicNeedsModalCounts={MusicNeedsModalCounts}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateSchedulePopulateModalCountsRefreshing);
+
+        Assert.Equal(
+            "ScheduleEffects: Error populating modal counts from UpdateScheduleFromViewModelAction",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorPopulatingModalCountsFromUpdateScheduleFromViewModelAction);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule Effect method called - ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleEffectMethodCalled);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - Calling deleteHandler.HandleAsync for ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleCallingDeleteHandler);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - deleteHandler.HandleAsync completed for ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleDeleteHandlerCompleted);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - Exception occurred! ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleExceptionOccurred);
+    }
+
+    [Fact]
+    public void Logging_schedule_effects_diagnostics_exact_strings_modal_cascade_and_update_schedule()
+    {
+        Assert.Equal(
+            "ScheduleEffects: Populated Bible display names after track selection (BiblePublicationIsMusic={IsMusic}, PubCode={PubCode})",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.PopulatedBibleDisplayNamesAfterTrackSelection);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleBiblePublicationTrackSelected",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleBiblePublicationTrackSelected);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleMusicSectionSelected (modal counts)",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleMusicSectionSelectedModalCounts);
+
+        Assert.Equal(
+            "ScheduleEffects: Cannot populate modal counts - IServiceScopeFactory not available. ScheduleId={ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.CannotPopulateModalCountsScopeFactoryUnavailable);
+
+        Assert.Equal(
+            "ScheduleEffects: Updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}, BiblePubCount={BiblePubCount}, BibleSectionCount={BibleSectionCount}, MusicPubCount={MusicPubCount}, MusicSectionCount={MusicSectionCount}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdatingModalCounts);
+
+        Assert.Equal(
+            "ScheduleEffects: Error updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorUpdatingModalCountsReasonScheduleId);
+
+        Assert.Equal(
+            "ScheduleEffects: Error handling category selection for category={CategoryName}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorHandlingCategorySelectionForCategory);
+
+        Assert.Equal(
+            "ScheduleEffects: Error handling Bible publication cascade",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorHandlingBiblePublicationCascade);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleMusicCascade - Skipping, musicUpdated=false, ScheduleId={ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleMusicCascadeSkippingMusicUpdatedFalse);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleMusicCascade - Triggered, ScheduleId={ScheduleId}, MusicPublicationCode={PublicationCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleMusicCascadeTriggered);
+
+        Assert.Equal(
+            "ScheduleEffects: Error handling Music cascade",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorHandlingMusicCascade);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateSchedule - ScheduleId: {ScheduleId}, Name: {Name}",
             AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleScheduleIdName);
 
-        Assert.Contains(
-            "{LastPlayedScheduleId}",
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateSchedule - Schedule is null, skipping",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleScheduleNullSkipping);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateSchedule - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleDispatchedUpdateScheduleSuccessForScheduleId);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleUpdateSchedule",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleUpdateSchedule);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleSuccess - Invalid schedule ID",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleSuccessInvalidScheduleId);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleSuccess - Dispatched SetCarPlayScreenAction for schedule {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleSuccessDispatchedSetCarPlayScreenForSchedule);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleUpdateScheduleSuccess",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleUpdateScheduleSuccess);
+    }
+
+    [Fact]
+    public void Logging_schedule_effects_diagnostics_exact_strings_remove_success_and_delete_paths()
+    {
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveScheduleSuccess - Schedule deleted from DB, handling post-delete actions for schedule {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleSuccessScheduleDeletedPostDeleteActions);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveScheduleSuccess - Deleted schedule {ScheduleId} was the last played item, refreshing metadata",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleSuccessDeletedWasLastPlayedRefreshingMetadata);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveScheduleSuccess - Refreshed last played metadata after schedule deletion",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleSuccessRefreshedLastPlayedMetadataAfterDeletion);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveScheduleSuccess - IDefaultScheduleService not available, cannot refresh metadata",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleSuccessDefaultScheduleServiceUnavailable);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveScheduleSuccess - Deleted schedule {ScheduleId} was not the last played item (LastPlayedScheduleId: {LastPlayedScheduleId}), no refresh needed",
             AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleSuccessDeletedWasNotLastPlayedNoRefreshNeeded);
 
-        Assert.Contains(
-            "{IsNull}",
-            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncCalled);
-        Assert.Contains(
-            "{DispatcherNull}",
+        Assert.Equal(
+            "ScheduleEffects: HandleRemoveScheduleSuccess - Invalidated cache and dispatched SetCarPlayScreenAction for deleted schedule {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleSuccessInvalidatedCacheDispatchedSetCarPlayScreen);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleRemoveScheduleSuccess",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleRemoveScheduleSuccess);
+
+        Assert.Equal(
+            "ScheduleDeleteHandler: HandleAsync called - ScheduleId: {ScheduleId}, Action null: {IsNull}, Dispatcher null: {DispatcherNull}",
             AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncCalled);
 
         Assert.Equal(
             "ScheduleDeleteHandler: HandleAsync - Action is null!",
             AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncActionIsNull);
 
-        Assert.Contains(
-            "{PublicationCode}",
+        Assert.Equal(
+            "ScheduleDeleteHandler: HandleAsync - Dispatcher is null!",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncDispatcherIsNull);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleScheduleId);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - Service unavailable, skipping",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleServiceUnavailableSkipping);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - Cannot delete schedule {ScheduleId} - it is the last schedule",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleCannotDeleteLastSchedule);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - Failed to load schedule for rollback, ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleFailedToLoadScheduleForRollback);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - Deleted from DB. ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleDeletedFromDb);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleDeleteSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleDispatchedRemoveScheduleSuccessAction);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleDeleteSchedule",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleDeleteSchedule);
+    }
+
+    [Fact]
+    public void Logging_schedule_effects_diagnostics_exact_strings_add_create_and_update_vm_header()
+    {
+        Assert.Equal(
+            "ScheduleEffects: HandleAddSchedule - ScheduleId: {ScheduleId}, Name: {Name}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleAddScheduleScheduleIdName);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleAddSchedule - Schedule is null, skipping",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleAddScheduleScheduleNullSkipping);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleAddSchedule - Dispatched AddScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleAddScheduleDispatchedAddScheduleSuccessAction);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleAddSchedule",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleAddSchedule);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleCreateSchedule - Name: {Name}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleName);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleCreateSchedule - Schedule is null or service unavailable, skipping",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleScheduleNullOrServiceUnavailable);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleCreateSchedule - Before save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
             AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleBeforeSavePublicationLanguage);
-        Assert.Contains(
-            "{ScheduleId}",
+
+        Assert.Equal(
+            "ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleAfterSavePublicationLanguage);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleCreateSchedule - Saved to DB. ScheduleId: {ScheduleId}",
             AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleSavedToDb);
 
-        Assert.Contains(
-            "{NumberOfTracksToPlay}",
+        Assert.Equal(
+            "ScheduleEffects: HandleCreateSchedule - Dispatched CreateScheduleSuccessAction for ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleDispatchedCreateScheduleSuccessAction);
+
+        Assert.Equal(
+            "ScheduleEffects: Error in HandleCreateSchedule",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ErrorInHandleCreateSchedule);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, ShouldSave: {ShouldSave}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelScheduleIdNameShouldSave);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Service unavailable, skipping",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelServiceUnavailableSkipping);
+
+        Assert.Equal(
+            "UpdateScheduleInDatabaseAsync: action.Schedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, action.Schedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
             AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdateScheduleInDatabaseAsyncActionScheduleTracksAndAlwaysPlay);
-        Assert.Contains(
-            "{SavedPublicationCode}",
+
+        Assert.Equal(
+            "UpdateScheduleInDatabaseAsync: After mapping - dbSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, dbSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdateScheduleInDatabaseAsyncAfterMappingTracksAndAlwaysPlay);
+
+        Assert.Equal(
+            "UpdateScheduleInDatabaseAsync: After save - savedSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, savedSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdateScheduleInDatabaseAsyncAfterSaveTracksAndAlwaysPlay);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.TrackCode={TrackCode}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatedInDbMusicFields);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}, scheduleStateItem.MusicTrackCode={TrackCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelAfterMappingScheduleStateItemMusicFields);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Music publication mismatch! savedSchedule.Music.PublicationCode={SavedPublicationCode}, action.Schedule.MusicPublicationCode={ActionPublicationCode}. Using action.Schedule properties.",
             AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicPublicationMismatch);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Music publication schedule, removing existing AlarmMusic (begin-with-music) for ScheduleId={ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicPublicationRemovingAlarmMusic);
+    }
+
+    [Fact]
+    public void Logging_schedule_effects_diagnostics_exact_strings_update_music_from_view_model_flow()
+    {
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=false, skipping music update",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicUpdatedFalseSkippingMusicUpdate);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null and action.Schedule has no valid music properties",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicUpdatedButDbMusicNullNoValidProps);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - dbSchedule.Music is null, skipping music update",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelDbMusicNullSkippingMusicUpdate);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating music. dbSchedule.Music.TrackCode={TrackCode}, dbSchedule.Music.PublicationCode={PublicationCode}, dbSchedule.Music.LanguageCode={LanguageCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatingMusicDbFields);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Creating new Music entity",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelCreatingNewMusicEntity);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music. Old TrackCode={OldTrackCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatingExistingMusicOldTrack);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music. New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatedMusicNewTrackPubLang);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null. Creating Music from action.Schedule. TrackCode={TrackCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicUpdatedDbMusicNullCreatingFromAction);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Created new Music entity from action.Schedule",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelCreatedNewMusicEntityFromActionSchedule);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music from action.Schedule. Old TrackCode={OldTrackCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatingExistingMusicFromActionOldTrack);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music from action.Schedule. New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelUpdatedMusicFromActionNewTrackPubLang);
     }
 
     [Fact]
