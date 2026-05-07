@@ -427,6 +427,62 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_schedule_effects_crud_and_db_update_templates()
+    {
+        Assert.Contains(
+            "{Name}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleScheduleIdName);
+
+        Assert.Contains(
+            "{LastPlayedScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleSuccessDeletedWasNotLastPlayedNoRefreshNeeded);
+
+        Assert.Contains(
+            "{IsNull}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncCalled);
+        Assert.Contains(
+            "{DispatcherNull}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncCalled);
+
+        Assert.Equal(
+            "ScheduleDeleteHandler: HandleAsync - Action is null!",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.ScheduleDeleteHandlerHandleAsyncActionIsNull);
+
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleBeforeSavePublicationLanguage);
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleSavedToDb);
+
+        Assert.Contains(
+            "{NumberOfTracksToPlay}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.UpdateScheduleInDatabaseAsyncActionScheduleTracksAndAlwaysPlay);
+        Assert.Contains(
+            "{SavedPublicationCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelMusicPublicationMismatch);
+    }
+
+    [Fact]
+    public void Logging_track_selection_sync_handler_templates()
+    {
+        Assert.Contains(
+            "{OldLang}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedMusicLanguageChangedSyncing);
+        Assert.Contains(
+            "{NewLang}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedMusicLanguageChangedSyncing);
+
+        var bibleReceived = AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationReceivedAction;
+        Assert.StartsWith("TrackSelectionSyncHandler:", bibleReceived, StringComparison.Ordinal);
+        Assert.Contains("{PublicationCode}", bibleReceived);
+
+        Assert.Contains(
+            "{CategoryName}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SetCategoryFromBiblePublicationStateItemWasNull);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
