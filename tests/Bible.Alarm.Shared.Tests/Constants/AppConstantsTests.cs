@@ -759,6 +759,83 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_home_page_and_home_state_change_handler_templates()
+    {
+        Assert.Contains("{TotalMs}", AppConstants.Logging.HomePageDiagnosticsLog.BootstrapHomeFullyLoadedWithData);
+
+        Assert.Contains("{IsBootstrapComplete}", AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleButtonClicked);
+        Assert.Contains("{CanExecute}", AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleButtonClicked);
+
+        Assert.Contains("{IsBootstrapComplete}", AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleCommandCannotExecute);
+
+        Assert.Equal(
+            "OnAddScheduleButtonClicked: Manually executing command",
+            AppConstants.Logging.HomePageDiagnosticsLog.OnAddScheduleManuallyExecutingCommand);
+
+        var processing = AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.ProcessingSchedulesFromStateCurrentCollectionCount;
+        Assert.Contains("{Count}", processing);
+        Assert.Contains("{CurrentCount}", processing);
+
+        var prep = AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PreparedAddRemoveTotalsHasSchedulesNow;
+        Assert.Contains("{AddCount}", prep);
+        Assert.Contains("{RemoveCount}", prep);
+        Assert.Contains("{HasSchedulesNow}", prep);
+
+        var adding = AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.AddingScheduleToCollectionScheduleIdAndName;
+        Assert.Contains("{ScheduleId}", adding);
+        Assert.Contains("{Name}", adding);
+
+        Assert.Contains(
+            "deferring list reorder until modal opens",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.PropertiesChangedPlaybackModalVisibleDeferringListReorder);
+
+        Assert.Equal(
+            "OnStateChanged: State.Schedules is null, showing loading state",
+            AppConstants.Logging.HomeStateChangeHandlerDiagnosticsLog.StateSchedulesNullShowingLoading);
+    }
+
+    [Fact]
+    public void Logging_busy_overlay_mini_playback_artwork_cdn_schedule_page_templates()
+    {
+        Assert.Contains("{OldValue}", AppConstants.Logging.BusyOverlayDiagnosticsLog.IsVisibleSetterFromTo);
+        Assert.Contains("{NewValue}", AppConstants.Logging.BusyOverlayDiagnosticsLog.IsVisibleSetterFromTo);
+        Assert.Contains("{TimeoutMs}", AppConstants.Logging.BusyOverlayDiagnosticsLog.HardTimeoutReachedAutoHiding);
+
+        var binding = AppConstants.Logging.BusyOverlayDiagnosticsLog.OnIsVisibleChangedPropertyChangedBindingOpacity;
+        Assert.Contains("{Opacity}", binding);
+        Assert.Contains("{InputTransparent}", binding);
+
+        Assert.Equal(
+            "BusyOverlay: Starting spinner immediately",
+            AppConstants.Logging.BusyOverlayDiagnosticsLog.StartingSpinnerImmediately);
+
+        Assert.Contains("{ArtworkUrl}", AppConstants.Logging.MiniPlaybackBarDiagnosticsLog.ErrorLoadingArtworkFromUrl);
+
+        Assert.Contains("{FallbackUrl}", AppConstants.Logging.ArtworkManagerDiagnosticsLog.FallbackArtworkFailed);
+        Assert.Contains("{FilePath}", AppConstants.Logging.ArtworkManagerDiagnosticsLog.FailedToLoadArtworkFromFile);
+
+        Assert.Contains("{StatusCode}", AppConstants.Logging.CdnPlaybackUrlProbeDiagnosticsLog.HeadReturnedStatusTreatingAsIndeterminate);
+        Assert.Equal(
+            "CDN probe timed out for URL",
+            AppConstants.Logging.CdnPlaybackUrlProbeDiagnosticsLog.ProbeTimedOutForUrl);
+
+        var melodyFail = AppConstants.Logging.TrackCdnUrlRefresherDiagnosticsLog.MelodyDiscRefreshFailedPubDisc;
+        Assert.Contains("{PublicationCode}", melodyFail);
+        Assert.Contains("{Disc}", melodyFail);
+
+        var apiFail = AppConstants.Logging.TrackCdnUrlRefresherDiagnosticsLog.ApiRefreshFailedPubLangSection;
+        Assert.Contains("{LanguageCode}", apiFail);
+        Assert.Contains("{SectionCode}", apiFail);
+
+        Assert.Contains("{StartTime}", AppConstants.Logging.SchedulePageDiagnosticsLog.PerfConstructorStartedAt);
+        Assert.Contains("{ElapsedMs}", AppConstants.Logging.SchedulePageDiagnosticsLog.PerfContentLoadCompletedInMs);
+
+        Assert.Equal(
+            "Schedule: WinUI UpdateLayout failed (best-effort)",
+            AppConstants.Logging.SchedulePageDiagnosticsLog.WinUiUpdateLayoutFailedBestEffort);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
