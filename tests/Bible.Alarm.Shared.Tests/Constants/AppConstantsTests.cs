@@ -88,4 +88,59 @@ public sealed class AppConstantsTests
         Assert.Equal(30, AppConstants.ReviewSettings.RetryAfterDaysWhenNotFinalized);
         Assert.Equal(5, AppConstants.ReviewSettings.MinimumMinutesBetweenCountedAppOpens);
     }
+
+    [Fact]
+    public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
+    {
+        Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
+        Assert.Equal("logs", AppConstants.FilePaths.LogsDirectoryName);
+        Assert.Equal("Bible.Alarm", AppConstants.FilePaths.WindowsAppDataFolderName);
+        Assert.Equal("Cache", AppConstants.FilePaths.WindowsAppDataCacheFolderName);
+
+        Assert.Equal("bootstrap.txt", AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
+        Assert.Equal("version.dat", AppConstants.FilePaths.MediaIndexVersionLegacyFileName);
+        Assert.StartsWith("bible-alarm-", AppConstants.FilePaths.LogFileNamePattern, StringComparison.Ordinal);
+        Assert.Equal("index.zip", AppConstants.FilePaths.MediaIndexZipFileName);
+
+        Assert.Equal("media", AppConstants.FilePaths.MediaIndexCatalogRootMediaSegment);
+        Assert.Equal("db", AppConstants.FilePaths.MediaIndexCatalogOutputDbDirectoryName);
+        Assert.Equal("last_run_failed.txt", AppConstants.FilePaths.CatalogerLastRunFailedListFileName);
+        Assert.Equal("bible_alarm_last_run_failed.txt", AppConstants.FilePaths.CatalogerTempFailedListFallbackFileName);
+        Assert.Equal("tmp", AppConstants.FilePaths.TempExtractionDirectoryName);
+
+        Assert.Equal("silent_preparing_v2.mp3", AppConstants.FilePaths.SilentMp3FileName);
+        Assert.Equal("silent.mp3", AppConstants.FilePaths.SilentMp3LegacyFileName);
+        Assert.Equal("silent_preparing.mp3", AppConstants.FilePaths.SilentMp3LegacyPreparingFileName);
+    }
+
+    [Fact]
+    public void Fonts_bundle_files_have_distinct_aliases()
+    {
+        Assert.Equal("fa_solid_900.otf", AppConstants.Fonts.FontAwesomeSolidFontFileName);
+        Assert.Equal("fa_regular_400.otf", AppConstants.Fonts.FontAwesomeRegularFontFileName);
+        Assert.Equal("fa_brands_400.otf", AppConstants.Fonts.FontAwesomeBrandsFontFileName);
+
+        Assert.Equal("FontAwesomeSolid", AppConstants.Fonts.FontAwesomeSolidAlias);
+        Assert.Equal("FontAwesomeRegular", AppConstants.Fonts.FontAwesomeRegularAlias);
+        Assert.Equal("FontAwesomeBrands", AppConstants.Fonts.FontAwesomeBrandsAlias);
+
+        Assert.NotEqual(
+            AppConstants.Fonts.FontAwesomeSolidAlias,
+            AppConstants.Fonts.FontAwesomeRegularAlias);
+        Assert.False(
+            AppConstants.Fonts.FontAwesomeBrandsFontFileName.Equals(AppConstants.Fonts.FontAwesomeSolidFontFileName, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AppSettings_and_CacheSettings_product_defaults()
+    {
+        Assert.Equal("Bible-Alarm", AppConstants.AppSettings.ApplicationName);
+        Assert.Equal("Bible Alarm", AppConstants.AppSettings.ApplicationDisplayName);
+
+        Assert.Equal(7, AppConstants.CacheSettings.MediaIndexUpdateCheckDays);
+        Assert.Equal(3, AppConstants.CacheSettings.DownloadRetryAttempts);
+        Assert.Equal(3, AppConstants.CacheSettings.FileExistsCheckRetryAttempts);
+        Assert.Equal(30, AppConstants.CacheSettings.DownloadTimeoutSeconds);
+        Assert.Equal(7, AppConstants.CacheSettings.LogFileRetentionDays);
+    }
 }
