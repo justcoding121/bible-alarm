@@ -538,29 +538,183 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_category_auto_populate_and_bible_publication_cascade_templates()
+    public void Logging_category_selection_auto_populate_handler_exact_strings()
     {
-        Assert.StartsWith(
-            "CategorySelectionAutoPopulateHandler:",
-            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.StartingAutoPopulation,
-            StringComparison.Ordinal);
-        Assert.Contains("{CategoryName}", AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NetworkErrorDuringAutoPopulation);
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Starting auto-population for category={CategoryName}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.StartingAutoPopulation);
 
-        var summary = AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.AutoPopulatedSummary;
-        Assert.Contains("{LanguageCode}", summary);
-        Assert.Contains("{PublicationCode}", summary);
-        Assert.Contains("{TrackCode}", summary);
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: CurrentSchedule is null, skipping auto-population",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.CurrentScheduleNullSkippingAutoPopulation);
 
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Preserving previous language={LanguageCode} (has publications in new category={CategoryName})",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.PreservingPreviousLanguageHasPublicationsInCategory);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Selected English language (default/fallback)",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedEnglishLanguageDefaultFallback);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: English not found, selected first available language={LanguageCode}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.EnglishNotFoundSelectedFirstAvailableLanguage);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: No languages found for category={CategoryName}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NoLanguagesFoundForCategory);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.FailedToCatalogPublicationTryingNext);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Publication={PublicationCode} for language={LanguageCode} already cataloged with first section and tracks",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.PublicationAlreadyCatalogedWithFirstSectionAndTracks);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode} (cataloged and can be queried with language={LanguageCode})",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedPublicationCatalogedCanQueryWithLanguage);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Publication={PublicationCode} cataloged but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.PublicationCatalogedCannotQueryWithLanguageTryingNext);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Selected publication without LanguageId={PublicationCode}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: No publication found or cataloged for language={LanguageCode}, category={CategoryName}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NoPublicationFoundOrCatalogedForLanguageCategory);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode}, withoutLanguage={WithoutLanguage}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageFlag);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: selectedLanguage is null but publication requires language",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SelectedLanguageNullButPublicationRequiresLanguage);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}, language={LanguageCode}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NoValidTrackFoundForPublicationAndLanguage);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NoValidTrackFoundForPublication);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionCode}, Track={TrackCode}, WithoutLanguage={WithoutLanguage}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.AutoPopulatedSummary);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Setting language to English default for publication without LanguageId={PublicationCode}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.SettingLanguageEnglishDefaultForPublicationWithoutLanguageId);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Network error during auto-population for category={CategoryName}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NetworkErrorDuringAutoPopulation);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Error during auto-population for category={CategoryName}",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.ErrorDuringAutoPopulation);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after network error",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.RevertingToPreviousScheduleStateAfterNetworkError);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after error",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.RevertingToPreviousScheduleStateAfterError);
+
+        Assert.Equal(
+            "CategorySelectionAutoPopulateHandler: Error checking if publication {PublicationCode} is cataloged",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.ErrorCheckingIfPublicationCataloged);
+    }
+
+    [Fact]
+    public void Logging_bible_publication_cascade_handler_exact_strings()
+    {
         Assert.Equal(
             "BiblePublicationCascadeHandler: Error during cascade",
             AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ErrorDuringCascade);
-        Assert.Contains("{LanguageCode}", AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.LanguageCascade);
-        Assert.Contains("{PublicationCode}", AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCascade);
 
-        var bibleUnchanged = AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatch;
-        Assert.Contains("{PublicationCode}", bibleUnchanged);
-        Assert.Contains("{SectionCode}", bibleUnchanged);
-        Assert.Contains("{TrackCode}", bibleUnchanged);
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Language cascade - language={LanguageCode}, category={CategoryName}, existingPublication={ExistingPublication}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.LanguageCascade);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Using existing publication={PublicationCode} from schedule",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.UsingExistingPublicationFromSchedule);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: No valid track found for existing publication={PublicationCode} after cataloging",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForExistingPublicationAfterCataloging);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Existing publication={PublicationCode} not available for language={LanguageCode}, selecting new publication",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ExistingPublicationNotAvailableSelectingNew);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.FailedToCatalogPublicationTryingNext);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Publication={PublicationCode} cataloged but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCatalogedCannotQueryWithLanguageTryingNext);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Selected publication={PublicationCode} (cataloged and queryable for language={LanguageCode})",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationCatalogedQueryableForLanguage);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Selected publication without LanguageId={PublicationCode}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SelectedPublicationWithoutLanguageId);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: No publication found for language={LanguageCode}, category={CategoryName}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoPublicationFoundForLanguageCategory);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: No valid track found for publication={PublicationCode}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFoundForPublication);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCascade);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: No valid track found",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoValidTrackFound);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Section cascade - sectionCode={SectionCode}, publication={PublicationCode}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.SectionCascade);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: No tracks found for sectionCode={SectionCode}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.NoTracksFoundForSectionCode);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Error getting publication modal item count. LanguageCode={LanguageCode}, CategoryName={CategoryName}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ErrorGettingPublicationModalItemCount);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Values unchanged, skipping dispatch. publication={PublicationCode}, sectionCode={SectionCode}, track={TrackCode}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatch);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Preserving category={CategoryName}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PreservingCategory);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: {Action} language for no-language publication={PublicationCode} (LanguageCode: {LanguageCode})",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ActionLanguageForNoLanguagePublication);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Preserving language={LanguageCode}",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PreservingLanguage);
     }
 
     [Fact]
