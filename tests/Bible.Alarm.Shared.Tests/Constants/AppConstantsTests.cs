@@ -379,6 +379,54 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_bible_publication_selection_command_handler_templates()
+    {
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionStarting);
+        Assert.Contains(
+            "{HasService}",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateSectionSelectionStarting);
+
+        Assert.StartsWith(
+            "BibleSelectionCommandHandler:",
+            AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.SelectLanguageNetworkErrorDuringSelection,
+            StringComparison.Ordinal);
+
+        var categoryBug = AppConstants.Logging.BiblePublicationSelectionCommandHandlerDiagnosticsLog.CreateBiblePublicationItemCategoryNullBug;
+        Assert.Contains("{ScheduleId}", categoryBug);
+        Assert.Contains("{PublicationCode}", categoryBug);
+    }
+
+    [Fact]
+    public void Logging_track_selection_data_provider_and_schedule_effects_templates()
+    {
+        Assert.StartsWith(
+            "TrackSelectionDataProvider.PopulateTracks:",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLanguagePublicationSection,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "{TrackCount}",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.PopulateTracksLoadedSectionedTrackCount);
+        Assert.Contains(
+            "{TrackCode}",
+            AppConstants.Logging.TrackSelectionDataProviderDiagnosticsLog.SetSelectedTrackCouldNotFindInCollection);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleScheduleId);
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleFromViewModelPopulateMusicSectionNameInstrumental);
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleMusicCascadeTriggered);
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsDiagnosticsLog.CannotPopulateModalCountsScopeFactoryUnavailable);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
