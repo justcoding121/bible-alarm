@@ -380,19 +380,41 @@ public sealed class AppConstantsTests
     [Fact]
     public void Logging_schedule_initialization_command_validation_and_database_version_templates()
     {
-        Assert.Contains("{LanguageCode}", AppConstants.Logging.ScheduleInitializationDiagnosticsLog.InitializeNewScheduleMappedSampleMusicCodes);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleInitializationDiagnosticsLog.LoadExistingScheduleLoadingFromDatabase);
+        Assert.Equal(
+            "InitializeNewScheduleAsync: Mapped sample schedule. MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicPublicationCode={PublicationCode}, MusicSectionCode={SectionCode}",
+            AppConstants.Logging.ScheduleInitializationDiagnosticsLog.InitializeNewScheduleMappedSampleMusicCodes);
 
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandCancelButtonClicked);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveCommandSaveButtonClicked);
+        Assert.Equal(
+            "LoadExistingScheduleAsync: Loading schedule {ScheduleId} from database",
+            AppConstants.Logging.ScheduleInitializationDiagnosticsLog.LoadExistingScheduleLoadingFromDatabase);
+
+        Assert.Equal(
+            "CancelCommand: Cancel button clicked. ScheduleId={ScheduleId}, IsNewSchedule={IsNewSchedule}",
+            AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandCancelButtonClicked);
+
+        Assert.Equal(
+            "SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
+            AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveCommandSaveButtonClicked);
 
         Assert.Equal(
             "Validation failed: No days of week selected",
             AppConstants.Logging.ScheduleValidationServiceDiagnosticsLog.ValidationFailedNoDaysOfWeekSelected);
 
-        Assert.Contains("{StoredVersion}", AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.VersionMismatchStoredVersusCurrent);
-        Assert.Contains("{CurrentVersion}", AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.VersionMismatchStoredVersusCurrent);
-        Assert.Contains("{Version}", AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.SavedScheduleDatabaseVersionToPreferences);
+        Assert.Equal(
+            "Schedule database version mismatch - stored: {StoredVersion}, current: {CurrentVersion}. Migration check needed.",
+            AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.VersionMismatchStoredVersusCurrent);
+
+        Assert.Equal(
+            "Failed to check Schedule database version, will perform migration check",
+            AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.FailedToCheckScheduleDatabaseVersionPerformingMigrationCheck);
+
+        Assert.Equal(
+            "Saved Schedule database version {Version} to Preferences",
+            AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.SavedScheduleDatabaseVersionToPreferences);
+
+        Assert.Equal(
+            "Failed to save Schedule database version to Preferences",
+            AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.FailedToSaveScheduleDatabaseVersionToPreferences);
     }
 
     [Fact]
