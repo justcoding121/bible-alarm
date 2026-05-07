@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Reflection;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -142,12 +143,90 @@ public sealed class AlarmScheduleServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UpdateScheduleByIdAsync_When_Id_Missing_Throws_InvalidOperationException()
+    {
+        using var svc = CreateService();
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.UpdateScheduleByIdAsync(9_424_242, _ => { }));
+    }
+
+    [Fact]
+    public async Task GetMusicByScheduleIdAsync_ReturnsNull_When_No_AlarmMusic_Row()
+    {
+        using var svc = CreateService();
+        var saved = await svc.AddScheduleAsync(MinimalScheduleWithoutMusic("no-music"));
+        Assert.Null(await svc.GetMusicByScheduleIdAsync(saved.Id));
+    }
+
+    [Fact]
+    public async Task GetBiblePublicationByScheduleIdAsync_ReturnsNull_When_No_BiblePublicationSchedule_Row()
+    {
+        using var svc = CreateService();
+        var saved = await svc.AddScheduleAsync(MinimalScheduleWithoutBible("no-bible"));
+        Assert.Null(await svc.GetBiblePublicationByScheduleIdAsync(saved.Id));
+    }
+
+    [Fact]
+    public void Dispose_After_PreDisposedCancellationTokenSource_DoesNotThrow()
+    {
+        using var svc = CreateService();
+        var field = typeof(AlarmScheduleService).GetField(
+            "cancellationTokenSource",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+
+        ((CancellationTokenSource)field!.GetValue(svc)!).Dispose();
+
+        Assert.Null(Record.Exception(() => svc.Dispose()));
+        Assert.Null(Record.Exception(() => svc.Dispose()));
+    }
+
+    [Fact]
     public void Dispose_IsIdempotent()
     {
         var svc = CreateService();
         svc.Dispose();
         Assert.Null(Record.Exception(() => svc.Dispose()));
     }
+
+    private static AlarmSchedule MinimalScheduleWithoutMusic(string name) =>
+        new()
+        {
+            Name = name,
+            IsEnabled = true,
+            Hour = 6,
+            Minute = 0,
+            Second = 0,
+            DaysOfWeek = WeekDays.Monday,
+            NotificationEnabled = true,
+            MusicEnabled = true,
+            CurrentPlayItem = PlayType.Music,
+            LatestAlarmNotificationId = 0,
+            Music = null,
+            BiblePublicationSchedule = new BiblePublicationSchedule
+            {
+                PublicationCode = "nwt",
+                TrackCode = "1",
+                FinishedDuration = TimeSpan.Zero
+            },
+        };
+
+    private static AlarmSchedule MinimalScheduleWithoutBible(string name) =>
+        new()
+        {
+            Name = name,
+            IsEnabled = true,
+            Hour = 6,
+            Minute = 0,
+            Second = 0,
+            DaysOfWeek = WeekDays.Monday,
+            NotificationEnabled = true,
+            MusicEnabled = true,
+            CurrentPlayItem = PlayType.Music,
+            LatestAlarmNotificationId = 0,
+            Music = new AlarmMusic { PublicationCode = "pub", TrackCode = "1", Repeat = false },
+            BiblePublicationSchedule = null,
+        };
 
     private static AlarmSchedule MinimalSchedule(string name, DateTime? lastPlayed = null) =>
         new()

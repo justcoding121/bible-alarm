@@ -119,6 +119,64 @@ public sealed class CategoryServiceTests
     }
 
     [Fact]
+    public async Task GetAllCategoriesAsync_PreCanceledToken_OnFirstLoad_Wraps_InvalidOperationException()
+    {
+        var (_, _, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                seed.Categories.Add(new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryBible });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new CategoryService(new MediaTestScopeFactory(opts), TestLogging.CreateLogger());
+
+            using var canceled = new CancellationTokenSource();
+            canceled.Cancel();
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                sut.GetAllCategoriesAsync(canceled.Token));
+
+            Assert.Equal("Error getting all categories.", ex.Message);
+            Assert.NotNull(ex.InnerException);
+        }
+    }
+
+    [Fact]
+    public async Task GetAllCategoriesAsync_AfterPrimingCache_Subsequent_Loads_ReturnIndependentCopies_FromInternalCache()
+    {
+        var (_, counting, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedThreeCategoriesAsync(seed);
+            }
+
+            var sut = new CategoryService(counting, TestLogging.CreateLogger());
+
+            _ = await sut.GetAllCategoriesAsync();
+
+            var firstFromCache = await sut.GetAllCategoriesAsync();
+            var secondFromCache = await sut.GetAllCategoriesAsync();
+
+            Assert.NotSame(firstFromCache, secondFromCache);
+
+            firstFromCache.Clear();
+
+            Assert.Equal(3, secondFromCache.Count);
+
+            var thirdFromCache = await sut.GetAllCategoriesAsync();
+            Assert.Equal(3, thirdFromCache.Count);
+
+            Assert.Equal(1, counting.CreateScopeCallCount);
+        }
+    }
+
+    [Fact]
     public async Task GetAllCategoriesAsync_Wraps_Scope_Failures_In_InvalidOperationException()
     {
         var sut = new CategoryService(new ThrowingScopeFactory(), TestLogging.CreateLogger());
