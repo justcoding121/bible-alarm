@@ -420,13 +420,29 @@ public sealed class AppConstantsTests
     [Fact]
     public void Logging_schedule_save_prep_and_music_cascade_handler_templates()
     {
-        Assert.Contains("{IsNewSchedule}", AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareModelForSaveStarting);
-        Assert.Contains("nwt", AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.SaveAsyncBiblePublicationEmptyPublicationCodeDefaultingNwt, StringComparison.Ordinal);
-        Assert.Contains("{PublicationCode}", AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareScheduleStateItemFinalBeforeDispatch);
+        Assert.Equal(
+            "PrepareModelForSave: Starting. musicUpdated={MusicUpdated}, IsNewSchedule={IsNewSchedule}",
+            AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareModelForSaveStarting);
 
-        Assert.StartsWith("MusicCascadeHandler:", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncCurrentScheduleNullExiting, StringComparison.Ordinal);
-        Assert.Contains("{PublicationCode}", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncPublicationSectionTrackMusicEnabled);
-        Assert.Equal("MusicCascadeHandler: Error during cascade", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ErrorDuringCascade);
+        Assert.Equal(
+            "SaveAsync: BiblePublicationSchedule has empty PublicationCode, defaulting to 'nwt' (2013)",
+            AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.SaveAsyncBiblePublicationEmptyPublicationCodeDefaultingNwt);
+
+        Assert.Equal(
+            "PrepareScheduleStateItem: Final scheduleStateItem before dispatch - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicId={MusicId}",
+            AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareScheduleStateItemFinalBeforeDispatch);
+
+        Assert.Equal(
+            "MusicCascadeHandler: HandleAsync - CurrentSchedule is null, exiting",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncCurrentScheduleNullExiting);
+
+        Assert.Equal(
+            "MusicCascadeHandler: HandleAsync - PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, MusicEnabled={MusicEnabled}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncPublicationSectionTrackMusicEnabled);
+
+        Assert.Equal(
+            "MusicCascadeHandler: Error during cascade",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ErrorDuringCascade);
     }
 
     [Fact]
