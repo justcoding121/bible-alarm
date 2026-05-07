@@ -1466,51 +1466,91 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_track_selection_sync_handler_templates()
+    public void Logging_track_selection_sync_handler_bible_publication_and_category_exact_strings()
     {
-        Assert.Contains(
-            "{OldLang}",
-            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedMusicLanguageChangedSyncing);
-        Assert.Contains(
-            "{NewLang}",
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - Music language changed from {OldLang} to {NewLang}. Syncing.",
             AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedMusicLanguageChangedSyncing);
 
-        var bibleReceived = AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationReceivedAction;
-        Assert.StartsWith("TrackSelectionSyncHandler:", bibleReceived, StringComparison.Ordinal);
-        Assert.Contains("{PublicationCode}", bibleReceived);
+        Assert.Equal(
+            "ScheduleEffects: Error syncing CurrentMusic to CurrentSchedule",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.ErrorSyncingCurrentMusicToCurrentSchedule);
 
-        Assert.Contains(
-            "{CategoryName}",
+        Assert.Equal(
+            "TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Received action. CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}, TrackCode={TrackCode}, TrackTitle={TrackTitle}, SectionCode={SectionCode}, PublicationCode={PublicationCode}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationReceivedAction);
+
+        Assert.Equal(
+            "TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - CurrentSchedule or CurrentBiblePublicationSchedule is null.",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationCurrentScheduleOrPubNull);
+
+        Assert.Equal(
+            "TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - CurrentSchedule already in sync with action, skipping dispatch.",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationAlreadyInSync);
+
+        Assert.Equal(
+            "TrackSelectionSyncHandler: Set category={CategoryName} from BiblePublicationStateItem (was null)",
             AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SetCategoryFromBiblePublicationStateItemWasNull);
+
+        Assert.Equal(
+            "TrackSelectionSyncHandler: Category is null in both current schedule and BiblePublicationStateItem. Category must always be selected.",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.CategoryNullInBothScheduleAndBiblePublicationStateItem);
+
+        Assert.Equal(
+            "TrackSelectionSyncHandler: SectionName is empty after publication change but SectionCode={SectionCode} is set. Publication={PublicationCode}. This may cause empty section row in UI.",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.SectionNameEmptyAfterPublicationChangeSectionCodeSet);
+
+        Assert.Equal(
+            "TrackSelectionSyncHandler: TrackTitle is empty after publication change but TrackCode={TrackCode} is valid. Publication={PublicationCode}. This may cause empty track row in UI.",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.TrackTitleEmptyAfterPublicationChangeTrackCodeValid);
+
+        Assert.Equal(
+            "TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, TrackCode={TrackCode}, TrackTitle={TrackTitle}, SectionCode={SectionCode}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationDispatchingUpdate);
+
+        Assert.Equal(
+            "TrackSelectionSyncHandler: Error syncing CurrentBiblePublicationSchedule to CurrentSchedule",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.ErrorSyncingCurrentBiblePublicationScheduleToCurrentSchedule);
     }
 
     [Fact]
-    public void Logging_track_selection_sync_music_dispatch_and_vocal_language_templates()
+    public void Logging_track_selection_sync_handler_music_display_and_dispatch_exact_strings()
     {
-        var bibleDispatch = AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationDispatchingUpdate;
-        Assert.Contains("{ScheduleId}", bibleDispatch);
-        Assert.Contains("{TrackCode}", bibleDispatch);
-        Assert.Contains("{SectionCode}", bibleDispatch);
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackCode: {TrackCode}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedReceivedActionMusic);
 
-        var musicReceived = AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedReceivedActionMusic;
-        Assert.StartsWith("ScheduleEffects: HandleTrackSelected - Received action.", musicReceived, StringComparison.Ordinal);
-        Assert.Contains("{PublicationCode}", musicReceived);
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - CurrentSchedule or CurrentMusic is null. CurrentSchedule: {CurrentSchedule}, CurrentMusic: {CurrentMusic}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCurrentScheduleOrCurrentMusicNull);
 
-        Assert.Contains(
-            "{CurrentId}",
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, MusicId: {MusicId}, Action Music Id: {ActionMusicId}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCurrentScheduleIdsDebug);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - Different Music ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
             AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedDifferentMusicId);
-        Assert.Contains(
-            "{ActionId}",
+
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current MusicId: {CurrentId}",
             AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedSyncingAllowed);
 
-        Assert.Contains(
-            "{LanguageCode}",
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - Could not resolve vocal language display name for {LanguageCode}",
             AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCouldNotResolveVocalLanguageDisplayName);
 
-        var musicVmDispatch = AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedDispatchingUpdateScheduleFromViewModelMusic;
-        Assert.Contains("{ScheduleId}", musicVmDispatch);
-        Assert.Contains("{PublicationName}", musicVmDispatch);
-        Assert.Contains("{TrackName}", musicVmDispatch);
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}, TrackName: {TrackName}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedUsingDisplayNamesFromAction);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackCode: {TrackCode}, TrackName: {TrackName}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedDispatchingUpdateScheduleFromViewModelMusic);
+
+        Assert.Equal(
+            "ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedSyncedCurrentMusicToSchedule);
     }
 
     [Fact]
