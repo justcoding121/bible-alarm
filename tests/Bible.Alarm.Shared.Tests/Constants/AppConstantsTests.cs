@@ -218,17 +218,33 @@ public sealed class AppConstantsTests
     [Fact]
     public void Logging_serilog_templates_environment_and_fallback_tokens()
     {
-        Assert.Contains("{Timestamp:", AppConstants.Logging.ConsoleOutputTemplate, StringComparison.Ordinal);
-        Assert.Contains("{Level:", AppConstants.Logging.ConsoleOutputTemplate, StringComparison.Ordinal);
-        Assert.Contains("{Timestamp:", AppConstants.Logging.FileOutputTemplate, StringComparison.Ordinal);
-        Assert.EndsWith("{Exception}", AppConstants.Logging.FileOutputTemplate, StringComparison.Ordinal);
+        Assert.Equal(
+            "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}",
+            AppConstants.Logging.ConsoleOutputTemplate);
+
+        Assert.Equal(
+            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}",
+            AppConstants.Logging.FileOutputTemplate);
 
         Assert.Equal("DEBUG", AppConstants.Logging.DebugEnvironment);
         Assert.Equal("AssemblyVersionNotFound", AppConstants.Logging.AssemblyVersionFallback);
         Assert.Equal("Unknown error", AppConstants.Logging.UnknownErrorFallback);
 
-        Assert.Contains("alarm", AppConstants.Logging.AlarmDiagnostics.RingingAlarmFailed, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("review", AppConstants.Logging.AlarmDiagnostics.ReviewRequestedFailed, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            "An error happened when ringing the alarm.",
+            AppConstants.Logging.AlarmDiagnostics.RingingAlarmFailed);
+        Assert.Equal(
+            "An error happened when creating the task to ring the alarm.",
+            AppConstants.Logging.AlarmDiagnostics.CreatingAlarmRingTaskFailed);
+        Assert.Equal(
+            "An error happened when playing alarm.",
+            AppConstants.Logging.AlarmDiagnostics.PlayingAlarmFailed);
+        Assert.Equal(
+            "An error happened when starting user-initiated playback.",
+            AppConstants.Logging.AlarmDiagnostics.StartingUserInitiatedPlaybackFailed);
+        Assert.Equal(
+            "An error happened when review was requested.",
+            AppConstants.Logging.AlarmDiagnostics.ReviewRequestedFailed);
     }
 
     [Fact]
