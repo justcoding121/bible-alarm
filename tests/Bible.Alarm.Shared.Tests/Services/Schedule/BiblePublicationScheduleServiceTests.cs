@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Reflection;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -7,6 +8,9 @@ using Bible.Alarm.Shared.Services.Schedule;
 using Bible.Alarm.Shared.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 
 namespace Bible.Alarm.Shared.Tests;
 
@@ -32,6 +36,11 @@ public sealed class BiblePublicationScheduleServiceTests : IAsyncLifetime
 
     public Task DisposeAsync() => connection.DisposeAsync().AsTask();
 
+    private sealed class ListSink(List<LogEvent> events) : ILogEventSink
+    {
+        public void Emit(LogEvent logEvent) => events.Add(logEvent);
+    }
+
     [Fact]
     public void Constructor_NullScopeFactory_ThrowsArgumentNullException() =>
         Assert.Throws<ArgumentNullException>(() => new BiblePublicationScheduleService(null!, TestLogging.CreateLogger()));
@@ -40,6 +49,16 @@ public sealed class BiblePublicationScheduleServiceTests : IAsyncLifetime
     public void Constructor_NullLogger_ThrowsArgumentNullException() =>
         Assert.Throws<ArgumentNullException>(() =>
             new BiblePublicationScheduleService(new ScheduleTestScopeFactory(Options), null!));
+
+    [Fact]
+    public async Task GetBiblePublicationScheduleByScheduleIdAsync_ReturnsNull_When_No_Row()
+    {
+        using var bibleSvc = new BiblePublicationScheduleService(
+            new ScheduleTestScopeFactory(Options),
+            TestLogging.CreateLogger());
+
+        Assert.Null(await bibleSvc.GetBiblePublicationScheduleByScheduleIdAsync(4242));
+    }
 
     [Fact]
     public async Task GetByScheduleId_GetAll_GetById_Predicate_Update_Exists_Delete_roundtrip()
@@ -122,6 +141,35 @@ public sealed class BiblePublicationScheduleServiceTests : IAsyncLifetime
         var fetched = await bibleSvc.GetBiblePublicationScheduleByScheduleIdAsync(saved.Id);
         Assert.NotNull(fetched);
         Assert.Equal("40", fetched!.SectionCode);
+    }
+
+    [Fact]
+    public void Dispose_LogsWarning_When_CancellationTokenCleanupThrows()
+    {
+        var events = new List<LogEvent>();
+        var logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .WriteTo.Sink(new ListSink(events))
+            .CreateLogger();
+
+        var svc = new BiblePublicationScheduleService(new ScheduleTestScopeFactory(Options), logger);
+
+        var field = typeof(BiblePublicationScheduleService).GetField(
+            "cancellationTokenSource",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+
+        ((CancellationTokenSource)field!.GetValue(svc)!).Dispose();
+
+        Assert.Null(Record.Exception(() => svc.Dispose()));
+
+        Assert.Contains(events, log =>
+            log.Level == LogEventLevel.Warning
+            && log.MessageTemplate.Text.Contains(
+                "Error during cancellation token source disposal in BiblePublicationScheduleService",
+                StringComparison.Ordinal));
+
+        Assert.Null(Record.Exception(() => svc.Dispose()));
     }
 
     [Fact]
