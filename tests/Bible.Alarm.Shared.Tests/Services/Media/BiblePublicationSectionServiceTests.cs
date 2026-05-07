@@ -8,6 +8,7 @@ using Bible.Alarm.Shared.Services.Media;
 using Bible.Alarm.Shared.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Shared.Tests;
 
@@ -213,6 +214,63 @@ public sealed class BiblePublicationSectionServiceTests
     }
 
     [Fact]
+    public async Task GetSectionsByPublicationWithoutLanguageAsync_keeps_first_on_duplicate_normalized_code()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                seed.Categories.Add(musicCat);
+                await seed.SaveChangesAsync();
+
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = "iam-dup-sec-wave",
+                    Name = "Melody dup sections",
+                    LanguageId = null,
+                    Language = null,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = musicCat, CategoryId = musicCat.Id },
+                    ],
+                    Sections =
+                    [
+                        new BiblePublicationSection { Name = "KeepDisc", SectionCode = "iam-1", Tracks = [] },
+                        new BiblePublicationSection { Name = "DropDup", SectionCode = "iam-1", Tracks = [] },
+                    ],
+                    Tracks = [],
+                    IsVideo = false,
+                    IsMusic = true,
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            using var sut = new BiblePublicationSectionService(factory, TestLogging.CreateLogger());
+
+            var dict = await sut.GetSectionsByPublicationWithoutLanguageAsync("iam-dup-sec-wave");
+
+            var single = Assert.Single(dict);
+            Assert.Equal("iam-1", single.Key);
+            Assert.Equal("KeepDisc", single.Value.Name);
+        }
+    }
+
+    [Fact]
+    public async Task GetSectionNameAsync_wraps_scope_errors()
+    {
+        var sut = new BiblePublicationSectionService(new ThrowingScopeFactory(), TestLogging.CreateLogger());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetSectionNameAsync("E", "p", "1"));
+
+        Assert.Contains("Error getting BiblePublicationSection name", ex.Message, StringComparison.Ordinal);
+        Assert.IsType<DivideByZeroException>(ex.InnerException);
+    }
+
+    [Fact]
     public async Task Dispose_is_idempotent()
     {
         var (factory, connection) = await CreateFactoryAsync();
@@ -223,5 +281,11 @@ public sealed class BiblePublicationSectionServiceTests
             sut.Dispose();
             Assert.Null(Record.Exception(() => sut.Dispose()));
         }
+    }
+
+    private sealed class ThrowingScopeFactory : IServiceScopeFactory
+    {
+        public IServiceScope CreateScope() =>
+            throw new DivideByZeroException("test");
     }
 }

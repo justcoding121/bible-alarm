@@ -132,6 +132,62 @@ public sealed class BiblePublicationTrackServiceTests
     }
 
     [Fact]
+    public async Task GetTracksBySectionAsync_keeps_first_when_duplicate_track_code_on_flat_tracks()
+    {
+        var (factory, connection) = CreateFactory();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var db = new MediaDbContext(opts))
+            {
+                var lang = new Language
+                {
+                    LanguageCode = "E",
+                    Direction = AppConstants.Media.TextDirectionLeftToRight,
+                };
+                db.Languages.Add(lang);
+                await db.SaveChangesAsync();
+
+                var pub = new BiblePublication
+                {
+                    Name = "Flat dup codes",
+                    PublicationCode = "bpts-dup-flat",
+                    LanguageId = lang.Id,
+                    Language = lang,
+                    IsVideo = false,
+                    IsMusic = false,
+                };
+
+                pub.Tracks.Add(new BiblePublicationTrack
+                {
+                    TrackCode = "7",
+                    Title = "FirstSeven",
+                    Publication = pub,
+                    Section = null,
+                    BiblePublicationSectionId = null,
+                });
+                pub.Tracks.Add(new BiblePublicationTrack
+                {
+                    TrackCode = "7",
+                    Title = "SecondSevenSkipped",
+                    Publication = pub,
+                    Section = null,
+                    BiblePublicationSectionId = null,
+                });
+
+                db.BiblePublications.Add(pub);
+                await db.SaveChangesAsync();
+            }
+
+            var sut = new BiblePublicationTrackService(factory, TestLogging.CreateLogger());
+            var map = await sut.GetTracksBySectionAsync("E", "bpts-dup-flat", "   ");
+
+            Assert.Single(map);
+            Assert.Equal("FirstSeven", map["7"].Title);
+        }
+    }
+
+    [Fact]
     public async Task GetTracksBySectionAsync_whitespace_section_loads_publication_level_tracks()
     {
         var (factory, connection) = CreateFactory();
