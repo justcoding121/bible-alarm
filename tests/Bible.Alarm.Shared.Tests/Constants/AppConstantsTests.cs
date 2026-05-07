@@ -1327,6 +1327,94 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_android_notification_media_session_and_navigation_service_templates()
+    {
+        Assert.Equal(
+            "Failed to show toast message for exact alarm permission error",
+            AppConstants.Logging.AndroidNotificationServiceDiagnosticsLog.FailedToShowToastExactAlarmPermissionError);
+
+        Assert.Equal(
+            "AlarmSetupService.OnCreate: failed to create MediaSession",
+            AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.AlarmSetupServiceOnCreateFailed);
+
+        Assert.Equal(
+            "LegacyMediaBrowserService.OnCreate: failed to create MediaSession",
+            AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.LegacyMediaBrowserServiceOnCreateFailed);
+
+        Assert.Equal(
+            "Error updating MediaSessionCompat playback state",
+            AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingPlaybackState);
+
+        Assert.Contains(
+            "{StartTime}",
+            AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncStartAt);
+
+        var pushPerf = AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncPushCompletedTotalSoFarMs;
+        Assert.Contains("{ElapsedMs}", pushPerf);
+        Assert.Contains("{TotalMs}", pushPerf);
+
+        var popFinished = AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesFinishedDisposing;
+        Assert.Contains("{ModalCount}", popFinished);
+        Assert.Contains("{PageCount}", popFinished);
+
+        var disposedPage = AppConstants.Logging.NavigationServiceDiagnosticsLog.PopAllModalsAndPagesDisposedPage;
+        Assert.Contains("{PageType}", disposedPage);
+        Assert.Contains("{PageTypeName}", disposedPage);
+    }
+
+    [Fact]
+    public void Logging_navigation_stack_ios_cleanup_windows_toast_flyout_and_maui_platform_ui_templates()
+    {
+        Assert.Contains(
+            "{Delay}",
+            AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopModalAsyncFirstPopFailedRetry);
+
+        Assert.Contains(
+            "{Count}",
+            AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopModalAsyncRetryPopFailed);
+
+        Assert.Contains(
+            "Home must never be removed",
+            AppConstants.Logging.NavigationStackManagerDiagnosticsLog.PopAsyncRefusingPopHome);
+
+        Assert.Contains(
+            "{Type}",
+            AppConstants.Logging.NavigationStackManagerDiagnosticsLog.DisconnectHandlersRecursivelyErrorDisconnectingHandlerForTypeNonFatal);
+
+        Assert.Equal(
+            "IosNativeViewCleanupHelper: Subviews walk hit disposed view (non-fatal)",
+            AppConstants.Logging.IosNativeViewCleanupDiagnosticsLog.SubviewsWalkHitDisposedViewNonFatal);
+
+        Assert.Equal(
+            "Unable to create toast notifier. Scheduled notifications will not work. This is common in debug mode or when the app is not properly registered for notifications. Try running the app from an installed package instead of Visual Studio.",
+            AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.UnableToCreateToastNotifierHints);
+
+        Assert.Contains(
+            "{HR:X8}",
+            AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.COMExceptionCreatingNotifierWithoutParametersHResultTryingAumid);
+
+        var notifierPackage = AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.FailedToCreateNotifierWithAnyAumidPackage;
+        Assert.Contains("{PackageName}", notifierPackage);
+        Assert.Contains("{FamilyName}", notifierPackage);
+
+        Assert.Contains(
+            "{AUMID}",
+            AppConstants.Logging.WindowsToastNotifierFactoryDiagnosticsLog.TryingToCreateNotifierWithAumid);
+
+        var removeNotif = AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.FailedRemovingScheduledNotificationForSchedule;
+        Assert.Contains("{NotificationId}", removeNotif);
+        Assert.Contains("{ScheduleId}", removeNotif);
+
+        Assert.Equal(
+            "COM exception occurred while showing toast message",
+            AppConstants.Logging.WindowsToastFlyoutDiagnosticsLog.COMExceptionShowingToastMessage);
+
+        Assert.Contains(
+            "{ArtworkUrl}",
+            AppConstants.Logging.MauiPlatformUiDiagnosticsLog.WindowsToastXmlFailedToAddArtwork);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
