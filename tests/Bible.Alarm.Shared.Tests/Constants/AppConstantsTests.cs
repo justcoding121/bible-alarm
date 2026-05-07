@@ -836,6 +836,109 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_application_music_vocal_cascade_publication_chooser_and_playback_reducer_templates()
+    {
+        var musicTrack = AppConstants.Logging.ApplicationMusicReducerDiagnosticsLog.OnMusicTrackSelectedUpdatedCurrentSchedule;
+        Assert.Contains("{LanguageCode}", musicTrack);
+        Assert.Contains("{TrackName}", musicTrack);
+
+        var musicSection = AppConstants.Logging.ApplicationMusicReducerDiagnosticsLog.OnMusicSectionSelectedUpdatedCurrentSchedule;
+        Assert.Contains("{SectionCode}", musicSection);
+        Assert.Contains("{SectionName}", musicSection);
+
+        Assert.Contains(
+            "{LanguageName}",
+            AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.PopulateLanguagesMarkedLanguageSelected);
+        Assert.Contains(
+            "{Effective}",
+            AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.RefreshLanguagesAsyncCurrentEffective);
+
+        Assert.Equal(
+            "MusicPublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch",
+            AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.CancelFetchCommandUserCancelledFetch);
+
+        Assert.Contains(
+            "{LanguageCode}",
+            AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.FirstPublicationByIdOrder);
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.VocalMusicFirstSongCascadeDiagnosticsLog.DownloadingFirstVocalPublicationCascade);
+
+        var autoAdv = AppConstants.Logging.PlaybackReducerDiagnosticsLog.AutoAdvancingFlagChanged;
+        Assert.Contains("{PreviousValue}", autoAdv);
+        Assert.Contains("{NewValue}", autoAdv);
+        Assert.Contains("{ScheduleId}", autoAdv);
+
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationNoLanguageNeeded);
+        Assert.Contains(
+            "{LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseFailedToCatalogPublicationTryingNext);
+    }
+
+    [Fact]
+    public void Logging_bible_music_selection_state_handlers_and_view_schedule_command_templates()
+    {
+        var refreshTracks = AppConstants.Logging.BiblePublicationTrackSelectionViewModelDiagnosticsLog.RefreshFromStateLanguagePublicationSection;
+        Assert.Contains("{LanguageCode}", refreshTracks);
+        Assert.Contains("{PublicationCode}", refreshTracks);
+
+        Assert.Contains(
+            "{CurrentTrackCode}",
+            AppConstants.Logging.BiblePublicationTrackSelectionViewModelDiagnosticsLog.InitializeLanguagePublicationSectionCurrentTrack);
+
+        Assert.Contains(
+            "{SectionCode}",
+            AppConstants.Logging.TrackSelectionStateManagerDiagnosticsLog.HandleInitializedLanguagePublicationSection);
+        Assert.Equal(
+            "Error in TrackSelectionStateManager.HandleBiblePublicationChanged during track population",
+            AppConstants.Logging.TrackSelectionStateManagerDiagnosticsLog.ErrorInHandleBiblePublicationChangedDuringTrackPopulation);
+
+        Assert.Contains(
+            "{Count}",
+            AppConstants.Logging.BiblePublicationSelectionPropertyManagerDiagnosticsLog.MultipleLanguagesSelectedCount);
+
+        Assert.Equal(
+            "BiblePublicationSelectionViewModel: Fetch failed with network error",
+            AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchFailedNetworkError);
+
+        var catNull = AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.HandleBiblePublicationChangedCategoryNullOrEmpty;
+        Assert.Contains("{LanguageCode}", catNull);
+        Assert.Contains(
+            "{CategoryName}",
+            AppConstants.Logging.BiblePublicationSelectionStateHandlerDiagnosticsLog.RefreshFromStateGotCategoryFromPublicationLanguages);
+
+        Assert.Contains(
+            "{Context}",
+            AppConstants.Logging.BiblePublicationSectionSelectionViewModelDiagnosticsLog.FaultedTaskContextTemplate);
+
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.MusicPublicationSelectionCommandHandlerDiagnosticsLog.ErrorPublicationSelectionPublicationCode);
+        Assert.Contains(
+            "{LanguageCode}",
+            AppConstants.Logging.MusicPublicationSelectionCommandHandlerDiagnosticsLog.NetworkErrorLanguageSelectionLanguageCode);
+
+        Assert.Equal(
+            "Error in HandleMusicChanged during publication population",
+            AppConstants.Logging.MusicPublicationSelectionStateManagerDiagnosticsLog.ErrorInHandleMusicChangedDuringPublicationPopulation);
+
+        Assert.Equal(
+            "Error in MusicTrackStateManager.HandleMusicChanged during track population",
+            AppConstants.Logging.MusicTrackStateManagerDiagnosticsLog.ErrorInHandleMusicChangedDuringTrackPopulation);
+
+        var perfTap = AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.PerfTapReceivedAtSchedule;
+        Assert.Contains("{StartTime}", perfTap);
+        Assert.Contains("{ScheduleId}", perfTap);
+        Assert.Contains("{ElapsedMs}", AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.PerfNavigationCompletedTotalMs);
+
+        Assert.Equal(
+            "IBatteryOptimizationService not available",
+            AppConstants.Logging.ViewScheduleCommandDiagnosticsLog.BatteryOptimizationServiceNotAvailable);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
