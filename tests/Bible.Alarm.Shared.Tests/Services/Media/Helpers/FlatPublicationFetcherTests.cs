@@ -68,6 +68,54 @@ public sealed class FlatPublicationFetcherTests
         await db.SaveChangesAsync();
     }
 
+    private static async Task SeedDramasGoodNewsCategoriesAndFrenchLanguageAsync(MediaDbContext db)
+    {
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(
+                     AppConstants.Media.NormalizedPublicationCodeDramasGoodNews))
+        {
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        db.Languages.Add(new Language
+        {
+            LanguageCode = "F",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        });
+
+        await db.SaveChangesAsync();
+    }
+
+    private static string MediatorCategoryNameJson(string name)
+    {
+        var cat = AppConstants.Media.PubMediaJson.Category;
+        var nm = AppConstants.Media.PubMediaJson.Name;
+        return "{\"" + cat + "\":{\"" + nm + "\":\"" + name + "\"}}";
+    }
+
+    private sealed class RouteMediatorThenGetPubFactoryHandler : HttpMessageHandler
+    {
+        private readonly string mediatorBody;
+        private readonly string getPubBody;
+
+        internal RouteMediatorThenGetPubFactoryHandler(string mediatorBody, string getPubBody)
+        {
+            this.mediatorBody = mediatorBody;
+            this.getPubBody = getPubBody;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var uri = request.RequestUri?.AbsoluteUri ?? "";
+            var body = uri.Contains(AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix, StringComparison.OrdinalIgnoreCase)
+                ? mediatorBody
+                : getPubBody;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(body),
+            });
+        }
+    }
+
     [Fact]
     public void Constructor_Throws_When_HttpClient_Null()
     {
@@ -430,6 +478,65 @@ public sealed class FlatPublicationFetcherTests
             };
 
             Assert.False(await sut.FetchFlatPublicationTracksAsync(req));
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_Applies_LocalizedMediatorTitle_When_Video_And_Language_Is_Not_English()
+    {
+        // Omit pubName so TryDecodePublicationNameFromRoot does not overwrite the Mediator title (see FlatPublicationFetcher).
+        const string frenchMp4FlatJson =
+            "{\"files\":{\"F\":{\"MP4\":[{\"track\":1,\"file\":{\"url\":\"https://cdn/fr-scene.mp4\"},\"title\":\"Scène\"}]}}}";
+
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            await SeedDramasGoodNewsCategoriesAndFrenchLanguageAsync(db);
+            var lang = await db.Languages.SingleAsync(l => l.LanguageCode == "F");
+
+            var mediatorBody = MediatorCategoryNameJson("Titre dramas FR");
+
+            using var routed = new RouteMediatorThenGetPubFactoryHandler(mediatorBody, frenchMp4FlatJson);
+            using var httpClient = new HttpClient(routed);
+            var sut = new FlatPublicationFetcher(
+                httpClient,
+                TestLogging.CreateLogger(),
+                new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+            var normalized = AppConstants.Media.NormalizedPublicationCodeDramasGoodNews;
+            var englishStub = new BiblePublication
+            {
+                Name = "Good News EN",
+                PublicationCode = normalized,
+                IsVideo = true,
+                IsMusic = false,
+                Sections = [],
+                Tracks = [],
+            };
+
+            var req = new FetchFlatPublicationTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = normalized,
+                NormalizedLanguageCode = "F",
+                EnglishPublication = englishStub,
+                IsVideo = true,
+                IsMusic = false,
+                FileFormat = AppConstants.Media.MediaStreamFormatMp4,
+                Language = lang,
+                CancellationToken = CancellationToken.None,
+            };
+
+            Assert.True(await sut.FetchFlatPublicationTracksAsync(req));
+
+            var pub = await db.BiblePublications
+                .Include(p => p.Tracks)
+                .ThenInclude(t => t.TrackUrl)
+                .SingleAsync();
+            Assert.Equal("Titre dramas FR", pub.Name);
+            Assert.Single(pub.Tracks);
+            Assert.Contains("cdn/fr-scene.mp4", pub.Tracks[0].TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
