@@ -2211,18 +2211,59 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_media_service_vocal_releases_and_display_metadata_templates()
+    public void Logging_display_metadata_service_exact_strings()
     {
-        Assert.Contains("{Uri}", AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractFileMetadataForArtworkArtistAlbum);
-        Assert.Contains("{Context}", AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractArtworkFromFileWithContext);
-
-        var disc = AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToResolveMelodyDiscNameForPublicationDisc;
-        Assert.Contains("{PublicationCode}", disc);
-        Assert.Contains("{DiscCode}", disc);
-
         Assert.Equal(
             "Failed to get display metadata for track",
             AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetDisplayMetadataForTrack);
+
+        Assert.Equal(
+            "Failed to get melody track title from media service",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodyTrackTitleFromMediaService);
+
+        Assert.Equal(
+            "Failed to get melody release name from media service",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodyReleaseNameFromMediaService);
+
+        Assert.Equal(
+            "Failed to get melody section name from media service",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToGetMelodySectionNameFromMediaService);
+
+        Assert.Equal(
+            "Failed to extract file metadata for artwork/artist/album {Uri}",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractFileMetadataForArtworkArtistAlbum);
+
+        Assert.Equal(
+            "Failed to extract artwork from file {Uri} ({Context})",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractArtworkFromFileWithContext);
+
+        Assert.Equal(
+            "Failed to extract metadata from file {Uri}",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataFromFile);
+
+        Assert.Equal(
+            "Failed to extract metadata from {Uri} (default create failed)",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataDefaultCreateFailedForUri);
+
+        Assert.Equal(
+            "Video/mp4 create also failed for {Uri}",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.VideoMp4CreateAlsoFailedForUri);
+
+        Assert.Equal(
+            "Audio/mpeg create also failed for {Uri}",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.AudioMpegCreateAlsoFailedForUri);
+
+        Assert.Equal(
+            "Failed to extract metadata from local file {Uri}",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractMetadataFromLocalFile);
+
+        Assert.Equal(
+            "Failed to resolve melody release name for {PublicationCode}",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToResolveMelodyReleaseNameForPublication);
+
+        Assert.Equal(
+            "Failed to resolve melody disc name for {PublicationCode}/{DiscCode}",
+            AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToResolveMelodyDiscNameForPublicationDisc);
     }
 
     [Fact]
