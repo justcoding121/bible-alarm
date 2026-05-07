@@ -1742,36 +1742,79 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_schedule_display_name_music_and_bible_helper_templates()
+    public void Logging_schedule_display_name_music_helper_exact_strings()
     {
-        Assert.Contains(
-            "{PublicationCode}",
+        Assert.Equal(
+            "Error populating MusicLanguageName for melody",
+            AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicLanguageNameForMelody);
+
+        Assert.Equal(
+            "Error populating MusicLanguageName",
+            AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicLanguageName);
+
+        Assert.Equal(
+            "Error populating MusicPublicationName",
+            AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicPublicationName);
+
+        Assert.Equal(
+            "Error populating MusicSectionName for publication {PublicationCode}, section {SectionCode}",
             AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicSectionNameForPublicationSection);
-        Assert.Contains(
-            "{SectionCode}",
+
+        Assert.Equal(
+            "Music section name not found for publication {PublicationCode}, section {SectionCode}",
             AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.MusicSectionNameNotFoundForPublicationSection);
 
-        Assert.Contains(
-            "{MusicSectionName}",
+        Assert.Equal(
+            "Error populating MusicTrackName",
+            AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.ErrorPopulatingMusicTrackName);
+
+        Assert.Equal(
+            "Populated MusicSectionName '{MusicSectionName}' for publication {PublicationCode}, section {SectionCode}",
             AppConstants.Logging.ScheduleDisplayNameDiagnosticsLog.PopulatedMusicSectionNameForPublicationSection);
+    }
 
-        Assert.Contains(
-            "{PublicationCode}",
-            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.NoLanguagePublicationKeepingLanguageNameForDisplay);
-        Assert.Contains(
-            "{LanguageCode}",
+    [Fact]
+    public void Logging_schedule_display_name_bible_helper_exact_strings()
+    {
+        Assert.Equal(
+            "Error populating BiblePublicationLanguageName",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationLanguageName);
+
+        Assert.Equal(
+            "No-language publication {PublicationCode}; keeping BiblePublicationLanguageName for display (LanguageCode: {LanguageCode})",
             AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.NoLanguagePublicationKeepingLanguageNameForDisplay);
 
-        Assert.Contains(
-            "{CategoryId}",
+        Assert.Equal(
+            "Error loading publication without language FK from media index (PublicationCode={PublicationCode})",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorLoadingPublicationWithoutLanguageFkFromMediaIndex);
+
+        Assert.Equal(
+            "Populated BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName={CategoryName} for schedule {ScheduleId}",
             AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.PopulatedBiblePublicationCategoryIdAndCategoryName);
-        Assert.Contains(
-            "{ScheduleId}",
+
+        Assert.Equal(
+            "Populated BiblePublicationCategoryName={CategoryName} from publication code for schedule {ScheduleId}",
             AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.PopulatedBiblePublicationCategoryNameFromPublicationCode);
 
-        var melody = AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.FailedToResolveMelodyTrackTitle;
-        Assert.Contains("{PublicationCode}", melody);
-        Assert.Contains("{TrackCode}", melody);
+        Assert.Equal(
+            "Error populating BiblePublicationName and Category",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationNameAndCategory);
+
+        Assert.Equal(
+            "No-language section lookup failed (PublicationCode={PublicationCode}, SectionCode={SectionCode})",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.NoLanguageSectionLookupFailed);
+
+        Assert.Equal(
+            "Error populating BiblePublicationSectionName",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationSectionName);
+
+        Assert.Equal(
+            "Failed to resolve melody track title (PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode})",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.FailedToResolveMelodyTrackTitle);
+
+        Assert.Equal(
+            "Error populating BiblePublicationTrackTitle",
+            AppConstants.Logging.ScheduleDisplayNameBibleHelperDiagnosticsLog.ErrorPopulatingBiblePublicationTrackTitle);
     }
 
     [Fact]
