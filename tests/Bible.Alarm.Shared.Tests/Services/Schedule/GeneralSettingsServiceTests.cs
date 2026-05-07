@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Reflection;
+using System.Threading;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Schedule;
 using Bible.Alarm.Shared.Tests.Support;
@@ -83,6 +84,39 @@ public sealed class GeneralSettingsServiceTests : IAsyncLifetime
         using var service = CreateService();
 
         Assert.Null(await service.GetGeneralSettingAsync("__no_such_general_setting__"));
+    }
+
+    [Fact]
+    public async Task GetGeneralSettingAsync_PreCanceled_PropagatesOperationCanceled()
+    {
+        using var service = CreateService();
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.GetGeneralSettingAsync("any", canceled.Token));
+    }
+
+    [Fact]
+    public async Task SetGeneralSettingAsync_PreCanceledOnInsert_PropagatesOperationCanceled()
+    {
+        using var service = CreateService();
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.SetGeneralSettingAsync("fresh-key", "v", canceled.Token));
+    }
+
+    [Fact]
+    public async Task GeneralSettingExistsAsync_PreCanceled_PropagatesOperationCanceled()
+    {
+        using var service = CreateService();
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.GeneralSettingExistsAsync("any", canceled.Token));
     }
 
     [Fact]

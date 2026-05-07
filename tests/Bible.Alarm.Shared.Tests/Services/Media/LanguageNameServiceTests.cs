@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Threading;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
@@ -7,12 +8,26 @@ using Bible.Alarm.Shared.Services.Media;
 using Bible.Alarm.Shared.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Shared.Tests;
 
 public sealed class LanguageNameServiceTests : IAsyncLifetime
 {
     private static readonly int[] SingleLanguageId = [1];
+
+    private sealed class CountingScopeFactory(MediaTestScopeFactory inner) : IServiceScopeFactory
+    {
+        private int createScopeCallCount;
+
+        public int CreateScopeCallCount => Volatile.Read(ref createScopeCallCount);
+
+        public IServiceScope CreateScope()
+        {
+            Interlocked.Increment(ref createScopeCallCount);
+            return inner.CreateScope();
+        }
+    }
 
     private readonly SqliteConnection connection = new("Data Source=:memory:");
 
@@ -302,6 +317,51 @@ public sealed class LanguageNameServiceTests : IAsyncLifetime
 
         Assert.Null(sut.GetNameCached(1));
         Assert.Null(sut.GetNameByLanguageCodeCached("zh"));
+    }
+
+    [Fact]
+    public async Task GetNameAsync_Uncached_ReturnsNull_WhenNoLanguageNameRow()
+    {
+        var sut = CreateSut();
+
+        Assert.Null(await sut.GetNameAsync(424_242, displayLanguageCode: "E"));
+    }
+
+    [Fact]
+    public async Task GetNameByLanguageCodeAsync_Uncached_ReturnsNull_WhenNoLanguageNameRow()
+    {
+        var sut = CreateSut();
+
+        Assert.Null(await sut.GetNameByLanguageCodeAsync("ZZ", displayLanguageCode: "E"));
+    }
+
+    [Fact]
+    public async Task WarmCacheForDisplayLanguageAsync_PreCanceled_PropagatesOperationCanceled()
+    {
+        var sut = CreateSut();
+
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            sut.WarmCacheForDisplayLanguageAsync("E", canceled.Token));
+    }
+
+    [Fact]
+    public async Task GetNameAsync_AfterWarm_DoesNotOpenAdditionalScopes()
+    {
+        await SeedSingleLanguageAsync(languageCode: "WX", englishName: "Warm Scope");
+        var inner = new MediaTestScopeFactory(Options);
+        var counting = new CountingScopeFactory(inner);
+        var sut = new LanguageNameService(counting, TestLogging.CreateLogger());
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+        Assert.Equal(1, counting.CreateScopeCallCount);
+
+        Assert.Equal("Warm Scope", await sut.GetNameAsync(1, "E"));
+        Assert.Equal("Warm Scope", await sut.GetNameByLanguageCodeAsync("WX", "E"));
+
+        Assert.Equal(1, counting.CreateScopeCallCount);
     }
 
     private LanguageNameService CreateSut() =>
