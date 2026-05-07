@@ -307,6 +307,78 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_bible_publication_selection_item_selector_templates()
+    {
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackStarting);
+        Assert.Contains(
+            "{LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackStarting);
+        Assert.Contains(
+            "{SectionCount}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackFoundSectionsSectionedFlow);
+
+        Assert.Contains(
+            "{SectionCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackSectionedResult);
+        Assert.Contains(
+            "{TrackTitle}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackSectionedResult);
+
+        Assert.Contains(
+            "{LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationSectionTrackLangStarting);
+        Assert.Contains(
+            "{CategoryName}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.NoPublicationFoundForLanguageCategory);
+
+        Assert.Contains(
+            "{TrackCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationNonSectionedResult);
+    }
+
+    [Fact]
+    public void Logging_bible_publication_selection_data_provider_and_section_track_resolver_templates()
+    {
+        Assert.Contains(
+            "{LanguageCount}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulateLanguagesLoaded);
+        Assert.Contains(
+            "{Attempt}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAllExpectedCatalogedOnAttempt);
+        Assert.Contains(
+            "{CategoryName}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsNoProgressBetweenRetriesStopping);
+
+        Assert.Contains(
+            "{SectionCode}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationDispatchingTrackSelected);
+        Assert.Contains(
+            "{TrackCode}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationDispatchingTrackSelected);
+
+        Assert.StartsWith(
+            "BibleSelectionDataProvider:",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.ErrorDispatchingDefaultPublicationSelection,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "{SectionCodeKey}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.GetFirstSectionFirstSectionCodeKey);
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.SectionFoundButNoTracks);
+        Assert.Contains(
+            "{HasService}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.GetFirstTrackNonSectionedStarting);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: biblePublicationService is null, returning empty result",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.BiblePublicationServiceNullReturningEmpty);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
