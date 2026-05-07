@@ -286,4 +286,150 @@ public sealed class FlatPublicationFetcherTests
             Assert.Contains("update-second.mp3", track.TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
         }
     }
+
+    [Fact]
+    public async Task Fetch_ReturnsFalse_When_No_Categories_Seeded_For_Publication()
+    {
+        const string json =
+            "{\"files\":{\"E\":{\"MP3\":[{\"track\":1,\"file\":{\"url\":\"https://cdn.example/osg.mp3\"},\"title\":\"Song One\"}]}},\"pubName\":\"Sing&nbsp;Out\"}";
+
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            db.Languages.Add(new Language
+            {
+                LanguageCode = AppConstants.Media.DefaultLanguageCode,
+                Direction = AppConstants.Media.TextDirectionLeftToRight
+            });
+            await db.SaveChangesAsync();
+            var lang = await db.Languages.SingleAsync();
+
+            using var handler = new JsonHandler(json);
+            using var httpClient = new HttpClient(handler);
+            var sut = new FlatPublicationFetcher(
+                httpClient,
+                TestLogging.CreateLogger(),
+                new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+            var req = new FetchFlatPublicationTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = "osg",
+                NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                EnglishPublication = new BiblePublication
+                {
+                    Name = "Songs EN",
+                    PublicationCode = "osg",
+                    IsVideo = false,
+                    IsMusic = true,
+                    Sections = [],
+                    Tracks = []
+                },
+                IsVideo = false,
+                IsMusic = true,
+                FileFormat = AppConstants.Media.MediaStreamFormatMp3,
+                Language = lang,
+                CancellationToken = CancellationToken.None
+            };
+
+            Assert.False(await sut.FetchFlatPublicationTracksAsync(req));
+            Assert.Equal(0, await db.BiblePublications.CountAsync());
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_Resolves_Language_From_Database_When_Request_Language_Null()
+    {
+        const string json =
+            "{\"files\":{\"E\":{\"MP3\":[{\"track\":1,\"file\":{\"url\":\"https://cdn.example/osg.mp3\"},\"title\":\"Song One\"}]}},\"pubName\":\"Sing&nbsp;Out\"}";
+
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            await SeedOsgCategoriesAndLanguageAsync(db);
+
+            using var handler = new JsonHandler(json);
+            using var httpClient = new HttpClient(handler);
+            var sut = new FlatPublicationFetcher(
+                httpClient,
+                TestLogging.CreateLogger(),
+                new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+            var req = new FetchFlatPublicationTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = "osg",
+                NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                EnglishPublication = new BiblePublication
+                {
+                    Name = "Songs EN",
+                    PublicationCode = "osg",
+                    IsVideo = false,
+                    IsMusic = true,
+                    Sections = [],
+                    Tracks = []
+                },
+                IsVideo = false,
+                IsMusic = true,
+                FileFormat = AppConstants.Media.MediaStreamFormatMp3,
+                Language = null,
+                CancellationToken = CancellationToken.None
+            };
+
+            Assert.True(await sut.FetchFlatPublicationTracksAsync(req));
+            var pub = await db.BiblePublications.SingleAsync();
+            Assert.NotNull(pub.LanguageId);
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_ReturnsFalse_When_Target_Language_Missing_And_Request_Language_Null()
+    {
+        const string json =
+            "{\"files\":{\"E\":{\"MP3\":[{\"track\":1,\"file\":{\"url\":\"https://cdn.example/osg.mp3\"},\"title\":\"Song One\"}]}},\"pubName\":\"Sing&nbsp;Out\"}";
+
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication("osg"))
+            {
+                db.Categories.Add(new Category { CategoryCode = categoryCode });
+            }
+
+            await db.SaveChangesAsync();
+
+            using var handler = new JsonHandler(json);
+            using var httpClient = new HttpClient(handler);
+            var sut = new FlatPublicationFetcher(
+                httpClient,
+                TestLogging.CreateLogger(),
+                new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+            var req = new FetchFlatPublicationTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = "osg",
+                NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                EnglishPublication = new BiblePublication
+                {
+                    Name = "Songs EN",
+                    PublicationCode = "osg",
+                    IsVideo = false,
+                    IsMusic = true,
+                    Sections = [],
+                    Tracks = []
+                },
+                IsVideo = false,
+                IsMusic = true,
+                FileFormat = AppConstants.Media.MediaStreamFormatMp3,
+                Language = null,
+                CancellationToken = CancellationToken.None
+            };
+
+            Assert.False(await sut.FetchFlatPublicationTracksAsync(req));
+        }
+    }
 }

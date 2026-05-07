@@ -390,6 +390,66 @@ public sealed class AlarmScheduleTests
         Assert.Equal(AppConstants.SampleScheduleDiagnostics.NoSectionedPublicationForSampleScheduleMessage, ex.Message);
     }
 
+    [Fact]
+    public async Task GetSampleSchedule_Uses_First_Release_Key_When_Iam_Not_In_Releases()
+    {
+        var bible = BuildNwtWithSingleGenesisTrack();
+        using var bibleSvc = new SampleScheduleBibleServiceFake(
+            DistinctLanguages: _ => Task.FromResult(SampleLanguagesEnglish()),
+            GetSectioned: (_, _, _) => Task.FromResult<BiblePublication?>(bible),
+            ByLanguageCode: (_, _) =>
+                Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)));
+
+        var onlyKey = BuildMelodyPublicationWithSections("onlyMelodyPublication", trackCode: "77");
+        using var melodySvc = SampleScheduleMelodyServiceFake.ForReleases(
+            new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["onlyMelodyPublication"] = onlyKey,
+            });
+
+        var schedule = await AlarmSchedule.GetSampleSchedule(
+            isNew: true,
+            biblePublicationService: bibleSvc,
+            melodyMusicService: melodySvc);
+
+        Assert.NotNull(schedule.Music);
+        Assert.Equal("onlyMelodyPublication", schedule.Music.PublicationCode);
+        Assert.False(string.IsNullOrEmpty(schedule.Music.TrackCode));
+    }
+
+    [Fact]
+    public async Task GetSampleSchedule_Throws_When_No_Release_Has_Tracks_On_TopLevel()
+    {
+        var bible = BuildNwtWithSingleGenesisTrack();
+        using var bibleSvc = new SampleScheduleBibleServiceFake(
+            DistinctLanguages: _ => Task.FromResult(SampleLanguagesEnglish()),
+            GetSectioned: (_, _, _) => Task.FromResult<BiblePublication?>(bible),
+            ByLanguageCode: (_, _) =>
+                Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)));
+
+        var iamEmptyMelodyPublication = new BiblePublication
+        {
+            PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+            Name = "Iam",
+            Tracks = [],
+            Sections = [],
+            IsMusic = true,
+            IsVideo = false,
+        };
+        using var melodySvc = SampleScheduleMelodyServiceFake.ForReleases(
+            new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase)
+            {
+                [AppConstants.Media.MelodyMusicPublicationCodeIam] = new MelodyMusic { Publication = iamEmptyMelodyPublication },
+            });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => AlarmSchedule.GetSampleSchedule(
+            isNew: false,
+            biblePublicationService: bibleSvc,
+            melodyMusicService: melodySvc));
+
+        Assert.Equal("No melody music with tracks found in database", ex.Message);
+    }
+
     private static Dictionary<string, Language> SampleLanguagesEnglish() =>
         new(StringComparer.OrdinalIgnoreCase)
         {

@@ -464,4 +464,264 @@ public sealed class EnglishPublicationBuilderTests
             p.PublicationCode == pubCode && p.LanguageId == lang.Id);
         Assert.True(persisted.IsMusic);
     }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_Update_Adds_SecondCategory_When_Missing_On_First_Insert()
+    {
+        var pubCode = AppConstants.Media.BiblePublicationCodeSeriesBJFLessons;
+        var categoryCodes = JwSourceHelper.GetCategoryCodesForPublication(pubCode).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        Assert.True(categoryCodes.Count >= 2);
+
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        db.Categories.Add(new Category { CategoryCode = categoryCodes[0] });
+        var lang = new Language
+        {
+            LanguageCode = "ENG-BLDR-BIF",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sut = new EnglishPublicationBuilder(TestLogging.CreateLogger());
+        var sectionsFirst = new List<BiblePublicationSection>
+        {
+            new()
+            {
+                Name = "First",
+                SectionCode = "bjf-lesson-one",
+                Tracks = [],
+            },
+        };
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "Lessons pass 1",
+            Language: lang,
+            IsVideo: false,
+            IsBible: false,
+            PublicationWithoutLanguage: false,
+            Sections: sectionsFirst,
+            CancellationToken: CancellationToken.None)));
+
+        db.Categories.Add(new Category { CategoryCode = categoryCodes[1] });
+        await db.SaveChangesAsync();
+
+        var sectionsSecond = new List<BiblePublicationSection>
+        {
+            new()
+            {
+                Name = "Second pass",
+                SectionCode = "bjf-lesson-two",
+                Tracks = [],
+            },
+        };
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "Lessons pass 2",
+            Language: lang,
+            IsVideo: false,
+            IsBible: false,
+            PublicationWithoutLanguage: false,
+            Sections: sectionsSecond,
+            CancellationToken: CancellationToken.None)));
+
+        var persisted = await db.BiblePublications
+            .Include(p => p.BiblePublicationCategories)
+            .ThenInclude(bpc => bpc.Category)
+            .SingleAsync(p => p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+        Assert.Equal(2, persisted.BiblePublicationCategories.Count);
+        var linkedCodes = persisted.BiblePublicationCategories
+            .Select(bpc => bpc.Category!.CategoryCode)
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToList();
+        Assert.Equal(categoryCodes, linkedCodes);
+    }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_BibleWithoutLanguage_inserts_Tracks_With_Publication()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var pubCode = AppConstants.Media.BiblePublicationCodeNwt;
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(pubCode))
+        {
+            if (await db.Categories.AnyAsync(c => c.CategoryCode == categoryCode))
+            {
+                continue;
+            }
+
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        var lang = new Language
+        {
+            LanguageCode = "ENG-BLDR-NWL",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sectionCode = AppConstants.Media.BiblePublicationGenesisBookNumber;
+        var sections = new List<BiblePublicationSection>
+        {
+            new()
+            {
+                Name = "Genesis",
+                SectionCode = sectionCode,
+                Tracks =
+                [
+                    new BiblePublicationTrack
+                    {
+                        TrackCode = "1",
+                        Title = "Genesis 1",
+                    },
+                ],
+            },
+        };
+
+        var sut = new EnglishPublicationBuilder(TestLogging.CreateLogger());
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "NWL",
+            Language: lang,
+            IsVideo: false,
+            IsBible: true,
+            PublicationWithoutLanguage: true,
+            Sections: sections,
+            CancellationToken: CancellationToken.None)));
+
+        var persisted = await db.BiblePublications
+            .Include(p => p.Sections)
+            .ThenInclude(s => s.Tracks)
+            .SingleAsync(p => p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+        var section = Assert.Single(persisted.Sections);
+        var track = Assert.Single(section.Tracks);
+        Assert.NotNull(track.Publication);
+        Assert.True(track.BiblePublicationId > 0);
+        Assert.True(track.BiblePublicationSectionId.HasValue);
+        Assert.Equal(section.Id, track.BiblePublicationSectionId!.Value);
+    }
+
+    [Fact]
+    public async Task BuildAndSavePublicationAsync_Update_BibleWithoutLanguage_Refreshes_Sections_Without_AssignFk_Pass()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var pubCode = AppConstants.Media.BiblePublicationCodeNwt;
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(pubCode))
+        {
+            if (await db.Categories.AnyAsync(c => c.CategoryCode == categoryCode))
+            {
+                continue;
+            }
+
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        var lang = new Language
+        {
+            LanguageCode = "ENG-BLDR-NWU",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        var sectionCode = AppConstants.Media.BiblePublicationGenesisBookNumber;
+        var sut = new EnglishPublicationBuilder(TestLogging.CreateLogger());
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "Pass 1",
+            Language: lang,
+            IsVideo: false,
+            IsBible: true,
+            PublicationWithoutLanguage: true,
+            Sections:
+            [
+                new BiblePublicationSection
+                {
+                    Name = "Genesis A",
+                    SectionCode = sectionCode,
+                    Tracks =
+                    [
+                        new BiblePublicationTrack { TrackCode = "a", Title = "A" },
+                    ],
+                },
+            ],
+            CancellationToken: CancellationToken.None)));
+
+        Assert.True(await sut.BuildAndSavePublicationAsync(new BuildEnglishPublicationRequest(
+            db,
+            pubCode,
+            PublicationName: "Pass 2",
+            Language: lang,
+            IsVideo: false,
+            IsBible: true,
+            PublicationWithoutLanguage: true,
+            Sections:
+            [
+                new BiblePublicationSection
+                {
+                    Name = "Genesis B",
+                    SectionCode = sectionCode,
+                    Tracks =
+                    [
+                        new BiblePublicationTrack { TrackCode = "b", Title = "B" },
+                    ],
+                },
+            ],
+            CancellationToken: CancellationToken.None)));
+
+        var persisted = await db.BiblePublications
+            .Include(p => p.Sections)
+            .ThenInclude(s => s.Tracks)
+            .SingleAsync(p => p.PublicationCode == pubCode && p.LanguageId == lang.Id);
+        var section = Assert.Single(persisted.Sections);
+        Assert.Equal("Genesis B", section.Name);
+        var track = Assert.Single(section.Tracks);
+        Assert.Equal("b", track.TrackCode);
+        Assert.True(track.BiblePublicationId > 0);
+    }
 }
