@@ -55,6 +55,13 @@ public sealed class PublicationSortHelperTests
     }
 
     [Fact]
+    public void SortByPriority_DictionaryOverload_ReturnsEmpty_WhenDictionaryNullOrEmpty()
+    {
+        Assert.Empty(PublicationSortHelper.SortByPriority<string>(null!));
+        Assert.Empty(PublicationSortHelper.SortByPriority(new Dictionary<string, string>()));
+    }
+
+    [Fact]
     public void SortByPriority_when_getName_omitted_uses_code_for_name_tiebreak()
     {
         IEnumerable<BiblePublicationCodeItem> pubs =

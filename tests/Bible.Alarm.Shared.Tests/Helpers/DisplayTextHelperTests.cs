@@ -31,4 +31,16 @@ public sealed class DisplayTextHelperTests
     {
         Assert.Equal("Hi", DisplayTextHelper.NormalizeSingleLine("Hi\u0001"));
     }
+
+    [Fact]
+    public void NormalizeSingleLine_CollapsesVerticalTabBetweenWordsToSingleSpace()
+    {
+        Assert.Equal("A B", DisplayTextHelper.NormalizeSingleLine($"A{'\u000B'}B"));
+    }
+
+    [Fact]
+    public void NormalizeSingleLine_ReturnsEmpty_WhenOnlyNonBreakingSpaces()
+    {
+        Assert.Equal(string.Empty, DisplayTextHelper.NormalizeSingleLine("\u00A0\u00A0\u00A0"));
+    }
 }
