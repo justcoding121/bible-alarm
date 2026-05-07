@@ -173,6 +173,67 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_process_schedule_lookup_exact_alarm_disposal_enable_and_state_templates()
+    {
+        Assert.Equal("Unobserved task exception.", AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskException);
+        Assert.Contains("{IsTerminating}", AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionIsTerminating);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ProcessDiagnosticsLog.AlarmTriggeredWhilePlaybackActiveStoppingForNewAlarm);
+
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleLookupDiagnosticsLog.NotFoundStoppingForegroundService);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleLookupDiagnosticsLog.NotFoundForDeletion);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleLookupDiagnosticsLog.LoadExistingScheduleNotFoundInDatabase);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleLookupDiagnosticsLog.SetScheduleIdNotFoundInState);
+
+        Assert.Contains("SCHEDULE_EXACT_ALARM", AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionSchedulingAlarmForSchedule);
+        Assert.Contains("SCHEDULE_EXACT_ALARM", AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionUpdatingSchedule);
+
+        Assert.False(string.IsNullOrWhiteSpace(AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal));
+
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableNotificationDeniedTapToPlay);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableIosRemindersPermissionDenied);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleEnableDiagnosticsLog.PermissionRequestTimeoutForSchedule);
+
+        var scheduleStateMsgs = new[]
+        {
+            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationEnabledCheckingPermissionBeforeReminder,
+            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidNotificationPermissionGrantedForSchedule,
+            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationDisabledNoPermissionCheckNeeded,
+            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.RequestingIosNotificationPermissionForSchedule,
+        };
+        Assert.All(scheduleStateMsgs, m => Assert.Contains("{ScheduleId}", m));
+    }
+
+    [Fact]
+    public void Logging_playback_main_activity_battery_bootstrap_scheduler_database_seed_spot_checks()
+    {
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlayScheduleAsyncPlayLockAlreadyHeldSkipping);
+        Assert.Contains("{Timeout}", AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlayScheduleAsyncOverallTimeoutReleasingPlayLockBackgroundContinues);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.SchedulePlaybackServiceDiagnosticsLog.PlaybackCancelledForSchedule);
+
+        Assert.Equal(
+            "Error setting up background tasks",
+            AppConstants.Logging.MainActivityBackgroundTaskHelperDiagnosticsLog.ErrorSettingUpBackgroundTasks);
+
+        Assert.Contains(
+            "battery",
+            AppConstants.Logging.BatteryOptimizationDiagnosticsLog.ErrorMarkingBatteryOptimizationModalAsShown,
+            StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("{Value}", AppConstants.Logging.BootstrapReadyManagerDiagnosticsLog.IsBootstrapReadyChangedTo);
+
+        Assert.Contains(
+            "bootstrap",
+            AppConstants.Logging.SchedulerDiagnosticsLog.BootstrapNotCompletedWaitingForBootstrap,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            "An error happenned inside cleanup task.",
+            AppConstants.Logging.SchedulerDiagnosticsLog.ErrorInsideCleanupTask);
+
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.DatabaseSeedDiagnosticsLog.SeededDefaultAlarmSchedule);
+        Assert.Contains("{Name}", AppConstants.Logging.DatabaseSeedDiagnosticsLog.SeededDefaultAlarmSchedule);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
