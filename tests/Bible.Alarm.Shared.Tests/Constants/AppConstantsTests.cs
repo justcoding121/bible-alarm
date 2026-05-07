@@ -1628,6 +1628,105 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Media_mediator_id_prefix_publication_schedule_ui_playback_modal_and_good_news_contract()
+    {
+        Assert.Equal("docid-", AppConstants.Media.MediatorIdentifiers.DocIdNaturalKeyPrefix);
+        Assert.Equal("pub-", AppConstants.Media.MediatorIdentifiers.PubNaturalKeyPrefix);
+
+        Assert.Equal("Track", AppConstants.Media.PublicationUiTrackSingular);
+        Assert.Equal("Tracks", AppConstants.Media.PublicationUiTrackPlural);
+        Assert.Equal("Part", AppConstants.Media.PublicationUiPartSingular);
+        Assert.Equal("Episode", AppConstants.Media.PublicationUiEpisodeSingular);
+        Assert.Equal("Episodes", AppConstants.Media.PublicationUiEpisodePlural);
+        Assert.Equal("Chapter", AppConstants.Media.PublicationUiChapterSingular);
+        Assert.Equal("Chapters", AppConstants.Media.PublicationUiChapterPlural);
+
+        Assert.Equal("New schedule", AppConstants.Media.ScheduleUiSampleNameNew);
+        Assert.Equal("Schedule Name", AppConstants.Media.ScheduleUiSampleNamePlaceholder);
+        Assert.Equal("Unnamed schedule", AppConstants.Media.ScheduleUiUnnamedPlaceholder);
+        Assert.Equal("Enabled", AppConstants.Media.ScheduleUiStatusEnabled);
+        Assert.Equal("Disabled", AppConstants.Media.ScheduleUiStatusDisabled);
+        Assert.Equal("MusicLanguageDisplayText", AppConstants.Media.ScheduleMusicLanguageDisplayTextPropertyName);
+
+        Assert.Equal(
+            "Playback failed. Tap Retry.",
+            AppConstants.Media.PlaybackModalMessages.PlaybackFailedTapRetry);
+        Assert.Equal(
+            "Could not load the next part. Check your connection, then tap Retry.",
+            AppConstants.Media.PlaybackModalMessages.CouldNotLoadNextPartCheckConnectionTapRetry);
+        Assert.Equal(
+            "Playback stopped (connection lost or interrupted). Tap Retry.",
+            AppConstants.Media.PlaybackModalMessages.PlaybackStoppedConnectionLostTapRetry);
+        Assert.Equal(
+            "Could not start playback (network or server busy). Tap Retry.",
+            AppConstants.Media.PlaybackModalMessages.CouldNotStartPlaybackNetworkBusyTapRetry);
+        Assert.Equal(
+            "Could not update playback links. Tap Retry.",
+            AppConstants.Media.PlaybackModalMessages.CouldNotUpdatePlaybackLinksTapRetry);
+        Assert.Equal(
+            "Still could not play after updating links. Tap Retry.",
+            AppConstants.Media.PlaybackModalMessages.StillCouldNotPlayAfterUpdatingLinksTapRetry);
+        Assert.Equal(
+            "Could not start playback. Check your connection, then tap Retry.",
+            AppConstants.Media.PlaybackModalMessages.CouldNotStartPlaybackCheckConnectionTapRetry);
+
+        Assert.Equal("Ready to play", AppConstants.Media.NowPlayingPlaceholder.ArtistReadyToPlay);
+        Assert.Equal("Tap to play", AppConstants.Media.NowPlayingPlaceholder.ArtistTapToPlay);
+        Assert.Equal("...", AppConstants.Media.NowPlayingPlaceholder.AlbumEllipsis);
+
+        Assert.Equal("Volume ", AppConstants.Media.PublicationUiMelodyVolumePrefix);
+
+        Assert.Equal(
+            "The Good News According to Jesus",
+            AppConstants.Media.PublicationDisplayNameGoodNewsAccordingToJesus);
+        Assert.Equal(
+            "Good news according to Jesus",
+            AppConstants.Media.ApiMisleadingGoodNewsPublicationPhraseAlternate);
+        Assert.Equal(2, AppConstants.Media.ApiMisleadingGoodNewsVideoPublicationNamePhrases.Length);
+        Assert.Contains(
+            AppConstants.Media.PublicationDisplayNameGoodNewsAccordingToJesus,
+            AppConstants.Media.ApiMisleadingGoodNewsVideoPublicationNamePhrases);
+    }
+
+    [Fact]
+    public void Media_publication_catalog_categories_mediator_keys_and_broadcast_publication_contract()
+    {
+        Assert.Equal("Music", AppConstants.Media.BiblePublicationCategoryMusic);
+        Assert.Equal("osg", AppConstants.Media.MusicPublicationCodeOsg);
+        Assert.Equal("iam", AppConstants.Media.MelodyMusicPublicationCodeIam);
+        Assert.Equal("Kingdom Melodies", AppConstants.Media.PublicationDisplayNameKingdomMelodies);
+
+        Assert.Equal("Bible", AppConstants.Media.BiblePublicationCategoryBible);
+        Assert.Equal("nwt", AppConstants.Media.BiblePublicationCodeNwt);
+        Assert.Equal("bi12", AppConstants.Media.BiblePublicationCodeBi12);
+        Assert.Equal("1", AppConstants.Media.BiblePublicationGenesisBookNumber);
+
+        Assert.Equal("Books", AppConstants.Media.CatalogFlatAudioLabelBooks);
+        Assert.Equal("Yearbooks", AppConstants.Media.CatalogFlatAudioLabelYearbooks);
+        Assert.Equal("Brochures and Booklets", AppConstants.Media.CatalogFlatAudioLabelBrochuresAndBooklets);
+
+        Assert.Equal("Dramas", AppConstants.Media.BiblePublicationCategoryDramas);
+        Assert.Equal("DramaticBibleReadings", AppConstants.Media.BiblePublicationCodeDramaticBibleReadings);
+        Assert.Equal("DramasGoodNews", AppConstants.Media.BiblePublicationCodeDramasGoodNews);
+        Assert.Equal("VODMoviesBibleTimes", AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes);
+
+        Assert.Equal("WatchtowerMagazine", AppConstants.Media.BiblePublicationCategoryWatchtowerMagazine);
+        Assert.Equal("Series", AppConstants.Media.BiblePublicationCategorySeries);
+        Assert.Equal("ArticleSeries", AppConstants.Media.BiblePublicationCategoryArticleSeries);
+
+        Assert.Equal("2014Convention", AppConstants.Media.MediatorCategoryKey2014Convention);
+        Assert.Equal("2025Convention", AppConstants.Media.MediatorCategoryKey2025Convention);
+
+        Assert.Equal("ChildrenMovies", AppConstants.Media.MediatorCategoryKeyChildrenMovies);
+        Assert.Equal("TeenSocialLife", AppConstants.Media.MediatorCategoryKeyTeenSocialLife);
+        Assert.Equal("BibleBooks", AppConstants.Media.MediatorCategoryKeyBibleBooks);
+
+        Assert.Equal("StudioMonthlyPrograms", AppConstants.Media.MediatorPublicationCodeStudioMonthlyPrograms);
+        Assert.Equal("VODBibleReadingStudy", AppConstants.Media.MediatorPublicationCodeVODBibleReadingStudy);
+        Assert.Equal("VODPgmEvtMorningWorship", AppConstants.Media.MediatorPublicationCodeVODPgmEvtMorningWorship);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
