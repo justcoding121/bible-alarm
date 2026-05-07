@@ -234,6 +234,36 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_schedule_initialization_command_validation_and_database_version_templates()
+    {
+        Assert.Contains("{LanguageCode}", AppConstants.Logging.ScheduleInitializationDiagnosticsLog.InitializeNewScheduleMappedSampleMusicCodes);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleInitializationDiagnosticsLog.LoadExistingScheduleLoadingFromDatabase);
+
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleCommandDiagnosticsLog.CancelCommandCancelButtonClicked);
+        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleCommandDiagnosticsLog.SaveCommandSaveButtonClicked);
+
+        Assert.Equal(
+            "Validation failed: No days of week selected",
+            AppConstants.Logging.ScheduleValidationServiceDiagnosticsLog.ValidationFailedNoDaysOfWeekSelected);
+
+        Assert.Contains("{StoredVersion}", AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.VersionMismatchStoredVersusCurrent);
+        Assert.Contains("{CurrentVersion}", AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.VersionMismatchStoredVersusCurrent);
+        Assert.Contains("{Version}", AppConstants.Logging.ScheduleDatabaseVersionServiceDiagnosticsLog.SavedScheduleDatabaseVersionToPreferences);
+    }
+
+    [Fact]
+    public void Logging_schedule_save_prep_and_music_cascade_handler_templates()
+    {
+        Assert.Contains("{IsNewSchedule}", AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareModelForSaveStarting);
+        Assert.Contains("nwt", AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.SaveAsyncBiblePublicationEmptyPublicationCodeDefaultingNwt, StringComparison.Ordinal);
+        Assert.Contains("{PublicationCode}", AppConstants.Logging.ScheduleSaveServiceDiagnosticsLog.PrepareScheduleStateItemFinalBeforeDispatch);
+
+        Assert.StartsWith("MusicCascadeHandler:", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncCurrentScheduleNullExiting, StringComparison.Ordinal);
+        Assert.Contains("{PublicationCode}", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncPublicationSectionTrackMusicEnabled);
+        Assert.Equal("MusicCascadeHandler: Error during cascade", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ErrorDuringCascade);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
