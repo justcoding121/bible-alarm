@@ -264,6 +264,49 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_music_cascade_modal_publication_section_and_cycle_guard_templates()
+    {
+        Assert.Contains("{CurrentPubCount}", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.RefreshModalCountsIfNeededCurrentVsNew);
+        Assert.Equal(
+            "MusicCascadeHandler: Modal counts unchanged, skipping dispatch",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ModalCountsUnchangedSkippingDispatch);
+
+        Assert.Contains("{PublicationCode}", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationCascade);
+        Assert.Contains("{LanguageCode}", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationCascade);
+
+        var cycleGuard = AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatchCycle;
+        Assert.Contains("{PublicationCode}", cycleGuard);
+        Assert.Contains("{SectionCode}", cycleGuard);
+        Assert.Contains("{TrackCode}", cycleGuard);
+    }
+
+    [Fact]
+    public void Logging_category_auto_populate_and_bible_publication_cascade_templates()
+    {
+        Assert.StartsWith(
+            "CategorySelectionAutoPopulateHandler:",
+            AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.StartingAutoPopulation,
+            StringComparison.Ordinal);
+        Assert.Contains("{CategoryName}", AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.NetworkErrorDuringAutoPopulation);
+
+        var summary = AppConstants.Logging.CategorySelectionAutoPopulateHandlerDiagnosticsLog.AutoPopulatedSummary;
+        Assert.Contains("{LanguageCode}", summary);
+        Assert.Contains("{PublicationCode}", summary);
+        Assert.Contains("{TrackCode}", summary);
+
+        Assert.Equal(
+            "BiblePublicationCascadeHandler: Error during cascade",
+            AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ErrorDuringCascade);
+        Assert.Contains("{LanguageCode}", AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.LanguageCascade);
+        Assert.Contains("{PublicationCode}", AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCascade);
+
+        var bibleUnchanged = AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatch;
+        Assert.Contains("{PublicationCode}", bibleUnchanged);
+        Assert.Contains("{SectionCode}", bibleUnchanged);
+        Assert.Contains("{TrackCode}", bibleUnchanged);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
