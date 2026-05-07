@@ -116,6 +116,38 @@ public sealed class GetPubMediaLinksRetryTests
     }
 
     [Fact]
+    public async Task GetStringAsync_WithTwoBaseUrls_SecondAttemptCanSucceed_WhenFirstReturnsNonSuccess()
+    {
+        var n = 0;
+        using var inner = new CallbackHandler(_ =>
+        {
+            n++;
+            if (n == 1)
+            {
+                return new HttpResponseMessage(HttpStatusCode.BadGateway)
+                {
+                    Content = new StringContent("")
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("second-host-ok")
+            };
+        });
+
+        using var client = new HttpClient(inner);
+
+        var result = await GetPubMediaLinksRetry.GetStringAsync(
+            client,
+            ["https://melody.host-a", "https://melody.host-b"],
+            "/media?q=1");
+
+        Assert.Equal("second-host-ok", result);
+        Assert.Equal(2, n);
+    }
+
+    [Fact]
     public async Task GetStringAsync_TrimsTrailingSlash_FromBaseUrls_BeforeConcatenatingQuery()
     {
         using var inner = new CallbackHandler(_ =>

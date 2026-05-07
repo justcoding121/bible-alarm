@@ -101,6 +101,19 @@ public sealed class NetworkExceptionHelperTests
     }
 
     [Fact]
+    public void ShouldRethrowFromCatalogRetryLoop_ReturnsTrue_WhenOuterExceptionWrapsInnerHttpRequest()
+    {
+        var outer = new InvalidOperationException("wrap", new HttpRequestException());
+        Assert.True(NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(outer));
+    }
+
+    [Fact]
+    public void IsNetworkFailure_ReturnsFalse_ForTaskCanceled_WithNoTimeoutInner()
+    {
+        Assert.False(NetworkExceptionHelper.IsNetworkFailure(new TaskCanceledException("no inner timeout")));
+    }
+
+    [Fact]
     public async Task ThrowIfNoInternetAsync_DoesNothingWhenCheckerIsNull()
     {
         var task = NetworkExceptionHelper.ThrowIfNoInternetAsync(null);
