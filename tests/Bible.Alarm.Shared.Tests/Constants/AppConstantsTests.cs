@@ -35,6 +35,8 @@ public sealed class AppConstantsTests
             Assert.StartsWith("https://", origin, StringComparison.Ordinal);
         }
 
+        Assert.Equal("https://www.jw.org", AppConstants.ApiEndpoints.JwOrgPublicWebsiteHttpsOrigin);
+
         Assert.Equal(
             AppConstants.ApiEndpoints.JwCdnOriginHttpsB + AppConstants.ApiEndpoints.PubMediaApisGetPubMedialinksPath,
             AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl);
@@ -1924,6 +1926,51 @@ public sealed class AppConstantsTests
         Assert.Equal("TeenSpiritualGrowth", AppConstants.Media.MediatorCategoryKeyTeenSpiritualGrowth);
         Assert.Equal("TeenWhatPeersSay", AppConstants.Media.MediatorCategoryKeyTeenWhatPeersSay);
         Assert.Equal("SeriesBibleBooks", AppConstants.Media.MediatorCategoryKeySeriesBibleBooks);
+    }
+
+    [Fact]
+    public void Media_pubmedia_json_language_index_getpub_query_mediator_lang_and_stream_lowercase_contract()
+    {
+        Assert.Equal("404", AppConstants.Media.DownloadPermanentFailureHttpFragments.StatusCode404);
+        Assert.Equal("Forbidden", AppConstants.Media.DownloadPermanentFailureHttpFragments.Forbidden);
+
+        Assert.Equal("mp3", AppConstants.Media.MediaStreamFormatMp3Lower);
+        Assert.Equal("mp4", AppConstants.Media.MediaStreamFormatMp4Lower);
+
+        Assert.Equal("alllangs=1", AppConstants.Media.GetPubQueryAllLangsOn);
+        Assert.Equal("langwritten", AppConstants.Media.GetPubQueryParamLangWritten);
+
+        Assert.Equal("booknum", AppConstants.Media.GetPubQueryParamName.BookNum);
+        Assert.Equal("issue", AppConstants.Media.GetPubQueryParamName.Issue);
+        Assert.Equal("docid", AppConstants.Media.GetPubQueryParamName.DocId);
+        Assert.Equal("fileformat", AppConstants.Media.GetPubQueryParamName.FileFormat);
+        Assert.Equal("track", AppConstants.Media.GetPubQueryParamName.Track);
+
+        Assert.Equal("lang", AppConstants.Media.MediatorQueryParamName.Lang);
+
+        Assert.Equal("category", AppConstants.Media.PubMediaJson.Category);
+        Assert.Equal("name", AppConstants.Media.PubMediaJson.Name);
+        Assert.Equal("pubName", AppConstants.Media.PubMediaJson.PubName);
+        Assert.Equal("parentPubName", AppConstants.Media.PubMediaJson.ParentPubName);
+        Assert.Equal("formattedDate", AppConstants.Media.PubMediaJson.FormattedDate);
+        Assert.Equal("file", AppConstants.Media.PubMediaJson.File);
+        Assert.Equal("url", AppConstants.Media.PubMediaJson.Url);
+        Assert.Equal("track", AppConstants.Media.PubMediaJson.Track);
+        Assert.Equal("title", AppConstants.Media.PubMediaJson.Title);
+        Assert.Equal("text", AppConstants.Media.PubMediaJson.Text);
+        Assert.Equal("label", AppConstants.Media.PubMediaJson.Label);
+        Assert.Equal("parentCategory", AppConstants.Media.PubMediaJson.ParentCategory);
+        Assert.Equal("primaryCategory", AppConstants.Media.PubMediaJson.PrimaryCategory);
+        Assert.Equal("naturalKey", AppConstants.Media.PubMediaJson.NaturalKey);
+        Assert.Equal("availableLanguages", AppConstants.Media.PubMediaJson.AvailableLanguages);
+        Assert.Equal("language", AppConstants.Media.PubMediaJson.Language);
+        Assert.Equal("duration", AppConstants.Media.PubMediaJson.Duration);
+        Assert.Equal("Name", AppConstants.Media.PubMediaJson.NamePascal);
+
+        Assert.Equal("data", AppConstants.Media.LanguageIndexJson.Data);
+        Assert.Equal("symbol", AppConstants.Media.LanguageIndexJson.Symbol);
+        Assert.Equal("direction", AppConstants.Media.LanguageIndexJson.Direction);
+        Assert.Equal("isSignLanguage", AppConstants.Media.LanguageIndexJson.IsSignLanguage);
     }
 
     [Fact]
