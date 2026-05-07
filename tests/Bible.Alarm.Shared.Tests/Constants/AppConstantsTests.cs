@@ -1511,6 +1511,123 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Notifications_toast_messages_and_permission_modal_copy_contract()
+    {
+        Assert.Equal("Press to start listening now.", AppConstants.Notifications.TapAlarmToListenBody);
+
+        Assert.Equal(
+            "Network may not be available, please try again",
+            AppConstants.ToastMessages.NetworkMayNotBeAvailableTryAgain);
+        Assert.Equal(
+            "Cannot update the track when schedule is in progress",
+            AppConstants.ToastMessages.CannotUpdateTrackScheduleInProgress);
+        Assert.Equal("Select at least one day", AppConstants.ToastMessages.SelectAtLeastOneDay);
+        Assert.Equal(
+            "Schedule data is not ready, please try again",
+            AppConstants.ToastMessages.ScheduleDataNotReadyTryAgain);
+        Assert.Equal("Invalid schedule ID, please try again", AppConstants.ToastMessages.InvalidScheduleIdTryAgain);
+        Assert.Equal("Cannot delete last schedule", AppConstants.ToastMessages.CannotDeleteLastSchedule);
+        Assert.Equal("Schedule saved", AppConstants.ToastMessages.ScheduleSaved);
+        Assert.Equal("Please check your internet connection", AppConstants.ToastMessages.PleaseCheckInternetConnection);
+        Assert.Equal(
+            "Notification permission is denied by Android",
+            AppConstants.ToastMessages.NotificationPermissionDeniedByAndroid);
+        Assert.Equal("Repeat enabled", AppConstants.ToastMessages.RepeatEnabled);
+        Assert.Equal(
+            "Cannot schedule reminder. Please enable 'Alarms & reminders' permission in system settings.",
+            AppConstants.ToastMessages.CannotScheduleReminderExactAlarmPermission);
+        Assert.Equal(
+            "Notification permission is required for reminders on iOS. Please enable notifications in system settings.",
+            AppConstants.ToastMessages.NotificationPermissionRequiredRemindersIos);
+        Assert.Equal(
+            "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
+            AppConstants.ToastMessages.NotificationPermissionRequiredTapToPlayWinUi);
+
+        Assert.StartsWith(
+            "Notification permission is required for tap-to-play alarms",
+            AppConstants.NotificationPermissionModalMessages.MainAndroidTapToPlayReminders,
+            StringComparison.Ordinal);
+        Assert.Contains("iOS", AppConstants.NotificationPermissionModalMessages.MainIosScheduledAlarms);
+        Assert.Equal(
+            "Notification permission is required for alarms. Please enable notifications.",
+            AppConstants.NotificationPermissionModalMessages.MainOtherPlatforms);
+
+        Assert.Equal(
+            "REQUEST NOTIFICATION PERMISSION",
+            AppConstants.NotificationPermissionModalMessages.RequestNotificationPermissionButtonLabel);
+        Assert.Equal("OPEN APP SETTINGS", AppConstants.NotificationPermissionModalMessages.OpenAppSettingsButtonLabel);
+        Assert.Equal("OPEN SETTINGS", AppConstants.NotificationPermissionModalMessages.OpenSettingsButtonLabel);
+
+        Assert.Contains(
+            "Open App Settings",
+            AppConstants.NotificationPermissionModalMessages.InstructionsAndroidAfterAllowDialog);
+        Assert.Contains(
+            "Open Settings",
+            AppConstants.NotificationPermissionModalMessages.InstructionsIosAfterAllowDialog);
+        Assert.Equal(
+            "Please enable notifications in system settings.",
+            AppConstants.NotificationPermissionModalMessages.InstructionsOtherPlatformsEnableInSettings);
+    }
+
+    [Fact]
+    public void Sample_schedule_diagnostics_car_play_list_and_media_core_contract()
+    {
+        Assert.Equal(
+            "No Bible publications found",
+            AppConstants.SampleScheduleDiagnostics.MessageContainsNoBiblePublications);
+        Assert.Equal(
+            "No Bible publications found in database",
+            AppConstants.SampleScheduleDiagnostics.NoBiblePublicationsInDatabaseMessage);
+        Assert.Contains(
+            "sectioned",
+            AppConstants.SampleScheduleDiagnostics.MessageContainsNoSectionedPublication,
+            StringComparison.OrdinalIgnoreCase);
+
+        Assert.Equal("Schedules", AppConstants.CarPlayScheduleList.SectionTitleSchedules);
+        Assert.Contains("Loading", AppConstants.CarPlayScheduleList.LoadingPrimaryText, StringComparison.Ordinal);
+        Assert.False(string.IsNullOrWhiteSpace(AppConstants.CarPlayScheduleList.LoadingSecondaryText));
+
+        Assert.Equal("E", AppConstants.Media.DefaultLanguageCode);
+        Assert.Equal("English", AppConstants.Media.DefaultLanguageDisplayNameEnglish);
+        Assert.Equal("LAH", AppConstants.Media.LanguageCodePatchFrom);
+        Assert.Equal("LAHU", AppConstants.Media.LanguageCodePatchTo);
+
+        Assert.Equal(".mp3", AppConstants.Media.MediaFileExtension);
+        Assert.Equal(".mp4", AppConstants.Media.MediaVideoFileExtension);
+        Assert.Equal(".m4a", AppConstants.Media.MediaM4aFileExtension);
+        Assert.Equal(".aac", AppConstants.Media.MediaAacFileExtension);
+
+        Assert.Contains("BibleAlarm", AppConstants.Media.MediaHttpUserAgent, StringComparison.Ordinal);
+        Assert.Equal("*/*", AppConstants.Media.HttpAcceptAny);
+
+        Assert.Equal("403", AppConstants.Media.DownloadPermanentFailureHttpFragments.StatusCode403);
+        Assert.Equal("Not Found", AppConstants.Media.DownloadPermanentFailureHttpFragments.NotFound);
+
+        Assert.Contains("Mozilla", AppConstants.Media.CatalogerHttpUserAgent, StringComparison.Ordinal);
+        Assert.Contains("application/json", AppConstants.Media.CatalogerHttpAcceptHeader);
+
+        Assert.Equal("MP3", AppConstants.Media.MediaStreamFormatMp3);
+        Assert.Equal("MP4", AppConstants.Media.MediaStreamFormatMp4);
+        Assert.Equal("M4A", AppConstants.Media.MediaStreamFormatM4a);
+        Assert.Equal("AAC", AppConstants.Media.MediaStreamFormatAac);
+        Assert.Equal("240p", AppConstants.Media.VideoQualityLabel240p);
+
+        Assert.Equal("files", AppConstants.Media.PubMediaJson.Files);
+        Assert.Equal("progressiveDownloadURL", AppConstants.Media.PubMediaJson.ProgressiveDownloadUrl);
+        Assert.Equal("media", AppConstants.Media.PubMediaJson.CategoryMedia);
+
+        Assert.Equal("languages", AppConstants.Media.LanguageIndexJson.Languages);
+        Assert.Equal("langcode", AppConstants.Media.LanguageIndexJson.LangCode);
+
+        Assert.Equal("output=json", AppConstants.Media.GetPubQueryOutputJson);
+        Assert.Equal("alllangs=0", AppConstants.Media.GetPubQueryAllLangsOff);
+        Assert.Equal("pub", AppConstants.Media.GetPubQueryParamName.Pub);
+        Assert.Equal("category", AppConstants.Media.MediatorQueryParamName.Category);
+
+        Assert.Equal("docid:", AppConstants.Media.MediatorIdentifiers.DocIdSectionPrefix);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
