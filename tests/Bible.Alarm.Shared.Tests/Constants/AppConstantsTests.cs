@@ -1415,6 +1415,102 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_maui_platform_ui_schedule_effects_bible_commands_and_list_item_vm_templates()
+    {
+        Assert.Equal(
+            "[KeyboardHelper] Failed to hide keyboard on Android",
+            AppConstants.Logging.MauiPlatformUiDiagnosticsLog.KeyboardHelperFailedToHideKeyboardAndroid);
+
+        Assert.Equal(
+            "MainApplication: Failed to create MediaSession",
+            AppConstants.Logging.MauiPlatformUiDiagnosticsLog.AndroidMainApplicationFailedToCreateMediaSession);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.MauiPlatformUiDiagnosticsLog.WindowsNotificationFailedToastNotifierScheduleMsixHint);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleEffectsHelpersDiagnosticsLog.ErrorPopulatingModalCountsScheduleId);
+
+        Assert.Contains(
+            "{PublicationCode}",
+            AppConstants.Logging.ScheduleEffectsHelpersDiagnosticsLog.ClearedMusicSectionForNonSectionedPublication);
+
+        var populated = AppConstants.Logging.ScheduleEffectsHelpersDiagnosticsLog.PopulatedMusicSectionFromTrack;
+        Assert.Contains("{MusicSectionCode}", populated);
+        Assert.Contains("{TrackCode}", populated);
+
+        Assert.Equal(
+            "BibleSelectionContainerViewModel: SelectCategoryCommand - Opening category modal",
+            AppConstants.Logging.BiblePublicationCommandInitializerDiagnosticsLog.SelectCategoryOpeningCategoryModal);
+
+        Assert.Equal(
+            "BibleSelectionContainerViewModel: SelectLanguageCommand - Opening language modal",
+            AppConstants.Logging.BiblePublicationCommandInitializerDiagnosticsLog.SelectLanguageOpeningLanguageModal);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedForSchedule);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.SpinnerTimedOutPlaybackActiveReRequestingModalLastResort);
+    }
+
+    [Fact]
+    public void Logging_subtitle_manager_list_commands_remote_artwork_windows_notifications_and_app_lifecycle_templates()
+    {
+        var refreshDetail = AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.RefreshScheduleIdProvidedFoundPublicationSectionTrack;
+        Assert.Contains("{ScheduleId}", refreshDetail);
+        Assert.Contains("{HasProvidedItem}", refreshDetail);
+        Assert.Contains("{TrackTitle}", refreshDetail);
+
+        var built = AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.RefreshBuiltSubtitleForSchedule;
+        Assert.Contains("{Subtitle}", built);
+
+        Assert.Contains(
+            "{HasSectionStructure}",
+            AppConstants.Logging.ScheduleListItemSubtitleManagerDiagnosticsLog.WaitingForDisplayNamesToPopulate);
+
+        Assert.Equal(
+            "PreviousCommand: Schedule is null or has invalid ID",
+            AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandScheduleNullOrInvalidId);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.PreviousCommandMovingToPreviousTrack);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleListItemCommandHandlerDiagnosticsLog.NextCommandErrorMoving);
+
+        Assert.Contains("{Url}", AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Id3ArtworkExtractionFailedForUrl);
+        Assert.Contains("{TempPath}", AppConstants.Logging.RemoteArtworkExtractorDiagnosticsLog.Mp4FailedToDeleteTempFileFromTempPath);
+
+        var schedFail = AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.FailedToScheduleNotificationAtFireDate;
+        Assert.Contains("{ScheduleId}", schedFail);
+        Assert.Contains("{FireDate}", schedFail);
+        Assert.Contains("{ErrorMessage}", schedFail);
+
+        var schedOk = AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.SuccessfullyScheduledCountForScheduleDays;
+        Assert.Contains("{Count}", schedOk);
+        Assert.Contains("{Days}", schedOk);
+
+        var mediaToast = AppConstants.Logging.WindowsNotificationServiceDiagnosticsLog.MediaToastShownUpdatedClickActivatesApp;
+        Assert.Contains("{Title}", mediaToast);
+        Assert.Contains("{ArtworkUrl}", mediaToast);
+
+        Assert.Contains(
+            "{Status}",
+            AppConstants.Logging.AppLifecycleDiagnosticsLog.ReconcilePlaybackStateFluxorActivePlayerInactiveDispatchStopped);
+
+        Assert.Contains(
+            "{Source}",
+            AppConstants.Logging.AppLifecycleDiagnosticsLog.ErrorRecordingAppOpenFromSource);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
