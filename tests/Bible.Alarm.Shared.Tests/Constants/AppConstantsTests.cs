@@ -483,6 +483,65 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_track_selection_sync_music_dispatch_and_vocal_language_templates()
+    {
+        var bibleDispatch = AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedBiblePublicationDispatchingUpdate;
+        Assert.Contains("{ScheduleId}", bibleDispatch);
+        Assert.Contains("{TrackCode}", bibleDispatch);
+        Assert.Contains("{SectionCode}", bibleDispatch);
+
+        var musicReceived = AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedReceivedActionMusic;
+        Assert.StartsWith("ScheduleEffects: HandleTrackSelected - Received action.", musicReceived, StringComparison.Ordinal);
+        Assert.Contains("{PublicationCode}", musicReceived);
+
+        Assert.Contains(
+            "{CurrentId}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedDifferentMusicId);
+        Assert.Contains(
+            "{ActionId}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedSyncingAllowed);
+
+        Assert.Contains(
+            "{LanguageCode}",
+            AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedCouldNotResolveVocalLanguageDisplayName);
+
+        var musicVmDispatch = AppConstants.Logging.TrackSelectionSyncHandlerDiagnosticsLog.HandleTrackSelectedDispatchingUpdateScheduleFromViewModelMusic;
+        Assert.Contains("{ScheduleId}", musicVmDispatch);
+        Assert.Contains("{PublicationName}", musicVmDispatch);
+        Assert.Contains("{TrackName}", musicVmDispatch);
+    }
+
+    [Fact]
+    public void Logging_music_selection_container_and_android_media_session_templates()
+    {
+        Assert.StartsWith(
+            "[MusicSelectionContainer]",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribingPropertyChanged,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "{ViewModelType}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribingPropertyChanged);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] State unchanged, ignoring",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.StateUnchangedIgnoring);
+
+        Assert.Contains(
+            "{ContainerName}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerFoundScrollViewScrollingToBottom);
+
+        Assert.Contains(
+            "{HasToken}",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCompatCreatedSuccessfullyInitialBufferingActiveHasToken);
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.ApplyingLastPlayedMetadataToMediaSessionTitleArtistScheduleId);
+        Assert.Contains(
+            "{ArtworkUrl}",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.LoadedArtworkBitmapFromArtworkUrl);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
