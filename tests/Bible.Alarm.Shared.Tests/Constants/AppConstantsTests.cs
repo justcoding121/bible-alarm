@@ -2014,63 +2014,205 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_media_index_orphan_cleanup_and_media_service_templates()
+    public void Logging_media_index_orphan_cleanup_and_media_service_exact_strings()
     {
-        var fileRetry = AppConstants.Logging.MediaIndexDiagnosticsLog.FileOperationFailedRetryingLocked;
-        Assert.Contains("{RetryCount}", fileRetry);
-        Assert.Contains("{DelayMs}", fileRetry);
-
-        Assert.Contains(
-            "{VersionFilePath}",
-            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToReadVersionFromFile);
-        Assert.Contains(
-            "{Version}",
-            AppConstants.Logging.MediaIndexDiagnosticsLog.SavedCurrentVersionToPreferences);
+        Assert.Equal(
+            "File operation failed (likely locked), retrying (attempt {RetryCount}/5) after {DelayMs}ms",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FileOperationFailedRetryingLocked);
 
         Assert.Equal(
             "MediaIndexService: @lock disposed error.",
             AppConstants.Logging.MediaIndexDiagnosticsLog.LockDisposedError);
 
-        var bibleOrphan = AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.BibleScheduleTrackNotInFetchedTablesDeletingSchedule;
-        Assert.Contains("{ScheduleId}", bibleOrphan);
-        Assert.Contains("{PubCode}", bibleOrphan);
-        Assert.Contains("{SectionCode}", bibleOrphan);
-        Assert.Contains("{TrackCode}", bibleOrphan);
+        Assert.Equal(
+            "Old media index data copy failed (partially or fully)",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.OldMediaIndexDataCopyFailed);
 
-        var cleanupCounts = AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.CleanedUpOrphanedSchedulesAndResetMusicCounts;
-        Assert.Contains("{DeletedCount}", cleanupCounts);
-        Assert.Contains("{ResetCount}", cleanupCounts);
+        Assert.Equal(
+            "Schedule media bootstrap fetch failed (partially or fully)",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.ScheduleMediaBootstrapFetchFailed);
 
-        Assert.Contains(
-            "{CategoryCode}",
+        Assert.Equal(
+            "Failed to cleanup orphaned schedules",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToCleanupOrphanedSchedules);
+
+        Assert.Equal(
+            "Background copy of remaining media data failed",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.BackgroundCopyRemainingMediaDataFailed);
+
+        Assert.Equal(
+            "Failed to clean up old media index files",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToCleanupOldMediaIndexFiles);
+
+        Assert.Equal(
+            "Closed MediaDbContext connection to allow database file deletion",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.ClosedMediaDbContextConnectionAllowDeletion);
+
+        Assert.Equal(
+            "Failed to close MediaDbContext connections gracefully, using ClearAllPools() as last resort",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToCloseMediaDbContextConnectionsGracefully);
+
+        Assert.Equal(
+            "Failed to read version from {VersionFilePath}",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToReadVersionFromFile);
+
+        Assert.Equal(
+            "Failed to save version to {VersionFilePath} (non-critical, Preferences is primary)",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToSaveVersionToLegacyFileNonCritical);
+
+        Assert.Equal(
+            "Failed to save version to Preferences",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToSaveVersionToPreferences);
+
+        Assert.Equal(
+            "Failed to migrate version to Preferences (non-critical)",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.FailedToMigrateVersionToPreferencesNonCritical);
+
+        Assert.Equal(
+            "Saved current version {Version} to Preferences",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.SavedCurrentVersionToPreferences);
+
+        Assert.Equal(
+            "Saved current version {Version} to {VersionFilePath} for backward compatibility",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.SavedCurrentVersionToVersionFileBackwardCompatibility);
+
+        Assert.Equal(
+            "Migrated version {Version} from version.dat to Preferences",
+            AppConstants.Logging.MediaIndexDiagnosticsLog.MigratedVersionFromDatToPreferences);
+
+        Assert.Equal(
+            "Schedule {ScheduleId} pub/section/track {PubCode}/{SectionCode}/{TrackCode} not in fetched tables; deleting schedule",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.BibleScheduleTrackNotInFetchedTablesDeletingSchedule);
+
+        Assert.Equal(
+            "Alarm music schedule {ScheduleId} pub/section/track {PubCode}/{SectionCode}/{TrackCode} not in fetched tables; resetting music",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AlarmMusicScheduleTrackNotInFetchedTablesResettingMusic);
+
+        Assert.Equal(
+            "Cleaned up {DeletedCount} orphaned schedule(s) and reset music for {ResetCount} schedule(s)",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.CleanedUpOrphanedSchedulesAndResetMusicCounts);
+
+        Assert.Equal(
+            "All schedule references verified in fetched tables",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AllScheduleReferencesVerifiedInFetchedTables);
+
+        Assert.Equal(
+            "Assigned CategoryCode {CategoryCode} for schedule {ScheduleId} from pub {PubCode}/{LangCode}",
             AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AssignedCategoryCodeFromPublication);
 
-        Assert.Contains(
-            "{PublicationCode}",
+        Assert.Equal(
+            "Failed to assign CategoryCode for schedule {ScheduleId}",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.FailedToAssignCategoryCodeForSchedule);
+
+        Assert.Equal(
+            "Assigned CategoryCode (first match by pub) for {Count} schedule(s) with null CategoryCode",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.AssignedCategoryCodeFirstMatchForNullCategoryCount);
+
+        Assert.Equal(
+            "Deleted orphaned alarm schedule {ScheduleId}",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.DeletedOrphanedAlarmSchedule);
+
+        Assert.Equal(
+            "Failed to delete orphaned alarm schedule {ScheduleId}",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.FailedToDeleteOrphanedAlarmSchedule);
+
+        Assert.Equal(
+            "Reset music for alarm schedule {ScheduleId}",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.ResetMusicForAlarmSchedule);
+
+        Assert.Equal(
+            "Failed to reset music for alarm schedule {ScheduleId}",
+            AppConstants.Logging.OrphanedScheduleCleanupDiagnosticsLog.FailedToResetMusicForAlarmSchedule);
+
+        Assert.Equal(
+            "Publication {PublicationCode} has LanguageId == null, using GetSectionsForPublicationWithoutLanguage",
             AppConstants.Logging.MediaServiceDiagnosticsLog.PublicationHasNullLanguageUsingSectionsWithoutLanguage);
-        Assert.Contains(
-            "{Count}",
+
+        Assert.Equal(
+            "Ensuring all sections are downloaded for publication {PublicationCode} in language {LanguageCode}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.EnsuringAllSectionsDownloaded);
+
+        Assert.Equal(
+            "Successfully loaded {Count} sections for publication {PublicationCode} in language {LanguageCode}",
             AppConstants.Logging.MediaServiceDiagnosticsLog.SuccessfullyLoadedSectionsForPublication);
-        Assert.Contains(
-            "{LanguageCode}",
+
+        Assert.Equal(
+            "Failed to ensure all sections for publication {PublicationCode} in language {LanguageCode}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.FailedEnsureAllSectionsForPublication);
+
+        Assert.Equal(
+            "GetSectionsForPublicationWithoutLanguage: No sections found for publication {PublicationCode}. "
+                + "This publication may not be cataloged yet. Publications without language (like 'iam') should be pre-cataloged.",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetSectionsWithoutLanguageNoSectionsFoundStillUncatalogued);
+
+        Assert.Equal(
+            "Publication {PublicationCode} has LanguageId == null, querying tracks directly",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.PublicationHasNullLanguageQueryingTracksDirectly);
+
+        Assert.Equal(
+            "MediaService.GetVocalMusicLanguages: returned {Count} languages",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicLanguagesReturnedCount);
+
+        Assert.Equal(
+            "MediaService.GetVocalMusicLanguages: No vocal languages found, falling back to English",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicLanguagesNoVocalLanguagesFallingBackEnglish);
+
+        Assert.Equal(
+            "Background: Ensuring all vocal music releases are downloaded for language {LanguageCode} (publication modal opened)",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.BackgroundEnsuringAllVocalMusicReleasesForLanguage);
+
+        Assert.Equal(
+            "Background: Failed to ensure all vocal music releases for language {LanguageCode}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.BackgroundFailedEnsureAllVocalMusicReleasesForLanguage);
+
+        Assert.Equal(
+            "GetBiblePublications: Found {Count} available publication codes from PublicationLanguages for language={LanguageCode}, category={CategoryName}",
             AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsAvailableCodesFromPublicationLanguages);
-        Assert.Contains(
-            "{TotalCount}",
+
+        Assert.Equal(
+            "GetBiblePublications: Found {Count} downloaded publications for language={LanguageCode}, category={CategoryName}, and {CountWithoutLang} publications without language FK",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsDownloadedCountSummary);
+
+        Assert.Equal(
+            "GetBiblePublications: Creating placeholders for {Count} publications not yet downloaded",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsCreatingPlaceholders);
+
+        Assert.Equal(
+            "GetBiblePublications: Returning {TotalCount} publications ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}, category={CategoryName}",
             AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsReturningTotalCounts);
+
+        Assert.Equal(
+            "Ensuring all publications are downloaded for language {LanguageCode} (publication modal opened)",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.EnsuringAllPublicationsDownloadedPublicationModalOpened);
+
+        Assert.Equal(
+            "GetBiblePublications: Refreshed {Count} downloaded publications after ensuring all publications for language={LanguageCode}, category={CategoryName}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetBiblePublicationsRefreshedAfterEnsuring);
+
+        Assert.Equal(
+            "Failed to ensure all publications for language {LanguageCode}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.FailedEnsureAllPublicationsForLanguage);
+
+        Assert.Equal(
+            "GetVocalMusicReleases: Found {Count} available publication codes for language={LanguageCode}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesAvailablePublicationCodes);
+
+        Assert.Equal(
+            "GetVocalMusicReleases: Found {Count} downloaded for language={LanguageCode}, {CountWithoutLang} without language FK",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesDownloadedCountSummary);
+
+        Assert.Equal(
+            "GetVocalMusicReleases: Creating placeholders for {Count} releases not yet downloaded",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesCreatingPlaceholders);
+
+        Assert.Equal(
+            "GetVocalMusicReleases: Returning {TotalCount} vocal music releases ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}",
+            AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesReturningTotalCounts);
     }
 
     [Fact]
     public void Logging_media_service_vocal_releases_and_display_metadata_templates()
     {
-        var vocalSummary = AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesDownloadedCountSummary;
-        Assert.Contains("{CountWithoutLang}", vocalSummary);
-        Assert.Contains("{LanguageCode}", vocalSummary);
-
-        var vocalTotals = AppConstants.Logging.MediaServiceDiagnosticsLog.GetVocalMusicReleasesReturningTotalCounts;
-        Assert.Contains("{DownloadedCount}", vocalTotals);
-        Assert.Contains("{PlaceholderCount}", vocalTotals);
-        Assert.Contains("{TotalCount}", vocalTotals);
-
         Assert.Contains("{Uri}", AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractFileMetadataForArtworkArtistAlbum);
         Assert.Contains("{Context}", AppConstants.Logging.DisplayMetadataServiceDiagnosticsLog.FailedToExtractArtworkFromFileWithContext);
 
