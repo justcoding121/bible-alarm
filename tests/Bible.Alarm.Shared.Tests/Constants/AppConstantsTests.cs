@@ -2267,56 +2267,231 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_application_reducer_schedule_sync_and_populate_song_publications_templates()
+    public void Logging_application_reducer_schedule_sync_and_populate_song_publications_exact_strings()
     {
-        var vmLog = AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelLoggingStart;
-        Assert.Contains("{ScheduleId}", vmLog);
-        Assert.Contains("{PublicationName}", vmLog);
-        Assert.Contains("{LanguageName}", vmLog);
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Skipping add to Schedules collection for unsaved schedule (Id=0). Schedule should only exist in CurrentSchedule until saved.",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelSkippingAddUnsavedScheduleIdZero);
 
-        Assert.Contains(
-            "{ActionType}",
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule values unchanged, returning existing reference to prevent cycle. ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelCurrentScheduleValuesUnchangedReturningExisting);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFromViewModelLoggingStart);
+
+        Assert.Equal(
+            "ApplicationReducer: OnDeleteSchedule REDUCER CALLED - ScheduleId: {ScheduleId}, Action type: {ActionType}",
             AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleReducerCalled);
-        Assert.Contains(
-            "{Error}",
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
             AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFailure);
 
-        var successEntry = AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessEntry;
-        Assert.Contains("{MusicEnabled}", successEntry);
-        Assert.Contains("{BiblePublicationTrackTitle}", successEntry);
+        Assert.Equal(
+            "ApplicationReducer: OnCreateSchedule - Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleNameExistingCount);
 
-        var bibleSel = AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedUpdatedCurrentSchedule;
-        Assert.Contains("{SectionCode}", bibleSel);
-        Assert.Contains("{TrackCode}", bibleSel);
-        Assert.Contains("{CategoryName}", bibleSel);
+        Assert.Equal(
+            "ApplicationReducer: OnCreateSchedule - NewSchedulesCount: {NewCount}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleNewSchedulesCount);
 
-        var pubType = AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPublicationTypeChanged;
-        Assert.Contains("{ActionSectioned}", pubType);
-        Assert.Contains("{ExistingSectioned}", pubType);
+        Assert.Equal(
+            "ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}, Current schedule count: {Count}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleScheduleIdCurrentCount);
 
-        var crudDel = AppConstants.Logging.ScheduleCrudReducerDiagnosticsLog.OnDeleteScheduleCalled;
-        Assert.Contains("{ScheduleId}", crudDel);
-        Assert.Contains("{IsNull}", crudDel);
+        Assert.Equal(
+            "ApplicationReducer: OnCreateScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleFailure);
 
-        var idMismatch = AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.OnUpdateScheduleFromViewModelCurrentScheduleIdMismatch;
-        Assert.Contains("{CurrentScheduleId}", idMismatch);
-        Assert.Contains("{ActionScheduleId}", idMismatch);
+        Assert.Equal(
+            "ApplicationReducer: OnDeleteScheduleFailure - ScheduleId: {ScheduleId}, Error: {Error}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleFailure);
 
-        var preserveTime = AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.PreservingTimeFromExisting;
-        Assert.Contains("{ActionHour}", preserveTime);
-        Assert.Contains("{ExistingMinute}", preserveTime);
+        Assert.Equal(
+            "ApplicationReducer: OnDeleteScheduleFailure - Restoring schedule {ScheduleId} to rollback optimistic deletion",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleFailureRestoringSchedule);
 
-        var skipFetch = AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedAlreadyCatalogedSkippingFetch;
-        Assert.Contains("{ExpectedCount}", skipFetch);
-        Assert.Contains("{Category}", skipFetch);
+        Assert.Equal(
+            "ApplicationReducer: OnDeleteScheduleFailure - Schedule {ScheduleId} already exists in state, skipping restoration",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleFailureScheduleAlreadyExistsSkippingRestoration);
 
-        var noProgress = AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.NoProgressBetweenRetriesStopping;
-        Assert.Contains("{CatalogedCount}", noProgress);
-        Assert.Contains("{ExpectedCount}", noProgress);
+        Assert.Equal(
+            "ApplicationReducer: OnDeleteScheduleFailure - No schedule data provided for rollback, ScheduleId: {ScheduleId}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnDeleteScheduleFailureNoScheduleDataForRollback);
 
-        var removed = AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.RemovedUnfetchablePlaceholderPublications;
-        Assert.Contains("{Count}", removed);
-        Assert.Contains("{Codes}", removed);
+        Assert.Equal(
+            "ApplicationReducer: OnCreateScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleSuccess);
+
+        Assert.Equal(
+            "ApplicationReducer: OnAddScheduleSuccess - ScheduleId: {ScheduleId}, Name: {Name}, ExistingSchedulesCount: {ExistingCount}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnAddScheduleSuccessWithExistingCount);
+
+        Assert.Equal(
+            "ApplicationReducer: OnAddScheduleSuccess - NewSchedulesCount: {NewCount}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnAddScheduleSuccessNewSchedulesCount);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessEntry);
+
+        Assert.Equal(
+            "ApplicationReducer: Existing item - BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessExistingItem);
+
+        Assert.Equal(
+            "ApplicationReducer: After preservation - BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessAfterPreservation);
+
+        Assert.Equal(
+            "ApplicationReducer: Updated schedule item (new instance) - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessUpdatedScheduleItem);
+
+        Assert.Equal(
+            "ApplicationReducer: Added new schedule item to state",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessAddedNewScheduleItem);
+
+        Assert.Equal(
+            "ApplicationReducer.OnBiblePublicationTrackSelected: Set category={CategoryName} from BiblePublicationStateItem (was null)",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedSetCategoryFromStateItem);
+
+        Assert.Equal(
+            "ApplicationReducer.OnBiblePublicationTrackSelected: CategoryName is null but CategoryId={CategoryId} exists. Category should always be set.",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedCategoryNameNullCategoryIdExists);
+
+        Assert.Equal(
+            "ApplicationReducer.OnBiblePublicationTrackSelected: Category is null in both current schedule and BiblePublicationStateItem. Category must always be selected.",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedCategoryNullInBoth);
+
+        Assert.Equal(
+            "ApplicationReducer.OnBiblePublicationTrackSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, CategoryName={CategoryName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnBiblePublicationTrackSelectedUpdatedCurrentSchedule);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Found existing schedule. Existing LanguageName: {ExistingLanguageName}, Action LanguageName: {ActionLanguageName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesFoundExistingSchedule);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BiblePublicationCategoryName: {CategoryName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingCategoryName);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BiblePublicationCategoryName: {CategoryName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionCategoryName);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Category is null in both action and existing schedule. This should not happen - category must always be selected.",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesCategoryNullInBothWarning);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BiblePublicationLanguageName: {LanguageName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingLanguageName);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BiblePublicationLanguageName: {LanguageName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionLanguageName);
+
+        Assert.Equal(
+            "ApplicationReducer: Preserving existing BiblePublicationSectionName: {SectionName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingBibleSectionName);
+
+        Assert.Equal(
+            "ApplicationReducer: Preserving existing BiblePublicationTrackTitle: {TrackTitle}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingBibleTrackTitle);
+
+        Assert.Equal(
+            "ApplicationReducer: Using action's BiblePublicationTrackTitle (not preserving): {TrackTitle}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesUsingActionBibleTrackTitle);
+
+        Assert.Equal(
+            "ApplicationReducer: Publication type changed (sectioned: {ActionSectioned} -> {ExistingSectioned}), not preserving incompatible display names",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPublicationTypeChanged);
+
+        Assert.Equal(
+            "ApplicationReducer: Preserving existing MusicSectionName: {SectionName}",
+            AppConstants.Logging.ApplicationReducerDiagnosticsLog.PreserveDisplayNamesPreservingExistingMusicSectionName);
+
+        Assert.Equal(
+            "ScheduleCrudReducer: OnDeleteSchedule called - ScheduleId: {ScheduleId}, State.Schedules is null: {IsNull}",
+            AppConstants.Logging.ScheduleCrudReducerDiagnosticsLog.OnDeleteScheduleCalled);
+
+        Assert.Equal(
+            "ScheduleCrudReducer: OnDeleteSchedule - State.Schedules is null, returning state unchanged",
+            AppConstants.Logging.ScheduleCrudReducerDiagnosticsLog.OnDeleteScheduleSchedulesNullReturningUnchanged);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Updating CurrentSchedule. New LanguageName: {LanguageName}, PublicationName: {PublicationName}",
+            AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.OnUpdateScheduleFromViewModelUpdatingCurrentSchedule);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule ID ({CurrentScheduleId}) doesn't match action Schedule ID ({ActionScheduleId}), not updating CurrentSchedule",
+            AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.OnUpdateScheduleFromViewModelCurrentScheduleIdMismatch);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentBiblePublicationSchedule from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+            AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.SyncedCurrentBiblePublicationSchedule);
+
+        Assert.Equal(
+            "ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentMusic from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+            AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.SyncedCurrentMusic);
+
+        Assert.Equal(
+            "ScheduleStateSyncHelper: Preserving DaysOfWeek from existing schedule. Action had DaysOfWeek=0, existing has {ExistingDaysOfWeek}",
+            AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.PreservingDaysOfWeekFromExisting);
+
+        Assert.Equal(
+            "ScheduleStateSyncHelper: Preserving time from existing schedule. Action had Hour={ActionHour}, Minute={ActionMinute}, existing has Hour={ExistingHour}, Minute={ExistingMinute}",
+            AppConstants.Logging.ScheduleStateSyncHelperDiagnosticsLog.PreservingTimeFromExisting);
+
+        Assert.Equal(
+            "PopulateSongPublications: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category={Category}, skipping fetch",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedAlreadyCatalogedSkippingFetch);
+
+        Assert.Equal(
+            "PopulateSongPublications: Starting fetch with retries for language={LanguageCode}, category={Category}",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.StartingFetchWithRetries);
+
+        Assert.Equal(
+            "PopulateSongPublications: All {ExpectedCount} expected publications cataloged on attempt {Attempt} for language={LanguageCode}",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt);
+
+        Assert.Equal(
+            "PopulateSongPublications: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.NoProgressBetweenRetriesStopping);
+
+        Assert.Equal(
+            "PopulateSongPublications: Attempt {Attempt}: Still waiting for {Count} publications to be cataloged: {Placeholders}",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptStillWaitingForPlaceholders);
+
+        Assert.Equal(
+            "PopulateSongPublications: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} publications found, will retry",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptPartialPublicationsRetry);
+
+        Assert.Equal(
+            "PopulateSongPublications: Attempt {Attempt}: No publications found yet, will retry",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptNoPublicationsYetRetry);
+
+        Assert.Equal(
+            "PopulateSongPublications: Fetch cancelled at attempt {Attempt} for language={LanguageCode}",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.FetchCancelledAtAttempt);
+
+        Assert.Equal(
+            "PopulateSongPublications: Attempt {Attempt} failed for language={LanguageCode}, will retry",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry);
+
+        Assert.Equal(
+            "PopulateSongPublications: Timeout after {Attempts} attempts waiting for all publications to be cataloged for language {LanguageCode}. Some may still be placeholders.",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.TimeoutAfterAttemptsWaitingForCatalog);
+
+        Assert.Equal(
+            "PopulateSongPublications: Final fetch attempt failed for language={LanguageCode}",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.FinalFetchAttemptFailed);
+
+        Assert.Equal(
+            "PopulateSongPublications: Removed {Count} unfetchable placeholder publications: {Codes}",
+            AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.RemovedUnfetchablePlaceholderPublications);
     }
 
     [Fact]
