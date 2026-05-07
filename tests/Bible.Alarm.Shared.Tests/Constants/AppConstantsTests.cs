@@ -814,43 +814,183 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_bible_publication_selection_data_provider_and_section_track_resolver_templates()
+    public void Logging_bible_publication_selection_data_provider_exact_strings()
     {
-        Assert.Contains(
-            "{LanguageCount}",
+        Assert.Equal(
+            "PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages, currentLanguageCode={CurrentLanguageCode}",
             AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulateLanguagesLoaded);
-        Assert.Contains(
-            "{Attempt}",
+
+        Assert.Equal(
+            "PopulateLanguagesAsync: Marked language {LanguageCode} ({LanguageName}) as selected",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulateLanguagesMarkedSelected);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Category is null or empty. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsCategoryNullOrEmpty);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: All {ExpectedCount} expected publications already cataloged for language={LanguageCode}, category={CategoryName}, skipping fetch",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAllExpectedAlreadyCatalogedSkippingFetch);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Starting fetch with retries for language={LanguageCode}, category={CategoryName}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsStartingFetchWithRetries);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: All {ExpectedCount} expected publications cataloged on attempt {Attempt} for language={LanguageCode}, category={CategoryName}",
             AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAllExpectedCatalogedOnAttempt);
-        Assert.Contains(
-            "{CategoryName}",
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: No progress between retries ({CatalogedCount} cataloged, {ExpectedCount} expected). Remaining placeholders are unfetchable. Stopping retries for language={LanguageCode}, category={CategoryName}",
             AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsNoProgressBetweenRetriesStopping);
 
-        Assert.Contains(
-            "{SectionCode}",
-            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationDispatchingTrackSelected);
-        Assert.Contains(
-            "{TrackCode}",
+        Assert.Equal(
+            "PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be cataloged: {Placeholders}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptStillWaitingForPlaceholders);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} publications found, will retry",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptPartialCountWillRetry);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Attempt {Attempt}: No publications found yet, will retry",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptNoPublicationsYetWillRetry);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Fetch cancelled at attempt {Attempt} for language={LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsFetchCancelledAtAttempt);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Attempt {Attempt} failed for language={LanguageCode}, will retry",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsAttemptFailedWillRetry);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Timeout after {Attempts} attempts waiting for all publications to be cataloged for language {LanguageCode}. Some may still be placeholders.",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsTimeoutWaitingForCatalog);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Final fetch attempt failed for language={LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsFinalFetchAttemptFailed);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Removed {Count} unfetchable placeholder publications: {Codes}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsRemovedUnfetchablePlaceholders);
+
+        Assert.Equal(
+            "PopulatePublicationsAsync: Sorted {Count} publications for category={Category}. First 3: {FirstThree}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.PopulatePublicationsSortedFirstThreeCodes);
+
+        Assert.Equal(
+            "DispatchDefaultPublicationAsync: Starting for language={LanguageCode}, publication={PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationStarting);
+
+        Assert.Equal(
+            "DispatchDefaultPublicationAsync: No sections found for language={LanguageCode}, publication={PublicationCode}. This publication may not have section data.",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationNoSectionsMayBeFlat);
+
+        Assert.Equal(
+            "DispatchDefaultPublicationAsync: First section index={SectionIndex}, name={SectionName}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationFirstSectionIndexAndName);
+
+        Assert.Equal(
+            "DispatchDefaultPublicationAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, sectionIndex={SectionIndex}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationNoTracksForSection);
+
+        Assert.Equal(
+            "DispatchDefaultPublicationAsync: First track trackCode={TrackCode}, title={TrackTitle}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationFirstTrackCodeAndTitle);
+
+        Assert.Equal(
+            "DispatchDefaultPublicationAsync: Dispatching TrackSelectedAction for publication={PublicationCode}, section={SectionCode}/{SectionName}, track={TrackCode}/{TrackTitle}",
             AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.DispatchDefaultPublicationDispatchingTrackSelected);
 
-        Assert.StartsWith(
-            "BibleSelectionDataProvider:",
-            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.ErrorDispatchingDefaultPublicationSelection,
-            StringComparison.Ordinal);
+        Assert.Equal(
+            "BibleSelectionDataProvider: Error dispatching default publication selection for language={LanguageCode}, publication={PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionDataProviderDiagnosticsLog.ErrorDispatchingDefaultPublicationSelection);
+    }
 
-        Assert.Contains(
-            "{SectionCodeKey}",
+    [Fact]
+    public void Logging_bible_publication_selection_section_track_resolver_exact_strings()
+    {
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: First section codeKey={SectionCodeKey}, sectionCode={SectionCode}, name={SectionName}",
             AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.GetFirstSectionFirstSectionCodeKey);
-        Assert.Contains(
-            "{PublicationCode}",
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: Found {TrackCount} tracks for section={SectionCode} using direct query",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FoundTracksForSectionUsingDirectQuery);
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: Section found but no tracks. SectionCode={SectionCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
             AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.SectionFoundButNoTracks);
-        Assert.Contains(
-            "{HasService}",
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: Publication not found or has no sections. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.PublicationNotFoundOrHasNoSections);
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: No tracks found in database, fetching tracks for first section...",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksInDatabaseFetchingFirstSection);
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: Tracks fetched successfully, re-querying from database",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.TracksFetchedSuccessfullyRequeryingFromDatabase);
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: Failed to fetch tracks for section={SectionCode}, publication={PublicationCode}, language={LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FailedToFetchTracksForSection);
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: Falling back to mediaService.GetBiblePublicationTracks",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FallingBackToMediaServiceGetBiblePublicationTracks);
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, sectionCode={SectionCode}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksFoundForLanguagePublicationSection);
+
+        Assert.Equal(
+            "GetFirstSectionAndTrackFromSectionsAsync: First track trackCode={TrackCode}, title={TrackTitle}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.GetFirstSectionFirstTrackCodeAndTitle);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: Starting for language={LanguageCode}, publication={PublicationCode}, biblePublicationService={HasService}",
             AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.GetFirstTrackNonSectionedStarting);
 
         Assert.Equal(
             "GetFirstTrackForNonSectionedAsync: biblePublicationService is null, returning empty result",
             AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.BiblePublicationServiceNullReturningEmpty);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: Loaded publication={PublicationName}, TracksCount={TracksCount}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.LoadedPublicationNameAndTracksCount);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: No tracks found in database, ensuring publication exists (will fetch tracks for non-sectioned publications)...",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksEnsuringPublicationExistsFetchNonSectioned);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: Publication cataloged successfully, re-querying tracks",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.PublicationCatalogedSuccessfullyRequeryingTracks);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FailedToCatalogPublicationForLanguage);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: No tracks found for publication without language={PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksFoundPublicationWithoutLanguage);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.NoTracksFoundForLanguageAndPublication);
+
+        Assert.Equal(
+            "GetFirstTrackForNonSectionedAsync: Found first track trackCode={TrackCode}, Title={TrackTitle}",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FoundFirstTrackCodeAndTitle);
+
+        Assert.Equal(
+            "CheckIfPublicationWithFirstSectionCatalogedAsync: Error checking if publication {PublicationCode} is cataloged",
+            AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.ErrorCheckingPublicationCataloged);
     }
 
     [Fact]
