@@ -1035,6 +1035,89 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_ios_media_element_play_retry_and_legacy_media_browser_service_templates()
+    {
+        var volBefore = AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.SetVolumeBeforePlayIos;
+        Assert.Contains("{Volume}", volBefore);
+
+        Assert.Contains(
+            "{State}",
+            AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.NotPlayingOrBufferingAfterPlayWaitingRetry);
+        Assert.Contains(
+            "{State}",
+            AppConstants.Logging.IosMediaElementHelperDiagnosticsLog.AfterRetryMediaElementState);
+
+        Assert.Contains("{ParentId}", AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnLoadChildrenCalledForParent);
+        Assert.Contains("{Count}", AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.CreatedMediaItemsForAndroidAuto);
+
+        Assert.Contains("{Action}", AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnBindCalledWithIntent);
+        var intent = AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.IntentComponentPackageCategories;
+        Assert.Contains("{Component}", intent);
+        Assert.Contains("{Categories}", intent);
+
+        Assert.Contains("{Token}", AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.SessionTokenSetInOnBind);
+
+        Assert.Equal(
+            "LegacyMediaBrowserService.OnCreate() called",
+            AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnCreateCalled);
+
+        Assert.Contains("{ParentId}", AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.FailedToSendEmptyResultForParent);
+    }
+
+    [Fact]
+    public void Logging_legacy_aa_subscriptions_media_session_browse_and_android_auto_helpers_templates()
+    {
+        Assert.Contains(
+            "{Count}",
+            AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.OnApplicationStateChangedDetectedScheduleChangesNotifying);
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleRemoved);
+
+        var notified = AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.NotifiedAndroidAutoOfScheduleChanges;
+        Assert.Contains("{ChangeCount}", notified);
+        Assert.Contains("{RemovedCount}", notified);
+
+        Assert.Contains("{Token}", AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.SessionTokenSuccessfullySet);
+        Assert.Contains(
+            "Legacy Android Auto is connecting",
+            AppConstants.Logging.LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog.OnCreateCompletedLegacyAaConnectingSessionTokenOk);
+
+        var addedItem = AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.AddedMediaItemForScheduleTitle;
+        Assert.Contains("{ScheduleId}", addedItem);
+        Assert.Contains("{Title}", addedItem);
+
+        var iconSz = AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.SetSectionIconBitmapForScheduleSize;
+        Assert.Contains("{Width}", iconSz);
+        Assert.Contains("{Height}", iconSz);
+
+        Assert.Contains(
+            "{HeightPx}",
+            AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.CreatedSectionIconBitmapSize);
+
+        Assert.Contains("{MediaId}", AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.GettingMediaItemForId);
+        Assert.Contains("{Query}", AppConstants.Logging.LegacyMediaBrowserBrowseOperationsDiagnosticsLog.SearchingForQuery);
+
+        var getRoot = AppConstants.Logging.LegacyMediaBrowserClientValidatorDiagnosticsLog.OnGetRootCalledForClient;
+        Assert.Contains("{ClientPackageName}", getRoot);
+        Assert.Contains("{ClientUid}", getRoot);
+
+        Assert.Contains("{Position}", AppConstants.Logging.LegacyMediaBrowserPlaybackControllerDiagnosticsLog.HandlingSeekToPosition);
+        Assert.Contains("{MediaId}", AppConstants.Logging.LegacyMediaBrowserPlaybackControllerDiagnosticsLog.HandlingPlayFromMediaId);
+
+        Assert.Contains("{Count}", AppConstants.Logging.AndroidAutoScheduleHelperDiagnosticsLog.LoadedSchedulesFromStateForAa);
+
+        var changes = AppConstants.Logging.AndroidAutoScheduleChangeTrackerDiagnosticsLog.GetSpecificChangesChangesDetected;
+        Assert.Contains("{OldCount}", changes);
+        Assert.Contains("{NewCount}", changes);
+
+        var sig = AppConstants.Logging.AndroidAutoScheduleChangeTrackerDiagnosticsLog.DetectedScheduleUpdatedSignatures;
+        Assert.Contains("{ScheduleId}", sig);
+        Assert.Contains("{OldSignature}", sig);
+        Assert.Contains("{NewSignature}", sig);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
