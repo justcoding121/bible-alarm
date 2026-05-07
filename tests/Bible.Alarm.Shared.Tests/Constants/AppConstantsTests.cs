@@ -1118,6 +1118,114 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Logging_android_auto_rotation_modal_fetch_android_artwork_and_alarm_bootstrap_templates()
+    {
+        Assert.Contains(
+            "{Minutes}",
+            AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.RotationStartedEveryMinutesWhenCarConnected);
+
+        Assert.Contains(
+            "cleaning up stale Android Auto state",
+            AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.CarDisconnectedBindFlagStaleCleanup);
+
+        Assert.Equal(
+            "Dispatching RotateDefaultScheduleAction for 5-minute rotation",
+            AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.DispatchingRotateDefaultScheduleActionFiveMinute);
+
+        Assert.Equal(
+            "[AndroidAuto] Error loading app icon fallback artwork",
+            AppConstants.Logging.AndroidAutoPlayScreenDiagnosticsLog.ErrorLoadingAppIconFallbackArtwork);
+
+        Assert.Equal(
+            "Error in ModalScrollHelper.HandleModalAppearingAsync",
+            AppConstants.Logging.ModalUiDiagnosticsLog.HandleModalAppearingAsyncError);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleItemStateServiceDiagnosticsLog.CouldNotSetIsBusyFalseForSchedule);
+
+        Assert.Equal(
+            "FetchProgressTracker.SetIsVisible: UI update failed (element may be disposed)",
+            AppConstants.Logging.FetchProgressTrackerDiagnosticsLog.SetIsVisibleUiUpdateFailedElementMayBeDisposed);
+
+        Assert.Contains("{ArtworkUrl}", AppConstants.Logging.AndroidMediaArtworkLog.ErrorLoadingBitmapFromArtworkUrl);
+        Assert.Contains("{Duration}", AppConstants.Logging.AndroidMediaArtworkLog.DurationUpdatedInMetadataArtworkPreserved);
+
+        Assert.Equal(
+            "AndroidArtworkService not available - cannot load artwork",
+            AppConstants.Logging.AndroidMediaArtworkLog.AndroidArtworkServiceNotAvailableCannotLoadArtwork);
+
+        Assert.Equal(
+            "Error processing scheduled tasks",
+            AppConstants.Logging.AndroidAlarmBootstrapLog.SchedulerJobProcessingFailed);
+    }
+
+    [Fact]
+    public void Logging_schedule_persistence_playback_event_and_media_element_handler_templates()
+    {
+        var saveStart = AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncStarting;
+        Assert.Contains("{IsNewSchedule}", saveStart);
+        Assert.Contains("{HasBiblePublication}", saveStart);
+
+        Assert.Contains(
+            "{Name}",
+            AppConstants.Logging.SchedulePersistenceDiagnosticsLog.SaveScheduleAsyncErrorSaving);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.SchedulePersistenceDiagnosticsLog.CannotDeleteScheduleLastInDatabase);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleMediaCacheServiceDiagnosticsLog.ErrorSettingUpMediaCacheForSchedule);
+
+        Assert.Equal(
+            "Error initializing container view models",
+            AppConstants.Logging.ScheduleContainerServiceDiagnosticsLog.ErrorInitializingContainerViewModels);
+
+        Assert.Equal(
+            "Error in HandleMediaFailedAsync",
+            AppConstants.Logging.PlaybackDiagnosticsLog.ErrorInHandleMediaFailedAsync);
+
+        var indefinite = AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.IndefiniteAdvancingToNextTrack;
+        Assert.Contains("{ScheduleId}", indefinite);
+        Assert.Contains("{NextIndex}", indefinite);
+        Assert.Contains("{Count}", indefinite);
+
+        var mediaFailed = AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.MediaFailedForTrackAtIndexUriUrl;
+        Assert.Contains("{TrackIndex}", mediaFailed);
+        Assert.Contains("{TrackUrl}", mediaFailed);
+
+        Assert.Contains(
+            "{FromTrackIndex}",
+            AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.OnMediaEndedDispatchingSetAutoAdvancingForAutomaticNextTrack);
+
+        Assert.Contains(
+            "refreshed section/pub URLs",
+            AppConstants.Logging.PlaybackEventHandlerDiagnosticsLog.PlaybackCdnUrlUnreachableRefreshedAutoReplayingSameTrackOnce);
+
+        var meFail = AppConstants.Logging.MediaElementHandlerDiagnosticsLog.MediaElementFailedToPlayTrackUriSource;
+        Assert.Contains("{TrackUri}", meFail);
+        Assert.Contains("{Source}", meFail);
+
+        Assert.Contains(
+            "{Position}",
+            AppConstants.Logging.MediaElementHandlerDiagnosticsLog.AudioPlayerOnSeekCompletedEventFiredResettingSeeking);
+
+        Assert.Contains(
+            "{ScheduleId}",
+            AppConstants.Logging.ScheduleListItemDiagnosticsLog.InitializeFromScheduleInvalidScheduleOrId);
+
+        Assert.Contains(
+            "{Count}",
+            AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.UpdateScheduleViewModelsCalledWithCount);
+
+        Assert.Contains(
+            "{WeekDays}",
+            AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.UpdatingExistingViewModelDaysOfWeek);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
