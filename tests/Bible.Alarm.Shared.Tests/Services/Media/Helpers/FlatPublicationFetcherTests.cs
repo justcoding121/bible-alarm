@@ -34,6 +34,15 @@ public sealed class FlatPublicationFetcherTests
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
     }
 
+    private sealed class BrokenJsonOkHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{not-valid-json-for-getpub"),
+            });
+    }
+
     private static async Task<(SqliteConnection Connection, MediaDbContext Db)> CreateDbAsync()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
@@ -537,6 +546,214 @@ public sealed class FlatPublicationFetcherTests
             Assert.Equal("Titre dramas FR", pub.Name);
             Assert.Single(pub.Tracks);
             Assert.Contains("cdn/fr-scene.mp4", pub.Tracks[0].TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_ReturnsFalse_When_GetPub_Response_Is_Not_Parseable_As_Json()
+    {
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            await SeedOsgCategoriesAndLanguageAsync(db);
+            var lang = await db.Languages.SingleAsync();
+
+            using var httpClient = new HttpClient(new BrokenJsonOkHandler());
+            var sut = new FlatPublicationFetcher(
+                httpClient,
+                TestLogging.CreateLogger(),
+                new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+            var req = new FetchFlatPublicationTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = "osg",
+                NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                EnglishPublication = new BiblePublication
+                {
+                    Name = "Songs EN",
+                    PublicationCode = "osg",
+                    IsVideo = false,
+                    IsMusic = true,
+                    Sections = [],
+                    Tracks = [],
+                },
+                IsVideo = false,
+                IsMusic = true,
+                FileFormat = AppConstants.Media.MediaStreamFormatMp3,
+                Language = lang,
+                CancellationToken = CancellationToken.None,
+            };
+
+            Assert.False(await sut.FetchFlatPublicationTracksAsync(req));
+            Assert.Equal(0, await db.BiblePublications.CountAsync());
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_Skips_AudioDescription_Tracks_And_Keeps_NonMarked_Track_For_Language_E()
+    {
+        const string json =
+            "{\"files\":{\"E\":{\"MP4\":[" +
+            "{\"track\":1,\"file\":{\"url\":\"https://cdn/ad-track.mp4\"},\"title\":\"Scene With Audio Descriptions\"}," +
+            "{\"track\":2,\"file\":{\"url\":\"https://cdn/main.mp4\"},\"title\":\"Main scene\"}" +
+            "]}},\"pubName\":\"Drama\"}";
+
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            await SeedOsgCategoriesAndLanguageAsync(db);
+            var lang = await db.Languages.SingleAsync();
+
+            using var handler = new JsonHandler(json);
+            using var httpClient = new HttpClient(handler);
+            var sut = new FlatPublicationFetcher(
+                httpClient,
+                TestLogging.CreateLogger(),
+                new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+            var req = new FetchFlatPublicationTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = "osg",
+                NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                EnglishPublication = new BiblePublication
+                {
+                    Name = "Songs EN",
+                    PublicationCode = "osg",
+                    IsVideo = false,
+                    IsMusic = true,
+                    Sections = [],
+                    Tracks = [],
+                },
+                IsVideo = false,
+                IsMusic = true,
+                FileFormat = AppConstants.Media.MediaStreamFormatMp4,
+                Language = lang,
+                CancellationToken = CancellationToken.None,
+            };
+
+            Assert.True(await sut.FetchFlatPublicationTracksAsync(req));
+
+            var pub = await db.BiblePublications
+                .Include(p => p.Tracks)
+                .ThenInclude(t => t.TrackUrl)
+                .SingleAsync();
+
+            Assert.Equal("Drama", pub.Name);
+            var track = Assert.Single(pub.Tracks);
+            Assert.Equal("2", track.TrackCode);
+            Assert.Contains("cdn/main.mp4", track.TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("Main scene", track.Title);
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_Prefers_240p_Label_When_Duplicate_Track_Number_On_Same_Format()
+    {
+        const string json =
+            "{\"files\":{\"E\":{\"MP3\":[" +
+            "{\"track\":1,\"label\":\"720p\",\"file\":{\"url\":\"https://cdn/track-hi.mp3\"},\"title\":\"Same Title\"}," +
+            "{\"track\":1,\"label\":\"" +
+            AppConstants.Media.VideoQualityLabel240p +
+            "\",\"file\":{\"url\":\"https://cdn/track-low.mp3\"},\"title\":\"Same Title\"}" +
+            "]}},\"pubName\":\"Quality\"}";
+
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            await SeedOsgCategoriesAndLanguageAsync(db);
+            var lang = await db.Languages.SingleAsync();
+
+            using var handler = new JsonHandler(json);
+            using var httpClient = new HttpClient(handler);
+            var sut = new FlatPublicationFetcher(
+                httpClient,
+                TestLogging.CreateLogger(),
+                new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+            var req = new FetchFlatPublicationTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = "osg",
+                NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                EnglishPublication = new BiblePublication
+                {
+                    Name = "Songs EN",
+                    PublicationCode = "osg",
+                    IsVideo = false,
+                    IsMusic = true,
+                    Sections = [],
+                    Tracks = [],
+                },
+                IsVideo = false,
+                IsMusic = true,
+                FileFormat = AppConstants.Media.MediaStreamFormatMp3,
+                Language = lang,
+                CancellationToken = CancellationToken.None,
+            };
+
+            Assert.True(await sut.FetchFlatPublicationTracksAsync(req));
+
+            var track = Assert.Single((await db.BiblePublications
+                    .Include(p => p.Tracks)
+                    .ThenInclude(t => t.TrackUrl)
+                    .SingleAsync())
+                .Tracks);
+
+            Assert.Equal("1", track.TrackCode);
+            Assert.Contains("track-low.mp3", track.TrackUrl!.Url, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_ReturnsFalse_When_Only_Track_Number_Zero_In_Response()
+    {
+        const string json =
+            "{\"files\":{\"E\":{\"MP3\":[" +
+            "{\"track\":0,\"file\":{\"url\":\"https://cdn/zero.mp3\"},\"title\":\"Ignored\"}" +
+            "]}}}";
+
+        var (connection, db) = await CreateDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            await SeedOsgCategoriesAndLanguageAsync(db);
+            var lang = await db.Languages.SingleAsync();
+
+            using var handler = new JsonHandler(json);
+            using var httpClient = new HttpClient(handler);
+            var sut = new FlatPublicationFetcher(
+                httpClient,
+                TestLogging.CreateLogger(),
+                new VideoLocalizedNameFetcher(httpClient, TestLogging.CreateLogger()));
+
+            var req = new FetchFlatPublicationTracksRequest
+            {
+                Db = db,
+                NormalizedPublicationCode = "osg",
+                NormalizedLanguageCode = AppConstants.Media.DefaultLanguageCode,
+                EnglishPublication = new BiblePublication
+                {
+                    Name = "Songs EN",
+                    PublicationCode = "osg",
+                    IsVideo = false,
+                    IsMusic = true,
+                    Sections = [],
+                    Tracks = [],
+                },
+                IsVideo = false,
+                IsMusic = true,
+                FileFormat = AppConstants.Media.MediaStreamFormatMp3,
+                Language = lang,
+                CancellationToken = CancellationToken.None,
+            };
+
+            Assert.False(await sut.FetchFlatPublicationTracksAsync(req));
+            Assert.Equal(0, await db.BiblePublications.CountAsync());
         }
     }
 }

@@ -217,4 +217,42 @@ public sealed class EnglishSectionFetcherTests
         Assert.Equal("1", track.TrackCode);
         Assert.True((track.TrackUrl?.Url ?? "").Contains("cdn.example", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public async Task FetchSectionsAsync_Database_Overload_Infers_IsVideo_From_PublicationCode()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var bootstrap = new MediaDbContext(options))
+        {
+            await bootstrap.Database.EnsureCreatedAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        var dramaJson =
+            "{\"files\":{\"E\":{\"MP4\":[{\"file\":{\"url\":\"https://v/ep.mp4\"},\"track\":1,\"title\":\"Pilot\"}]}},\"category\":{\"name\":\"Vid&nbsp;Group\"}}";
+        using var http = new HttpClient(new JsonHandler(dramaJson));
+        var sut = new EnglishSectionFetcher(http, TestLogging.CreateLogger());
+
+        var (sections, localizedName) = await sut.FetchSectionsAsync(
+            db,
+            normalizedPublicationCode: AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
+            normalizedLanguageCode: AppConstants.Media.DefaultLanguageCode,
+            categoryName: AppConstants.Media.BiblePublicationCategoryDramas,
+            sectionCodes: ["m-test"],
+            cancellationToken: CancellationToken.None);
+
+        Assert.NotNull(localizedName);
+        Assert.Equal("Vid Group", localizedName);
+
+        var section = Assert.Single(sections);
+        Assert.Equal("m-test", section.SectionCode, StringComparer.OrdinalIgnoreCase);
+        Assert.Single(section.Tracks);
+    }
 }
