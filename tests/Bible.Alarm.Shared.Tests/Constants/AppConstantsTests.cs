@@ -251,31 +251,86 @@ public sealed class AppConstantsTests
     public void Logging_process_schedule_lookup_exact_alarm_disposal_enable_and_state_templates()
     {
         Assert.Equal("Unobserved task exception.", AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskException);
-        Assert.Contains("{IsTerminating}", AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionIsTerminating);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ProcessDiagnosticsLog.AlarmTriggeredWhilePlaybackActiveStoppingForNewAlarm);
+        Assert.Equal(
+            "Unobserved task exception in SchedulerJob",
+            AppConstants.Logging.ProcessDiagnosticsLog.UnobservedTaskExceptionInSchedulerJob);
+        Assert.Equal(
+            "Error stopping current playback before handling alarm for schedule {ScheduleId}",
+            AppConstants.Logging.ProcessDiagnosticsLog.ErrorStoppingPlaybackBeforeAlarmForSchedule);
+        Assert.Equal(
+            "Unhandled exception. IsTerminating: {IsTerminating}",
+            AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionIsTerminating);
+        Assert.Equal(
+            "Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
+            AppConstants.Logging.ProcessDiagnosticsLog.UnhandledNonExceptionObjectIsTerminating);
+        Assert.Equal(
+            "Unhandled exception in SchedulerJob",
+            AppConstants.Logging.ProcessDiagnosticsLog.UnhandledExceptionInSchedulerJob);
+        Assert.Equal(
+            "Alarm triggered for schedule {ScheduleId} while playback is active - stopping current playback to handle new alarm",
+            AppConstants.Logging.ProcessDiagnosticsLog.AlarmTriggeredWhilePlaybackActiveStoppingForNewAlarm);
+        Assert.Equal(
+            "Managed exception marshaling to ObjC (Mode={Mode})",
+            AppConstants.Logging.ProcessDiagnosticsLog.ManagedExceptionMarshalingToObjCMode);
+        Assert.Equal(
+            "ObjC exception caught (Mode={Mode}, Exception={Exception})",
+            AppConstants.Logging.ProcessDiagnosticsLog.ObjCExceptionCaughtModeException);
+        Assert.Equal(
+            "Alarm triggered for schedule {ScheduleId} with tap disabled - using foreground service notification (no sound)",
+            AppConstants.Logging.ProcessDiagnosticsLog.AlarmTriggeredTapDisabledForegroundNoSound);
+        Assert.Equal(
+            "Fetch failed during modal appearing",
+            AppConstants.Logging.ProcessDiagnosticsLog.FetchFailedDuringModalAppearing);
+        Assert.Equal(
+            "Error happened when playing alarm manually.",
+            AppConstants.Logging.ProcessDiagnosticsLog.ErrorPlayingAlarmManually);
 
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleLookupDiagnosticsLog.NotFoundStoppingForegroundService);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleLookupDiagnosticsLog.NotFoundForDeletion);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleLookupDiagnosticsLog.LoadExistingScheduleNotFoundInDatabase);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleLookupDiagnosticsLog.SetScheduleIdNotFoundInState);
+        Assert.Equal(
+            "Schedule {ScheduleId} not found - stopping foreground service",
+            AppConstants.Logging.ScheduleLookupDiagnosticsLog.NotFoundStoppingForegroundService);
+        Assert.Equal(
+            "Schedule {ScheduleId} not found for deletion",
+            AppConstants.Logging.ScheduleLookupDiagnosticsLog.NotFoundForDeletion);
+        Assert.Equal(
+            "LoadExistingScheduleAsync: Schedule {ScheduleId} not found in database",
+            AppConstants.Logging.ScheduleLookupDiagnosticsLog.LoadExistingScheduleNotFoundInDatabase);
+        Assert.Equal(
+            "SetScheduleId: Schedule {ScheduleId} not found in state",
+            AppConstants.Logging.ScheduleLookupDiagnosticsLog.SetScheduleIdNotFoundInState);
 
-        Assert.Contains("SCHEDULE_EXACT_ALARM", AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionSchedulingAlarmForSchedule);
-        Assert.Contains("SCHEDULE_EXACT_ALARM", AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionUpdatingSchedule);
+        Assert.Equal(
+            "SecurityException when scheduling alarm for schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.",
+            AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionSchedulingAlarmForSchedule);
+        Assert.Equal(
+            "SecurityException when updating schedule {ScheduleId}. SCHEDULE_EXACT_ALARM permission may be missing or revoked.",
+            AppConstants.Logging.AndroidExactAlarmSchedulingLog.SecurityExceptionUpdatingSchedule);
 
-        Assert.False(string.IsNullOrWhiteSpace(AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal));
+        Assert.Equal(
+            "Error during cancellation token source disposal",
+            AppConstants.Logging.DisposableLifetimeLog.ErrorDuringCancellationTokenSourceDisposal);
 
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableNotificationDeniedTapToPlay);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableIosRemindersPermissionDenied);
-        Assert.Contains("{ScheduleId}", AppConstants.Logging.ScheduleEnableDiagnosticsLog.PermissionRequestTimeoutForSchedule);
+        Assert.Equal(
+            "Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied",
+            AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableNotificationDeniedTapToPlay);
+        Assert.Equal(
+            "Cannot enable schedule {ScheduleId} - notification permission denied. iOS requires notification permission for reminders.",
+            AppConstants.Logging.ScheduleEnableDiagnosticsLog.CannotEnableIosRemindersPermissionDenied);
+        Assert.Equal(
+            "Permission request timeout for schedule {ScheduleId}",
+            AppConstants.Logging.ScheduleEnableDiagnosticsLog.PermissionRequestTimeoutForSchedule);
 
-        var scheduleStateMsgs = new[]
-        {
-            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationEnabledCheckingPermissionBeforeReminder,
-            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidNotificationPermissionGrantedForSchedule,
-            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationDisabledNoPermissionCheckNeeded,
-            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.RequestingIosNotificationPermissionForSchedule,
-        };
-        Assert.All(scheduleStateMsgs, m => Assert.Contains("{ScheduleId}", m));
+        Assert.Equal(
+            "Android: Schedule {ScheduleId} has NotificationEnabled=true, checking notification permission before enabling reminder",
+            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationEnabledCheckingPermissionBeforeReminder);
+        Assert.Equal(
+            "Android: Notification permission granted for schedule {ScheduleId}",
+            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidNotificationPermissionGrantedForSchedule);
+        Assert.Equal(
+            "Android: Schedule {ScheduleId} has NotificationEnabled=false, no permission check needed",
+            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.AndroidScheduleNotificationDisabledNoPermissionCheckNeeded);
+        Assert.Equal(
+            "Requesting iOS notification permission for schedule {ScheduleId}",
+            AppConstants.Logging.ScheduleStateServiceDiagnosticsLog.RequestingIosNotificationPermissionForSchedule);
     }
 
     [Fact]
