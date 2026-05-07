@@ -1727,6 +1727,154 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Media_mediator_publication_codes_studio_vod_series_and_specialized_vod_buckets_contract()
+    {
+        Assert.Equal("StudioTalks", AppConstants.Media.MediatorPublicationCodeStudioTalks);
+        Assert.Equal("StudioNewsReports", AppConstants.Media.MediatorPublicationCodeStudioNewsReports);
+
+        Assert.Equal("VODPgmEvtSpecial", AppConstants.Media.MediatorPublicationCodeVODPgmEvtSpecial);
+        Assert.Equal("VODPgmEvtGilead", AppConstants.Media.MediatorPublicationCodeVODPgmEvtGilead);
+        Assert.Equal("VODPgmEvtAnnMtg", AppConstants.Media.MediatorPublicationCodeVODPgmEvtAnnMtg);
+
+        Assert.Equal("VODBibleTeachings", AppConstants.Media.MediatorPublicationCodeVODBibleTeachings);
+        Assert.Equal("VODBibleAccounts", AppConstants.Media.MediatorPublicationCodeVODBibleAccounts);
+        Assert.Equal("VODBibleMedia", AppConstants.Media.MediatorPublicationCodeVODBibleMedia);
+        Assert.Equal("VODBibleTranslations", AppConstants.Media.MediatorPublicationCodeVODBibleTranslations);
+        Assert.Equal("VODBiblePrinciples", AppConstants.Media.MediatorPublicationCodeVODBiblePrinciples);
+        Assert.Equal("VODBibleCreation", AppConstants.Media.MediatorPublicationCodeVODBibleCreation);
+
+        Assert.Equal("FamilyChallenges", AppConstants.Media.MediatorPublicationCodeFamilyChallenges);
+        Assert.Equal("FamilyDatingMarriage", AppConstants.Media.MediatorPublicationCodeFamilyDatingMarriage);
+
+        Assert.Equal("BJF", AppConstants.Media.MediatorPublicationCodeBJF);
+        Assert.Equal("SeriesBJFSongs", AppConstants.Media.MediatorPublicationCodeSeriesBJFSongs);
+
+        Assert.Equal("VODActivitiesTranslation", AppConstants.Media.MediatorPublicationCodeVODActivitiesTranslation);
+        Assert.Equal("VODActivitiesAVProduction", AppConstants.Media.MediatorPublicationCodeVODActivitiesAVProduction);
+        Assert.Equal("VODActivitiesPrintingShipping", AppConstants.Media.MediatorPublicationCodeVODActivitiesPrintingShipping);
+        Assert.Equal("VODActivitiesConstruction", AppConstants.Media.MediatorPublicationCodeVODActivitiesConstruction);
+        Assert.Equal("VODActivitiesReliefWork", AppConstants.Media.MediatorPublicationCodeVODActivitiesReliefWork);
+        Assert.Equal("VODActivitiesTheoSchools", AppConstants.Media.MediatorPublicationCodeVODActivitiesTheoSchools);
+        Assert.Equal("VODActivitiesSpecialEvents", AppConstants.Media.MediatorPublicationCodeVODActivitiesSpecialEvents);
+
+        Assert.Equal("VODMinistryTools", AppConstants.Media.MediatorPublicationCodeVODMinistryTools);
+        Assert.Equal("VODMinistryImproveSkills", AppConstants.Media.MediatorPublicationCodeVODMinistryImproveSkills);
+        Assert.Equal("VODMinistryMethods", AppConstants.Media.MediatorPublicationCodeVODMinistryMethods);
+        Assert.Equal("MeetingsConventions", AppConstants.Media.MediatorPublicationCodeMeetingsConventions);
+        Assert.Equal("VODSampleConversations", AppConstants.Media.MediatorPublicationCodeVODSampleConversations);
+
+        Assert.Equal("Reports", AppConstants.Media.MediatorPublicationCodeReports);
+        Assert.Equal("VODOrgBethel", AppConstants.Media.MediatorPublicationCodeVODOrgBethel);
+        Assert.Equal("AccomplishMinistry", AppConstants.Media.MediatorPublicationCodeAccomplishMinistry);
+        Assert.Equal("VODOrgHistory", AppConstants.Media.MediatorPublicationCodeVODOrgHistory);
+        Assert.Equal("VODOrgLegal", AppConstants.Media.MediatorPublicationCodeVODOrgLegal);
+        Assert.Equal("VODOrgBloodlessMedicine", AppConstants.Media.MediatorPublicationCodeVODOrgBloodlessMedicine);
+
+        Assert.Equal("VODIntExpTransformations", AppConstants.Media.MediatorPublicationCodeVODIntExpTransformations);
+        Assert.Equal("VODIntExpBlessings", AppConstants.Media.MediatorPublicationCodeVODIntExpBlessings);
+        Assert.Equal("VODIntExpEndurance", AppConstants.Media.MediatorPublicationCodeVODIntExpEndurance);
+        Assert.Equal("VODIntExpYouth", AppConstants.Media.MediatorPublicationCodeVODIntExpYouth);
+        Assert.Equal("OriginsLife", AppConstants.Media.MediatorPublicationCodeOriginsLife);
+        Assert.Equal("VODIntExpArchives", AppConstants.Media.MediatorPublicationCodeVODIntExpArchives);
+
+        Assert.Equal("VODConvMusic", AppConstants.Media.MediatorPublicationCodeVODConvMusic);
+        Assert.Equal("MakingMusic", AppConstants.Media.MediatorPublicationCodeMakingMusic);
+        Assert.Equal("VODSingToJah", AppConstants.Media.MediatorPublicationCodeVODSingToJah);
+
+        Assert.Equal("SeriesBibleTeachings", AppConstants.Media.MediatorPublicationCodeSeriesBibleTeachings);
+        Assert.Equal("SeriesHappyMarriage", AppConstants.Media.MediatorPublicationCodeSeriesHappyMarriage);
+        Assert.Equal("SeriesImitateFaith", AppConstants.Media.MediatorPublicationCodeSeriesImitateFaith);
+        Assert.Equal("SeriesIronSharpens", AppConstants.Media.MediatorPublicationCodeSeriesIronSharpens);
+        Assert.Equal("SeriesJehovahsFriends", AppConstants.Media.MediatorPublicationCodeSeriesJehovahsFriends);
+        Assert.Equal("SeriesLearnFromThem", AppConstants.Media.MediatorPublicationCodeSeriesLearnFromThem);
+        Assert.Equal("SeriesWTLessons", AppConstants.Media.MediatorPublicationCodeSeriesWTLessons);
+        Assert.Equal("VODLovePeople", AppConstants.Media.MediatorPublicationCodeVODLovePeople);
+        Assert.Equal("SeriesMyTeenLife", AppConstants.Media.MediatorPublicationCodeSeriesMyTeenLife);
+        Assert.Equal("SeriesNeetaJade", AppConstants.Media.MediatorPublicationCodeSeriesNeetaJade);
+        Assert.Equal("SeriesOrgAccomplishments", AppConstants.Media.MediatorPublicationCodeSeriesOrgAccomplishments);
+        Assert.Equal("SeriesOurHistory", AppConstants.Media.MediatorPublicationCodeSeriesOurHistory);
+        Assert.Equal("VODPureWorshipIntro", AppConstants.Media.MediatorPublicationCodeVODPureWorshipIntro);
+        Assert.Equal("SeriesBibleChangesLives", AppConstants.Media.MediatorPublicationCodeSeriesBibleChangesLives);
+        Assert.Equal("SeriesGoodNews", AppConstants.Media.MediatorPublicationCodeSeriesGoodNews);
+        Assert.Equal("SeriesTruthTransforms", AppConstants.Media.MediatorPublicationCodeSeriesTruthTransforms);
+        Assert.Equal("SeriesOriginsLife", AppConstants.Media.MediatorPublicationCodeSeriesOriginsLife);
+        Assert.Equal("SeriesWCGVideos", AppConstants.Media.MediatorPublicationCodeSeriesWCGVideos);
+        Assert.Equal("SeriesWasItDesigned", AppConstants.Media.MediatorPublicationCodeSeriesWasItDesigned);
+        Assert.Equal("SeriesWhereAreTheyNow", AppConstants.Media.MediatorPublicationCodeSeriesWhereAreTheyNow);
+        Assert.Equal("SeriesWhiteboard", AppConstants.Media.MediatorPublicationCodeSeriesWhiteboard);
+    }
+
+    [Fact]
+    public void Media_normalized_publication_codes_display_fallbacks_vocal_flat_getpub_and_text_direction_contract()
+    {
+        Assert.Equal("dramasgoodnews", AppConstants.Media.NormalizedPublicationCodeDramasGoodNews);
+        Assert.Equal("vodmoviesbibletimes", AppConstants.Media.NormalizedPublicationCodeVODMoviesBibleTimes);
+        Assert.Equal("vodmoviesmodernday", AppConstants.Media.NormalizedPublicationCodeVODMoviesModernDay);
+        Assert.Equal("vodmoviesanimated", AppConstants.Media.NormalizedPublicationCodeVODMoviesAnimated);
+        Assert.Equal("vodmoviesextras", AppConstants.Media.NormalizedPublicationCodeVODMoviesExtras);
+        Assert.Equal("seriesdigfortreasures", AppConstants.Media.NormalizedPublicationCodeSeriesDigForTreasures);
+        Assert.Equal("seriesbjflessons", AppConstants.Media.NormalizedPublicationCodeSeriesBJFLessons);
+        Assert.Equal("vodlffvideosad", AppConstants.Media.NormalizedPublicationCodeVodLffVideosAd);
+        Assert.Equal("bodlffvideosad", AppConstants.Media.NormalizedPublicationCodeBodLffVideosAd);
+
+        Assert.Equal(
+            "Enjoy Life Forever!—Videos",
+            AppConstants.Media.PublicationDisplayNameEnjoyLifeForeverVideos);
+        Assert.Equal(
+            "Dig for Treasures in God's Word",
+            AppConstants.Media.PublicationDisplayNameDigForTreasuresInGodsWord);
+        Assert.Equal(
+            "Bible Stories for Little Ones",
+            AppConstants.Media.PublicationDisplayNameBibleStoriesForLittleOnes);
+
+        Assert.Equal(
+            new[]
+            {
+                AppConstants.Media.MusicPublicationCodeOsg,
+                AppConstants.Media.MusicPublicationCodeSjjc,
+                AppConstants.Media.MusicPublicationCodeSjji,
+                AppConstants.Media.MusicPublicationCodeSnv,
+                AppConstants.Media.MusicPublicationCodePksjj,
+            },
+            AppConstants.Media.VocalMusicCatalogPublicationCodes);
+
+        Assert.Equal(
+            new[]
+            {
+                "wcg", "lff", "rr", "lvs", "lfb", "bhs", "jy", "kr", "ia", "mb", "jr", "bt", "lv", "cf",
+                "jd", "bh", "my", "lr", "cl", "fy", "gt",
+            },
+            AppConstants.Media.FlatMp3BooksPublicationCodes);
+
+        Assert.Equal(
+            new[] { "yb17", "yb16", "yb15", "yb14", "yb13", "yb12", "yb11", "yb10" },
+            AppConstants.Media.FlatMp3YearbooksPublicationCodes);
+
+        Assert.Equal(
+            new[]
+            {
+                "lmd", "wfg", "lffi", "th", "rj", "ypq", "hf", "jl", "yc", "hl", "fg", "ll", "lc", "lf",
+                "la", "we",
+            },
+            AppConstants.Media.FlatMp3BrochuresPublicationCodes);
+
+        Assert.Equal(new[] { "mrt", "hdu", "lfs" }, AppConstants.Media.FlatMp3ArticleSeriesPublicationCodes);
+
+        Assert.Equal(
+            new[]
+            {
+                "mwbv", "jwb", "jwbrd", "jwbiv", "jwbcov", "jwbam", "jwbur", "jwbls", "jwbgg",
+            },
+            AppConstants.Media.GetPubIssueParameterPublicationCodes);
+
+        Assert.Equal(new[] { "ivdd", "ivno" }, AppConstants.Media.GetPubSingleTrackNoParamPublicationCodes);
+        Assert.Equal(new[] { "bhat" }, AppConstants.Media.GetPubSingleTrackZeroPublicationCodes);
+
+        Assert.Equal("ltr", AppConstants.Media.TextDirectionLeftToRight);
+        Assert.Equal("rtl", AppConstants.Media.TextDirectionRightToLeft);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
