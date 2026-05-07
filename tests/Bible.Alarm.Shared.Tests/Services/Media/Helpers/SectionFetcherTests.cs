@@ -1,7 +1,8 @@
 #nullable enable
 
 using System.Net;
-using System.Net.Http;using Bible.Alarm.Shared.Constants;
+using System.Net.Http;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -17,6 +18,9 @@ public sealed class SectionFetcherTests
 {
     private const string MinimalBiblePubMediaJson =
         "{\"files\":{\"E\":{\"MP3\":[{\"file\":{\"url\":\"https://cdn.example/t.mp3\"},\"track\":1,\"title\":\"Matt\"}]}},\"pubName\":\"NWT\"}";
+
+    private const string MinimalBiblePubMediaJsonWithMisleadingParentPubName =
+        "{\"parentPubName\":\"The Good News According to Jesus\",\"files\":{\"E\":{\"MP3\":[{\"file\":{\"url\":\"https://cdn.example/t.mp3\"},\"track\":1,\"title\":\"Matt\"}]}},\"pubName\":\"NWT\"}";
 
     private const string MinimalMagazineIssuePubMediaJson =
         "{\"files\":{\"E\":{\"MP3\":[{\"file\":{\"url\":\"https://cdn.example/wt.mp3\"},\"track\":1,\"title\":\"Study\"}]}},\"pubName\":\"Watchtower\",\"formattedDate\":\"Feb\"}";
@@ -521,6 +525,77 @@ public sealed class SectionFetcherTests
 
             Assert.False(await sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat"])));
             Assert.Equal(0, await db.BiblePublications.CountAsync());
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Ignores_Misleading_Video_ParentPubName_For_Bible()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            using var client = new HttpClient(new JsonResponseHandler(MinimalBiblePubMediaJsonWithMisleadingParentPubName));
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat"])));
+
+            var bp = await db.BiblePublications.SingleAsync();
+            Assert.Equal("NWT", bp.Name);
+            Assert.DoesNotContain("Good News According to Jesus", bp.Name, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Reports_Fractional_Progress_For_Multiple_Sections()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            using var client = new HttpClient(new JsonResponseHandler(MinimalBiblePubMediaJson));
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+            var progress = new RecordingProgress(CancellationToken.None);
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat", "mrk"], progress: progress)));
+
+            Assert.Contains(0.5, progress.Values);
+            Assert.Contains(1.0, progress.Values);
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Backfills_Null_CatalogType_On_Existing_Publication()
+    {
+        var (connection, db, bibleCat, lang, englishStub) = await CreatePreparedDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            db.BiblePublications.Add(new BiblePublication
+            {
+                PublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+                Name = "NWT Seed",
+                Language = lang,
+                LanguageId = lang.Id,
+                CatalogType = null,
+                Sections = [],
+                Tracks = [],
+                IsVideo = false,
+                IsMusic = false,
+                BiblePublicationCategories =
+                [
+                    new BiblePublicationCategory { Category = bibleCat, CategoryId = bibleCat.Id },
+                ],
+            });
+            await db.SaveChangesAsync();
+
+            using var client = new HttpClient(new JsonResponseHandler(MinimalBiblePubMediaJson));
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat"])));
+
+            var bp = await db.BiblePublications.SingleAsync();
+            Assert.NotNull(bp.CatalogType);
         }
     }
 

@@ -238,4 +238,28 @@ public sealed class EnglishContentSeederTests
             Assert.True(await sut.SeedEnglishPublicationAsync("nwt"));
         }
     }
+
+    [Fact]
+    public async Task Seed_Returns_False_When_Publication_Code_Has_No_Known_Category()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                seed.Languages.Add(new Language
+                {
+                    LanguageCode = AppConstants.Media.DefaultLanguageCode,
+                    Direction = AppConstants.Media.TextDirectionLeftToRight,
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            using var httpClient = new HttpClient();
+            var sut = CreateSut(factory, httpClient);
+
+            Assert.False(await sut.SeedEnglishPublicationAsync("zzz_non_cataloged_publication_xyz"));
+        }
+    }
 }
