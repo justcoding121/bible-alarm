@@ -1554,33 +1554,191 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_music_selection_container_and_android_media_session_templates()
+    public void Logging_music_selection_container_diagnostics_exact_strings()
     {
-        Assert.StartsWith(
-            "[MusicSelectionContainer]",
-            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribingPropertyChanged,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "{ViewModelType}",
+        Assert.Equal(
+            "[MusicSelectionContainer] Constructor - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}",
             AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribingPropertyChanged);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] Constructor - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSubscribedInitialMusicEnabled);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] Constructor - Syncing with current MusicEnabled state: {MusicEnabled}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ConstructorSyncingMusicEnabledState);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnBindingContextChanged called. Old ViewModel: {OldViewModel}, New BindingContext: {NewBindingContext}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedCalled);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnBindingContextChanged - Unsubscribing from old ViewModel",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedUnsubscribingOldViewModel);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnBindingContextChanged - Initializing helpers (CollapsibleContent is ready)",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedInitializingHelpers);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnBindingContextChanged - Subscribing to PropertyChanged. ViewModel: {ViewModelType}, Handler: {HasHandler}, IsNewViewModel: {IsNew}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedSubscribingPropertyChanged);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnBindingContextChanged - Subscribed. Initial MusicEnabled: {MusicEnabled}, LastState: {LastState}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedSubscribedInitialMusicEnabled);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnBindingContextChanged - Syncing with current MusicEnabled state: {MusicEnabled}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedSyncingMusicEnabledState);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnBindingContextChanged - Cannot subscribe. ViewModel: {HasViewModel}, Handler: {HasHandler}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnBindingContextChangedCannotSubscribe);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnViewModelPropertyChanged received: Property={PropertyName}, Sender type: {SenderType}, Handler: {HasHandler}, ViewModel: {HasViewModel}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnViewModelPropertyChangedReceived);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] Skipping IsVisible update - view disconnected (e.g. during navigation after save)",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.SkippingIsVisibleUpdateViewDisconnected);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnViewModelPropertyChanged: MusicEnabled property changed. Calling handler.",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnViewModelPropertyChangedMusicEnabledCallingHandler);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnHandlerChanged - Ensured subscription. MusicEnabled: {MusicEnabled}, LastState: {LastState}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnHandlerChangedEnsuredSubscription);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] OnHandlerChanged: Setting initial visibility - MusicEnabled = {MusicEnabled}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.OnHandlerChangedSettingInitialVisibility);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] PropertyChanged: MusicEnabled = {NewState}, LastState = {LastState}, isInitialLoad = {IsInitialLoad}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangedMusicEnabledState);
 
         Assert.Equal(
             "[MusicSelectionContainer] State unchanged, ignoring",
             AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.StateUnchangedIgnoring);
 
-        Assert.Contains(
-            "{ContainerName}",
+        Assert.Equal(
+            "[MusicSelectionContainer] Property change during initial load - updating visibility without animation. NewState={NewState}, LastState={LastState}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.PropertyChangeDuringInitialLoadUpdatingVisibility);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] Triggering animation for MusicEnabled = {NewState}, shouldScrollOnExpand = {ShouldScrollOnExpand}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.TriggeringAnimationMusicEnabled);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] Calling UpdateCollapsibleContentVisibility with animate={Animate}, isEnabled={IsEnabled}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.CallingUpdateCollapsibleContentVisibility);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] ShouldScrollToBottom property changed, scrolling to bottom",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ShouldScrollToBottomScrolling);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] UpdateCollapsibleContentVisibility: isEnabled={IsEnabled}, animate={Animate}, CollapsibleContent={HasContent}, isAnimating={IsAnimating}",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.UpdateCollapsibleContentVisibility);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] CollapsibleContent is null, returning",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.CollapsibleContentNullReturning);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] Same state already requested and animating, returning",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.SameStateAlreadyRequestedAnimating);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] Starting animation",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.StartingAnimation);
+
+        Assert.Equal(
+            "[MusicSelectionContainer] Setting initial state without animation",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.SettingInitialStateWithoutAnimation);
+
+        Assert.Equal(
+            "[{ContainerName}] Found ScrollView, scrolling to bottom",
             AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerFoundScrollViewScrollingToBottom);
 
-        Assert.Contains(
-            "{HasToken}",
+        Assert.Equal(
+            "[{ContainerName}] Found ScrollView, scrolling to element",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerFoundScrollViewScrollingToElement);
+
+        Assert.Equal(
+            "[{ContainerName}] Scrolled to bottom (height: {Height})",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerScrolledToBottomHeight);
+
+        Assert.Equal(
+            "[{ContainerName}] Scrolled to bottom (last child element)",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerScrolledToBottomLastChildElement);
+
+        Assert.Equal(
+            "[{ContainerName}] Last child is not an Element, cannot scroll",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerLastChildNotElementCannotScroll);
+
+        Assert.Equal(
+            "[{ContainerName}] Content height not available and no children found",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerContentHeightNotAvailableNoChildren);
+
+        Assert.Equal(
+            "[{ContainerName}] Scrolled to element",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerScrolledToElement);
+
+        Assert.Equal(
+            "[{ContainerName}] ScrollView not found",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerScrollViewNotFound);
+
+        Assert.Equal(
+            "[{ContainerName}] Error scrolling",
+            AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ScrollContainerErrorScrolling);
+    }
+
+    [Fact]
+    public void Logging_android_media_session_helper_diagnostics_exact_strings()
+    {
+        Assert.Equal(
+            "Failed to apply Android Auto buffering state",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.FailedToApplyAndroidAutoBufferingState);
+
+        Assert.Equal(
+            "Failed to apply last played metadata to MediaSession",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.FailedToApplyLastPlayedMetadataToMediaSession);
+
+        Assert.Equal(
+            "MediaSessionCompat created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}",
             AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCompatCreatedSuccessfullyInitialBufferingActiveHasToken);
-        Assert.Contains(
-            "{ScheduleId}",
+
+        Assert.Equal(
+            "Creating shared MediaSessionCompat instance (2025 Standard)",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.CreatingSharedMediaSessionCompatInstance2025Standard);
+
+        Assert.Equal(
+            "MediaSessionCompat.SessionToken is null after creation - this should not happen",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCompatSessionTokenNullAfterCreationShouldNotHappen);
+
+        Assert.Equal(
+            "No last played metadata found in Preferences - already in blank loading state",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.NoLastPlayedMetadataInPreferencesAlreadyBlankLoading);
+
+        Assert.Equal(
+            "Applying last played metadata to MediaSession - Title: {Title}, Artist: {Artist}, ScheduleId: {ScheduleId}",
             AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.ApplyingLastPlayedMetadataToMediaSessionTitleArtistScheduleId);
-        Assert.Contains(
-            "{ArtworkUrl}",
+
+        Assert.Equal(
+            "Successfully applied last played metadata to MediaSession",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.SuccessfullyAppliedLastPlayedMetadataToMediaSession);
+
+        Assert.Equal(
+            "Loaded artwork bitmap from: {ArtworkUrl}",
             AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.LoadedArtworkBitmapFromArtworkUrl);
+
+        Assert.Equal(
+            "Could not load artwork from: {ArtworkUrl} (file not found or invalid format) — omitting artwork",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.CouldNotLoadArtworkFromArtworkUrlOmitting);
     }
 
     [Fact]
