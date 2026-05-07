@@ -1875,6 +1875,68 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
+    public void Media_additional_categories_publication_codes_series_thv_mediator_conventions_aggregators_contract()
+    {
+        Assert.Equal("thv", AppConstants.Media.SeriesPublicationCodeThv);
+
+        Assert.Equal("Article Series", AppConstants.Media.CatalogFlatAudioLabelArticleSeries);
+
+        Assert.Equal("AwakeMagazine", AppConstants.Media.BiblePublicationCategoryAwakeMagazine);
+        Assert.Equal("VODMoviesModernDay", AppConstants.Media.BiblePublicationCodeVODMoviesModernDay);
+        Assert.Equal("VODMoviesAnimated", AppConstants.Media.BiblePublicationCodeVODMoviesAnimated);
+        Assert.Equal("VODMoviesExtras", AppConstants.Media.BiblePublicationCodeVODMoviesExtras);
+        Assert.Equal("SeriesDigForTreasures", AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures);
+        Assert.Equal("SeriesBJFLessons", AppConstants.Media.BiblePublicationCodeSeriesBJFLessons);
+        Assert.Equal("SeriesWhatPeersSay", AppConstants.Media.BiblePublicationCodeSeriesWhatPeersSay);
+
+        Assert.Equal("FaithAndBible", AppConstants.Media.BiblePublicationCategoryFaithAndBible);
+        Assert.Equal("Books", AppConstants.Media.BiblePublicationCategoryBooks);
+        Assert.Equal("Yearbooks", AppConstants.Media.BiblePublicationCategoryYearbooks);
+        Assert.Equal("Broadcasting", AppConstants.Media.BiblePublicationCategoryBroadcasting);
+        Assert.Equal("BrochuresAndBooklets", AppConstants.Media.BiblePublicationCategoryBrochuresAndBooklets);
+        Assert.Equal("Children", AppConstants.Media.BiblePublicationCategoryChildren);
+        Assert.Equal("Family", AppConstants.Media.BiblePublicationCategoryFamily);
+        Assert.Equal(
+            "InterviewsAndExperiences",
+            AppConstants.Media.BiblePublicationCategoryInterviewsAndExperiences);
+        Assert.Equal("MeetingsAndMinistry", AppConstants.Media.BiblePublicationCategoryMeetingsAndMinistry);
+        Assert.Equal("ProgramsAndEvents", AppConstants.Media.BiblePublicationCategoryProgramsAndEvents);
+        Assert.Equal("Teenagers", AppConstants.Media.BiblePublicationCategoryTeenagers);
+        Assert.Equal("Activities", AppConstants.Media.BiblePublicationCategoryActivities);
+        Assert.Equal("Organization", AppConstants.Media.BiblePublicationCategoryOrganization);
+
+        Assert.Equal("2015Convention", AppConstants.Media.MediatorCategoryKey2015Convention);
+        Assert.Equal("2016Convention", AppConstants.Media.MediatorCategoryKey2016Convention);
+        Assert.Equal("2017Convention", AppConstants.Media.MediatorCategoryKey2017Convention);
+        Assert.Equal("2018Convention", AppConstants.Media.MediatorCategoryKey2018Convention);
+        Assert.Equal("2019Convention", AppConstants.Media.MediatorCategoryKey2019Convention);
+        Assert.Equal("2020Convention", AppConstants.Media.MediatorCategoryKey2020Convention);
+        Assert.Equal("2021Convention", AppConstants.Media.MediatorCategoryKey2021Convention);
+        Assert.Equal("2022Convention", AppConstants.Media.MediatorCategoryKey2022Convention);
+        Assert.Equal("2023Convention", AppConstants.Media.MediatorCategoryKey2023Convention);
+        Assert.Equal("2024Convention", AppConstants.Media.MediatorCategoryKey2024Convention);
+
+        Assert.Equal("ChildrenSongs", AppConstants.Media.MediatorCategoryKeyChildrenSongs);
+        Assert.Equal("FamilyMovies", AppConstants.Media.MediatorCategoryKeyFamilyMovies);
+        Assert.Equal("FamilyWorship", AppConstants.Media.MediatorCategoryKeyFamilyWorship);
+        Assert.Equal("TeenMovies", AppConstants.Media.MediatorCategoryKeyTeenMovies);
+        Assert.Equal("TeenGoals", AppConstants.Media.MediatorCategoryKeyTeenGoals);
+        Assert.Equal("TeenSpiritualGrowth", AppConstants.Media.MediatorCategoryKeyTeenSpiritualGrowth);
+        Assert.Equal("TeenWhatPeersSay", AppConstants.Media.MediatorCategoryKeyTeenWhatPeersSay);
+        Assert.Equal("SeriesBibleBooks", AppConstants.Media.MediatorCategoryKeySeriesBibleBooks);
+    }
+
+    [Fact]
+    public void Platform_Android_iOS_Windows_strings_and_win_ui_single_instance_key_contract()
+    {
+        Assert.Equal("Android", AppConstants.Platform.Android);
+        Assert.Equal("iOS", AppConstants.Platform.IOs);
+        Assert.Equal("Windows", AppConstants.Platform.Windows);
+
+        Assert.Equal("BibleAlarmInstance", AppConstants.WinUi.SingleInstanceRegistrationKey);
+    }
+
+    [Fact]
     public void FilePaths_storage_catalog_and_cataloger_segments_match_layout_contract()
     {
         Assert.Equal("MediaCache", AppConstants.FilePaths.MediaCacheDirectoryName);
