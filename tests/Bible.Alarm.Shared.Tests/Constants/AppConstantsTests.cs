@@ -718,34 +718,98 @@ public sealed class AppConstantsTests
     }
 
     [Fact]
-    public void Logging_bible_publication_selection_item_selector_templates()
+    public void Logging_bible_publication_selection_item_selector_get_section_and_track_exact_strings()
     {
-        Assert.Contains(
-            "{PublicationCode}",
+        Assert.Equal(
+            "GetSectionAndTrackForPublicationAsync: Starting for publication={PublicationCode}, language={LanguageCode}",
             AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackStarting);
-        Assert.Contains(
-            "{LanguageCode}",
-            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackStarting);
-        Assert.Contains(
-            "{SectionCount}",
+
+        Assert.Equal(
+            "GetSectionAndTrackForPublicationAsync: Found {SectionCount} sections, using sectioned flow",
             AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackFoundSectionsSectionedFlow);
 
-        Assert.Contains(
-            "{SectionCode}",
-            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackSectionedResult);
-        Assert.Contains(
-            "{TrackTitle}",
+        Assert.Equal(
+            "GetSectionAndTrackForPublicationAsync: Sectioned result: sectionCode={SectionCode}, trackCode={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}",
             AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackSectionedResult);
 
-        Assert.Contains(
-            "{LanguageCode}",
+        Assert.Equal(
+            "GetSectionAndTrackForPublicationAsync: SectionName is empty for sectionCode={SectionCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackSectionNameEmptyForSectionCode);
+
+        Assert.Equal(
+            "GetSectionAndTrackForPublicationAsync: TrackTitle is empty for trackCode={TrackCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackTrackTitleEmptyForTrackCode);
+
+        Assert.Equal(
+            "GetSectionAndTrackForPublicationAsync: No sections found, using non-sectioned flow",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackNoSectionsUsingNonSectionedFlow);
+
+        Assert.Equal(
+            "GetSectionAndTrackForPublicationAsync: Non-sectioned result: trackCode={TrackCode}, trackTitle={TrackTitle}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetSectionAndTrackNonSectionedResult);
+    }
+
+    [Fact]
+    public void Logging_bible_publication_selection_item_selector_publication_for_language_exact_strings()
+    {
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Starting for language={LanguageCode}",
             AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationSectionTrackLangStarting);
-        Assert.Contains(
-            "{CategoryName}",
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Failed to catalog publication={PublicationCode} for language={LanguageCode}, trying next",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.FailedToCatalogPublicationTryingNext);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: No publication found for language={LanguageCode}, category={CategoryName}",
             AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.NoPublicationFoundForLanguageCategory);
 
-        Assert.Contains(
-            "{TrackCode}",
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Selected publication code={PublicationCode}, name={PublicationName}, withoutLanguage={WithoutLanguage}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.SelectedPublicationCodeNameWithoutLanguage);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Ensuring publication {PublicationCode} exists for language {LanguageCode} before getting sections",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.EnsuringPublicationExistsBeforeGettingSections);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Failed to ensure publication {PublicationCode} exists, continuing anyway",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.FailedToEnsurePublicationExistsContinuingAnyway);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Querying sections for publication without language={PublicationCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.QueryingSectionsPublicationWithoutLanguage);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: No sections found in database after ensuring publication exists, publication is likely non-sectioned",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.NoSectionsInDbAfterEnsuringLikelyNonSectioned);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: biblePublicationSectionService is null, using MediaService.GetBiblePublicationSections",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.BiblePublicationSectionServiceNullUsingMediaServiceSections);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Found {SectionCount} sections, using sectioned flow",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationFoundSectionsSectionedFlow);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Sectioned result: sectionCode={SectionCode}, sectionName={SectionName}, trackCode={TrackCode}, trackTitle={TrackTitle}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationSectionedResult);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: SectionName is empty for sectionCode={SectionCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationSectionNameEmptyForSectionCode);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: TrackTitle is empty for trackCode={TrackCode}",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationTrackTitleEmptyForTrackCode);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: No sections found, using non-sectioned flow",
+            AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationNoSectionsUsingNonSectionedFlow);
+
+        Assert.Equal(
+            "GetPublicationSectionAndTrackForLanguageAsync: Non-sectioned result: trackCode={TrackCode}, trackTitle={TrackTitle}",
             AppConstants.Logging.BiblePublicationSelectionItemSelectorDiagnosticsLog.GetPublicationNonSectionedResult);
     }
 
