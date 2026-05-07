@@ -448,18 +448,21 @@ public sealed class AppConstantsTests
     [Fact]
     public void Logging_music_cascade_modal_publication_section_and_cycle_guard_templates()
     {
-        Assert.Contains("{CurrentPubCount}", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.RefreshModalCountsIfNeededCurrentVsNew);
+        Assert.Equal(
+            "MusicCascadeHandler: RefreshModalCountsIfNeeded - Current: PublicationCount={CurrentPubCount}, SectionCount={CurrentSectionCount}, New: PublicationCount={NewPubCount}, SectionCount={NewSectionCount}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.RefreshModalCountsIfNeededCurrentVsNew);
+
         Assert.Equal(
             "MusicCascadeHandler: Modal counts unchanged, skipping dispatch",
             AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ModalCountsUnchangedSkippingDispatch);
 
-        Assert.Contains("{PublicationCode}", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationCascade);
-        Assert.Contains("{LanguageCode}", AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationCascade);
+        Assert.Equal(
+            "MusicCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.PublicationCascade);
 
-        var cycleGuard = AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatchCycle;
-        Assert.Contains("{PublicationCode}", cycleGuard);
-        Assert.Contains("{SectionCode}", cycleGuard);
-        Assert.Contains("{TrackCode}", cycleGuard);
+        Assert.Equal(
+            "MusicCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, section={SectionCode}, track={TrackCode}",
+            AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.ValuesUnchangedSkippingDispatchCycle);
     }
 
     [Fact]
