@@ -9,6 +9,7 @@ using Bible.Alarm.Shared.Services.Media;
 using Bible.Alarm.Shared.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Shared.Tests;
 
@@ -259,6 +260,211 @@ public sealed class MelodyMusicServiceTests
             Assert.Equal(2, dict.Count);
             Assert.Equal("3", dict[0].TrackCode);
             Assert.Equal("10", dict[1].TrackCode);
+            Assert.Equal("iam-1", dict[1].DownloadCode);
         }
+    }
+
+    private sealed class ThrowingScopeFactory : IServiceScopeFactory
+    {
+        public IServiceScope CreateScope() =>
+            throw new DivideByZeroException("simulated scope failure");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_Keeps_First_When_Duplicate_PublicationCode()
+    {
+        const string dupCode = "mds-dup-melody";
+        var (connection, options) = await CreateConnectionAndOptionsAsync();
+        await using (connection)
+        {
+            await using (var db = new MediaDbContext(options))
+            {
+                var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                db.Categories.Add(musicCat);
+                await db.SaveChangesAsync();
+
+                void AddMelody(string title) =>
+                    db.BiblePublications.Add(new BiblePublication
+                    {
+                        Name = title,
+                        PublicationCode = dupCode,
+                        LanguageId = null,
+                        Language = null,
+                        IsMusic = true,
+                        IsVideo = false,
+                        BiblePublicationCategories =
+                        [
+                            new BiblePublicationCategory { Category = musicCat, CategoryId = musicCat.Id },
+                        ],
+                        Sections = [],
+                        Tracks = [],
+                    });
+
+                AddMelody("FirstDup");
+                AddMelody("SecondDup");
+                await db.SaveChangesAsync();
+            }
+
+            using var sut = new MelodyMusicService(new MediaTestScopeFactory(options), TestLogging.CreateLogger());
+            var map = await sut.GetAllAsync();
+
+            Assert.Single(map);
+            Assert.Equal("FirstDup", map[dupCode].Publication.Name);
+        }
+    }
+
+    [Fact]
+    public async Task GetTracksByCodeAsync_Deduplicates_By_TrackCode_CaseInsensitive()
+    {
+        const string pubCode = "mds-dedup-tc";
+        var (connection, options) = await CreateConnectionAndOptionsAsync();
+        await using (connection)
+        {
+            await using (var db = new MediaDbContext(options))
+            {
+                var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                db.Categories.Add(musicCat);
+                await db.SaveChangesAsync();
+
+                var publication = new BiblePublication
+                {
+                    Name = "Dedup melody",
+                    PublicationCode = pubCode,
+                    LanguageId = null,
+                    Language = null,
+                    IsMusic = true,
+                    IsVideo = false,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = musicCat, CategoryId = musicCat.Id },
+                    ],
+                    Sections = [],
+                    Tracks =
+                    [
+                        new BiblePublicationTrack
+                        {
+                            TrackCode = "05",
+                            Title = "DupA",
+                            Publication = default!,
+                            BiblePublicationSectionId = null,
+                        },
+                        new BiblePublicationTrack
+                        {
+                            TrackCode = "05",
+                            Title = "DupB",
+                            Publication = default!,
+                            BiblePublicationSectionId = null,
+                        },
+                    ],
+                };
+                publication.Tracks[0].Publication = publication;
+                publication.Tracks[1].Publication = publication;
+
+                db.BiblePublications.Add(publication);
+                await db.SaveChangesAsync();
+            }
+
+            using var sut = new MelodyMusicService(new MediaTestScopeFactory(options), TestLogging.CreateLogger());
+            var dict = await sut.GetTracksByCodeAsync(pubCode);
+
+            Assert.Single(dict);
+            Assert.Equal("DupA", dict[0].Title);
+        }
+    }
+
+    [Fact]
+    public async Task GetTracksByCodeAsync_ReturnsEmpty_When_Publication_Missing()
+    {
+        var (connection, options) = await CreateConnectionAndOptionsAsync();
+        await using (connection)
+        {
+            using var sut = new MelodyMusicService(new MediaTestScopeFactory(options), TestLogging.CreateLogger());
+            Assert.Empty(await sut.GetTracksByCodeAsync("no-melody-publication-wave-k"));
+        }
+    }
+
+    [Fact]
+    public async Task GetTracksBySectionCodeAsync_ReturnsEmpty_When_Section_Missing_Or_EmptyTracks()
+    {
+        const string pubCode = "mds-empty-sec";
+        var (connection, options) = await CreateConnectionAndOptionsAsync();
+        await using (connection)
+        {
+            await using (var db = new MediaDbContext(options))
+            {
+                var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+                db.Categories.Add(musicCat);
+                await db.SaveChangesAsync();
+
+                var publication = new BiblePublication
+                {
+                    Name = "Empty section shell",
+                    PublicationCode = pubCode,
+                    LanguageId = null,
+                    Language = null,
+                    IsMusic = true,
+                    IsVideo = false,
+                    BiblePublicationCategories =
+                    [
+                        new BiblePublicationCategory { Category = musicCat, CategoryId = musicCat.Id },
+                    ],
+                    Sections =
+                    [
+                        new BiblePublicationSection
+                        {
+                            Name = "No tracks",
+                            SectionCode = "mds-s1",
+                            Tracks = [],
+                        },
+                    ],
+                    Tracks = [],
+                };
+
+                db.BiblePublications.Add(publication);
+                await db.SaveChangesAsync();
+            }
+
+            using var sut = new MelodyMusicService(new MediaTestScopeFactory(options), TestLogging.CreateLogger());
+
+            Assert.Empty(await sut.GetTracksBySectionCodeAsync(pubCode, "mds-s1"));
+            Assert.Empty(await sut.GetTracksBySectionCodeAsync(pubCode, "no-such-section"));
+            Assert.Empty(await sut.GetTracksBySectionCodeAsync("missing-pub", "mds-s1"));
+        }
+    }
+
+    [Fact]
+    public void Dispose_Is_Idempotent()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+
+        using (var bootstrap = new MediaDbContext(opts))
+        {
+            bootstrap.Database.EnsureCreated();
+        }
+
+        try
+        {
+            var sut = new MelodyMusicService(new MediaTestScopeFactory(opts), TestLogging.CreateLogger());
+            sut.Dispose();
+            sut.Dispose();
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task GetTracksByCodeAsync_Wraps_Scope_Failure()
+    {
+        var sut = new MelodyMusicService(new ThrowingScopeFactory(), TestLogging.CreateLogger());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetTracksByCodeAsync(AppConstants.Media.MelodyMusicPublicationCodeIam));
+
+        Assert.Contains("Error getting melody music tracks", ex.Message, StringComparison.Ordinal);
+        Assert.IsType<DivideByZeroException>(ex.InnerException);
     }
 }
