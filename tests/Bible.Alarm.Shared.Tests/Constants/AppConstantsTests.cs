@@ -124,17 +124,20 @@ public sealed class AppConstantsTests
     [Fact]
     public void Database_sqlite_auxiliary_suffix_list_and_schedule_media_formats()
     {
+        Assert.Equal("-wal", AppConstants.Database.SqliteWalFileSuffix);
+        Assert.Equal("-shm", AppConstants.Database.SqliteShmFileSuffix);
+        Assert.Equal("-journal", AppConstants.Database.SqliteJournalFileSuffix);
+
         Assert.Equal(
-            new[]
-            {
-                AppConstants.Database.SqliteWalFileSuffix,
-                AppConstants.Database.SqliteShmFileSuffix,
-                AppConstants.Database.SqliteJournalFileSuffix,
-            },
+            new[] { "-wal", "-shm", "-journal" },
             AppConstants.Database.SqliteAuxiliaryFileSuffixes);
 
         Assert.Equal("Filename={0}", AppConstants.Database.ScheduleDatabaseConnectionStringFormat);
         Assert.Equal("Filename={0}", AppConstants.Database.MediaIndexDatabaseConnectionStringFormat);
+        Assert.Equal("Filename=/data/schedule.db", string.Format(AppConstants.Database.ScheduleDatabaseConnectionStringFormat, "/data/schedule.db"));
+        Assert.Equal(
+            string.Format(AppConstants.Database.ScheduleDatabaseConnectionStringFormat, "mediaIndex.db"),
+            string.Format(AppConstants.Database.MediaIndexDatabaseConnectionStringFormat, "mediaIndex.db"));
         Assert.Equal("schedule.db", AppConstants.Database.ScheduleDatabaseFileName);
         Assert.Equal("mediaIndex.db", AppConstants.Database.MediaIndexDatabaseFileName);
     }
@@ -1584,11 +1587,12 @@ public sealed class AppConstantsTests
             "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
             AppConstants.ToastMessages.NotificationPermissionRequiredTapToPlayWinUi);
 
-        Assert.StartsWith(
-            "Notification permission is required for tap-to-play alarms",
-            AppConstants.NotificationPermissionModalMessages.MainAndroidTapToPlayReminders,
-            StringComparison.Ordinal);
-        Assert.Contains("iOS", AppConstants.NotificationPermissionModalMessages.MainIosScheduledAlarms);
+        Assert.Equal(
+            "Notification permission is required for tap-to-play alarms. Please enable notifications to allow the app to show reminder notifications that you can tap to play alarms.",
+            AppConstants.NotificationPermissionModalMessages.MainAndroidTapToPlayReminders);
+        Assert.Equal(
+            "Notification permission is required for alarms to work on iOS. Please enable notifications to allow the app to play alarms at scheduled times.",
+            AppConstants.NotificationPermissionModalMessages.MainIosScheduledAlarms);
         Assert.Equal(
             "Notification permission is required for alarms. Please enable notifications.",
             AppConstants.NotificationPermissionModalMessages.MainOtherPlatforms);
@@ -1599,11 +1603,11 @@ public sealed class AppConstantsTests
         Assert.Equal("OPEN APP SETTINGS", AppConstants.NotificationPermissionModalMessages.OpenAppSettingsButtonLabel);
         Assert.Equal("OPEN SETTINGS", AppConstants.NotificationPermissionModalMessages.OpenSettingsButtonLabel);
 
-        Assert.Contains(
-            "Open App Settings",
+        Assert.Equal(
+            "After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications. If you've previously denied permission, use 'Open App Settings' to enable it in system settings.",
             AppConstants.NotificationPermissionModalMessages.InstructionsAndroidAfterAllowDialog);
-        Assert.Contains(
-            "Open Settings",
+        Assert.Equal(
+            "After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications. If you've previously denied permission, use 'Open Settings' to enable it in system settings.",
             AppConstants.NotificationPermissionModalMessages.InstructionsIosAfterAllowDialog);
         Assert.Equal(
             "Please enable notifications in system settings.",
@@ -1619,14 +1623,20 @@ public sealed class AppConstantsTests
         Assert.Equal(
             "No Bible publications found in database",
             AppConstants.SampleScheduleDiagnostics.NoBiblePublicationsInDatabaseMessage);
-        Assert.Contains(
-            "sectioned",
-            AppConstants.SampleScheduleDiagnostics.MessageContainsNoSectionedPublication,
-            StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            "No sectioned Bible publication",
+            AppConstants.SampleScheduleDiagnostics.MessageContainsNoSectionedPublication);
+        Assert.Equal(
+            "No sectioned Bible publication found in database for sample schedule",
+            AppConstants.SampleScheduleDiagnostics.NoSectionedPublicationForSampleScheduleMessage);
 
         Assert.Equal("Schedules", AppConstants.CarPlayScheduleList.SectionTitleSchedules);
-        Assert.Contains("Loading", AppConstants.CarPlayScheduleList.LoadingPrimaryText, StringComparison.Ordinal);
-        Assert.False(string.IsNullOrWhiteSpace(AppConstants.CarPlayScheduleList.LoadingSecondaryText));
+        Assert.Equal(
+            "Loading schedules…",
+            AppConstants.CarPlayScheduleList.LoadingPrimaryText);
+        Assert.Equal(
+            "Schedules will appear once the app is ready",
+            AppConstants.CarPlayScheduleList.LoadingSecondaryText);
 
         Assert.Equal("E", AppConstants.Media.DefaultLanguageCode);
         Assert.Equal("English", AppConstants.Media.DefaultLanguageDisplayNameEnglish);
@@ -2032,7 +2042,7 @@ public sealed class AppConstantsTests
 
         Assert.Equal("bootstrap.txt", AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
         Assert.Equal("version.dat", AppConstants.FilePaths.MediaIndexVersionLegacyFileName);
-        Assert.StartsWith("bible-alarm-", AppConstants.FilePaths.LogFileNamePattern, StringComparison.Ordinal);
+        Assert.Equal("bible-alarm-", AppConstants.FilePaths.LogFileNamePattern);
         Assert.Equal("index.zip", AppConstants.FilePaths.MediaIndexZipFileName);
 
         Assert.Equal("media", AppConstants.FilePaths.MediaIndexCatalogRootMediaSegment);
