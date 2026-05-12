@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class BiblePublicationPropertyChangeDetectorTests
+public sealed class BiblePropertyChangeDetectorTests
 {
     private sealed class MutableAppState : IState<ApplicationState>
     {
