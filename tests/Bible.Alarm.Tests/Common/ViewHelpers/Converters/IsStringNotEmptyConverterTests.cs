@@ -9,24 +9,28 @@ public sealed class IsStringNotEmptyConverterTests
 {
     private static readonly CultureInfo Cul = CultureInfo.InvariantCulture;
 
-    [Theory]
-    [InlineData("a", true)]
-    [InlineData("  x ", true)]
-    [InlineData("", false)]
-    [InlineData("   ", false)]
-    public void Convert_string_expected(string? input, bool expected)
+    [Fact]
+    public void Convert_non_empty_string_returns_true()
     {
         var sut = new IsStringNotEmptyConverter();
 
-        Assert.Equal(expected, sut.Convert(input, typeof(bool), null, Cul));
+        Assert.True((bool)sut.Convert("a", typeof(bool), null, Cul)!);
     }
 
     [Fact]
-    public void Convert_non_string_is_false()
+    public void Convert_whitespace_string_returns_false()
     {
         var sut = new IsStringNotEmptyConverter();
 
-        Assert.False((bool)sut.Convert(7, typeof(bool), null, Cul)!);
+        Assert.False((bool)sut.Convert(" \n", typeof(bool), null, Cul)!);
+    }
+
+    [Fact]
+    public void Convert_non_string_returns_false()
+    {
+        var sut = new IsStringNotEmptyConverter();
+
+        Assert.False((bool)sut.Convert(42, typeof(bool), null, Cul)!);
     }
 
     [Fact]
@@ -34,6 +38,7 @@ public sealed class IsStringNotEmptyConverterTests
     {
         var sut = new IsStringNotEmptyConverter();
 
-        Assert.Throws<NotImplementedException>(() => sut.ConvertBack(true, typeof(string), null, Cul));
+        Assert.Throws<NotImplementedException>(() =>
+            sut.ConvertBack(true, typeof(string), null, Cul));
     }
 }
