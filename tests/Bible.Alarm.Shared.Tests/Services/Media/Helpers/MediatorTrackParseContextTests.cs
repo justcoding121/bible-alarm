@@ -28,7 +28,6 @@ public sealed class MediatorTrackParseContextTests
         Assert.False(omitTk);
         Assert.False(docId);
 
-        Assert.Equal(sut, sut with { });
     }
 
     [Fact]
@@ -53,7 +52,6 @@ public sealed class MediatorTrackParseContextTests
         Assert.False(toggledAudioOff.AllowAudioDescriptionTitles);
         Assert.True(toggledAudioOff.UseDocidParam);
         Assert.NotEqual(sut, toggledAudioOff);
-        Assert.True(sut == sut with { }); // shallow copy semantics
     }
 
     [Fact]

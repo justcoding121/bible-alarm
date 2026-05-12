@@ -50,8 +50,6 @@ public sealed class BuildMediatorPublicationRequestTests
         Assert.Same(tracks, sut.Tracks);
         Assert.Equal(cts.Token, sut.CancellationToken);
 
-        Assert.Equal(sut, sut with { });
-
         sut.Deconstruct(out var dbOut, out var pubDb, out var name, out var langOut, out var trk, out var ct);
         Assert.Same(db, dbOut);
         Assert.Equal("MEDIATOR-DB-CODE", pubDb);

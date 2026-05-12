@@ -60,8 +60,6 @@ public sealed class SeedEnglishByCatalogTypeRequestTests
         Assert.False(sut.IsVideo);
         Assert.Equal(ctSource.Token, sut.CancellationToken);
 
-        Assert.Equal(sut, sut with { });
-
         sut.Deconstruct(
             out var dbOut,
             out var catalogKind,

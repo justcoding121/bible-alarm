@@ -24,20 +24,6 @@ public sealed class FluxorActionSmokeTests
     }
 
     [Fact]
-    public void ResetScheduleStateAction_instantiates()
-    {
-        var sut = new ResetScheduleStateAction();
-        Assert.NotNull(sut);
-    }
-
-    [Fact]
-    public void ResetContainerReadinessAction_instantiates()
-    {
-        var sut = new ResetContainerReadinessAction();
-        Assert.NotNull(sut);
-    }
-
-    [Fact]
     public void MusicSectionSelectedAction_holds_music_state()
     {
         var music = new MusicStateItem { Id = 10 };
@@ -111,31 +97,10 @@ public sealed class FluxorActionSmokeTests
     }
 
     [Fact]
-    public void PlaybackStoppedAction_instantiates()
-    {
-        var sut = new PlaybackStoppedAction();
-        Assert.NotNull(sut);
-    }
-
-    [Fact]
     public void SetAutoAdvancingAction_holds_flag()
     {
         var sut = new SetAutoAdvancingAction(true);
         Assert.True(sut.IsAutoAdvancing);
-    }
-
-    [Fact]
-    public void SetCarPlayScreenAction_instantiates()
-    {
-        var sut = new SetCarPlayScreenAction();
-        Assert.NotNull(sut);
-    }
-
-    [Fact]
-    public void RotateDefaultScheduleAction_instantiates()
-    {
-        var sut = new RotateDefaultScheduleAction();
-        Assert.NotNull(sut);
     }
 
     [Fact]

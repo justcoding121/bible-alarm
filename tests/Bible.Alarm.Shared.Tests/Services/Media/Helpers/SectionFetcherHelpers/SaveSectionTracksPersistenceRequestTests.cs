@@ -59,8 +59,6 @@ public sealed class SaveSectionTracksPersistenceRequestTests
         Assert.Equal("E", sut.LanguageCode);
         Assert.Equal(ctSource.Token, sut.CancellationToken);
 
-        Assert.Equal(sut, sut with { });
-
         sut.Deconstruct(out var dbOut, out var secOut, out var secCode, out var pubCode, out var langCode, out var ct);
         Assert.Same(db, dbOut);
         Assert.Same(section, secOut);

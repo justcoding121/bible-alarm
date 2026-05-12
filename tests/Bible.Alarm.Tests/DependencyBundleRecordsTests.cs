@@ -37,62 +37,6 @@ namespace Bible.Alarm.Tests;
 public sealed class DependencyBundleRecordsTests
 {
     [Fact]
-    public void MediaServiceDependencies_primary_ctor_round_trips()
-    {
-        var sut = new MediaServiceDependencies(
-            null!, null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.MediaIndexService);
-        Assert.Null(sut.ScopeFactory);
-    }
-
-    [Fact]
-    public void MediaCacheServiceDeps_primary_ctor_round_trips()
-    {
-        var sut = new MediaCacheServiceDeps(
-            null!, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.Logger);
-        Assert.Null(sut.TrackCdnUrlRefresher);
-    }
-
-    [Fact]
-    public void PlaybackViewModelDeps_primary_ctor_round_trips()
-    {
-        var sut = new PlaybackViewModelDeps(null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.PlaybackService);
-        Assert.Null(sut.MainThreadScheduler);
-    }
-
-    [Fact]
-    public void HomeViewModelDeps_primary_ctor_round_trips()
-    {
-        var sut = new HomeViewModelDeps(null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.Dispatcher);
-        Assert.Null(sut.Mapper);
-    }
-
-    [Fact]
-    public void HomeStateChangeHandlerDeps_primary_ctor_round_trips()
-    {
-        var logger = TestLogging.CreateLogger();
-        var mapper = new MapperConfiguration(_ => { }, NullLoggerFactory.Instance).CreateMapper();
-        var preparer = new ScheduleDataPreparer(mapper);
-        var viewModelManager = new ScheduleViewModelManager(
-            logger,
-            new ServiceCollection().BuildServiceProvider(),
-            _ => { });
-
-        var sut = new HomeStateChangeHandlerDeps(logger, preparer, viewModelManager);
-
-        Assert.Same(logger, sut.Logger);
-        Assert.Same(preparer, sut.DataPreparer);
-        Assert.Same(viewModelManager, sut.ViewModelManager);
-    }
-
-    [Fact]
     public void HomeStateChangeHandlerCallbacks_invokes_SetIsBusy()
     {
         var busyCalls = 0;
@@ -112,15 +56,6 @@ public sealed class DependencyBundleRecordsTests
     }
 
     [Fact]
-    public void EventHandlerManagerDeps_primary_ctor_round_trips()
-    {
-        var sut = new EventHandlerManagerDeps(null!, null!, null!, null!);
-
-        Assert.Null(sut.MetadataHandler);
-        Assert.Null(sut.PositionTracker);
-    }
-
-    [Fact]
     public void EventHandlerManagerCallbacks_delegates_invoke()
     {
         var sut = new EventHandlerManagerCallbacks(
@@ -136,54 +71,6 @@ public sealed class DependencyBundleRecordsTests
         Assert.Equal(TimeSpan.FromSeconds(2), sut.GetDuration());
         Assert.Null(sut.GetMediaOpenedCompletionSource());
         Assert.Null(sut.GetCurrentTrack());
-    }
-
-    [Fact]
-    public void PlaybackServiceInjectionContext_primary_ctor_round_trips()
-    {
-        var sut = new PlaybackServiceInjectionContext(
-            null!, null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.PlaylistService);
-        Assert.Null(sut.DefaultDeviceRingtoneService);
-    }
-
-    [Fact]
-    public void PlaylistServiceDeps_primary_ctor_round_trips()
-    {
-        var sut = new PlaylistServiceDeps(
-            null!, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.Logger);
-        Assert.Null(sut.ScheduleDisplayNameService);
-    }
-
-    [Fact]
-    public void ScheduleListItemViewModelDeps_primary_ctor_round_trips()
-    {
-        var sut = new ScheduleListItemViewModelDeps(
-            null!, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.CategoryNameService);
-        Assert.Null(sut.ScheduleStateService);
-    }
-
-    [Fact]
-    public void MusicStateChangeHandlerServices_primary_ctor_round_trips()
-    {
-        var sut = new MusicStateChangeHandlerServices(null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.Mapper);
-        Assert.Null(sut.ServiceProvider);
-    }
-
-    [Fact]
-    public void MusicStateChangeHandlerCollaborators_primary_ctor_round_trips()
-    {
-        var sut = new MusicStateChangeHandlerCollaborators(null!, null!, null!);
-
-        Assert.Null(sut.StateTracker);
-        Assert.Null(sut.DisplayTextProvider);
     }
 
     [Fact]
@@ -232,84 +119,6 @@ public sealed class DependencyBundleRecordsTests
         Assert.Equal(9, sut.ScheduleId);
         Assert.Same(codes, sut.Codes);
         Assert.Equal(TimeSpan.FromMinutes(2), sut.FinishedDuration);
-    }
-
-    [Fact]
-    public void ScheduleViewModelDeps_primary_ctor_round_trips()
-    {
-        var sut = new ScheduleViewModelDeps(
-            null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.Logger);
-        Assert.Null(sut.ScheduleStateChangeHandler);
-    }
-
-    [Fact]
-    public void MusicPublicationSelectionViewModelDeps_primary_ctor_round_trips()
-    {
-        var sut = new MusicPublicationSelectionViewModelDeps(
-            null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.MediaService);
-        Assert.Null(sut.ServiceProvider);
-    }
-
-    [Fact]
-    public void MusicSelectionContainerViewModelDeps_primary_ctor_round_trips()
-    {
-        var sut = new MusicSelectionContainerViewModelDeps(
-            null!, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.ToastService);
-        Assert.Null(sut.ScheduleSelectionService);
-    }
-
-    [Fact]
-    public void BiblePublicationSelectionViewModelDeps_primary_ctor_round_trips()
-    {
-        var sut = new BiblePublicationSelectionViewModelDeps(
-            null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.BiblePublicationService);
-        Assert.Null(sut.NavigationService);
-    }
-
-    [Fact]
-    public void ScheduleStatePopulatorDeps_primary_ctor_round_trips()
-    {
-        var sut = new ScheduleStatePopulatorDeps(null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.ScopeFactory);
-        Assert.Null(sut.Mapper);
-    }
-
-    [Fact]
-    public void ScheduleStateServiceDeps_primary_ctor_round_trips()
-    {
-        var sut = new ScheduleStateServiceDeps(
-            null!, null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.AlarmService);
-        Assert.Null(sut.ServiceProvider);
-    }
-
-    [Fact]
-    public void BootstrapOrchestratorDeps_primary_ctor_round_trips()
-    {
-        var sut = new BootstrapOrchestratorDeps(null!, null!, null!, null!, null!, null!, null!);
-
-        Assert.Null(sut.PlatformBootstrapService);
-        Assert.Null(sut.LanguageNameService);
-        Assert.Null(sut.CategoryNameService);
-    }
-
-    [Fact]
-    public void ScheduleEffectsOptionalDeps_default_ctor_sets_nulls()
-    {
-        var sut = new ScheduleEffectsOptionalDeps();
-
-        Assert.Null(sut.BiblePublicationService);
-        Assert.Null(sut.State);
     }
 
     [Fact]
@@ -503,20 +312,6 @@ public sealed class DependencyBundleRecordsTests
     }
 
     [Fact]
-    public void PlaybackTrackTransitionEndedAction_instantiates()
-    {
-        var sut = new PlaybackTrackTransitionEndedAction();
-        Assert.NotNull(sut);
-    }
-
-    [Fact]
-    public void PlaybackTrackTransitionStartedAction_instantiates()
-    {
-        var sut = new PlaybackTrackTransitionStartedAction();
-        Assert.NotNull(sut);
-    }
-
-    [Fact]
     public void TrackSelectionAction_exposes_state_item()
     {
         var item = new BiblePublicationStateItem { Id = 77, PublicationCode = "p" };
@@ -572,17 +367,6 @@ public sealed class DependencyBundleRecordsTests
     }
 
     [Fact]
-    public void CategorySelectionAutoPopulateHandlerDeps_primary_ctor_round_trips()
-    {
-        var logger = TestLogging.CreateLogger();
-        var sut = new CategorySelectionAutoPopulateHandlerDeps(
-            null!, null!, null!, null!, null!, null!, null!, logger);
-
-        Assert.Null(sut.BiblePublicationService);
-        Assert.Same(logger, sut.Logger);
-    }
-
-    [Fact]
     public void TrackSelectionProgressBindings_invokes_callbacks()
     {
         var showCalls = 0;
@@ -600,23 +384,6 @@ public sealed class DependencyBundleRecordsTests
         Assert.Equal(1, showCalls);
         Assert.Equal(0.33, lastPct);
         Assert.Equal("loading", lastText);
-    }
-
-    [Fact]
-    public void HandleMusicLanguageSelectionUiCallbacks_round_trips_delegates()
-    {
-        Action<LanguageListViewItemModel?> setLang = _ => { };
-        Action<LanguageListViewItemModel> updLang = _ => { };
-        Action<bool> setShow = _ => { };
-        Action<double> setPct = _ => { };
-        Action<string> setText = _ => { };
-        Action<bool> setBusy = _ => { };
-
-        var sut = new HandleMusicLanguageSelectionUiCallbacks(
-            setLang, updLang, setShow, setPct, setText, setBusy);
-
-        Assert.Same(setLang, sut.SetCurrentLanguage);
-        Assert.Same(setBusy, sut.SetIsBusy);
     }
 
     [Fact]

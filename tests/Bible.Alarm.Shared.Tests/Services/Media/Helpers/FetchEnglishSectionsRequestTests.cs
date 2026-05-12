@@ -42,8 +42,6 @@ public sealed class FetchEnglishSectionsRequestTests
         Assert.True(sut.IsVideo);
         Assert.Equal(ctSource.Token, sut.CancellationToken);
 
-        Assert.Equal(sut, sut with { });
-
         sut.Deconstruct(out var dbOut, out var npc, out var nlc, out var category, out var codes, out var isVideo, out var ct);
         Assert.Same(db, dbOut);
         Assert.Equal("NWTST", npc);

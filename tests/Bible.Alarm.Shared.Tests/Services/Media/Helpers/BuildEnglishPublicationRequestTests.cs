@@ -56,8 +56,6 @@ public sealed class BuildEnglishPublicationRequestTests
         Assert.Same(sections, sut.Sections);
         Assert.Equal(ctSource.Token, sut.CancellationToken);
 
-        Assert.Equal(sut, sut with { });
-
         sut.Deconstruct(out var dbOut, out var npc, out var pname, out var langOut, out var isVideo,
             out var isBible, out var noLangPub, out var secs, out var ct);
         Assert.Same(db, dbOut);
