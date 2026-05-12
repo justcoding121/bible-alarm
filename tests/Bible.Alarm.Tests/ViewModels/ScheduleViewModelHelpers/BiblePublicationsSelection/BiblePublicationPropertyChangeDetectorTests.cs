@@ -1,6 +1,10 @@
 #nullable enable
 
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
@@ -13,29 +17,103 @@ namespace Bible.Alarm.Tests;
 
 public sealed class BiblePublicationPropertyChangeDetectorTests
 {
-    private sealed class MutableState(ApplicationState value) : IState<ApplicationState>
+    private sealed class MutableAppState : IState<ApplicationState>
     {
-        public ApplicationState Value { get; set; } = value;
-
 #pragma warning disable CS0067
         public event EventHandler? StateChanged;
 #pragma warning restore CS0067
+
+        public MutableAppState(ApplicationState initial) => Value = initial;
+
+        public ApplicationState Value { get; set; }
+    }
+
+    private sealed class StubMediaService : IMediaService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false) =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode) =>
+            Task.FromResult(new SortedDictionary<string, BiblePublicationTrack>());
+
+        public Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null, bool requireIsMusicForMusicCategory = false) =>
+            Task.FromResult(new Dictionary<string, BiblePublication>());
+
+        public Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode, IFetchProgress? progress = null) =>
+            Task.FromResult(new SortedDictionary<string, BiblePublicationSection>());
+
+        public Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode) =>
+            Task.FromResult(new SortedDictionary<string, BiblePublicationSection>());
+
+        public Task<BiblePublicationSection?> GetBiblePublicationSection(string languageCode, string versionCode, string sectionCode) =>
+            Task.FromResult<BiblePublicationSection?>(null);
+
+        public Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode, string versionCode, string? sectionCode, string trackCode) =>
+            Task.FromResult<BiblePublicationTrack?>(null);
+
+        public Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases() =>
+            Task.FromResult(new Dictionary<string, MelodyMusic>());
+
+        public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode) =>
+            Task.FromResult(new SortedDictionary<int, MusicTrack>());
+
+        public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode, string sectionCode) =>
+            Task.FromResult(new SortedDictionary<int, MusicTrack>());
+
+        public Task<Dictionary<string, Language>> GetVocalMusicLanguages() =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode, bool downloadAll = false) =>
+            Task.FromResult(new Dictionary<string, VocalMusic>());
+
+        public Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode) =>
+            Task.FromResult(new SortedDictionary<int, MusicTrack>());
+
+        public Task UpdateBiblePublicationTrackUrl(string languageCode, string versionCode, string? sectionCode, string trackCode, string url) =>
+            Task.CompletedTask;
+
+        public Task UpdateVocalTrackUrl(string languageCode, string publicationCode, string trackCode, string url) =>
+            Task.CompletedTask;
+
+        public Task UpdateMelodyTrackUrl(string publicationCode, string trackCode, string url) =>
+            Task.CompletedTask;
+
+        public Task UpdateTrackUrlAsync(TrackMetadata trackMetadata, string url) =>
+            Task.CompletedTask;
+
+        public void InvalidateBiblePublicationsCache(string languageCode, string? categoryName = null)
+        {
+        }
+
+        public Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode) =>
+            Task.FromResult(false);
+
+        public Task<int> GetExpectedSectionCountAsync(string languageCode, string publicationCode) =>
+            Task.FromResult(0);
+
+        public Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName, bool requireIsMusicForMusicCategory = false) =>
+            Task.FromResult(0);
+
+        public Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode) =>
+            Task.FromResult(0);
     }
 
     private sealed class StubCategoryNameService : ICategoryNameService
     {
-        public string? ResolvedName { get; set; }
-
         public Task WarmCacheForDisplayLanguageAsync(string displayLanguageCode, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
-        public string? GetName(string categoryCode, string displayLanguageCode) => ResolvedName;
+        public string? GetName(string categoryCode, string displayLanguageCode) => categoryCode;
     }
 
     private sealed class UnusedScopeFactory : IServiceScopeFactory
     {
         public IServiceScope CreateScope() =>
-            throw new InvalidOperationException("Tests must not create service scopes.");
+            throw new InvalidOperationException("Detector tests must not open EF-backed scopes.");
     }
 
     private static ScheduleStateItem BaseSchedule() =>
@@ -44,37 +122,35 @@ public sealed class BiblePublicationPropertyChangeDetectorTests
             Id = 1,
             Name = "S",
             BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight,
+            BiblePublicationCategoryId = 5,
+            BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationLanguageName = "English",
+            BiblePublicationCode = "nwt",
+            BiblePublicationSectionCode = "1",
+            BiblePublicationTrackCode = "1",
+            BiblePublicationName = "Holy Scriptures",
         };
 
-    private static BiblePublicationPropertyChangeDetector CreateDetector(
-        ScheduleStateItem schedule,
-        StubCategoryNameService categories)
-    {
-        var state = new MutableState(new ApplicationState([], schedule));
-        var provider = new BiblePublicationDisplayTextProvider(
-            state,
+    private static BiblePublicationDisplayTextProvider CreateProvider(MutableAppState flux) =>
+        new(
+            flux,
             TestLogging.CreateLogger(),
-            new IdleCatalogMediaService(),
-            categories,
+            new StubMediaService(),
+            new StubCategoryNameService(),
             new UnusedScopeFactory());
-        return new BiblePublicationPropertyChangeDetector(provider);
-    }
+
+    private static BiblePublicationPropertyChangeDetector CreateSut(MutableAppState flux) =>
+        new(CreateProvider(flux));
 
     [Fact]
-    public void DetectPropertyChanges_language_code_change_cascades_notifications()
+    public void DetectPropertyChanges_stable_across_repeat_when_snapshot_unchanged()
     {
         var schedule = BaseSchedule();
-        schedule.BiblePublicationCategoryId = 1;
-        schedule.BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryBible;
-        schedule.BiblePublicationLanguageCode = "en";
-        schedule.BiblePublicationCode = "nwt";
-        schedule.BiblePublicationSectionCode = "gen";
-        schedule.BiblePublicationTrackCode = "1";
+        var flux = new MutableAppState(new ApplicationState([], schedule));
+        var sut = CreateSut(flux);
 
-        var categories = new StubCategoryNameService { ResolvedName = "Bible" };
-        var detector = CreateDetector(schedule, categories);
-
-        detector.Initialize(
+        sut.Initialize(
             schedule.BiblePublicationCategoryId,
             schedule.BiblePublicationCategoryName,
             schedule.BiblePublicationLanguageCode,
@@ -82,32 +158,47 @@ public sealed class BiblePublicationPropertyChangeDetectorTests
             schedule.BiblePublicationSectionCode,
             schedule.BiblePublicationTrackCode);
 
-        schedule.BiblePublicationLanguageCode = "fr";
-        var info = detector.DetectPropertyChanges(schedule);
-
-        Assert.True(info.NotifyLanguage);
-        Assert.True(info.NotifyPublication);
-        Assert.True(info.NotifySection);
-        Assert.True(info.NotifyTrack);
-        Assert.True(info.CascadeChangeOccurred);
-        Assert.True(info.HasChanges);
+        Assert.False(sut.DetectPropertyChanges(schedule).HasChanges);
+        Assert.False(sut.DetectPropertyChanges(schedule).HasChanges);
     }
 
     [Fact]
-    public void DetectPropertyChanges_publication_flip_to_drama_notifies_section_visibility()
+    public void DetectPropertyChanges_notifies_publication_when_publication_code_changes()
+    {
+        var initial = BaseSchedule();
+        var flux = new MutableAppState(new ApplicationState([], initial));
+        var sut = CreateSut(flux);
+
+        sut.Initialize(
+            initial.BiblePublicationCategoryId,
+            initial.BiblePublicationCategoryName,
+            initial.BiblePublicationLanguageCode,
+            initial.BiblePublicationCode,
+            initial.BiblePublicationSectionCode,
+            initial.BiblePublicationTrackCode);
+
+        _ = sut.DetectPropertyChanges(initial);
+
+        var updated = BaseSchedule();
+        updated.BiblePublicationCode = AppConstants.Media.BiblePublicationCategoryDramas;
+        updated.BiblePublicationName = "Drama series";
+        flux.Value = new ApplicationState([], updated);
+
+        var delta = sut.DetectPropertyChanges(updated);
+
+        Assert.True(delta.NotifyPublication);
+        Assert.True(delta.CascadeChangeOccurred);
+        Assert.Equal(AppConstants.Media.BiblePublicationCategoryDramas, delta.CurrentPublicationCode);
+    }
+
+    [Fact]
+    public void DetectPropertyChanges_flags_display_only_change_when_language_name_updates_without_codes()
     {
         var schedule = BaseSchedule();
-        schedule.BiblePublicationCategoryId = 1;
-        schedule.BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryBible;
-        schedule.BiblePublicationLanguageCode = "en";
-        schedule.BiblePublicationCode = "nwt";
-        schedule.BiblePublicationSectionCode = "gen";
-        schedule.BiblePublicationTrackCode = "1";
+        var flux = new MutableAppState(new ApplicationState([], schedule));
+        var sut = CreateSut(flux);
 
-        var categories = new StubCategoryNameService { ResolvedName = "Bible" };
-        var detector = CreateDetector(schedule, categories);
-
-        detector.Initialize(
+        sut.Initialize(
             schedule.BiblePublicationCategoryId,
             schedule.BiblePublicationCategoryName,
             schedule.BiblePublicationLanguageCode,
@@ -115,43 +206,16 @@ public sealed class BiblePublicationPropertyChangeDetectorTests
             schedule.BiblePublicationSectionCode,
             schedule.BiblePublicationTrackCode);
 
-        schedule.BiblePublicationCode = AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
-        var info = detector.DetectPropertyChanges(schedule);
+        _ = sut.DetectPropertyChanges(schedule);
 
-        Assert.True(info.NotifyIsSectionVisible);
-        Assert.True(info.NotifyPublication);
-        Assert.True(info.CascadeChangeOccurred);
-        Assert.False(info.DisplayTextOnlyChanged);
-    }
+        schedule = BaseSchedule();
+        schedule.BiblePublicationLanguageName = "английский";
+        flux.Value = new ApplicationState([], schedule);
 
-    [Fact]
-    public void DetectPropertyChanges_category_resolved_display_change_without_id_or_name_sets_display_text_only()
-    {
-        var schedule = BaseSchedule();
-        schedule.BiblePublicationCategoryId = 2;
-        schedule.BiblePublicationCategoryName = "bkc";
-        schedule.BiblePublicationLanguageCode = "en";
-        schedule.BiblePublicationCode = "nwt";
-        schedule.BiblePublicationSectionCode = null;
-        schedule.BiblePublicationTrackCode = "1";
+        var delta = sut.DetectPropertyChanges(schedule);
 
-        var categories = new StubCategoryNameService { ResolvedName = "Books" };
-        var detector = CreateDetector(schedule, categories);
-
-        detector.Initialize(
-            schedule.BiblePublicationCategoryId,
-            schedule.BiblePublicationCategoryName,
-            schedule.BiblePublicationLanguageCode,
-            schedule.BiblePublicationCode,
-            schedule.BiblePublicationSectionCode,
-            schedule.BiblePublicationTrackCode);
-
-        categories.ResolvedName = "Libros";
-        var info = detector.DetectPropertyChanges(schedule);
-
-        Assert.True(info.DisplayTextOnlyChanged);
-        Assert.True(info.CategoryDisplayChanged);
-        Assert.False(info.CascadeChangeOccurred);
-        Assert.True(info.HasChanges);
+        Assert.True(delta.DisplayTextOnlyChanged);
+        Assert.False(delta.CascadeChangeOccurred);
+        Assert.True(delta.LanguageDisplayChanged);
     }
 }
