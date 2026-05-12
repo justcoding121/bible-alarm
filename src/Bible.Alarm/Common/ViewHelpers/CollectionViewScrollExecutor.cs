@@ -365,18 +365,23 @@ internal static class CollectionViewScrollExecutor
 
     private static void HandleScrollException(Exception ex)
     {
-        // Only log unexpected exceptions (not cancellation or COM exceptions which are expected during initialization)
-        if (ex is not OperationCanceledException and not COMException and not NullReferenceException)
+        if (ShouldLogUnexpectedScrollFailure(ex))
         {
             Log.Logger.Warning(ex, "Unexpected exception while scrolling CollectionView");
         }
     }
 
     /// <summary>
+    /// True when the scroll failure should be logged at warning level (vs suppressed as expected platform noise).
+    /// </summary>
+    internal static bool ShouldLogUnexpectedScrollFailure(Exception ex) =>
+        ex is not OperationCanceledException and not COMException and not NullReferenceException;
+
+    /// <summary>
     /// Finds the index of an item in the collection using value-based comparison.
     /// This handles cases where the item reference doesn't match due to collection repopulation.
     /// </summary>
-    private static int FindItemIndexByValue(IList itemsList, object item)
+    internal static int FindItemIndexByValue(IList itemsList, object item)
     {
         for (int i = 0; i < itemsList.Count; i++)
         {
@@ -394,7 +399,7 @@ internal static class CollectionViewScrollExecutor
         return -1;
     }
 
-    private static bool ValueEqualsCollectionItem(object? listItem, object item) =>
+    internal static bool ValueEqualsCollectionItem(object? listItem, object item) =>
         item switch
         {
             LanguageListViewItemModel langItem when listItem is LanguageListViewItemModel listLangItem =>

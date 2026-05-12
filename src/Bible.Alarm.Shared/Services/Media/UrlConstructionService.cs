@@ -25,7 +25,7 @@ public class UrlConstructionService : IUrlConstructionService
 
     private static readonly TimeSpan LookUpPathCacheTtl = TimeSpan.FromMinutes(5);
 
-    private readonly record struct LookUpPathCacheKey(string PublicationCode, string LanguageCode, string SectionCode, string TrackCode);
+    internal readonly record struct LookUpPathCacheKey(string PublicationCode, string LanguageCode, string SectionCode, string TrackCode);
 
     private sealed class LookUpPathCacheEntry(DateTimeOffset createdAt, Lazy<Task<string?>> value)
     {
@@ -238,7 +238,7 @@ public class UrlConstructionService : IUrlConstructionService
         lookUpPathCache.Clear();
     }
 
-    private sealed class LookUpPathCacheKeyEqualityComparer : IEqualityComparer<LookUpPathCacheKey>
+    internal sealed class LookUpPathCacheKeyEqualityComparer : IEqualityComparer<LookUpPathCacheKey>
     {
         public static readonly LookUpPathCacheKeyEqualityComparer Instance = new();
 

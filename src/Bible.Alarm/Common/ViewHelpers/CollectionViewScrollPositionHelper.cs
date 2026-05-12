@@ -14,6 +14,35 @@ namespace Bible.Alarm.Common.ViewHelpers;
 internal static class CollectionViewScrollPositionHelper
 {
     /// <summary>
+    /// Maps a list index to scroll alignment when the UI requested <see cref="ScrollToPosition.Center"/>.
+    /// Does not apply when the caller passed a non-center requested position.
+    /// </summary>
+    internal static ScrollToPosition OptimalScrollPositionForIndexedItem(int itemIndex, int totalItems)
+    {
+        if (totalItems <= 0 || itemIndex < 0)
+        {
+            return ScrollToPosition.Center;
+        }
+
+        if (itemIndex == 0)
+        {
+            return ScrollToPosition.Start;
+        }
+
+        if (itemIndex == totalItems - 1)
+        {
+            return ScrollToPosition.End;
+        }
+
+        if (itemIndex >= totalItems - 3)
+        {
+            return ScrollToPosition.MakeVisible;
+        }
+
+        return ScrollToPosition.Center;
+    }
+
+    /// <summary>
     /// Determines the optimal scroll position based on where the item is located in the list.
     /// - First item: ScrollToPosition.Start (scroll to beginning)
     /// - Last item: ScrollToPosition.End (scroll to end)
@@ -57,28 +86,7 @@ internal static class CollectionViewScrollPositionHelper
             }
 
             var totalItems = itemsList.Count;
-
-            // First item: scroll to start
-            if (itemIndex == 0)
-            {
-                return ScrollToPosition.Start;
-            }
-
-            // Last item: use End to position at bottom (accounting for close button margin)
-            if (itemIndex == totalItems - 1)
-            {
-                return ScrollToPosition.End;
-            }
-
-            // Items in the last 3 positions: use MakeVisible to ensure they're not hidden by close button
-            // This is especially important for items like Yoruba (second-to-last) which might be hidden
-            if (itemIndex >= totalItems - 3)
-            {
-                return ScrollToPosition.MakeVisible;
-            }
-
-            // Middle items: center with equal items visible above and below
-            return ScrollToPosition.Center;
+            return OptimalScrollPositionForIndexedItem(itemIndex, totalItems);
         }
         catch (Exception)
         {
