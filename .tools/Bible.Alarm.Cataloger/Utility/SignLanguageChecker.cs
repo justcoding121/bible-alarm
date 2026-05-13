@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
@@ -183,7 +182,7 @@ internal sealed class SignLanguageChecker
                 if (languagesCache == null)
                 {
                     languagesCache = cache;
-                    signLanguageCodesCache = BuildSignLanguageCodesCache(cache);
+                    signLanguageCodesCache = SignLanguageCodesExtractor.ExtractSignLanguageCodes(logger, cache);
                 }
             }
         }
@@ -197,75 +196,4 @@ internal sealed class SignLanguageChecker
         return JsonDocument.Parse(jsonString);
     }
 
-    private HashSet<string> BuildSignLanguageCodesCache(JsonDocument cache)
-    {
-        var signLanguageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var root = cache.RootElement;
-
-        if (!TryGetLanguagesArrayElement(root, out var languagesArray))
-        {
-            return signLanguageCodes;
-        }
-
-        foreach (var langElement in languagesArray.EnumerateArray())
-        {
-            if (!langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.LangCode, out var langcodeElement))
-            {
-                continue;
-            }
-
-            var langcode = langcodeElement.GetString();
-            if (string.IsNullOrWhiteSpace(langcode))
-            {
-                continue;
-            }
-
-            var isSignLanguage = false;
-            if (langElement.TryGetProperty(AppConstants.Media.LanguageIndexJson.IsSignLanguage, out var isSignLanguageElement))
-            {
-                isSignLanguage = isSignLanguageElement.GetBoolean();
-            }
-
-            if (isSignLanguage)
-            {
-                var normalizedCode = langcode.ToUpperInvariant();
-                signLanguageCodes.Add(normalizedCode);
-            }
-        }
-
-        logger.Information("Loaded {Count} sign language codes from /en/languages endpoint", signLanguageCodes.Count);
-        return signLanguageCodes;
-    }
-
-    private bool TryGetLanguagesArrayElement(JsonElement root, out JsonElement languagesArray)
-    {
-        if (root.ValueKind == JsonValueKind.Array)
-        {
-            languagesArray = root;
-            return true;
-        }
-
-        if (root.ValueKind == JsonValueKind.Object)
-        {
-            if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Languages, out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
-            {
-                languagesArray = languagesProp;
-                return true;
-            }
-
-            if (root.TryGetProperty(AppConstants.Media.LanguageIndexJson.Data, out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
-            {
-                languagesArray = dataProp;
-                return true;
-            }
-
-            logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint");
-            languagesArray = default;
-            return false;
-        }
-
-        logger.Warning("Expected JSON array or object from /en/languages endpoint, got {ValueKind}", root.ValueKind);
-        languagesArray = default;
-        return false;
-    }
 }

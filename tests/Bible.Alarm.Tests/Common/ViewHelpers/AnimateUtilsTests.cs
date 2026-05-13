@@ -1,15 +1,16 @@
 #nullable enable
 
 using Bible.Alarm.Common.ViewHelpers;
-using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Tests;
 
 public sealed class AnimateUtilsTests
 {
     [Fact]
-    public void AnimateTouchFeedback_returns_without_animating_when_view_is_null()
+    public void AnimateTouchFeedback_returns_when_view_reference_is_null_without_throwing()
     {
-        AnimateUtils.AnimateTouchFeedback(null!);
+        var ex = Record.Exception(() => AnimateUtils.AnimateTouchFeedback(null!));
+
+        Assert.Null(ex);
     }
 }

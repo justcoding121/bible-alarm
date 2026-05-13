@@ -1,14 +1,15 @@
 #nullable enable
 
-using Bible.Alarm.Shared.Constants;using Bible.Alarm.Shared.Database;
+using Bible.Alarm.DbMigration;
+using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bible.Alarm.Shared.Tests;
+namespace Bible.Alarm.DbMigration.Tests;
 
 public sealed class MediaDbContextFactoryTests
 {
     [Fact]
-    public void CreateDbContext_uses_sqlite_connection_with_media_index_file_and_shared_migrations_assembly()
+    public void CreateDbContext_uses_connection_string_containing_media_index_database_file()
     {
         var sut = new MediaDbContextFactory();
 
