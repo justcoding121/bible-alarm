@@ -3,6 +3,8 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Windows.Input;
+using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Common.ViewHelpers.Behaviours;
 
@@ -89,17 +91,18 @@ public partial class EventToCommandBehavior : BindableBehavior<View>
             throw new ArgumentException("EventToCommand: EventName must be specified");
         }
 
-        var events = AssociatedObject.GetType().GetRuntimeEvents().ToArray();
-        if (events.Length != 0)
+        switch (DeclaredRuntimeEventFinder.TryLookupDeclaredInstanceEvent(AssociatedObject.GetType(), EventName,
+                     out var resolvedEvent))
         {
-            eventInfo = events.FirstOrDefault(e => string.Equals(e.Name, EventName, StringComparison.Ordinal));
-            if (eventInfo == null)
-            {
+            case DeclaredRuntimeEventLookupOutcome.Found:
+                eventInfo = resolvedEvent!;
+                AddEventHandler(eventInfo, AssociatedObject, OnFired);
+                break;
+            case DeclaredRuntimeEventLookupOutcome.MissingNamedEvent:
                 throw new ArgumentException(
                     $"EventToCommand: Cannot find any event named '{EventName}' on attached type");
-            }
-
-            AddEventHandler(eventInfo, AssociatedObject, OnFired);
+            case DeclaredRuntimeEventLookupOutcome.NoDeclaredEvents:
+                break;
         }
     }
 
@@ -141,18 +144,14 @@ public partial class EventToCommandBehavior : BindableBehavior<View>
             return;
         }
 
-        var parameter = CommandParameter;
-
-        if (parameter == null && eventArgs != null && eventArgs != EventArgs.Empty)
-        {
-            parameter = eventArgs;
-
-            if (EventArgsConverter != null)
-            {
-                parameter = EventArgsConverter.Convert(eventArgs, typeof(object), EventArgsConverterParameter,
-                    CultureInfo.CurrentUICulture);
-            }
-        }
+        var parameter = EventToCommandParameterResolver.Resolve(
+            CommandParameter,
+            eventArgs,
+            EventArgsConverter != null
+                ? (ea, cp, cul) => EventArgsConverter.Convert(ea, typeof(object), cp, cul)
+                : null,
+            EventArgsConverterParameter,
+            CultureInfo.CurrentUICulture);
 
         if (Command.CanExecute(parameter))
         {

@@ -88,22 +88,12 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
     private static void CancelActiveCts()
     {
-        var existing = activeCts;
-        if (existing == null)
+        if (!CancellationSourceExclusiveReplacement.TryTakeExclusive(ref activeCts, out var existing))
         {
             return;
         }
 
-        activeCts = null;
-        try
-        {
-            existing.Cancel();
-            existing.Dispose();
-        }
-        catch (ObjectDisposedException)
-        {
-            // Cancel/Dispose may race when toast is already torn down.
-        }
+        CancellationSourceExclusiveReplacement.CancelDisposeSwallowDisposed(existing!);
     }
 
     private static async Task ShowFlyoutAsync(Popup popup, Window window, double seconds, CancellationToken ct)

@@ -40,10 +40,8 @@ public static class GetPubMediaLinksRetry
             return null;
         }
 
-        var firstIndex = Random.Shared.Next(urls.Count);
-        int[] attemptOrder = urls.Count >= 2
-            ? [firstIndex, (firstIndex + 1) % urls.Count, Random.Shared.Next(urls.Count)]
-            : [0, 0, 0];
+        var attemptOrder =
+            PubMediaLinksHostAttemptPlanner.BuildThreeAttemptHostIndices(urls.Count, max => Random.Shared.Next(max));
 
         foreach (var idx in attemptOrder)
         {

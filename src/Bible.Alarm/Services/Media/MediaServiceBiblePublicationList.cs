@@ -128,7 +128,7 @@ internal static class MediaServiceBiblePublicationList
         if (!string.IsNullOrWhiteSpace(categoryName))
         {
             query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
-            if (requireIsMusicForMusicCategory && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
+            if (MusicCategoryPublicationQueryGate.AppliesMusicOnlyFilter(categoryName, requireIsMusicForMusicCategory))
             {
                 query = query.Where(x => x.IsMusic);
             }
@@ -143,19 +143,6 @@ internal static class MediaServiceBiblePublicationList
         return publicationsWithoutLanguage;
     }
 
-    private static string PublicationCodeKeyForPlaceholder(string publicationCodeFromPl)
-    {
-        var lowerCode = publicationCodeFromPl.ToLowerInvariant();
-        if (!PublicationTypeHelper.IsDrama(lowerCode))
-        {
-            return publicationCodeFromPl;
-        }
-
-        return lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-            ? AppConstants.Media.BiblePublicationCategoryDramas
-            : AppConstants.Media.BiblePublicationCodeDramaticBibleReadings;
-    }
-
     private static IQueryable<PublicationLanguage> WhereOptionalCategoryMatches(
         IQueryable<PublicationLanguage> query,
         string? categoryName) =>
@@ -166,8 +153,7 @@ internal static class MediaServiceBiblePublicationList
         string? categoryName,
         bool requireIsMusicForMusicCategory)
     {
-        if (requireIsMusicForMusicCategory &&
-            string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase))
+        if (MusicCategoryPublicationQueryGate.AppliesMusicOnlyFilter(categoryName, requireIsMusicForMusicCategory))
         {
             return query.Where(pl => pl.IsMusic);
         }
@@ -251,7 +237,7 @@ internal static class MediaServiceBiblePublicationList
         {
             TryAddPlaceholderForMissingCode(
                 plInfo,
-                PublicationCodeKeyForPlaceholder(plInfo.PublicationCode),
+                PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(plInfo.PublicationCode),
                 missingPublicationCodes,
                 seenCodes,
                 result);
@@ -259,7 +245,7 @@ internal static class MediaServiceBiblePublicationList
 
         foreach (var plInfo in publicationLanguagesWithoutLanguage)
         {
-            var codeForKey = PublicationCodeKeyForPlaceholder(plInfo.PublicationCode);
+            var codeForKey = PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(plInfo.PublicationCode);
             if (!result.ContainsKey(codeForKey))
             {
                 TryAddPlaceholderForMissingCode(plInfo, codeForKey, missingPublicationCodes, seenCodes, result);
@@ -322,7 +308,7 @@ internal static class MediaServiceBiblePublicationList
 
         foreach (var plInfo in publicationLanguagesWithoutLanguageForPlaceholders)
         {
-            var codeForKey = PublicationCodeKeyForPlaceholder(plInfo.PublicationCode);
+            var codeForKey = PublicationTypeHelper.GetCanonicalPublicationCodeForDatabase(plInfo.PublicationCode);
 
             if (!result.ContainsKey(codeForKey) && plInfo.Category != null)
             {

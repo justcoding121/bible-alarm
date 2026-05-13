@@ -1,5 +1,4 @@
 #nullable enable
-using System.Collections;
 using Bible.Alarm.Shared.Helpers;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 #if WINDOWS
@@ -23,8 +22,7 @@ internal static class CollectionViewReadinessChecker
 
         // Ensure the item exists in the source before proceeding
         // If ObservableCollection was just updated, the native platform might not have realized the last item exists yet
-        var items = collectionView.ItemsSource?.Cast<object>().ToList();
-        if (items == null || !ItemsSourcePresence.ContainsItem(collectionView.ItemsSource!, item))
+        if (CollectionViewItemsSourceWarmupGate.ShouldYieldOnceBeforePolling(collectionView.ItemsSource, item))
         {
             // Give the renderer one frame to catch up with the data change
             await Task.Yield();
@@ -71,17 +69,10 @@ internal static class CollectionViewReadinessChecker
 
     private static bool IsCollectionViewValid(MauiCollectionView collectionView, object item)
     {
-        if (collectionView.ItemsSource == null || !ItemsSourcePresence.HasAnyItems(collectionView.ItemsSource))
-        {
-            return false;
-        }
-
-        if (collectionView.Handler == null)
-        {
-            return false;
-        }
-
-        return ItemsSourcePresence.ContainsItem(collectionView.ItemsSource, item);
+        return CollectionViewValidityPrecheck.HasRenderableItemsSourceWithHandler(
+            collectionView.ItemsSource,
+            collectionView.Handler != null,
+            item);
     }
 
     private static async Task<bool> CheckPlatformSpecificReady(MauiCollectionView collectionView, CancellationToken cancellationToken)

@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Shared;
 
 namespace Bible.Alarm.Views.Shared;
@@ -40,9 +41,13 @@ public partial class MiniPlaybackBar : ContentView
 
     private static void OnSizeChanged(object? sender, EventArgs e)
     {
-        if (sender is MiniPlaybackBar bar && bar.IsVisible && bar.Height > 0)
+        if (sender is MiniPlaybackBar bar)
         {
-            LastMeasuredHeight = bar.Height;
+            var recorded = LastMeasuredHeight;
+            if (MiniPlaybackBarMeasurementRecorder.TryRecordVisibleHeight(bar.IsVisible, bar.Height, ref recorded))
+            {
+                LastMeasuredHeight = recorded;
+            }
         }
     }
 }

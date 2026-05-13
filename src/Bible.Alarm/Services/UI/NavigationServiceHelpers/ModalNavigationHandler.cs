@@ -83,12 +83,12 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public async Task OpenLanguageModalAsync(INavigation navigation, object bindingContext)
     {
-        ContentPage modal = bindingContext switch
+        var kind = LanguageModalBindingClassifier.ClassifyBindingContextRuntimeType(bindingContext.GetType());
+        ContentPage modal = kind switch
         {
-            BiblePublicationSelectionViewModel => serviceProvider.GetRequiredService<BiblePublicationLanguageModal>(),
-            MusicPublicationSelectionViewModel => serviceProvider.GetRequiredService<MusicLanguageModal>(),
-            _ => throw new ArgumentException($"Unsupported ViewModel type: {bindingContext?.GetType().Name}",
-                nameof(bindingContext))
+            LanguageModalKind.Bible => serviceProvider.GetRequiredService<BiblePublicationLanguageModal>(),
+            LanguageModalKind.Music => serviceProvider.GetRequiredService<MusicLanguageModal>(),
+            _ => throw new InvalidOperationException($"Unhandled language modal classification: {kind}"),
         };
 
         modal.BindingContext = bindingContext;
@@ -151,8 +151,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public static bool IsPlaybackModalAlreadyShown(INavigation navigation)
     {
-        return navigation.NavigationStack.Any(p =>
-            p?.GetType() == typeof(PlaybackModal));
+        return NavigationStackTypeInspector.ContainsPageWithRuntimeType(navigation.NavigationStack, typeof(PlaybackModal));
     }
 
     public async Task OpenBatteryOptimizationModalAsync(INavigation navigation, object bindingContext)
