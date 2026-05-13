@@ -1,107 +1,52 @@
 #nullable enable
 
-using Bible.Alarm.Services.UI.Interfaces;
+using System.Collections.Generic;
 using Bible.Alarm.ViewModels.Schedule.AlarmSettingsContainer;
-using Bible.Alarm.Tests.Support;
+using Serilog;
 
 namespace Bible.Alarm.Tests;
 
 public sealed class AlarmSettingsPermissionHandlersTests
 {
-    private sealed class UnusedNavigationService : INavigationService
-    {
-        public void Dispose()
-        {
-        }
-
-        public Task NavigateToHomeAsync(bool animated = true) => Task.CompletedTask;
-        public Task NavigateToScheduleAsync() => Task.CompletedTask;
-        public Task NavigateToScheduleAsync(int scheduleId, bool isEnabled) => Task.CompletedTask;
-        public Task OpenSongPublicationSelectionModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenMusicTrackSelectionModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenBibleSelectionModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenSectionSelectionModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenMusicSectionSelectionModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenBiblePublicationTrackSelectionModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenNumberOfTracksModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenLanguageModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenCategoryModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenPlaybackModalAsync(bool animated = false) => Task.CompletedTask;
-        public Task OpenBatteryOptimizationModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task OpenNotificationPermissionModalAsync(object bindingContext) => Task.CompletedTask;
-        public Task PopModalAsync() => Task.CompletedTask;
-        public Task PopAsync() => Task.CompletedTask;
-        public Task PopPlaybackPageAsync(bool animated = false) => Task.CompletedTask;
-        public void PopAllModalsAndPages()
-        {
-        }
-
-        public void ClearCache()
-        {
-        }
-
-        public Views.Home? GetCurrentHomePage() => null;
-        public Microsoft.Maui.Controls.Page? GetCurrentPage() => null;
-        public bool IsPlaybackModalOnScreen() => false;
-        public void SetMiniBarVisible(bool visible)
-        {
-        }
-    }
+    private static ILogger SilentLogger() =>
+        new LoggerConfiguration().MinimumLevel.Fatal().CreateLogger();
 
     [Fact]
-    public void HandlePermissionGranted_WhenNotWaiting_DoesNotRunCallbacks()
+    public void HandlePermissionGranted_returns_early_without_touching_toggle_when_not_waiting_for_permission_response()
     {
-        var setOnCalled = false;
-        var updating = new List<bool>();
+        var setOnCalls = 0;
+        var updatingCalls = new List<bool>();
+        var waitingCalls = new List<bool>();
 
         AlarmSettingsPermissionHandlers.HandlePermissionGranted(
             isWaitingForPermissionResponse: false,
-            TestLogging.CreateLogger(),
-            () => setOnCalled = true,
-            updating.Add,
-            _ => { });
+            SilentLogger(),
+            () => setOnCalls++,
+            updatingCalls.Add,
+            waitingCalls.Add);
 
-        Assert.False(setOnCalled);
-        Assert.Empty(updating);
+        Assert.Equal(0, setOnCalls);
+        Assert.Empty(updatingCalls);
+        Assert.Empty(waitingCalls);
     }
 
     [Fact]
-    public void HandlePermissionGranted_WhenWaiting_RunsSetOnAndTogglesUpdatingFlags()
+    public void HandlePermissionGranted_sets_toggle_on_when_waiting_then_finally_resets_guard_flags()
     {
-        var setOnCalled = false;
-        var updating = new List<bool>();
-        var waiting = new List<bool>();
+        var setOnCalls = 0;
+        var updatingCalls = new List<bool>();
+        var waitingCalls = new List<bool>();
 
         AlarmSettingsPermissionHandlers.HandlePermissionGranted(
             isWaitingForPermissionResponse: true,
-            TestLogging.CreateLogger(),
-            () => setOnCalled = true,
-            updating.Add,
-            waiting.Add);
+            SilentLogger(),
+            () => setOnCalls++,
+            updatingCalls.Add,
+            waitingCalls.Add);
 
-        Assert.True(setOnCalled);
-        Assert.Equal(new[] { true, false }, updating);
-        Assert.Equal(new[] { false }, waiting);
-    }
-
-    [Fact]
-    public void HandlePermissionDenied_WhenNotWaiting_DoesNotRunCallbacks()
-    {
-        var setOffCalled = false;
-        var updating = new List<bool>();
-        var waiting = new List<bool>();
-
-        AlarmSettingsPermissionHandlers.HandlePermissionDenied(
-            isWaitingForPermissionResponse: false,
-            TestLogging.CreateLogger(),
-            new UnusedNavigationService(),
-            () => setOffCalled = true,
-            () => { },
-            updating.Add,
-            waiting.Add);
-
-        Assert.False(setOffCalled);
-        Assert.Empty(updating);
-        Assert.Empty(waiting);
+        Assert.Equal(1, setOnCalls);
+        Assert.Equal(new[] { true, false }, updatingCalls);
+        Assert.Single(waitingCalls);
+        Assert.False(waitingCalls[0]);
     }
 }

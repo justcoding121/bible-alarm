@@ -3,6 +3,7 @@ using System.ComponentModel;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
@@ -98,9 +99,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     private static bool HasValidDisplayInfo(DisplayInfo displayInfo)
     {
-        return displayInfo.Width > 0 &&
-               displayInfo.Height > 0 &&
-               displayInfo.Density > 0;
+        return MeasurableScreenDimensionsGate.HasPositiveExtents(displayInfo.Width, displayInfo.Height, displayInfo.Density);
     }
 
     private void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid)
@@ -109,12 +108,10 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         
         // Determine device size category for fallback (use screen width if available, otherwise use idiom)
         // Default to phone if we can't determine
-        var deviceSizeCategory = deviceIdiom == DeviceIdiom.Desktop
-            ? FontServiceSizingHelpers.DeviceSizeCategory.Desktop
-            : FontServiceSizingHelpers.DeviceSizeCategory.Phone;
+        var deviceSizeCategory = FallbackFontDeviceCategoryResolver.Resolve(deviceIdiom);
         double deviceSizeMultiplier = FontServiceSizingHelpers.GetDeviceSizeMultiplier(deviceSizeCategory, platform);
 
-        if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
+        if (FontFallbackPlatformBranchGate.UsesWindowsDesktopFallbackSizing(platform, deviceIdiom))
         {
             SetWindowsDesktopFallbackFontSizes(deviceSizeMultiplier);
         }
@@ -285,7 +282,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
     private void SetScaledFontSizes(DisplayInfo mainDisplayInfo)
     {
         double density = mainDisplayInfo.Density;
-        double widthDp = mainDisplayInfo.Width / density;
+        double widthDp = DensityIndependentPixels.WidthPixelsToDp(mainDisplayInfo.Width, density);
 
         // Get the OS accessibility font scale (1.0 = normal, >1.0 = larger for accessibility)
         double accessibilityScale = accessibilityFontScaleService.FontScale;
@@ -308,16 +305,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
     private void SetStandardFontSizes(double accessibilityScale, DevicePlatform platform, double deviceSizeMultiplier)
     {
         // Get platform-specific defaults based on industry standards
-        PlatformFontDefaults defaults;
-        if (platform == DevicePlatform.iOS)
-            defaults = PlatformFontDefaults.iOS;
-        else if (platform == DevicePlatform.Android)
-            defaults = PlatformFontDefaults.Android;
-        else if (platform == DevicePlatform.WinUI)
-            defaults = PlatformFontDefaults.Windows;
-        else
-            // Default to Android for unknown platforms
-            defaults = PlatformFontDefaults.Android;
+        PlatformFontDefaults defaults = RuntimePlatformFontDefaultsResolver.Resolve(platform);
 
         // Apply device size multiplier to base sizes (tablets/desktop get larger fonts)
         double BaseStandardSize = defaults.StandardSize * deviceSizeMultiplier;
@@ -392,15 +380,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
     private void SetAlarmFontSizes(double accessibilityScale, double widthDp, DevicePlatform platform, double deviceSizeMultiplier)
     {
         // Get platform-specific alarm font defaults per industry standards
-        PlatformFontDefaults defaults;
-        if (platform == DevicePlatform.iOS)
-            defaults = PlatformFontDefaults.iOS;
-        else if (platform == DevicePlatform.Android)
-            defaults = PlatformFontDefaults.Android;
-        else if (platform == DevicePlatform.WinUI)
-            defaults = PlatformFontDefaults.Windows;
-        else
-            defaults = PlatformFontDefaults.Android;
+        PlatformFontDefaults defaults = RuntimePlatformFontDefaultsResolver.Resolve(platform);
 
         // Apply device size multiplier - no reduction for alarm time (should be prominent)
         // Alarm time should be large and prominent, so we don't reduce it
@@ -408,7 +388,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         double baseAlarmMeridianSize = defaults.AlarmMeridianSize * deviceSizeMultiplier;
         const double BaseAlarmBellIconSize = 80.0;
 
-        bool isPhone = widthDp < 600;
+        bool isPhone = PhoneLayoutWidthClassification.IsCompactPhoneWidth(widthDp);
         var maxSizes = FontServiceSizingHelpers.GetAlarmMaxSizes(isPhone, accessibilityScale, platform, deviceSizeMultiplier);
 
         // Apply progressive accessibility scaling to alarm fonts
@@ -438,12 +418,10 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     public void Dispose()
     {
-        if (isDisposed)
+        if (!DisposableOneShotGate.TryBegin(ref isDisposed))
         {
             return;
         }
-
-        isDisposed = true;
 
         // Unsubscribe from display info changes
         DeviceDisplay.MainDisplayInfoChanged -= OnDisplayInfoChanged;
@@ -481,9 +459,9 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         var mainDisplayInfo = DeviceDisplay.MainDisplayInfo;
 
         // Handle invalid display info
-        double density = mainDisplayInfo.Density > 0 ? mainDisplayInfo.Density : 1.0;
+        double density = mainDisplayInfo.Density;
 
-        return baseSizeInPoints * Math.Min(density, 2.0);
+        return FontBodyPointsDensityScaler.ScalePointsWithDensityClamp(baseSizeInPoints, density, maxDensityMultiplier: 2.0);
     }
 }
 
