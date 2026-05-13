@@ -41,8 +41,10 @@ public sealed class ScheduleDisplayNameMusicHelperTests
         public Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode, string versionCode, string? sectionCode, string trackCode) =>
             Task.FromResult<BiblePublicationTrack?>(null);
 
+        public Dictionary<string, MelodyMusic> MelodyMusicReleaseKeys { get; init; } = new();
+
         public Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases() =>
-            Task.FromResult(new Dictionary<string, MelodyMusic>());
+            Task.FromResult(MelodyMusicReleaseKeys);
 
         public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode) =>
             Task.FromResult(new SortedDictionary<int, MusicTrack>());
@@ -134,5 +136,38 @@ public sealed class ScheduleDisplayNameMusicHelperTests
 
         Assert.Null(state.MusicLanguageName);
         Assert.Null(state.MusicPublicationName);
+    }
+
+    [Fact]
+    public async Task PopulateAsync_resolves_melody_publication_name_when_release_key_case_differs_from_music_code()
+    {
+        var iamPublication = new BiblePublication { PublicationCode = "IAM", Name = "Kingdom Melodies Display" };
+
+        var media = new StubMediaService
+        {
+            MelodyMusicReleaseKeys = new Dictionary<string, MelodyMusic>
+            {
+                ["iam"] = iamPublication,
+            },
+        };
+
+        var sut = new ScheduleDisplayNameMusicHelper(
+            TestLogging.CreateLogger(),
+            media,
+            new StubLanguageNameService(),
+            new EmptyServiceProvider());
+
+        var state = new ScheduleStateItem { Id = 1, Name = "M" };
+        var alarmMusic = new AlarmMusic
+        {
+            PublicationCode = "IAM",
+            TrackCode = "1",
+            LanguageCode = null,
+            SectionCode = null,
+        };
+
+        await sut.PopulateAsync(state, alarmMusic);
+
+        Assert.Equal("Kingdom Melodies Display", state.MusicPublicationName);
     }
 }

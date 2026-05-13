@@ -34,9 +34,7 @@ public sealed class ScheduleDisplayNameMusicHelper
     {
         // Melody = no-language publication (e.g. iam). Use publication list so saved display language (e.g. MY) is preserved on load.
         var melodyReleases = await mediaService.GetMelodyMusicReleases();
-        var isMelodyMusic = !string.IsNullOrWhiteSpace(music.PublicationCode) &&
-            (melodyReleases.ContainsKey(music.PublicationCode) ||
-             melodyReleases.Keys.Any(k => string.Equals(k, music.PublicationCode, StringComparison.OrdinalIgnoreCase)));
+        var isMelodyMusic = MelodyPublicationReleaseMatcher.MatchesReleaseKeys(melodyReleases.Keys, music.PublicationCode);
 
         await PopulateMusicLanguageFieldsAsync(scheduleStateItem, music, isMelodyMusic);
         await PopulateMusicPublicationNameAsync(scheduleStateItem, music, isMelodyMusic);

@@ -48,10 +48,9 @@ internal sealed class LanguageContentFirstSectionFetcher
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            var normalizedLanguageCode = PublicationLanguageFetchLookupNormalizer.NormalizeLanguageCodeForPublicationLanguageJoin(languageCode);
 
-            var lowerCode = publicationCode.ToLowerInvariant();
-            var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
+            var publicationCodeForDb = PublicationLanguageFetchLookupNormalizer.ResolvePublicationCodeForDatabaseLookup(publicationCode);
 
             // Get PublicationLanguage to determine category
             var publicationLanguage = await db.PublicationLanguages

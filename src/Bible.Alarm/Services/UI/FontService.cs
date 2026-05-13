@@ -49,16 +49,12 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     private void SetSpinnerSizes()
     {
-        if (DeviceInfo.Platform == DevicePlatform.iOS)
-        {
-            spinnerContainerSize = Math.Max(56.0, iconStandardContainerSize);
-            spinnerFontSize = Math.Max(24.0, iconStandardFontSize);
-        }
-        else
-        {
-            spinnerContainerSize = iconStandardContainerSize;
-            spinnerFontSize = iconStandardFontSize;
-        }
+        var result = FontServiceSpinnerDimensionResolver.Resolve(
+            DeviceInfo.Platform,
+            iconStandardContainerSize,
+            iconStandardFontSize);
+        spinnerContainerSize = result.ContainerSize;
+        spinnerFontSize = result.FontSize;
     }
 
     public FontService(IAccessibilityFontScaleService accessibilityFontScaleService)
@@ -161,16 +157,10 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         // Apply progressive accessibility scaling with moderate boost for alarm time
         // Maintain progressive scaling hierarchy: larger fonts should scale less than smaller fonts
         double alarmTimeProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(BaseAlarmTimeSize, accessibilityScale);
-        // If alarm time is very large (>20pt), scale it at least as much as headline, but not more
-        if (BaseAlarmTimeSize > 20.0 && accessibilityScale > 1.0)
-        {
-            // Calculate what headline (20pt) would scale to - this is our reference
-            double headlineProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(20.0, accessibilityScale);
-            // Use the higher of: current minimal scale OR headline scale
-            alarmTimeProgressiveScale = Math.Max(alarmTimeProgressiveScale, headlineProgressiveScale);
-            // Cap it so it never exceeds headline scaling by more than 10% (maintains hierarchy)
-            alarmTimeProgressiveScale = Math.Min(alarmTimeProgressiveScale, headlineProgressiveScale * 1.1);
-        }
+        alarmTimeProgressiveScale = FontServiceAlarmTimeProgressiveScaleClamp.Apply(
+            BaseAlarmTimeSize,
+            accessibilityScale,
+            alarmTimeProgressiveScale);
         
         alarmTimeFontSize = BaseAlarmTimeSize * alarmTimeProgressiveScale;
         alarmMeridianFontSize = BaseAlarmMeridianSize * FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(BaseAlarmMeridianSize, accessibilityScale);
@@ -270,16 +260,10 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         // Apply progressive accessibility scaling with moderate boost for alarm time
         // Maintain progressive scaling hierarchy: larger fonts should scale less than smaller fonts
         double alarmTimeProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(baseAlarmTimeSize, accessibilityScale);
-        // If alarm time is very large (>20pt), scale it at least as much as headline, but not more
-        if (baseAlarmTimeSize > 20.0 && accessibilityScale > 1.0)
-        {
-            // Calculate what headline (20pt) would scale to - this is our reference
-            double headlineProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(20.0, accessibilityScale);
-            // Use the higher of: current minimal scale OR headline scale
-            alarmTimeProgressiveScale = Math.Max(alarmTimeProgressiveScale, headlineProgressiveScale);
-            // Cap it so it never exceeds headline scaling by more than 10% (maintains hierarchy)
-            alarmTimeProgressiveScale = Math.Min(alarmTimeProgressiveScale, headlineProgressiveScale * 1.1);
-        }
+        alarmTimeProgressiveScale = FontServiceAlarmTimeProgressiveScaleClamp.Apply(
+            baseAlarmTimeSize,
+            accessibilityScale,
+            alarmTimeProgressiveScale);
         
         double alarmMeridianProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(baseAlarmMeridianSize, accessibilityScale);
         double alarmBellIconProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);
@@ -431,18 +415,10 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         // Maintain progressive scaling hierarchy: larger fonts should scale less than smaller fonts
         // For alarm time, allow moderate scaling (similar to headline, not full like small text)
         double alarmTimeProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(baseAlarmTimeSize, accessibilityScale);
-        // If alarm time is very large (>20pt), it would scale minimally, but we want it to scale
-        // at least as much as headline text (20pt) for accessibility, but not more than headline
-        if (baseAlarmTimeSize > 20.0 && accessibilityScale > 1.0)
-        {
-            // Calculate what headline (20pt) would scale to - this is our reference
-            double headlineProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(20.0, accessibilityScale);
-            // Use the higher of: current minimal scale OR headline scale
-            // This ensures alarm time scales at least as much as headline, but maintains hierarchy
-            alarmTimeProgressiveScale = Math.Max(alarmTimeProgressiveScale, headlineProgressiveScale);
-            // Cap it so it never exceeds headline scaling by more than 10% (maintains hierarchy)
-            alarmTimeProgressiveScale = Math.Min(alarmTimeProgressiveScale, headlineProgressiveScale * 1.1);
-        }
+        alarmTimeProgressiveScale = FontServiceAlarmTimeProgressiveScaleClamp.Apply(
+            baseAlarmTimeSize,
+            accessibilityScale,
+            alarmTimeProgressiveScale);
         
         double alarmMeridianProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(baseAlarmMeridianSize, accessibilityScale);
         double alarmBellIconProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);

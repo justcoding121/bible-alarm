@@ -54,6 +54,18 @@ public sealed class VideoLocalizedNameFetcherTests
     }
 
     [Fact]
+    public async Task Fetch_returns_null_when_normalized_language_code_is_whitespace_without_calling_http()
+    {
+        using var handler = new StubHandler(_ =>
+            throw new InvalidOperationException("HTTP must not run when language segment is invalid."));
+        var sut = CreateSut(handler);
+
+        Assert.Null(await sut.FetchVideoLocalizedNameFromMediatorAsync(
+            AppConstants.Media.NormalizedPublicationCodeDramasGoodNews,
+            normalizedLanguageCode: " "));
+    }
+
+    [Fact]
     public async Task Fetch_Returns_Localized_Name_When_Response_Has_Category_Name()
     {
         var expectedSuffix = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/E/"

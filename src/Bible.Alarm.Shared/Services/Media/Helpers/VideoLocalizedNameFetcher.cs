@@ -33,27 +33,14 @@ internal sealed class VideoLocalizedNameFetcher
         string normalizedLanguageCode,
         CancellationToken cancellationToken = default)
     {
-        // Map video publication codes to Mediator API category keys (exact casing for API)
-        string? categoryKey = normalizedPublicationCode.ToLowerInvariant() switch
-        {
-            AppConstants.Media.NormalizedPublicationCodeDramasGoodNews => AppConstants.Media.BiblePublicationCodeDramasGoodNews,
-            AppConstants.Media.NormalizedPublicationCodeVODMoviesBibleTimes => AppConstants.Media.BiblePublicationCodeVODMoviesBibleTimes,
-            AppConstants.Media.NormalizedPublicationCodeVODMoviesModernDay => AppConstants.Media.BiblePublicationCodeVODMoviesModernDay,
-            AppConstants.Media.NormalizedPublicationCodeVODMoviesAnimated => AppConstants.Media.BiblePublicationCodeVODMoviesAnimated,
-            AppConstants.Media.NormalizedPublicationCodeVODMoviesExtras => AppConstants.Media.BiblePublicationCodeVODMoviesExtras,
-            AppConstants.Media.NormalizedPublicationCodeSeriesDigForTreasures => AppConstants.Media.BiblePublicationCodeSeriesDigForTreasures,
-            AppConstants.Media.NormalizedPublicationCodeSeriesBJFLessons => AppConstants.Media.BiblePublicationCodeSeriesBJFLessons,
-            _ => null
-        };
-
-        if (categoryKey == null)
+        if (!MediatorVideoPublicationCategoryKeyMapper.TryGetCategoryKey(normalizedPublicationCode, out var categoryKey))
         {
             return null;
         }
 
         try
         {
-            var pathAndQuery = $"{AppConstants.ApiEndpoints.MediatorApiCategoriesPathPrefix}/{normalizedLanguageCode}/{categoryKey}";
+            var pathAndQuery = JwMediatorVideoCategoryApiRelativePath.Compose(normalizedLanguageCode, categoryKey);
             var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
             var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery, cancellationToken);
             if (jsonString == null)
@@ -65,18 +52,11 @@ internal sealed class VideoLocalizedNameFetcher
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            if (root.TryGetProperty(AppConstants.Media.PubMediaJson.Category, out var category) &&
-                category.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
+            if (MediatorVideoLocalizedCategoryNameReader.TryReadLocalizedDisplayName(root, out var localizedName))
             {
-                var rawName = nameElement.GetString();
-                var localizedName = MediaTrackTitleHelper.DecodeHtmlTitleNullable(rawName);
-                
-                if (!string.IsNullOrEmpty(localizedName))
-                {
-                    logger.Debug("Fetched localized name '{LocalizedName}' for video {PublicationCode} in language {LanguageCode} from Mediator API",
-                        localizedName, normalizedPublicationCode, normalizedLanguageCode);
-                    return localizedName;
-                }
+                logger.Debug("Fetched localized name '{LocalizedName}' for video {PublicationCode} in language {LanguageCode} from Mediator API",
+                    localizedName, normalizedPublicationCode, normalizedLanguageCode);
+                return localizedName;
             }
         }
         catch (Exception ex)
