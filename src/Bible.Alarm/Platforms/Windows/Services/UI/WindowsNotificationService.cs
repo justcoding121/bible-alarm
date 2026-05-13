@@ -3,6 +3,7 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -49,29 +50,21 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
             // Schedule notifications for the next 90 days
             const int daysToSchedule = 90;
-            var maxDate = DateTimeOffset.Now.AddDays(daysToSchedule);
-            var currentDate = DateTimeOffset.Now;
             var scheduledCount = 0;
             // Safety limit to prevent infinite loops
             const int maxOccurrences = 1000;
 
-            for (int i = 0; i < maxOccurrences; i++)
+            var lookahead = SchedulingLookahead.FromDaysOrZero(daysToSchedule);
+            var iterationBudget = PlannerIterationClamp.Normalize(maxOccurrences, minimumInclusive: 1, maximumInclusive: 1000);
+
+            var occurrences = RepeatingFireOccurrencePlanner.CollectFutureOccurrences(
+                cursor => alarmSchedule.NextFireDate(cursor),
+                () => DateTimeOffset.Now,
+                lookahead,
+                iterationBudget);
+
+            foreach (var fireDate in occurrences)
             {
-                var fireDate = alarmSchedule.NextFireDate(currentDate);
-
-                // Stop if beyond our 90-day window
-                if (fireDate > maxDate)
-                {
-                    break;
-                }
-
-                // Skip if in the past (shouldn't happen, but safety check)
-                if (fireDate <= DateTimeOffset.Now)
-                {
-                    currentDate = fireDate;
-                    continue;
-                }
-
                 // Create unique ID for this occurrence: Windows has a 16-character limit for notification IDs
                 // Use format: "{scheduleId}_{hash}" where hash is a short representation of the date/time
                 // ScheduleId can be up to 4 digits (9999), so we have ~12 chars for the hash
@@ -89,8 +82,6 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                         scheduleId, fireDate, ex.Message);
                     // Continue with next occurrence
                 }
-
-                currentDate = fireDate;
             }
 
             if (scheduledCount > 0)

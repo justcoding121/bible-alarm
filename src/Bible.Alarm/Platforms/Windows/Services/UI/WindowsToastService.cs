@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Serilog;
@@ -117,14 +118,14 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
             ToastPositionManager.SetInitialPopupPosition(popup, windowContent);
             popup.IsOpen = true;
 
-            await Task.Delay(100, CancellationToken.None);
+            await Task.Delay(ToastVisibilityDelayMilliseconds.FromNonNegativeUiMilliseconds(100), CancellationToken.None);
             ToastPositionManager.UpdatePopupPosition(popup, window);
 
             ToastPositionManager.SubscribeToWindowSizeChanges(windowContent, popup, window);
 
             try
             {
-                await Task.Delay((int)(seconds * 1000), ct);
+                await Task.Delay(ToastVisibilityDelayMilliseconds.FromToastDurationSeconds(seconds), ct);
             }
             catch (OperationCanceledException)
             {

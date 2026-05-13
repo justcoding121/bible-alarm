@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Helpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -26,10 +27,12 @@ internal static class ToastPopupFactory
         var backgroundColor = GetToastBackgroundColor(theme);
         var textColor = GetToastTextColor();
 
+        var text = ToastMessageNormalizer.Normalize(message);
+
         // Create a TextBlock for the message
         var textBlock = new TextBlock
         {
-            Text = message,
+            Text = text,
             TextWrapping = TextWrapping.Wrap,
             Padding = new Thickness(16, 12, 16, 12),
             Foreground = new SolidColorBrush(textColor),
@@ -60,14 +63,8 @@ internal static class ToastPopupFactory
 
     private static WinUIColor GetToastBackgroundColor(AppTheme theme)
     {
-        if (theme == AppTheme.Dark)
-        {
-            return WinUIColor.FromArgb(0xF2, 0x2A, 0x2A, 0x2A);
-        }
-        else
-        {
-            return WinUIColor.FromArgb(0xCC, 0x00, 0x00, 0x00);
-        }
+        var argb = ToastPopupThemeArgb.Background(theme == AppTheme.Dark);
+        return WinUIColor.FromArgb(argb.A, argb.R, argb.G, argb.B);
     }
 
     private static WinUIColor GetToastTextColor() => Colors.White;

@@ -1,5 +1,9 @@
+#nullable enable
+
+using System;
 using System.IO;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Windows.Storage;
 
 namespace Bible.Alarm.Platforms.Windows.Helpers;
@@ -17,7 +21,7 @@ internal static class WindowsBootstrapLogger
             try
             {
                 var text = ex.ToString();
-                var line = $"{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z Exception: {text}{Environment.NewLine}";
+                var line = BootstrapLogLineFormatter.FormatUtcDiagnosticLine(DateTime.UtcNow, $"Exception: {text}");
                 File.AppendAllText(path, line);
             }
             catch (Exception)
@@ -33,7 +37,7 @@ internal static class WindowsBootstrapLogger
         {
             try
             {
-                var line = $"{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z {message}{Environment.NewLine}";
+                var line = BootstrapLogLineFormatter.FormatUtcDiagnosticLine(DateTime.UtcNow, message);
                 File.AppendAllText(path, line);
             }
             catch (Exception)
@@ -46,29 +50,26 @@ internal static class WindowsBootstrapLogger
     private static bool TryGetLogPath(out string logFilePath)
     {
         logFilePath = null!;
+        if (!BootstrapLogRootResolver.TryGetLogRoot(
+                out var root,
+                () => ApplicationData.Current.LocalCacheFolder.Path,
+                () => AppContext.BaseDirectory ?? Directory.GetCurrentDirectory()))
+        {
+            return false;
+        }
+
         try
         {
-            var basePath = ApplicationData.Current.LocalCacheFolder.Path;
-            var logDir = Path.Combine(basePath, AppConstants.FilePaths.LogsDirectoryName);
-            Directory.CreateDirectory(logDir);
-            logFilePath = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
+            var logsDir = AppConstants.FilePaths.LogsDirectoryName;
+            var fileName = AppConstants.FilePaths.BootstrapDiagnosticLogFileName;
+            BootstrapLogPathArguments.Validate(root, logsDir, fileName);
+            logFilePath = BootstrapDiagnosticLogPathComposer.ComposeLogFilePath(root, logsDir, fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
             return true;
         }
         catch (Exception)
         {
-            // Unpackaged (exe from bin\Release\...\win-x64): ApplicationData can fail; use exe directory\logs
-            try
-            {
-                var exeDir = AppContext.BaseDirectory ?? Directory.GetCurrentDirectory();
-                var logDir = Path.Combine(exeDir, AppConstants.FilePaths.LogsDirectoryName);
-                Directory.CreateDirectory(logDir);
-                logFilePath = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            return false;
         }
     }
 }
