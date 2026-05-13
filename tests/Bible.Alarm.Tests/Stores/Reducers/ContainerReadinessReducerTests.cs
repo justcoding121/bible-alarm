@@ -9,7 +9,7 @@ using Bible.Alarm.Stores.Reducers;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class ContainerReadyActionTests
+public sealed class ContainerReadinessReducerTests
 {
     private static ObservableHashSet<ScheduleStateItem> Schedules(params ScheduleStateItem[] items)
     {
@@ -37,7 +37,7 @@ public sealed class ContainerReadyActionTests
         };
 
     [Fact]
-    public void ContainerReadinessReducer_OnContainerReady_sets_named_flag_and_returns_new_state()
+    public void OnContainerReady_sets_named_flag_and_returns_new_state()
     {
         var prior = new ApplicationState(Schedules(MinimalSchedule()));
 
@@ -49,7 +49,7 @@ public sealed class ContainerReadyActionTests
     }
 
     [Fact]
-    public void ContainerReadinessReducer_OnContainerReady_ignores_duplicate_dispatch_for_same_container()
+    public void OnContainerReady_ignores_duplicate_dispatch_for_same_container()
     {
         var prior = new ApplicationState(Schedules(MinimalSchedule()));
         var once = ContainerReadinessReducer.OnContainerReady(prior, new ContainerReadyAction("AlarmSettings"));
@@ -61,7 +61,7 @@ public sealed class ContainerReadyActionTests
     }
 
     [Fact]
-    public void ContainerReadinessReducer_OnContainerReady_unknown_name_leaves_flags_unchanged_but_allocates_new_state()
+    public void OnContainerReady_unknown_name_leaves_flags_unchanged_but_allocates_new_state()
     {
         var prior = new ApplicationState(Schedules(MinimalSchedule()));
 
@@ -72,7 +72,7 @@ public sealed class ContainerReadyActionTests
     }
 
     [Fact]
-    public void ContainerReadinessReducer_OnContainerReady_sequential_readiness_sets_AllReady_when_all_containers_reported()
+    public void OnContainerReady_sequential_readiness_sets_AllReady_when_all_containers_reported()
     {
         var state = new ApplicationState(Schedules(MinimalSchedule()));
 
@@ -88,7 +88,7 @@ public sealed class ContainerReadyActionTests
     }
 
     [Fact]
-    public void ContainerReadinessReducer_OnContainerReady_ignores_duplicate_BiblePublicationSelection()
+    public void OnContainerReady_ignores_duplicate_BiblePublicationSelection()
     {
         var prior = new ApplicationState(Schedules(MinimalSchedule()));
         var once = ContainerReadinessReducer.OnContainerReady(prior, new ContainerReadyAction("BiblePublicationSelection"));
@@ -99,7 +99,7 @@ public sealed class ContainerReadyActionTests
     }
 
     [Fact]
-    public void ContainerReadinessReducer_OnContainerReady_unknown_name_preserves_existing_flags()
+    public void OnContainerReady_unknown_name_preserves_existing_flags()
     {
         var withMusic = ContainerReadinessReducer.OnContainerReady(
             new ApplicationState(Schedules(MinimalSchedule())),
@@ -112,5 +112,23 @@ public sealed class ContainerReadyActionTests
         Assert.NotSame(withMusic, withUnknown);
         Assert.True(withUnknown.ContainerReadiness.MusicSelection);
         Assert.False(withUnknown.ContainerReadiness.BiblePublicationSelection);
+    }
+
+    [Fact]
+    public void OnResetContainerReadiness_clears_all_flags()
+    {
+        var seeded = ContainerReadinessReducer.OnContainerReady(
+            new ApplicationState(Schedules(MinimalSchedule())),
+            new ContainerReadyAction("ScheduleDetails"));
+
+        var reset = ContainerReadinessReducer.OnResetContainerReadiness(seeded, new ResetContainerReadinessAction());
+
+        Assert.NotSame(seeded, reset);
+        Assert.False(reset.ContainerReadiness.BiblePublicationSelection);
+        Assert.False(reset.ContainerReadiness.MusicSelection);
+        Assert.False(reset.ContainerReadiness.NumberOfTrack);
+        Assert.False(reset.ContainerReadiness.ScheduleDetails);
+        Assert.False(reset.ContainerReadiness.AlarmSettings);
+        Assert.False(reset.ContainerReadiness.AllReady);
     }
 }

@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Linq;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
 using Fluxor;
@@ -34,37 +33,87 @@ internal sealed class StubDefaultScheduleService : IDefaultScheduleService
 
 internal sealed class RecordingFluxorDispatcher : IDispatcher
 {
-    public List<object> Dispatched { get; } = [];
+    private readonly object _gate = new();
+    private readonly List<object> _dispatched = [];
+    private readonly List<(Type Type, TaskCompletionSource<object> Tcs)> _pending = [];
 
 #pragma warning disable CS0067
     public event EventHandler<ActionDispatchedEventArgs>? ActionDispatched;
 #pragma warning restore CS0067
 
+    /// <summary>
+    /// Snapshot copy for assertions (thread-safe).
+    /// </summary>
+    public List<object> Dispatched
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _dispatched.ToList();
+            }
+        }
+    }
+
+    public Task<T> WaitForDispatchAsync<T>()
+        where T : class
+    {
+        TaskCompletionSource<object>? tcs;
+        lock (_gate)
+        {
+            foreach (var item in _dispatched)
+            {
+                if (item is T match)
+                {
+                    return Task.FromResult(match);
+                }
+            }
+
+            tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _pending.Add((typeof(T), tcs));
+        }
+
+        return AwaitTyped(tcs);
+
+        static async Task<T> AwaitTyped(TaskCompletionSource<object> source)
+        {
+            return (T)(await source.Task.ConfigureAwait(false));
+        }
+    }
+
     public void Dispatch(object action)
     {
-        Dispatched.Add(action);
+        lock (_gate)
+        {
+            _dispatched.Add(action);
+
+            for (var i = _pending.Count - 1; i >= 0; i--)
+            {
+                var (type, pendingTcs) = _pending[i];
+                if (!type.IsInstanceOfType(action))
+                {
+                    continue;
+                }
+
+                _pending.RemoveAt(i);
+                pendingTcs.TrySetResult(action);
+            }
+        }
+
         ActionDispatched?.Invoke(this, new ActionDispatchedEventArgs(action));
     }
 }
 
-internal static class DefaultCarScreenDispatchAwait
+internal static class AsyncTestFlush
 {
-    public static async Task<T> WaitForSingleDispatchAsync<T>(RecordingFluxorDispatcher dispatcher, TimeSpan timeout)
-        where T : class
+    /// <summary>
+    /// Lets thread-pool continuations from <see cref="Task.Run"/> run without using <see cref="Task.Delay"/>.
+    /// </summary>
+    public static async Task YieldManyAsync(int iterations)
     {
-        var deadline = DateTime.UtcNow + timeout;
-        while (DateTime.UtcNow < deadline)
+        for (var i = 0; i < iterations; i++)
         {
-            var match = dispatcher.Dispatched.OfType<T>().FirstOrDefault();
-            if (match != null)
-            {
-                return match;
-            }
-
-            await Task.Delay(20);
+            await Task.Yield();
         }
-
-        Assert.Fail($"Expected {typeof(T).Name} to be dispatched within {timeout.TotalMilliseconds} ms.");
-        return null!;
     }
 }
