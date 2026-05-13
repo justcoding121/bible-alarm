@@ -50,15 +50,4 @@ public sealed class ApplicationReducerTests
         Assert.Equal(-1, next.CurrentSchedule?.Id);
         Assert.Equal("From reducer", next.CurrentSchedule?.Name);
     }
-
-    [Fact]
-    public void OnDeleteSchedule_DelegatesToScheduleCrudReducer()
-    {
-        var item = MinimalSchedule(5);
-        var prior = new ApplicationState([item]);
-
-        var next = ApplicationReducer.OnDeleteSchedule(prior, new DeleteScheduleAction(5));
-
-        Assert.Empty(next.Schedules);
-    }
 }

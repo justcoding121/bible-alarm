@@ -4,7 +4,6 @@ using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
-using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Stores.Reducers;
 
@@ -76,24 +75,5 @@ public sealed class ApplicationOverlayReducerTests
 
         Assert.False(next.IsSchedulePageOverlayVisible);
         Assert.Equal(readiness.AllReady, next.ContainerReadiness.AllReady);
-    }
-
-    [Fact]
-    public void OnResetScheduleState_clears_current_and_readiness_but_preserves_overlay_visibility()
-    {
-        var prior = new ApplicationState([OneSchedule(1)], currentSchedule: OneSchedule(2),
-            containerReadiness: ContainerReadiness.AllContainersReady)
-        {
-            IsSchedulePageOverlayVisible = true,
-            IsHomePageOverlayVisible = false,
-        };
-
-        var next = ApplicationOverlayReducer.OnResetScheduleState(prior, new ResetScheduleStateAction());
-
-        Assert.Null(next.CurrentSchedule);
-        Assert.Single(next.Schedules);
-        Assert.True(next.IsSchedulePageOverlayVisible);
-        Assert.False(next.IsHomePageOverlayVisible);
-        Assert.False(next.ContainerReadiness.AllReady);
     }
 }

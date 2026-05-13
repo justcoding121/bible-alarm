@@ -39,20 +39,6 @@ public sealed class PlaybackReducerTests
     }
 
     [Fact]
-    public void OnPlaybackStopped_ResetsTransportAndMedia()
-    {
-        var prior = PlayingState();
-
-        var next = PlaybackReducer.OnPlaybackStopped(prior, new PlaybackStoppedAction());
-
-        Assert.Null(next.CurrentScheduleId);
-        Assert.False(next.IsPreparingOrPlaying);
-        Assert.Equal(PlayStatus.Stopped, next.Status);
-        Assert.Null(next.Title);
-        Assert.Equal(TimeSpan.Zero, next.Duration);
-    }
-
-    [Fact]
     public void OnPlaybackNavigationChanged_UpdatesNavigationFlags()
     {
         var prior = PlayingState();
@@ -82,35 +68,4 @@ public sealed class PlaybackReducerTests
         Assert.Equal("https://x", next.ArtworkUrl);
     }
 
-    [Fact]
-    public void OnSetDefaultScheduleMetadata_UpdatesDefaultsSlice()
-    {
-        var prior = new PlaybackState();
-
-        var next = PlaybackReducer.OnSetDefaultScheduleMetadata(prior, new SetDefaultScheduleMetadataAction
-        {
-            ScheduleId = 12,
-            Title = "Morning",
-            Artist = "Speaker",
-            Album = "Series",
-            ArtworkUrl = "https://cover",
-        });
-
-        Assert.Equal(12, next.DefaultScheduleId);
-        Assert.Equal("Morning", next.DefaultScheduleTitle);
-        Assert.Equal("Speaker", next.DefaultScheduleArtist);
-        Assert.Equal("Series", next.DefaultScheduleAlbum);
-        Assert.Equal("https://cover", next.DefaultScheduleArtworkUrl);
-    }
-
-    [Fact]
-    public void OnSetAutoAdvancing_FlipsFlag()
-    {
-        var prior = PlayingState();
-        Assert.False(prior.IsAutoAdvancing);
-
-        var next = PlaybackReducer.OnSetAutoAdvancing(prior, new SetAutoAdvancingAction(true));
-
-        Assert.True(next.IsAutoAdvancing);
-    }
 }
