@@ -7,7 +7,7 @@ namespace Bible.Alarm.Tests;
 public sealed class KeyboardHelperTests
 {
     [Fact]
-    public void HideKeyboard_null_entry_is_no_op()
+    public void HideKeyboard_returns_when_entry_null()
     {
         KeyboardHelper.HideKeyboard(null);
     }
