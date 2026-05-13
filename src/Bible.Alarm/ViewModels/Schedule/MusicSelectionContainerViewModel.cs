@@ -69,10 +69,9 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
                 return false;
             }
 
-            var pubCode = currentSchedule.BiblePublicationCode;
-            var isMusicPublication = currentSchedule.BiblePublicationIsMusic ||
-                (!string.IsNullOrWhiteSpace(pubCode) && JwSourceHelper.MusicFlagPublicationCodes.Contains(pubCode));
-            return !isMusicPublication;
+            return MusicSelectionStripVisibilityGate.ShouldShowMusicSelectionRow(
+                currentSchedule.BiblePublicationIsMusic,
+                currentSchedule.BiblePublicationCode);
         }
     }
 

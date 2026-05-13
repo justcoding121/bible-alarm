@@ -279,15 +279,6 @@ public sealed class FluxorActionSmokeTests
     }
 
     [Fact]
-    public void DeleteScheduleFailureAction_holds_fields()
-    {
-        var sched = new ScheduleStateItem { Id = 17 };
-        var sut = new DeleteScheduleFailureAction(17, "err", sched);
-        Assert.Equal("err", sut.Error);
-        Assert.Same(sched, sut.Schedule);
-    }
-
-    [Fact]
     public void MusicPublicationSelectionAction_holds_music()
     {
         var m = new MusicStateItem { Id = 18 };

@@ -88,4 +88,56 @@ public sealed class ScheduleCrudReducerTests
         Assert.DoesNotContain(next.Schedules, s => s.Id == 10);
         Assert.Same(b, next.CurrentSchedule);
     }
+
+    [Fact]
+    public void OnDeleteScheduleFailure_ReinsertsScheduleWhenRollbackPayloadIsMissingFromCollection()
+    {
+        var kept = MinimalSchedule(1, "Kept");
+        var prior = new ApplicationState([kept]);
+        var rollbackPayload = MinimalSchedule(99, "Restored");
+
+        var next = ScheduleCrudReducer.OnDeleteScheduleFailure(
+            prior,
+            new DeleteScheduleFailureAction(rollbackPayload.Id, "failed", rollbackPayload));
+
+        Assert.Equal(2, next.Schedules.Count);
+        var inserted = Assert.Single(next.Schedules, s => s.Id == 99);
+        Assert.Equal("Restored", inserted.Name);
+        Assert.NotSame(rollbackPayload, inserted);
+    }
+
+    [Fact]
+    public void OnDeleteScheduleFailure_ReturnsOriginalStateWhenScheduleIdAlreadyExists()
+    {
+        var existing = MinimalSchedule(7, "Existing");
+        var prior = new ApplicationState([existing]);
+        var rollbackPayload = MinimalSchedule(7, "RollbackSnapshot");
+
+        var next = ScheduleCrudReducer.OnDeleteScheduleFailure(
+            prior,
+            new DeleteScheduleFailureAction(7, "failed", rollbackPayload));
+
+        Assert.Same(prior, next);
+        Assert.Same(existing, Assert.Single(next.Schedules));
+    }
+
+    [Fact]
+    public void OnDeleteScheduleFailure_ReturnsOriginalStateWhenRollbackPayloadIsNull()
+    {
+        var prior = new ApplicationState([MinimalSchedule(1)]);
+        var next = ScheduleCrudReducer.OnDeleteScheduleFailure(prior, new DeleteScheduleFailureAction(9, "failed", null));
+
+        Assert.Same(prior, next);
+    }
+
+    [Fact]
+    public void OnDeleteScheduleFailure_ReturnsOriginalStateWhenSchedulesCollectionIsNull()
+    {
+        var prior = new ApplicationState { Schedules = null!, CurrentSchedule = MinimalSchedule(3) };
+        var next = ScheduleCrudReducer.OnDeleteScheduleFailure(
+            prior,
+            new DeleteScheduleFailureAction(3, "failed", MinimalSchedule(3)));
+
+        Assert.Same(prior, next);
+    }
 }
