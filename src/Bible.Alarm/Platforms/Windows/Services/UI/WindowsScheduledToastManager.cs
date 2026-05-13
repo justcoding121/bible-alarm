@@ -2,6 +2,7 @@
 
 using System.Linq;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
 using Windows.UI.Notifications;
 
@@ -14,10 +15,7 @@ internal static class WindowsScheduledToastManager
         // Check if any notification exists for this schedule
         // Notification IDs are in format: "{scheduleId}_{hash}" (max 16 characters total)
         var scheduledToasts = notifier.GetScheduledToastNotifications();
-        var scheduleIdPrefix = $"{scheduleId}_";
-        return scheduledToasts.Any(toast =>
-            toast.Id == scheduleId.ToString()
-            || toast.Id.StartsWith(scheduleIdPrefix, StringComparison.Ordinal));
+        return scheduledToasts.Any(toast => ScheduledToastNotificationIdMatcher.MatchesSchedule(scheduleId, toast.Id));
     }
 
     /// <summary>
@@ -27,15 +25,13 @@ internal static class WindowsScheduledToastManager
     internal static int RemoveAllNotificationsForSchedule(ToastNotifier notifier, int scheduleId)
     {
         var scheduledToasts = notifier.GetScheduledToastNotifications();
-        var scheduleIdString = scheduleId.ToString();
-        var scheduleIdPrefix = $"{scheduleId}_";
         var toRemove = new List<ScheduledToastNotification>();
 
         // Find all notifications for this schedule
         foreach (var toast in scheduledToasts)
         {
             // Support both old format (just scheduleId) and new format ({scheduleId}_{ticks})
-            if (toast.Id == scheduleIdString || toast.Id.StartsWith(scheduleIdPrefix, StringComparison.Ordinal))
+            if (ScheduledToastNotificationIdMatcher.MatchesSchedule(scheduleId, toast.Id))
             {
                 toRemove.Add(toast);
             }

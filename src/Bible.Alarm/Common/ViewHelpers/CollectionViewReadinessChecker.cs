@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections;
+using Bible.Alarm.Shared.Helpers;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 #if WINDOWS
 using Microsoft.UI.Xaml;
@@ -23,7 +24,7 @@ internal static class CollectionViewReadinessChecker
         // Ensure the item exists in the source before proceeding
         // If ObservableCollection was just updated, the native platform might not have realized the last item exists yet
         var items = collectionView.ItemsSource?.Cast<object>().ToList();
-        if (items == null || !ItemExistsInSource(collectionView.ItemsSource!, item))
+        if (items == null || !ItemsSourcePresence.ContainsItem(collectionView.ItemsSource!, item))
         {
             // Give the renderer one frame to catch up with the data change
             await Task.Yield();
@@ -70,7 +71,7 @@ internal static class CollectionViewReadinessChecker
 
     private static bool IsCollectionViewValid(MauiCollectionView collectionView, object item)
     {
-        if (collectionView.ItemsSource == null || !HasItems(collectionView.ItemsSource))
+        if (collectionView.ItemsSource == null || !ItemsSourcePresence.HasAnyItems(collectionView.ItemsSource))
         {
             return false;
         }
@@ -80,7 +81,7 @@ internal static class CollectionViewReadinessChecker
             return false;
         }
 
-        return ItemExistsInSource(collectionView.ItemsSource, item);
+        return ItemsSourcePresence.ContainsItem(collectionView.ItemsSource, item);
     }
 
     private static async Task<bool> CheckPlatformSpecificReady(MauiCollectionView collectionView, CancellationToken cancellationToken)
@@ -101,82 +102,6 @@ internal static class CollectionViewReadinessChecker
             await Task.Delay(200, cancellationToken);
             return true;
         }
-        return false;
-    }
-
-    private static bool HasItems(object itemsSource)
-    {
-        if (itemsSource == null)
-        {
-            return false;
-        }
-
-        try
-        {
-            // Handle ICollection for count
-            if (itemsSource is ICollection collection)
-            {
-                return collection.Count > 0;
-            }
-
-            // Handle IEnumerable - check if it has any items
-            if (itemsSource is IEnumerable enumerable)
-            {
-                var enumerator = enumerable.GetEnumerator();
-                try
-                {
-                    return enumerator.MoveNext();
-                }
-                finally
-                {
-                    if (enumerator is IDisposable disposable)
-                    {
-                        disposable.Dispose();
-                    }
-                }
-            }
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-
-        return false;
-    }
-
-    private static bool ItemExistsInSource(object itemsSource, object item)
-    {
-        if (itemsSource == null || item == null)
-        {
-            return false;
-        }
-
-        try
-        {
-            // Handle IEnumerable collections
-            if (itemsSource is IEnumerable enumerable)
-            {
-                foreach (var sourceItem in enumerable)
-                {
-                    // Use reference equality first (fastest)
-                    if (ReferenceEquals(sourceItem, item))
-                    {
-                        return true;
-                    }
-
-                    // Use Equals for value comparison
-                    if (sourceItem?.Equals(item) is true)
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-
         return false;
     }
 }

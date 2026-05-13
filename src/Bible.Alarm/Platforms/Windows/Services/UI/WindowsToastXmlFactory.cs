@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
@@ -55,27 +56,14 @@ internal static class WindowsToastXmlFactory
         {
             try
             {
-                // Convert local file path to proper URI for Windows toast
-                string imageUri;
-
-                // If it's already a URI (http/https), use it as-is
-                if (Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) &&
-                    (string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
-                     string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+                var imageSrc = ToastArtworkImageSrcResolver.TryResolve(artworkUrl);
+                if (imageSrc != null)
                 {
-                    imageUri = artworkUrl;
+                    var imageElement = toastXml.CreateElement("image");
+                    imageElement.SetAttribute("src", imageSrc);
+                    imageElement.SetAttribute("hint-crop", "none");
+                    column1.AppendChild(imageElement);
                 }
-                else
-                {
-                    // For local files, convert to file:// URI
-                    var absolutePath = System.IO.Path.GetFullPath(artworkUrl);
-                    imageUri = new Uri(absolutePath).ToString();
-                }
-
-                var imageElement = toastXml.CreateElement("image");
-                imageElement.SetAttribute("src", imageUri);
-                imageElement.SetAttribute("hint-crop", "none");
-                column1.AppendChild(imageElement);
             }
             catch (Exception ex)
             {
