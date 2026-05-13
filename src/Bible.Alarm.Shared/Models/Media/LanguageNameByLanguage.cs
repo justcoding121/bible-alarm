@@ -21,6 +21,7 @@ public sealed class LanguageNameByLanguage
     [ForeignKey(nameof(Language))]
     public int LanguageId { get; set; }
 
+    [Required]
     public Language Language { get; set; } = null!;
 
     /// <summary>

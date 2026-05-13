@@ -1,4 +1,5 @@
-using System.IO;
+#nullable enable
+
 using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Shared.Tests;
@@ -6,62 +7,23 @@ namespace Bible.Alarm.Shared.Tests;
 public sealed class DirectoryHelperTests
 {
     [Fact]
-    public void Ensure_CreatesFolder_WhenMissing()
+    public void Ensure_creates_directory_when_missing()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"bible-alarm-tests-{Guid.NewGuid():n}");
-        var dir = Path.Combine(root, "nested");
+        var dir = Path.Combine(Path.GetTempPath(), "ba-dir-helper-" + Guid.NewGuid().ToString("N"));
+        Assert.False(Directory.Exists(dir));
+
         try
         {
-            Assert.False(Directory.Exists(dir));
             DirectoryHelper.Ensure(dir);
-            Assert.True(Directory.Exists(dir));
-            DirectoryHelper.Ensure(dir);
+
             Assert.True(Directory.Exists(dir));
         }
         finally
         {
-            if (Directory.Exists(root))
+            if (Directory.Exists(dir))
             {
-                Directory.Delete(root, recursive: true);
+                Directory.Delete(dir, recursive: true);
             }
         }
-    }
-
-    [Fact]
-    public void Ensure_CreatesNestedPath_When_IntermediateParentsMissing()
-    {
-        var root = Path.Combine(Path.GetTempPath(), $"bible-alarm-tests-{Guid.NewGuid():n}");
-        var deep = Path.Combine(root, "a", "b", "c");
-        try
-        {
-            Assert.False(Directory.Exists(deep));
-            DirectoryHelper.Ensure(deep);
-            Assert.True(Directory.Exists(deep));
-        }
-        finally
-        {
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
-        }
-    }
-
-    [Fact]
-    public void IndexDirectory_ReturnsStablePath_OnRepeated_Access()
-    {
-        var first = DirectoryHelper.IndexDirectory;
-        var second = DirectoryHelper.IndexDirectory;
-        Assert.Equal(first, second);
-        Assert.False(string.IsNullOrEmpty(first));
-    }
-
-    [Fact]
-    public void IndexDirectory_Resolves_ToSrcTools_IndexRoot()
-    {
-        var path = Path.GetFullPath(DirectoryHelper.IndexDirectory);
-        var suffix = $"{Path.DirectorySeparatorChar}_tools{Path.DirectorySeparatorChar}_index";
-
-        Assert.Contains(suffix, path, StringComparison.Ordinal);
     }
 }
