@@ -114,4 +114,100 @@ public sealed class SectionListLoaderTests
         Assert.Single(map);
         Assert.True(items[0].IsSelected);
     }
+
+    [Fact]
+    public async Task LoadAsync_removes_placeholder_section_with_zero_id()
+    {
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["1"] = new BiblePublicationSection { Id = 0, SectionCode = "1", Name = "Placeholder" },
+            ["2"] = new BiblePublicationSection { Id = 10, SectionCode = "2", Name = "Genesis" },
+        };
+        var sut = new SectionListLoader(TestLogging.CreateLogger(), new StubMedia { SectionsResult = sections }, internetChecker: null);
+
+        var (items, map) = await sut.LoadAsync("E", "nwtsty", selectedSectionCode: null);
+
+        Assert.Single(items);
+        Assert.Equal("2", items[0].SectionCode);
+    }
+
+    [Fact]
+    public async Task LoadAsync_removes_placeholder_section_with_empty_name()
+    {
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["1"] = new BiblePublicationSection { Id = 5, SectionCode = "1", Name = "" },
+            ["2"] = new BiblePublicationSection { Id = 10, SectionCode = "2", Name = "Ruth" },
+        };
+        var sut = new SectionListLoader(TestLogging.CreateLogger(), new StubMedia { SectionsResult = sections }, internetChecker: null);
+
+        var (items, map) = await sut.LoadAsync("E", "nwtsty", selectedSectionCode: null);
+
+        Assert.Single(items);
+        Assert.Equal("2", items[0].SectionCode);
+    }
+
+    [Fact]
+    public async Task LoadAsync_returns_empty_when_all_sections_are_placeholders()
+    {
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["1"] = new BiblePublicationSection { Id = 0, SectionCode = "1", Name = "Placeholder" },
+        };
+        var sut = new SectionListLoader(TestLogging.CreateLogger(), new StubMedia { SectionsResult = sections }, internetChecker: null);
+
+        var (items, map) = await sut.LoadAsync("E", "nwtsty", selectedSectionCode: null);
+
+        Assert.Empty(items);
+        Assert.Empty(map);
+    }
+
+    [Fact]
+    public async Task LoadAsync_no_section_selected_when_selectedSectionCode_does_not_match()
+    {
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["1"] = new BiblePublicationSection { Id = 5, SectionCode = "1", Name = "Genesis" },
+        };
+        var sut = new SectionListLoader(TestLogging.CreateLogger(), new StubMedia { SectionsResult = sections }, internetChecker: null);
+
+        var (items, _) = await sut.LoadAsync("E", "nwtsty", selectedSectionCode: "999");
+
+        Assert.Single(items);
+        Assert.False(items[0].IsSelected);
+    }
+
+    [Fact]
+    public async Task LoadAsync_section_selected_case_insensitively()
+    {
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ABC"] = new BiblePublicationSection { Id = 7, SectionCode = "ABC", Name = "Section ABC" },
+        };
+        var sut = new SectionListLoader(TestLogging.CreateLogger(), new StubMedia { SectionsResult = sections }, internetChecker: null);
+
+        var (items, _) = await sut.LoadAsync("E", "nwtsty", selectedSectionCode: "abc");
+
+        Assert.Single(items);
+        Assert.True(items[0].IsSelected);
+    }
+
+    [Fact]
+    public async Task LoadAsync_map_is_keyed_by_section_code()
+    {
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["3"] = new BiblePublicationSection { Id = 3, SectionCode = "3", Name = "Leviticus" },
+            ["1"] = new BiblePublicationSection { Id = 1, SectionCode = "1", Name = "Genesis" },
+            ["2"] = new BiblePublicationSection { Id = 2, SectionCode = "2", Name = "Exodus" },
+        };
+        var sut = new SectionListLoader(TestLogging.CreateLogger(), new StubMedia { SectionsResult = sections }, internetChecker: null);
+
+        var (items, map) = await sut.LoadAsync("E", "nwtsty", selectedSectionCode: null);
+
+        Assert.Equal(3, items.Count);
+        Assert.True(map.ContainsKey("1"));
+        Assert.True(map.ContainsKey("2"));
+        Assert.True(map.ContainsKey("3"));
+    }
 }

@@ -22,6 +22,30 @@ namespace Bible.Alarm.Services.UI;
 /// </summary>
 public sealed partial class FontService : IFontService, INotifyPropertyChanged
 {
+    // Assigned only from Bible.Alarm.Tests (InternalsVisibleTo). Compiler cannot see cross-assembly writes.
+#pragma warning disable CS0649
+    /// <summary>Unit tests: when true, <see cref="DeviceDisplay.MainDisplayInfoChanged"/> is not subscribed (WinUI/COM is unavailable under headless test hosts).</summary>
+    internal static bool SkipDeviceDisplaySubscriptionForTests;
+
+    /// <summary>Unit tests: when set, replaces <see cref="DeviceDisplay.MainDisplayInfo"/> reads.</summary>
+    internal static Func<DisplayInfo>? MainDisplayInfoOverrideForTests;
+
+    /// <summary>Unit tests: when set, replaces <see cref="DeviceInfo.Platform"/> reads.</summary>
+    internal static Func<DevicePlatform>? DevicePlatformOverrideForTests;
+
+    /// <summary>Unit tests: when set, replaces <see cref="DeviceInfo.Idiom"/> reads.</summary>
+    internal static Func<DeviceIdiom>? DeviceIdiomOverrideForTests;
+#pragma warning restore CS0649
+
+    private static DisplayInfo CurrentMainDisplayInfo =>
+        MainDisplayInfoOverrideForTests?.Invoke() ?? DeviceDisplay.MainDisplayInfo;
+
+    private static DevicePlatform CurrentPlatform =>
+        DevicePlatformOverrideForTests?.Invoke() ?? DeviceInfo.Platform;
+
+    private static DeviceIdiom CurrentIdiom =>
+        DeviceIdiomOverrideForTests?.Invoke() ?? DeviceInfo.Idiom;
+
     private bool isDisposed;
     private double standardFontSize;
     private double headerFontSize;
@@ -51,7 +75,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
     private void SetSpinnerSizes()
     {
         var result = FontServiceSpinnerDimensionResolver.Resolve(
-            DeviceInfo.Platform,
+            CurrentPlatform,
             iconStandardContainerSize,
             iconStandardFontSize);
         spinnerContainerSize = result.ContainerSize;
@@ -63,7 +87,10 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         this.accessibilityFontScaleService = accessibilityFontScaleService;
 
         // Listen for screen size/orientation changes
-        DeviceDisplay.MainDisplayInfoChanged += OnDisplayInfoChanged;
+        if (!SkipDeviceDisplaySubscriptionForTests)
+        {
+            DeviceDisplay.MainDisplayInfoChanged += OnDisplayInfoChanged;
+        }
 
         // Listen for OS accessibility font scale changes
         accessibilityFontScaleService.FontScaleChanged += OnFontScaleChanged;
@@ -76,12 +103,12 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     private void OnFontScaleChanged(object? sender, double newScale) => Recalculate();
 
-    private void Recalculate()
+    internal void Recalculate()
     {
-        var mainDisplayInfo = DeviceDisplay.MainDisplayInfo;
+        var mainDisplayInfo = CurrentMainDisplayInfo;
         bool hasValidDisplayInfo = HasValidDisplayInfo(mainDisplayInfo);
 
-        var platform = DeviceInfo.Platform;
+        var platform = CurrentPlatform;
         bool isAndroid = platform == DevicePlatform.Android;
         if (!hasValidDisplayInfo)
         {
@@ -97,14 +124,14 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         RaiseAllPropertiesChanged();
     }
 
-    private static bool HasValidDisplayInfo(DisplayInfo displayInfo)
+    internal static bool HasValidDisplayInfo(DisplayInfo displayInfo)
     {
         return MeasurableScreenDimensionsGate.HasPositiveExtents(displayInfo.Width, displayInfo.Height, displayInfo.Density);
     }
 
-    private void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid)
+    internal void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid)
     {
-        var deviceIdiom = DeviceInfo.Idiom;
+        var deviceIdiom = CurrentIdiom;
         
         // Determine device size category for fallback (use screen width if available, otherwise use idiom)
         // Default to phone if we can't determine
@@ -121,7 +148,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         }
     }
 
-    private void SetWindowsDesktopFallbackFontSizes(double deviceSizeMultiplier)
+    internal void SetWindowsDesktopFallbackFontSizes(double deviceSizeMultiplier)
     {
         // Apply progressive accessibility scaling to fallback sizes
         // Use Windows-specific defaults per Fluent Design System
@@ -195,7 +222,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
             BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
     }
 
-    private void SetOtherPlatformFallbackFontSizes(bool isAndroid, double deviceSizeMultiplier)
+    internal void SetOtherPlatformFallbackFontSizes(bool isAndroid, double deviceSizeMultiplier)
     {
         // Apply progressive accessibility scaling to fallback sizes
         // Use platform-specific defaults: iOS or Android based on industry standards
@@ -279,7 +306,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
             isAndroid ? AppConstants.Platform.Android : AppConstants.Platform.IOs, BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
     }
 
-    private void SetScaledFontSizes(DisplayInfo mainDisplayInfo)
+    internal void SetScaledFontSizes(DisplayInfo mainDisplayInfo)
     {
         double density = mainDisplayInfo.Density;
         double widthDp = DensityIndependentPixels.WidthPixelsToDp(mainDisplayInfo.Width, density);
@@ -287,8 +314,8 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         // Get the OS accessibility font scale (1.0 = normal, >1.0 = larger for accessibility)
         double accessibilityScale = accessibilityFontScaleService.FontScale;
 
-        var platform = DeviceInfo.Platform;
-        var deviceIdiom = DeviceInfo.Idiom;
+        var platform = CurrentPlatform;
+        var deviceIdiom = CurrentIdiom;
         
         // Determine device size category and multiplier
         var deviceSizeCategory = FontServiceSizingHelpers.GetDeviceSizeCategory(widthDp, deviceIdiom);
@@ -377,7 +404,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         contentWidthLarge = Math.Min(BaseContentWidthLarge * contentWidthProgressiveScale, 420.0 * accessibilityCap);
     }
 
-    private void SetAlarmFontSizes(double accessibilityScale, double widthDp, DevicePlatform platform, double deviceSizeMultiplier)
+    internal void SetAlarmFontSizes(double accessibilityScale, double widthDp, DevicePlatform platform, double deviceSizeMultiplier)
     {
         // Get platform-specific alarm font defaults per industry standards
         PlatformFontDefaults defaults = RuntimePlatformFontDefaultsResolver.Resolve(platform);
@@ -424,7 +451,10 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         }
 
         // Unsubscribe from display info changes
-        DeviceDisplay.MainDisplayInfoChanged -= OnDisplayInfoChanged;
+        if (!SkipDeviceDisplaySubscriptionForTests)
+        {
+            DeviceDisplay.MainDisplayInfoChanged -= OnDisplayInfoChanged;
+        }
 
         // Unsubscribe from accessibility font scale changes
         accessibilityFontScaleService.FontScaleChanged -= OnFontScaleChanged;
@@ -456,7 +486,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     public double GetScaledFontSize(double baseSizeInPoints)
     {
-        var mainDisplayInfo = DeviceDisplay.MainDisplayInfo;
+        var mainDisplayInfo = CurrentMainDisplayInfo;
 
         // Handle invalid display info
         double density = mainDisplayInfo.Density;

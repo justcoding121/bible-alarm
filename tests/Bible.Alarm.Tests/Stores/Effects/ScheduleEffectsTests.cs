@@ -9,6 +9,7 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -166,6 +167,46 @@ public sealed class ScheduleEffectsTests
                 ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
 
         await sut.HandleMusicSectionSelected(new MusicSectionSelectedAction(new MusicStateItem()), dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleBiblePublicationCascade_no_op_when_bible_publication_not_flagged_updated()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var sut = new ScheduleEffects(
+            CreateIdleMapper(),
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new IdleAlarmScheduleService(),
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleBiblePublicationCascade(
+            new UpdateScheduleFromViewModelAction(new ScheduleStateItem(), biblePublicationUpdated: false),
+            dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleMusicCascade_no_op_when_music_not_flagged_updated()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var sut = new ScheduleEffects(
+            CreateIdleMapper(),
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new IdleAlarmScheduleService(),
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleMusicCascade(
+            new UpdateScheduleFromViewModelAction(new ScheduleStateItem(), musicUpdated: false),
+            dispatcher);
 
         Assert.Empty(dispatcher.Dispatched);
     }

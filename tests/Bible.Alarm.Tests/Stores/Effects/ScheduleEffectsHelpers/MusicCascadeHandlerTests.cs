@@ -1,15 +1,19 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
 using Fluxor;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -161,6 +165,28 @@ public sealed class MusicCascadeHandlerTests
             throw new InvalidOperationException("Scope must not be created when cascade exits early.");
     }
 
+    private sealed class FailingMediaScopeFactory : IServiceScopeFactory
+    {
+        public IServiceScope CreateScope() => throw new InvalidOperationException("DB unavailable");
+    }
+
+    private static (DbContextOptions<MediaDbContext> Options, SqliteConnection KeepAlive) CreateInMemoryOptions()
+    {
+        var dbName = $"TestDb_{Guid.NewGuid():N}";
+        var connectionString = $"Data Source={dbName};Mode=Memory;Cache=Shared";
+
+        // Keep one connection open so the named in-memory database is not destroyed between EnsureCreated and the test query.
+        var keepAlive = new SqliteConnection(connectionString);
+        keepAlive.Open();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connectionString)
+            .Options;
+        using var ctx = new MediaDbContext(options);
+        ctx.Database.EnsureCreated();
+        return (options, keepAlive);
+    }
+
     [Fact]
     public async Task HandleAsync_no_op_when_current_schedule_missing()
     {
@@ -193,6 +219,154 @@ public sealed class MusicCascadeHandlerTests
             new IdleLanguageContentService(),
             new FakeApplicationState(new ApplicationState([], current)),
             new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_noops_when_everything_already_set_for_flat_publication()
+    {
+        var (options, connection) = CreateInMemoryOptions();
+        using var _ = connection;
+        var dispatcher = new RecordingDispatcher();
+        var current = new ScheduleStateItem
+        {
+            MusicEnabled = true,
+            MusicPublicationCode = "osg",
+            MusicTrackCode = "1",
+            MusicPublicationModalItemCount = 0,
+            MusicSectionModalItemCount = 0,
+        };
+        var handler = new MusicCascadeHandler(
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            new FakeApplicationState(new ApplicationState([], current)),
+            new MediaTestScopeFactory(options),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_dispatches_UpdateScheduleAction_when_modal_counts_stale_for_flat_pub()
+    {
+        var (options, connection) = CreateInMemoryOptions();
+        using var _ = connection;
+        var dispatcher = new RecordingDispatcher();
+        var current = new ScheduleStateItem
+        {
+            MusicEnabled = true,
+            MusicPublicationCode = "osg",
+            MusicTrackCode = "1",
+            MusicPublicationModalItemCount = 99,
+            MusicSectionModalItemCount = 0,
+        };
+        var handler = new MusicCascadeHandler(
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            new FakeApplicationState(new ApplicationState([], current)),
+            new MediaTestScopeFactory(options),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        var action = Assert.Single(dispatcher.Dispatched);
+        Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+    }
+
+    [Fact]
+    public async Task HandleAsync_noops_when_sectioned_pub_section_and_track_set()
+    {
+        var (options, connection) = CreateInMemoryOptions();
+        using var _ = connection;
+        var dispatcher = new RecordingDispatcher();
+        var current = new ScheduleStateItem
+        {
+            MusicEnabled = true,
+            MusicPublicationCode = "iam",
+            MusicSectionCode = "iam-9",
+            MusicTrackCode = "1",
+            MusicPublicationModalItemCount = 0,
+            MusicSectionModalItemCount = 0,
+        };
+        var handler = new MusicCascadeHandler(
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            new FakeApplicationState(new ApplicationState([], current)),
+            new MediaTestScopeFactory(options),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_exits_early_when_sectioned_pub_no_section_code()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var current = new ScheduleStateItem
+        {
+            MusicEnabled = true,
+            MusicPublicationCode = "iam",
+            MusicSectionCode = null,
+            MusicTrackCode = null,
+        };
+        var handler = new MusicCascadeHandler(
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            new FakeApplicationState(new ApplicationState([], current)),
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_exits_early_when_sectioned_pub_has_section_but_no_track()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var current = new ScheduleStateItem
+        {
+            MusicEnabled = true,
+            MusicPublicationCode = "iam",
+            MusicSectionCode = "iam-1",
+            MusicTrackCode = null,
+        };
+        var handler = new MusicCascadeHandler(
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            new FakeApplicationState(new ApplicationState([], current)),
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_swallows_unhandled_exception_from_modal_count_refresh()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var current = new ScheduleStateItem
+        {
+            MusicEnabled = true,
+            MusicPublicationCode = "osg",
+            MusicTrackCode = "1",
+        };
+        var handler = new MusicCascadeHandler(
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            new FakeApplicationState(new ApplicationState([], current)),
+            new FailingMediaScopeFactory(),
             TestLogging.CreateLogger());
 
         await handler.HandleAsync(dispatcher);

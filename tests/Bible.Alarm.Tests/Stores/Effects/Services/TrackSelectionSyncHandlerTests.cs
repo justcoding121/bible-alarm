@@ -224,4 +224,183 @@ public sealed class TrackSelectionSyncHandlerTests
         Assert.Equal("iam-2", update.Schedule.MusicPublicationCode);
         Assert.Equal("3", update.Schedule.MusicTrackCode);
     }
+
+    [Fact]
+    public async Task Bible_HandleTrackSelected_fills_category_from_action_when_schedule_category_blank()
+    {
+        var schedule = BuildSchedule();
+        schedule.BiblePublicationCategoryName = null;
+        schedule.BiblePublicationCategoryId = null;
+
+        var state = new FakeApplicationState(new ApplicationState([], schedule));
+        var sut = new TrackSelectionSyncHandler(state);
+        var dispatcher = new RecordingDispatcher();
+
+        var bibleItem = new BiblePublicationStateItem
+        {
+            CategoryId = 42,
+            CategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+            LanguageCode = schedule.BiblePublicationLanguageCode!,
+            PublicationCode = schedule.BiblePublicationCode!,
+            SectionCode = schedule.BiblePublicationSectionCode,
+            TrackCode = "2",
+            PublicationName = "NWT",
+            TrackTitle = "v2",
+        };
+
+        await sut.HandleTrackSelected(new BiblePubTrackSelectedAction(bibleItem), dispatcher);
+
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
+        Assert.Equal(42, update.Schedule.BiblePublicationCategoryId);
+        Assert.Equal(AppConstants.Media.BiblePublicationCategoryBible, update.Schedule.BiblePublicationCategoryName);
+        Assert.Equal("2", update.Schedule.BiblePublicationTrackCode);
+    }
+
+    [Fact]
+    public async Task Bible_HandleTrackSelected_resets_finished_duration_when_section_changes()
+    {
+        var schedule = BuildSchedule();
+        schedule.BiblePublicationFinishedDuration = TimeSpan.FromMinutes(3);
+
+        var state = new FakeApplicationState(new ApplicationState([], schedule));
+        var sut = new TrackSelectionSyncHandler(state);
+        var dispatcher = new RecordingDispatcher();
+
+        var bibleItem = new BiblePublicationStateItem
+        {
+            LanguageCode = schedule.BiblePublicationLanguageCode!,
+            PublicationCode = schedule.BiblePublicationCode!,
+            SectionCode = "41",
+            TrackCode = "1",
+            CategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+            SectionName = "Mark",
+        };
+
+        await sut.HandleTrackSelected(new BiblePubTrackSelectedAction(bibleItem), dispatcher);
+
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
+        Assert.Equal(TimeSpan.Zero, update.Schedule.BiblePublicationFinishedDuration);
+    }
+
+    [Fact]
+    public async Task Bible_HandleTrackSelected_overwrites_display_names_when_language_changes()
+    {
+        var schedule = BuildSchedule();
+        schedule.BiblePublicationLanguageName = "English";
+        schedule.BiblePublicationName = "Old Bible Name";
+        schedule.BiblePublicationSectionName = "Matthew";
+        schedule.BiblePublicationTrackTitle = "Matt 1";
+
+        var state = new FakeApplicationState(new ApplicationState([], schedule));
+        var sut = new TrackSelectionSyncHandler(state);
+        var dispatcher = new RecordingDispatcher();
+
+        var bibleItem = new BiblePublicationStateItem
+        {
+            LanguageCode = "S",
+            LanguageName = "Spanish",
+            LanguageDirection = "ltr",
+            PublicationCode = schedule.BiblePublicationCode!,
+            SectionCode = schedule.BiblePublicationSectionCode,
+            TrackCode = schedule.BiblePublicationTrackCode!,
+            CategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+            PublicationName = "Santa Biblia",
+            SectionName = "Mateo",
+            TrackTitle = "Mat 1",
+        };
+
+        await sut.HandleTrackSelected(new BiblePubTrackSelectedAction(bibleItem), dispatcher);
+
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
+        Assert.Equal("S", update.Schedule.BiblePublicationLanguageCode);
+        Assert.Equal("Santa Biblia", update.Schedule.BiblePublicationName);
+        Assert.Equal("Mateo", update.Schedule.BiblePublicationSectionName);
+        Assert.Equal("Mat 1", update.Schedule.BiblePublicationTrackTitle);
+    }
+
+    [Fact]
+    public async Task Bible_HandleTrackSelected_applies_category_id_when_schedule_has_category_name_but_no_id()
+    {
+        var schedule = BuildSchedule();
+        schedule.BiblePublicationCategoryId = null;
+
+        var state = new FakeApplicationState(new ApplicationState([], schedule));
+        var sut = new TrackSelectionSyncHandler(state);
+        var dispatcher = new RecordingDispatcher();
+
+        var bibleItem = new BiblePublicationStateItem
+        {
+            CategoryId = 99,
+            CategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+            LanguageCode = schedule.BiblePublicationLanguageCode!,
+            PublicationCode = schedule.BiblePublicationCode!,
+            SectionCode = schedule.BiblePublicationSectionCode,
+            TrackCode = "2",
+        };
+
+        await sut.HandleTrackSelected(new BiblePubTrackSelectedAction(bibleItem), dispatcher);
+
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
+        Assert.Equal(99, update.Schedule.BiblePublicationCategoryId);
+        Assert.Equal("2", update.Schedule.BiblePublicationTrackCode);
+    }
+
+    [Fact]
+    public async Task Music_HandleTrackSelected_dispatches_when_language_code_changes_even_if_music_id_mismatches()
+    {
+        var schedule = BuildSchedule(musicId: 10);
+        var state = new FakeApplicationState(new ApplicationState([], schedule));
+        var sut = new TrackSelectionSyncHandler(state);
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleTrackSelected(
+            new MusicTrackSelectedAction(new MusicStateItem
+            {
+                Id = 999,
+                PublicationCode = "iam-2",
+                LanguageCode = "S",
+                SectionCode = "1",
+                TrackCode = "5",
+                LanguageName = "Spanish",
+                PublicationName = "Disc 2",
+                SectionName = "A",
+                TrackName = "Song",
+            }),
+            dispatcher);
+
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
+        Assert.True(update.MusicUpdated);
+        Assert.Equal("S", update.Schedule.MusicLanguageCode);
+        Assert.Equal(999, update.Schedule.MusicId);
+    }
+
+    [Fact]
+    public async Task Music_HandleTrackSelected_preserves_schedule_language_when_action_instrumental_has_no_language_code()
+    {
+        var schedule = BuildSchedule();
+        schedule.MusicLanguageCode = AppConstants.Media.DefaultLanguageCode;
+        schedule.MusicLanguageName = "Melody display";
+
+        var state = new FakeApplicationState(new ApplicationState([], schedule));
+        var sut = new TrackSelectionSyncHandler(state);
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleTrackSelected(
+            new MusicTrackSelectedAction(new MusicStateItem
+            {
+                Id = 0,
+                PublicationCode = "iam-3",
+                LanguageCode = null,
+                SectionCode = "1",
+                TrackCode = "9",
+                LanguageName = string.Empty,
+                PublicationName = "Disc",
+                TrackName = "Inst",
+            }),
+            dispatcher);
+
+        var update = Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>());
+        Assert.Equal(AppConstants.Media.DefaultLanguageCode, update.Schedule.MusicLanguageCode);
+        Assert.Equal("Melody display", update.Schedule.MusicLanguageName);
+    }
 }

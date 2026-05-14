@@ -233,6 +233,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IMainThreadScheduler, MauiMainThreadScheduler>();
+        services.AddSingleton<IMainThreadRunner, MauiMainThreadRunner>();
         services.AddSingleton<IScheduleItemStateService, ScheduleItemStateService>();
         services.AddSingleton<IExceptionHandlingService, ExceptionHandlingService>();
         services.AddSingleton<IWindowSetupService, WindowSetupService>();

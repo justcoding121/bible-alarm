@@ -20,6 +20,7 @@ public sealed partial class PlaybackModalService :
     IRecipient<PlaybackExplicitStopMessage>
 {
     private readonly ILogger logger;
+    private readonly IMainThreadRunner mainThreadRunner;
     private readonly INavigationService navigationService;
     private readonly IState<PlaybackState> playbackState;
     private readonly IAudioPlayer audioPlayer;
@@ -44,12 +45,14 @@ public sealed partial class PlaybackModalService :
 
     public PlaybackModalService(
         ILogger logger,
+        IMainThreadRunner mainThreadRunner,
         INavigationService navigationService,
         IState<PlaybackState> playbackState,
         IAudioPlayer audioPlayer,
         IDispatcher dispatcher)
     {
         this.logger = logger;
+        this.mainThreadRunner = mainThreadRunner;
         this.navigationService = navigationService;
         this.playbackState = playbackState;
         this.audioPlayer = audioPlayer;
@@ -157,7 +160,7 @@ public sealed partial class PlaybackModalService :
 
     private Task ClosePlaybackUiOnExplicitStopAsync()
     {
-        return MainThread.InvokeOnMainThreadAsync(async () =>
+        return mainThreadRunner.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
@@ -185,7 +188,7 @@ public sealed partial class PlaybackModalService :
 
     private Task MinimizeAsync()
     {
-        return MainThread.InvokeOnMainThreadAsync(async () =>
+        return mainThreadRunner.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
@@ -233,7 +236,7 @@ public sealed partial class PlaybackModalService :
 
     private Task MaximizeAsync()
     {
-        return MainThread.InvokeOnMainThreadAsync(async () =>
+        return mainThreadRunner.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
@@ -299,7 +302,7 @@ public sealed partial class PlaybackModalService :
     {
         var modalWasShown = false;
 
-        await MainThread.InvokeOnMainThreadAsync(async () =>
+        await mainThreadRunner.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
@@ -378,7 +381,7 @@ public sealed partial class PlaybackModalService :
 
     public async Task ShowPlaybackModalIfNeededOnResumeAsync()
     {
-        await MainThread.InvokeOnMainThreadAsync(ShowPlaybackModalIfNeededOnResumeCoreAsync);
+        await mainThreadRunner.InvokeOnMainThreadAsync(ShowPlaybackModalIfNeededOnResumeCoreAsync);
     }
 
     private async Task ShowPlaybackModalIfNeededOnResumeCoreAsync()
@@ -642,7 +645,7 @@ public sealed partial class PlaybackModalService :
             return false;
         }
 
-        MainThread.BeginInvokeOnMainThread(() =>
+        mainThreadRunner.BeginInvokeOnMainThread(() =>
         {
             if (!isModalOpen && !isMinimized)
             {
@@ -751,7 +754,7 @@ public sealed partial class PlaybackModalService :
 
     private Task ClearOrphanedModalWhenNoFlagsAsync()
     {
-        return MainThread.InvokeOnMainThreadAsync(async () =>
+        return mainThreadRunner.InvokeOnMainThreadAsync(async () =>
         {
             requestedShowModal = false;
             targetScheduleId = null;
@@ -770,7 +773,7 @@ public sealed partial class PlaybackModalService :
     {
         _ = shouldShowPlayback switch
         {
-            true when shouldAutoOpen => MainThread.InvokeOnMainThreadAsync(() => AutoOpenPlaybackModalOnMainThreadAsync(state)),
+            true when shouldAutoOpen => mainThreadRunner.InvokeOnMainThreadAsync(() => AutoOpenPlaybackModalOnMainThreadAsync(state)),
             false when isMinimized => HideMiniBarOnMainThreadAsync(),
             false when isModalOpen => ClosePlaybackOnMainThreadAsync(),
             false when !isModalOpen && !isMinimized => ClearOrphanedModalWhenNoFlagsAsync(),
@@ -814,7 +817,7 @@ public sealed partial class PlaybackModalService :
     {
         var capturedGeneration = popGeneration;
         var capturedBypass = bypassPopGenerationGuard;
-        return MainThread.InvokeOnMainThreadAsync(async () =>
+        return mainThreadRunner.InvokeOnMainThreadAsync(async () =>
         {
             // Skip stale pops caused by schedule switches (new schedule increments popGeneration
             // after the old schedule's stop queues a close). When the user explicitly stopped
@@ -850,7 +853,7 @@ public sealed partial class PlaybackModalService :
 
     private Task HideMiniBarOnMainThreadAsync()
     {
-        return MainThread.InvokeOnMainThreadAsync(async () =>
+        return mainThreadRunner.InvokeOnMainThreadAsync(async () =>
         {
             // If MaximizeAsync already opened the modal (race: queued before this),
             // the bar is already hidden and the modal owns the UI. Skip.
@@ -924,7 +927,7 @@ public sealed partial class PlaybackModalService :
                     return;
                 }
 
-                await MainThread.InvokeOnMainThreadAsync(RunModalSafetyCheckOnMainThreadAsync);
+                await mainThreadRunner.InvokeOnMainThreadAsync(RunModalSafetyCheckOnMainThreadAsync);
             }
             catch (Exception ex)
             {

@@ -7,6 +7,7 @@ using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 using Fluxor;
@@ -225,6 +226,172 @@ public sealed class BiblePublicationCascadeHandlerTests
             new IdleLanguageContentService(),
             itemSelector,
             new FakeApplicationState(new ApplicationState([])),
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_swallows_exception_when_language_set_but_publication_empty_and_scope_throws()
+    {
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationCode = null
+        };
+        var dispatcher = new RecordingDispatcher();
+        var state = new FakeApplicationState(new ApplicationState([], currentSchedule: schedule));
+        var itemSelector = new BiblePublicationSelectionItemSelector(
+            new IdleMediaService(),
+            state,
+            biblePublicationService: null,
+            biblePublicationSectionService: null,
+            languageContentService: null,
+            scopeFactory: new UnexpectedScopeFactory());
+
+        var handler = new BiblePublicationCascadeHandler(
+            new UnexpectedBiblePublicationService(),
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            itemSelector,
+            state,
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_swallows_exception_when_publication_set_sectionCode_empty_scope_throws()
+    {
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationCode = "nwtsty",
+            BiblePublicationSectionCode = null,
+            BiblePublicationTrackCode = null
+        };
+        var dispatcher = new RecordingDispatcher();
+        var state = new FakeApplicationState(new ApplicationState([], currentSchedule: schedule));
+        var itemSelector = new BiblePublicationSelectionItemSelector(
+            new IdleMediaService(),
+            state,
+            biblePublicationService: null,
+            biblePublicationSectionService: null,
+            languageContentService: null,
+            scopeFactory: new UnexpectedScopeFactory());
+
+        var handler = new BiblePublicationCascadeHandler(
+            new UnexpectedBiblePublicationService(),
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            itemSelector,
+            state,
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_swallows_exception_when_section_set_but_trackCode_empty_scope_throws()
+    {
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationCode = "nwtsty",
+            BiblePublicationSectionCode = "1",
+            BiblePublicationTrackCode = null
+        };
+        var dispatcher = new RecordingDispatcher();
+        var state = new FakeApplicationState(new ApplicationState([], currentSchedule: schedule));
+        var itemSelector = new BiblePublicationSelectionItemSelector(
+            new IdleMediaService(),
+            state,
+            biblePublicationService: null,
+            biblePublicationSectionService: null,
+            languageContentService: null,
+            scopeFactory: new UnexpectedScopeFactory());
+
+        var handler = new BiblePublicationCascadeHandler(
+            new UnexpectedBiblePublicationService(),
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            itemSelector,
+            state,
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_noop_when_all_fields_populated()
+    {
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationCode = "nwtsty",
+            BiblePublicationSectionCode = "1",
+            BiblePublicationTrackCode = "1"
+        };
+        var dispatcher = new RecordingDispatcher();
+        var state = new FakeApplicationState(new ApplicationState([], currentSchedule: schedule));
+        var itemSelector = new BiblePublicationSelectionItemSelector(
+            new IdleMediaService(),
+            state,
+            biblePublicationService: null,
+            biblePublicationSectionService: null,
+            languageContentService: null,
+            scopeFactory: new UnexpectedScopeFactory());
+
+        var handler = new BiblePublicationCascadeHandler(
+            new UnexpectedBiblePublicationService(),
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            itemSelector,
+            state,
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_noop_when_languageCode_also_empty_no_fields_set()
+    {
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationLanguageCode = null,
+            BiblePublicationCode = null,
+            BiblePublicationSectionCode = null,
+            BiblePublicationTrackCode = null
+        };
+        var dispatcher = new RecordingDispatcher();
+        var state = new FakeApplicationState(new ApplicationState([], currentSchedule: schedule));
+        var itemSelector = new BiblePublicationSelectionItemSelector(
+            new IdleMediaService(),
+            state,
+            biblePublicationService: null,
+            biblePublicationSectionService: null,
+            languageContentService: null,
+            scopeFactory: new UnexpectedScopeFactory());
+
+        var handler = new BiblePublicationCascadeHandler(
+            new UnexpectedBiblePublicationService(),
+            new IdleMediaService(),
+            new IdleLanguageContentService(),
+            itemSelector,
+            state,
             new UnexpectedScopeFactory(),
             TestLogging.CreateLogger());
 
