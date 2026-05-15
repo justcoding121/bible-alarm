@@ -21,7 +21,8 @@ namespace Bible.Alarm.Services.UI;
 public sealed partial class NavigationService(
     IServiceProvider serviceProvider,
     ILogger logger,
-    IDispatcher dispatcher)
+    IDispatcher dispatcher,
+    INavigationUiThreadInvoker uiThreadInvoker)
     : INavigationService
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -37,34 +38,6 @@ public sealed partial class NavigationService(
     private bool isDisposed;
 
     private INavigation GetNavigation(bool shouldRetry = true) => navigationManager.GetNavigation(shouldRetry);
-
-    /// <summary>
-    /// Runs the given async work on the UI thread. On Windows use the current window's root page Dispatcher so WinUI uses the correct thread; otherwise MainThread.
-    /// When already on the UI thread we run work directly to avoid deadlock (dispatch-then-await would wait for our own queued work).
-    /// </summary>
-    private static async Task InvokeOnUiThreadAsync(Func<Task> work)
-    {
-#if WINDOWS
-        var app = Application.Current;
-        var winDispatcher = (app?.Windows.Count > 0 && app.Windows[0].Page is NavigationPage navPage)
-            ? navPage.Dispatcher
-            : app?.Dispatcher;
-        if (winDispatcher != null)
-        {
-            if (winDispatcher.IsDispatchRequired)
-            {
-                await winDispatcher.DispatchAsync(work);
-            }
-            else
-            {
-                await work();
-            }
-
-            return;
-        }
-#endif
-        await MainThread.InvokeOnMainThreadAsync(work);
-    }
 
     /// <summary>
     /// Clears the cached navigation. Call this when the app is disposed or navigation becomes invalid.
@@ -123,7 +96,7 @@ public sealed partial class NavigationService(
             // Push the lightweight shell (spinner only) immediately — no ViewModel needed yet.
             await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
             {
-                await InvokeOnUiThreadAsync(async () =>
+                await uiThreadInvoker.InvokeOnUiThreadAsync(async () =>
                 {
                     page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
                     var navigation = GetNavigation();
@@ -138,7 +111,7 @@ public sealed partial class NavigationService(
             if (page != null)
             {
                 var viewModel = await Task.Run(() => serviceProvider.GetRequiredService<ScheduleViewModel>());
-                await InvokeOnUiThreadAsync(async () => await page.InitializeViewModelAsync(viewModel));
+                await uiThreadInvoker.InvokeOnUiThreadAsync(async () => await page.InitializeViewModelAsync(viewModel));
             }
         }
         catch (Exception ex)
@@ -175,7 +148,7 @@ public sealed partial class NavigationService(
                 ScheduleNavigationContext.IsEnabledToLoad = isEnabled;
                 dispatcher.Dispatch(new ResetContainerReadinessAction());
 
-                await InvokeOnUiThreadAsync(async () =>
+                await uiThreadInvoker.InvokeOnUiThreadAsync(async () =>
                 {
 #if DEBUG
                     var beforeResolveTime = DateTime.UtcNow;
@@ -220,7 +193,7 @@ public sealed partial class NavigationService(
                 logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncViewModelResolvedInMs,
                     (DateTime.UtcNow - beforeVmTime).TotalMilliseconds);
 #endif
-                await InvokeOnUiThreadAsync(async () => await page.InitializeViewModelAsync(viewModel));
+                await uiThreadInvoker.InvokeOnUiThreadAsync(async () => await page.InitializeViewModelAsync(viewModel));
 #if DEBUG
                 logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncInitializeViewModelCompleteTotalMs,
                     (DateTime.UtcNow - overallStartTime).TotalMilliseconds);

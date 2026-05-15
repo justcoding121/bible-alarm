@@ -86,7 +86,8 @@ public sealed class PlaybackServiceTests
             null!,
             null!,
             null!,
-            null!);
+            null!,
+            new SyncMainThreadScheduler());
 
         PlaybackService sut = null!;
         try

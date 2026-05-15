@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 
 namespace Bible.Alarm.Services.Media.Playback;
@@ -17,4 +18,5 @@ public sealed record PlaybackServiceInjectionContext(
     ICdnPlaybackUrlProbe CdnPlaybackUrlProbe,
     ITrackCdnUrlRefresher TrackCdnUrlRefresher,
     INotificationService NotificationService,
-    IDefaultDeviceRingtoneService DefaultDeviceRingtoneService);
+    IDefaultDeviceRingtoneService DefaultDeviceRingtoneService,
+    IMainThreadScheduler MainThreadScheduler);

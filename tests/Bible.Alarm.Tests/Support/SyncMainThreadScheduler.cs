@@ -12,6 +12,8 @@ public sealed class SyncMainThreadScheduler : IMainThreadScheduler
     public bool IsMainThread => true;
 
     public void BeginInvokeOnMainThread(Action action) => action();
+
+    public Task InvokeOnMainThreadAsync(Func<Task> work) => work();
 }
 
 /// <summary>
@@ -23,4 +25,6 @@ public sealed class OffMainThreadSyncScheduler : IMainThreadScheduler
     public bool IsMainThread => false;
 
     public void BeginInvokeOnMainThread(Action action) => action();
+
+    public Task InvokeOnMainThreadAsync(Func<Task> work) => work();
 }

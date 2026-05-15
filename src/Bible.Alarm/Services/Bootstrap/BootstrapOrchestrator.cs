@@ -241,5 +241,7 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
             Log.Logger.Error(ex, "Error invoking MainThread for immediate InitializedMessage");
         }
     }
+
+    internal static void ResetServicesVerifiedForTests() => servicesVerified = false;
 }
 

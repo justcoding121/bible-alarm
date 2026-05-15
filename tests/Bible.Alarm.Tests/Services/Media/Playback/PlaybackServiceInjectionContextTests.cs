@@ -10,7 +10,7 @@ public sealed class PlaybackServiceInjectionContextTests
     public void Record_round_trips_collaborator_slots()
     {
         var sut = new PlaybackServiceInjectionContext(
-            null!, null!, null!, null!, null!, null!, null!, null!);
+            null!, null!, null!, null!, null!, null!, null!, null!, null!);
 
         Assert.Null(sut.PreparePlaybackService);
         Assert.Null(sut.TrackCdnUrlRefresher);

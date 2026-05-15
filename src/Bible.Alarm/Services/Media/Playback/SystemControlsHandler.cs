@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
@@ -10,10 +11,17 @@ namespace Bible.Alarm.Services.Media.Playback;
 public sealed class SystemControlsHandler
 {
     private readonly ILogger logger;
+    private readonly IMainThreadScheduler mainThread;
+    private readonly Func<TimeSpan, Task> delayAsync;
 
-    public SystemControlsHandler(ILogger logger)
+    public SystemControlsHandler(
+        ILogger logger,
+        IMainThreadScheduler mainThread,
+        Func<TimeSpan, Task>? delayAsync = null)
     {
         this.logger = logger;
+        this.mainThread = mainThread;
+        this.delayAsync = delayAsync ?? Task.Delay;
     }
 
     /// <summary>
@@ -28,11 +36,8 @@ public sealed class SystemControlsHandler
         // would run and advance again, skipping the target track and breaking resume.
         Task.Run(async () =>
         {
-            await Task.Delay(50);
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                await playNextAsync();
-            });
+            await delayAsync(TimeSpan.FromMilliseconds(50));
+            await mainThread.InvokeOnMainThreadAsync(playNextAsync);
         });
     }
 
@@ -46,11 +51,8 @@ public sealed class SystemControlsHandler
         // Short delay (50ms) to let MediaSession finish processing.
         Task.Run(async () =>
         {
-            await Task.Delay(50);
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                await playPreviousAsync();
-            });
+            await delayAsync(TimeSpan.FromMilliseconds(50));
+            await mainThread.InvokeOnMainThreadAsync(playPreviousAsync);
         });
     }
 
@@ -64,11 +66,8 @@ public sealed class SystemControlsHandler
         Task.Run(async () =>
         {
             // Delay to let system controls finish
-            await Task.Delay(150);
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                await playAsync();
-            });
+            await delayAsync(TimeSpan.FromMilliseconds(150));
+            await mainThread.InvokeOnMainThreadAsync(playAsync);
         });
     }
 
@@ -82,11 +81,8 @@ public sealed class SystemControlsHandler
         Task.Run(async () =>
         {
             // Delay to let system controls finish
-            await Task.Delay(150);
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                await pauseAsync();
-            });
+            await delayAsync(TimeSpan.FromMilliseconds(150));
+            await mainThread.InvokeOnMainThreadAsync(pauseAsync);
         });
     }
 
@@ -99,8 +95,8 @@ public sealed class SystemControlsHandler
         logger.Debug("Toggle play/pause pressed from system controls");
         Task.Run(async () =>
         {
-            await Task.Delay(150);
-            await MainThread.InvokeOnMainThreadAsync(toggleAsync);
+            await delayAsync(TimeSpan.FromMilliseconds(150));
+            await mainThread.InvokeOnMainThreadAsync(toggleAsync);
         });
     }
 
@@ -114,11 +110,8 @@ public sealed class SystemControlsHandler
         Task.Run(async () =>
         {
             // Delay to let system controls finish
-            await Task.Delay(150);
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                await seekForwardAsync();
-            });
+            await delayAsync(TimeSpan.FromMilliseconds(150));
+            await mainThread.InvokeOnMainThreadAsync(seekForwardAsync);
         });
     }
 
@@ -132,12 +125,8 @@ public sealed class SystemControlsHandler
         Task.Run(async () =>
         {
             // Delay to let system controls finish
-            await Task.Delay(150);
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                await seekBackwardAsync();
-            });
+            await delayAsync(TimeSpan.FromMilliseconds(150));
+            await mainThread.InvokeOnMainThreadAsync(seekBackwardAsync);
         });
     }
 }
-

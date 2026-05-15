@@ -21,4 +21,17 @@ public sealed class MediatorSectionCodeExtractorTests
         Assert.Empty(tracks);
         Assert.Null(localized);
     }
+
+    [Fact]
+    public void ExtractMediaItemsFromCategory_returns_empty_for_invalid_json()
+    {
+        var (items, localized) = MediatorSectionCodeExtractor.ExtractMediaItemsFromCategory(
+            "{ not json",
+            publicationCode: "sjjm",
+            languageCode: "E",
+            SilentLogger);
+
+        Assert.Empty(items);
+        Assert.Null(localized);
+    }
 }

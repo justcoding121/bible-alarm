@@ -23,6 +23,14 @@ public sealed class MediaSourceConverterTests
     }
 
     [Fact]
+    public void ConvertFrom_returns_null_for_null_value()
+    {
+        var result = sut.ConvertFrom(context: null, CultureInfo.InvariantCulture, value: null);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
     public void ConvertTo_throws_when_value_is_not_a_supported_media_source_instance()
     {
         Assert.Throws<ArgumentException>(() =>

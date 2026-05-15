@@ -384,6 +384,12 @@ public sealed partial class MediaIndexService(
         }
     }
 
+    internal static void ResetVerificationStateForTests()
+    {
+        verified = false;
+        wasIndexReplacedThisRun = false;
+    }
+
     private bool isDisposed;
 
     public void Dispose()

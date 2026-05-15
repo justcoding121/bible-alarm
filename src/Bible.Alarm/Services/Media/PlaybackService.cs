@@ -90,7 +90,7 @@ public sealed partial class PlaybackService : IPlaybackService, IRecipient<NextB
         navigationHandler = new PlaybackNavigationHandler(audioPlayer, dispatcher, logger, progressTracker, navigationManager);
         stopHandler = new PlaybackStopHandler(audioPlayer, playlistService, dispatcher, logger);
         trackPlaybackHandler = new TrackPlaybackHandler(audioPlayer, logger, trackPreparationHandler, progressTracker);
-        systemControlsHandler = new SystemControlsHandler(logger);
+        systemControlsHandler = new SystemControlsHandler(logger, injection.MainThreadScheduler);
         trackMarker = new TrackMarker(playlistService, logger);
         indefiniteResolver = new PlaybackIndefiniteResolver(playlistService);
         playlistExtender = new PlaybackPlaylistExtender(indefiniteResolver, logger);

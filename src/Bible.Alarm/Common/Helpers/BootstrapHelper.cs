@@ -191,6 +191,22 @@ public static class BootstrapHelper
         }
     }
 
+    /// <summary>
+    /// Resets bootstrap completion state for unit tests. Not used in production.
+    /// </summary>
+    internal static void ResetBootstrapStateForTests()
+    {
+        lock (bootstrapLock)
+        {
+            bootstrapCompleted = false;
+        }
+
+        lock (bootstrapWaitLock)
+        {
+            bootstrapCompletionSource = null;
+        }
+    }
+
     private static bool TryAcquireBootstrapLock(bool isForeground, IServiceProvider services)
     {
         // Try to acquire lock without blocking (using Monitor.TryEnter)

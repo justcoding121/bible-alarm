@@ -233,6 +233,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IMainThreadScheduler, MauiMainThreadScheduler>();
+        services.AddSingleton<INavigationUiThreadInvoker, MauiNavigationUiThreadInvoker>();
         services.AddSingleton<IMainThreadRunner, MauiMainThreadRunner>();
         services.AddSingleton<IScheduleItemStateService, ScheduleItemStateService>();
         services.AddSingleton<IExceptionHandlingService, ExceptionHandlingService>();
@@ -260,7 +261,8 @@ public static class ServiceRegistrationHelper
                 sp.GetRequiredService<ICdnPlaybackUrlProbe>(),
                 sp.GetRequiredService<ITrackCdnUrlRefresher>(),
                 sp.GetRequiredService<INotificationService>(),
-                sp.GetRequiredService<IDefaultDeviceRingtoneService>())));
+                sp.GetRequiredService<IDefaultDeviceRingtoneService>(),
+                sp.GetRequiredService<IMainThreadScheduler>())));
 
 #if ANDROID
         services.AddSingleton<IDefaultDeviceRingtoneService, Platforms.Android.Services.Media.AndroidDefaultDeviceRingtoneService>();
