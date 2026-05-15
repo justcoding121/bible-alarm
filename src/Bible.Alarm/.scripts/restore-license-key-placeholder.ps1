@@ -22,10 +22,10 @@ if ($Content -match [regex]::Escape($Placeholder)) {
 if ($Content -match 'SyncfusionLicenseKey\s*=>\s*"([^"]+)"') {
     # Restore the placeholder
     $Content = $Content -replace 'SyncfusionLicenseKey\s*=>\s*"[^"]+"', "SyncfusionLicenseKey => `"$Placeholder`""
-    
+
     # Write back to file
     Set-Content -Path $SourceFile -Value $Content -NoNewline
-    
+
     Write-Host "License key placeholder restored in AppSettings.cs"
 } else {
     Write-Host "Could not find license key pattern in AppSettings.cs. Skipping restore."

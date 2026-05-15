@@ -56,7 +56,7 @@ function Assert-Tool($name, $hint) {
 }
 
 function Start-Appium {
-    Write-Host "[ui] starting Appium 2 server on $appiumUrl ..." -ForegroundColor Cyan
+    Write-Output "[ui] starting Appium 2 server on $appiumUrl ..."
     $appiumLog = Join-Path $env:TEMP "appium-ui-tests.log"
     if (Test-Path $appiumLog) { Remove-Item $appiumLog -Force }
     $proc = Start-Process -FilePath 'appium' -ArgumentList @('--port', $AppiumPort, '--log-level', 'info') `
@@ -68,7 +68,7 @@ function Start-Appium {
         try {
             $r = Invoke-WebRequest -Uri "$appiumUrl/status" -UseBasicParsing -TimeoutSec 2
             if ($r.StatusCode -eq 200) {
-                Write-Host "[ui] Appium ready (pid $($proc.Id), log $appiumLog)" -ForegroundColor Green
+                Write-Output "[ui] Appium ready (pid $($proc.Id), log $appiumLog)"
                 return $proc
             }
         } catch { Start-Sleep -Milliseconds 500 }
@@ -78,8 +78,12 @@ function Start-Appium {
 
 function Stop-Appium($proc) {
     if ($null -ne $proc -and -not $proc.HasExited) {
-        Write-Host "[ui] stopping Appium (pid $($proc.Id))" -ForegroundColor Cyan
-        try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
+        Write-Output "[ui] stopping Appium (pid $($proc.Id))"
+        try {
+            Stop-Process -Id $proc.Id -Force -ErrorAction Stop
+        } catch {
+            Write-Output "[ui] Appium process $($proc.Id) already exited."
+        }
     }
 }
 
@@ -92,7 +96,7 @@ function Invoke-WindowsUITests {
     }
 
     if (-not $SkipDeploy) {
-        Write-Host "[ui] deploying Bible.Alarm Windows MSIX (Debug, win-x64)..." -ForegroundColor Cyan
+        Write-Output "[ui] deploying Bible.Alarm Windows MSIX (Debug, win-x64)..."
         dotnet build (Join-Path $repoRoot 'src/Bible.Alarm/Bible.Alarm.csproj') `
             -c Debug -f net10.0-windows10.0.19041.0 -p:RuntimeIdentifier=win-x64 `
             -p:WindowsPackageType=MSIX -t:Build,Deploy `
@@ -106,7 +110,7 @@ function Invoke-WindowsUITests {
             throw "Could not discover Bible Alarm AUMID via Get-StartApps. Pass -Aumid or run after deploy completes."
         }
     }
-    Write-Host "[ui] BIBLE_ALARM_AUMID=$Aumid" -ForegroundColor DarkGray
+    Write-Output "[ui] BIBLE_ALARM_AUMID=$Aumid"
     $env:BIBLE_ALARM_AUMID = $Aumid
     $env:APPIUM_URL = $appiumUrl
 
@@ -132,7 +136,7 @@ function Invoke-AndroidUITests {
     }
 
     if (-not $SkipDeploy) {
-        Write-Host "[ui] building + installing Android APK..." -ForegroundColor Cyan
+        Write-Output "[ui] building + installing Android APK..."
         dotnet build (Join-Path $repoRoot 'src/Bible.Alarm/Bible.Alarm.csproj') `
             -c Debug -f net10.0-android -t:Install -p:BUILD_ANDROID_ONLY=true
         if ($LASTEXITCODE -ne 0) { throw "Android install failed ($LASTEXITCODE)." }
@@ -154,15 +158,15 @@ function Invoke-IosUITests {
     if (-not $MacHost) {
         throw "iOS UI tests need a networked macOS host. Set -MacHost or `$env:MAC_HOST."
     }
-    Write-Host "[ui] iOS Appium runs on the Mac itself; this script is a thin SSH driver." -ForegroundColor Yellow
-    Write-Host "[ui] One-time Mac setup is in tests/UITESTS.md ('Mac side' section)." -ForegroundColor Yellow
+    Write-Output "[ui] iOS Appium runs on the Mac itself; this script is a thin SSH driver."
+    Write-Output "[ui] One-time Mac setup is in tests/UITESTS.md ('Mac side' section)."
 
     # Invoke via explicit `bash` so the script doesn't need its executable bit preserved across the
     # Windows -> Mac sync. The repo must already be at ~/bible-alarm — typically synced by a
     # preceding `./tests/run-tests.ps1 -Platform iOS -MacHost ...` pass; if you're running the UI
     # smoke standalone, run that orchestrator first or set up the sync separately.
     $remoteCmd = "cd ~/bible-alarm && bash ./tests/run-ui-tests-mac.sh"
-    Write-Host "[ui] running on ${MacHost}: $remoteCmd" -ForegroundColor Cyan
+    Write-Output "[ui] running on ${MacHost}: $remoteCmd"
     & ssh $MacHost $remoteCmd
     if ($LASTEXITCODE -ne 0) { throw "Remote iOS UI tests failed ($LASTEXITCODE)." }
 }
@@ -178,4 +182,4 @@ switch ($Platform) {
     }
 }
 
-Write-Host "[ui] done." -ForegroundColor Green
+Write-Output "[ui] done."

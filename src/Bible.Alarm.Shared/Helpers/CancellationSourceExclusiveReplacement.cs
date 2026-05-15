@@ -31,6 +31,7 @@ public static class CancellationSourceExclusiveReplacement
         }
         catch (ObjectDisposedException)
         {
+            // Safe to ignore: another thread may have disposed the CTS after Cancel; teardown is complete.
         }
     }
 }

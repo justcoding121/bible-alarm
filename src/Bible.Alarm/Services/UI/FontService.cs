@@ -1,5 +1,6 @@
 #nullable enable
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
@@ -20,6 +21,8 @@ namespace Bible.Alarm.Services.UI;
 /// 
 /// Automatically recalculates when screen size/orientation changes or OS font scale changes.
 /// </summary>
+[SuppressMessage("SonarAnalyzer.CSharp", "S2223", Justification = "Internal static test seams; assigned only from Bible.Alarm.Tests via InternalsVisibleTo.")]
+[SuppressMessage("SonarAnalyzer.CSharp", "S2386", Justification = "Mutable internal static state is intentional for cross-assembly test configuration.")]
 public sealed partial class FontService : IFontService, INotifyPropertyChanged
 {
     // Assigned only from Bible.Alarm.Tests (InternalsVisibleTo). Compiler cannot see cross-assembly writes.

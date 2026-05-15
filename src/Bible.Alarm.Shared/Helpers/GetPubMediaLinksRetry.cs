@@ -57,12 +57,10 @@ public static class GetPubMediaLinksRetry
             catch (HttpRequestException ex)
             {
                 Log.Debug(ex, "GetPubMediaLinksRetry: HTTP error on host index {HostIndex}, retrying", idx);
-                continue;
             }
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
                 Log.Debug(ex, "GetPubMediaLinksRetry: timeout on host index {HostIndex}, retrying", idx);
-                continue;
             }
         }
 

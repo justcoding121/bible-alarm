@@ -24,6 +24,7 @@ internal static class ToastWindowManager
         }
         catch (COMException)
         {
+            // WinUI COM server not registered in this process (headless / CI); fall back to MAUI Application.
         }
 
         if (currentWindow is null)

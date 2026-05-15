@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -17,14 +18,7 @@ public static class MelodyPublicationReleaseMatcher
             return false;
         }
 
-        foreach (var key in melodyReleaseKeys)
-        {
-            if (string.Equals(key, publicationCode, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return melodyReleaseKeys.Any(key =>
+            string.Equals(key, publicationCode, StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -78,10 +78,10 @@ $null = New-Item -ItemType Directory -Path $testResultsRoot -Force
 
 function Write-Section {
     param([string]$Title)
-    Write-Host ''
-    Write-Host ('=' * 80) -ForegroundColor Cyan
-    Write-Host "  $Title" -ForegroundColor Cyan
-    Write-Host ('=' * 80) -ForegroundColor Cyan
+    Write-Output ''
+    Write-Output ('=' * 80)
+    Write-Output "  $Title"
+    Write-Output ('=' * 80)
 }
 
 function Invoke-CommandChecked {
@@ -106,17 +106,24 @@ function Test-Tool {
     return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Get-EmulatorPathFromCommandInfo {
+    param($CommandInfo)
+    foreach ($propName in @('Path', 'Source')) {
+        $prop = $CommandInfo.PSObject.Properties[$propName]
+        if (-not $prop) { continue }
+        $candidate = [string]$prop.Value
+        if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            return $candidate
+        }
+    }
+    return $null
+}
+
 function Resolve-AndroidEmulatorExe {
     $first = Get-Command emulator -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($first) {
-        foreach ($propName in @('Path', 'Source')) {
-            $prop = $first.PSObject.Properties[$propName]
-            if (-not $prop) { continue }
-            $candidate = [string]$prop.Value
-            if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-                return $candidate
-            }
-        }
+        $fromCmd = Get-EmulatorPathFromCommandInfo -CommandInfo $first
+        if ($fromCmd) { return $fromCmd }
     }
 
     foreach ($root in @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT)) {
@@ -130,6 +137,59 @@ function Resolve-AndroidEmulatorExe {
     if (Test-Path -LiteralPath $defaultExe) { return $defaultExe }
 
     return $null
+}
+
+function Wait-AndroidSysBootCompleted {
+    $bootCompleted = ''
+    $deadline = (Get-Date).AddMinutes(3)
+    while ((Get-Date) -lt $deadline -and $bootCompleted.Trim() -ne '1') {
+        Start-Sleep -Seconds 5
+        $bootCompleted = (& adb shell getprop sys.boot_completed 2>$null)
+    }
+    if ($bootCompleted.Trim() -ne '1') {
+        throw 'Emulator failed to finish booting within 3 minutes.'
+    }
+}
+
+function Ensure-AndroidEmulatorRunning {
+    param([string]$AndroidAvd)
+    $deviceList = & adb devices | Select-String -Pattern '\bdevice\b' | Where-Object { $_ -notmatch 'List of devices' }
+    if ($deviceList) { return }
+
+    $emulatorExe = Resolve-AndroidEmulatorExe
+    if (-not $emulatorExe) {
+        throw 'No running emulator and emulator.exe could not be found (PATH, ANDROID_HOME, ANDROID_SDK_ROOT, or "%LOCALAPPDATA%\Android\Sdk"). Boot an AVD manually or install the Android Emulator package, then re-run.'
+    }
+    $avd = if ($AndroidAvd) { $AndroidAvd } else {
+        (& $emulatorExe -list-avds | Select-Object -First 1)
+    }
+    if (-not $avd) {
+        throw 'No AVD installed. Create one in Android Studio (API 30+) before running Android tests.'
+    }
+    Write-Output "Booting AVD '$avd'..."
+    Start-Process -FilePath $emulatorExe -ArgumentList @('-avd', $avd, '-no-snapshot-save', '-no-window') -PassThru | Out-Null
+    & adb wait-for-device
+    Wait-AndroidSysBootCompleted
+}
+
+function Repair-AndroidHostTestResultsLayout {
+    param([string]$CoverageDir)
+    $resultsPath = Join-Path $CoverageDir 'TestResults.xml'
+    $stagingPath = "$resultsPath.__tmp"
+    if ((Test-Path $resultsPath -PathType Container)) {
+        $inner = Get-ChildItem -Path $resultsPath -Filter '*.xml' -File | Select-Object -First 1
+        if ($inner) {
+            $tmp = "$resultsPath.__hostflatten"
+            if (Test-Path $tmp) { Remove-Item $tmp -Force }
+            Move-Item -Path $inner.FullName -Destination $tmp
+            Remove-Item -Path $resultsPath -Recurse -Force
+            Move-Item -Path $tmp -Destination $resultsPath
+        } else {
+            Remove-Item -Path $resultsPath -Recurse -Force
+        }
+    } elseif ((Test-Path $stagingPath -PathType Leaf) -and -not (Test-Path $resultsPath -PathType Leaf)) {
+        Move-Item -Path $stagingPath -Destination $resultsPath
+    }
 }
 
 function Run-WindowsTests {
@@ -179,37 +239,13 @@ function Run-AndroidTests {
 
     # Boot the emulator if none is online. We don't kill it — the developer almost always wants to
     # keep the same emulator warm for iteration.
-    $deviceList = & adb devices | Select-String -Pattern '\bdevice\b' | Where-Object { $_ -notmatch 'List of devices' }
-    if (-not $deviceList) {
-        $emulatorExe = Resolve-AndroidEmulatorExe
-        if (-not $emulatorExe) {
-            throw 'No running emulator and emulator.exe could not be found (PATH, ANDROID_HOME, ANDROID_SDK_ROOT, or "%LOCALAPPDATA%\Android\Sdk"). Boot an AVD manually or install the Android Emulator package, then re-run.'
-        }
-        $avd = if ($AndroidAvd) { $AndroidAvd } else {
-            (& $emulatorExe -list-avds | Select-Object -First 1)
-        }
-        if (-not $avd) {
-            throw 'No AVD installed. Create one in Android Studio (API 30+) before running Android tests.'
-        }
-        Write-Host "Booting AVD '$avd'..."
-        Start-Process -FilePath $emulatorExe -ArgumentList @('-avd', $avd, '-no-snapshot-save', '-no-window') -PassThru | Out-Null
-        & adb wait-for-device
-        $bootCompleted = ''
-        $deadline = (Get-Date).AddMinutes(3)
-        while ((Get-Date) -lt $deadline -and $bootCompleted.Trim() -ne '1') {
-            Start-Sleep -Seconds 5
-            $bootCompleted = (& adb shell getprop sys.boot_completed 2>$null)
-        }
-        if ($bootCompleted.Trim() -ne '1') {
-            throw 'Emulator failed to finish booting within 3 minutes.'
-        }
-    }
+    Ensure-AndroidEmulatorRunning -AndroidAvd $AndroidAvd
 
     # No coverage flags — code coverage is intentionally NOT collected from this device-test slice.
     # See the "Android coverage" diagnostic row in [.cursor/rules/testing/multi-platform-tests.mdc].
     $deviceResultsDir = '/sdcard/Documents/test-results'
 
-    Write-Host "Building Android test APK (-c $Configuration)..."
+    Write-Output "Building Android test APK (-c $Configuration)..."
     # -m:1 (single-threaded MSBuild): MAUI's XamlCTask races against itself on parallel builds and
     # intermittently fails with `MSB3371: ...XamlC.stamp ... being used by another process` while
     # building MediaElement. Linux CI hits this every run; Windows local less often, but applying
@@ -233,7 +269,7 @@ function Run-AndroidTests {
 
     # Fresh install (uninstall first to avoid stale UID/permission mismatches on /sdcard).
     & adb uninstall $packageName 2>$null | Out-Null
-    Write-Host "Installing $($apk.Name)..."
+    Write-Output "Installing $($apk.Name)..."
     Invoke-CommandChecked -File 'adb' -ArgList @('install', '-r', $apk.FullName)
 
     # Reset the device-side results dir. Without this a previous run's UID owns the directory and
@@ -241,7 +277,7 @@ function Run-AndroidTests {
     & adb shell rm -rf $deviceResultsDir 2>$null | Out-Null
     & adb shell mkdir -p $deviceResultsDir | Out-Null
 
-    Write-Host "Launching $activityComponent..."
+    Write-Output "Launching $activityComponent..."
     Invoke-CommandChecked -File 'adb' -ArgList @(
         'shell', 'am', 'start', '-W',
         '-n', $activityComponent
@@ -250,7 +286,7 @@ function Run-AndroidTests {
     # Poll for done.txt every 5s up to 15 minutes. The activity always writes done.txt (success or
     # failure) before calling Environment.Exit, so absence here means the test process hung or
     # crashed before reaching the finally block.
-    Write-Host 'Waiting for tests to finish (up to 15 minutes)...'
+    Write-Output 'Waiting for tests to finish (up to 15 minutes)...'
     $donePath = "$deviceResultsDir/done.txt"
     $doneRaw = $null
     $deadline = (Get-Date).AddMinutes(15)
@@ -279,22 +315,7 @@ function Run-AndroidTests {
     # stragglers like `TestResults.xml.__tmp`. The host filesystem is plain NTFS / ext4 and the
     # rename is atomic. We also handle the leftover-staging case in case a previous flatten attempt
     # was interrupted.
-    $resultsPath = Join-Path $coverageDir 'TestResults.xml'
-    $stagingPath = "$resultsPath.__tmp"
-    if ((Test-Path $resultsPath -PathType Container)) {
-        $inner = Get-ChildItem -Path $resultsPath -Filter '*.xml' -File | Select-Object -First 1
-        if ($inner) {
-            $tmp = "$resultsPath.__hostflatten"
-            if (Test-Path $tmp) { Remove-Item $tmp -Force }
-            Move-Item -Path $inner.FullName -Destination $tmp
-            Remove-Item -Path $resultsPath -Recurse -Force
-            Move-Item -Path $tmp -Destination $resultsPath
-        } else {
-            Remove-Item -Path $resultsPath -Recurse -Force
-        }
-    } elseif ((Test-Path $stagingPath -PathType Leaf) -and -not (Test-Path $resultsPath -PathType Leaf)) {
-        Move-Item -Path $stagingPath -Destination $resultsPath
-    }
+    Repair-AndroidHostTestResultsLayout -CoverageDir $coverageDir
 
     if (-not $doneRaw) {
         throw "Test runner did not produce $donePath within 15 minutes. See $coverageDir/logcat.log for the device-side trail."
@@ -307,7 +328,7 @@ function Run-AndroidTests {
     if ($returnCode -ne 0) {
         $errorFile = Join-Path $coverageDir 'error.txt'
         if (Test-Path $errorFile) {
-            Write-Host (Get-Content $errorFile -Raw) -ForegroundColor Red
+            Write-Output (Get-Content $errorFile -Raw)
         }
         throw "Android test run reported failure (exit $returnCode). See $coverageDir."
     }
@@ -341,10 +362,10 @@ function Run-IOSTests {
             throw "Failed to resolve MacRepoRoot '$MacRepoRoot' on $MacHost (ssh exit $LASTEXITCODE)."
         }
         $MacRepoRoot = ($resolved | Select-Object -First 1).Trim()
-        Write-Host "  Resolved MacRepoRoot to $MacRepoRoot"
+        Write-Output "  Resolved MacRepoRoot to $MacRepoRoot"
     }
 
-    Write-Host "Syncing repo to $MacHost`:$MacRepoRoot..."
+    Write-Output "Syncing repo to $MacHost`:$MacRepoRoot..."
     if (Get-Command rsync -ErrorAction SilentlyContinue) {
         $rsyncArgs = @(
             '-az', '--delete',
@@ -356,7 +377,7 @@ function Run-IOSTests {
         )
         Invoke-CommandChecked -File 'rsync' -ArgList $rsyncArgs
     } else {
-        Write-Host '  rsync not found on PATH; using tar + scp fallback.' -ForegroundColor DarkGray
+        Write-Output '  rsync not found on PATH; using tar + scp fallback.'
         $tarball = Join-Path $env:TEMP "bible-alarm-sync-$(Get-Date -Format yyyyMMddHHmmss).tar.gz"
         try {
             Invoke-CommandChecked -File 'tar' -ArgList @(
@@ -418,7 +439,7 @@ dotnet xharness apple test \
         "echo $encoded | base64 -d | bash -l"
     )
 
-    Write-Host "Pulling iOS coverage back from $MacHost..."
+    Write-Output "Pulling iOS coverage back from $MacHost..."
     Invoke-CommandChecked -File 'scp' -ArgList @(
         '-r',
         "${MacHost}:${MacRepoRoot}/TestResults/ios/.",
@@ -449,8 +470,8 @@ function Merge-Coverage {
         '-reporttypes:Html;Cobertura;OpenCover'
     ) -WorkingDirectory $repoRoot
 
-    Write-Host ''
-    Write-Host "Merged report: $mergedDir/index.html" -ForegroundColor Green
+    Write-Output ''
+    Write-Output "Merged report: $mergedDir/index.html"
 }
 
 function Ensure-ReportGenerator {
@@ -482,5 +503,5 @@ switch ($Platform) {
 
 Merge-Coverage
 
-Write-Host ''
-Write-Host 'Done.' -ForegroundColor Green
+Write-Output ''
+Write-Output 'Done.'
