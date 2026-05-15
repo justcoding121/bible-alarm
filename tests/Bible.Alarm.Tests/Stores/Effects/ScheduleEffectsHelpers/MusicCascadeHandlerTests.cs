@@ -170,22 +170,32 @@ public sealed class MusicCascadeHandlerTests
         public IServiceScope CreateScope() => throw new InvalidOperationException("DB unavailable");
     }
 
-    private static (DbContextOptions<MediaDbContext> Options, SqliteConnection KeepAlive) CreateInMemoryOptions()
+    private sealed class InMemoryDb : IDisposable
     {
-        var dbName = $"TestDb_{Guid.NewGuid():N}";
-        var connectionString = $"Data Source={dbName};Mode=Memory;Cache=Shared";
+        private readonly SqliteConnection _connection;
+        private readonly MediaDbContext _schemaHolder;
 
-        // Keep one connection open so the named in-memory database is not destroyed between EnsureCreated and the test query.
-        var keepAlive = new SqliteConnection(connectionString);
-        keepAlive.Open();
+        public DbContextOptions<MediaDbContext> Options { get; }
 
-        var options = new DbContextOptionsBuilder<MediaDbContext>()
-            .UseSqlite(connectionString)
-            .Options;
-        using var ctx = new MediaDbContext(options);
-        ctx.Database.EnsureCreated();
-        return (options, keepAlive);
+        public InMemoryDb()
+        {
+            _connection = new SqliteConnection("Data Source=:memory:");
+            _connection.Open();
+            Options = new DbContextOptionsBuilder<MediaDbContext>()
+                .UseSqlite(_connection)
+                .Options;
+            _schemaHolder = new MediaDbContext(Options);
+            _schemaHolder.Database.EnsureCreated();
+        }
+
+        public void Dispose()
+        {
+            _schemaHolder.Dispose();
+            _connection.Dispose();
+        }
     }
+
+    private static InMemoryDb CreateInMemoryOptions() => new InMemoryDb();
 
     [Fact]
     public async Task HandleAsync_no_op_when_current_schedule_missing()
@@ -229,8 +239,8 @@ public sealed class MusicCascadeHandlerTests
     [Fact]
     public async Task HandleAsync_noops_when_everything_already_set_for_flat_publication()
     {
-        var (options, connection) = CreateInMemoryOptions();
-        using var _ = connection;
+        using var db = CreateInMemoryOptions();
+        var options = db.Options;
         var dispatcher = new RecordingDispatcher();
         var current = new ScheduleStateItem
         {
@@ -255,8 +265,8 @@ public sealed class MusicCascadeHandlerTests
     [Fact]
     public async Task HandleAsync_dispatches_UpdateScheduleAction_when_modal_counts_stale_for_flat_pub()
     {
-        var (options, connection) = CreateInMemoryOptions();
-        using var _ = connection;
+        using var db = CreateInMemoryOptions();
+        var options = db.Options;
         var dispatcher = new RecordingDispatcher();
         var current = new ScheduleStateItem
         {
@@ -282,8 +292,8 @@ public sealed class MusicCascadeHandlerTests
     [Fact]
     public async Task HandleAsync_noops_when_sectioned_pub_section_and_track_set()
     {
-        var (options, connection) = CreateInMemoryOptions();
-        using var _ = connection;
+        using var db = CreateInMemoryOptions();
+        var options = db.Options;
         var dispatcher = new RecordingDispatcher();
         var current = new ScheduleStateItem
         {
