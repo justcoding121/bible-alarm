@@ -66,4 +66,53 @@ public sealed class DisplayMetadataServiceTests
 
         Assert.NotNull(result);
     }
+
+    [Fact]
+    public async Task GetDisplayMetadataAsync_populates_title_via_file_fallback_when_music_catalog_idle()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new IdleCatalogMediaService(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = false,
+            LanguageCode = string.Empty,
+            PublicationCode = "iam",
+            TrackCode = "1",
+            LookUpPath = "/melody/path",
+        };
+        var item = new PlayItem(metadata, "file:///nonexistent-melody-track.mp3");
+        var track = new AudioPlayerTrack { PlayItem = item, Uri = item.Url };
+
+        var result = await sut.GetDisplayMetadataAsync(track);
+
+        Assert.Equal("Unknown Title", result.Title);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_https_streaming_uses_unknown_title_when_music_title_missing()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new IdleCatalogMediaService(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = false,
+            LanguageCode = string.Empty,
+            PublicationCode = "iam",
+            TrackCode = "1",
+            LookUpPath = "/melody/path",
+        };
+        var item = new PlayItem(metadata, "https://example.invalid/stream.mp3");
+        var track = new AudioPlayerTrack { PlayItem = item, Uri = item.Url };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.Equal("Unknown Title", result.Title);
+        Assert.Equal("jw.org", result.Artist);
+    }
 }
