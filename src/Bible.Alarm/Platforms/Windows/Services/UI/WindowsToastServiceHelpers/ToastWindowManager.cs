@@ -1,4 +1,5 @@
 #nullable enable
+using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Application = Microsoft.Maui.Controls.Application;
@@ -14,10 +15,17 @@ internal static class ToastWindowManager
 {
     public static Window? GetNativeWindow()
     {
-        // First try Window.Current (works in some contexts)
-        var currentWindow = Window.Current;
+        // First try Window.Current (works in some contexts). Release builds on CI / headless hosts
+        // can throw REGDB_E_CLASSNOTREG when WinUI is not registered — treat as no static window.
+        Window? currentWindow = null;
+        try
+        {
+            currentWindow = Window.Current;
+        }
+        catch (COMException)
+        {
+        }
 
-        // If Window.Current is null, try to get it from MAUI Application
         if (currentWindow is null)
         {
             currentWindow = GetWindowFromMauiApplication();
