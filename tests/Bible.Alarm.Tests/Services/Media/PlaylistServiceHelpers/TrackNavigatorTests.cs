@@ -431,29 +431,51 @@ public sealed class TrackNavigatorTests
     }
 
     [Fact]
-    public async Task GetNextBiblePublicationTrack_sectioned_reuses_sections_cache_within_ttl()
+    public async Task GetNextBiblePublicationSection_reuses_sections_cache_within_ttl()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        var countingMedia = new CountingSectionMediaService(media);
+        var sut = new TrackNavigator(countingMedia, bible, TestLogging.CreateLogger());
+
+        _ = await sut.GetNextBiblePublicationSection("E", pubCode, sectionCode: "10");
+        countingMedia.SectionsFetchCount = 0;
+
+        _ = await sut.GetNextBiblePublicationSection("E", pubCode, sectionCode: "20");
+
+        Assert.Equal(0, countingMedia.SectionsFetchCount);
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationTrack_sectioned_reuses_tracks_cache_within_same_section()
     {
         var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
         var countingMedia = new CountingSectionMediaService(media);
         var sut = new TrackNavigator(countingMedia, bible, TestLogging.CreateLogger());
 
         _ = await sut.GetNextBiblePublicationTrack("E", pubCode, sectionCode: "10", trackCode: "1");
-        _ = await sut.GetNextBiblePublicationTrack("E", pubCode, sectionCode: "10", trackCode: "2");
+        countingMedia.TracksFetchCount = 0;
 
-        Assert.Equal(1, countingMedia.SectionsFetchCount);
+        _ = await sut.GetPreviousBiblePublicationTrack("E", pubCode, sectionCode: "10", trackCode: "2");
+
+        Assert.Equal(0, countingMedia.TracksFetchCount);
     }
 
     private sealed class CountingSectionMediaService(TwoSectionPublicationMediaService inner) : IMediaService
     {
-        public int SectionsFetchCount { get; private set; }
+        public int SectionsFetchCount { get; set; }
+
+        public int TracksFetchCount { get; set; }
 
         public void Dispose() => inner.Dispose();
 
         public Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false) =>
             inner.GetBiblePublicationLanguages(categoryName, requireIsMusicForMusicCategory);
 
-        public Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode) =>
-            inner.GetBiblePublicationTracks(languageCode, versionCode, sectionCode);
+        public Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode)
+        {
+            TracksFetchCount++;
+            return inner.GetBiblePublicationTracks(languageCode, versionCode, sectionCode);
+        }
 
         public Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false,
             IFetchProgress? progress = null, bool requireIsMusicForMusicCategory = false) =>

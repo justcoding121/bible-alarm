@@ -210,4 +210,32 @@ public sealed class ScheduleSaveServiceTests
         Assert.Null(item.MusicPublicationCode);
         Assert.Null(item.MusicTrackCode);
     }
+
+    [Fact]
+    public void PrepareScheduleStateItem_preserves_music_from_current_when_existing_schedule_not_music_updated()
+    {
+        var sut = new ScheduleSaveService(TestLogging.CreateLogger(), CreateMapper());
+        var current = new ScheduleStateItem
+        {
+            Id = 11,
+            MusicEnabled = true,
+            MusicPublicationCode = "sjjm",
+            MusicLanguageCode = "E",
+            MusicTrackCode = "8",
+            MusicTrackName = "Song 8",
+        };
+        var model = new AlarmSchedule
+        {
+            Id = 11,
+            Name = "Evening",
+            MusicEnabled = true,
+            Music = null,
+        };
+
+        var item = sut.PrepareScheduleStateItem(model, current, musicUpdated: false);
+
+        Assert.Equal("8", item.MusicTrackCode);
+        Assert.Equal("sjjm", item.MusicPublicationCode);
+        Assert.Equal("Song 8", item.MusicTrackName);
+    }
 }

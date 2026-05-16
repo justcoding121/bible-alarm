@@ -35,6 +35,18 @@ public sealed class ScheduleSuccessHandlerTests
     }
 
     [Fact]
+    public async Task HandleUpdateScheduleSuccess_skips_car_play_dispatch_when_schedule_is_null()
+    {
+        var dispatcher = new RecordingDispatcher();
+
+        await ScheduleSuccessHandler.HandleUpdateScheduleSuccess(
+            new UpdateScheduleSuccessAction(null!),
+            dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
     public async Task HandleUpdateScheduleSuccess_dispatches_set_car_play_when_schedule_id_positive()
     {
         var dispatcher = new RecordingDispatcher();

@@ -510,6 +510,26 @@ public sealed class PlaybackServiceTests
     }
 
     [Fact]
+    public void Receive_PreviousButtonPressedMessage_does_not_throw_with_empty_playlist()
+    {
+        using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        var ex = Record.Exception(() => sut.Receive(new PreviousButtonPressedMessage()));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void Receive_SeekBackwardButtonPressedMessage_does_not_throw()
+    {
+        using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        var ex = Record.Exception(() => sut.Receive(new SeekBackwardButtonPressedMessage()));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
     public void Receive_SeekForwardButtonPressedMessage_does_not_throw()
     {
         using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));

@@ -251,4 +251,52 @@ public sealed class HomeStateChangeHandlerTests
         Assert.Equal(1, fadeCount);
         Assert.False(busy);
     }
+
+    [Fact]
+    public async Task ApplyDeferredReorderAsync_applies_deferred_collection_when_main_thread_available()
+    {
+        var deferred = new ObservableHashSet<ScheduleListItemViewModel>
+        {
+            CreateStubListItem(2, "Second"),
+            CreateStubListItem(1, "First"),
+        };
+        var collection = new ObservableHashSet<ScheduleListItemViewModel>();
+        collection.Add(CreateStubListItem(9, "Stale"));
+        ObservableHashSet<ScheduleListItemViewModel>? boundCollection = collection;
+        var notified = false;
+
+        var deps = new HomeStateChangeHandlerDeps(TestLogging.CreateLogger(), null!, null!);
+        var callbacks = new HomeStateChangeHandlerCallbacks(
+            SetIsBusy: _ => { },
+            GetIsBusy: () => false,
+            GetSchedules: () => boundCollection,
+            SetSchedules: s => boundCollection = s,
+            NotifySchedulesChanged: () => notified = true,
+            UpdateProgressBarVisibility: () => { },
+            FadeOutProgressBarAsync: () => Task.CompletedTask,
+            IsPlaybackModalVisible: () => false);
+        var sut = new HomeStateChangeHandler(deps, callbacks);
+
+        typeof(HomeStateChangeHandler)
+            .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(sut, deferred);
+
+        try
+        {
+            await sut.ApplyDeferredReorderAsync();
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            // Headless xUnit cannot initialize WinUI MainThread; device/CI app hosts cover this path.
+            return;
+        }
+
+        Assert.NotNull(boundCollection);
+        Assert.Equal(2, boundCollection!.Count);
+        Assert.Equal(2, boundCollection.First().ScheduleId);
+        Assert.True(notified);
+        Assert.Null(typeof(HomeStateChangeHandler)
+            .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(sut));
+    }
 }

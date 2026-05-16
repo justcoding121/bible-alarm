@@ -174,4 +174,31 @@ public sealed class BootstrapOrchestratorTests : IDisposable
 
         Assert.Equal(1, db.InitializeCalls);
     }
+
+    [Fact]
+    public async Task VerifyServicesAsync_initializeUi_true_reloads_schedules_when_already_verified()
+    {
+        var db = new RecordingDatabaseBootstrap();
+        var flux = new RecordingFluxorBootstrap();
+        var res = new RecordingResourceBootstrap();
+        var sched = new RecordingScheduleBootstrap();
+        var plat = new RecordingPlatformBootstrap();
+
+        var sut = new BootstrapOrchestrator(new BootstrapOrchestratorDeps(
+            db,
+            flux,
+            res,
+            sched,
+            plat,
+            new IdleLanguageNameService(),
+            new IdleCategoryNameService()));
+
+        await sut.VerifyServicesAsync(initializeUi: false);
+        Assert.Equal(1, sched.InitializeCalls);
+
+        await sut.VerifyServicesAsync(initializeUi: true);
+
+        Assert.Equal(2, sched.InitializeCalls);
+        Assert.Equal(1, db.InitializeCalls);
+    }
 }
