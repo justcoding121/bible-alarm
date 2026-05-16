@@ -34,6 +34,37 @@ public sealed class ScheduleCommandServiceTests
 #pragma warning restore CS0067
     }
 
+    private sealed class MutableAppState : IState<ApplicationState>
+    {
+        private ApplicationState value;
+
+        public MutableAppState(ApplicationState initial) => value = initial;
+
+        public ApplicationState Value => value;
+
+        public event EventHandler? StateChanged;
+
+        public void SetState(ApplicationState newState)
+        {
+            value = newState;
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private sealed class SimulatingDispatcher(Action<object>? onDispatch = null) : IDispatcher
+    {
+        public List<object> Dispatched { get; } = [];
+
+        public event EventHandler<ActionDispatchedEventArgs>? ActionDispatched;
+
+        public void Dispatch(object action)
+        {
+            Dispatched.Add(action);
+            onDispatch?.Invoke(action);
+            ActionDispatched?.Invoke(this, new ActionDispatchedEventArgs(action));
+        }
+    }
+
     private sealed class RecordingDispatcher : IDispatcher
     {
         public List<object> Dispatched { get; } = [];
@@ -594,6 +625,112 @@ public sealed class ScheduleCommandServiceTests
             Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>()));
         Assert.False(update.Schedule.IsEnabled);
         Assert.False(update.ShouldSave);
+    }
+
+    [Fact]
+    public async Task ExecuteSaveAsync_new_schedule_dispatches_create_and_completes_when_state_updates()
+    {
+        var schedules = new ObservableHashSet<ScheduleStateItem> { Row(1) };
+        var appState = new MutableAppState(new ApplicationState(schedules));
+        var dispatcher = new SimulatingDispatcher(action =>
+        {
+            if (action is CreateScheduleAction)
+            {
+                schedules.Add(Row(50));
+                appState.SetState(new ApplicationState(schedules));
+            }
+        });
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            new RecordingNav(),
+            new StubScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            appState));
+
+        var ok = await sut.ExecuteSaveAsync(true, 0, Row(0), false, false, modelInitialized: true);
+
+        Assert.True(ok);
+        Assert.Contains(dispatcher.Dispatched, a => a is CreateScheduleAction);
+    }
+
+    [Fact]
+    public async Task ExecuteSaveAsync_new_disabled_schedule_enables_in_state_before_create()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var schedule = Row(0);
+        schedule.IsEnabled = false;
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            new RecordingNav(),
+            new StubScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        await sut.ExecuteSaveAsync(true, 0, schedule, false, false, modelInitialized: true);
+
+        var enableUpdate = Assert.Single(
+            dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>(),
+            a => !a.ShouldSave);
+        Assert.True(enableUpdate.Schedule.IsEnabled);
+        Assert.Contains(dispatcher.Dispatched, a => a is CreateScheduleAction);
+    }
+
+    [Fact]
+    public async Task HandleSaveResultAsync_save_failed_hides_overlay_without_navigating()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var nav = new RecordingNav();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            nav,
+            new ThrowingScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        await sut.HandleSaveResultAsync(
+            saved: false,
+            scheduleId: 4,
+            isEnabled: true,
+            model: new AlarmSchedule { Id = 4, Name = "Fail", IsEnabled = true });
+
+        Assert.Equal(0, nav.NavigateHomeCalls);
+        Assert.Contains(dispatcher.Dispatched, a => a is SetSchedulePageOverlayAction { IsVisible: false });
+    }
+
+    [Fact]
+    public async Task StopPlaybackIfNeededAsync_skips_when_playback_schedule_differs()
+    {
+        var playback = new RecordingPlaybackService();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            new RecordingDispatcher(),
+            new RecordingNav(),
+            new ThrowingScheduleSaveService(),
+            playback,
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        await sut.StopPlaybackIfNeededAsync(
+            isNewSchedule: false,
+            isPreparingOrPlaying: true,
+            scheduleId: 3,
+            currentPlaybackScheduleId: 9);
+
+        Assert.Equal(0, playback.StopCalls);
     }
 
 }

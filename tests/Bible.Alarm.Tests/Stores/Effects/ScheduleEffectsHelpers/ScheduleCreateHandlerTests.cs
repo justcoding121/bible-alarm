@@ -235,4 +235,92 @@ public sealed class ScheduleCreateHandlerTests
         var ok = Assert.IsType<CreateScheduleSuccessAction>(success);
         Assert.Equal(101, ok.Schedule.Id);
     }
+
+    [Fact]
+    public async Task HandleAsync_dispatches_failure_when_database_add_throws()
+    {
+        var mapper = CreateMapper();
+        var vm = mapper.Map<ScheduleStateItem>(new AlarmSchedule
+        {
+            Id = 0,
+            Name = "Broken",
+            IsEnabled = true,
+            Hour = 8,
+            Minute = 0,
+            Second = 0,
+            DaysOfWeek = WeekDays.Monday,
+            NotificationEnabled = true,
+            MusicEnabled = false,
+        });
+
+        var sut = new ScheduleCreateHandler(
+            mapper,
+            new ThrowingAddAlarmScheduleStub(),
+            new RecordingAlarmService(),
+            new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new CreateScheduleAction(vm), dispatcher);
+
+        var fail = Assert.Single(dispatcher.Dispatched);
+        var action = Assert.IsType<CreateScheduleFailureAction>(fail);
+        Assert.Same(vm, action.Schedule);
+        Assert.Equal("db error", action.Error);
+    }
+
+    private sealed class ThrowingAddAlarmScheduleStub : IAlarmScheduleService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("db error");
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true, bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+    }
 }

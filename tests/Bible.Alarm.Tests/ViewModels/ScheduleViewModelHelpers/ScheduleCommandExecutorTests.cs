@@ -79,8 +79,13 @@ public sealed class ScheduleCommandExecutorTests
         public Task ValidateNotificationPermissionsAsync(ScheduleStateItem? currentSchedule) =>
             Task.CompletedTask;
 
-        public Task StopPlaybackIfNeededAsync(bool isNewSchedule, bool isPreparingOrPlaying, int scheduleId, int currentPlaybackScheduleId) =>
-            Task.CompletedTask;
+        public List<(bool IsNew, bool IsPreparing, int ScheduleId, int PlaybackScheduleId)> StopPlaybackCalls { get; } = [];
+
+        public Task StopPlaybackIfNeededAsync(bool isNewSchedule, bool isPreparingOrPlaying, int scheduleId, int currentPlaybackScheduleId)
+        {
+            StopPlaybackCalls.Add((isNewSchedule, isPreparingOrPlaying, scheduleId, currentPlaybackScheduleId));
+            return Task.CompletedTask;
+        }
 
         public Task HandleSaveResultAsync(bool saved, int scheduleId, bool isEnabled, AlarmSchedule model) =>
             Task.CompletedTask;
@@ -253,5 +258,56 @@ public sealed class ScheduleCommandExecutorTests
         var call = Assert.Single(commands.SaveCalls);
         Assert.False(call.IsNew);
         Assert.Equal(6, call.ScheduleId);
+    }
+
+    [Fact]
+    public async Task SaveCommand_stops_playback_when_bible_publication_changed_for_playing_schedule()
+    {
+        var persisted = Schedule(5);
+        persisted.BiblePublicationLanguageCode = "E";
+        persisted.BiblePublicationCode = "nwt";
+        persisted.BiblePublicationSectionCode = "1";
+        persisted.BiblePublicationTrackCode = "1";
+        var current = Schedule(5);
+        current.BiblePublicationLanguageCode = "E";
+        current.BiblePublicationCode = "nwt";
+        current.BiblePublicationSectionCode = "1";
+        current.BiblePublicationTrackCode = "2";
+        var appState = new ApplicationState(
+            new ObservableHashSet<ScheduleStateItem> { persisted },
+            current);
+        var commands = new RecordingScheduleCommandService();
+        var playback = new PlaybackState
+        {
+            IsPreparingOrPlaying = true,
+            CurrentScheduleId = 5,
+        };
+
+        var sut = new ScheduleCommandExecutor(
+            new ScheduleCommandExecutorCoreDeps(
+                commands,
+                new NoOpScheduleMediaCacheService(),
+                new FakeApplicationState(appState),
+                new FakePlaybackState(playback),
+                new RecordingDispatcher(),
+                CreateMapper(),
+                TestLogging.CreateLogger()),
+            new ScheduleCommandExecutorUiHooks(
+                GetMusicSelectionContainerViewModel: () => null,
+                GetAlarmSettingsContainerViewModel: null,
+                GetNumberOfTrackContainerViewModel: null,
+                SetIsSaving: null,
+                SetIsCancelBusy: null,
+                SetIsSaveBusy: null,
+                SetIsDeleteBusy: null));
+
+        sut.InitializeCommands(out _, out var save, out _);
+        await ((IAsyncRelayCommand)save!).ExecuteAsync(null);
+
+        var stop = Assert.Single(commands.StopPlaybackCalls);
+        Assert.False(stop.IsNew);
+        Assert.True(stop.IsPreparing);
+        Assert.Equal(5, stop.ScheduleId);
+        Assert.Equal(5, stop.PlaybackScheduleId);
     }
 }

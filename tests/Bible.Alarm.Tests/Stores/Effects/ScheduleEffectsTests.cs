@@ -324,4 +324,111 @@ public sealed class ScheduleEffectsTests
         var success = Assert.IsType<RemoveScheduleSuccessAction>(Assert.Single(dispatcher.Dispatched));
         Assert.Equal(2, success.ScheduleId);
     }
+
+    [Fact]
+    public async Task HandleCreateSchedule_persists_and_dispatches_success()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var mapper = CreateScheduleMapper();
+        var vm = mapper.Map<ScheduleStateItem>(Alarm(0, "New schedule"));
+        vm.Id = 0;
+
+        var alarmSchedules = new CreateCapableAlarmScheduleService();
+        var alarmSvc = new RecordingCreateAlarmService();
+
+        var sut = new ScheduleEffects(
+            mapper,
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: alarmSchedules,
+                AlarmService: alarmSvc,
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleCreateSchedule(new CreateScheduleAction(vm), dispatcher);
+
+        Assert.Equal(201, alarmSchedules.LastAddedId);
+        var success = Assert.IsType<CreateScheduleSuccessAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Equal(201, success.Schedule.Id);
+        Assert.Equal(201, Assert.Single(alarmSvc.Created).Id);
+    }
+
+    private sealed class CreateCapableAlarmScheduleService : IAlarmScheduleService
+    {
+        public int LastAddedId { get; private set; }
+
+        public void Dispose()
+        {
+        }
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default)
+        {
+            schedule.Id = LastAddedId = 201;
+            return Task.FromResult(schedule);
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(
+            System.Linq.Expressions.Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true,
+            bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId,
+            Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AlarmSchedule());
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
+    }
+
+    private sealed class RecordingCreateAlarmService : IAlarmService
+    {
+        public List<AlarmSchedule> Created { get; } = [];
+
+        public Task Create(AlarmSchedule schedule)
+        {
+            Created.Add(schedule);
+            return Task.CompletedTask;
+        }
+
+        public Task Update(AlarmSchedule schedule) => Task.CompletedTask;
+
+        public Task Delete(int scheduleId) => Task.CompletedTask;
+    }
 }
