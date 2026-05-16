@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
@@ -31,6 +32,7 @@ public sealed class MediaCacheServiceTests
         public Task<DateTimeOffset> GetFileCreationDate(string path) =>
             Task.FromResult(DateTimeOffset.UtcNow);
 
+        [RequiresAssemblyFiles]
         public Task<DateTimeOffset> GetFileCreationDateFromResource(string resourceName) =>
             Task.FromResult(DateTimeOffset.UtcNow);
 

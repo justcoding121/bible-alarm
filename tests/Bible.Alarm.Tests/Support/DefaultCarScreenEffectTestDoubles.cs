@@ -107,7 +107,7 @@ internal sealed class RecordingFluxorDispatcher : IDispatcher
 internal static class AsyncTestFlush
 {
     /// <summary>
-    /// Lets thread-pool continuations from <see cref="Task.Run"/> run without using <see cref="Task.Delay"/>.
+    /// Lets thread-pool continuations from <see cref="M:System.Threading.Tasks.Task.Run(System.Action)"/> run without using <see cref="M:System.Threading.Tasks.Task.Delay(System.Int32)"/>.
     /// </summary>
     public static async Task YieldManyAsync(int iterations)
     {

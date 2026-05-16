@@ -342,10 +342,12 @@ jobs:
           APP_PATH=$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)
           if [ -z "$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
           # Hosted macOS runners often exceed xharness default TCP handshake budget (exit 90 APP_LAUNCH_TIMEOUT).
+          # Default overall run timeout is 15 minutes; install + full shared suite can exceed that (exit 80 APP_CRASH).
           dotnet xharness apple test \
             --app="$APP_PATH" \
             --target=ios-simulator-64 \
             --launch-timeout=00:20:00 \
+            --timeout=02:00:00 \
             --output-directory="$GITHUB_WORKSPACE/artifacts/xharness-ios-logs"
 
       - name: Upload iOS xharness logs

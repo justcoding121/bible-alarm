@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Services.Bootstrap;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
@@ -39,6 +40,7 @@ public sealed class DatabaseBootstrapServiceTests
         public Task<DateTimeOffset> GetFileCreationDate(string path) =>
             Task.FromResult(DateTimeOffset.UtcNow);
 
+        [RequiresAssemblyFiles]
         public Task<DateTimeOffset> GetFileCreationDateFromResource(string resourceName) =>
             Task.FromResult(DateTimeOffset.UtcNow);
 

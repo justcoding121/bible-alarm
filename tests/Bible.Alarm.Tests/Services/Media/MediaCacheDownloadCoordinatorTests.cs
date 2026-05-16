@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
@@ -58,6 +59,7 @@ public sealed class MediaCacheDownloadCoordinatorTests
         public Task<DateTimeOffset> GetFileCreationDate(string path) =>
             Task.FromResult(DateTimeOffset.UtcNow);
 
+        [RequiresAssemblyFiles]
         public Task<DateTimeOffset> GetFileCreationDateFromResource(string resourceName) =>
             Task.FromResult(DateTimeOffset.UtcNow);
 
