@@ -13,15 +13,21 @@ public sealed class ResourceBootstrapServiceTests
     {
         public int VerifyCallCount { get; private set; }
 
+        public int MigrateCallCount { get; private set; }
+
         public string IndexRoot => "index-root";
 
-        public bool WasIndexReplacedThisRun => false;
+        public bool WasIndexReplacedThisRun { get; set; }
 
         public void Dispose()
         {
         }
 
-        public Task MigrateNonEnglishDataIfNeededAsync() => Task.CompletedTask;
+        public Task MigrateNonEnglishDataIfNeededAsync()
+        {
+            MigrateCallCount++;
+            return Task.CompletedTask;
+        }
 
         public Task Verify()
         {
@@ -79,5 +85,25 @@ public sealed class ResourceBootstrapServiceTests
         await sut.CopyResourcesAsync();
 
         Assert.Equal(1, media.VerifyCallCount);
+    }
+
+    [Fact]
+    public void WasMediaIndexReplacedThisRun_reflects_media_index_service()
+    {
+        var media = new RecordingMediaIndex { WasIndexReplacedThisRun = true };
+        var sut = new ResourceBootstrapService(media, new NopStorage());
+
+        Assert.True(sut.WasMediaIndexReplacedThisRun());
+    }
+
+    [Fact]
+    public async Task MigrateNonEnglishMediaDataAsync_delegates_to_media_index_service()
+    {
+        var media = new RecordingMediaIndex();
+        var sut = new ResourceBootstrapService(media, new NopStorage());
+
+        await sut.MigrateNonEnglishMediaDataAsync();
+
+        Assert.Equal(1, media.MigrateCallCount);
     }
 }

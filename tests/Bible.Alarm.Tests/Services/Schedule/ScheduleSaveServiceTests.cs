@@ -238,4 +238,24 @@ public sealed class ScheduleSaveServiceTests
         Assert.Equal("sjjm", item.MusicPublicationCode);
         Assert.Equal("Song 8", item.MusicTrackName);
     }
+
+    [Fact]
+    public async Task PrepareModelForSaveAsync_copies_track_count_and_always_play_from_start_from_state()
+    {
+        var sut = new ScheduleSaveService(TestLogging.CreateLogger(), CreateMapper());
+        var current = new ScheduleStateItem
+        {
+            Id = 13,
+            BiblePublicationCode = "nwt",
+            BiblePublicationScheduleId = 1,
+            BiblePublicationTrackCode = "1",
+            NumberOfTracksToPlay = 4,
+            AlwaysPlayFromStart = true,
+        };
+
+        var model = await sut.PrepareModelForSaveAsync(current, isNewSchedule: false, musicUpdated: false);
+
+        Assert.Equal(4, model.NumberOfTracksToPlay);
+        Assert.True(model.AlwaysPlayFromStart);
+    }
 }
