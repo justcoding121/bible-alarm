@@ -96,6 +96,7 @@ public sealed class ScheduleCommandServiceTests
     private sealed class RecordingToast : IToastService
     {
         public List<(string Message, int Seconds)> Messages { get; } = [];
+        public int ScheduledCalls { get; private set; }
 
         public void Dispose()
         {
@@ -107,7 +108,11 @@ public sealed class ScheduleCommandServiceTests
             return Task.CompletedTask;
         }
 
-        public Task ShowScheduledNotification(AlarmSchedule schedule, int seconds = 3) => Task.CompletedTask;
+        public Task ShowScheduledNotification(AlarmSchedule schedule, int seconds = 3)
+        {
+            ScheduledCalls++;
+            return Task.CompletedTask;
+        }
 
         public Task Clear() => Task.CompletedTask;
     }
@@ -130,9 +135,10 @@ public sealed class ScheduleCommandServiceTests
             throw new InvalidOperationException("save should not run");
     }
 
-    private sealed class StubPlaybackService : IPlaybackService
+    private sealed class RecordingPlaybackService : IPlaybackService
     {
         public bool IsAlarmPlaybackSession => false;
+        public int StopCalls { get; private set; }
 
         public void Dispose()
         {
@@ -146,7 +152,11 @@ public sealed class ScheduleCommandServiceTests
         public Task SeekBackwardAsync() => Task.CompletedTask;
         public Task SeekToAsync(TimeSpan position) => Task.CompletedTask;
         public Task PrepareAndPlayAsync(int scheduleId, bool isAlarm) => Task.CompletedTask;
-        public Task StopAsync() => Task.CompletedTask;
+        public Task StopAsync()
+        {
+            StopCalls++;
+            return Task.CompletedTask;
+        }
         public Task StopForTeardownAsync() => Task.CompletedTask;
         public Task ResetAndRetryAsync(int scheduleId) => Task.CompletedTask;
     }
@@ -186,7 +196,7 @@ public sealed class ScheduleCommandServiceTests
             new RecordingDispatcher(),
             new RecordingNav(),
             new ThrowingScheduleSaveService(),
-            new StubPlaybackService(),
+            new RecordingPlaybackService(),
             new StubNotificationService(),
             toast,
             CreateMapper(),
@@ -210,7 +220,7 @@ public sealed class ScheduleCommandServiceTests
             new RecordingDispatcher(),
             new RecordingNav(),
             new ThrowingScheduleSaveService(),
-            new StubPlaybackService(),
+            new RecordingPlaybackService(),
             new StubNotificationService(),
             toast,
             CreateMapper(),
@@ -231,7 +241,7 @@ public sealed class ScheduleCommandServiceTests
             new RecordingDispatcher(),
             new RecordingNav(),
             new ThrowingScheduleSaveService(),
-            new StubPlaybackService(),
+            new RecordingPlaybackService(),
             new StubNotificationService(),
             toast,
             CreateMapper(),
@@ -252,7 +262,7 @@ public sealed class ScheduleCommandServiceTests
             dispatcher,
             new RecordingNav(),
             new ThrowingScheduleSaveService(),
-            new StubPlaybackService(),
+            new RecordingPlaybackService(),
             new StubNotificationService(),
             new RecordingToast(),
             CreateMapper(),
@@ -277,7 +287,7 @@ public sealed class ScheduleCommandServiceTests
             dispatcher,
             nav,
             new ThrowingScheduleSaveService(),
-            new StubPlaybackService(),
+            new RecordingPlaybackService(),
             new StubNotificationService(),
             new RecordingToast(),
             CreateMapper(),
@@ -289,4 +299,131 @@ public sealed class ScheduleCommandServiceTests
         Assert.Contains(dispatcher.Dispatched, a => a is ResetScheduleStateAction);
         Assert.Equal(1, nav.NavigateHomeCalls);
     }
+
+    [Fact]
+    public async Task ExecuteCancelAsync_existing_schedule_resets_state_and_navigates_home()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var nav = new RecordingNav();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            nav,
+            new ThrowingScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem> { Row(4) }))));
+
+        await sut.ExecuteCancelAsync(isNewSchedule: false, scheduleId: 4, Row(4));
+
+        Assert.Contains(dispatcher.Dispatched, a => a is ResetScheduleStateAction);
+        Assert.Contains(dispatcher.Dispatched, a => a is SetSchedulePageOverlayAction { IsVisible: false });
+        Assert.Equal(1, nav.NavigateHomeCalls);
+        Assert.DoesNotContain(dispatcher.Dispatched, a => a is RemoveScheduleSuccessAction);
+    }
+
+    [Fact]
+    public async Task ExecuteDeleteAsync_blocks_deleting_last_schedule_and_hides_overlay()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var nav = new RecordingNav();
+        var toast = new RecordingToast();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            nav,
+            new ThrowingScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            toast,
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem> { Row(1) }))));
+
+        var ok = await sut.ExecuteDeleteAsync(isNewSchedule: false, scheduleId: 1, scheduleCount: 1);
+
+        Assert.False(ok);
+        Assert.Equal(0, nav.NavigateHomeCalls);
+        Assert.Equal(AppConstants.ToastMessages.CannotDeleteLastSchedule, toast.Messages[0].Message);
+        Assert.Contains(dispatcher.Dispatched, a => a is SetSchedulePageOverlayAction { IsVisible: false });
+        Assert.DoesNotContain(dispatcher.Dispatched, a => a is DeleteScheduleAction);
+    }
+
+    [Fact]
+    public async Task ExecuteDeleteAsync_dispatches_delete_and_navigates_for_existing_schedule()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var nav = new RecordingNav();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            nav,
+            new ThrowingScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem> { Row(1), Row(2) }))));
+
+        var ok = await sut.ExecuteDeleteAsync(isNewSchedule: false, scheduleId: 2, scheduleCount: 2);
+
+        Assert.True(ok);
+        Assert.Contains(dispatcher.Dispatched, a => a is DeleteScheduleAction d && d.ScheduleId == 2);
+        Assert.Contains(dispatcher.Dispatched, a => a is ResetScheduleStateAction);
+        Assert.Equal(1, nav.NavigateHomeCalls);
+    }
+
+    [Fact]
+    public async Task StopPlaybackIfNeededAsync_stops_when_editing_schedule_currently_playing()
+    {
+        var playback = new RecordingPlaybackService();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            new RecordingDispatcher(),
+            new RecordingNav(),
+            new ThrowingScheduleSaveService(),
+            playback,
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        await sut.StopPlaybackIfNeededAsync(
+            isNewSchedule: false,
+            isPreparingOrPlaying: true,
+            scheduleId: 7,
+            currentPlaybackScheduleId: 7);
+
+        Assert.Equal(1, playback.StopCalls);
+    }
+
+    [Fact]
+    public async Task HandleSaveResultAsync_saved_disabled_shows_saved_toast_without_scheduled_notification()
+    {
+        var toast = new RecordingToast();
+        var nav = new RecordingNav();
+        var dispatcher = new RecordingDispatcher();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            nav,
+            new ThrowingScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            toast,
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        await sut.HandleSaveResultAsync(
+            saved: true,
+            scheduleId: 3,
+            isEnabled: false,
+            model: new AlarmSchedule { Id = 3, Name = "Off", IsEnabled = false });
+
+        Assert.Equal(1, nav.NavigateHomeCalls);
+        Assert.Equal(0, toast.ScheduledCalls);
+        Assert.Equal(AppConstants.ToastMessages.ScheduleSaved, toast.Messages[0].Message);
+    }
+
 }

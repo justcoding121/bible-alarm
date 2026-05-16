@@ -30,9 +30,15 @@ public sealed class PlaybackFailureHandlerTests
     private sealed class StubNotificationService : INotificationService
     {
         public List<int> ShowCalls { get; } = [];
+        public Exception? NextShowException { get; set; }
 
         public Task ShowNotificationAsync(int scheduleId)
         {
+            if (NextShowException != null)
+            {
+                throw NextShowException;
+            }
+
             ShowCalls.Add(scheduleId);
             return Task.CompletedTask;
         }
@@ -183,5 +189,74 @@ public sealed class PlaybackFailureHandlerTests
         Assert.Equal(0, index);
         Assert.Equal(1, plays);
         Assert.Contains(dispatcher.Dispatched, a => a is PlaybackErrorAction { ErrorMessage: null });
+    }
+
+    [Fact]
+    public async Task HandlePlaybackFailureAsync_alarm_without_fallback_dispatches_download_failed()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var notifications = new StubNotificationService();
+        var fallback = new StubFallbackAlarmSoundService { NextTrack = null };
+        var sut = new PlaybackFailureHandler(fallback, notifications, dispatcher, TestLogging.CreateLogger());
+        var plays = 0;
+
+        await sut.HandlePlaybackFailureAsync(new PlaybackHandleFailureRequest(
+            IsAlarm: true,
+            CurrentScheduleId: 5,
+            ResetAsync: () => Task.CompletedTask,
+            SetPlaylist: _ => { },
+            SetCurrentTrackIndex: _ => { },
+            PlayCurrentTrackAsync: _ =>
+            {
+                plays++;
+                return Task.CompletedTask;
+            }));
+
+        Assert.Single(notifications.ShowCalls);
+        var errors = dispatcher.Dispatched.OfType<PlaybackErrorAction>().ToList();
+        Assert.Contains(errors, e => e.ErrorMessage == PlaybackUserFacingStrings.MediaPlaybackFailedPlayingFallbackAlarm);
+        Assert.Contains(errors, e => e.ErrorMessage == PlaybackUserFacingStrings.MediaDownloadFailedCheckInternet);
+        Assert.Equal(0, plays);
+    }
+
+    [Fact]
+    public async Task HandlePlaybackFailureAsync_alarm_notification_failure_dispatches_check_internet()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var notifications = new StubNotificationService { NextShowException = new InvalidOperationException("notify") };
+        var fallback = new StubFallbackAlarmSoundService { NextTrack = FallbackTrack() };
+        var sut = new PlaybackFailureHandler(fallback, notifications, dispatcher, TestLogging.CreateLogger());
+
+        await sut.HandlePlaybackFailureAsync(new PlaybackHandleFailureRequest(
+            IsAlarm: true,
+            CurrentScheduleId: 8,
+            ResetAsync: () => Task.CompletedTask,
+            SetPlaylist: _ => { },
+            SetCurrentTrackIndex: _ => { },
+            PlayCurrentTrackAsync: _ => Task.CompletedTask));
+
+        var errors = dispatcher.Dispatched.OfType<PlaybackErrorAction>().ToList();
+        Assert.Contains(errors, e => e.ErrorMessage == PlaybackUserFacingStrings.MediaPlaybackFailedPlayingFallbackAlarm);
+        Assert.Contains(errors, e => e.ErrorMessage == PlaybackUserFacingStrings.MediaPlaybackFailedCheckInternet);
+    }
+
+    [Fact]
+    public async Task TryPlayFallbackWhenPrepareFailedAsync_keepErrorMessage_skips_clearing_error()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var notifications = new StubNotificationService();
+        var fallback = new StubFallbackAlarmSoundService { NextTrack = FallbackTrack() };
+        var sut = new PlaybackFailureHandler(fallback, notifications, dispatcher, TestLogging.CreateLogger());
+
+        await sut.TryPlayFallbackWhenPrepareFailedAsync(new PlaybackPrepareFallbackRequest(
+            ScheduleId: 2,
+            KeepErrorMessage: true,
+            SetPlaylist: _ => { },
+            SetCurrentTrackIndex: _ => { },
+            ClearManuallyVisited: () => { },
+            NotifyNavigationChanged: (_, _) => { },
+            PlayCurrentTrackAsync: _ => Task.CompletedTask));
+
+        Assert.DoesNotContain(dispatcher.Dispatched, a => a is PlaybackErrorAction { ErrorMessage: null });
     }
 }

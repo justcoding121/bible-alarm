@@ -1,5 +1,7 @@
 #nullable enable
 
+using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
@@ -100,17 +102,80 @@ public sealed class DefaultScheduleServiceTests
 
     private sealed class StubPreparePlaybackService : IPreparePlaybackService
     {
+        public bool ReturnNullTrack { get; set; }
+
         public Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<List<AudioPlayerTrack>?>([]);
 
         public Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult<AudioPlayerTrack?>(new AudioPlayerTrack
-            {
-                PlayItem = playItem,
-                Uri = playItem.Url,
-            });
+            Task.FromResult(ReturnNullTrack
+                ? null
+                : new AudioPlayerTrack
+                {
+                    PlayItem = playItem,
+                    Uri = playItem.Url,
+                });
+    }
+
+    private sealed class LastPlayedDbAlarmScheduleService : IAlarmScheduleService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(
+            System.Linq.Expressions.Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true,
+            bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(new AlarmSchedule { Id = 10, Name = "First" });
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId,
+            Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AlarmSchedule());
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(scheduleId == 99);
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
     }
 
     private sealed class StubDisplayMetadataService : IDisplayMetadataService
@@ -218,13 +283,15 @@ public sealed class DefaultScheduleServiceTests
 
     private static DefaultScheduleService CreateSut(
         IState<ApplicationState> state,
-        IInternetConnectivityChecker? connectivity = null) =>
+        IInternetConnectivityChecker? connectivity = null,
+        IAlarmScheduleService? alarmScheduleService = null,
+        IPreparePlaybackService? preparePlaybackService = null) =>
         new(
             TestLogging.CreateLogger(),
             state,
-            new IdleAlarmScheduleService(),
+            alarmScheduleService ?? new IdleAlarmScheduleService(),
             new StubPlaylistService(),
-            new StubPreparePlaybackService(),
+            preparePlaybackService ?? new StubPreparePlaybackService(),
             new StubDisplayMetadataService(),
             connectivity);
 
@@ -326,5 +393,130 @@ public sealed class DefaultScheduleServiceTests
 
         Assert.Equal(10, metadata.ScheduleId);
         Assert.Contains("First", metadata.Title, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetNextScheduleTrackMetaDataAsync_prepare_failure_uses_listing_fallback_metadata()
+    {
+        var stateItem = Schedule(15, "Prepare fail");
+        using var sut = CreateSut(
+            new FakeApplicationState(new ApplicationState(Schedules(stateItem))),
+            preparePlaybackService: new StubPreparePlaybackService { ReturnNullTrack = true });
+
+        var metadata = await sut.GetNextScheduleTrackMetaDataAsync();
+
+        Assert.Equal(15, metadata.ScheduleId);
+        Assert.Contains("Prepare fail", metadata.Title, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetNextScheduleTrackMetaDataAsync_prefers_last_played_schedule_in_state()
+    {
+        if (!TryBootstrapMauiAppForPreferences())
+        {
+            return;
+        }
+
+        try
+        {
+            LastPlayedMetadataHelper.ClearLastPlayedMetadata();
+            LastPlayedMetadataHelper.SaveLastPlayedMetadata("Last", "Artist", scheduleId: 99);
+
+            var state = new FakeApplicationState(new ApplicationState(Schedules(
+                Schedule(10, "First"),
+                Schedule(99, "Last played"))));
+            using var sut = CreateSut(state);
+
+            var metadata = await sut.GetNextScheduleTrackMetaDataAsync();
+
+            Assert.Equal(99, metadata.ScheduleId);
+            Assert.Contains("Last played", metadata.Title, StringComparison.Ordinal);
+        }
+        finally
+        {
+            TryClearLastPlayedMetadata();
+        }
+    }
+
+    [Fact]
+    public async Task GetNextScheduleTrackMetaDataAsync_uses_last_played_from_db_when_missing_from_state()
+    {
+        if (!TryBootstrapMauiAppForPreferences())
+        {
+            return;
+        }
+
+        try
+        {
+            LastPlayedMetadataHelper.ClearLastPlayedMetadata();
+            LastPlayedMetadataHelper.SaveLastPlayedMetadata("Last", "Artist", scheduleId: 99);
+
+            using var sut = CreateSut(
+                new FakeApplicationState(new ApplicationState(Schedules(Schedule(10, "In state only")))),
+                alarmScheduleService: new LastPlayedDbAlarmScheduleService());
+
+            var metadata = await sut.GetNextScheduleTrackMetaDataAsync();
+
+            Assert.Equal(99, metadata.ScheduleId);
+        }
+        finally
+        {
+            TryClearLastPlayedMetadata();
+        }
+    }
+
+    [Fact]
+    public async Task GetNextScheduleInRotationMetadataAsync_advances_to_next_non_music_schedule()
+    {
+        if (!TryBootstrapMauiAppForPreferences())
+        {
+            return;
+        }
+
+        try
+        {
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(10);
+            using var sut = CreateSut(new FakeApplicationState(new ApplicationState(Schedules(
+                Schedule(10, "First"),
+                Schedule(20, "Second")))));
+
+            var metadata = await sut.GetNextScheduleInRotationMetadataAsync();
+
+            Assert.Equal(20, metadata.ScheduleId);
+            Assert.Contains("Second", metadata.Title, StringComparison.Ordinal);
+        }
+        finally
+        {
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(null);
+        }
+    }
+
+    private static bool TryBootstrapMauiAppForPreferences()
+    {
+        if (MauiAppHolder.IsInitialized)
+        {
+            return true;
+        }
+
+        try
+        {
+            MauiAppHolder.CreateAndStore();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void TryClearLastPlayedMetadata()
+    {
+        try
+        {
+            LastPlayedMetadataHelper.ClearLastPlayedMetadata();
+        }
+        catch
+        {
+        }
     }
 }
