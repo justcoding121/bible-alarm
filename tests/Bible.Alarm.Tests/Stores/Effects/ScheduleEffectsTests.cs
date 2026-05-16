@@ -4,8 +4,10 @@ using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Stores.Mapping;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
@@ -46,6 +48,71 @@ public sealed class ScheduleEffectsTests
     {
         public Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule) =>
             Task.CompletedTask;
+    }
+
+    private sealed class DeleteCapableAlarmScheduleService : IAlarmScheduleService
+    {
+        public List<AlarmSchedule> AllSchedules { get; init; } = [];
+        public List<int> DeletedIds { get; } = [];
+
+        public void Dispose()
+        {
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(AllSchedules);
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default)
+        {
+            DeletedIds.Add(scheduleId);
+            return Task.CompletedTask;
+        }
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(
+            System.Linq.Expressions.Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true,
+            bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(AllSchedules);
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId,
+            Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AlarmSchedule());
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(AllSchedules.Count > 0);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
     }
 
     private sealed class IdleAlarmScheduleService : IAlarmScheduleService
@@ -152,6 +219,28 @@ public sealed class ScheduleEffectsTests
         return cfg.CreateMapper();
     }
 
+    private static IMapper CreateScheduleMapper()
+    {
+        var cfg = new MapperConfiguration(
+            c => c.AddProfile<ScheduleMappingProfile>(),
+            NullLoggerFactory.Instance);
+        return cfg.CreateMapper();
+    }
+
+    private static AlarmSchedule Alarm(int id, string name) =>
+        new()
+        {
+            Id = id,
+            Name = name,
+            IsEnabled = true,
+            Hour = 6,
+            Minute = 0,
+            Second = 0,
+            DaysOfWeek = WeekDays.Monday,
+            NotificationEnabled = true,
+            MusicEnabled = false,
+        };
+
     [Fact]
     public async Task HandleMusicSectionSelected_returns_without_dispatching_when_current_schedule_missing()
     {
@@ -209,5 +298,30 @@ public sealed class ScheduleEffectsTests
             dispatcher);
 
         Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleDeleteSchedule_deletes_from_db_and_dispatches_success()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var alarmSchedules = new DeleteCapableAlarmScheduleService
+        {
+            AllSchedules = [Alarm(1, "First"), Alarm(2, "Second")],
+        };
+
+        var sut = new ScheduleEffects(
+            CreateScheduleMapper(),
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: alarmSchedules,
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleDeleteSchedule(new DeleteScheduleAction(2), dispatcher);
+
+        Assert.Equal([2], alarmSchedules.DeletedIds);
+        var success = Assert.IsType<RemoveScheduleSuccessAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Equal(2, success.ScheduleId);
     }
 }

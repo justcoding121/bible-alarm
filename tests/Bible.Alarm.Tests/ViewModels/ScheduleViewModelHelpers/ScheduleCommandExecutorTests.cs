@@ -55,6 +55,8 @@ public sealed class ScheduleCommandExecutorTests
     private sealed class RecordingScheduleCommandService : IScheduleCommandService
     {
         public List<(bool IsNew, int ScheduleId)> CancelCalls { get; } = [];
+        public List<(bool IsNew, int ScheduleId, int ScheduleCount)> DeleteCalls { get; } = [];
+        public List<(bool IsNew, int ScheduleId)> SaveCalls { get; } = [];
 
         public Task ExecuteCancelAsync(bool isNewSchedule, int scheduleId, ScheduleStateItem? currentSchedule)
         {
@@ -62,11 +64,17 @@ public sealed class ScheduleCommandExecutorTests
             return Task.CompletedTask;
         }
 
-        public Task<bool> ExecuteSaveAsync(bool isNewSchedule, int scheduleId, ScheduleStateItem currentSchedule, bool musicUpdated, bool biblePublicationUpdated, bool modelInitialized) =>
-            Task.FromResult(false);
+        public Task<bool> ExecuteSaveAsync(bool isNewSchedule, int scheduleId, ScheduleStateItem currentSchedule, bool musicUpdated, bool biblePublicationUpdated, bool modelInitialized)
+        {
+            SaveCalls.Add((isNewSchedule, scheduleId));
+            return Task.FromResult(true);
+        }
 
-        public Task<bool> ExecuteDeleteAsync(bool isNewSchedule, int scheduleId, int scheduleCount) =>
-            Task.FromResult(false);
+        public Task<bool> ExecuteDeleteAsync(bool isNewSchedule, int scheduleId, int scheduleCount)
+        {
+            DeleteCalls.Add((isNewSchedule, scheduleId, scheduleCount));
+            return Task.FromResult(true);
+        }
 
         public Task ValidateNotificationPermissionsAsync(ScheduleStateItem? currentSchedule) =>
             Task.CompletedTask;
@@ -145,5 +153,105 @@ public sealed class ScheduleCommandExecutorTests
         Assert.False(call.IsNew);
         Assert.Equal(42, call.ScheduleId);
         Assert.Equal(new[] { true, false }, cancelBusyFlags);
+    }
+
+    [Fact]
+    public async Task DeleteCommand_skips_service_when_only_one_saved_schedule_exists()
+    {
+        var schedule = Schedule(9);
+        var appState = new ApplicationState(new ObservableHashSet<ScheduleStateItem> { schedule }, schedule);
+        var commands = new RecordingScheduleCommandService();
+
+        var sut = new ScheduleCommandExecutor(
+            new ScheduleCommandExecutorCoreDeps(
+                commands,
+                new NoOpScheduleMediaCacheService(),
+                new FakeApplicationState(appState),
+                new FakePlaybackState(new PlaybackState()),
+                new RecordingDispatcher(),
+                CreateMapper(),
+                TestLogging.CreateLogger()),
+            new ScheduleCommandExecutorUiHooks(
+                GetMusicSelectionContainerViewModel: () => null,
+                GetAlarmSettingsContainerViewModel: null,
+                GetNumberOfTrackContainerViewModel: null,
+                SetIsSaving: null,
+                SetIsCancelBusy: null,
+                SetIsSaveBusy: null,
+                SetIsDeleteBusy: null));
+
+        sut.InitializeCommands(out _, out _, out var delete);
+        await ((IAsyncRelayCommand)delete!).ExecuteAsync(null);
+
+        Assert.Empty(commands.DeleteCalls);
+    }
+
+    [Fact]
+    public async Task DeleteCommand_invokes_service_when_multiple_saved_schedules_exist()
+    {
+        var current = Schedule(2);
+        var appState = new ApplicationState(
+            new ObservableHashSet<ScheduleStateItem> { Schedule(1), current },
+            current);
+        var commands = new RecordingScheduleCommandService();
+
+        var sut = new ScheduleCommandExecutor(
+            new ScheduleCommandExecutorCoreDeps(
+                commands,
+                new NoOpScheduleMediaCacheService(),
+                new FakeApplicationState(appState),
+                new FakePlaybackState(new PlaybackState()),
+                new RecordingDispatcher(),
+                CreateMapper(),
+                TestLogging.CreateLogger()),
+            new ScheduleCommandExecutorUiHooks(
+                GetMusicSelectionContainerViewModel: () => null,
+                GetAlarmSettingsContainerViewModel: null,
+                GetNumberOfTrackContainerViewModel: null,
+                SetIsSaving: null,
+                SetIsCancelBusy: null,
+                SetIsSaveBusy: null,
+                SetIsDeleteBusy: null));
+
+        sut.InitializeCommands(out _, out _, out var delete);
+        await ((IAsyncRelayCommand)delete!).ExecuteAsync(null);
+
+        var call = Assert.Single(commands.DeleteCalls);
+        Assert.False(call.IsNew);
+        Assert.Equal(2, call.ScheduleId);
+        Assert.Equal(2, call.ScheduleCount);
+    }
+
+    [Fact]
+    public async Task SaveCommand_invokes_save_service_for_current_schedule()
+    {
+        var current = Schedule(6);
+        var appState = new ApplicationState(new ObservableHashSet<ScheduleStateItem> { current }, current);
+        var commands = new RecordingScheduleCommandService();
+
+        var sut = new ScheduleCommandExecutor(
+            new ScheduleCommandExecutorCoreDeps(
+                commands,
+                new NoOpScheduleMediaCacheService(),
+                new FakeApplicationState(appState),
+                new FakePlaybackState(new PlaybackState()),
+                new RecordingDispatcher(),
+                CreateMapper(),
+                TestLogging.CreateLogger()),
+            new ScheduleCommandExecutorUiHooks(
+                GetMusicSelectionContainerViewModel: () => null,
+                GetAlarmSettingsContainerViewModel: null,
+                GetNumberOfTrackContainerViewModel: null,
+                SetIsSaving: null,
+                SetIsCancelBusy: null,
+                SetIsSaveBusy: null,
+                SetIsDeleteBusy: null));
+
+        sut.InitializeCommands(out _, out var save, out _);
+        await ((IAsyncRelayCommand)save!).ExecuteAsync(null);
+
+        var call = Assert.Single(commands.SaveCalls);
+        Assert.False(call.IsNew);
+        Assert.Equal(6, call.ScheduleId);
     }
 }

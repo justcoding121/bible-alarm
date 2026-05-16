@@ -18,6 +18,7 @@ using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Fluxor;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Maui.Devices;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Tests;
@@ -133,6 +134,49 @@ public sealed class ScheduleCommandServiceTests
             throw new InvalidOperationException("save should not run");
         public ScheduleStateItem PrepareScheduleStateItem(AlarmSchedule model, ScheduleStateItem currentSchedule, bool musicUpdated) =>
             throw new InvalidOperationException("save should not run");
+    }
+
+    private sealed class StubScheduleSaveService : IScheduleSaveService
+    {
+        public Task<AlarmSchedule> PrepareModelForSaveAsync(ScheduleStateItem currentSchedule, bool isNewSchedule, bool musicUpdated) =>
+            Task.FromResult(new AlarmSchedule
+            {
+                Id = currentSchedule.Id,
+                Name = currentSchedule.Name,
+                IsEnabled = currentSchedule.IsEnabled,
+                Hour = currentSchedule.Hour,
+                Minute = currentSchedule.Minute,
+                DaysOfWeek = currentSchedule.DaysOfWeek,
+            });
+
+        public ScheduleStateItem PrepareScheduleStateItem(AlarmSchedule model, ScheduleStateItem currentSchedule, bool musicUpdated) =>
+            new()
+            {
+                Id = model.Id,
+                Name = model.Name,
+                IsEnabled = model.IsEnabled,
+                Hour = currentSchedule.Hour,
+                Minute = currentSchedule.Minute,
+                Second = currentSchedule.Second,
+                DaysOfWeek = currentSchedule.DaysOfWeek,
+                NotificationEnabled = currentSchedule.NotificationEnabled,
+                MusicEnabled = currentSchedule.MusicEnabled,
+                SnoozeMinutes = currentSchedule.SnoozeMinutes,
+                NumberOfTracksToPlay = currentSchedule.NumberOfTracksToPlay,
+                AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart,
+                CurrentPlayItem = currentSchedule.CurrentPlayItem,
+                BiblePublicationFinishedDuration = currentSchedule.BiblePublicationFinishedDuration,
+            };
+    }
+
+    private sealed class DenyNotificationSchedulingService : INotificationService
+    {
+        public Task ShowNotificationAsync(int scheduleId) => Task.CompletedTask;
+        public Task ScheduleNotificationAsync(AlarmSchedule alarmSchedule, string title, string body) => Task.CompletedTask;
+        public Task RemoveAsync(int scheduleId) => Task.CompletedTask;
+        public Task<bool> IsScheduledAsync(int scheduleId) => Task.FromResult(false);
+        public Task ClearDeliveredNotificationAsync(int scheduleId) => Task.CompletedTask;
+        public Task<bool> CanScheduleAsync() => Task.FromResult(false);
     }
 
     private sealed class RecordingPlaybackService : IPlaybackService
@@ -424,6 +468,132 @@ public sealed class ScheduleCommandServiceTests
         Assert.Equal(1, nav.NavigateHomeCalls);
         Assert.Equal(0, toast.ScheduledCalls);
         Assert.Equal(AppConstants.ToastMessages.ScheduleSaved, toast.Messages[0].Message);
+    }
+
+    [Fact]
+    public async Task ExecuteSaveAsync_existing_schedule_dispatches_update_with_should_save()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var schedule = Row(5);
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            new RecordingNav(),
+            new StubScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem> { Row(5) }))));
+
+        var ok = await sut.ExecuteSaveAsync(false, 5, schedule, musicUpdated: false, biblePublicationUpdated: false, modelInitialized: true);
+
+        Assert.True(ok);
+        var update = Assert.IsType<UpdateScheduleFromViewModelAction>(
+            Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>()));
+        Assert.True(update.ShouldSave);
+        Assert.Equal(5, update.Schedule.Id);
+    }
+
+    [Fact]
+    public async Task ExecuteSaveAsync_resets_bible_progress_when_publication_updated()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var schedule = Row(8);
+        schedule.BiblePublicationFinishedDuration = TimeSpan.FromMinutes(12);
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            new RecordingNav(),
+            new StubScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        await sut.ExecuteSaveAsync(false, 8, schedule, false, biblePublicationUpdated: true, modelInitialized: true);
+
+        var update = Assert.IsType<UpdateScheduleFromViewModelAction>(
+            Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>()));
+        Assert.Equal(TimeSpan.Zero, update.Schedule.BiblePublicationFinishedDuration);
+    }
+
+    [Fact]
+    public async Task HandleSaveResultAsync_saved_enabled_shows_scheduled_notification()
+    {
+        var toast = new RecordingToast();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            new RecordingDispatcher(),
+            new RecordingNav(),
+            new ThrowingScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            toast,
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        await sut.HandleSaveResultAsync(
+            saved: true,
+            scheduleId: 11,
+            isEnabled: true,
+            model: new AlarmSchedule { Id = 11, Name = "On", IsEnabled = true });
+
+        Assert.Equal(1, toast.ScheduledCalls);
+        Assert.Empty(toast.Messages);
+    }
+
+    [Fact]
+    public async Task ExecuteDeleteAsync_new_schedule_navigates_home_without_delete_action()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var nav = new RecordingNav();
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            nav,
+            new ThrowingScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        var ok = await sut.ExecuteDeleteAsync(isNewSchedule: true, scheduleId: -1, scheduleCount: 0);
+
+        Assert.True(ok);
+        Assert.Equal(1, nav.NavigateHomeCalls);
+        Assert.DoesNotContain(dispatcher.Dispatched, a => a is DeleteScheduleAction);
+    }
+
+    [Fact]
+    public async Task ValidateNotificationPermissionsAsync_disables_schedule_when_notifications_unavailable()
+    {
+        if (DeviceInfo.Platform != DevicePlatform.iOS && DeviceInfo.Platform != DevicePlatform.WinUI)
+        {
+            return;
+        }
+
+        var dispatcher = new RecordingDispatcher();
+        var schedule = Row(13);
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            new RecordingNav(),
+            new ThrowingScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new DenyNotificationSchedulingService(),
+            new RecordingToast(),
+            CreateMapper(),
+            new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+        await sut.ValidateNotificationPermissionsAsync(schedule);
+
+        var update = Assert.IsType<UpdateScheduleFromViewModelAction>(
+            Assert.Single(dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>()));
+        Assert.False(update.Schedule.IsEnabled);
+        Assert.False(update.ShouldSave);
     }
 
 }

@@ -58,8 +58,12 @@ public sealed class PlaybackFailureHandlerTests
     private sealed class StubFallbackAlarmSoundService : IFallbackAlarmSoundService
     {
         public AudioPlayerTrack? NextTrack { get; set; }
+        public Exception? NextException { get; set; }
 
-        public Task<AudioPlayerTrack?> GetFallbackAlarmTrackAsync() => Task.FromResult(NextTrack);
+        public Task<AudioPlayerTrack?> GetFallbackAlarmTrackAsync() =>
+            NextException != null
+                ? Task.FromException<AudioPlayerTrack?>(NextException)
+                : Task.FromResult(NextTrack);
     }
 
     private static TrackMetadata MinimalMeta() =>
@@ -258,5 +262,52 @@ public sealed class PlaybackFailureHandlerTests
             PlayCurrentTrackAsync: _ => Task.CompletedTask));
 
         Assert.DoesNotContain(dispatcher.Dispatched, a => a is PlaybackErrorAction { ErrorMessage: null });
+    }
+
+    [Fact]
+    public async Task TryPlayFallbackWhenPrepareFailedAsync_play_failure_dispatches_download_failed()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var notifications = new StubNotificationService();
+        var fallback = new StubFallbackAlarmSoundService { NextTrack = FallbackTrack() };
+        var sut = new PlaybackFailureHandler(fallback, notifications, dispatcher, TestLogging.CreateLogger());
+
+        await sut.TryPlayFallbackWhenPrepareFailedAsync(new PlaybackPrepareFallbackRequest(
+            ScheduleId: 4,
+            KeepErrorMessage: false,
+            SetPlaylist: _ => { },
+            SetCurrentTrackIndex: _ => { },
+            ClearManuallyVisited: () => { },
+            NotifyNavigationChanged: (_, _) => { },
+            PlayCurrentTrackAsync: _ => throw new InvalidOperationException("play failed")));
+
+        var error = Assert.Single(
+            dispatcher.Dispatched.OfType<PlaybackErrorAction>(),
+            a => a.ErrorMessage == PlaybackUserFacingStrings.DownloadFailedCheckInternet);
+        Assert.Equal(PlaybackUserFacingStrings.DownloadFailedCheckInternet, error.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task TryPlayFallbackWhenPrepareFailedAsync_fallback_lookup_failure_dispatches_download_failed()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var notifications = new StubNotificationService();
+        var fallback = new StubFallbackAlarmSoundService
+        {
+            NextException = new InvalidOperationException("lookup failed"),
+        };
+        var sut = new PlaybackFailureHandler(fallback, notifications, dispatcher, TestLogging.CreateLogger());
+
+        await sut.TryPlayFallbackWhenPrepareFailedAsync(new PlaybackPrepareFallbackRequest(
+            ScheduleId: 6,
+            KeepErrorMessage: false,
+            SetPlaylist: _ => { },
+            SetCurrentTrackIndex: _ => { },
+            ClearManuallyVisited: () => { },
+            NotifyNavigationChanged: (_, _) => { },
+            PlayCurrentTrackAsync: _ => Task.CompletedTask));
+
+        var error = Assert.Single(dispatcher.Dispatched.OfType<PlaybackErrorAction>());
+        Assert.Equal(PlaybackUserFacingStrings.DownloadFailedCheckInternet, error.ErrorMessage);
     }
 }
