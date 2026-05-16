@@ -16,7 +16,7 @@ public sealed class ScheduleViewModelManagerTests
     {
         var sut = new ScheduleViewModelManager(
             TestLogging.CreateLogger(),
-            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.DependencyInjection.ServiceCollection().BuildServiceProvider(),
             _ => { });
         var items = new ObservableHashSet<ScheduleStateItem>
         {
@@ -34,12 +34,11 @@ public sealed class ScheduleViewModelManagerTests
     {
         var sut = new ScheduleViewModelManager(
             TestLogging.CreateLogger(),
-            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.DependencyInjection.ServiceCollection().BuildServiceProvider(),
             _ => { });
 
         sut.DisposeAll();
 
         Assert.Empty(sut.ScheduleViewModels);
     }
-
 }

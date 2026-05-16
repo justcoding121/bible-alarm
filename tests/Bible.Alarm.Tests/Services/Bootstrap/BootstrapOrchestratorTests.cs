@@ -53,15 +53,23 @@ public sealed class BootstrapOrchestratorTests : IDisposable
     {
         public int CopyCalls { get; private set; }
 
+        public int MigrateCalls { get; private set; }
+
+        public bool WasMediaIndexReplaced { get; set; }
+
         public Task CopyResourcesAsync()
         {
             CopyCalls++;
             return Task.CompletedTask;
         }
 
-        public bool WasMediaIndexReplacedThisRun() => false;
+        public bool WasMediaIndexReplacedThisRun() => WasMediaIndexReplaced;
 
-        public Task MigrateNonEnglishMediaDataAsync() => Task.CompletedTask;
+        public Task MigrateNonEnglishMediaDataAsync()
+        {
+            MigrateCalls++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class RecordingScheduleBootstrap : IScheduleBootstrapService
@@ -200,5 +208,23 @@ public sealed class BootstrapOrchestratorTests : IDisposable
 
         Assert.Equal(2, sched.InitializeCalls);
         Assert.Equal(1, db.InitializeCalls);
+    }
+
+    [Fact]
+    public async Task VerifyServicesAsync_migrates_media_when_index_replaced_on_first_run()
+    {
+        var res = new RecordingResourceBootstrap { WasMediaIndexReplaced = true };
+        var sut = new BootstrapOrchestrator(new BootstrapOrchestratorDeps(
+            new RecordingDatabaseBootstrap(),
+            new RecordingFluxorBootstrap(),
+            res,
+            new RecordingScheduleBootstrap(),
+            new RecordingPlatformBootstrap(),
+            new IdleLanguageNameService(),
+            new IdleCategoryNameService()));
+
+        await sut.VerifyServicesAsync(initializeUi: false);
+
+        Assert.Equal(1, res.MigrateCalls);
     }
 }

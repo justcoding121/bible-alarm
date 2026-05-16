@@ -508,4 +508,26 @@ public sealed class SchedulePersistenceServiceTests
 
         Assert.False(saved);
     }
+
+    [Fact]
+    public async Task SaveScheduleAsync_new_disabled_schedule_does_not_create_platform_alarm()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var alarm = new RecordingCreateAlarmService();
+        var schedules = new AssigningIdAlarmScheduleService();
+        var sut = new SchedulePersistenceService(
+            TestLogging.CreateLogger(),
+            alarm,
+            dispatcher,
+            new IdleMediaCacheService(),
+            schedules);
+
+        var schedule = new AlarmSchedule { Name = "Disabled", IsEnabled = false };
+
+        var saved = await sut.SaveScheduleAsync(schedule, isNewSchedule: true);
+
+        Assert.True(saved);
+        Assert.Empty(alarm.Created);
+        Assert.IsType<AddScheduleAction>(Assert.Single(dispatcher.Dispatched));
+    }
 }

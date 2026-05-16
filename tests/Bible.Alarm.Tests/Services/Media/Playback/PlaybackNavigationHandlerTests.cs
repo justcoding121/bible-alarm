@@ -292,4 +292,74 @@ public sealed class PlaybackNavigationHandlerTests
         Assert.Single(playedFromBeginning);
         Assert.False(playedFromBeginning[0]);
     }
+
+    [Fact]
+    public async Task PlayPreviousAsync_moves_to_previous_track_in_playlist()
+    {
+        using var audio = new StubAudioPlayer();
+        var dispatcher = new RecordingDispatcher();
+        using var progress = new ProgressTracker(new StubPlaylistService(), audio, TestLogging.CreateLogger());
+        var nav = new PlaybackNavigationManager(dispatcher);
+        var sut = new PlaybackNavigationHandler(audio, dispatcher, TestLogging.CreateLogger(), progress, nav);
+
+        var playlist = new List<AudioPlayerTrack> { PlaylistTrack("1"), PlaylistTrack("2") };
+        var index = 1;
+        var visited = new HashSet<int>();
+        var playedFromBeginning = new List<bool>();
+
+        await sut.PlayPreviousAsync(new PlaybackNavigationPreviousRequest(
+            playlist,
+            () => index,
+            i => index = i,
+            1,
+            false,
+            () => Task.FromResult(false),
+            visited,
+            _ => Task.CompletedTask,
+            fromBeginning =>
+            {
+                playedFromBeginning.Add(fromBeginning);
+                return Task.CompletedTask;
+            },
+            () => Task.CompletedTask));
+
+        Assert.Equal(0, index);
+        Assert.Contains(dispatcher.Dispatched, a => a is SetAutoAdvancingAction);
+        Assert.Single(playedFromBeginning);
+        Assert.True(playedFromBeginning[0]);
+    }
+
+    [Fact]
+    public async Task PlayNextAsync_at_last_track_stops_playback_for_finite_playlist()
+    {
+        using var audio = new StubAudioPlayer();
+        var dispatcher = new RecordingDispatcher();
+        using var progress = new ProgressTracker(new StubPlaylistService(), audio, TestLogging.CreateLogger());
+        var nav = new PlaybackNavigationManager(dispatcher);
+        var sut = new PlaybackNavigationHandler(audio, dispatcher, TestLogging.CreateLogger(), progress, nav);
+
+        var playlist = new List<AudioPlayerTrack> { PlaylistTrack("1") };
+        var index = 0;
+        var stopped = false;
+
+        await sut.PlayNextAsync(new PlaybackNavigationNextRequest(
+            playlist,
+            () => index,
+            i => index = i,
+            1,
+            false,
+            () => Task.FromResult(false),
+            [],
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            () =>
+            {
+                stopped = true;
+                return Task.CompletedTask;
+            },
+            () => Task.CompletedTask));
+
+        Assert.True(stopped);
+        Assert.Contains(dispatcher.Dispatched, a => a is PlaybackTrackTransitionEndedAction);
+    }
 }
