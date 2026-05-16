@@ -134,4 +134,80 @@ public sealed class ScheduleSaveServiceTests
         Assert.Equal("Song 1", item.MusicTrackName);
         Assert.Equal(2, item.NumberOfTracksToPlay);
     }
+
+    [Fact]
+    public async Task PrepareModelForSaveAsync_keeps_music_on_new_schedule_when_music_updated()
+    {
+        var sut = new ScheduleSaveService(TestLogging.CreateLogger(), CreateMapper());
+        var current = new ScheduleStateItem
+        {
+            Id = 0,
+            BiblePublicationCode = "nwt",
+            MusicEnabled = true,
+            MusicPublicationCode = "sjjm",
+            MusicTrackCode = "3",
+        };
+
+        var model = await sut.PrepareModelForSaveAsync(current, isNewSchedule: true, musicUpdated: true);
+
+        Assert.NotNull(model.Music);
+        Assert.Equal("3", model.Music!.TrackCode);
+    }
+
+    [Fact]
+    public async Task PrepareModelForSaveAsync_sets_category_code_from_bible_category_name()
+    {
+        var sut = new ScheduleSaveService(TestLogging.CreateLogger(), CreateMapper());
+        var current = new ScheduleStateItem
+        {
+            Id = 7,
+            BiblePublicationCategoryName = "Bible Books",
+            BiblePublicationCode = "nwt",
+            BiblePublicationScheduleId = 1,
+            BiblePublicationTrackCode = "1",
+        };
+
+        var model = await sut.PrepareModelForSaveAsync(current, isNewSchedule: false, musicUpdated: false);
+
+        Assert.Equal("Bible Books", model.CategoryCode);
+    }
+
+    [Fact]
+    public async Task PrepareModelForSaveAsync_clears_category_code_for_music_publication()
+    {
+        var sut = new ScheduleSaveService(TestLogging.CreateLogger(), CreateMapper());
+        var current = new ScheduleStateItem
+        {
+            Id = 8,
+            BiblePublicationCategoryName = "Music",
+            BiblePublicationCode = AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+            BiblePublicationIsMusic = true,
+        };
+
+        var model = await sut.PrepareModelForSaveAsync(current, isNewSchedule: false, musicUpdated: false);
+
+        Assert.Null(model.CategoryCode);
+    }
+
+    [Fact]
+    public void PrepareScheduleStateItem_clears_music_fields_for_music_publication()
+    {
+        var sut = new ScheduleSaveService(TestLogging.CreateLogger(), CreateMapper());
+        var current = new ScheduleStateItem
+        {
+            Id = 9,
+            BiblePublicationCode = AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+            BiblePublicationIsMusic = true,
+            MusicEnabled = true,
+            MusicPublicationCode = "sjjm",
+            MusicTrackCode = "1",
+        };
+        var model = new AlarmSchedule { Id = 9, Name = "Songs", MusicEnabled = true };
+
+        var item = sut.PrepareScheduleStateItem(model, current, musicUpdated: true);
+
+        Assert.False(item.MusicEnabled);
+        Assert.Null(item.MusicPublicationCode);
+        Assert.Null(item.MusicTrackCode);
+    }
 }
