@@ -41,6 +41,6 @@ public sealed class PlaybackNavigationPreviousRequestTests
         await sut.MarkCurrentTrackAsPlayedAsync(42);
         Assert.Equal(42, Assert.Single(markCalls));
 
-        Assert.True(visited.Contains(55));
+        Assert.Contains(55, visited);
     }
 }

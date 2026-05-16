@@ -263,7 +263,7 @@ public sealed class MediaCacheServiceTests
 
         Assert.Contains($"{Path.DirectorySeparatorChar}902{Path.DirectorySeparatorChar}", path);
         Assert.Contains($"{Path.DirectorySeparatorChar}MediaCache{Path.DirectorySeparatorChar}", path);
-        Assert.True(path.EndsWith(fileName, StringComparison.Ordinal));
+        Assert.EndsWith(fileName, path);
     }
 
     [Fact]

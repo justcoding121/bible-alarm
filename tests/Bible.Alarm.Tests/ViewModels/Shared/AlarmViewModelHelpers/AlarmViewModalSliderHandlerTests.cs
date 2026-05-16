@@ -21,10 +21,10 @@ public sealed class AlarmViewModalSliderHandlerTests
         {
             if (sw.Elapsed > timeout)
             {
-                Assert.True(false, $"Condition not satisfied within {timeout.TotalMilliseconds} ms (elapsed {sw.ElapsedMilliseconds} ms).");
+                Assert.Fail($"Condition not satisfied within {timeout.TotalMilliseconds} ms (elapsed {sw.ElapsedMilliseconds} ms).");
             }
 
-            await Task.Delay(pollInterval).ConfigureAwait(false);
+            await Task.Delay(pollInterval);
         }
     }
 
@@ -285,7 +285,7 @@ public sealed class AlarmViewModalSliderHandlerTests
         handler.OnSliderTapped(0.3);
 
         Assert.True(handler.IsUserInteracting);
-        await WaitUntilAsync(() => !handler.IsUserInteracting, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(50)).ConfigureAwait(false);
+        await WaitUntilAsync(() => !handler.IsUserInteracting, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(50));
         Assert.False(handler.IsUserInteracting);
     }
 
@@ -343,7 +343,7 @@ public sealed class AlarmViewModalSliderHandlerTests
 
         handler.OnSliderTapped(0.2);
 
-        await WaitUntilAsync(() => !handler.IsUserInteracting, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(50)).ConfigureAwait(false);
+        await WaitUntilAsync(() => !handler.IsUserInteracting, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(50));
         Assert.False(handler.IsUserInteracting);
     }
 
