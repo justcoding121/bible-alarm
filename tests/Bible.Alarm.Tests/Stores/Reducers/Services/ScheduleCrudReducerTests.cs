@@ -63,4 +63,30 @@ public sealed class ScheduleCrudReducerTests
         Assert.DoesNotContain(next.Schedules, s => s.Id == 10);
         Assert.Same(b, next.CurrentSchedule);
     }
+
+    [Fact]
+    public void OnUpdateScheduleSuccess_updates_existing_schedule_and_current_when_ids_match()
+    {
+        var existing = MinimalSchedule(8, "Before");
+        existing.BiblePublicationLanguageName = "English";
+        var prior = new ApplicationState(new ObservableHashSet<ScheduleStateItem> { existing }, currentSchedule: existing);
+        var saved = MinimalSchedule(8, "After");
+
+        var next = ScheduleCrudReducer.OnUpdateScheduleSuccess(prior, new UpdateScheduleSuccessAction(saved));
+
+        Assert.Equal("After", next.Schedules!.Single(s => s.Id == 8).Name);
+        Assert.Equal("After", next.CurrentSchedule?.Name);
+        Assert.Equal("English", next.Schedules!.Single().BiblePublicationLanguageName);
+    }
+
+    [Fact]
+    public void OnUpdateScheduleSuccess_adds_schedule_when_missing_from_collection()
+    {
+        var prior = new ApplicationState(new ObservableHashSet<ScheduleStateItem> { MinimalSchedule(1) });
+        var saved = MinimalSchedule(99, "New row");
+
+        var next = ScheduleCrudReducer.OnUpdateScheduleSuccess(prior, new UpdateScheduleSuccessAction(saved));
+
+        Assert.Contains(next.Schedules!, s => s.Id == 99 && s.Name == "New row");
+    }
 }

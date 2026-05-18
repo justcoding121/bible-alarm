@@ -183,6 +183,86 @@ public sealed class ScheduleEffectsTests
         public Task Delete(int scheduleId) => Task.CompletedTask;
     }
 
+    private sealed class RecordingAlarmUpdateService : IAlarmService
+    {
+        public List<AlarmSchedule> Updated { get; } = [];
+
+        public Task Create(AlarmSchedule schedule) => Task.CompletedTask;
+
+        public Task Update(AlarmSchedule schedule)
+        {
+            Updated.Add(schedule);
+            return Task.CompletedTask;
+        }
+
+        public Task Delete(int scheduleId) => Task.CompletedTask;
+    }
+
+    private sealed class UpdateCapableAlarmScheduleService : IAlarmScheduleService
+    {
+        private readonly AlarmSchedule existing;
+
+        public UpdateCapableAlarmScheduleService(AlarmSchedule existing) => this.existing = existing;
+
+        public void Dispose()
+        {
+        }
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default)
+        {
+            updateAction(existing);
+            return Task.FromResult(existing);
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(
+            System.Linq.Expressions.Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true,
+            bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
+    }
+
     private sealed class IdleMediaCacheService : IMediaCacheService
     {
         public void Dispose()
@@ -351,6 +431,112 @@ public sealed class ScheduleEffectsTests
         var success = Assert.IsType<CreateScheduleSuccessAction>(Assert.Single(dispatcher.Dispatched));
         Assert.Equal(201, success.Schedule.Id);
         Assert.Equal(201, Assert.Single(alarmSvc.Created).Id);
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleFromViewModel_should_save_false_skips_db_and_success_dispatch()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var mapper = CreateScheduleMapper();
+        var vm = mapper.Map<ScheduleStateItem>(Alarm(12, "Draft only"));
+
+        var sut = new ScheduleEffects(
+            mapper,
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new UpdateCapableAlarmScheduleService(Alarm(12, "Draft only")),
+                AlarmService: new RecordingAlarmUpdateService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleUpdateScheduleFromViewModel(
+            new UpdateScheduleFromViewModelAction(vm, shouldSave: false),
+            dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleFromViewModel_should_save_true_persists_and_dispatches_success()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var mapper = CreateScheduleMapper();
+        var entity = Alarm(33, "Before");
+        var vm = mapper.Map<ScheduleStateItem>(entity);
+        vm.Name = "After";
+        var alarmSchedules = new UpdateCapableAlarmScheduleService(entity);
+        var alarmSvc = new RecordingAlarmUpdateService();
+
+        var sut = new ScheduleEffects(
+            mapper,
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: alarmSchedules,
+                AlarmService: alarmSvc,
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleUpdateScheduleFromViewModel(
+            new UpdateScheduleFromViewModelAction(vm, shouldSave: true),
+            dispatcher);
+
+        Assert.Equal("After", entity.Name);
+        Assert.Equal(33, Assert.Single(alarmSvc.Updated).Id);
+        var success = Assert.IsType<UpdateScheduleSuccessAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Equal(33, success.Schedule.Id);
+        Assert.Equal("After", success.Schedule.Name);
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleFromViewModel_dispatches_failure_when_display_name_population_throws()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var mapper = CreateScheduleMapper();
+        var entity = Alarm(44, "Broken");
+        var vm = mapper.Map<ScheduleStateItem>(entity);
+
+        var sut = new ScheduleEffects(
+            mapper,
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new UpdateCapableAlarmScheduleService(entity),
+                AlarmService: new RecordingAlarmUpdateService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new ThrowingScheduleDisplayNameService()));
+
+        await sut.HandleUpdateScheduleFromViewModel(
+            new UpdateScheduleFromViewModelAction(vm, shouldSave: true),
+            dispatcher);
+
+        var fail = Assert.IsType<UpdateScheduleFailureAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Same(vm, fail.Schedule);
+        Assert.Equal("display failed", fail.Error);
+    }
+
+    private sealed class ThrowingScheduleDisplayNameService : IScheduleDisplayNameService
+    {
+        public Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule) =>
+            throw new InvalidOperationException("display failed");
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleFromViewModel_skips_when_schedule_null()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var sut = new ScheduleEffects(
+            CreateScheduleMapper(),
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new UpdateCapableAlarmScheduleService(Alarm(1, "X")),
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleUpdateScheduleFromViewModel(
+            new UpdateScheduleFromViewModelAction(null!, shouldSave: true),
+            dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
     }
 
     private sealed class CreateCapableAlarmScheduleService : IAlarmScheduleService
