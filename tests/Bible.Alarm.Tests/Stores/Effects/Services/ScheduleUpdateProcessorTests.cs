@@ -295,6 +295,18 @@ public sealed class ScheduleUpdateProcessorTests
         Assert.Equal("After", scheduleSvc.UpdatedEntity?.Name);
     }
 
+    [Fact]
+    public void PreserveMusicPropertiesIfNeeded_no_op_when_publication_codes_match()
+    {
+        var mapped = new ScheduleStateItem { MusicPublicationCode = "iam", MusicTrackCode = "1" };
+        var actionSchedule = new ScheduleStateItem { MusicPublicationCode = "iam", MusicTrackCode = "9" };
+
+        ScheduleUpdateProcessor.PreserveMusicPropertiesIfNeeded(mapped, actionSchedule);
+
+        Assert.Equal("iam", mapped.MusicPublicationCode);
+        Assert.Equal("1", mapped.MusicTrackCode);
+    }
+
     private sealed class UpdatingAlarmScheduleService : IAlarmScheduleService
     {
         private readonly AlarmSchedule existing;

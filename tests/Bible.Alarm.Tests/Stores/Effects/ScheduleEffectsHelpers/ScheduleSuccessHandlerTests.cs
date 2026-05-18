@@ -1,5 +1,7 @@
 #nullable enable
 
+using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
@@ -68,5 +70,58 @@ public sealed class ScheduleSuccessHandlerTests
 
         var action = Assert.Single(dispatcher.Dispatched);
         Assert.IsType<SetCarPlayScreenAction>(action);
+    }
+
+    [Fact]
+    public async Task HandleRemoveScheduleSuccess_refreshes_metadata_when_deleted_schedule_was_last_played()
+    {
+        if (!TryBootstrapMauiAppForPreferences())
+        {
+            return;
+        }
+
+        try
+        {
+            LastPlayedMetadataHelper.ClearLastPlayedMetadata();
+            LastPlayedMetadataHelper.SaveLastPlayedMetadata("Genesis", "NWT", scheduleId: 55);
+
+            var dispatcher = new RecordingDispatcher();
+            await ScheduleSuccessHandler.HandleRemoveScheduleSuccess(new RemoveScheduleSuccessAction(55), dispatcher);
+
+            Assert.IsType<SetCarPlayScreenAction>(Assert.Single(dispatcher.Dispatched));
+        }
+        finally
+        {
+            TryClearLastPlayedMetadata();
+        }
+    }
+
+    private static bool TryBootstrapMauiAppForPreferences()
+    {
+        if (MauiAppHolder.IsInitialized)
+        {
+            return true;
+        }
+
+        try
+        {
+            MauiAppHolder.CreateAndStore();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void TryClearLastPlayedMetadata()
+    {
+        try
+        {
+            LastPlayedMetadataHelper.ClearLastPlayedMetadata();
+        }
+        catch
+        {
+        }
     }
 }

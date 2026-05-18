@@ -134,4 +134,45 @@ public sealed class PlaybackReducerTests
         Assert.False(next.IsTransitioningTrack);
     }
 
+    [Fact]
+    public void OnPlaybackStatusChanged_failed_clears_schedule_when_not_currently_active()
+    {
+        var prior = new PlaybackState(
+            new PlaybackTransportSlice(null, false, true, true, PlayStatus.Stopped, false, false),
+            new PlaybackMediaSlice(null, null, null, null, TimeSpan.Zero, null),
+            new PlaybackDefaultScheduleSlice(1, "DT", "DA", "DAl", null));
+
+        var next = PlaybackReducer.OnPlaybackStatusChanged(prior, new PlaybackStatusChangedAction(PlayStatus.Failed));
+
+        Assert.Null(next.CurrentScheduleId);
+        Assert.False(next.IsPreparingOrPlaying);
+        Assert.Equal(PlayStatus.Failed, next.Status);
+    }
+
+    [Fact]
+    public void OnSetAutoAdvancing_updates_flag()
+    {
+        var prior = PlayingState();
+
+        var next = PlaybackReducer.OnSetAutoAdvancing(prior, new SetAutoAdvancingAction(true));
+
+        Assert.True(next.IsAutoAdvancing);
+    }
+
+    [Fact]
+    public void OnPlaybackDurationChanged_preserves_error_message()
+    {
+        var prior = new PlaybackState(
+            new PlaybackTransportSlice(1, true, true, true, PlayStatus.Playing, false, false),
+            new PlaybackMediaSlice("T", "A", "Al", null, TimeSpan.FromSeconds(5), "err"),
+            new PlaybackDefaultScheduleSlice(1, "DT", "DA", "DAl", null));
+
+        var next = PlaybackReducer.OnPlaybackDurationChanged(
+            prior,
+            new PlaybackDurationChangedAction { Duration = TimeSpan.FromMinutes(2) });
+
+        Assert.Equal(TimeSpan.FromMinutes(2), next.Duration);
+        Assert.Equal("err", next.ErrorMessage);
+    }
+
 }

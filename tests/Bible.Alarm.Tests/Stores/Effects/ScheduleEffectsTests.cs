@@ -1,6 +1,7 @@
 #nullable enable
 
 using AutoMapper;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -48,6 +49,18 @@ public sealed class ScheduleEffectsTests
     {
         public Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule) =>
             Task.CompletedTask;
+    }
+
+    private sealed class RecordingScheduleDisplayNameService : IScheduleDisplayNameService
+    {
+        public List<(ScheduleStateItem Dto, AlarmSchedule Entity)> PopulateCalls { get; } = [];
+
+        public Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
+        {
+            scheduleStateItem.BiblePublicationSectionName = "Section One";
+            PopulateCalls.Add((scheduleStateItem, schedule));
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class DeleteCapableAlarmScheduleService : IAlarmScheduleService
@@ -511,6 +524,100 @@ public sealed class ScheduleEffectsTests
         var fail = Assert.IsType<UpdateScheduleFailureAction>(Assert.Single(dispatcher.Dispatched));
         Assert.Same(vm, fail.Schedule);
         Assert.Equal("display failed", fail.Error);
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleFromViewModelPopulateBibleDisplayNames_dispatches_draft_update()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var mapper = CreateScheduleMapper();
+        var current = mapper.Map<ScheduleStateItem>(Alarm(61, "Draft"));
+        current.Id = 61;
+        var displayNames = new RecordingScheduleDisplayNameService();
+        var sut = new ScheduleEffects(
+            mapper,
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new IdleAlarmScheduleService(),
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
+                ScheduleDisplayNameService: displayNames));
+
+        var actionSchedule = current.DeepClone();
+        await sut.HandleUpdateScheduleFromViewModelPopulateBibleDisplayNames(
+            new UpdateScheduleFromViewModelAction(actionSchedule, biblePublicationUpdated: true, shouldSave: false),
+            dispatcher);
+
+        var draft = Assert.IsType<UpdateDraftScheduleAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Equal("Section One", draft.Schedule.BiblePublicationSectionName);
+        Assert.Single(displayNames.PopulateCalls);
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleFromViewModelPopulateBibleDisplayNames_skips_when_should_save()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var current = CreateScheduleMapper().Map<ScheduleStateItem>(Alarm(62, "Save"));
+        var sut = new ScheduleEffects(
+            CreateScheduleMapper(),
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new IdleAlarmScheduleService(),
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
+                ScheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
+
+        await sut.HandleUpdateScheduleFromViewModelPopulateBibleDisplayNames(
+            new UpdateScheduleFromViewModelAction(current, biblePublicationUpdated: true, shouldSave: true),
+            dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleFromViewModelPopulateModalCounts_skips_when_should_save()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var current = CreateScheduleMapper().Map<ScheduleStateItem>(Alarm(63, "Save"));
+        var sut = new ScheduleEffects(
+            CreateScheduleMapper(),
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new IdleAlarmScheduleService(),
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleUpdateScheduleFromViewModelPopulateModalCounts(
+            new UpdateScheduleFromViewModelAction(current, shouldSave: true),
+            dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleFromViewModelPopulateModalCounts_skips_when_no_update_flags_and_counts_present()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var current = CreateScheduleMapper().Map<ScheduleStateItem>(Alarm(64, "Stable"));
+        current.MusicEnabled = true;
+        current.MusicPublicationCode = "iam";
+        current.MusicPublicationModalItemCount = 3;
+        current.MusicSectionModalItemCount = 2;
+        var sut = new ScheduleEffects(
+            CreateScheduleMapper(),
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new IdleAlarmScheduleService(),
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleUpdateScheduleFromViewModelPopulateModalCounts(
+            new UpdateScheduleFromViewModelAction(current, musicUpdated: false, biblePublicationUpdated: false, shouldSave: false),
+            dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
     }
 
     private sealed class ThrowingScheduleDisplayNameService : IScheduleDisplayNameService
