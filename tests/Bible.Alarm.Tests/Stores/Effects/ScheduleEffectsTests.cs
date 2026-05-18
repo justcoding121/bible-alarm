@@ -627,6 +627,27 @@ public sealed class ScheduleEffectsTests
     }
 
     [Fact]
+    public async Task HandleUpdateScheduleFromViewModel_should_save_false_skips_db_without_dispatch()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var vm = CreateScheduleMapper().Map<ScheduleStateItem>(Alarm(70, "Draft only"));
+        var sut = new ScheduleEffects(
+            CreateScheduleMapper(),
+            new ScheduleEffectsOptionalDeps(
+                AlarmScheduleService: new UpdateCapableAlarmScheduleService(Alarm(70, "Draft only")),
+                AlarmService: new IdleAlarmService(),
+                MediaCacheService: new IdleMediaCacheService(),
+                State: new FakeApplicationState(new ApplicationState([])),
+                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+
+        await sut.HandleUpdateScheduleFromViewModel(
+            new UpdateScheduleFromViewModelAction(vm, shouldSave: false),
+            dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
     public async Task HandleUpdateScheduleFromViewModel_skips_when_schedule_null()
     {
         var dispatcher = new RecordingDispatcher();

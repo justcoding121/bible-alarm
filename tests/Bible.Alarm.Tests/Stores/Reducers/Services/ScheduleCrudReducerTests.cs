@@ -89,4 +89,88 @@ public sealed class ScheduleCrudReducerTests
 
         Assert.Contains(next.Schedules!, s => s.Id == 99 && s.Name == "New row");
     }
+
+    [Fact]
+    public void OnDeleteSchedule_when_schedules_null_returns_unchanged()
+    {
+        var prior = new ApplicationState([]);
+        prior.Schedules = null!;
+
+        var next = ScheduleCrudReducer.OnDeleteSchedule(prior, new DeleteScheduleAction(1));
+
+        Assert.Same(prior, next);
+    }
+
+    [Fact]
+    public void OnDeleteSchedule_removes_row_but_state_factory_preserves_current_reference()
+    {
+        var target = MinimalSchedule(30);
+        var other = MinimalSchedule(31);
+        var prior = new ApplicationState([target, other], currentSchedule: target);
+
+        var next = ScheduleCrudReducer.OnDeleteSchedule(prior, new DeleteScheduleAction(30));
+
+        Assert.DoesNotContain(next.Schedules!, s => s.Id == 30);
+        Assert.Same(target, next.CurrentSchedule);
+    }
+
+    [Fact]
+    public void OnCreateScheduleFailure_removes_optimistic_temporary_row()
+    {
+        var optimistic = MinimalSchedule(-1, "Failed draft");
+        var kept = MinimalSchedule(2, "Kept");
+        var prior = new ApplicationState([kept, optimistic], currentSchedule: optimistic);
+
+        var next = ScheduleCrudReducer.OnCreateScheduleFailure(
+            prior,
+            new CreateScheduleFailureAction(optimistic, "db error"));
+
+        Assert.DoesNotContain(next.Schedules!, s => s.Id == -1);
+        Assert.Contains(next.Schedules!, s => s.Id == 2);
+        Assert.Same(optimistic, next.CurrentSchedule);
+    }
+
+    [Fact]
+    public void OnDeleteScheduleFailure_restores_removed_schedule()
+    {
+        var remaining = MinimalSchedule(40);
+        var restored = MinimalSchedule(41, "Restored");
+        var prior = new ApplicationState([remaining]);
+
+        var next = ScheduleCrudReducer.OnDeleteScheduleFailure(
+            prior,
+            new DeleteScheduleFailureAction(41, "network", restored));
+
+        Assert.Equal(2, next.Schedules!.Count);
+        Assert.Contains(next.Schedules!, s => s.Id == 41 && s.Name == "Restored");
+    }
+
+    [Fact]
+    public void OnCreateScheduleSuccess_replaces_optimistic_row_with_confirmed_schedule()
+    {
+        var optimistic = MinimalSchedule(-1, "Temp");
+        var other = MinimalSchedule(3);
+        var prior = new ApplicationState([other, optimistic], currentSchedule: optimistic);
+        var confirmed = MinimalSchedule(100, "Saved");
+
+        var next = ScheduleCrudReducer.OnCreateScheduleSuccess(
+            prior,
+            new CreateScheduleSuccessAction(confirmed));
+
+        Assert.DoesNotContain(next.Schedules!, s => s.Id == -1);
+        Assert.Contains(next.Schedules!, s => s.Id == 100 && s.Name == "Saved");
+        Assert.Equal(-1, next.CurrentSchedule?.Id);
+    }
+
+    [Fact]
+    public void OnAddScheduleSuccess_appends_schedule_and_sets_current()
+    {
+        var prior = new ApplicationState([MinimalSchedule(1)]);
+        var added = MinimalSchedule(77, "Added");
+
+        var next = ScheduleCrudReducer.OnAddScheduleSuccess(prior, new AddScheduleSuccessAction(added));
+
+        Assert.Contains(next.Schedules!, s => s.Id == 77);
+        Assert.Equal(77, next.CurrentSchedule?.Id);
+    }
 }
