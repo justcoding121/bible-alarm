@@ -283,6 +283,68 @@ public sealed class CategorySelectionAutoPopulateCatalogCheckTests
     }
 
     [Fact]
+    public async Task CheckIfPublicationWithFirstSectionCatalogedAsync_returns_false_when_section_language_without_matching_section_row()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var bibleCat = new Category { CategoryCode = "Bible" };
+            var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+            seed.Categories.Add(bibleCat);
+            seed.Languages.Add(lang);
+            await seed.SaveChangesAsync();
+
+            var bp = new BiblePublication
+            {
+                Name = "NWT",
+                PublicationCode = "nwt",
+                Language = lang,
+                LanguageId = lang.Id,
+                IsVideo = false,
+                IsMusic = false,
+            };
+            seed.BiblePublications.Add(bp);
+
+            var pl = new PublicationLanguage
+            {
+                PublicationCode = "nwt",
+                Category = bibleCat,
+                Language = lang,
+            };
+            seed.PublicationLanguages.Add(pl);
+
+            seed.SectionLanguages.Add(new SectionLanguage
+            {
+                PublicationCode = "nwt",
+                SectionCode = "missing-section",
+                Language = lang,
+                PublicationLanguage = pl,
+            });
+
+            await seed.SaveChangesAsync();
+        }
+
+        await using var db = new MediaDbContext(options);
+
+        Assert.False(await CategorySelectionAutoPopulateCatalogCheck.CheckIfPublicationWithFirstSectionCatalogedAsync(
+            TestLogging.CreateLogger(),
+            db,
+            publicationCode: "nwt",
+            normalizedLanguageCode: "E"));
+    }
+
+    [Fact]
     public async Task CheckIfPublicationWithFirstSectionCatalogedAsync_returns_false_when_db_disposed()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

@@ -387,6 +387,56 @@ public sealed class DependencyBundleRecordsTests
     }
 
     [Fact]
+    public void ScheduleStateServiceDeps_exposes_constructor_dependencies()
+    {
+        var logger = TestLogging.CreateLogger();
+        var deps = new ScheduleStateServiceDeps(
+            logger,
+            AlarmScheduleService: null!,
+            AlarmService: null!,
+            NotificationService: null!,
+            ToastService: null!,
+            Dispatcher: null!,
+            NavigationService: null!,
+            ServiceProvider: null!);
+
+        Assert.Same(logger, deps.Logger);
+        Assert.Null(deps.AlarmScheduleService);
+        Assert.Null(deps.AlarmService);
+        Assert.Null(deps.NotificationService);
+        Assert.Null(deps.ToastService);
+        Assert.Null(deps.Dispatcher);
+        Assert.Null(deps.NavigationService);
+        Assert.Null(deps.ServiceProvider);
+    }
+
+    [Fact]
+    public void MusicSelectionContainerViewModelDeps_exposes_view_model_dependencies()
+    {
+        var logger = TestLogging.CreateLogger();
+        var deps = new MusicSelectionContainerViewModelDeps(
+            logger,
+            NavigationService: null!,
+            ScheduleSelectionService: null!,
+            MediaService: null!,
+            ApplicationState: null!,
+            Dispatcher: null!,
+            Mapper: null!,
+            ServiceProvider: null!,
+            ToastService: null!);
+
+        Assert.Same(logger, deps.Logger);
+        Assert.Null(deps.NavigationService);
+        Assert.Null(deps.ScheduleSelectionService);
+        Assert.Null(deps.MediaService);
+        Assert.Null(deps.ApplicationState);
+        Assert.Null(deps.Dispatcher);
+        Assert.Null(deps.Mapper);
+        Assert.Null(deps.ServiceProvider);
+        Assert.Null(deps.ToastService);
+    }
+
+    [Fact]
     public void HandleMusicPublicationTrackSelectionArgs_exposes_publication_and_progress()
     {
         var song = new PublicationListViewItemModel(new Publication { Name = "Pub", PublicationCode = "p1" });

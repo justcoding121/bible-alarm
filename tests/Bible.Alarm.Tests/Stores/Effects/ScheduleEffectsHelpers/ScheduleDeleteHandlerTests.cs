@@ -46,6 +46,8 @@ public sealed class ScheduleDeleteHandlerTests
 
         public AlarmSchedule? ScheduleForGetById { get; init; }
 
+        public Exception? GetScheduleByIdException { get; init; }
+
         public List<int> DeletedScheduleIds { get; } = [];
 
         public Exception? DeleteScheduleException { get; init; }
@@ -61,8 +63,15 @@ public sealed class ScheduleDeleteHandlerTests
             Task.FromResult(AllSchedules);
 
         public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
-            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
-            Task.FromResult(ScheduleForGetById);
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default)
+        {
+            if (GetScheduleByIdException != null)
+            {
+                throw GetScheduleByIdException;
+            }
+
+            return Task.FromResult(ScheduleForGetById);
+        }
 
         public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default)
         {
@@ -149,6 +158,55 @@ public sealed class ScheduleDeleteHandlerTests
         var action = Assert.IsType<DeleteScheduleFailureAction>(fail);
         Assert.Equal(12, action.ScheduleId);
         Assert.Equal("Service unavailable", action.Error);
+    }
+
+    [Fact]
+    public async Task HandleAsync_blocks_delete_when_only_one_schedule_exists_and_restores_from_db()
+    {
+        var only = Alarm(55, "Solo");
+        only.BiblePublicationSchedule = new BiblePublicationSchedule
+        {
+            Id = 1,
+            LanguageCode = "E",
+            PublicationCode = "nwt",
+            TrackCode = "1",
+            AlarmScheduleId = 55,
+        };
+        var svc = new DeleteAlarmScheduleStub
+        {
+            AllSchedules = [only],
+            ScheduleForGetById = only,
+        };
+        var sut = new ScheduleDeleteHandler(CreateMapper(), svc, null, null, new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new DeleteScheduleAction(55), dispatcher);
+
+        Assert.Empty(svc.DeletedScheduleIds);
+        var fail = Assert.IsType<DeleteScheduleFailureAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Equal("Cannot delete last schedule", fail.Error);
+        Assert.NotNull(fail.Schedule);
+        Assert.Equal(55, fail.Schedule!.Id);
+        Assert.Equal("Solo", fail.Schedule.Name);
+    }
+
+    [Fact]
+    public async Task HandleAsync_blocks_delete_when_only_one_schedule_exists_and_db_load_fails()
+    {
+        var only = Alarm(77, "Solo");
+        var svc = new DeleteAlarmScheduleStub
+        {
+            AllSchedules = [only],
+            GetScheduleByIdException = new InvalidOperationException("db read failed"),
+        };
+        var sut = new ScheduleDeleteHandler(CreateMapper(), svc, null, null, new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new DeleteScheduleAction(77), dispatcher);
+
+        var fail = Assert.IsType<DeleteScheduleFailureAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Equal("Cannot delete last schedule", fail.Error);
+        Assert.Null(fail.Schedule);
     }
 
     [Fact]

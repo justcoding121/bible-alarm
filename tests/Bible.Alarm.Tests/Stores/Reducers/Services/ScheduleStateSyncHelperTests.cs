@@ -129,6 +129,30 @@ public sealed class ScheduleStateSyncHelperTests
     }
 
     [Fact]
+    public void UpdateCurrentScheduleIfMatches_returns_clone_when_category_name_changes()
+    {
+        var current = new ScheduleStateItem
+        {
+            Id = 5,
+            Name = "Alarm",
+            BiblePublicationCategoryName = "Bible",
+        };
+        var action = new ScheduleStateItem
+        {
+            Id = 5,
+            Name = "Alarm",
+            BiblePublicationCategoryName = "Music",
+        };
+        var state = new ApplicationState([], currentSchedule: current);
+
+        var result = ScheduleStateSyncHelper.UpdateCurrentScheduleIfMatches(state, action);
+
+        Assert.NotNull(result);
+        Assert.NotSame(current, result);
+        Assert.Equal("Music", result.BiblePublicationCategoryName);
+    }
+
+    [Fact]
     public void UpdateCurrentScheduleIfMatches_returns_clone_when_name_changes()
     {
         var current = new ScheduleStateItem { Id = 5, Name = "Old" };

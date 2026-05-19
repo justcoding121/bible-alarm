@@ -131,6 +131,18 @@ public sealed class ScheduleCrudReducerTests
     }
 
     [Fact]
+    public void OnDeleteScheduleFailure_returns_unchanged_when_no_schedule_data_for_rollback()
+    {
+        var prior = new ApplicationState([MinimalSchedule(1)]);
+
+        var next = ScheduleCrudReducer.OnDeleteScheduleFailure(
+            prior,
+            new DeleteScheduleFailureAction(99, "network"));
+
+        Assert.Same(prior, next);
+    }
+
+    [Fact]
     public void OnDeleteScheduleFailure_restores_removed_schedule()
     {
         var remaining = MinimalSchedule(40);
@@ -160,6 +172,46 @@ public sealed class ScheduleCrudReducerTests
         Assert.DoesNotContain(next.Schedules!, s => s.Id == -1);
         Assert.Contains(next.Schedules!, s => s.Id == 100 && s.Name == "Saved");
         Assert.Equal(-1, next.CurrentSchedule?.Id);
+    }
+
+    [Fact]
+    public void OnCreateScheduleFailure_returns_unchanged_when_action_schedule_null()
+    {
+        var prior = new ApplicationState([MinimalSchedule(1)]);
+
+        var next = ScheduleCrudReducer.OnCreateScheduleFailure(
+            prior,
+            new CreateScheduleFailureAction(null!, "error"));
+
+        Assert.Same(prior, next);
+    }
+
+    [Fact]
+    public void OnDeleteScheduleFailure_skips_restore_when_schedule_already_in_collection()
+    {
+        var existing = MinimalSchedule(41, "Still here");
+        var prior = new ApplicationState([existing]);
+        var duplicate = MinimalSchedule(41, "Attempt restore");
+
+        var next = ScheduleCrudReducer.OnDeleteScheduleFailure(
+            prior,
+            new DeleteScheduleFailureAction(41, "network", duplicate));
+
+        Assert.Single(next.Schedules!);
+        Assert.Same(existing, next.Schedules!.Single());
+    }
+
+    [Fact]
+    public void OnCreateSchedule_adds_optimistic_row_when_prior_schedules_null()
+    {
+        var prior = new ApplicationState([]);
+        prior.Schedules = null!;
+        var draft = MinimalSchedule(0, "New");
+
+        var next = ScheduleCrudReducer.OnCreateSchedule(prior, new CreateScheduleAction(draft));
+
+        Assert.Single(next.Schedules!);
+        Assert.Equal(-1, next.Schedules!.Single().Id);
     }
 
     [Fact]

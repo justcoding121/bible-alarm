@@ -160,6 +160,71 @@ public sealed class PlaybackReducerTests
     }
 
     [Fact]
+    public void OnPlaybackStopped_clears_transport_and_media_slices()
+    {
+        var prior = PlayingState(scheduleId: 3, artwork: "https://art");
+
+        var next = PlaybackReducer.OnPlaybackStopped(prior, new PlaybackStoppedAction());
+
+        Assert.Null(next.CurrentScheduleId);
+        Assert.False(next.IsPreparingOrPlaying);
+        Assert.Equal(PlayStatus.Stopped, next.Status);
+        Assert.Null(next.Title);
+        Assert.Null(next.ArtworkUrl);
+        Assert.Equal(TimeSpan.Zero, next.Duration);
+    }
+
+    [Fact]
+    public void OnSetDefaultScheduleMetadata_updates_default_slice()
+    {
+        var prior = PlayingState();
+
+        var next = PlaybackReducer.OnSetDefaultScheduleMetadata(
+            prior,
+            new SetDefaultScheduleMetadataAction
+            {
+                ScheduleId = 42,
+                Title = "Title",
+                Artist = "Artist",
+                Album = "Album",
+                ArtworkUrl = "https://default-art",
+            });
+
+        Assert.Equal(42, next.DefaultScheduleId);
+        Assert.Equal("Title", next.DefaultScheduleTitle);
+        Assert.Equal("Artist", next.DefaultScheduleArtist);
+        Assert.Equal("Album", next.DefaultScheduleAlbum);
+        Assert.Equal("https://default-art", next.DefaultScheduleArtworkUrl);
+    }
+
+    [Fact]
+    public void OnPlaybackStatusChanged_clears_auto_advancing_when_status_becomes_playing()
+    {
+        var prior = new PlaybackState(
+            new PlaybackTransportSlice(5, true, true, true, PlayStatus.Loading, true, false),
+            new PlaybackMediaSlice("T", "A", "Al", null, TimeSpan.Zero, null),
+            new PlaybackDefaultScheduleSlice(1, "DT", "DA", "DAl", null));
+
+        var next = PlaybackReducer.OnPlaybackStatusChanged(prior, new PlaybackStatusChangedAction(PlayStatus.Playing));
+
+        Assert.False(next.IsAutoAdvancing);
+        Assert.Equal(PlayStatus.Playing, next.Status);
+    }
+
+    [Fact]
+    public void OnSetAutoAdvancing_no_op_when_flag_unchanged()
+    {
+        var prior = new PlaybackState(
+            new PlaybackTransportSlice(1, true, true, true, PlayStatus.Playing, false, false),
+            new PlaybackMediaSlice("T", "A", "Al", null, TimeSpan.Zero, null),
+            new PlaybackDefaultScheduleSlice(1, "DT", "DA", "DAl", null));
+
+        var next = PlaybackReducer.OnSetAutoAdvancing(prior, new SetAutoAdvancingAction(false));
+
+        Assert.False(next.IsAutoAdvancing);
+    }
+
+    [Fact]
     public void OnPlaybackDurationChanged_preserves_error_message()
     {
         var prior = new PlaybackState(

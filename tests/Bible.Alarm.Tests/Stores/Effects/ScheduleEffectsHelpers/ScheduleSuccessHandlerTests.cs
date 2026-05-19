@@ -62,6 +62,30 @@ public sealed class ScheduleSuccessHandlerTests
     }
 
     [Fact]
+    public async Task HandleRemoveScheduleSuccess_dispatches_car_play_when_deleted_schedule_was_not_last_played()
+    {
+        if (!TryBootstrapMauiAppForPreferences())
+        {
+            return;
+        }
+
+        try
+        {
+            LastPlayedMetadataHelper.ClearLastPlayedMetadata();
+            LastPlayedMetadataHelper.SaveLastPlayedMetadata("Genesis", "NWT", scheduleId: 10);
+
+            var dispatcher = new RecordingDispatcher();
+            await ScheduleSuccessHandler.HandleRemoveScheduleSuccess(new RemoveScheduleSuccessAction(99), dispatcher);
+
+            Assert.IsType<SetCarPlayScreenAction>(Assert.Single(dispatcher.Dispatched));
+        }
+        finally
+        {
+            TryClearLastPlayedMetadata();
+        }
+    }
+
+    [Fact]
     public async Task HandleRemoveScheduleSuccess_dispatches_set_car_play_screen()
     {
         var dispatcher = new RecordingDispatcher();
