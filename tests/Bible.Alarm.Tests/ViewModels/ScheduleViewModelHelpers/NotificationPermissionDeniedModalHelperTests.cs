@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Reflection;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
@@ -49,10 +50,12 @@ public sealed class NotificationPermissionDeniedModalHelperTests
 
         public Task OpenBatteryOptimizationModalAsync(object bindingContext) => Task.CompletedTask;
 
+        public bool DisposeViewModelOnOpen { get; init; } = true;
+
         public Task OpenNotificationPermissionModalAsync(object bindingContext)
         {
             NotificationModalContexts.Add(bindingContext);
-            if (bindingContext is NotificationPermissionViewModel vm)
+            if (DisposeViewModelOnOpen && bindingContext is NotificationPermissionViewModel vm)
             {
                 vm.Dispose();
             }
@@ -102,6 +105,27 @@ public sealed class NotificationPermissionDeniedModalHelperTests
 
         var vm = Assert.Single(nav.NotificationModalContexts);
         Assert.IsType<NotificationPermissionViewModel>(vm);
+    }
+
+    [Fact]
+    public async Task ShowAsync_wires_modal_dismiss_callback_for_granted_permission()
+    {
+        var nav = new NavigationStub { DisposeViewModelOnOpen = false };
+
+        await NotificationPermissionDeniedModalHelper.ShowAsync(
+            TestLogging.CreateLogger(),
+            nav,
+            onPermissionGranted: () => { });
+
+        var vm = Assert.IsType<NotificationPermissionViewModel>(Assert.Single(nav.NotificationModalContexts));
+        var invoke = typeof(NotificationPermissionViewModel).GetMethod(
+            "InvokeModalDismissedCallbackIfProvided",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(invoke);
+
+        var ex = Record.Exception(() => invoke!.Invoke(vm, [true]));
+
+        Assert.Null(ex);
     }
 
     [Fact]

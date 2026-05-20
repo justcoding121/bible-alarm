@@ -9,6 +9,15 @@ namespace Bible.Alarm.Tests;
 public sealed class PropertyManagerTests
 {
     [Fact]
+    public void Schedules_getter_returns_assigned_collection()
+    {
+        var set = new ObservableHashSet<ScheduleListItemViewModel>();
+        var sut = new PropertyManager { Schedules = set };
+
+        Assert.Same(set, sut.Schedules);
+    }
+
+    [Fact]
     public void Schedules_setter_raises_when_reference_changes()
     {
         var sut = new PropertyManager();

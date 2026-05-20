@@ -234,6 +234,31 @@ public sealed class ScheduleListItemSubtitleManagerTests
     }
 
     [Fact]
+    public void RefreshSubTitleFromState_empty_subtitle_without_waiting_leaves_subtitle_unchanged()
+    {
+        var item = new ScheduleStateItem
+        {
+            Id = 17,
+            BiblePublicationScheduleId = 170,
+            BiblePublicationCode = AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+            BiblePublicationCategoryName = "   ",
+            BiblePublicationName = "  ",
+            BiblePublicationTrackTitle = "Episode",
+            BiblePublicationLanguageName = "  ",
+        };
+        var app = new MutableState<ApplicationState>(new ApplicationState([]));
+        var playback = Playback(17, false, null);
+        var sut = new ScheduleListItemSubtitleManager(TestLogging.CreateLogger(), app, playback);
+
+        var subtitles = new List<string>();
+
+        sut.RefreshSubTitleFromState(17, item, subtitles.Add, _ => { }, _ => { });
+
+        Assert.Single(subtitles);
+        Assert.Contains("Episode", subtitles[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RefreshSubTitleFromState_flat_publication_uses_track_title_in_subtitle()
     {
         var item = new ScheduleStateItem

@@ -57,6 +57,19 @@ public sealed class ModalOverlayFetchProgressReporterTests
     }
 
     [Fact]
+    public void UpdateProgressText_sends_progress_message_to_subscribers()
+    {
+        using var recipient = new RecordingRecipient();
+        var sut = new ModalOverlayFetchProgressReporter("BibleSection", default);
+
+        sut.UpdateProgressText("Loading sections");
+
+        Assert.Equal("BibleSection", recipient.Last?.ModalType);
+        Assert.Equal("Loading sections", recipient.Last?.ProgressText);
+        Assert.True(recipient.Last?.IsVisible);
+    }
+
+    [Fact]
     public void UpdateProgressText_swallows_exceptions_from_modal_overlay_subscribers()
     {
         using var _ = new ThrowingSubscriber();

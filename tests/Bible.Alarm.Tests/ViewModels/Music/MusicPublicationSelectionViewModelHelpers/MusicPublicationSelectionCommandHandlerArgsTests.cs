@@ -34,15 +34,17 @@ public sealed class MusicPublicationSelectionCommandHandlerArgsTests
     {
         var progress = new TrackSelectionProgressBindings(_ => { }, _ => { }, _ => { });
 
+        var current = new AlarmMusic { TrackCode = "3", PublicationCode = "iam" };
         var sut = new HandleMusicPublicationTrackSelectionArgs(
             SongPublication: null!,
             CurrentLanguage: null,
             DataProvider: null!,
-            Current: null,
+            Current: current,
             Progress: progress);
 
         Assert.Null(sut.SongPublication);
         Assert.Null(sut.CurrentLanguage);
+        Assert.Same(current, sut.Current);
         Assert.Same(progress, sut.Progress);
     }
 

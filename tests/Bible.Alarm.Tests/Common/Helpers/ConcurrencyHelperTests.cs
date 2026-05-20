@@ -133,6 +133,21 @@ public sealed class ConcurrencyHelperTests
     }
 
     [Fact]
+    public async Task ExecuteWithTimeoutAsync_returns_result_when_lock_acquired()
+    {
+        using var gate = new SemaphoreSlim(1);
+
+        var value = await ConcurrencyHelper.ExecuteWithTimeoutAsync(gate, async () =>
+        {
+            await Task.CompletedTask;
+            return 42;
+        }, timeoutMs: 500);
+
+        Assert.Equal(42, value);
+        Assert.Equal(1, gate.CurrentCount);
+    }
+
+    [Fact]
     public async Task ExecuteWithTimeoutAsync_ReturnsNull_WhenLockUnavailable()
     {
         using var gate = new SemaphoreSlim(0);

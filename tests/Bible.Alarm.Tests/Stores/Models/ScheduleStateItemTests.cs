@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Tests;
@@ -92,5 +93,25 @@ public sealed class ScheduleStateItemTests
         var newer = new ScheduleStateItem { Id = 1, LastPlayedAtUtc = new DateTime(2021, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
 
         Assert.True(newer < older);
+    }
+
+    [Fact]
+    public void MeridianHour_pm_noon_returns_twelve()
+    {
+        var sut = new ScheduleStateItem { Hour = 12 };
+
+        Assert.Equal(Meridian.Pm, sut.Meridian);
+        Assert.Equal(12, sut.MeridianHour);
+    }
+
+    [Fact]
+    public void Comparison_operators_cover_greater_and_inclusive_ordering()
+    {
+        var older = new ScheduleStateItem { Id = 1, LastPlayedAtUtc = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var newer = new ScheduleStateItem { Id = 1, LastPlayedAtUtc = new DateTime(2021, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+
+        Assert.True(older > newer);
+        Assert.True(older >= newer);
+        Assert.True(newer <= older);
     }
 }

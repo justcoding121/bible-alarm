@@ -628,6 +628,36 @@ public sealed class ScheduleCommandServiceTests
     }
 
     [Fact]
+    public async Task ExecuteSaveAsync_new_schedule_handles_null_schedules_on_state_changed()
+    {
+        var schedules = new ObservableHashSet<ScheduleStateItem> { Row(1) };
+        var appState = new MutableAppState(new ApplicationState(schedules));
+        appState.SetState(new ApplicationState(schedules) { Schedules = null! });
+        var dispatcher = new SimulatingDispatcher(action =>
+        {
+            if (action is CreateScheduleAction)
+            {
+                schedules.Add(Row(50));
+                appState.SetState(new ApplicationState(schedules));
+            }
+        });
+        var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            new RecordingNav(),
+            new StubScheduleSaveService(),
+            new RecordingPlaybackService(),
+            new StubNotificationService(),
+            new RecordingToast(),
+            CreateMapper(),
+            appState));
+
+        var ok = await sut.ExecuteSaveAsync(true, 0, Row(0), false, false, modelInitialized: true);
+
+        Assert.True(ok);
+    }
+
+    [Fact]
     public async Task ExecuteSaveAsync_new_schedule_dispatches_create_and_completes_when_state_updates()
     {
         var schedules = new ObservableHashSet<ScheduleStateItem> { Row(1) };
