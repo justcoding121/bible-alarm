@@ -73,4 +73,19 @@ public sealed class ContainerReadySignalerTests
 
         Assert.False(sut.HasSignaledReady);
     }
+
+    [Fact]
+    public void TrySignalReady_when_state_reports_ready_after_flags_set_skips_dispatch()
+    {
+        var state = new FakeState(new ApplicationState());
+        var dispatcher = new ThrowingDispatcher();
+        var calls = 0;
+        bool IsReady(ApplicationState _) => ++calls >= 2;
+
+        var sut = new ContainerReadySignaler(state, dispatcher, "X", IsReady);
+
+        sut.TrySignalReady();
+
+        Assert.True(sut.HasSignaledReady);
+    }
 }

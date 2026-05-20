@@ -107,4 +107,87 @@ public sealed class MusicPropertyNotifierTests
         Assert.Contains(nameof(MusicSelectionContainerViewModel.IsMusicSectionVisible), names);
         Assert.DoesNotContain(nameof(MusicSelectionContainerViewModel.ContentFlowDirection), names);
     }
+
+    [Fact]
+    public void NotifyAllMusicPropertiesChanged_notifies_every_music_binding_property()
+    {
+        var names = new List<string>();
+        var display = new MusicDisplayTextProvider(
+            new FakeState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>())),
+            new IdleCatalogMediaService(),
+            TestLogging.CreateLogger());
+        var sut = new MusicPropertyNotifier(names.Add, display);
+
+        sut.NotifyAllMusicPropertiesChanged();
+
+        Assert.Contains(nameof(MusicSelectionContainerViewModel.MusicEnabled), names);
+        Assert.Contains(nameof(MusicSelectionContainerViewModel.HasTrackSelected), names);
+        Assert.Contains(nameof(MusicSelectionContainerViewModel.ContentFlowDirection), names);
+    }
+
+    [Fact]
+    public void NotifyPropertiesChanged_when_only_section_changes_notifies_section_and_track()
+    {
+        var names = new List<string>();
+        var display = new MusicDisplayTextProvider(
+            new FakeState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>())),
+            new IdleCatalogMediaService(),
+            TestLogging.CreateLogger());
+        var sut = new MusicPropertyNotifier(names.Add, display);
+
+        sut.NotifyPropertiesChanged(
+            languageCodeChanged: false,
+            publicationCodeChanged: false,
+            sectionCodeChanged: true,
+            trackCodeChanged: false,
+            repeatChanged: false,
+            isMelodyMusic: false);
+
+        Assert.Contains(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText), names);
+        Assert.Contains(nameof(MusicSelectionContainerViewModel.TrackDisplayText), names);
+    }
+
+    [Fact]
+    public void NotifyPropertiesChanged_when_only_track_changes_notifies_track_display_text()
+    {
+        var names = new List<string>();
+        var display = new MusicDisplayTextProvider(
+            new FakeState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>())),
+            new IdleCatalogMediaService(),
+            TestLogging.CreateLogger());
+        var sut = new MusicPropertyNotifier(names.Add, display);
+
+        sut.NotifyPropertiesChanged(
+            languageCodeChanged: false,
+            publicationCodeChanged: false,
+            sectionCodeChanged: false,
+            trackCodeChanged: true,
+            repeatChanged: false,
+            isMelodyMusic: false);
+
+        Assert.Contains(nameof(MusicSelectionContainerViewModel.TrackDisplayText), names);
+        Assert.DoesNotContain(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText), names);
+    }
+
+    [Fact]
+    public void NotifyPropertiesChanged_when_only_repeat_changes_notifies_repeat_and_has_track_selected()
+    {
+        var names = new List<string>();
+        var display = new MusicDisplayTextProvider(
+            new FakeState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>())),
+            new IdleCatalogMediaService(),
+            TestLogging.CreateLogger());
+        var sut = new MusicPropertyNotifier(names.Add, display);
+
+        sut.NotifyPropertiesChanged(
+            languageCodeChanged: false,
+            publicationCodeChanged: false,
+            sectionCodeChanged: false,
+            trackCodeChanged: false,
+            repeatChanged: true,
+            isMelodyMusic: false);
+
+        Assert.Contains(nameof(MusicSelectionContainerViewModel.IsRepeatEnabled), names);
+        Assert.Contains(nameof(MusicSelectionContainerViewModel.HasTrackSelected), names);
+    }
 }

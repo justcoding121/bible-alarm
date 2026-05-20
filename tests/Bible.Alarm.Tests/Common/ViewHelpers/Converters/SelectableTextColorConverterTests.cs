@@ -1,8 +1,10 @@
 #nullable enable
 
 using System.Globalization;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.ViewHelpers.Converters;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
 
 namespace Bible.Alarm.Tests;
 
@@ -36,5 +38,40 @@ public sealed class SelectableTextColorConverterTests
 
         Assert.Throws<NotImplementedException>(() =>
             sut.ConvertBack(Colors.Purple, typeof(Color), null!, Cul));
+    }
+
+    [Fact]
+    public void Convert_reads_primary_color_from_application_resources_when_host_available()
+    {
+        if (!TryBootstrapMauiApp())
+        {
+            return;
+        }
+
+        var expected = Color.FromArgb("#AABBCC");
+        Application.Current!.Resources["PrimaryColor"] = expected;
+
+        var sut = new SelectableTextColorConverter();
+        var result = Assert.IsType<Color>(sut.Convert(true, typeof(Color), null!, Cul));
+
+        Assert.Equal(expected, result);
+    }
+
+    private static bool TryBootstrapMauiApp()
+    {
+        if (MauiAppHolder.IsInitialized)
+        {
+            return true;
+        }
+
+        try
+        {
+            MauiAppHolder.CreateAndStore();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

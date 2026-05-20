@@ -60,7 +60,37 @@ public sealed class ThemeColorsTests
     {
         Assert.NotEqual(Colors.Transparent, ThemeColors.Primary.SlateBlue);
         Assert.NotEqual(Colors.Transparent, ThemeColors.Primary.LightPurple);
+        Assert.NotEqual(Colors.Transparent, ThemeColors.Primary.LightPurpleForDark);
         Assert.NotEqual(Colors.Transparent, ThemeColors.Animation.Shadow);
+        Assert.NotEqual(Colors.Transparent, ThemeColors.Animation.PressedBackground);
         Assert.NotEqual(Colors.Transparent, ThemeColors.Bootstrap.DarkBackground);
+        Assert.NotEqual(Colors.Transparent, ThemeColors.Bootstrap.LightBackground);
+    }
+
+    [Fact]
+    public void Static_palette_properties_and_Get_cover_light_and_dark_branches()
+    {
+        _ = ThemeColors.Background.Dark;
+        _ = ThemeColors.Background.Light;
+        _ = ThemeColors.PageBackground.Light;
+        _ = ThemeColors.CardBackground.Dark;
+        _ = ThemeColors.ControlBackground.Dark;
+        _ = ThemeColors.ControlBackground.Light;
+        _ = ThemeColors.SelectedItemBackground.Dark;
+        _ = ThemeColors.Divider.Dark;
+        _ = ThemeColors.Divider.Light;
+        _ = ThemeColors.PrimaryText.Light;
+        _ = ThemeColors.TextPrimary.Light;
+        _ = ThemeColors.TextSecondary.Dark;
+        _ = ThemeColors.DisabledText.Dark;
+        _ = ThemeColors.Divider.Dark;
+        _ = ThemeColors.ProgressBarBackground.Dark;
+        _ = ThemeColors.PrimaryText.Dark;
+
+        Assert.Equal(ThemeColors.PageBackground.Light, ThemeColors.PageBackground.Get(AppTheme.Light));
+        Assert.Equal(ThemeColors.Day.CalendarMutedText.Dark, ThemeColors.Day.CalendarMutedText.Get(AppTheme.Dark));
+        Assert.Equal(ThemeColors.Day.DisabledBackground.Dark, ThemeColors.Day.DisabledBackground.Get(AppTheme.Dark));
+        Assert.Equal(ThemeColors.Day.AlarmDisabledDayDisabledBackground.Dark,
+            ThemeColors.Day.AlarmDisabledDayDisabledBackground.Get(AppTheme.Dark));
     }
 }

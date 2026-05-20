@@ -73,4 +73,45 @@ public sealed class ScheduleStateChangeHandlerTests
         Assert.False(result);
         Assert.False(hasChanges);
     }
+
+    [Fact]
+    public void UpdateMusicTrackingFields_copies_schedule_music_fields_to_refs()
+    {
+        var sut = new ScheduleStateChangeHandler(TestLogging.CreateLogger());
+        string? track = null;
+        string? pub = null;
+        string? lang = null;
+        bool? repeat = null;
+        var schedule = new ScheduleStateItem
+        {
+            MusicTrackCode = "t1",
+            MusicPublicationCode = "pub",
+            MusicLanguageCode = "E",
+            MusicRepeat = true,
+        };
+
+        sut.UpdateMusicTrackingFields(schedule, ref track, ref pub, ref lang, ref repeat);
+
+        Assert.Equal("t1", track);
+        Assert.Equal("pub", pub);
+        Assert.Equal("E", lang);
+        Assert.True(repeat);
+    }
+
+    [Fact]
+    public void ResetMusicTrackingFields_clears_all_tracking_refs()
+    {
+        var sut = new ScheduleStateChangeHandler(TestLogging.CreateLogger());
+        string? track = "t";
+        string? pub = "p";
+        string? lang = "E";
+        bool? repeat = true;
+
+        sut.ResetMusicTrackingFields(ref track, ref pub, ref lang, ref repeat);
+
+        Assert.Null(track);
+        Assert.Null(pub);
+        Assert.Null(lang);
+        Assert.Null(repeat);
+    }
 }
