@@ -69,5 +69,18 @@ public sealed class SafeTeardownTests
         cts.Dispose();
 
         SafeTeardown.CancelDisposeNoThrow(cts);
+
+        SafeTeardown.CancelDisposeNoThrow(cts);
+    }
+
+    [Fact]
+    public void CancelDisposeNoThrow_when_already_cancelled_skips_cancel_and_disposes()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        SafeTeardown.CancelDisposeNoThrow(cts);
+
+        Assert.Throws<ObjectDisposedException>(() => cts.Token);
     }
 }

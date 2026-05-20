@@ -43,6 +43,21 @@ public sealed class PlaybackViewModelLandscapeHandlerTests
     }
 
     [Fact]
+    public async Task RescheduleAutoHide_replaces_pending_timer_without_invoking_overlay()
+    {
+        var sut = new PlaybackViewModelLandscapeHandler(new SyncMainThreadScheduler());
+        var overlayInvocations = 0;
+
+        sut.ScheduleAutoHide(() => true, () => false, () => overlayInvocations++);
+        sut.ScheduleAutoHide(() => true, () => false, () => overlayInvocations++);
+        sut.CancelAutoHide();
+
+        await Task.Delay(400);
+
+        Assert.Equal(0, overlayInvocations);
+    }
+
+    [Fact]
     public async Task ScheduleAutoHide_after_delay_invokes_callback_when_still_valid()
     {
         var sut = new PlaybackViewModelLandscapeHandler(new SyncMainThreadScheduler());

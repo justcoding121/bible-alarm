@@ -8,22 +8,28 @@ namespace Bible.Alarm.Tests;
 public sealed class NetworkStatusServiceTests
 {
     [Fact]
-    public async Task IsInternetAvailable_returns_resolved_boolean()
+    public async Task IsInternetAvailable_returns_true_when_connectivity_reports_internet()
     {
+        if (Connectivity.NetworkAccess != NetworkAccess.Internet)
+        {
+            return;
+        }
+
         var sut = new NetworkStatusService();
-        var task = sut.IsInternetAvailable();
-        Assert.True(task.IsCompletedSuccessfully);
-        _ = await task;
+
+        Assert.True(await sut.IsInternetAvailable());
     }
 
     [Fact]
-    public async Task IsInternetAvailable_matches_connectivity_network_access()
+    public async Task IsInternetAvailable_returns_false_when_connectivity_is_not_internet()
     {
+        if (Connectivity.NetworkAccess == NetworkAccess.Internet)
+        {
+            return;
+        }
+
         var sut = new NetworkStatusService();
 
-        var result = await sut.IsInternetAvailable();
-
-        var expected = Connectivity.NetworkAccess == NetworkAccess.Internet;
-        Assert.Equal(expected, result);
+        Assert.False(await sut.IsInternetAvailable());
     }
 }

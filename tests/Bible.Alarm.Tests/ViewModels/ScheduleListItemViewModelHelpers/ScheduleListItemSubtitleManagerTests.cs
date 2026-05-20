@@ -309,6 +309,30 @@ public sealed class ScheduleListItemSubtitleManagerTests
     }
 
     [Fact]
+    public void RefreshSubTitleFromState_sectioned_publication_waiting_for_section_name_does_not_set_subtitle()
+    {
+        var item = new ScheduleStateItem
+        {
+            Id = 19,
+            BiblePublicationScheduleId = 190,
+            BiblePublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+            BiblePublicationCategoryName = "",
+            BiblePublicationName = "",
+            BiblePublicationSectionName = "",
+            BiblePublicationTrackTitle = "",
+        };
+        var app = new MutableState<ApplicationState>(new ApplicationState([]));
+        var playback = Playback(19, false, null);
+        var sut = new ScheduleListItemSubtitleManager(TestLogging.CreateLogger(), app, playback);
+
+        var subtitles = new List<string>();
+
+        sut.RefreshSubTitleFromState(19, item, subtitles.Add, _ => { }, _ => { });
+
+        Assert.Empty(subtitles);
+    }
+
+    [Fact]
     public void RefreshSubTitleFromState_sectioned_non_music_with_track_code_only_builds_subtitle()
     {
         var item = new ScheduleStateItem

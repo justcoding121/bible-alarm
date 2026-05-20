@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Linq.Expressions;
+using System.Reflection;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -149,6 +150,18 @@ public sealed class TrackChangeDetectorTests
         public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<BiblePublicationSchedule?>(null);
+    }
+
+    [Fact]
+    public void BibleTrackSignature_nested_record_can_be_constructed_via_reflection()
+    {
+        var nested = typeof(TrackChangeDetector).GetNestedTypes(BindingFlags.NonPublic)
+            .Single(t => t.Name.Contains("BibleTrackSignature", StringComparison.Ordinal));
+        var instance = Activator.CreateInstance(nested, "GEN", "1");
+
+        Assert.NotNull(instance);
+        Assert.Equal("GEN", nested.GetProperty("SectionCode")!.GetValue(instance));
+        Assert.Equal("1", nested.GetProperty("TrackCode")!.GetValue(instance));
     }
 
     [Fact]
