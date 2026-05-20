@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Reflection;
 using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Services.Battery;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -193,6 +194,23 @@ public sealed class BatteryOptimizationServiceTests
         var sut = new BatteryOptimizationService(TestLogging.CreateLogger(), settings, new FakeBatteryManager());
 
         sut.Dispose();
+        sut.Dispose();
+    }
+
+    [Fact]
+    public void Dispose_swallows_errors_when_cancellation_source_cancel_fails()
+    {
+        var settings = new FakeGeneralSettings();
+        var sut = new BatteryOptimizationService(TestLogging.CreateLogger(), settings, new FakeBatteryManager());
+        var field = typeof(BatteryOptimizationService).GetField(
+            "cancellationTokenSource",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+
+        var disposed = new CancellationTokenSource();
+        disposed.Dispose();
+        field!.SetValue(sut, disposed);
+
         sut.Dispose();
     }
 }

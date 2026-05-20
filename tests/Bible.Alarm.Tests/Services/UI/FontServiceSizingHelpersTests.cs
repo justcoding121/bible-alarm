@@ -64,6 +64,14 @@ public sealed class FontServiceSizingHelpersTests
     }
 
     [Fact]
+    public void GetDeviceSizeMultiplier_unknown_category_returns_base_multiplier()
+    {
+        var unknown = (FontServiceSizingHelpers.DeviceSizeCategory)99;
+
+        Assert.Equal(1.0, FontServiceSizingHelpers.GetDeviceSizeMultiplier(unknown, DevicePlatform.Android));
+    }
+
+    [Fact]
     public void GetDeviceSizeMultiplier_desktop_winui_vs_other()
     {
         Assert.Equal(1.0, FontServiceSizingHelpers.GetDeviceSizeMultiplier(

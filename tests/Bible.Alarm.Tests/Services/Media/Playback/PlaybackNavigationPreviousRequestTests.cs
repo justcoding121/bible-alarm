@@ -42,5 +42,25 @@ public sealed class PlaybackNavigationPreviousRequestTests
         Assert.Equal(42, Assert.Single(markCalls));
 
         Assert.Contains(55, visited);
+        Assert.False(sut.IsIndefinitePlayback);
+        Assert.Equal(9, sut.CurrentScheduleId);
+    }
+
+    [Fact]
+    public void Record_exposes_indefinite_playback_flag()
+    {
+        var sut = new PlaybackNavigationPreviousRequest(
+            Playlist: null,
+            GetCurrentTrackIndex: () => 0,
+            SetCurrentTrackIndex: _ => { },
+            CurrentScheduleId: null,
+            IsIndefinitePlayback: true,
+            TryPrependPreviousTrackAsync: () => Task.FromResult(false),
+            ManuallyVisitedTrackIndices: [],
+            MarkCurrentTrackAsPlayedAsync: _ => Task.CompletedTask,
+            PlayCurrentTrackAsync: _ => Task.CompletedTask,
+            HandlePlaybackFailureAsync: () => Task.CompletedTask);
+
+        Assert.True(sut.IsIndefinitePlayback);
     }
 }

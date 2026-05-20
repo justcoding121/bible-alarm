@@ -228,6 +228,24 @@ public sealed class PreparePlaybackServiceTests
     }
 
     [Fact]
+    public async Task PrepareTracksAsync_returns_null_when_resolve_throws()
+    {
+        var item = new PlayItem(Meta(), "https://x");
+        var playlists = new StubPlaylistService
+        {
+            NextTracksAsync = _ => Task.FromResult(new List<PlayItem> { item }),
+        };
+        var cache = new StubMediaCacheService
+        {
+            Resolve = (_, _) => throw new InvalidOperationException("cache failure"),
+        };
+
+        var sut = new PreparePlaybackService(TestLogging.CreateLogger(), playlists, cache);
+
+        Assert.Null(await sut.PrepareTracksAsync(5));
+    }
+
+    [Fact]
     public async Task PrepareSingleTrackAsync_returns_AudioPlayerTrack_when_uri_resolves()
     {
         var item = new PlayItem(Meta(), "https://ok");

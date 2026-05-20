@@ -38,6 +38,12 @@ public sealed class CdnPlaybackUrlProbeTests
             throw new HttpRequestException("simulated failure");
     }
 
+    private sealed class ProbeTimeoutHttpHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromException<HttpResponseMessage>(new OperationCanceledException());
+    }
+
     private static CdnPlaybackUrlProbe Create(HttpMessageHandler handler) =>
         new(new HttpClient(handler, disposeHandler: true), TestLogging.CreateLogger());
 
@@ -142,6 +148,14 @@ public sealed class CdnPlaybackUrlProbeTests
         Assert.Equal(
             CdnUrlProbeOutcome.Indeterminate,
             await Create(new ThrowingHttpHandler()).ProbeStreamingUrlAsync("https://cdn.example/audio.mp4"));
+    }
+
+    [Fact]
+    public async Task Probe_timeout_returns_indeterminate_without_user_cancellation()
+    {
+        Assert.Equal(
+            CdnUrlProbeOutcome.Indeterminate,
+            await Create(new ProbeTimeoutHttpHandler()).ProbeStreamingUrlAsync("https://cdn.example/audio.mp4"));
     }
 
     [Fact]

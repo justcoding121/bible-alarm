@@ -118,6 +118,10 @@ public sealed class PlaylistTrackUpdaterTests
 
         PlaylistTrackUpdater.UpdateMusicTrackForFinished(schedule, "88");
         Assert.Equal("88", schedule.Music!.TrackCode);
+
+        PlaylistTrackUpdater.UpdateMusicTrackForFinished(schedule, "99", "disc-2");
+        Assert.Equal("99", schedule.Music!.TrackCode);
+        Assert.Equal("disc-2", schedule.Music.SectionCode);
     }
 
     [Fact]

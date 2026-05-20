@@ -252,6 +252,25 @@ public sealed class ScheduleStateSyncHelperTests
     }
 
     [Fact]
+    public void SyncMusicIfNeeded_returns_null_when_music_not_updated_or_schedule_invalid()
+    {
+        var schedule = new ScheduleStateItem
+        {
+            Id = 2,
+            MusicPublicationCode = "PUB",
+            MusicTrackCode = "T",
+        };
+
+        var notUpdated = new UpdateScheduleFromViewModelAction(schedule, musicUpdated: false);
+        Assert.Null(ScheduleStateSyncHelper.SyncMusicIfNeeded(notUpdated, schedule));
+        Assert.Null(ScheduleStateSyncHelper.SyncMusicIfNeeded(notUpdated, null));
+
+        var updated = new UpdateScheduleFromViewModelAction(schedule, musicUpdated: true);
+        var invalid = new ScheduleStateItem { Id = 2, MusicPublicationCode = "", MusicTrackCode = "" };
+        Assert.Null(ScheduleStateSyncHelper.SyncMusicIfNeeded(updated, invalid));
+    }
+
+    [Fact]
     public void SyncMusicIfNeeded_returns_music_when_valid()
     {
         var schedule = new ScheduleStateItem

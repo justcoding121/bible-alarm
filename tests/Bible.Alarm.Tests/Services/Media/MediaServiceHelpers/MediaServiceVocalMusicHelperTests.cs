@@ -152,6 +152,65 @@ public sealed class MediaServiceVocalMusicHelperTests
     }
 
     [Fact]
+    public async Task GetReleasesAsync_merges_downloaded_releases_with_catalog_and_placeholders()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = SqliteMemoryOptions(connection);
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        const string downloadedCode = "vm-downloaded";
+        const string placeholderCode = "vm-placeholder-from-pl";
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+            seed.Categories.Add(musicCat);
+
+            var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+            seed.Languages.Add(lang);
+            await seed.SaveChangesAsync();
+
+            seed.PublicationLanguages.Add(new PublicationLanguage
+            {
+                PublicationCode = placeholderCode,
+                Category = musicCat,
+                CategoryId = musicCat.Id,
+                LanguageId = lang.Id,
+                Language = lang,
+                IsMusic = true,
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        var downloaded = new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase)
+        {
+            [downloadedCode] = new VocalMusic
+            {
+                Publication = new BiblePublication { PublicationCode = downloadedCode, Name = "DL", IsMusic = true },
+            },
+        };
+
+        var factory = new MediaTestScopeFactory(options);
+        var bible = new BiblePublicationCodesStub([downloadedCode, placeholderCode]);
+
+        var result = await MediaServiceVocalMusicHelper.GetReleasesAsync(
+            bible,
+            new VocalMusicMapStub(downloaded),
+            factory,
+            "E",
+            CancellationToken.None);
+
+        Assert.Equal(2, result.Count);
+        Assert.True(result.ContainsKey(downloadedCode));
+        Assert.True(result.ContainsKey(placeholderCode));
+    }
+
+    [Fact]
     public async Task GetReleasesAsync_creates_placeholder_for_missing_music_code_from_publication_language()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

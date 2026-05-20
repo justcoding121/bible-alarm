@@ -134,4 +134,19 @@ public sealed class PlaybackStateManagerTests
         Assert.Null(sut.PreparationCancellationTokenSource);
         Assert.False(sut.IsPlaybackEstablishedForTrack(4));
     }
+
+    [Fact]
+    public void Reset_swallows_errors_when_preparation_cts_already_disposed()
+    {
+        var disposed = new CancellationTokenSource();
+        disposed.Dispose();
+        var sut = new PlaybackStateManager(TestLogging.CreateLogger())
+        {
+            PreparationCancellationTokenSource = disposed,
+        };
+
+        sut.Reset();
+
+        Assert.Null(sut.PreparationCancellationTokenSource);
+    }
 }

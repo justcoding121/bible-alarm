@@ -108,6 +108,24 @@ public sealed class ApplicationSelectorsTests
     }
 
     [Fact]
+    public void GetCurrentMusicEntity_returns_null_when_current_schedule_null()
+    {
+        var state = new ApplicationState([]);
+        var mapper = CreateMapper();
+
+        Assert.Null(ApplicationSelectors.GetCurrentMusicEntity(state, mapper));
+    }
+
+    [Fact]
+    public void GetCurrentBiblePublicationEntity_returns_null_when_current_schedule_null()
+    {
+        var state = new ApplicationState([]);
+        var mapper = CreateMapper();
+
+        Assert.Null(ApplicationSelectors.GetCurrentBiblePublicationEntity(state, mapper));
+    }
+
+    [Fact]
     public void GetCurrentMusicEntity_returns_null_when_flattened_music_absent()
     {
         var state = new ApplicationState([], currentSchedule: Row(1));

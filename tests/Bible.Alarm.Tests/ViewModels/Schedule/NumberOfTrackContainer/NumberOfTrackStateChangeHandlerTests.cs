@@ -9,6 +9,32 @@ namespace Bible.Alarm.Tests;
 public sealed class NumberOfTrackStateChangeHandlerTests
 {
     [Fact]
+    public void ApplyContext_invokes_permission_callbacks_from_record()
+    {
+        var grantedCalled = false;
+        var dispatchOffCalled = false;
+        var schedule = new ScheduleStateItem { NotificationEnabled = true, NumberOfTracksToPlay = 1 };
+
+        var ctx = new NumberOfTrackStateChangeHandler.ApplyContext(
+            schedule,
+            IsWaitingForPermissionResponse: false,
+            () =>
+            {
+                grantedCalled = true;
+                return true;
+            },
+            () => dispatchOffCalled = true,
+            async _ => await Task.CompletedTask,
+            () => { },
+            TestLogging.CreateLogger());
+
+        Assert.True(ctx.GetIsGranted());
+        ctx.DispatchNotificationEnabledOff();
+        Assert.True(grantedCalled);
+        Assert.True(dispatchOffCalled);
+    }
+
+    [Fact]
     public void Syncs_notification_toggle_and_schedule_fields()
     {
         var schedule = new ScheduleStateItem

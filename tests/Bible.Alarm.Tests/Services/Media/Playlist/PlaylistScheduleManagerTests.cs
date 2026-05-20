@@ -199,5 +199,14 @@ public sealed class PlaylistScheduleManagerTests
     public void ValidateScheduleId_rejects_non_positive_ids()
     {
         Assert.Throws<ArgumentException>(() => PlaylistScheduleManager.ValidateScheduleId(0));
+        Assert.Throws<ArgumentException>(() => PlaylistScheduleManager.ValidateScheduleId(-3));
+    }
+
+    [Fact]
+    public void ValidateScheduleId_accepts_positive_schedule_id()
+    {
+        var ex = Record.Exception(() => PlaylistScheduleManager.ValidateScheduleId(42));
+
+        Assert.Null(ex);
     }
 }

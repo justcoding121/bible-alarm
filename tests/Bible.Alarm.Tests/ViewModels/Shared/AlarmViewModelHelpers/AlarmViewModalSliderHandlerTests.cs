@@ -290,6 +290,22 @@ public sealed class AlarmViewModalSliderHandlerTests
     }
 
     [Fact]
+    public void OnSliderTapped_when_duration_becomes_zero_before_seek_clears_interaction()
+    {
+        var durationReads = 0;
+        var handler = new AlarmViewModalSliderHandler(
+            TestLogging.CreateLogger(),
+            () => true,
+            () => durationReads++ == 0 ? TimeSpan.FromSeconds(100) : TimeSpan.Zero,
+            _ => { },
+            () => { });
+
+        handler.OnSliderTapped(0.5);
+
+        Assert.False(handler.IsUserInteracting);
+    }
+
+    [Fact]
     public void ShouldIgnorePositionUpdate_when_duration_becomes_zero_does_not_match_target_to_end_early()
     {
         var durationBox = new[] { TimeSpan.FromSeconds(100) };

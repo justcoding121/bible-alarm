@@ -57,6 +57,28 @@ public sealed class ModalOverlayFetchProgressReporterTests
     }
 
     [Fact]
+    public void UpdateProgressText_swallows_exceptions_from_modal_overlay_subscribers()
+    {
+        using var _ = new ThrowingSubscriber();
+        var sut = new ModalOverlayFetchProgressReporter("BibleSection", default);
+
+        var ex = Record.Exception(() => sut.UpdateProgressText("loading"));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void SetIsVisible_true_sends_zero_percent_progress_text()
+    {
+        using var recipient = new RecordingRecipient();
+        var sut = new ModalOverlayFetchProgressReporter("BiblePublication", default);
+
+        sut.SetIsVisible(true);
+
+        Assert.True(recipient.Last is { IsVisible: true, ProgressText: "0%" });
+    }
+
+    [Fact]
     public void Reporters_swallow_exceptions_from_modal_overlay_subscribers()
     {
         using var _ = new ThrowingSubscriber();

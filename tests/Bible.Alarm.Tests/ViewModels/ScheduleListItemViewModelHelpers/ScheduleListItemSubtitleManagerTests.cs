@@ -234,6 +234,30 @@ public sealed class ScheduleListItemSubtitleManagerTests
     }
 
     [Fact]
+    public void RefreshSubTitleFromState_flat_publication_uses_track_title_in_subtitle()
+    {
+        var item = new ScheduleStateItem
+        {
+            Id = 16,
+            BiblePublicationScheduleId = 160,
+            BiblePublicationCode = AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+            BiblePublicationCategoryName = "Children",
+            BiblePublicationName = "Songs",
+            BiblePublicationTrackTitle = "Song One",
+        };
+        var app = new MutableState<ApplicationState>(new ApplicationState([]));
+        var playback = Playback(16, false, null);
+        var sut = new ScheduleListItemSubtitleManager(TestLogging.CreateLogger(), app, playback);
+
+        var subtitles = new List<string>();
+
+        sut.RefreshSubTitleFromState(16, item, subtitles.Add, _ => { }, _ => { });
+
+        Assert.Single(subtitles);
+        Assert.Contains("Song One", subtitles[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RefreshSubTitleFromState_sectioned_music_uses_playback_title_when_same_schedule_active()
     {
         var item = new ScheduleStateItem

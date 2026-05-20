@@ -60,6 +60,15 @@ public sealed class BufferingWatchdogTests
     }
 
     [Fact]
+    public void Dispose_second_call_is_idempotent()
+    {
+        var sut = new BufferingWatchdog(TestLogging.CreateLogger(), () => { }, TimeSpan.FromMilliseconds(60));
+
+        sut.Dispose();
+        sut.Dispose();
+    }
+
+    [Fact]
     public void OnBufferingStarted_after_disposal_does_not_start_watchdog()
     {
         var invocations = 0;

@@ -34,6 +34,8 @@ public sealed class PlaybackMediaFailedRequestTests
         Assert.Null(sut.Playlist);
         Assert.Equal(1, sut.GetCurrentTrackIndex());
         Assert.Equal("u", sut.TrackUri);
+        Assert.Equal("url", sut.TrackUrl);
+        Assert.False(sut.GetIsManualNavigationPending());
         Assert.True(sut.GetIsAlarm());
 
         await sut.PlayCurrentTrackAsync(true);

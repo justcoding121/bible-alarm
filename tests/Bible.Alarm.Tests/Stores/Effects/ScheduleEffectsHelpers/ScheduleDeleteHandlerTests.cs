@@ -191,6 +191,25 @@ public sealed class ScheduleDeleteHandlerTests
     }
 
     [Fact]
+    public async Task HandleAsync_blocks_delete_when_only_one_schedule_and_restore_row_missing_in_db()
+    {
+        var only = Alarm(66, "Solo");
+        var svc = new DeleteAlarmScheduleStub
+        {
+            AllSchedules = [only],
+            ScheduleForGetById = null,
+        };
+        var sut = new ScheduleDeleteHandler(CreateMapper(), svc, null, null, new RecordingScheduleDisplayNameService());
+        var dispatcher = new RecordingDispatcher();
+
+        await sut.HandleAsync(new DeleteScheduleAction(66), dispatcher);
+
+        var fail = Assert.IsType<DeleteScheduleFailureAction>(Assert.Single(dispatcher.Dispatched));
+        Assert.Equal("Cannot delete last schedule", fail.Error);
+        Assert.Null(fail.Schedule);
+    }
+
+    [Fact]
     public async Task HandleAsync_blocks_delete_when_only_one_schedule_exists_and_db_load_fails()
     {
         var only = Alarm(77, "Solo");

@@ -46,6 +46,21 @@ public sealed class SectionFetchProgressReporterTests
     }
 
     [Fact]
+    public void UpdateProgressText_and_SetIsVisible_are_no_ops()
+    {
+        var sut = new SectionFetchProgressReporter(default);
+
+        var ex = Record.Exception(() =>
+        {
+            sut.UpdateProgressText("ignored");
+            sut.SetIsVisible(true);
+            sut.SetIsVisible(false);
+        });
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
     public void Ctor_assigns_cancellation_token_from_argument()
     {
         using var cts = new CancellationTokenSource();
