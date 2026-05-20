@@ -57,6 +57,8 @@ public sealed class BiblePublicationSectionListViewItemModelTests
         var right = new BiblePublicationSectionListViewItemModel(new BiblePublicationSection { SectionCode = "MAT", Name = "B" });
 
         Assert.True(left.Equals(right));
+        Assert.True(left == right);
+        Assert.False(left != right);
     }
 
     [Fact]
@@ -93,5 +95,31 @@ public sealed class BiblePublicationSectionListViewItemModelTests
         var b = new BiblePublicationSectionListViewItemModel(new BiblePublicationSection { SectionCode = "exo" });
 
         Assert.Equal(a.GetHashCode(), b.GetHashCode());
+    }
+
+    [Fact]
+    public void IsNavigating_and_DownloadProgressText_reflect_state()
+    {
+        var sut = new BiblePublicationSectionListViewItemModel(new BiblePublicationSection { SectionCode = "1" });
+
+        sut.IsNavigating = true;
+        Assert.True(sut.IsNavigating);
+
+        sut.DownloadProgress = 0.456;
+        Assert.Equal("46%", sut.DownloadProgressText);
+    }
+
+    [Fact]
+    public void CompareTo_object_and_relational_operators_cover_remaining_branches()
+    {
+        var earlier = new BiblePublicationSectionListViewItemModel(new BiblePublicationSection { SectionCode = "1" });
+        var later = new BiblePublicationSectionListViewItemModel(new BiblePublicationSection { SectionCode = "2" });
+
+        Assert.Equal(1, earlier.CompareTo(new object()));
+        Assert.Equal(0, earlier.CompareTo((object)earlier));
+        Assert.True(earlier <= later);
+        Assert.True(later >= earlier);
+        Assert.False(earlier <= null!);
+        Assert.False(null! >= earlier);
     }
 }

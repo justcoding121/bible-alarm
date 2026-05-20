@@ -168,4 +168,42 @@ public sealed class BiblePublicationPropertyNotifierTests
             [nameof(BiblePublicationSelectionContainerViewModel.IsLanguageVisible)],
             names);
     }
+
+    [Fact]
+    public void NotifyPropertyChanges_display_text_only_language_publication_section_track()
+    {
+        var names = new List<string>();
+        var sut = new BiblePublicationPropertyNotifier(names.Add);
+
+        sut.NotifyPropertyChanges(new PropertyChangeInfo
+        {
+            DisplayTextOnlyChanged = true,
+            LanguageDisplayChanged = true,
+        });
+        Assert.Equal([nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText)], names);
+
+        names.Clear();
+        sut.NotifyPropertyChanges(new PropertyChangeInfo
+        {
+            DisplayTextOnlyChanged = true,
+            PublicationDisplayChanged = true,
+        });
+        Assert.Equal([nameof(BiblePublicationSelectionContainerViewModel.PublicationDisplayText)], names);
+
+        names.Clear();
+        sut.NotifyPropertyChanges(new PropertyChangeInfo
+        {
+            DisplayTextOnlyChanged = true,
+            SectionDisplayChanged = true,
+        });
+        Assert.Equal([nameof(BiblePublicationSelectionContainerViewModel.SectionDisplayText)], names);
+
+        names.Clear();
+        sut.NotifyPropertyChanges(new PropertyChangeInfo
+        {
+            DisplayTextOnlyChanged = true,
+            TrackDisplayChanged = true,
+        });
+        Assert.Equal([nameof(BiblePublicationSelectionContainerViewModel.TrackDisplayText)], names);
+    }
 }

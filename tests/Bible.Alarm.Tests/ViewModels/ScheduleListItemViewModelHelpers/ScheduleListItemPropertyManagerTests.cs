@@ -10,7 +10,7 @@ namespace Bible.Alarm.Tests;
 
 public sealed class ScheduleListItemPropertyManagerTests
 {
-    private sealed class FakeScheduleStateService(bool succeed) : IScheduleStateService
+    private sealed class FakeScheduleStateService(bool succeed, Exception? throwOnUpdate = null) : IScheduleStateService
     {
         public List<(int Id, bool Enabled)> Updates { get; } = [];
 
@@ -21,6 +21,11 @@ public sealed class ScheduleListItemPropertyManagerTests
         public Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
         {
             Updates.Add((scheduleId, isEnabled));
+            if (throwOnUpdate is not null)
+            {
+                throw throwOnUpdate;
+            }
+
             return Task.FromResult(succeed);
         }
     }
@@ -113,5 +118,42 @@ public sealed class ScheduleListItemPropertyManagerTests
             });
 
         Assert.False(revertArg);
+    }
+
+    [Fact]
+    public async Task HandleIsEnabledChanged_reverts_when_update_throws()
+    {
+        var state = new FakeScheduleStateService(succeed: true, throwOnUpdate: new InvalidOperationException("db"));
+        var sut = new ScheduleListItemPropertyManager(TestLogging.CreateLogger(), state);
+
+        var revertArg = false;
+        await sut.HandleIsEnabledChanged(
+            5,
+            true,
+            schedule: null,
+            notifyThisPropertyChanged: () => { },
+            notifyPropertiesChanged: () => { },
+            revertChange: v =>
+            {
+                revertArg = v;
+                return Task.CompletedTask;
+            });
+
+        Assert.True(revertArg);
+    }
+
+    [Fact]
+    public async Task HandleIsEnabledChanged_swallows_revert_failure_after_update_throws()
+    {
+        var state = new FakeScheduleStateService(succeed: true, throwOnUpdate: new InvalidOperationException("db"));
+        var sut = new ScheduleListItemPropertyManager(TestLogging.CreateLogger(), state);
+
+        await sut.HandleIsEnabledChanged(
+            5,
+            true,
+            schedule: null,
+            notifyThisPropertyChanged: () => { },
+            notifyPropertiesChanged: () => { },
+            revertChange: _ => throw new InvalidOperationException("revert"));
     }
 }

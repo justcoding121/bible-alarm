@@ -189,4 +189,15 @@ public sealed class PlaybackPlaylistExtenderTests
         Assert.Empty(list[0].Uri);
         Assert.Equal("1", list[1].PlayItem.Metadata.TrackCode);
     }
+
+    [Fact]
+    public async Task TryPrependPreviousTrackAsync_false_when_resolver_throws()
+    {
+        var playlists = new StubPlaylistService { ThrowOnPrevious = new InvalidOperationException("prev") };
+        var sut = Sut(playlists);
+        var list = new List<AudioPlayerTrack> { Track("1") };
+
+        Assert.False(await sut.TryPrependPreviousTrackAsync(list, 0, 1, null, null, null, null));
+        Assert.Single(list);
+    }
 }

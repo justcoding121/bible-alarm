@@ -26,6 +26,18 @@ public sealed class CategoryListViewItemModelTests
     }
 
     [Fact]
+    public void IsSelected_and_IsNavigating_toggle()
+    {
+        var sut = new CategoryListViewItemModel(Cat());
+
+        sut.IsSelected = true;
+        sut.IsNavigating = true;
+
+        Assert.True(sut.IsSelected);
+        Assert.True(sut.IsNavigating);
+    }
+
+    [Fact]
     public void Constructor_falls_back_to_category_code_when_display_name_null()
     {
         var row = Cat(code: "Music");
@@ -80,7 +92,26 @@ public sealed class CategoryListViewItemModelTests
     public void Operators_require_non_null_operands_for_relational_comparison()
     {
         var a = new CategoryListViewItemModel(Cat(), "One");
+        var b = new CategoryListViewItemModel(Cat(), "Two");
         Assert.False(a < null!);
         Assert.False(null! < a);
+        Assert.True(b > a);
+        Assert.True(a <= b);
+        Assert.True(b >= a);
+    }
+
+    [Fact]
+    public void GetHashCode_and_object_Equals_follow_name_ordinal_rules()
+    {
+        var a = new CategoryListViewItemModel(Cat(), "Alpha");
+        var same = new CategoryListViewItemModel(Cat(), "Alpha");
+        var other = new CategoryListViewItemModel(Cat(), "Beta");
+
+        Assert.Equal(a.GetHashCode(), same.GetHashCode());
+        Assert.True(a.Equals((object)same));
+        Assert.False(a.Equals((object?)null));
+        Assert.False(a.Equals((object)other));
+        Assert.True(a == same);
+        Assert.False(a != same);
     }
 }
