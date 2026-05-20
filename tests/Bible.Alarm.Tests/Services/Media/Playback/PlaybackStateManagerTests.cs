@@ -149,4 +149,20 @@ public sealed class PlaybackStateManagerTests
 
         Assert.Null(sut.PreparationCancellationTokenSource);
     }
+
+    [Fact]
+    public void Reset_swallows_dispose_when_preparation_cts_disposed_during_reset()
+    {
+        using var cts = new CancellationTokenSource();
+        var sut = new PlaybackStateManager(TestLogging.CreateLogger())
+        {
+            PreparationCancellationTokenSource = cts,
+        };
+
+        cts.Dispose();
+
+        sut.Reset();
+
+        Assert.Null(sut.PreparationCancellationTokenSource);
+    }
 }

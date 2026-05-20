@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 
 namespace Bible.Alarm.Tests;
@@ -34,5 +35,48 @@ public sealed class AndroidAutoRotationHelperTests
         });
 
         Assert.Null(ex);
+    }
+
+    [Fact]
+    public void SetLastRotationScheduleId_round_trips_when_maui_preferences_available()
+    {
+        if (!TryBootstrapMauiAppForPreferences())
+        {
+            return;
+        }
+
+        try
+        {
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(88);
+            Assert.Equal(88, AndroidAutoRotationHelper.GetLastRotationScheduleId());
+
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(null);
+            Assert.Null(AndroidAutoRotationHelper.GetLastRotationScheduleId());
+
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(0);
+            Assert.Null(AndroidAutoRotationHelper.GetLastRotationScheduleId());
+        }
+        finally
+        {
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(null);
+        }
+    }
+
+    private static bool TryBootstrapMauiAppForPreferences()
+    {
+        if (MauiAppHolder.IsInitialized)
+        {
+            return true;
+        }
+
+        try
+        {
+            MauiAppHolder.CreateAndStore();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

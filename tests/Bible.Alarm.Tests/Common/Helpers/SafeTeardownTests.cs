@@ -63,6 +63,34 @@ public sealed class SafeTeardownTests
     }
 
     [Fact]
+    public void CancelDisposeNoThrow_concurrent_dispose_does_not_throw()
+    {
+        var cts = new CancellationTokenSource();
+        var barrier = new Barrier(2);
+
+        var t1 = Task.Run(() =>
+        {
+            barrier.SignalAndWait();
+            SafeTeardown.CancelDisposeNoThrow(cts);
+        });
+        var t2 = Task.Run(() =>
+        {
+            barrier.SignalAndWait();
+            try
+            {
+                cts.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        });
+
+        var ex = Record.Exception(() => Task.WaitAll(t1, t2));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
     public void CancelDisposeNoThrow_when_already_disposed_does_not_throw()
     {
         var cts = new CancellationTokenSource();
