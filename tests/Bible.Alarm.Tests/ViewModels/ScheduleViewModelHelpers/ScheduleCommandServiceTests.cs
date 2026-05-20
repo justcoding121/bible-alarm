@@ -19,6 +19,9 @@ using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Fluxor;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Maui.Devices;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+#endif
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Tests;
@@ -631,15 +634,18 @@ public sealed class ScheduleCommandServiceTests
     public async Task ExecuteSaveAsync_new_schedule_handles_null_schedules_on_state_changed()
     {
         var schedules = new ObservableHashSet<ScheduleStateItem> { Row(1) };
-        var appState = new MutableAppState(new ApplicationState(schedules));
-        appState.SetState(new ApplicationState(schedules) { Schedules = null! });
+        var appState = new MutableAppState(new ApplicationState(schedules) { Schedules = null! });
+        var released = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var dispatcher = new SimulatingDispatcher(action =>
         {
             if (action is CreateScheduleAction)
             {
-                appState.SetState(new ApplicationState(schedules) { Schedules = null! });
-                schedules.Add(Row(50));
-                appState.SetState(new ApplicationState(schedules));
+                _ = Task.Run(async () =>
+                {
+                    await released.Task;
+                    schedules.Add(Row(50));
+                    appState.SetState(new ApplicationState(schedules));
+                });
             }
         });
         var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
@@ -653,7 +659,10 @@ public sealed class ScheduleCommandServiceTests
             CreateMapper(),
             appState));
 
-        var ok = await sut.ExecuteSaveAsync(true, 0, Row(0), false, false, modelInitialized: true);
+        var waitTask = sut.ExecuteSaveAsync(true, 0, Row(0), false, false, modelInitialized: true);
+        await Task.Delay(30);
+        released.TrySetResult();
+        var ok = await waitTask;
 
         Assert.True(ok);
     }
@@ -739,6 +748,32 @@ public sealed class ScheduleCommandServiceTests
         Assert.Equal(0, nav.NavigateHomeCalls);
         Assert.Contains(dispatcher.Dispatched, a => a is SetSchedulePageOverlayAction { IsVisible: false });
     }
+
+#if ANDROID
+    [Fact]
+    public async Task ExecuteSaveAsync_returns_false_when_notification_enabled_but_not_granted_on_android()
+    {
+        if (!NotificationPermissionHelper.IsNotificationPermissionGranted())
+        {
+            var schedule = Row(14);
+            schedule.NotificationEnabled = true;
+            var sut = new ScheduleCommandService(new ScheduleCommandServiceDeps(
+                TestLogging.CreateLogger(),
+                new RecordingDispatcher(),
+                new RecordingNav(),
+                new StubScheduleSaveService(),
+                new RecordingPlaybackService(),
+                new StubNotificationService(),
+                new RecordingToast(),
+                CreateMapper(),
+                new FakeAppState(new ApplicationState(new ObservableHashSet<ScheduleStateItem>()))));
+
+            var ok = await sut.ExecuteSaveAsync(false, 14, schedule, false, false, modelInitialized: true);
+
+            Assert.False(ok);
+        }
+    }
+#endif
 
     [Fact]
     public async Task StopPlaybackIfNeededAsync_skips_when_playback_schedule_differs()

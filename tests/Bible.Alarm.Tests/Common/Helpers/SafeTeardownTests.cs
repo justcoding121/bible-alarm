@@ -111,4 +111,5 @@ public sealed class SafeTeardownTests
 
         Assert.Throws<ObjectDisposedException>(() => cts.Token);
     }
+
 }

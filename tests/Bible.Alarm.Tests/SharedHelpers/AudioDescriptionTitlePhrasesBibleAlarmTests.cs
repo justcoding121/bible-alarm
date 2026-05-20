@@ -78,4 +78,5 @@ public sealed class AudioDescriptionTitlePhrasesBibleAlarmTests
         Assert.Contains("avec audiodescription", french);
         Assert.DoesNotContain("With Audio Descriptions", french);
     }
+
 }
