@@ -288,6 +288,28 @@ public sealed class PlaybackFailureHandlerTests
     }
 
     [Fact]
+    public async Task HandlePlaybackFailureAsync_alarm_play_failure_dispatches_download_failed()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var notifications = new StubNotificationService();
+        var fallback = new StubFallbackAlarmSoundService { NextTrack = FallbackTrack() };
+        var sut = new PlaybackFailureHandler(fallback, notifications, dispatcher, TestLogging.CreateLogger());
+
+        await sut.HandlePlaybackFailureAsync(new PlaybackHandleFailureRequest(
+            IsAlarm: true,
+            CurrentScheduleId: 11,
+            ResetAsync: () => Task.CompletedTask,
+            SetPlaylist: _ => { },
+            SetCurrentTrackIndex: _ => { },
+            PlayCurrentTrackAsync: _ => throw new InvalidOperationException("play failed")));
+
+        Assert.Single(notifications.ShowCalls);
+        var errors = dispatcher.Dispatched.OfType<PlaybackErrorAction>().ToList();
+        Assert.Contains(errors, e => e.ErrorMessage == PlaybackUserFacingStrings.MediaPlaybackFailedPlayingFallbackAlarm);
+        Assert.Contains(errors, e => e.ErrorMessage == PlaybackUserFacingStrings.MediaDownloadFailedCheckInternet);
+    }
+
+    [Fact]
     public async Task TryPlayFallbackWhenPrepareFailedAsync_fallback_lookup_failure_dispatches_download_failed()
     {
         var dispatcher = new RecordingDispatcher();

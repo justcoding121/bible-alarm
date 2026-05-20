@@ -157,4 +157,53 @@ public sealed class TrackOnDemandPreparerTests
 
         Assert.Equal("file://next", list[1].Uri);
     }
+
+    [Fact]
+    public async Task PreDownloadNextTrackAsync_returns_when_next_play_item_null()
+    {
+        var sut = new TrackOnDemandPreparer(new StubPreparePlayback(), new StubMediaCache(), TestLogging.CreateLogger());
+        var list = new List<AudioPlayerTrack>
+        {
+            new() { PlayItem = Pi(), Uri = "a" },
+            new() { PlayItem = null!, Uri = string.Empty },
+        };
+
+        await sut.PreDownloadNextTrackAsync(list, 0, CancellationToken.None);
+
+        Assert.True(string.IsNullOrEmpty(list[1].Uri));
+    }
+
+    [Fact]
+    public async Task PreDownloadNextTrackAsync_swallows_operation_canceled_from_cache()
+    {
+        var cache = new StubMediaCache
+        {
+            CacheTrackImpl = (_, _, _) => throw new OperationCanceledException(),
+        };
+        var sut = new TrackOnDemandPreparer(new StubPreparePlayback(), cache, TestLogging.CreateLogger());
+        var list = new List<AudioPlayerTrack>
+        {
+            new() { PlayItem = Pi(), Uri = "a" },
+            new() { PlayItem = Pi(9), Uri = string.Empty },
+        };
+
+        await sut.PreDownloadNextTrackAsync(list, 0, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task PreDownloadNextTrackAsync_swallows_non_critical_cache_failures()
+    {
+        var cache = new StubMediaCache
+        {
+            CacheTrackImpl = (_, _, _) => throw new InvalidOperationException("cache failed"),
+        };
+        var sut = new TrackOnDemandPreparer(new StubPreparePlayback(), cache, TestLogging.CreateLogger());
+        var list = new List<AudioPlayerTrack>
+        {
+            new() { PlayItem = Pi(), Uri = "a" },
+            new() { PlayItem = Pi(9), Uri = string.Empty },
+        };
+
+        await sut.PreDownloadNextTrackAsync(list, 0, CancellationToken.None);
+    }
 }
