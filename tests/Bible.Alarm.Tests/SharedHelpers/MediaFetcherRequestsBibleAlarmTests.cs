@@ -7,8 +7,7 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Helpers;
 using Bible.Alarm.Shared.Services.Media.Helpers.SectionFetcherHelpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
+using Bible.Alarm.Tests.Support;
 
 namespace Bible.Alarm.Tests;
 
@@ -317,22 +316,5 @@ public sealed class FetchFlatPublicationTracksRequestBibleAlarmTests
             Assert.True(sut.IsVideo);
             Assert.Same(language, sut.Language);
         });
-    }
-}
-
-file static class MediaFetcherRequestTestDb
-{
-    public static async Task RunAsync(Func<MediaDbContext, Task> body)
-    {
-        await using var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-
-        var options = new DbContextOptionsBuilder<MediaDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        await using var db = new MediaDbContext(options);
-        await db.Database.EnsureCreatedAsync();
-        await body(db);
     }
 }
