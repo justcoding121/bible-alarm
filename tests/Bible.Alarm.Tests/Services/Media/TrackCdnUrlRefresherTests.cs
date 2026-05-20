@@ -280,6 +280,48 @@ public sealed class TrackCdnUrlRefresherTests
     }
 
     [Fact]
+    public async Task TryRefreshTrackCdnUrlFromApiAsync_returns_null_when_fetch_publication_fails()
+    {
+        var language = new RecordingLanguageService { FetchPublicationResult = false };
+        var urls = new RecordingUrlConstructionService();
+        var sut = new TrackCdnUrlRefresher(language, urls, new RecordingMelodyDiscTracksApiRefresher(),
+            TestLogging.CreateLogger());
+
+        Assert.Null(await sut.TryRefreshTrackCdnUrlFromApiAsync(new TrackMetadata
+        {
+            PublicationCode = "osg",
+            SectionCode = null,
+            TrackCode = "2",
+            LanguageCode = "MY",
+        }));
+
+        Assert.Equal(("osg", "MY"), Assert.Single(language.FetchPublicationCalls));
+        Assert.Equal(1, urls.ClearCacheCalls);
+        Assert.Empty(urls.ConstructCalls);
+    }
+
+    [Fact]
+    public async Task TryRefreshTrackCdnUrlFromApiAsync_returns_null_when_fetch_section_fails()
+    {
+        var language = new RecordingLanguageService { FetchSectionResult = false };
+        var urls = new RecordingUrlConstructionService();
+        var sut = new TrackCdnUrlRefresher(language, urls, new RecordingMelodyDiscTracksApiRefresher(),
+            TestLogging.CreateLogger());
+
+        Assert.Null(await sut.TryRefreshTrackCdnUrlFromApiAsync(new TrackMetadata
+        {
+            PublicationCode = "nwt",
+            SectionCode = "40",
+            TrackCode = "01",
+            LanguageCode = "E",
+        }));
+
+        Assert.Equal(("nwt", "40", "E", true), Assert.Single(language.FetchSectionCalls));
+        Assert.Equal(1, urls.ClearCacheCalls);
+        Assert.Empty(urls.ConstructCalls);
+    }
+
+    [Fact]
     public async Task TryRefreshTrackCdnUrlFromApiAsync_flat_publication_returns_first_url_when_present()
     {
         var language = new RecordingLanguageService();

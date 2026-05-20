@@ -637,6 +637,7 @@ public sealed class ScheduleCommandServiceTests
         {
             if (action is CreateScheduleAction)
             {
+                appState.SetState(new ApplicationState(schedules) { Schedules = null! });
                 schedules.Add(Row(50));
                 appState.SetState(new ApplicationState(schedules));
             }

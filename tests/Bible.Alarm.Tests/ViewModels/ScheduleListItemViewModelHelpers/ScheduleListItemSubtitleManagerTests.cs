@@ -307,4 +307,31 @@ public sealed class ScheduleListItemSubtitleManagerTests
         Assert.Contains("Live track", subtitles[0], StringComparison.Ordinal);
         Assert.DoesNotContain("Stale", subtitles[0], StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void RefreshSubTitleFromState_sectioned_non_music_with_track_code_only_builds_subtitle()
+    {
+        var item = new ScheduleStateItem
+        {
+            Id = 18,
+            BiblePublicationScheduleId = 180,
+            BiblePublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+            BiblePublicationCategoryName = "Bible",
+            BiblePublicationName = "NWT",
+            BiblePublicationSectionName = "Matthew",
+            BiblePublicationTrackCode = "5",
+            BiblePublicationTrackTitle = "",
+        };
+        var app = new MutableState<ApplicationState>(new ApplicationState([]));
+        var playback = Playback(18, false, null);
+        var sut = new ScheduleListItemSubtitleManager(TestLogging.CreateLogger(), app, playback);
+
+        var subtitles = new List<string>();
+
+        sut.RefreshSubTitleFromState(18, item, subtitles.Add, _ => { }, _ => { });
+
+        Assert.Single(subtitles);
+        Assert.Contains("Matthew", subtitles[0], StringComparison.Ordinal);
+        Assert.Contains("5", subtitles[0], StringComparison.Ordinal);
+    }
 }

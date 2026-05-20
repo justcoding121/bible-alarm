@@ -118,4 +118,43 @@ public sealed class MusicStateTrackerTests
         Assert.False(sut.ShouldTriggerDefaultMusicForNullPublication(10));
         Assert.True(sut.ShouldTriggerDefaultMusicForNullPublication(11));
     }
+
+    [Fact]
+    public void InitializeFromSchedule_no_ops_when_schedule_null()
+    {
+        var sut = new MusicStateTracker();
+
+        sut.InitializeFromSchedule(null);
+
+        Assert.Null(sut.LastScheduleMusicTrackCode);
+    }
+
+    [Fact]
+    public void UpdateFromSchedule_no_ops_when_schedule_null()
+    {
+        var sut = new MusicStateTracker();
+        sut.UpdateFromSchedule(new ScheduleStateItem { MusicTrackCode = "1" });
+
+        sut.UpdateFromSchedule(null);
+
+        Assert.Equal("1", sut.LastScheduleMusicTrackCode);
+    }
+
+    [Fact]
+    public void HasMusicPublicationNameChanged_returns_false_when_schedule_null()
+    {
+        var sut = new MusicStateTracker();
+        sut.UpdateFromSchedule(new ScheduleStateItem { MusicPublicationName = "A" });
+
+        Assert.False(sut.HasMusicPublicationNameChanged(null));
+    }
+
+    [Fact]
+    public void HasMusicSectionNameChanged_returns_false_when_schedule_null()
+    {
+        var sut = new MusicStateTracker();
+        sut.UpdateFromSchedule(new ScheduleStateItem { MusicSectionName = "S" });
+
+        Assert.False(sut.HasMusicSectionNameChanged(null));
+    }
 }

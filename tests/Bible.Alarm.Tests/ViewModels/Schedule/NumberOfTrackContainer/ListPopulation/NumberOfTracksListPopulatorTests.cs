@@ -148,4 +148,139 @@ public sealed class NumberOfTracksListPopulatorTests
 
         Assert.Equal(21, result.List.Count);
     }
+
+    [Fact]
+    public async Task PopulateAsync_dramas_without_bible_service_uses_default_cap()
+    {
+        var sut = new NumberOfTracksListPopulator(TestLogging.CreateLogger(), biblePublicationService: null);
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryDramas,
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationCode = "dram-code",
+        };
+
+        var result = await sut.PopulateAsync(schedule, null, null);
+
+        Assert.Equal(21, result.List.Count);
+    }
+
+    [Fact]
+    public async Task PopulateAsync_dramas_without_language_or_code_uses_default_cap()
+    {
+        var stub = new BiblePublicationServiceStub { PublicationToReturn = PublicationWithTrackCount(5) };
+        var sut = new NumberOfTracksListPopulator(TestLogging.CreateLogger(), stub);
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryDramas,
+            BiblePublicationLanguageCode = "",
+            BiblePublicationCode = "",
+        };
+
+        var result = await sut.PopulateAsync(schedule, null, null);
+
+        Assert.Equal(21, result.List.Count);
+    }
+
+    [Fact]
+    public async Task PopulateAsync_dramas_when_publication_has_no_tracks_uses_default_cap()
+    {
+        var stub = new BiblePublicationServiceStub
+        {
+            PublicationToReturn = new BiblePublication { Tracks = [] },
+        };
+        var sut = new NumberOfTracksListPopulator(TestLogging.CreateLogger(), stub);
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryDramas,
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationCode = "dram-code",
+        };
+
+        var result = await sut.PopulateAsync(schedule, null, null);
+
+        Assert.Equal(21, result.List.Count);
+    }
+
+    [Fact]
+    public async Task PopulateAsync_dramas_when_lookup_throws_uses_default_cap()
+    {
+        var stub = new ThrowingBiblePublicationService();
+        var sut = new NumberOfTracksListPopulator(TestLogging.CreateLogger(), stub);
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryDramas,
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationCode = "dram-code",
+        };
+
+        var result = await sut.PopulateAsync(schedule, null, null);
+
+        Assert.Equal(21, result.List.Count);
+    }
+
+    private sealed class ThrowingBiblePublicationService : IBiblePublicationService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(
+            string languageCode,
+            string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("db");
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(
+            string languageCode,
+            string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(
+            string languageCode,
+            string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(
+            string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<List<string>> GetAvailablePublicationCodesAsync(
+            string languageCode,
+            string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<string?> GetFirstPublicationCodeByOrderAsync(
+            string languageCode,
+            string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(
+            string languageCode,
+            string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(
+            string languageCode,
+            string categoryCode,
+            CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+        {
+        }
+    }
 }
