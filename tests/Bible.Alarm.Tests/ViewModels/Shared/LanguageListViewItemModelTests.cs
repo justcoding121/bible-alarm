@@ -45,6 +45,21 @@ public sealed class LanguageListViewItemModelTests
     }
 
     [Fact]
+    public void DownloadProgressText_empty_when_progress_not_set()
+    {
+        var sut = new LanguageListViewItemModel(Lang("F"), "?");
+        Assert.Equal(string.Empty, sut.DownloadProgressText);
+    }
+
+    [Fact]
+    public void IsNavigating_property_round_trips()
+    {
+        var sut = new LanguageListViewItemModel(Lang("E"), "English");
+        sut.IsNavigating = true;
+        Assert.True(sut.IsNavigating);
+    }
+
+    [Fact]
     public void CompareTo_orders_by_Name_ordinal()
     {
         var french = new LanguageListViewItemModel(Lang("F"), "Français");
@@ -60,7 +75,10 @@ public sealed class LanguageListViewItemModelTests
         var b = new LanguageListViewItemModel(Lang("b"), "Same Label");
 
         Assert.True(a.Equals(b));
+        Assert.True(a.Equals((object)b));
+        Assert.Equal(StringComparer.Ordinal.GetHashCode("Same Label"), a.GetHashCode());
         Assert.False(a.Equals(new LanguageListViewItemModel(Lang("a"), "Other")));
+        Assert.False(a.Equals((object?)null));
     }
 
     [Fact]
@@ -71,6 +89,8 @@ public sealed class LanguageListViewItemModelTests
 
         Assert.True(low < high);
         Assert.True(high > low);
+        Assert.True(low <= high);
+        Assert.True(high >= low);
     }
 
     [Fact]
@@ -87,5 +107,20 @@ public sealed class LanguageListViewItemModelTests
         var sut = new LanguageListViewItemModel(Lang("E"), "?");
 
         Assert.Equal(1, ((IComparable)sut).CompareTo(new object()));
+    }
+
+    [Fact]
+    public void Comparison_operators_with_null_operand_return_false()
+    {
+        var sut = new LanguageListViewItemModel(Lang("E"), "?");
+        LanguageListViewItemModel? n = null;
+        Assert.False(sut < n);
+        Assert.False(n < sut);
+        Assert.False(sut > n);
+        Assert.False(n > sut);
+        Assert.False(sut <= n);
+        Assert.False(n <= sut);
+        Assert.False(sut >= n);
+        Assert.False(n >= sut);
     }
 }

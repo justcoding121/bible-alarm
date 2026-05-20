@@ -22,4 +22,17 @@ public sealed class AndroidAutoRotationHelperTests
     [InlineData(99, true)]
     public void ShouldPersistScheduleId_requires_positive_id(int? scheduleId, bool expected) =>
         Assert.Equal(expected, AndroidAutoRotationHelper.ShouldPersistScheduleId(scheduleId));
+
+    [Fact]
+    public void GetLastRotationScheduleId_and_SetLastRotationScheduleId_do_not_throw_on_headless_host()
+    {
+        var ex = Record.Exception(() =>
+        {
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(12);
+            _ = AndroidAutoRotationHelper.GetLastRotationScheduleId();
+            AndroidAutoRotationHelper.SetLastRotationScheduleId(null);
+        });
+
+        Assert.Null(ex);
+    }
 }

@@ -42,4 +42,22 @@ public sealed class SystemControlsHandlerTests
 
         Assert.True(done.Wait(TimeSpan.FromSeconds(5)));
     }
+
+    [Fact]
+    public void HandleSeekBackwardButton_runs_callback_on_main_thread_scheduler()
+    {
+        using var done = new ManualResetEventSlim(false);
+        var sut = new SystemControlsHandler(
+            TestLogging.CreateLogger(),
+            new SyncMainThreadScheduler(),
+            InstantDelay);
+
+        sut.HandleSeekBackwardButton(async () =>
+        {
+            await Task.CompletedTask;
+            done.Set();
+        });
+
+        Assert.True(done.Wait(TimeSpan.FromSeconds(5)));
+    }
 }
