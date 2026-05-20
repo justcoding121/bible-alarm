@@ -11,6 +11,11 @@ namespace Bible.Alarm.Tests;
 
 public sealed class IsEnabledColorConverterTests
 {
+    static IsEnabledColorConverterTests()
+    {
+        TryBootstrapMauiApp();
+    }
+
     private static readonly CultureInfo Cul = CultureInfo.InvariantCulture;
 
     [Fact]
@@ -83,15 +88,15 @@ public sealed class IsEnabledColorConverterTests
     [Fact]
     public void Convert_enabled_with_string_resource_key_returns_resource_color()
     {
-        if (Application.Current is null)
+        if (!TryBootstrapMauiApp())
         {
             return;
         }
 
         var sut = new IsEnabledColorConverter();
         var expected = Color.FromArgb("#A1B2C3");
-        const string key = "Wave20TestEnabledColor";
-        Application.Current.Resources[key] = expected;
+        const string key = "Wave34TestEnabledColor";
+        Application.Current!.Resources[key] = expected;
 
         var result = sut.Convert(true, typeof(Color), key, Cul);
 
@@ -101,17 +106,71 @@ public sealed class IsEnabledColorConverterTests
     [Fact]
     public void Convert_disabled_reads_disabled_text_color_from_resources_when_present()
     {
-        if (Application.Current is null)
+        if (!TryBootstrapMauiApp())
         {
             return;
         }
 
         var sut = new IsEnabledColorConverter();
         var expected = Color.FromArgb("#CCCCCC");
-        Application.Current.Resources["DisabledTextColor"] = expected;
+        Application.Current!.Resources["DisabledTextColor"] = expected;
 
         var result = (Color)sut.Convert(false, typeof(Color), null!, Cul);
 
         Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void Convert_enabled_without_parameter_reads_text_primary_from_resources_when_present()
+    {
+        if (!TryBootstrapMauiApp())
+        {
+            return;
+        }
+
+        var sut = new IsEnabledColorConverter();
+        var expected = Color.FromArgb("#DDEEFF");
+        Application.Current!.Resources["TextPrimaryColor"] = expected;
+
+        var result = (Color)sut.Convert(true, typeof(Color), null!, Cul);
+
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void Convert_enabled_without_parameter_uses_theme_contrast_when_text_primary_missing()
+    {
+        if (!TryBootstrapMauiApp())
+        {
+            return;
+        }
+
+        Application.Current!.Resources.Remove("TextPrimaryColor");
+
+        var sut = new IsEnabledColorConverter();
+        var result = (Color)sut.Convert(true, typeof(Color), null!, Cul);
+
+        var expected = Application.Current.RequestedTheme == AppTheme.Dark
+            ? Colors.White
+            : Colors.Black;
+        Assert.Equal(expected, result);
+    }
+
+    private static bool TryBootstrapMauiApp()
+    {
+        if (MauiAppHolder.IsInitialized)
+        {
+            return true;
+        }
+
+        try
+        {
+            MauiAppHolder.CreateAndStore();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

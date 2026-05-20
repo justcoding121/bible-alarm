@@ -14,9 +14,11 @@ public sealed class SchedulingLookaheadBibleAlarmTests
         Assert.Equal(TimeSpan.Zero, SchedulingLookahead.FromDaysOrZero(days));
     }
 
-    [Fact]
-    public void FromDaysOrZero_returns_day_span_for_positive_days()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(14)]
+    public void FromDaysOrZero_returns_day_span_for_positive_days(int days)
     {
-        Assert.Equal(TimeSpan.FromDays(14), SchedulingLookahead.FromDaysOrZero(14));
+        Assert.Equal(TimeSpan.FromDays(days), SchedulingLookahead.FromDaysOrZero(days));
     }
 }

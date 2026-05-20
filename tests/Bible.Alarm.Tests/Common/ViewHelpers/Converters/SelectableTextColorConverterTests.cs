@@ -10,6 +10,11 @@ namespace Bible.Alarm.Tests;
 
 public sealed class SelectableTextColorConverterTests
 {
+    static SelectableTextColorConverterTests()
+    {
+        TryBootstrapMauiApp();
+    }
+
     private static readonly CultureInfo Cul = CultureInfo.InvariantCulture;
 
     [Fact]
@@ -55,6 +60,22 @@ public sealed class SelectableTextColorConverterTests
         var result = Assert.IsType<Color>(sut.Convert(true, typeof(Color), null!, Cul));
 
         Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void Convert_returns_purple_fallback_when_primary_resource_missing()
+    {
+        if (!TryBootstrapMauiApp())
+        {
+            return;
+        }
+
+        Application.Current!.Resources.Remove("PrimaryColor");
+
+        var sut = new SelectableTextColorConverter();
+        var result = Assert.IsType<Color>(sut.Convert(false, typeof(Color), null!, Cul));
+
+        Assert.Equal(Colors.Purple, result);
     }
 
     private static bool TryBootstrapMauiApp()
