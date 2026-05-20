@@ -164,6 +164,27 @@ public sealed class TrackChangeDetectorTests
     }
 
     [Fact]
+    public async Task CheckIfTrackChanged_uses_cached_signature_without_loading_schedule()
+    {
+        var alarms = new RecordingAlarmScheduleService();
+        var sut = new TrackChangeDetector(alarms, CancellationToken.None);
+
+        sut.SetLastKnownBibleTrack(7, " gen ", "1");
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 7,
+            IsBibleContent = true,
+            SectionCode = "GEN",
+            TrackCode = "1",
+            LookUpPath = "path",
+        };
+
+        Assert.False(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(0, alarms.GetScheduleByIdAsyncCalls);
+    }
+
+    [Fact]
     public async Task CheckIfTrackChanged_returns_false_when_not_bible_content_without_touching_schedule()
     {
         var alarms = new RecordingAlarmScheduleService();
