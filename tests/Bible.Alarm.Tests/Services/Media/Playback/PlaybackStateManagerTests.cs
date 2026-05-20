@@ -85,6 +85,17 @@ public sealed class PlaybackStateManagerTests
 
         audio.Status = PlayStatus.Loading;
         Assert.True(sut.IsPreparingOrPlaying(audio));
+
+        audio.IsActuallyPlayingOrPaused = true;
+        audio.Status = PlayStatus.Stopped;
+        Assert.True(sut.IsPreparingOrPlaying(audio));
+
+        audio.IsActuallyPlayingOrPaused = false;
+        audio.Status = PlayStatus.Playing;
+        Assert.True(sut.IsPreparingOrPlaying(audio));
+
+        audio.Status = PlayStatus.Paused;
+        Assert.True(sut.IsPreparingOrPlaying(audio));
     }
 
     [Fact]
@@ -164,5 +175,43 @@ public sealed class PlaybackStateManagerTests
         sut.Reset();
 
         Assert.Null(sut.PreparationCancellationTokenSource);
+    }
+
+    [Fact]
+    public void Reset_logs_warning_when_preparation_cts_dispose_throws()
+    {
+        var events = new List<Serilog.Events.LogEvent>();
+        var logger = new Serilog.LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .WriteTo.Sink(new ListSink(events))
+            .CreateLogger();
+
+        var cts = new ThrowOnDisposeCancellationTokenSource();
+        var sut = new PlaybackStateManager(logger)
+        {
+            PreparationCancellationTokenSource = cts,
+        };
+
+        sut.Reset();
+
+        Assert.Contains(events, e => e.Level == Serilog.Events.LogEventLevel.Warning);
+    }
+
+    private sealed class ListSink(List<Serilog.Events.LogEvent> events) : Serilog.Core.ILogEventSink
+    {
+        public void Emit(Serilog.Events.LogEvent logEvent) => events.Add(logEvent);
+    }
+
+    private sealed class ThrowOnDisposeCancellationTokenSource : CancellationTokenSource
+    {
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                throw new InvalidOperationException("dispose failed for test");
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

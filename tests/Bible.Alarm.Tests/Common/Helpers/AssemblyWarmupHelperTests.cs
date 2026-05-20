@@ -19,6 +19,13 @@ public sealed class AssemblyWarmupHelperTests
     }
 
     [Fact]
+    public async Task WarmupHttpAssembliesAsync_can_be_called_multiple_times()
+    {
+        await AssemblyWarmupHelper.WarmupHttpAssembliesAsync();
+        await AssemblyWarmupHelper.WarmupHttpAssembliesAsync();
+    }
+
+    [Fact]
     public void WarmupType_swallows_type_initializer_errors_via_reflection()
     {
         var method = typeof(AssemblyWarmupHelper).GetMethod(

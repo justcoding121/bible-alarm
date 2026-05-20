@@ -6,6 +6,7 @@ using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.Tests.Support;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -59,6 +60,26 @@ public sealed class ScheduleSuccessHandlerTests
 
         var action = Assert.Single(dispatcher.Dispatched);
         Assert.IsType<SetCarPlayScreenAction>(action);
+    }
+
+    [Fact]
+    public async Task HandleUpdateScheduleSuccess_swallows_dispatcher_exceptions()
+    {
+        var dispatcher = new ThrowingDispatcher();
+
+        await ScheduleSuccessHandler.HandleUpdateScheduleSuccess(
+            new UpdateScheduleSuccessAction(new ScheduleStateItem { Id = 12 }),
+            dispatcher);
+    }
+
+    private sealed class ThrowingDispatcher : IDispatcher
+    {
+#pragma warning disable CS0067
+        public event EventHandler<ActionDispatchedEventArgs>? ActionDispatched;
+#pragma warning restore CS0067
+
+        public void Dispatch(object action) =>
+            throw new InvalidOperationException("dispatch failed for test");
     }
 
     [Fact]
@@ -129,8 +150,8 @@ public sealed class ScheduleSuccessHandlerTests
 
         try
         {
-            MauiAppHolder.CreateAndStore();
-            return true;
+            MauiUiTestBootstrap.TryInitialize();
+            return MauiAppHolder.IsInitialized;
         }
         catch
         {

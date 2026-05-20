@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common;
+using Serilog;
 
 namespace Bible.Alarm.Tests.Support;
 
@@ -18,6 +19,8 @@ internal static class MauiUiTestBootstrap
 
         try
         {
+            Log.Logger ??= new LoggerConfiguration().CreateLogger();
+
             MauiAppHolder.CreateAndStore();
             IsReady = true;
         }

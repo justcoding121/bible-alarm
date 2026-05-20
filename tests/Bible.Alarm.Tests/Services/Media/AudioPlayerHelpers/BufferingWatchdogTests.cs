@@ -69,6 +69,31 @@ public sealed class BufferingWatchdogTests
     }
 
     [Fact]
+    public void OnBufferingStarted_when_already_disposed_returns_before_starting_watchdog()
+    {
+        var invocations = 0;
+        var sut = new BufferingWatchdog(TestLogging.CreateLogger(), () => invocations++, TimeSpan.FromMilliseconds(60));
+        sut.Dispose();
+
+        sut.OnBufferingStarted();
+
+        Assert.Equal(0, invocations);
+    }
+
+    [Fact]
+    public async Task Dispose_while_watchdog_delay_elapsed_skips_recovery_when_disposed_flag_set()
+    {
+        var invocations = 0;
+        var sut = new BufferingWatchdog(TestLogging.CreateLogger(), () => invocations++, TimeSpan.FromMilliseconds(250));
+        sut.OnBufferingStarted();
+        await Task.Delay(80);
+        sut.Dispose();
+        await Task.Delay(300);
+
+        Assert.Equal(0, invocations);
+    }
+
+    [Fact]
     public void OnBufferingStarted_after_disposal_does_not_start_watchdog()
     {
         var invocations = 0;

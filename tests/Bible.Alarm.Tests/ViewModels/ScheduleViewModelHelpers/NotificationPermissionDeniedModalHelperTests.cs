@@ -128,6 +128,37 @@ public sealed class NotificationPermissionDeniedModalHelperTests
         Assert.Null(ex);
     }
 
+    [Collection("MauiUi")]
+    public sealed class MauiNotificationPermissionGrantedTests(MauiUiFixture _)
+    {
+        [Fact]
+        public async Task ShowAsync_invokes_granted_callback_on_main_thread_when_maui_ready()
+        {
+            if (!MauiUiTestBootstrap.IsReady)
+            {
+                return;
+            }
+
+            var nav = new NavigationStub { DisposeViewModelOnOpen = false };
+            var granted = new ManualResetEventSlim(false);
+
+            await NotificationPermissionDeniedModalHelper.ShowAsync(
+                TestLogging.CreateLogger(),
+                nav,
+                onPermissionGranted: () => granted.Set());
+
+            var vm = Assert.IsType<NotificationPermissionViewModel>(Assert.Single(nav.NotificationModalContexts));
+            var invoke = typeof(NotificationPermissionViewModel).GetMethod(
+                "InvokeModalDismissedCallbackIfProvided",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(invoke);
+
+            invoke!.Invoke(vm, [true]);
+
+            Assert.True(granted.Wait(TimeSpan.FromSeconds(5)));
+        }
+    }
+
     [Fact]
     public async Task ShowAsync_does_not_throw_when_navigation_fails()
     {

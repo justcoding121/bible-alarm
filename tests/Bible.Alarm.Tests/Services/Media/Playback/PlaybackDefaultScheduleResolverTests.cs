@@ -12,8 +12,10 @@ using Serilog.Events;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class PlaybackDefaultScheduleResolverTests
+[Collection("MauiUi")]
+public sealed class PlaybackDefaultScheduleResolverTests(MauiUiFixture _)
 {
+
     private sealed class FakePlaybackState(PlaybackState value) : IState<PlaybackState>
     {
         public PlaybackState Value => value;
@@ -123,12 +125,11 @@ public sealed class PlaybackDefaultScheduleResolverTests
 
         try
         {
-            MauiAppHolder.CreateAndStore();
-            return true;
+            MauiUiTestBootstrap.TryInitialize();
+            return MauiAppHolder.IsInitialized;
         }
         catch
         {
-            // Headless xUnit on Windows cannot initialize WinUI Preferences without a real app host.
             return false;
         }
     }

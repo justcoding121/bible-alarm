@@ -37,4 +37,28 @@ public sealed class Sha256Base36CompactHasherBibleAlarmTests
             Sha256Base36CompactHasher.To11CharacterToken(early),
             Sha256Base36CompactHasher.To11CharacterToken(later));
     }
+
+    [Fact]
+    public void To11CharacterToken_covers_many_instants_and_always_pads_to_eleven_characters()
+    {
+        var anchor = new DateTimeOffset(2024, 6, 1, 12, 0, 0, TimeSpan.Zero);
+
+        for (var i = 0; i < 500; i++)
+        {
+            var token = Sha256Base36CompactHasher.To11CharacterToken(anchor.AddMinutes(i));
+            Assert.Equal(11, token.Length);
+            Assert.Matches("^[0-9a-z]{11}$", token);
+        }
+    }
+
+    [Fact]
+    public void To11CharacterToken_uses_invariant_culture_timestamp_format()
+    {
+        var dto = new DateTimeOffset(1999, 12, 31, 23, 59, 59, TimeSpan.FromHours(5));
+
+        var token = Sha256Base36CompactHasher.To11CharacterToken(dto);
+
+        Assert.Equal(11, token.Length);
+        Assert.NotEqual(new string('0', 11), token);
+    }
 }

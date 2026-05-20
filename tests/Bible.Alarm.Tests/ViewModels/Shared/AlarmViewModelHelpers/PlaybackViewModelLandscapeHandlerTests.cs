@@ -118,4 +118,43 @@ public sealed class PlaybackViewModelLandscapeHandlerTests
 
         sut.CancelAutoHide();
     }
+
+    [Fact]
+    public void CancelAutoHide_swallows_errors_when_dispose_throws()
+    {
+        var sut = new PlaybackViewModelLandscapeHandler(new SyncMainThreadScheduler());
+        var field = typeof(PlaybackViewModelLandscapeHandler).GetField(
+            "autoHideCts",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field.SetValue(sut, new ThrowOnDisposeCancellationTokenSource());
+
+        sut.CancelAutoHide();
+    }
+
+    [Fact]
+    public async Task ScheduleAutoHide_skips_overlay_when_should_cancel_on_main_thread()
+    {
+        var sut = new PlaybackViewModelLandscapeHandler(new SyncMainThreadScheduler());
+        var overlayInvocations = 0;
+
+        sut.ScheduleAutoHide(() => true, () => true, () => overlayInvocations++);
+
+        await Task.Delay(3500);
+
+        Assert.Equal(0, overlayInvocations);
+    }
+
+    private sealed class ThrowOnDisposeCancellationTokenSource : CancellationTokenSource
+    {
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                throw new ObjectDisposedException(nameof(ThrowOnDisposeCancellationTokenSource));
+            }
+
+            base.Dispose(disposing);
+        }
+    }
 }

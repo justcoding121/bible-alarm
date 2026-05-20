@@ -198,20 +198,8 @@ public sealed class DayColorConverterTests
 
     private static bool TryBootstrapMauiApp()
     {
-        if (MauiAppHolder.IsInitialized)
-        {
-            return true;
-        }
-
-        try
-        {
-            MauiAppHolder.CreateAndStore();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        MauiUiTestBootstrap.TryInitialize();
+        return MauiUiTestBootstrap.IsReady;
     }
 
     private static ScheduleListItemViewModel CreateScheduleListItemViewModel(bool isEnabled, WeekDays daysOfWeek)

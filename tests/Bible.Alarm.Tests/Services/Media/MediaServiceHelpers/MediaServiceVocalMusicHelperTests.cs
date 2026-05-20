@@ -259,4 +259,117 @@ public sealed class MediaServiceVocalMusicHelperTests
         Assert.NotNull(vm.Publication.Language);
         Assert.Equal("E", vm.Publication.Language!.LanguageCode);
     }
+
+    [Fact]
+    public async Task GetReleasesAsync_skips_publication_language_when_language_navigation_is_missing()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        await using (var pragma = connection.CreateCommand())
+        {
+            pragma.CommandText = "PRAGMA foreign_keys = OFF;";
+            await pragma.ExecuteNonQueryAsync();
+        }
+
+        var options = SqliteMemoryOptions(connection);
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        const string validCode = "vm-lang-valid";
+        const string orphanCode = "vm-lang-orphan";
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+            var lang = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+            seed.Categories.Add(musicCat);
+            seed.Languages.Add(lang);
+            await seed.SaveChangesAsync();
+
+            seed.PublicationLanguages.Add(new PublicationLanguage
+            {
+                PublicationCode = validCode,
+                Category = musicCat,
+                CategoryId = musicCat.Id,
+                LanguageId = lang.Id,
+                Language = lang,
+                IsMusic = true,
+            });
+            seed.PublicationLanguages.Add(new PublicationLanguage
+            {
+                PublicationCode = orphanCode,
+                Category = musicCat,
+                CategoryId = musicCat.Id,
+                LanguageId = 99_999,
+                IsMusic = true,
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        var factory = new MediaTestScopeFactory(options);
+        var bible = new BiblePublicationCodesStub([validCode, orphanCode]);
+
+        var result = await MediaServiceVocalMusicHelper.GetReleasesAsync(bible, new VocalMusicMapStub([]),
+            factory, "E",
+            CancellationToken.None);
+
+        Assert.True(result.ContainsKey(validCode));
+        Assert.False(result.ContainsKey(orphanCode));
+    }
+
+    [Fact]
+    public async Task GetReleasesAsync_does_not_duplicate_no_language_publication_already_in_downloaded_map()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = SqliteMemoryOptions(connection);
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        const string pubCode = "vm-dup-no-lang";
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+            var bp = new BiblePublication
+            {
+                Name = "Already downloaded",
+                PublicationCode = pubCode,
+                LanguageId = null,
+                IsVideo = false,
+                IsMusic = true,
+            };
+            bp.BiblePublicationCategories.Add(new BiblePublicationCategory { BiblePublication = bp, Category = musicCat });
+            seed.Categories.Add(musicCat);
+            seed.BiblePublications.Add(bp);
+            await seed.SaveChangesAsync();
+        }
+
+        var downloaded = new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase)
+        {
+            [pubCode] = new VocalMusic
+            {
+                Publication = new BiblePublication { PublicationCode = pubCode, Name = "DL", IsMusic = true },
+            },
+        };
+
+        var factory = new MediaTestScopeFactory(options);
+        var bible = new BiblePublicationCodesStub([pubCode]);
+
+        var result = await MediaServiceVocalMusicHelper.GetReleasesAsync(
+            bible,
+            new VocalMusicMapStub(downloaded),
+            factory,
+            "E",
+            CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Same(downloaded[pubCode], result[pubCode]);
+    }
 }

@@ -2,6 +2,8 @@
 
 using Bible.Alarm.Stores;
 using Bible.Alarm.Tests.Support;
+
+// MauiUi tests live in nested class below.
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
 using Fluxor;
 
@@ -36,6 +38,34 @@ public sealed class HomeViewModelNotificationPermissionHandlerTests
             () => { });
 
         Assert.False(lastVisible);
+    }
+
+    [Collection("MauiUi")]
+    public sealed class MauiHomeViewModelNotificationPermissionHandlerTests(MauiUiFixture _)
+    {
+        [Fact]
+        public void UpdateVisibility_notifies_margin_change_on_main_thread_when_maui_ready()
+        {
+            if (!MauiUiTestBootstrap.IsReady)
+            {
+                return;
+            }
+
+            var sut = new HomeViewModelNotificationPermissionHandler(
+                TestLogging.CreateLogger(),
+                new RecordingState(new ApplicationState()));
+            var marginNotified = new ManualResetEventSlim(false);
+
+            sut.UpdateVisibility(
+                _ => { },
+                _ => { },
+                _ => { },
+                () => false,
+                () => false,
+                () => marginNotified.Set());
+
+            Assert.True(marginNotified.Wait(TimeSpan.FromSeconds(5)));
+        }
     }
 
     [Fact]

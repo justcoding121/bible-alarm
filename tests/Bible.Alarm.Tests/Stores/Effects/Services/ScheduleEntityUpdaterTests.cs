@@ -271,6 +271,157 @@ public sealed class ScheduleEntityUpdaterTests
     }
 
     [Fact]
+    public void UpdateMusicEntity_copies_from_db_when_db_music_present()
+    {
+        var existing = new AlarmSchedule
+        {
+            Id = 3,
+            Music = new AlarmMusic { PublicationCode = "old", TrackCode = "1", AlarmScheduleId = 3 },
+        };
+        var dbSchedule = new AlarmSchedule
+        {
+            Music = new AlarmMusic
+            {
+                PublicationCode = "iam",
+                TrackCode = "7",
+                AlarmScheduleId = 3,
+            },
+        };
+        var action = new UpdateScheduleFromViewModelAction(new ScheduleStateItem());
+
+        ScheduleEntityUpdater.UpdateMusicEntity(existing, dbSchedule, action);
+
+        Assert.Equal("iam", existing.Music!.PublicationCode);
+        Assert.Equal("7", existing.Music.TrackCode);
+    }
+
+    [Fact]
+    public void UpdateMusicEntity_creates_music_from_action_when_db_music_null_and_valid_props()
+    {
+        var existing = new AlarmSchedule { Id = 4, Music = null };
+        var dbSchedule = new AlarmSchedule { Music = null };
+        var action = new UpdateScheduleFromViewModelAction(new ScheduleStateItem
+        {
+            MusicPublicationCode = "osg",
+            MusicTrackCode = "3",
+        });
+
+        ScheduleEntityUpdater.UpdateMusicEntity(existing, dbSchedule, action);
+
+        Assert.NotNull(existing.Music);
+        Assert.Equal("osg", existing.Music!.PublicationCode);
+        Assert.Equal("3", existing.Music.TrackCode);
+    }
+
+    [Fact]
+    public void UpdateMusicEntity_updates_existing_music_from_action_when_db_music_null()
+    {
+        var existing = new AlarmSchedule
+        {
+            Id = 5,
+            Music = new AlarmMusic
+            {
+                PublicationCode = "old",
+                TrackCode = "1",
+                AlarmScheduleId = 5,
+            },
+        };
+        var dbSchedule = new AlarmSchedule { Music = null };
+        var action = new UpdateScheduleFromViewModelAction(new ScheduleStateItem
+        {
+            MusicPublicationCode = "iam",
+            MusicTrackCode = "9",
+            MusicLanguageCode = "E",
+        });
+
+        ScheduleEntityUpdater.UpdateMusicEntity(existing, dbSchedule, action);
+
+        Assert.Equal("iam", existing.Music!.PublicationCode);
+        Assert.Equal("9", existing.Music.TrackCode);
+        Assert.Equal("E", existing.Music.LanguageCode);
+    }
+
+    [Fact]
+    public void UpdateMusicEntity_leaves_music_null_when_db_and_action_have_no_music()
+    {
+        var existing = new AlarmSchedule { Id = 6, Music = null };
+        var dbSchedule = new AlarmSchedule { Music = null };
+        var action = new UpdateScheduleFromViewModelAction(new ScheduleStateItem());
+
+        ScheduleEntityUpdater.UpdateMusicEntity(existing, dbSchedule, action);
+
+        Assert.Null(existing.Music);
+    }
+
+    [Fact]
+    public void UpdateBiblePublicationEntity_updates_existing_bible_schedule_from_db()
+    {
+        var existing = new AlarmSchedule
+        {
+            Id = 20,
+            BiblePublicationSchedule = new BiblePublicationSchedule
+            {
+                PublicationCode = "old",
+                LanguageCode = "E",
+                SectionCode = "1",
+                TrackCode = "1",
+                AlarmScheduleId = 20,
+            },
+        };
+        var dbSchedule = new AlarmSchedule
+        {
+            BiblePublicationSchedule = new BiblePublicationSchedule
+            {
+                PublicationCode = "nwt",
+                LanguageCode = "E",
+                SectionCode = "40",
+                TrackCode = "2",
+                AlarmScheduleId = 20,
+            },
+        };
+        var action = new UpdateScheduleFromViewModelAction(new ScheduleStateItem());
+
+        ScheduleEntityUpdater.UpdateBiblePublicationEntity(existing, dbSchedule, action);
+
+        Assert.Equal("40", existing.BiblePublicationSchedule!.SectionCode);
+        Assert.Equal("2", existing.BiblePublicationSchedule.TrackCode);
+        Assert.Equal("nwt", existing.BiblePublicationSchedule.PublicationCode);
+    }
+
+    [Fact]
+    public void UpdateScheduleEntity_updates_music_when_music_updated_flag_true()
+    {
+        var existing = new AlarmSchedule
+        {
+            Id = 7,
+            Music = new AlarmMusic
+            {
+                PublicationCode = "old",
+                TrackCode = "1",
+                AlarmScheduleId = 7,
+            },
+        };
+        var dbSchedule = new AlarmSchedule
+        {
+            Id = 7,
+            Music = new AlarmMusic
+            {
+                PublicationCode = "iam",
+                TrackCode = "5",
+                AlarmScheduleId = 7,
+            },
+        };
+        var action = new UpdateScheduleFromViewModelAction(
+            new ScheduleStateItem { BiblePublicationCode = "nwt" },
+            musicUpdated: true);
+
+        ScheduleEntityUpdater.UpdateScheduleEntity(existing, dbSchedule, action);
+
+        Assert.Equal("iam", existing.Music!.PublicationCode);
+        Assert.Equal("5", existing.Music.TrackCode);
+    }
+
+    [Fact]
     public void UpdateScheduleEntity_skips_music_update_when_music_not_flagged_updated()
     {
         var existing = new AlarmSchedule

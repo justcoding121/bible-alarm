@@ -1,13 +1,16 @@
 #nullable enable
 
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Tests.Support;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class KeyboardHelperTests
+[Collection("MauiUi")]
+public sealed class KeyboardHelperTests(MauiUiFixture _)
 {
+
     [Fact]
     public void HideKeyboard_returns_when_entry_null()
     {
@@ -22,26 +25,21 @@ public sealed class KeyboardHelperTests
             return;
         }
 
-        var entry = new Entry();
+        var done = new ManualResetEventSlim(false);
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var entry = new Entry();
+            entry.Focus();
+            KeyboardHelper.HideKeyboard(entry);
+            done.Set();
+        });
 
-        KeyboardHelper.HideKeyboard(entry);
+        Assert.True(done.Wait(TimeSpan.FromSeconds(5)));
     }
 
     private static bool TryBootstrapMauiApp()
     {
-        if (MauiAppHolder.IsInitialized)
-        {
-            return true;
-        }
-
-        try
-        {
-            MauiAppHolder.CreateAndStore();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        MauiUiTestBootstrap.TryInitialize();
+        return MauiUiTestBootstrap.IsReady;
     }
 }
