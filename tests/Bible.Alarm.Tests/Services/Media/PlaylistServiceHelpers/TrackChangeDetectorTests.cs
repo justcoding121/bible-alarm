@@ -311,6 +311,24 @@ public sealed class TrackChangeDetectorTests
     }
 
     [Fact]
+    public async Task CheckIfTrackChanged_returns_false_for_music_play_type_without_schedule_lookup()
+    {
+        var alarms = new RecordingAlarmScheduleService();
+        var sut = new TrackChangeDetector(alarms, CancellationToken.None);
+
+        var meta = new TrackMetadata
+        {
+            ScheduleId = 12,
+            IsBibleContent = false,
+            TrackCode = "1",
+            LookUpPath = "path",
+        };
+
+        Assert.False(await sut.CheckIfTrackChanged(meta));
+        Assert.Equal(0, alarms.GetScheduleByIdAsyncCalls);
+    }
+
+    [Fact]
     public async Task CheckIfTrackChanged_returns_true_when_primed_from_db_differs_from_metadata()
     {
         var alarms = new MatchingBibleScheduleAlarmService();

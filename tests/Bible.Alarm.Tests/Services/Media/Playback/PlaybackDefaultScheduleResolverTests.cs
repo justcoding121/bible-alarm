@@ -6,6 +6,9 @@ using Bible.Alarm.Services.Media.Playback;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Tests.Support;
 using Fluxor;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 
 namespace Bible.Alarm.Tests;
 
@@ -68,12 +71,16 @@ public sealed class PlaybackDefaultScheduleResolverTests
             LastPlayedMetadataHelper.ClearLastPlayedMetadata();
             LastPlayedMetadataHelper.SaveLastPlayedMetadata("Genesis 1", "NWT", scheduleId: 77);
 
-            var logger = TestLogging.CreateLogger();
+            var messages = new List<string>();
+            var logger = new LoggerConfiguration()
+                .WriteTo.Sink(new MessageCaptureSink(messages))
+                .CreateLogger();
             var state = new FakePlaybackState(new PlaybackState { DefaultScheduleId = null });
 
             var resolved = PlaybackDefaultScheduleResolver.Resolve(state, logger);
 
             Assert.Equal(77, resolved);
+            Assert.Contains(messages, m => m.Contains("Preferences fallback", StringComparison.Ordinal));
         }
         finally
         {
@@ -135,5 +142,10 @@ public sealed class PlaybackDefaultScheduleResolverTests
         catch
         {
         }
+    }
+
+    private sealed class MessageCaptureSink(List<string> messages) : ILogEventSink
+    {
+        public void Emit(LogEvent logEvent) => messages.Add(logEvent.RenderMessage());
     }
 }

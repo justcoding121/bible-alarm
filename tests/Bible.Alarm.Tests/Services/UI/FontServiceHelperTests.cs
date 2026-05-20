@@ -31,6 +31,39 @@ public sealed class FontServiceHelperTests : IDisposable
         Assert.Equal(99, FontServiceHelper.AlarmBellIconFontSize);
     }
 
+    [Fact]
+    public void Initialize_exposes_all_font_size_properties()
+    {
+        using var fake = new FakeFontService
+        {
+            StandardFontSize = 10,
+            HeaderFontSize = 20,
+            ButtonFontSize = 21,
+            SmallFontSize = 22,
+            SmallMediumFontSize = 23,
+            MediumFontSize = 24,
+            LargeFontSize = 25,
+            TitleFontSize = 26,
+            AlarmTimeFontSize = 27,
+            AlarmMeridianFontSize = 28,
+            AlarmBellIconFontSize = 99,
+        };
+
+        FontServiceHelper.Initialize(fake);
+
+        Assert.Equal(10, FontServiceHelper.StandardFontSize);
+        Assert.Equal(20, FontServiceHelper.HeaderFontSize);
+        Assert.Equal(21, FontServiceHelper.ButtonFontSize);
+        Assert.Equal(22, FontServiceHelper.SmallFontSize);
+        Assert.Equal(23, FontServiceHelper.SmallMediumFontSize);
+        Assert.Equal(24, FontServiceHelper.MediumFontSize);
+        Assert.Equal(25, FontServiceHelper.LargeFontSize);
+        Assert.Equal(26, FontServiceHelper.TitleFontSize);
+        Assert.Equal(27, FontServiceHelper.AlarmTimeFontSize);
+        Assert.Equal(28, FontServiceHelper.AlarmMeridianFontSize);
+        Assert.Equal(99, FontServiceHelper.AlarmBellIconFontSize);
+    }
+
     private sealed class FakeFontService : IFontService
     {
         public double StandardFontSize { get; init; }
