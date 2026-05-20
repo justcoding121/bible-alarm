@@ -38,4 +38,5 @@ public sealed class AssemblyWarmupHelperTests
 
         Assert.Null(ex);
     }
+
 }

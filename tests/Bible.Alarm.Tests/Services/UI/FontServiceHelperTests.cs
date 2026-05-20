@@ -3,6 +3,7 @@
 using System.Reflection;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Tests.Support;
 
 namespace Bible.Alarm.Tests;
 
@@ -93,6 +94,34 @@ public sealed class FontServiceHelperTests : IDisposable
 
         public void Dispose()
         {
+        }
+    }
+
+    [Collection("MauiUi")]
+    public sealed class MauiFontServiceHelperTests(MauiUiFixture fixture)
+    {
+        [Fact]
+        public void GetFontService_creates_fallback_instance_when_not_initialized()
+        {
+            if (!MauiUiTestBootstrap.IsReady)
+            {
+                return;
+            }
+
+            _ = fixture;
+
+            var field = typeof(FontServiceHelper).GetField("fontService", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.NotNull(field);
+            field!.SetValue(null, null);
+
+            var method = typeof(FontServiceHelper).GetMethod(
+                "GetFontService",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+
+            var service = Assert.IsAssignableFrom<IFontService>(method!.Invoke(null, null));
+            Assert.NotNull(field.GetValue(null));
+            Assert.True(service.StandardFontSize > 0);
         }
     }
 }

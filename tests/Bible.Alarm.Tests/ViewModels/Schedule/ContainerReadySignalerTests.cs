@@ -1,7 +1,9 @@
 #nullable enable
 
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.Schedule;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
@@ -87,5 +89,49 @@ public sealed class ContainerReadySignalerTests
         sut.TrySignalReady();
 
         Assert.True(sut.HasSignaledReady);
+    }
+
+    [Collection("MauiUi")]
+    public sealed class MauiContainerReadySignalerTests(MauiUiFixture fixture)
+    {
+        [Fact]
+        public void TrySignalReady_dispatches_container_ready_action_on_main_thread()
+        {
+            if (!MauiUiTestBootstrap.IsReady)
+            {
+                return;
+            }
+
+            _ = fixture;
+
+            var state = new FakeState(new ApplicationState());
+            var dispatched = new List<object>();
+            var dispatcher = new RecordingDispatcher(dispatched);
+            var sut = new ContainerReadySignaler(state, dispatcher, "MusicSelection", _ => false);
+            var signaled = new ManualResetEventSlim(false);
+            dispatcher.OnDispatched = () => signaled.Set();
+
+            sut.TrySignalReady();
+
+            Assert.True(signaled.Wait(TimeSpan.FromSeconds(5)));
+            Assert.IsType<ContainerReadyAction>(Assert.Single(dispatched));
+            Assert.Equal("MusicSelection", ((ContainerReadyAction)dispatched[0]).ContainerName);
+            Assert.True(sut.HasSignaledReady);
+        }
+
+        private sealed class RecordingDispatcher(List<object> dispatched) : IDispatcher
+        {
+            public Action? OnDispatched { get; set; }
+
+#pragma warning disable CS0067
+            public event EventHandler<ActionDispatchedEventArgs>? ActionDispatched;
+#pragma warning restore CS0067
+
+            public void Dispatch(object action)
+            {
+                dispatched.Add(action);
+                OnDispatched?.Invoke();
+            }
+        }
     }
 }

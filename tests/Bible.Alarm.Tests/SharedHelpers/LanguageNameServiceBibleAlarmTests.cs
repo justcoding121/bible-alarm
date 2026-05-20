@@ -1,0 +1,392 @@
+#nullable enable
+
+using System.Threading;
+using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Services.Media;
+using Bible.Alarm.Tests.Support;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Bible.Alarm.Tests;
+
+public sealed class LanguageNameServiceBibleAlarmTests : IAsyncLifetime
+{
+    private static readonly int[] SingleLanguageId = [1];
+
+    private sealed class CountingScopeFactory(MediaTestScopeFactory inner) : IServiceScopeFactory
+    {
+        private int createScopeCallCount;
+
+        public int CreateScopeCallCount => Volatile.Read(ref createScopeCallCount);
+
+        public IServiceScope CreateScope()
+        {
+            Interlocked.Increment(ref createScopeCallCount);
+            return inner.CreateScope();
+        }
+    }
+
+    private readonly SqliteConnection connection = new("Data Source=:memory:");
+
+    private DbContextOptions<MediaDbContext> Options =>
+        new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+    public Task InitializeAsync()
+    {
+        connection.Open();
+        using var bootstrap = new MediaDbContext(Options);
+        bootstrap.Database.EnsureCreated();
+        return Task.CompletedTask;
+    }
+
+    public Task DisposeAsync() => connection.DisposeAsync().AsTask();
+
+    [Fact]
+    public void Constructor_ThrowsWhenScopeFactoryNull()
+        => Assert.Throws<ArgumentNullException>(() =>
+            new LanguageNameService(null!, TestLogging.CreateLogger()));
+
+    [Fact]
+    public void Constructor_ThrowsWhenLoggerNull()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            new LanguageNameService(new MediaTestScopeFactory(Options), null!));
+    }
+
+    [Fact]
+    public async Task GetNameAsync_ReturnsNull_WhenDisplayLanguageBlank()
+    {
+        await SeedSingleLanguageAsync(languageCode: "E", englishName: "English");
+        var sut = CreateSut();
+
+        Assert.Null(await sut.GetNameAsync(1, ""));
+        Assert.Null(await sut.GetNameAsync(1, "   "));
+    }
+
+    [Fact]
+    public async Task GetNameByLanguageCode_ReturnsNull_WhenLanguageCodeOrDisplayBlank()
+    {
+        await SeedSingleLanguageAsync(languageCode: "E", englishName: "English");
+        var sut = CreateSut();
+
+        Assert.Null(await sut.GetNameByLanguageCodeAsync("", "E"));
+        Assert.Null(await sut.GetNameByLanguageCodeAsync("E", ""));
+    }
+
+    [Fact]
+    public async Task GetNameAsync_HitsDatabase_WhenCacheCold()
+    {
+        await SeedSingleLanguageAsync(languageCode: "FF", englishName: "Faroese Friendly");
+        var sut = CreateSut();
+
+        Assert.Equal(
+            "Faroese Friendly",
+            await sut.GetNameAsync(languageId: 1, displayLanguageCode: "E"));
+
+        Assert.Equal(
+            "Faroese Friendly",
+            await sut.GetNameByLanguageCodeAsync(languageCode: "FF", displayLanguageCode: "E"));
+    }
+
+    [Fact]
+    public async Task WarmThenCachedLookups_UseWarmedMaps()
+    {
+        await SeedSingleLanguageAsync(languageCode: "SGN", englishName: "Sign English");
+        var sut = CreateSut();
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Equal("Sign English", sut.GetNameCached(1));
+        Assert.Equal("Sign English", sut.GetNameByLanguageCodeCached("sgn"));
+
+        Assert.Equal("Sign English", await sut.GetNameAsync(1, "e"));
+        Assert.Equal("Sign English", await sut.GetNameByLanguageCodeAsync("SGN", "e"));
+    }
+
+    [Fact]
+    public async Task GetNamesAsync_ReturnsSubset_AndIgnoresMissingIds()
+    {
+        await using var db = new MediaDbContext(Options);
+
+        var l1 = new Language { LanguageCode = "AA", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        db.Languages.Add(l1);
+        await db.SaveChangesAsync();
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = l1.Id,
+            DisplayLanguageCode = "E",
+            Name = "Alpha",
+            Language = l1,
+        });
+
+        var l2 = new Language { LanguageCode = "BB", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        db.Languages.Add(l2);
+        await db.SaveChangesAsync();
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = l2.Id,
+            DisplayLanguageCode = "E",
+            Name = "Bravo",
+            Language = l2,
+        });
+
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut();
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        var map = await sut.GetNamesAsync(new[] { l1.Id, l2.Id, 999 }, "E");
+
+        Assert.Equal(2, map.Count);
+        Assert.Equal("Alpha", map[l1.Id]);
+        Assert.Equal("Bravo", map[l2.Id]);
+        Assert.False(map.ContainsKey(999));
+    }
+
+    [Fact]
+    public async Task GetNamesAsync_ReturnsEmpty_ForBlankDisplayLanguageOrEmptyIdList()
+    {
+        await SeedSingleLanguageAsync(languageCode: "E", englishName: "English");
+        var sut = CreateSut();
+
+        Assert.Empty(await sut.GetNamesAsync(SingleLanguageId, ""));
+        Assert.Empty(await sut.GetNamesAsync(Array.Empty<int>(), "E"));
+    }
+
+    [Fact]
+    public async Task GetNamesAsync_HitsDatabase_WhenWarmCacheAbsent()
+    {
+        await using var db = new MediaDbContext(Options);
+
+        var lang = new Language
+        {
+            LanguageCode = "DBX",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = lang.Id,
+            DisplayLanguageCode = "E",
+            Name = "Database Only Batch",
+            Language = lang,
+        });
+
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut();
+        var map = await sut.GetNamesAsync([lang.Id], displayLanguageCode: "E");
+
+        Assert.Single(map);
+        Assert.Equal("Database Only Batch", map[lang.Id]);
+    }
+
+    [Fact]
+    public async Task CachedReads_ReturnNullUntilWarmEvenWhenSeedDataExists()
+    {
+        await SeedSingleLanguageAsync(languageCode: "XU", englishName: "Xuanyi");
+        var sut = CreateSut();
+
+        Assert.Null(sut.GetNameCached(1));
+        Assert.Null(sut.GetNameByLanguageCodeCached("xu"));
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Equal("Xuanyi", sut.GetNameCached(1));
+        Assert.Equal("Xuanyi", sut.GetNameByLanguageCodeCached("XU"));
+    }
+
+    [Fact]
+    public async Task GetNameAsync_QueriesDatabaseWhenDisplayLocaleDiffersFromWarmedCache()
+    {
+        await using var db = new MediaDbContext(Options);
+
+        var lang = new Language
+        {
+            LanguageCode = "ZJ",
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = lang.Id,
+            DisplayLanguageCode = "E",
+            Name = "ZJ Displayed In English",
+            Language = lang,
+        });
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = lang.Id,
+            DisplayLanguageCode = "M",
+            Name = "ZJ Displayed Alternate",
+            Language = lang,
+        });
+
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut();
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Equal("ZJ Displayed In English", sut.GetNameCached(lang.Id));
+
+        Assert.Equal(
+            "ZJ Displayed Alternate",
+            await sut.GetNameAsync(lang.Id, displayLanguageCode: "M"));
+    }
+
+    [Fact]
+    public async Task GetNameByLanguageCodeCached_ReturnsNull_ForWhitespaceEvenWhenCacheWarmed()
+    {
+        await SeedSingleLanguageAsync(languageCode: "NL", englishName: "Netherlands");
+        var sut = CreateSut();
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        Assert.Null(sut.GetNameByLanguageCodeCached(" "));
+    }
+
+    [Fact]
+    public async Task WarmCache_IgnoresBlank_DisplayLanguageCodes()
+    {
+        await SeedSingleLanguageAsync(languageCode: "JP", englishName: "Japanese");
+        var sut = CreateSut();
+
+        await sut.WarmCacheForDisplayLanguageAsync("");
+        await sut.WarmCacheForDisplayLanguageAsync("   ");
+
+        Assert.Null(sut.GetNameCached(1));
+    }
+
+    [Fact]
+    public async Task GetNamesAsync_ReadsWarmCacheWhen_DisplayLanguage_matches_by_ordinal_ignore_case()
+    {
+        await using var db = new MediaDbContext(Options);
+
+        var l1 = new Language { LanguageCode = "QA", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        db.Languages.Add(l1);
+        await db.SaveChangesAsync();
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = l1.Id,
+            DisplayLanguageCode = "E",
+            Name = "Queue Alpha",
+            Language = l1,
+        });
+
+        var l2 = new Language { LanguageCode = "QB", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        db.Languages.Add(l2);
+        await db.SaveChangesAsync();
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = l2.Id,
+            DisplayLanguageCode = "E",
+            Name = "Queue Bravo",
+            Language = l2,
+        });
+
+        await db.SaveChangesAsync();
+
+        var sut = CreateSut();
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+
+        var map = await sut.GetNamesAsync(new[] { l1.Id, l2.Id }, displayLanguageCode: "e");
+
+        Assert.Equal(2, map.Count);
+        Assert.Equal("Queue Alpha", map[l1.Id]);
+        Assert.Equal("Queue Bravo", map[l2.Id]);
+    }
+
+    [Fact]
+    public async Task WarmCacheForDisplayLanguage_with_no_matching_rows_keepsCachesEmpty()
+    {
+        await SeedSingleLanguageAsync(languageCode: "ZH", englishName: "Chinese");
+        var sut = CreateSut();
+
+        await sut.WarmCacheForDisplayLanguageAsync("M");
+
+        Assert.Null(sut.GetNameCached(1));
+        Assert.Null(sut.GetNameByLanguageCodeCached("zh"));
+    }
+
+    [Fact]
+    public async Task GetNameAsync_Uncached_ReturnsNull_WhenNoLanguageNameRow()
+    {
+        var sut = CreateSut();
+
+        Assert.Null(await sut.GetNameAsync(424_242, displayLanguageCode: "E"));
+    }
+
+    [Fact]
+    public async Task GetNameByLanguageCodeAsync_Uncached_ReturnsNull_WhenNoLanguageNameRow()
+    {
+        var sut = CreateSut();
+
+        Assert.Null(await sut.GetNameByLanguageCodeAsync("ZZ", displayLanguageCode: "E"));
+    }
+
+    [Fact]
+    public async Task WarmCacheForDisplayLanguageAsync_PreCanceled_PropagatesOperationCanceled()
+    {
+        var sut = CreateSut();
+
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            sut.WarmCacheForDisplayLanguageAsync("E", canceled.Token));
+    }
+
+    [Fact]
+    public async Task GetNameAsync_AfterWarm_DoesNotOpenAdditionalScopes()
+    {
+        await SeedSingleLanguageAsync(languageCode: "WX", englishName: "Warm Scope");
+        var inner = new MediaTestScopeFactory(Options);
+        var counting = new CountingScopeFactory(inner);
+        var sut = new LanguageNameService(counting, TestLogging.CreateLogger());
+
+        await sut.WarmCacheForDisplayLanguageAsync("E");
+        Assert.Equal(1, counting.CreateScopeCallCount);
+
+        Assert.Equal("Warm Scope", await sut.GetNameAsync(1, "E"));
+        Assert.Equal("Warm Scope", await sut.GetNameByLanguageCodeAsync("WX", "E"));
+
+        Assert.Equal(1, counting.CreateScopeCallCount);
+    }
+
+    private LanguageNameService CreateSut() =>
+        new(new MediaTestScopeFactory(Options), TestLogging.CreateLogger());
+
+    private async Task SeedSingleLanguageAsync(string languageCode, string englishName)
+    {
+        await using var db = new MediaDbContext(Options);
+        var lang = new Language
+        {
+            LanguageCode = languageCode,
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        };
+
+        db.Languages.Add(lang);
+        await db.SaveChangesAsync();
+
+        db.LanguageNamesByLanguage.Add(new LanguageNameByLanguage
+        {
+            LanguageId = lang.Id,
+            DisplayLanguageCode = "E",
+            Name = englishName,
+            Language = lang,
+        });
+
+        await db.SaveChangesAsync();
+    }
+}

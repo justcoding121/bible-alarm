@@ -157,4 +157,5 @@ public sealed class PlaybackViewModelLandscapeHandlerTests
             base.Dispose(disposing);
         }
     }
+
 }

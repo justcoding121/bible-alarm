@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Tests.Support;
 
 namespace Bible.Alarm.Tests;
 
@@ -59,6 +60,32 @@ public sealed class AndroidAutoRotationHelperTests
         finally
         {
             AndroidAutoRotationHelper.SetLastRotationScheduleId(null);
+        }
+    }
+
+    [Collection("MauiUi")]
+    public sealed class MauiAndroidAutoRotationTests(MauiUiFixture _)
+    {
+        [Fact]
+        public void Get_and_set_use_thread_safe_preferences_when_maui_ready()
+        {
+            if (!MauiUiTestBootstrap.IsReady)
+            {
+                return;
+            }
+
+            try
+            {
+                AndroidAutoRotationHelper.SetLastRotationScheduleId(55);
+                Assert.Equal(55, AndroidAutoRotationHelper.GetLastRotationScheduleId());
+
+                AndroidAutoRotationHelper.SetLastRotationScheduleId(null);
+                Assert.Null(AndroidAutoRotationHelper.GetLastRotationScheduleId());
+            }
+            finally
+            {
+                AndroidAutoRotationHelper.SetLastRotationScheduleId(null);
+            }
         }
     }
 
