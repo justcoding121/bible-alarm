@@ -52,4 +52,42 @@ public sealed class CategoryFetchProgressReporterTests
 
         Assert.Equal(cts.Token, sut.CancellationToken);
     }
+
+    internal sealed class ThrowingSubscriber : IRecipient<CategoryFetchProgressMessage>, IDisposable
+    {
+        public ThrowingSubscriber() =>
+            WeakReferenceMessenger.Default.Register<CategoryFetchProgressMessage>(this);
+
+        public void Receive(CategoryFetchProgressMessage message) =>
+            throw new InvalidOperationException("subscriber");
+
+        public void Dispose() =>
+            WeakReferenceMessenger.Default.Unregister<CategoryFetchProgressMessage>(this);
+    }
+
+    [Fact]
+    public void UpdateProgress_swallows_exceptions_from_category_progress_subscribers()
+    {
+        using var _ = new ThrowingSubscriber();
+        var sut = new CategoryFetchProgressReporter(4);
+
+        var ex = Record.Exception(() => sut.UpdateProgress(0.25));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void UpdateProgressText_and_SetIsVisible_are_no_ops()
+    {
+        var sut = new CategoryFetchProgressReporter(1);
+
+        var ex = Record.Exception(() =>
+        {
+            sut.UpdateProgressText("loading");
+            sut.SetIsVisible(true);
+            sut.SetIsVisible(false);
+        });
+
+        Assert.Null(ex);
+    }
 }

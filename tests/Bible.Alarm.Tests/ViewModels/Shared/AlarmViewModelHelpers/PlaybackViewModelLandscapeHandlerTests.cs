@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Reflection;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
@@ -86,5 +87,20 @@ public sealed class PlaybackViewModelLandscapeHandlerTests
         await Task.Delay(3200);
 
         Assert.Equal(0, overlayInvocations);
+    }
+
+    [Fact]
+    public void CancelAutoHide_swallows_errors_when_cts_already_disposed()
+    {
+        var sut = new PlaybackViewModelLandscapeHandler(new SyncMainThreadScheduler());
+        var field = typeof(PlaybackViewModelLandscapeHandler).GetField(
+            "autoHideCts",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        var disposed = new CancellationTokenSource();
+        disposed.Dispose();
+        field.SetValue(sut, disposed);
+
+        sut.CancelAutoHide();
     }
 }

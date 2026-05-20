@@ -180,4 +180,26 @@ public sealed class ApplicationMusicReducerTests
 
         Assert.Null(next.CurrentSchedule);
     }
+
+    [Fact]
+    public void OnMusicTrackSelected_with_null_action_music_keeps_current_schedule_unchanged()
+    {
+        var current = BaseSchedule();
+        var prior = new ApplicationState([], currentSchedule: current);
+
+        var next = ApplicationMusicReducer.OnMusicTrackSelected(prior, new TrackSelectedAction(null!));
+
+        Assert.Same(current, next.CurrentSchedule);
+    }
+
+    [Fact]
+    public void OnMusicSectionSelected_with_null_action_music_keeps_current_schedule_unchanged()
+    {
+        var current = BaseSchedule();
+        var prior = new ApplicationState([], currentSchedule: current);
+
+        var next = ApplicationMusicReducer.OnMusicSectionSelected(prior, new MusicSectionSelectedAction(null!));
+
+        Assert.Same(current, next.CurrentSchedule);
+    }
 }

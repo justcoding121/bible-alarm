@@ -225,4 +225,71 @@ public sealed class ScheduleCrudReducerTests
         Assert.Contains(next.Schedules!, s => s.Id == 77);
         Assert.Equal(77, next.CurrentSchedule?.Id);
     }
+
+    [Fact]
+    public void OnCreateSchedule_copies_existing_schedules_before_adding_optimistic_row()
+    {
+        var existing = MinimalSchedule(5, "Existing");
+        var prior = new ApplicationState([existing]);
+        var draft = MinimalSchedule(0, "Draft");
+
+        var next = ScheduleCrudReducer.OnCreateSchedule(prior, new CreateScheduleAction(draft));
+
+        Assert.Equal(2, next.Schedules!.Count);
+        Assert.Contains(next.Schedules!, s => s.Id == 5 && s.Name == "Existing");
+        Assert.Contains(next.Schedules!, s => s.Id == -1 && s.Name == "Draft");
+    }
+
+    [Fact]
+    public void OnCreateScheduleSuccess_returns_unchanged_when_schedule_null()
+    {
+        var prior = new ApplicationState([MinimalSchedule(1)]);
+
+        var next = ScheduleCrudReducer.OnCreateScheduleSuccess(
+            prior,
+            new CreateScheduleSuccessAction(null!));
+
+        Assert.Same(prior, next);
+    }
+
+    [Fact]
+    public void OnCreateScheduleSuccess_returns_unchanged_when_state_schedules_null()
+    {
+        var prior = new ApplicationState([]);
+        prior.Schedules = null!;
+        var confirmed = MinimalSchedule(10);
+
+        var next = ScheduleCrudReducer.OnCreateScheduleSuccess(
+            prior,
+            new CreateScheduleSuccessAction(confirmed));
+
+        Assert.Same(prior, next);
+    }
+
+    [Fact]
+    public void OnUpdateScheduleSuccess_returns_unchanged_when_state_schedules_null()
+    {
+        var prior = new ApplicationState([]);
+        prior.Schedules = null!;
+        var saved = MinimalSchedule(8);
+
+        var next = ScheduleCrudReducer.OnUpdateScheduleSuccess(
+            prior,
+            new UpdateScheduleSuccessAction(saved));
+
+        Assert.Same(prior, next);
+    }
+
+    [Fact]
+    public void OnRemoveScheduleSuccess_returns_unchanged_when_state_schedules_null()
+    {
+        var prior = new ApplicationState([]);
+        prior.Schedules = null!;
+
+        var next = ScheduleCrudReducer.OnRemoveScheduleSuccess(
+            prior,
+            new RemoveScheduleSuccessAction(1));
+
+        Assert.Same(prior, next);
+    }
 }

@@ -411,4 +411,43 @@ public sealed class ProgressTrackerTests
         sut.Stop();
         Assert.False(sut.Timer.Enabled);
     }
+
+    [Fact]
+    public async Task SaveProgressAsync_bible_force_save_with_position_persists_and_logs_debug_path()
+    {
+        var playlist = new RecordingPlaylist();
+        var audio = new StubAudioPlayer
+        {
+            Status = PlayStatus.Playing,
+            CurrentPosition = TimeSpan.FromSeconds(8),
+        };
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+        var meta = BibleMeta();
+        var list = new List<AudioPlayerTrack> { new() { PlayItem = new PlayItem(meta, "u") } };
+
+        await sut.SaveProgressAsync(list, 0, forceSave: true);
+
+        Assert.Single(playlist.MarkedAsPlayed);
+        Assert.Equal(TimeSpan.FromSeconds(8), meta.FinishedDuration);
+    }
+
+    [Fact]
+    public async Task Timer_elapsed_invokes_save_progress_callback_when_set()
+    {
+        var playlist = new RecordingPlaylist();
+        var audio = new StubAudioPlayer();
+        using var sut = new ProgressTracker(playlist, audio, TestLogging.CreateLogger());
+        var invoked = false;
+        sut.SetSaveProgressCallback(() =>
+        {
+            invoked = true;
+            return Task.CompletedTask;
+        });
+
+        sut.Timer.Start();
+        await Task.Delay(1500);
+        sut.Timer.Stop();
+
+        Assert.True(invoked);
+    }
 }
