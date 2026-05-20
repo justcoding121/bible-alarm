@@ -156,4 +156,89 @@ public sealed class PublicationListViewItemModelTests
 
         Assert.Equal(1, sut.CompareTo(new object()));
     }
+
+    [Fact]
+    public void IsSelected_and_IsNavigating_toggle()
+    {
+        var sut = new PublicationListViewItemModel(new Publication { Name = "X", PublicationCode = "x" });
+
+        sut.IsSelected = true;
+        sut.IsNavigating = true;
+
+        Assert.True(sut.IsSelected);
+        Assert.True(sut.IsNavigating);
+    }
+
+    [Fact]
+    public void PublicationLanguageCode_null_for_non_bible_publication()
+    {
+        var sut = new PublicationListViewItemModel(new Publication { Name = "X", PublicationCode = "x" });
+
+        Assert.Null(sut.PublicationLanguageCode);
+    }
+
+    [Fact]
+    public void Equals_and_operators_cover_null_code_mismatch_and_relational_branches()
+    {
+        var left = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "nwt",
+            Name = "A",
+            Language = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        });
+        var rightCode = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "bi12",
+            Name = "B",
+            Language = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        });
+
+        Assert.False(left.Equals((PublicationListViewItemModel?)null));
+        Assert.False(left.Equals(rightCode));
+        Assert.False(left == rightCode);
+        Assert.True(left != rightCode);
+
+        var earlier = new PublicationListViewItemModel(new Publication { Name = "A", PublicationCode = "aa" });
+        var later = new PublicationListViewItemModel(new Publication { Name = "B", PublicationCode = "bb" });
+        Assert.True(earlier <= later);
+        Assert.True(later >= earlier);
+    }
+
+    [Fact]
+    public void Equals_object_delegates_to_typed_equals()
+    {
+        var left = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "nwt",
+            Name = "A",
+            Language = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        });
+        var right = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "NWT",
+            Name = "B",
+            Language = new Language { LanguageCode = "e", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        });
+
+        Assert.True(left.Equals((object)right));
+    }
+
+    [Fact]
+    public void GetHashCode_combines_code_and_language_case_insensitive()
+    {
+        var left = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "nwt",
+            Name = "A",
+            Language = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        });
+        var right = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "NWT",
+            Name = "B",
+            Language = new Language { LanguageCode = "e", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        });
+
+        Assert.Equal(left.GetHashCode(), right.GetHashCode());
+    }
 }

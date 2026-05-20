@@ -61,4 +61,23 @@ public sealed class TracksUnitTextProviderTests
         Assert.EndsWith("each time", text, StringComparison.Ordinal);
         Assert.Contains(AppConstants.Media.PublicationUiTrackPlural, text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GetTracksLabelText_modal_header_and_restart_use_category_plural()
+    {
+        var category = AppConstants.Media.BiblePublicationCategoryDramas;
+
+        Assert.Contains("Number of", TracksUnitTextProvider.GetTracksLabelText(category));
+        Assert.Contains("Select Number of", TracksUnitTextProvider.GetModalHeaderText(category));
+        Assert.Contains("Restart incomplete", TracksUnitTextProvider.GetRestartLabelText(category));
+    }
+
+    [Fact]
+    public void GetUnitTextTitleCase_chapter_branch_for_non_music_non_drama()
+    {
+        var (singular, plural) = TracksUnitTextProvider.GetUnitTextTitleCase("Bible");
+
+        Assert.Equal(AppConstants.Media.PublicationUiChapterSingular, singular);
+        Assert.Equal(AppConstants.Media.PublicationUiChapterPlural, plural);
+    }
 }
