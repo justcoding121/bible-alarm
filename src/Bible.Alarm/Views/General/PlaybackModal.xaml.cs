@@ -30,7 +30,7 @@ public sealed partial class PlaybackModal : BaseContentPage, IDisposable
     private bool _statusBarOffsetApplied;
 #endif
 
-    public PlaybackViewModel? ViewModel => BindingContext as PlaybackViewModel;
+    public PlaybackViewModel? ViewModel => viewModel;
 
     public PlaybackModal(PlaybackViewModel viewModel)
     {

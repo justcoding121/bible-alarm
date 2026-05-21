@@ -15,7 +15,7 @@ public sealed partial class BiblePublicationSectionSelection : BaseContentPage, 
     private readonly BiblePublicationSectionSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public BiblePublicationSectionSelectionViewModel? ViewModel => BindingContext as BiblePublicationSectionSelectionViewModel;
+    public BiblePublicationSectionSelectionViewModel? ViewModel => viewModel;
 
     public BiblePublicationSectionSelection(BiblePublicationSectionSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {

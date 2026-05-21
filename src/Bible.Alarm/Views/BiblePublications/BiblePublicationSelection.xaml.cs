@@ -16,7 +16,7 @@ public sealed partial class BiblePublicationSelection : BaseContentPage, IDispos
     private readonly BiblePublicationSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public BiblePublicationSelectionViewModel? ViewModel => BindingContext as BiblePublicationSelectionViewModel;
+    public BiblePublicationSelectionViewModel? ViewModel => viewModel;
 
     public BiblePublicationSelection(BiblePublicationSelectionViewModel viewModel)
     {

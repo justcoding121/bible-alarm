@@ -12,7 +12,7 @@ public sealed partial class MusicPublicationSelection : BaseContentPage, IDispos
     private bool isSelectingPublication;
     private readonly MusicPublicationSelectionViewModel viewModel;
 
-    public MusicPublicationSelectionViewModel? ViewModel => BindingContext as MusicPublicationSelectionViewModel;
+    public MusicPublicationSelectionViewModel? ViewModel => viewModel;
 
     public MusicPublicationSelection(MusicPublicationSelectionViewModel viewModel)
     {

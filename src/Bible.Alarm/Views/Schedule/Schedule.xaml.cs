@@ -16,7 +16,7 @@ public sealed partial class Schedule : BaseContentPage, IDisposable
     // Null until then — the BusyOverlay FallbackValue=True keeps the spinner visible in the gap.
     private ScheduleViewModel? viewModel;
 
-    public ScheduleViewModel? ViewModel => BindingContext as ScheduleViewModel;
+    public ScheduleViewModel? ViewModel => viewModel;
 
     public Schedule()
     {

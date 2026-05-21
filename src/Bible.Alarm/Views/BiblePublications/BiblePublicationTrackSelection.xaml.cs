@@ -14,7 +14,7 @@ public sealed partial class BiblePublicationTrackSelection : BaseContentPage, ID
     private readonly BiblePublicationTrackSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public BiblePublicationTrackSelectionViewModel? ViewModel => BindingContext as BiblePublicationTrackSelectionViewModel;
+    public BiblePublicationTrackSelectionViewModel? ViewModel => viewModel;
 
 
     public BiblePublicationTrackSelection(BiblePublicationTrackSelectionViewModel viewModel, TaskScheduler taskScheduler)

@@ -14,7 +14,7 @@ public sealed partial class MusicTrackSelection : BaseContentPage, IDisposable
     private readonly MusicTrackSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public MusicTrackSelectionViewModel? ViewModel => BindingContext as MusicTrackSelectionViewModel;
+    public MusicTrackSelectionViewModel? ViewModel => viewModel;
 
     public MusicTrackSelection(MusicTrackSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
