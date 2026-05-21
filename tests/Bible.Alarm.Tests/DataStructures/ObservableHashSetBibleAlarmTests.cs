@@ -13,8 +13,8 @@ public sealed class ObservableHashSetBibleAlarmTests
     {
         var set = new ObservableHashSet<int>();
         set.Add(2);
-        Assert.True(set.Contains(2));
-        Assert.False(set.Contains(3));
+        Assert.Contains(2, set);
+        Assert.DoesNotContain(3, set);
         Assert.False(set.IsReadOnly);
         Assert.False(set.IsSynchronized);
         Assert.Same(set, set.SyncRoot);
