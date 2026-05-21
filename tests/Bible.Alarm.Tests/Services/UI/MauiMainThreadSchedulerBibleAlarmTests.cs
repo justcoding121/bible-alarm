@@ -7,12 +7,13 @@ using Microsoft.Maui.ApplicationModel;
 namespace Bible.Alarm.Tests;
 
 [Collection("MauiUi")]
-public sealed class MauiMainThreadSchedulerBibleAlarmTests(MauiUiFixture _)
+public sealed class MauiMainThreadSchedulerBibleAlarmTests(MauiUiFixture fixture)
 {
 
     [Fact]
     public void IsMainThread_reflects_maui_main_thread_state()
     {
+        _ = fixture;
         if (!MauiUiTestBootstrap.IsReady)
         {
             return;

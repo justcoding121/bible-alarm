@@ -8,12 +8,13 @@ using Microsoft.Maui.Controls;
 namespace Bible.Alarm.Tests;
 
 [Collection("MauiUi")]
-public sealed class KeyboardHelperTests(MauiUiFixture _)
+public sealed class KeyboardHelperTests(MauiUiFixture fixture)
 {
 
     [Fact]
     public void HideKeyboard_returns_when_entry_null()
     {
+        _ = fixture;
         KeyboardHelper.HideKeyboard(null);
     }
 

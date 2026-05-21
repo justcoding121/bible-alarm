@@ -64,11 +64,12 @@ public sealed class AndroidAutoRotationHelperTests
     }
 
     [Collection("MauiUi")]
-    public sealed class MauiAndroidAutoRotationTests(MauiUiFixture _)
+    public sealed class MauiAndroidAutoRotationTests(MauiUiFixture fixture)
     {
         [Fact]
         public void Get_and_set_use_thread_safe_preferences_when_maui_ready()
         {
+            _ = fixture;
             if (!MauiUiTestBootstrap.IsReady)
             {
                 return;

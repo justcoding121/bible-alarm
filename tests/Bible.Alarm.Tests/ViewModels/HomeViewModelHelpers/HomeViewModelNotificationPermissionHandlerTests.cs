@@ -41,11 +41,12 @@ public sealed class HomeViewModelNotificationPermissionHandlerTests
     }
 
     [Collection("MauiUi")]
-    public sealed class MauiHomeViewModelNotificationPermissionHandlerTests(MauiUiFixture _)
+    public sealed class MauiHomeViewModelNotificationPermissionHandlerTests(MauiUiFixture fixture)
     {
         [Fact]
         public void UpdateVisibility_notifies_margin_change_on_main_thread_when_maui_ready()
         {
+            _ = fixture;
             if (!MauiUiTestBootstrap.IsReady)
             {
                 return;

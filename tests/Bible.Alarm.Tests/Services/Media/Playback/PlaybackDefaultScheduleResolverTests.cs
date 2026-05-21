@@ -13,7 +13,7 @@ using Serilog.Events;
 namespace Bible.Alarm.Tests;
 
 [Collection("MauiUi")]
-public sealed class PlaybackDefaultScheduleResolverTests(MauiUiFixture _)
+public sealed class PlaybackDefaultScheduleResolverTests(MauiUiFixture fixture)
 {
 
     private sealed class FakePlaybackState(PlaybackState value) : IState<PlaybackState>
@@ -28,6 +28,7 @@ public sealed class PlaybackDefaultScheduleResolverTests(MauiUiFixture _)
     [Fact]
     public void Resolve_returns_positive_DefaultScheduleId_from_fluxor_state()
     {
+        _ = fixture;
         var logger = TestLogging.CreateLogger();
         var state = new FakePlaybackState(new PlaybackState { DefaultScheduleId = 901 });
 

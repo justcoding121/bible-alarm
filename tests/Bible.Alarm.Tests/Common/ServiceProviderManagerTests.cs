@@ -20,11 +20,12 @@ public sealed class ServiceProviderManagerTests
     }
 
     [Collection("MauiUi")]
-    public sealed class MauiServiceProviderTests(MauiUiFixture _)
+    public sealed class MauiServiceProviderTests(MauiUiFixture fixture)
     {
         [Fact]
         public void GetService_resolves_registered_services_when_maui_ready()
         {
+            _ = fixture;
             if (!MauiUiTestBootstrap.IsReady)
             {
                 return;

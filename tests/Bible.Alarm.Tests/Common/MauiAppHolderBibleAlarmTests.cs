@@ -32,11 +32,12 @@ public sealed class MauiAppHolderBibleAlarmTests
     }
 
     [Collection("MauiUi")]
-    public sealed class MauiBootstrapTests(MauiUiFixture _)
+    public sealed class MauiBootstrapTests(MauiUiFixture fixture)
     {
         [Fact]
         public void CreateAndStore_initializes_singleton_app_services_and_properties()
         {
+            _ = fixture;
             if (!MauiUiTestBootstrap.IsReady)
             {
                 return;

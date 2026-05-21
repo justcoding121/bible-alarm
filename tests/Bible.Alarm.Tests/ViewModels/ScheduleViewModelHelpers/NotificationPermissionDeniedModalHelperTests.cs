@@ -129,11 +129,12 @@ public sealed class NotificationPermissionDeniedModalHelperTests
     }
 
     [Collection("MauiUi")]
-    public sealed class MauiNotificationPermissionGrantedTests(MauiUiFixture _)
+    public sealed class MauiNotificationPermissionGrantedTests(MauiUiFixture fixture)
     {
         [Fact]
         public async Task ShowAsync_invokes_granted_callback_on_main_thread_when_maui_ready()
         {
+            _ = fixture;
             if (!MauiUiTestBootstrap.IsReady)
             {
                 return;
