@@ -286,7 +286,7 @@ public sealed class NavigationServiceTests
         }
 
         [Fact]
-        public void ClearCache_allows_fresh_navigation_lookup_after_window_rebind()
+        public async Task ClearCache_allows_fresh_navigation_lookup_after_window_rebind()
         {
             _ = fixture;
             if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
@@ -298,12 +298,12 @@ public sealed class NavigationServiceTests
             try
             {
                 sut = CreateMauiSut();
-                MainThread.InvokeOnMainThreadAsync(() =>
+                await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     var window = Application.Current!.Windows[0];
                     window.Page = new NavigationPage(new ContentPage());
                     return Task.CompletedTask;
-                }).GetAwaiter().GetResult();
+                });
 
                 sut.ClearCache();
 

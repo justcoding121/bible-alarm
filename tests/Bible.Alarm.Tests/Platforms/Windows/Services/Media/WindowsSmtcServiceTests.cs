@@ -2,22 +2,24 @@
 
 using Bible.Alarm.Platforms.Windows.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Tests.Support;
 using CommunityToolkit.Maui;
 
 namespace Bible.Alarm.Tests;
 
 [Trait("Platform", "Windows")]
-public sealed class WindowsSmtcServiceTests
+[Collection("MauiUi")]
+public sealed class WindowsSmtcServiceTests(MauiUiFixture fixture)
 {
     private sealed class StubMediaElementService : IMediaElementService
     {
-        private readonly MediaElement? mediaElement;
+        private MediaElement? mediaElement;
 
-        public StubMediaElementService(MediaElement? mediaElement = null) =>
-            this.mediaElement = mediaElement;
-
-        public Task<MediaElement> GetMediaElementAsync() =>
-            Task.FromResult(mediaElement ?? new MediaElement());
+        public Task<MediaElement> GetMediaElementAsync()
+        {
+            mediaElement ??= new MediaElement();
+            return Task.FromResult(mediaElement);
+        }
 
         public Task DisposeMediaElementAsync() => Task.CompletedTask;
 
@@ -29,6 +31,7 @@ public sealed class WindowsSmtcServiceTests
     [Fact]
     public void UpdateButtonStates_is_no_op_before_initialize()
     {
+        _ = fixture;
         var sut = new WindowsSmtcService(new StubMediaElementService());
 
         var ex = Record.Exception(() => sut.UpdateButtonStates(canPlayNext: true, canPlayPrevious: true));
@@ -49,7 +52,12 @@ public sealed class WindowsSmtcServiceTests
     [Fact]
     public async Task InitializeAsync_completes_without_throw_when_media_element_has_no_handler()
     {
-        var sut = new WindowsSmtcService(new StubMediaElementService(new MediaElement()));
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var sut = new WindowsSmtcService(new StubMediaElementService());
 
         await sut.InitializeAsync();
     }
@@ -57,18 +65,28 @@ public sealed class WindowsSmtcServiceTests
     [Fact]
     public async Task InitializeAsync_second_call_is_idempotent()
     {
-        var sut = new WindowsSmtcService(new StubMediaElementService(new MediaElement()));
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var sut = new WindowsSmtcService(new StubMediaElementService());
 
         await sut.InitializeAsync();
         await sut.InitializeAsync();
     }
 
     [Fact]
-    public void UpdateButtonStates_after_initialize_does_not_throw()
+    public async Task UpdateButtonStates_after_initialize_does_not_throw()
     {
-        var sut = new WindowsSmtcService(new StubMediaElementService(new MediaElement()));
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
 
-        sut.InitializeAsync().GetAwaiter().GetResult();
+        var sut = new WindowsSmtcService(new StubMediaElementService());
+
+        await sut.InitializeAsync();
 
         var ex = Record.Exception(() => sut.UpdateButtonStates(canPlayNext: false, canPlayPrevious: true));
 

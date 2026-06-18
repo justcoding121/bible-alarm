@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.UI;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
