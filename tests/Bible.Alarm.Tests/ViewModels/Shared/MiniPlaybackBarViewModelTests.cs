@@ -11,7 +11,8 @@ using Fluxor;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class MiniPlaybackBarViewModelTests
+[Collection("MauiUi")]
+public sealed class MiniPlaybackBarViewModelTests(MauiUiFixture fixture)
 {
     private static readonly object Gate = new();
 
@@ -111,9 +112,20 @@ public sealed class MiniPlaybackBarViewModelTests
         }
     }
 
+    private static PlaybackState PlayingState(
+        string title = "Genesis 1",
+        bool canPlayNext = true,
+        bool canPlayPrevious = true,
+        PlayStatus status = PlayStatus.Playing) =>
+        new(
+            new PlaybackTransportSlice(null, true, canPlayNext, canPlayPrevious, status, false, false),
+            new PlaybackMediaSlice(title, "Artist", "Album", null, TimeSpan.FromSeconds(120), null),
+            new PlaybackDefaultScheduleSlice(null, null, null, null, null));
+
     [Fact]
     public void Receive_PlaybackPosition_clamps_fraction_above_one_to_one()
     {
+        _ = fixture;
         using var sut = CreateSut();
 
         sut.Receive(new PlaybackPositionChangedMessage
@@ -148,5 +160,116 @@ public sealed class MiniPlaybackBarViewModelTests
         });
 
         Assert.Equal(0.0, sut.Progress);
+    }
+
+    [Fact]
+    public void Receive_PlaybackPosition_updates_progress_for_valid_duration()
+    {
+        using var sut = CreateSut();
+
+        sut.Receive(new PlaybackPositionChangedMessage
+        {
+            Duration = TimeSpan.FromSeconds(10),
+            CurrentPosition = TimeSpan.FromSeconds(2),
+        });
+
+        Assert.Equal(0.2, sut.Progress, precision: 3);
+    }
+
+    [Fact]
+    public void Receive_BeginStoppingPlaybackMessage_disables_controls()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        using var sut = CreateSut();
+
+        sut.Receive(new BeginStoppingPlaybackMessage());
+
+        Assert.True(sut.IsStopping);
+        Assert.False(sut.AreControlsEnabled);
+    }
+
+    [Fact]
+    public void Receive_NextButtonPressedMessage_sets_busy_state()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        using var sut = CreateSut();
+
+        sut.Receive(new NextButtonPressedMessage());
+
+        Assert.True(sut.IsNextBusy);
+        Assert.False(sut.AreControlsEnabled);
+        Assert.Equal(0.0, sut.Progress);
+    }
+
+    [Fact]
+    public void Playback_state_change_syncs_title_and_play_visibility()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var playbackState = new MutablePlaybackState(PlayingState());
+        using var sut = CreateSut(playbackState: playbackState);
+
+        playbackState.Value = PlayingState(title: "Updated track", status: PlayStatus.Paused);
+        playbackState.NotifyStateChanged();
+
+        Assert.Equal("Updated track", sut.Title);
+        Assert.False(sut.IsPlaying);
+        Assert.True(sut.PlayVisible);
+        Assert.False(sut.PauseVisible);
+    }
+
+    [Fact]
+    public async Task PlayPauseCommand_calls_pause_when_playing()
+    {
+        var playback = new RecordingPlaybackService();
+        var playbackState = new MutablePlaybackState(PlayingState());
+        using var sut = CreateSut(playback, playbackState);
+
+        await sut.PlayPauseCommand.ExecuteAsync(null);
+
+        Assert.Contains("PauseAsync", playback.Calls);
+    }
+
+    [Fact]
+    public async Task PlayPauseCommand_calls_play_when_paused()
+    {
+        var playback = new RecordingPlaybackService();
+        var playbackState = new MutablePlaybackState(PlayingState(status: PlayStatus.Paused));
+        using var sut = CreateSut(playback, playbackState);
+
+        await sut.PlayPauseCommand.ExecuteAsync(null);
+
+        Assert.Contains("PlayAsync", playback.Calls);
+    }
+
+    [Fact]
+    public void IsVisible_true_resets_busy_flags_and_syncs_from_state()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var playbackState = new MutablePlaybackState(PlayingState());
+        using var sut = CreateSut(playbackState: playbackState);
+        sut.IsNextBusy = true;
+        sut.IsStopping = true;
+
+        sut.IsVisible = true;
+
+        Assert.False(sut.IsNextBusy);
+        Assert.False(sut.IsStopping);
+        Assert.Equal("Genesis 1", sut.Title);
     }
 }

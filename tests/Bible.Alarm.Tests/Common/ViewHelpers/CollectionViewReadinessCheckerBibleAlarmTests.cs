@@ -6,11 +6,13 @@ using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class CollectionViewReadinessCheckerBibleAlarmTests
+[Collection("MauiUi")]
+public sealed class CollectionViewReadinessCheckerBibleAlarmTests(MauiUiFixture fixture)
 {
     [Fact]
     public async Task WaitForCollectionViewReadyAsync_returns_false_when_collection_view_has_no_items_source()
     {
+        _ = fixture;
         MauiUiTestBootstrap.TryInitialize();
         if (!MauiUiTestBootstrap.IsReady)
         {
@@ -23,6 +25,29 @@ public sealed class CollectionViewReadinessCheckerBibleAlarmTests
         var ready = await CollectionViewReadinessChecker.WaitForCollectionViewReadyAsync(
             collectionView,
             item: "missing",
+            cts.Token);
+
+        Assert.False(ready);
+    }
+
+    [Fact]
+    public async Task WaitForCollectionViewReadyAsync_returns_false_when_item_not_in_items_source()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var collectionView = new CollectionView
+        {
+            ItemsSource = new List<string> { "alpha", "beta" },
+        };
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+        var ready = await CollectionViewReadinessChecker.WaitForCollectionViewReadyAsync(
+            collectionView,
+            "gamma",
             cts.Token);
 
         Assert.False(ready);
@@ -68,5 +93,24 @@ public sealed class CollectionViewReadinessCheckerBibleAlarmTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             CollectionViewReadinessChecker.WaitForCollectionViewReadyAsync(collectionView, "x", cts.Token));
+    }
+
+    [Fact]
+    public async Task WaitForCollectionViewReadyAsync_returns_false_for_null_items_source()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var collectionView = new CollectionView { ItemsSource = null };
+
+        var ready = await CollectionViewReadinessChecker.WaitForCollectionViewReadyAsync(
+            collectionView,
+            "any",
+            cts.Token);
+
+        Assert.False(ready);
     }
 }

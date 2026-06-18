@@ -45,4 +45,39 @@ public sealed class MauiMainThreadRunnerBibleAlarmTests(MauiUiFixture fixture)
 
         Assert.True(done.Wait(TimeSpan.FromSeconds(5)));
     }
+
+    [Fact]
+    public async Task InvokeOnMainThreadAsync_runs_work_that_mutates_captured_state()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var sut = new MauiMainThreadRunner();
+        var value = 0;
+
+        await sut.InvokeOnMainThreadAsync(() =>
+        {
+            value = 42;
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal(42, value);
+    }
+
+    [Fact]
+    public async Task InvokeOnMainThreadAsync_propagates_exceptions()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var sut = new MauiMainThreadRunner();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.InvokeOnMainThreadAsync(() =>
+                Task.FromException(new InvalidOperationException("main-thread-fail"))));
+    }
 }
