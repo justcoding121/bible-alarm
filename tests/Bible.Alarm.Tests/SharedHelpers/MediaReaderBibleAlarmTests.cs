@@ -197,11 +197,11 @@ public sealed class MediaReaderBibleAlarmTests : IDisposable
         var langs = await Reader.GetVocalMusicLanguages();
         Assert.Equal("fr", langs["FR"].LanguageCode);
 
-        var releases = await Reader.GetVocalMusicReleases("FR");
+        var releases = await Reader.GetVocalMusicReleases("fr");
         Assert.Single(releases);
         Assert.Equal("Song", releases["song-pub"].Name);
 
-        var tracks = await Reader.GetVocalMusicTracks("FR", "song-pub");
+        var tracks = await Reader.GetVocalMusicTracks("fr", "song-pub");
         Assert.Equal(2, tracks.Count);
         Assert.Equal("First", tracks[0].Title);
         Assert.Equal("Second", tracks[1].Title);

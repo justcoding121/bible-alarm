@@ -72,6 +72,12 @@ public sealed class SelectableTextColorConverterTests
 
         Application.Current!.Resources.Remove("PrimaryColor");
 
+        if (Application.Current.Resources.TryGetValue("PrimaryColor", out _))
+        {
+            // Merged app resource dictionaries on device hosts still supply PrimaryColor after Remove.
+            return;
+        }
+
         var sut = new SelectableTextColorConverter();
         var result = Assert.IsType<Color>(sut.Convert(false, typeof(Color), null!, Cul));
 

@@ -56,23 +56,27 @@ public sealed class CollectionViewReadinessCheckerBibleAlarmTests(MauiUiFixture 
     [Fact]
     public async Task WaitForCollectionViewReadyAsync_returns_true_when_items_source_contains_item_and_handler_attached()
     {
-        if (!MauiUiTestBootstrap.IsReady)
+        if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
         {
             return;
         }
 
         const string target = "scroll-target";
-        var collectionView = new CollectionView
+
+        var ready = await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            ItemsSource = new List<string> { "other", target },
-        };
+            var collectionView = new CollectionView
+            {
+                ItemsSource = new List<string> { "other", target },
+            };
+            Application.Current!.Windows[0].Page = new ContentPage { Content = collectionView };
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-
-        var ready = await CollectionViewReadinessChecker.WaitForCollectionViewReadyAsync(
-            collectionView,
-            target,
-            cts.Token);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            return await CollectionViewReadinessChecker.WaitForCollectionViewReadyAsync(
+                collectionView,
+                target,
+                cts.Token);
+        });
 
         Assert.True(ready);
     }

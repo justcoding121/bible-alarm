@@ -283,7 +283,7 @@ public sealed class HomeStateChangeHandlerTests
 
         try
         {
-            await sut.ApplyDeferredReorderAsync();
+            await MainThread.InvokeOnMainThreadAsync(async () => await sut.ApplyDeferredReorderAsync());
         }
         catch (System.Runtime.InteropServices.COMException)
         {

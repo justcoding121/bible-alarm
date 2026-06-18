@@ -45,6 +45,6 @@ public sealed class ToastArtworkImageSrcResolverBibleAlarmTests
     [Fact]
     public void TryResolve_returns_null_when_local_path_cannot_be_mapped()
     {
-        Assert.Null(ToastArtworkImageSrcResolver.TryResolve("?:\\invalid<>|path"));
+        Assert.Null(ToastArtworkImageSrcResolver.TryResolve("bad-path\0name"));
     }
 }
