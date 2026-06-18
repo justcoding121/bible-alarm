@@ -38,7 +38,7 @@ public sealed class MauiAppHolderBibleAlarmTests
         public void CreateAndStore_initializes_singleton_app_services_and_properties()
         {
             _ = fixture;
-            if (!MauiUiTestBootstrap.IsReady)
+            if (!MauiUiTestBootstrap.TryInitializeFullAppHolder())
             {
                 return;
             }
