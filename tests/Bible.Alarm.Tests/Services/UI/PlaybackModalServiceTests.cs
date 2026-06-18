@@ -244,6 +244,26 @@ public sealed class PlaybackModalServiceTests
             new PlaybackDefaultScheduleSlice(null, null, null, null, null));
 
     [Fact]
+    public void WasRecentlyMinimized_returns_false_when_not_minimized()
+    {
+        var runner = new InlineMainThreadRunner();
+        var sut = CreateSut(runner);
+
+        Assert.False(sut.WasRecentlyMinimized());
+        sut.Dispose();
+    }
+
+    [Fact]
+    public void IsMinimized_false_by_default()
+    {
+        var runner = new InlineMainThreadRunner();
+        var sut = CreateSut(runner);
+
+        Assert.False(sut.IsMinimized);
+        sut.Dispose();
+    }
+
+    [Fact]
     public void WasRecentlyMinimized_returns_true_inside_cooldown_after_reflection_prime()
     {
         var runner = new InlineMainThreadRunner();

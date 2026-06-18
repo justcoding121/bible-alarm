@@ -4,11 +4,20 @@ using System.Net;
 using System.Net.Http;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Tests.Support;
+using Bible.Alarm.ViewModels.Interfaces;
 
 namespace Bible.Alarm.Tests;
 
 public sealed class ModalScrollHelperTests
 {
+    private sealed class StubListViewModel : IListViewModel
+    {
+        public object? SelectedItem => null;
+
+        public bool IsBusy { get; set; } = true;
+    }
+
     [Fact]
     public void IsFetchFailure_true_for_http_request_exception()
     {
@@ -52,10 +61,18 @@ public sealed class ModalScrollHelperTests
     {
         var serverErr = new HttpRequestException("err", null, HttpStatusCode.ServiceUnavailable);
         Assert.Contains("temporarily unavailable", ModalScrollHelper.GetFetchErrorMessage(serverErr));
+    }
 
+    [Fact]
+    public void GetFetchErrorMessage_not_found_uses_not_found_message()
+    {
         var notFound = new HttpRequestException("err", null, HttpStatusCode.NotFound);
         Assert.Contains("not found", ModalScrollHelper.GetFetchErrorMessage(notFound));
+    }
 
+    [Fact]
+    public void GetFetchErrorMessage_other_http_status_uses_generic_message()
+    {
         var other = new HttpRequestException("err", null, HttpStatusCode.BadRequest);
         Assert.Contains("Something went wrong", ModalScrollHelper.GetFetchErrorMessage(other));
     }
@@ -64,6 +81,11 @@ public sealed class ModalScrollHelperTests
     public void GetFetchErrorMessage_timeout_uses_connection_message()
     {
         Assert.Contains("too long", ModalScrollHelper.GetFetchErrorMessage(new TimeoutException()));
+    }
+
+    [Fact]
+    public void GetFetchErrorMessage_task_canceled_uses_connection_message()
+    {
         Assert.Contains("too long", ModalScrollHelper.GetFetchErrorMessage(new TaskCanceledException()));
     }
 
@@ -71,6 +93,66 @@ public sealed class ModalScrollHelperTests
     public void GetFetchErrorMessage_falls_back_to_default_when_no_status()
     {
         Assert.Equal(ModalScrollHelper.DefaultFetchErrorMessage, ModalScrollHelper.GetFetchErrorMessage(new HttpRequestException()));
+    }
+
+    [Fact]
+    public void DefaultFetchErrorMessage_matches_toast_constant()
+    {
         Assert.Equal(AppConstants.ToastMessages.PleaseCheckInternetConnection, ModalScrollHelper.DefaultFetchErrorMessage);
+    }
+
+    [Fact]
+    public async Task HandleModalAppearingAsync_returns_success_when_view_model_null()
+    {
+        var result = await ModalScrollHelper.HandleModalAppearingAsync(null, new ListModalAppearOptions(null, null));
+
+        Assert.Equal(ModalAppearingResult.Success, result);
+    }
+
+    [Fact]
+    public async Task HandleModalAppearingAsync_clears_busy_when_no_refresh_or_collection_view()
+    {
+        var vm = new StubListViewModel();
+
+        await ModalScrollHelper.HandleModalAppearingAsync(vm, new ListModalAppearOptions(null, null));
+
+        Assert.False(vm.IsBusy);
+    }
+
+    [Fact]
+    public async Task HandleModalAppearingAsync_returns_fetch_failed_when_refresh_throws_network_error()
+    {
+        var vm = new StubListViewModel();
+
+        var result = await ModalScrollHelper.HandleModalAppearingAsync(
+            vm,
+            new ListModalAppearOptions(
+                null,
+                null,
+                RefreshAction: () => throw new HttpRequestException(),
+                OnFetchFailed: _ => Task.CompletedTask));
+
+        Assert.Equal(ModalAppearingResult.FetchFailed, result);
+    }
+
+    [Collection("MauiUi")]
+    public sealed class MauiModalScrollHelperTests(MauiUiFixture fixture)
+    {
+        [Fact]
+        public async Task DisposeModal_clears_is_busy_on_list_view_model()
+        {
+            _ = fixture;
+            if (!MauiUiTestBootstrap.IsReady)
+            {
+                return;
+            }
+
+            var vm = new StubListViewModel { IsBusy = true };
+
+            ModalScrollHelper.DisposeModal(null, null, vm);
+            await MainThread.InvokeOnMainThreadAsync(() => { });
+
+            Assert.False(vm.IsBusy);
+        }
     }
 }

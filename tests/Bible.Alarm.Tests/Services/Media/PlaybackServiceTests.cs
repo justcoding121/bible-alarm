@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
+using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -606,6 +607,56 @@ public sealed class PlaybackServiceTests
         Assert.Contains(dispatcher.Dispatched, a => a is PlaybackStatusChangedAction);
         Assert.Equal(1, player.PrepareCallCount);
         Assert.Equal(1, player.PlayCallCount);
+    }
+
+    private sealed class PlaybackExplicitStopSink : IDisposable
+    {
+        public int Count { get; private set; }
+
+        public PlaybackExplicitStopSink() =>
+            WeakReferenceMessenger.Default.Register<PlaybackExplicitStopMessage>(this, (_, _) => Count++);
+
+        public void Dispose() =>
+            WeakReferenceMessenger.Default.Unregister<PlaybackExplicitStopMessage>(this);
+    }
+
+    [Fact]
+    public void IsAlarmPlaybackSession_false_before_alarm_playback()
+    {
+        using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        Assert.False(sut.IsAlarmPlaybackSession);
+    }
+
+    [Fact]
+    public async Task StopAsync_sends_playback_explicit_stop_message()
+    {
+        using var sink = new PlaybackExplicitStopSink();
+        using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        await sut.StopAsync();
+
+        Assert.Equal(1, sink.Count);
+    }
+
+    [Fact]
+    public async Task PauseAsync_when_idle_completes_without_throw()
+    {
+        using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        var ex = await Record.ExceptionAsync(() => sut.PauseAsync());
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public async Task PlayAsync_when_playlist_empty_completes_without_throw()
+    {
+        using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        var ex = await Record.ExceptionAsync(() => sut.PlayAsync());
+
+        Assert.Null(ex);
     }
 
     [Fact]
