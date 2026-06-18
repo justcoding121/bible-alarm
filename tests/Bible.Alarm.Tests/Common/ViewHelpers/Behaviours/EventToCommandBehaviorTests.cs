@@ -116,8 +116,15 @@ public sealed class EventToCommandBehaviorTests(MauiUiFixture fixture)
 
         button.Behaviors.Add(behavior);
         button.Behaviors.Remove(behavior);
-        behavior.OnFired(button, EventArgs.Empty);
+        RaiseClicked(button);
 
         Assert.Empty(command.ExecutedParameters);
+    }
+
+    private static void RaiseClicked(Button button)
+    {
+        var raise = typeof(Button).GetEvent(nameof(Button.Clicked))?.GetRaiseMethod(nonPublic: true);
+        Assert.NotNull(raise);
+        raise.Invoke(button, [button, EventArgs.Empty]);
     }
 }

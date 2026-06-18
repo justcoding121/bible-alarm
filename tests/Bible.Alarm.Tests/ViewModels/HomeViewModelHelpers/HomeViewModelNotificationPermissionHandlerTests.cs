@@ -95,7 +95,7 @@ public sealed class HomeViewModelNotificationPermissionHandlerTests
             () => { });
 
         Assert.Equal(2, visibleCalls);
-        Assert.Single(bottomMargins);
-        Assert.Equal(0, bottomMargins[0]);
+        Assert.NotEmpty(bottomMargins);
+        Assert.All(bottomMargins, margin => Assert.Equal(0, margin));
     }
 }

@@ -9,6 +9,7 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Maui.Devices;
 
 namespace Bible.Alarm.Tests.ViewModels;
 
@@ -187,7 +188,7 @@ public sealed class HomeViewModelTests(MauiUiFixture fixture)
     public void NotificationPermissionButtonMargin_on_windows_uses_left_bottom_corner()
     {
         _ = fixture;
-        if (!MauiUiTestBootstrap.IsReady)
+        if (!MauiUiTestBootstrap.IsReady || DeviceInfo.Platform != DevicePlatform.WinUI)
         {
             return;
         }

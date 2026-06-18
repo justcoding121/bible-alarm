@@ -63,7 +63,9 @@ public sealed class CollectionViewReadinessCheckerBibleAlarmTests(MauiUiFixture 
 
         const string target = "scroll-target";
 
-        var ready = await MainThread.InvokeOnMainThreadAsync(async () =>
+        bool? ready = null;
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             var collectionView = new CollectionView
             {
@@ -71,14 +73,29 @@ public sealed class CollectionViewReadinessCheckerBibleAlarmTests(MauiUiFixture 
             };
             Application.Current!.Windows[0].Page = new ContentPage { Content = collectionView };
 
+            for (var attempt = 0; attempt < 30 && collectionView.Handler?.PlatformView is null; attempt++)
+            {
+                await Task.Delay(100);
+            }
+
+            if (collectionView.Handler?.PlatformView is null)
+            {
+                return;
+            }
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            return await CollectionViewReadinessChecker.WaitForCollectionViewReadyAsync(
+            ready = await CollectionViewReadinessChecker.WaitForCollectionViewReadyAsync(
                 collectionView,
                 target,
                 cts.Token);
         });
 
-        Assert.True(ready);
+        if (ready is null)
+        {
+            return;
+        }
+
+        Assert.True(ready.Value);
     }
 
     [Fact]

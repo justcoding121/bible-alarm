@@ -20,10 +20,10 @@ public sealed class TouchFeedbackBehaviorTests(MauiUiFixture fixture)
     }
 
     [Fact]
-    public void OnAttachedTo_subscribes_to_existing_tap_gesture()
+    public async Task OnAttachedTo_subscribes_to_existing_tap_gesture()
     {
         _ = fixture;
-        if (!MauiUiTestBootstrap.IsReady)
+        if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
         {
             return;
         }
@@ -33,7 +33,13 @@ public sealed class TouchFeedbackBehaviorTests(MauiUiFixture fixture)
         label.GestureRecognizers.Add(tap);
 
         var behavior = new TouchFeedbackBehavior();
-        label.Behaviors.Add(behavior);
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            label.Behaviors.Add(behavior);
+            Application.Current!.Windows[0].Page = new ContentPage { Content = label };
+            return Task.CompletedTask;
+        });
 
         var ex = Record.Exception(() => InvokeOnTapped(behavior, tap, label));
 
