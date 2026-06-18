@@ -15,5 +15,11 @@ internal sealed class StubDownloadUtility : DownloadUtility
         this.respond = respond;
     }
 
-    internal override Task<string> GetAsync(string catalogLink) => respond(catalogLink);
+    public List<string> RequestedUrls { get; } = [];
+
+    internal override Task<string> GetAsync(string catalogLink)
+    {
+        RequestedUrls.Add(catalogLink);
+        return respond(catalogLink);
+    }
 }

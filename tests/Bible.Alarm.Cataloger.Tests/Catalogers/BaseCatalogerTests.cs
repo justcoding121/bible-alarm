@@ -23,6 +23,41 @@ public sealed class BaseCatalogerTests
             FilterLanguageEntriesForTestRun(entries, isTestRun);
 
         public static bool ShouldSkip(string name) => ShouldSkipLanguage(name);
+
+        public ILogger ExposedLogger => Logger;
+
+        public DownloadUtility ExposedDownloadUtility => DownloadUtility;
+
+        public static int ExposedMaxConcurrentLanguageDownloads => MaxConcurrentLanguageDownloads;
+
+        public static HashSet<string> ExposedTestRunLanguageCodes => TestRunLanguageCodes;
+    }
+
+    [Fact]
+    public void Constructor_assigns_logger_and_download_utility()
+    {
+        var downloadUtility = new StubDownloadUtility(SilentLogger, _ => Task.FromResult("{}"));
+        var harness = new BaseCatalogerTestHarness(SilentLogger, downloadUtility);
+
+        Assert.Same(SilentLogger, harness.ExposedLogger);
+        Assert.Same(downloadUtility, harness.ExposedDownloadUtility);
+    }
+
+    [Fact]
+    public void MaxConcurrentLanguageDownloads_is_eight()
+    {
+        Assert.Equal(8, BaseCatalogerTestHarness.ExposedMaxConcurrentLanguageDownloads);
+    }
+
+    [Fact]
+    public void TestRunLanguageCodes_includes_english_malayalam_and_arabic()
+    {
+        var codes = BaseCatalogerTestHarness.ExposedTestRunLanguageCodes;
+
+        Assert.Contains(AppConstants.Media.DefaultLanguageCode, codes);
+        Assert.Contains("MY", codes);
+        Assert.Contains("A", codes);
+        Assert.Equal(3, codes.Count);
     }
 
     [Fact]
