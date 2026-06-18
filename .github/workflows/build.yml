@@ -98,7 +98,7 @@ jobs:
             /d:sonar.language="cs" `
             /d:sonar.dotnet.excludeTestProjects="true" `
             /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**,**/.github/scripts/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py" `
-            /d:sonar.coverage.exclusions="**/.github/scripts/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs" `
+            /d:sonar.coverage.exclusions="**/.github/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/*.android.cs,**/*.ios.cs,**/.tools/**/Program.cs,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs" `
             /d:sonar.cs.opencover.reportsPaths="artifacts/coverage-windows/*.opencover.xml"
         shell: pwsh
 
