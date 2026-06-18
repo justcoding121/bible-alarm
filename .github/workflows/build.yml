@@ -82,9 +82,9 @@ jobs:
       # [.cursor/rules/testing/multi-platform-tests.mdc]). The staged path is written by the
       # `Stage coverage artifacts` step further down (before `SonarScanner end`).
       # Android/iOS device-host slices do NOT contribute coverage — see Hard rule #6.
-      # `sonar.coverage.exclusions` drops orchestration scripts from coverage accounting; Android/iOS
-      # platform code and XAML code-behind are validated on device/Appium but never instrumented on
-      # the Windows OpenCover pass (see .cursor/rules/testing/multi-platform-tests.mdc Hard rule #6).
+      # `sonar.coverage.exclusions` drops orchestration scripts (.ps1, .sh, .py, etc.) from coverage
+      # accounting; Android/iOS platform code and XAML code-behind are validated on device/Appium
+      # but never instrumented on the Windows OpenCover pass (see .cursor/rules/testing/multi-platform-tests.mdc Hard rule #6).
       # Set SonarCloud quality gate coverage threshold (e.g. 80%) in SonarCloud: Project Settings > Quality Gates.
       - name: SonarScanner begin
         env:
@@ -97,8 +97,8 @@ jobs:
             /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.language="cs" `
             /d:sonar.dotnet.excludeTestProjects="true" `
-            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**" `
-            /d:sonar.coverage.exclusions="**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs" `
+            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**,**/.github/scripts/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py" `
+            /d:sonar.coverage.exclusions="**/.github/scripts/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs" `
             /d:sonar.cs.opencover.reportsPaths="artifacts/coverage-windows/*.opencover.xml"
         shell: pwsh
 

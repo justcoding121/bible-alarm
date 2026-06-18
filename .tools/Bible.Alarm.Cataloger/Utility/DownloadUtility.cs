@@ -48,7 +48,7 @@ internal class DownloadUtility
         return await GetPubMediaLinksRetry.GetStringAsync(client, baseUrls, pathAndQuery);
     }
 
-    internal async Task<string> GetAsync(string catalogLink)
+    internal virtual async Task<string> GetAsync(string catalogLink)
     {
         if (TryGetAlternateJwCdnUrl(catalogLink, out var alternateUrl))
         {
