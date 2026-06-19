@@ -23,7 +23,7 @@ public sealed class TouchFeedbackBehaviorTests(MauiUiFixture fixture)
     public async Task OnAttachedTo_subscribes_to_existing_tap_gesture()
     {
         _ = fixture;
-        if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
+        if (!MauiUiTestHostHelper.CanUseVisualTree)
         {
             return;
         }
@@ -36,6 +36,7 @@ public sealed class TouchFeedbackBehaviorTests(MauiUiFixture fixture)
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
+            _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
             label.Behaviors.Add(behavior);
             Application.Current!.Windows[0].Page = new ContentPage { Content = label };
             return Task.CompletedTask;

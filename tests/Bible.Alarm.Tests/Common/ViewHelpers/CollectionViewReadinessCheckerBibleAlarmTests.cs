@@ -56,7 +56,7 @@ public sealed class CollectionViewReadinessCheckerBibleAlarmTests(MauiUiFixture 
     [Fact]
     public async Task WaitForCollectionViewReadyAsync_returns_true_when_items_source_contains_item_and_handler_attached()
     {
-        if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
+        if (!MauiUiTestHostHelper.CanUseVisualTree)
         {
             return;
         }
@@ -67,6 +67,7 @@ public sealed class CollectionViewReadinessCheckerBibleAlarmTests(MauiUiFixture 
 
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
+            _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
             var collectionView = new CollectionView
             {
                 ItemsSource = new List<string> { "other", target },

@@ -161,7 +161,7 @@ public sealed class NavigationServiceTests
         public async Task GetCurrentPage_returns_top_page_when_navigation_stack_configured()
         {
             _ = fixture;
-            if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
+            if (!MauiUiTestHostHelper.CanUseVisualTree)
             {
                 return;
             }
@@ -172,6 +172,7 @@ public sealed class NavigationServiceTests
                 sut = CreateMauiSut();
                 var topPage = await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
+                    _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
                     var window = Application.Current!.Windows[0];
                     var root = new ContentPage();
                     var navPage = new NavigationPage(root);
@@ -193,7 +194,7 @@ public sealed class NavigationServiceTests
         public async Task PopAsync_leaves_single_page_stack_unchanged()
         {
             _ = fixture;
-            if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
+            if (!MauiUiTestHostHelper.CanUseVisualTree)
             {
                 return;
             }
@@ -204,6 +205,7 @@ public sealed class NavigationServiceTests
                 sut = CreateMauiSut();
                 var initialCount = await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
+                    _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
                     var window = Application.Current!.Windows[0];
                     var navPage = new NavigationPage(new ContentPage());
                     window.Page = navPage;
@@ -223,7 +225,7 @@ public sealed class NavigationServiceTests
         public async Task PopAsync_refuses_to_pop_when_top_page_is_home()
         {
             _ = fixture;
-            if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
+            if (!MauiUiTestHostHelper.CanUseVisualTree)
             {
                 return;
             }
@@ -236,6 +238,7 @@ public sealed class NavigationServiceTests
                 homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
                 var stackCount = await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
+                    _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
                     var window = Application.Current!.Windows[0];
                     var navPage = new NavigationPage(new ContentPage());
                     await navPage.Navigation.PushAsync(new Home(homeVm!), false);
@@ -257,7 +260,7 @@ public sealed class NavigationServiceTests
         public async Task PopAsync_removes_top_page_when_stack_has_multiple_non_home_pages()
         {
             _ = fixture;
-            if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
+            if (!MauiUiTestHostHelper.CanUseVisualTree)
             {
                 return;
             }
@@ -268,6 +271,7 @@ public sealed class NavigationServiceTests
                 sut = CreateMauiSut();
                 var stackCount = await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
+                    _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
                     var window = Application.Current!.Windows[0];
                     var navPage = new NavigationPage(new ContentPage());
                     await navPage.Navigation.PushAsync(new ContentPage(), false);
@@ -289,7 +293,7 @@ public sealed class NavigationServiceTests
         public async Task ClearCache_allows_fresh_navigation_lookup_after_window_rebind()
         {
             _ = fixture;
-            if (!MauiUiTestBootstrap.IsReady || Application.Current is null)
+            if (!MauiUiTestHostHelper.CanUseVisualTree)
             {
                 return;
             }
@@ -300,6 +304,7 @@ public sealed class NavigationServiceTests
                 sut = CreateMauiSut();
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
+                    _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
                     var window = Application.Current!.Windows[0];
                     window.Page = new NavigationPage(new ContentPage());
                     return Task.CompletedTask;

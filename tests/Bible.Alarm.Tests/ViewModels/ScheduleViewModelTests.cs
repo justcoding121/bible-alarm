@@ -85,7 +85,7 @@ public sealed class ScheduleViewModelTests
     }
 
     [Fact]
-    public void OnStateChanged_updates_overlay_and_new_schedule_flags()
+    public async Task OnStateChanged_updates_overlay_and_new_schedule_flags()
     {
         var appState = new ViewModelTestDoubles.MutableApplicationState(
             new ApplicationState(new ObservableHashSet<ScheduleStateItem>(), null));
@@ -97,6 +97,7 @@ public sealed class ScheduleViewModelTests
         try
         {
             appState.NotifyChanged();
+            await MauiUiTestHostHelper.FlushMainThreadAsync();
             Assert.True(sut.IsSchedulePageOverlayVisible);
             Assert.False(sut.IsNewSchedule);
         }

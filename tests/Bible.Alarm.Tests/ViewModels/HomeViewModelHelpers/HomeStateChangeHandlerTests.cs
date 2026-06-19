@@ -292,7 +292,8 @@ public sealed class HomeStateChangeHandlerTests
 
             try
             {
-                await MainThread.InvokeOnMainThreadAsync(async () => await sut.ApplyDeferredReorderAsync());
+                await sut.ApplyDeferredReorderAsync();
+                await MauiUiTestHostHelper.FlushMainThreadAsync();
             }
             catch (System.Runtime.InteropServices.COMException)
             {

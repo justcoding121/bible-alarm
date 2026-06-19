@@ -177,7 +177,7 @@ public sealed class MiniPlaybackBarViewModelTests(MauiUiFixture fixture)
     }
 
     [Fact]
-    public void Receive_BeginStoppingPlaybackMessage_disables_controls()
+    public async Task Receive_BeginStoppingPlaybackMessage_disables_controls()
     {
         if (!MauiUiTestBootstrap.IsReady)
         {
@@ -187,13 +187,14 @@ public sealed class MiniPlaybackBarViewModelTests(MauiUiFixture fixture)
         using var sut = CreateSut();
 
         sut.Receive(new BeginStoppingPlaybackMessage());
+        await MauiUiTestHostHelper.FlushMainThreadAsync();
 
         Assert.True(sut.IsStopping);
         Assert.False(sut.AreControlsEnabled);
     }
 
     [Fact]
-    public void Receive_NextButtonPressedMessage_sets_busy_state()
+    public async Task Receive_NextButtonPressedMessage_sets_busy_state()
     {
         if (!MauiUiTestBootstrap.IsReady)
         {
@@ -203,6 +204,7 @@ public sealed class MiniPlaybackBarViewModelTests(MauiUiFixture fixture)
         using var sut = CreateSut();
 
         sut.Receive(new NextButtonPressedMessage());
+        await MauiUiTestHostHelper.FlushMainThreadAsync();
 
         Assert.True(sut.IsNextBusy);
         Assert.False(sut.AreControlsEnabled);
@@ -210,7 +212,7 @@ public sealed class MiniPlaybackBarViewModelTests(MauiUiFixture fixture)
     }
 
     [Fact]
-    public void Playback_state_change_syncs_title_and_play_visibility()
+    public async Task Playback_state_change_syncs_title_and_play_visibility()
     {
         if (!MauiUiTestBootstrap.IsReady)
         {
@@ -222,6 +224,7 @@ public sealed class MiniPlaybackBarViewModelTests(MauiUiFixture fixture)
 
         playbackState.Value = PlayingState(title: "Updated track", status: PlayStatus.Paused);
         playbackState.NotifyStateChanged();
+        await MauiUiTestHostHelper.FlushMainThreadAsync();
 
         Assert.Equal("Updated track", sut.Title);
         Assert.False(sut.IsPlaying);
