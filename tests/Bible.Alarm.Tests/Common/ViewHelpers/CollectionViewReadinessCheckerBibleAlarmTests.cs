@@ -61,13 +61,17 @@ public sealed class CollectionViewReadinessCheckerBibleAlarmTests(MauiUiFixture 
             return;
         }
 
+        if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
+        {
+            return;
+        }
+
         const string target = "scroll-target";
 
         bool? ready = null;
 
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
             var collectionView = new CollectionView
             {
                 ItemsSource = new List<string> { "other", target },

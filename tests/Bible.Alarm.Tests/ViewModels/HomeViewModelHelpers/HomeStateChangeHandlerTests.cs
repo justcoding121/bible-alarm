@@ -292,21 +292,24 @@ public sealed class HomeStateChangeHandlerTests
 
             try
             {
-                await sut.ApplyDeferredReorderAsync();
-                await MauiUiTestHostHelper.FlushMainThreadAsync();
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await sut.ApplyDeferredReorderAsync();
+                    await MauiUiTestHostHelper.FlushMainThreadAsync();
+
+                    Assert.NotNull(boundCollection);
+                    Assert.Equal(2, boundCollection!.Count);
+                    Assert.Equal(2, boundCollection.First().ScheduleId);
+                    Assert.True(notified);
+                    Assert.Null(typeof(HomeStateChangeHandler)
+                        .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .GetValue(sut));
+                });
             }
             catch (System.Runtime.InteropServices.COMException)
             {
                 return;
             }
-
-            Assert.NotNull(boundCollection);
-            Assert.Equal(2, boundCollection!.Count);
-            Assert.Equal(2, boundCollection.First().ScheduleId);
-            Assert.True(notified);
-            Assert.Null(typeof(HomeStateChangeHandler)
-                .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(sut));
         }
     }
 }

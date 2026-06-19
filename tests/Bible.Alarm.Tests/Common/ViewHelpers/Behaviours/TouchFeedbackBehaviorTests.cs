@@ -28,6 +28,11 @@ public sealed class TouchFeedbackBehaviorTests(MauiUiFixture fixture)
             return;
         }
 
+        if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
+        {
+            return;
+        }
+
         var label = new Label();
         var tap = new TapGestureRecognizer();
         label.GestureRecognizers.Add(tap);
@@ -36,7 +41,6 @@ public sealed class TouchFeedbackBehaviorTests(MauiUiFixture fixture)
 
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            _ = MauiUiTestHostHelper.EnsurePrimaryWindow();
             label.Behaviors.Add(behavior);
             Application.Current!.Windows[0].Page = new ContentPage { Content = label };
             return Task.CompletedTask;
