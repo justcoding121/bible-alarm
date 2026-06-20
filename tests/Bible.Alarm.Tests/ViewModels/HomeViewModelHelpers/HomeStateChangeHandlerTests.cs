@@ -101,25 +101,15 @@ public sealed class HomeStateChangeHandlerTests
             CategoryNameService: null!);
 
         var vm = new ScheduleListItemViewModel(deps);
-        AssignScheduleStub(vm, scheduleId, name);
-        return vm;
-    }
-
-    private static void AssignScheduleStub(ScheduleListItemViewModel vm, int scheduleId, string name)
-    {
-        var schedule = new AlarmSchedule { Id = scheduleId, Name = name };
-        var backingField = typeof(ScheduleListItemViewModel).GetField(
-            "<Schedule>k__BackingField",
-            BindingFlags.Instance | BindingFlags.NonPublic);
-        if (backingField != null)
+        vm.InitializeFromSchedule(new AlarmSchedule
         {
-            backingField.SetValue(vm, schedule);
-            return;
-        }
-
-        typeof(ScheduleListItemViewModel)
-            .GetProperty(nameof(ScheduleListItemViewModel.Schedule), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!
-            .SetValue(vm, schedule);
+            Id = scheduleId,
+            Name = name,
+            Hour = 7,
+            Minute = 0,
+            IsEnabled = true,
+        });
+        return vm;
     }
 
     private static void SeedUnchangedProcessingState(HomeStateChangeHandler handler, ObservableHashSet<ScheduleStateItem> schedules)
@@ -301,27 +291,34 @@ public sealed class HomeStateChangeHandlerTests
                 IsPlaybackModalVisible: () => false);
             var sut = new HomeStateChangeHandler(deps, callbacks);
 
-            typeof(HomeStateChangeHandler)
-                .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .SetValue(sut, deferred);
-
             try
             {
-                await sut.ApplyDeferredReorderAsync();
-                await MauiUiTestHostHelper.FlushMainThreadAsync();
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    typeof(HomeStateChangeHandler)
+                        .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .SetValue(sut, deferred);
+
+                    Assert.Same(deferred, typeof(HomeStateChangeHandler)
+                        .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .GetValue(sut));
+                    Assert.Equal(2, deferred.Count);
+
+                    sut.ApplyDeferredReorderAsync().GetAwaiter().GetResult();
+
+                    Assert.NotNull(boundCollection);
+                    Assert.Equal(2, boundCollection!.Count);
+                    Assert.Equal(2, boundCollection.First().ScheduleId);
+                    Assert.True(notified);
+                    Assert.Null(typeof(HomeStateChangeHandler)
+                        .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .GetValue(sut));
+                });
             }
             catch (System.Runtime.InteropServices.COMException)
             {
                 return;
             }
-
-            Assert.NotNull(boundCollection);
-            Assert.Equal(2, boundCollection!.Count);
-            Assert.Equal(2, boundCollection.First().ScheduleId);
-            Assert.True(notified);
-            Assert.Null(typeof(HomeStateChangeHandler)
-                .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(sut));
         }
     }
 }
