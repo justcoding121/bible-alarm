@@ -11,8 +11,7 @@ using Fluxor;
 
 namespace Bible.Alarm.Tests;
 
-[Collection("MauiUi")]
-public sealed class MiniPlaybackBarViewModelTests(MauiUiFixture fixture)
+public sealed class MiniPlaybackBarViewModelTests
 {
     private static readonly object Gate = new();
 
@@ -125,7 +124,6 @@ public sealed class MiniPlaybackBarViewModelTests(MauiUiFixture fixture)
     [Fact]
     public void Receive_PlaybackPosition_clamps_fraction_above_one_to_one()
     {
-        _ = fixture;
         using var sut = CreateSut();
 
         sut.Receive(new PlaybackPositionChangedMessage

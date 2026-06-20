@@ -50,4 +50,12 @@ public sealed class ModalNavigationHandlerTests
 
         Assert.Contains("Unsupported ViewModel type", ex.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void IsPlaybackModalAlreadyShown_returns_false_for_empty_stack()
+    {
+        var nav = new UnusedNavigation();
+
+        Assert.False(ModalNavigationHandler.IsPlaybackModalAlreadyShown(nav));
+    }
 }

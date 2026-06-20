@@ -742,4 +742,88 @@ public sealed class PlaybackModalServiceTests
             sut?.Dispose();
         }
     }
+
+    [Fact]
+    public void IsModalOpenOrPending_reflects_modal_open_and_pending_request_flags()
+    {
+        var runner = new InlineMainThreadRunner();
+        var sut = CreateSut(runner);
+        try
+        {
+            Assert.False(sut.IsModalOpenOrPending);
+
+            SetPlaybackModalField(sut, "requestedShowModal", true);
+            Assert.True(sut.IsModalOpenOrPending);
+
+            SetPlaybackModalField(sut, "requestedShowModal", false);
+            SetPlaybackModalField(sut, "isModalOpen", true);
+            Assert.True(sut.IsModalOpenOrPending);
+        }
+        finally
+        {
+            sut.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ShowMiniBarIfPlaybackActiveOnResume_shows_bar_when_playback_is_active()
+    {
+        var runner = new InlineMainThreadRunner();
+        var nav = new RecordingPlaybackNavigation();
+        var state = new ObservablePlaybackState { Value = PlayingState() };
+        var sut = CreateSut(runner, nav, state);
+        try
+        {
+            sut.ShowMiniBarIfPlaybackActiveOnResume();
+
+            Assert.Contains(true, nav.MiniBarVisibleCalls);
+        }
+        finally
+        {
+            sut.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ShowMiniBarIfPlaybackActiveOnResume_shows_bar_when_minimized()
+    {
+        var runner = new InlineMainThreadRunner();
+        var nav = new RecordingPlaybackNavigation();
+        var sut = CreateSut(runner, nav);
+        try
+        {
+            SetPlaybackModalField(sut, "isMinimized", true);
+
+            sut.ShowMiniBarIfPlaybackActiveOnResume();
+
+            Assert.Contains(true, nav.MiniBarVisibleCalls);
+        }
+        finally
+        {
+            sut.Dispose();
+        }
+    }
+
+    [Fact]
+    public void UnsubscribeToPlaybackStateChanges_stops_state_change_handler()
+    {
+        var runner = new InlineMainThreadRunner();
+        var nav = new RecordingPlaybackNavigation();
+        var state = new ObservablePlaybackState { Value = PlayingState() };
+        var sut = CreateSut(runner, nav, state);
+        try
+        {
+            sut.SubscribeToPlaybackStateChanges();
+            sut.UnsubscribeToPlaybackStateChanges();
+
+            state.Value = PlayingState(preparingOrPlaying: true, scheduleId: 99);
+            state.NotifyChange();
+
+            Assert.Equal(0, nav.OpenPlaybackModalCount);
+        }
+        finally
+        {
+            sut.Dispose();
+        }
+    }
 }
