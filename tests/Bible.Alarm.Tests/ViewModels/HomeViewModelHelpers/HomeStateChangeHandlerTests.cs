@@ -2,9 +2,12 @@
 
 using System.Reflection;
 using AutoMapper;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Mapping;
 using Bible.Alarm.Stores.Models;
@@ -53,6 +56,62 @@ public sealed class HomeStateChangeHandlerTests
         public object? GetService(Type serviceType) => null;
     }
 
+    private sealed class NopSchedulePlaybackService : ISchedulePlaybackService
+    {
+        public Task<bool> CanMoveTrackAsync(int scheduleId) => Task.FromResult(true);
+
+        public Task PlayScheduleAsync(int scheduleId) => Task.CompletedTask;
+    }
+
+    private sealed class NopStopPlaybackService : IPlaybackService
+    {
+        public bool IsAlarmPlaybackSession => false;
+
+        public Task PauseAsync() => Task.CompletedTask;
+
+        public Task PlayAsync() => Task.CompletedTask;
+
+        public Task PlayNextAsync() => Task.CompletedTask;
+
+        public Task PlayPreviousAsync() => Task.CompletedTask;
+
+        public Task PrepareAndPlayAsync(int scheduleId, bool isAlarm) => Task.CompletedTask;
+
+        public Task ResetAndRetryAsync(int scheduleId) => Task.CompletedTask;
+
+        public Task SeekBackwardAsync() => Task.CompletedTask;
+
+        public Task SeekForwardAsync() => Task.CompletedTask;
+
+        public Task SeekToAsync(TimeSpan position) => Task.CompletedTask;
+
+        public Task StopAsync() => Task.CompletedTask;
+
+        public Task StopForTeardownAsync() => Task.CompletedTask;
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class NopScheduleStateService : IScheduleStateService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled) =>
+            Task.FromResult(true);
+    }
+
+    private sealed class StubCategoryNameService : ICategoryNameService
+    {
+        public Task WarmCacheForDisplayLanguageAsync(string displayLanguageCode, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public string? GetName(string categoryCode, string displayLanguageCode) => categoryCode;
+    }
+
     private static IMapper CreateMapper()
     {
         var cfg = new MapperConfiguration(cfg => cfg.AddProfile<ScheduleMappingProfile>(), NullLoggerFactory.Instance);
@@ -91,14 +150,14 @@ public sealed class HomeStateChangeHandlerTests
     {
         var deps = new ScheduleListItemViewModelDeps(
             TestLogging.CreateLogger(),
-            PlaybackService: null!,
-            StopPlaybackService: null!,
-            ScheduleStateService: null!,
-            ApplicationState: new FakeApplicationState(new ApplicationState()),
-            PlaybackState: new FakePlaybackState(new PlaybackState()),
-            Dispatcher: new NopDispatcher(),
-            Mapper: CreateMapper(),
-            CategoryNameService: null!);
+            new NopSchedulePlaybackService(),
+            new NopStopPlaybackService(),
+            new NopScheduleStateService(),
+            new FakeApplicationState(new ApplicationState()),
+            new FakePlaybackState(new PlaybackState()),
+            new NopDispatcher(),
+            CreateMapper(),
+            new StubCategoryNameService());
 
         var vm = new ScheduleListItemViewModel(deps);
         vm.InitializeFromSchedule(new AlarmSchedule
@@ -108,6 +167,7 @@ public sealed class HomeStateChangeHandlerTests
             Hour = 7,
             Minute = 0,
             IsEnabled = true,
+            LastPlayedAtUtc = new DateTime(2020, 1, scheduleId, 0, 0, 0, DateTimeKind.Utc),
         });
         return vm;
     }
@@ -269,17 +329,21 @@ public sealed class HomeStateChangeHandlerTests
                 return;
             }
 
-            var deferred = new ObservableHashSet<ScheduleListItemViewModel>
-            {
-                CreateStubListItem(2, "Second"),
-                CreateStubListItem(1, "First"),
-            };
+            var itemSecond = CreateStubListItem(2, "Second");
+            var itemFirst = CreateStubListItem(1, "First");
+            var itemStale = CreateStubListItem(9, "Stale");
+            Assert.Equal(2, itemSecond.ScheduleId);
+            Assert.Equal(1, itemFirst.ScheduleId);
+            Assert.Equal(9, itemStale.ScheduleId);
+
+            var deferred = new ObservableHashSet<ScheduleListItemViewModel> { itemSecond, itemFirst };
             var collection = new ObservableHashSet<ScheduleListItemViewModel>();
-            collection.Add(CreateStubListItem(9, "Stale"));
+            collection.Add(itemStale);
+            Assert.Equal(1, collection.Count);
             ObservableHashSet<ScheduleListItemViewModel>? boundCollection = collection;
-            var notified = false;
 
             var deps = new HomeStateChangeHandlerDeps(TestLogging.CreateLogger(), null!, null!);
+            var notified = false;
             var callbacks = new HomeStateChangeHandlerCallbacks(
                 SetIsBusy: _ => { },
                 GetIsBusy: () => false,
@@ -291,21 +355,19 @@ public sealed class HomeStateChangeHandlerTests
                 IsPlaybackModalVisible: () => false);
             var sut = new HomeStateChangeHandler(deps, callbacks);
 
+            typeof(HomeStateChangeHandler)
+                .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(sut, deferred);
+
+            Assert.Equal(2, deferred.Count);
+
             try
             {
+                await Task.Run(async () => await sut.ApplyDeferredReorderAsync());
+                await MauiUiTestHostHelper.FlushMainThreadAsync();
+
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    typeof(HomeStateChangeHandler)
-                        .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
-                        .SetValue(sut, deferred);
-
-                    Assert.Same(deferred, typeof(HomeStateChangeHandler)
-                        .GetField("deferredNewSchedules", BindingFlags.Instance | BindingFlags.NonPublic)!
-                        .GetValue(sut));
-                    Assert.Equal(2, deferred.Count);
-
-                    sut.ApplyDeferredReorderAsync().GetAwaiter().GetResult();
-
                     Assert.NotNull(boundCollection);
                     Assert.Equal(2, boundCollection!.Count);
                     Assert.Equal(2, boundCollection.First().ScheduleId);
