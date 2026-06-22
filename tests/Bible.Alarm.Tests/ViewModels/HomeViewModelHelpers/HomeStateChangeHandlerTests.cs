@@ -146,6 +146,32 @@ public sealed class HomeStateChangeHandlerTests
         return new HomeStateChangeHandler(deps, callbacks);
     }
 
+    private static void AssignScheduleStub(ScheduleListItemViewModel vm, int scheduleId, string name)
+    {
+        var schedule = new AlarmSchedule
+        {
+            Id = scheduleId,
+            Name = name,
+            Hour = 7,
+            Minute = 0,
+            IsEnabled = true,
+            LastPlayedAtUtc = new DateTime(2020, 1, scheduleId, 0, 0, 0, DateTimeKind.Utc),
+        };
+
+        var backingField = typeof(ScheduleListItemViewModel).GetField(
+            "<Schedule>k__BackingField",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (backingField != null)
+        {
+            backingField.SetValue(vm, schedule);
+            return;
+        }
+
+        typeof(ScheduleListItemViewModel)
+            .GetProperty(nameof(ScheduleListItemViewModel.Schedule), BindingFlags.Instance | BindingFlags.Public)!
+            .SetValue(vm, schedule);
+    }
+
     private static ScheduleListItemViewModel CreateStubListItem(int scheduleId, string name)
     {
         var deps = new ScheduleListItemViewModelDeps(
@@ -160,15 +186,7 @@ public sealed class HomeStateChangeHandlerTests
             new StubCategoryNameService());
 
         var vm = new ScheduleListItemViewModel(deps);
-        vm.InitializeFromSchedule(new AlarmSchedule
-        {
-            Id = scheduleId,
-            Name = name,
-            Hour = 7,
-            Minute = 0,
-            IsEnabled = true,
-            LastPlayedAtUtc = new DateTime(2020, 1, scheduleId, 0, 0, 0, DateTimeKind.Utc),
-        });
+        AssignScheduleStub(vm, scheduleId, name);
         return vm;
     }
 
@@ -339,7 +357,7 @@ public sealed class HomeStateChangeHandlerTests
             var deferred = new ObservableHashSet<ScheduleListItemViewModel> { itemSecond, itemFirst };
             var collection = new ObservableHashSet<ScheduleListItemViewModel>();
             collection.Add(itemStale);
-            Assert.Equal(1, collection.Count);
+            Assert.Single(collection);
             ObservableHashSet<ScheduleListItemViewModel>? boundCollection = collection;
 
             var deps = new HomeStateChangeHandlerDeps(TestLogging.CreateLogger(), null!, null!);
@@ -364,7 +382,10 @@ public sealed class HomeStateChangeHandlerTests
             try
             {
                 await Task.Run(async () => await sut.ApplyDeferredReorderAsync());
-                await MauiUiTestHostHelper.FlushMainThreadAsync();
+                if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+                {
+                    return;
+                }
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {

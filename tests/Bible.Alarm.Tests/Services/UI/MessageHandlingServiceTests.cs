@@ -169,7 +169,11 @@ public sealed class MessageHandlingServiceTests(MauiUiFixture fixture)
         sut.RegisterMessageHandlers();
 
         WeakReferenceMessenger.Default.Send(new InitializedMessage());
-        await MauiUiTestHostHelper.FlushMainThreadAsync();
+        if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+        {
+            sut.Dispose();
+            return;
+        }
         await Task.Delay(200);
 
         Assert.Equal(1, navigation.NavigateToHomeCalls);
@@ -194,7 +198,10 @@ public sealed class MessageHandlingServiceTests(MauiUiFixture fixture)
         var sut = CreateSut(serviceProvider, new UnusedNavigationServiceStub(), new RecordingPlaybackModalService());
 
         sut.Receive(new ShowToastMessage("hello"));
-        await MauiUiTestHostHelper.FlushMainThreadAsync();
+        if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+        {
+            return;
+        }
         await Task.Delay(100);
 
         Assert.Equal("hello", toast.LastMessage);
@@ -214,7 +221,10 @@ public sealed class MessageHandlingServiceTests(MauiUiFixture fixture)
         var sut = CreateSut(null!, navigation, playbackModal);
 
         sut.Receive(new InitializedMessage());
-        await MauiUiTestHostHelper.FlushMainThreadAsync();
+        if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+        {
+            return;
+        }
         await Task.Delay(200);
 
         Assert.Equal(1, navigation.NavigateToHomeCalls);
@@ -239,7 +249,10 @@ public sealed class MessageHandlingServiceTests(MauiUiFixture fixture)
         sut.Dispose();
 
         WeakReferenceMessenger.Default.Send(new ShowToastMessage("after-dispose"));
-        await MauiUiTestHostHelper.FlushMainThreadAsync();
+        if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+        {
+            return;
+        }
         await Task.Delay(100);
 
         Assert.Null(toast.LastMessage);

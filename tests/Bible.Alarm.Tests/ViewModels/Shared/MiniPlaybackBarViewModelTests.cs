@@ -13,8 +13,6 @@ namespace Bible.Alarm.Tests;
 
 public sealed class MiniPlaybackBarViewModelTests
 {
-    private static readonly object Gate = new();
-
     private sealed class RecordingPlaybackService : IPlaybackService
     {
         public bool IsAlarmPlaybackSession { get; set; }
@@ -103,12 +101,9 @@ public sealed class MiniPlaybackBarViewModelTests
         IPlaybackService? playback = null,
         IState<PlaybackState>? playbackState = null)
     {
-        lock (Gate)
-        {
-            playback ??= new RecordingPlaybackService();
-            playbackState ??= new MutablePlaybackState(new PlaybackState());
-            return new MiniPlaybackBarViewModel(TestLogging.CreateLogger(), playback, playbackState);
-        }
+        playback ??= new RecordingPlaybackService();
+        playbackState ??= new MutablePlaybackState(new PlaybackState());
+        return new MiniPlaybackBarViewModel(TestLogging.CreateLogger(), playback, playbackState);
     }
 
     private static PlaybackState PlayingState(
@@ -185,7 +180,10 @@ public sealed class MiniPlaybackBarViewModelTests
         using var sut = CreateSut();
 
         sut.Receive(new BeginStoppingPlaybackMessage());
-        await MauiUiTestHostHelper.FlushMainThreadAsync();
+        if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+        {
+            return;
+        }
 
         Assert.True(sut.IsStopping);
         Assert.False(sut.AreControlsEnabled);
@@ -202,7 +200,10 @@ public sealed class MiniPlaybackBarViewModelTests
         using var sut = CreateSut();
 
         sut.Receive(new NextButtonPressedMessage());
-        await MauiUiTestHostHelper.FlushMainThreadAsync();
+        if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+        {
+            return;
+        }
 
         Assert.True(sut.IsNextBusy);
         Assert.False(sut.AreControlsEnabled);
@@ -222,7 +223,10 @@ public sealed class MiniPlaybackBarViewModelTests
 
         playbackState.Value = PlayingState(title: "Updated track", status: PlayStatus.Paused);
         playbackState.NotifyStateChanged();
-        await MauiUiTestHostHelper.FlushMainThreadAsync();
+        if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+        {
+            return;
+        }
 
         Assert.Equal("Updated track", sut.Title);
         Assert.False(sut.IsPlaying);

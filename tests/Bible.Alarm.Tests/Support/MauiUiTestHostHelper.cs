@@ -1,5 +1,9 @@
 #nullable enable
 
+using Bible.Alarm.Common.ViewHelpers.Converters;
+using Bible.Alarm.Views;
+using Microsoft.Maui.Graphics;
+
 namespace Bible.Alarm.Tests.Support;
 
 internal static class MauiUiTestHostHelper
@@ -12,22 +16,75 @@ internal static class MauiUiTestHostHelper
         MauiUiTestBootstrap.IsReady && Application.Current is not null;
 
     /// <summary>
-    /// Ensures <see cref="Application.Current"/> has at least one <see cref="Window"/> for visual-tree tests.
-    /// On Android/iOS device hosts, <see cref="Application.Windows"/> is often empty until a Window is opened explicitly.
+    /// Merges Styles and seeds StaticResource/DynamicResource keys required by <see cref="Views.Home"/>
+    /// and <see cref="Views.Shared.MiniPlaybackBar"/> on device hosts where the minimal test
+    /// <see cref="Application"/> has no <c>App.xaml</c> resources.
     /// </summary>
-    public static Task<bool> EnsurePrimaryWindowAsync()
+    public static void EnsureAppResources()
     {
         if (Application.Current is null)
         {
-            return Task.FromResult(false);
+            return;
+        }
+
+        var resources = Application.Current.Resources;
+        if (resources.ContainsKey("MauiUiTestResourcesSeeded"))
+        {
+            return;
+        }
+
+        resources.MergedDictionaries.Add(new Styles());
+
+        resources["PrimaryColor"] = Color.FromArgb("#6A5ACD");
+        resources["PrimaryLightColor"] = Color.FromArgb("#9370DB");
+        resources["ErrorColor"] = Color.FromArgb("#FF3B30");
+        resources["WarningColor"] = Color.FromArgb("#FF9500");
+        resources["SuccessColor"] = Color.FromArgb("#34C759");
+
+        resources["negateBooleanConverter"] = new NegateBooleanConverter();
+        resources["dayColorConverter"] = new DayColorConverter();
+        resources["dayBackgroundColorConverter"] = new DayBackgroundColorConverter();
+        resources["dayOpacityConverter"] = new DayOpacityConverter();
+        resources["isEnabledColorConverter"] = new IsEnabledColorConverter();
+        resources["itemTappedConverter"] = new ItemTappedEventArgsConverter();
+        resources["multiBoolOrConverter"] = new MultiBoolOrConverter();
+        resources["isStringNotEmptyConverter"] = new IsStringNotEmptyConverter();
+        resources["booleanToOpacityConverter"] = new BoolToOpacityConverter();
+        resources["doubleToBottomThicknessConverter"] = new DoubleToBottomThicknessConverter();
+
+        resources["PageBackgroundColor"] = Colors.White;
+        resources["CardBackgroundColor"] = Colors.White;
+        resources["BackgroundColor"] = Colors.White;
+        resources["TextPrimaryColor"] = Colors.Black;
+        resources["PrimaryTextColor"] = Colors.Black;
+        resources["TextSecondaryColor"] = Colors.Gray;
+        resources["ControlBackgroundColor"] = Colors.LightGray;
+        resources["ProgressBarBackgroundColor"] = Colors.LightGray;
+        resources["DisabledTextColor"] = Colors.Gray;
+        resources["DividerColor"] = Colors.LightGray;
+        resources["SelectedItemBackgroundColor"] = Colors.LightBlue;
+
+        resources["MauiUiTestResourcesSeeded"] = true;
+    }
+
+    /// <summary>
+    /// Ensures <see cref="Application.Current"/> has at least one <see cref="Window"/> for visual-tree tests.
+    /// On Android/iOS device hosts, <see cref="Application.Windows"/> is often empty until a Window is opened explicitly.
+    /// Returns false when no window could be opened within <see cref="PrimaryWindowTimeout"/>.
+    /// </summary>
+    public static async Task<bool> EnsurePrimaryWindowAsync()
+    {
+        if (Application.Current is null)
+        {
+            return false;
         }
 
         if (Application.Current.Windows.Count > 0)
         {
-            return Task.FromResult(true);
+            return true;
         }
 
-        return MainThread.InvokeOnMainThreadAsync(() =>
+        var openWindow = MainThread.InvokeOnMainThreadAsync(() =>
         {
             if ((Application.Current?.Windows.Count ?? 0) == 0 && Application.Current is not null)
             {
@@ -36,20 +93,39 @@ internal static class MauiUiTestHostHelper
 
             return Task.FromResult((Application.Current?.Windows.Count ?? 0) > 0);
         });
+
+        var completed = await Task.WhenAny(openWindow, Task.Delay(PrimaryWindowTimeout));
+        if (completed != openWindow)
+        {
+            return false;
+        }
+
+        return await openWindow;
     }
+
+    private static readonly TimeSpan PrimaryWindowTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Drains posted <see cref="MainThread"/> callbacks so assertions run after BeginInvokeOnMainThread work.
     /// Safe to call from either the MAUI main thread or a background test thread.
+    /// Returns false when the main thread did not drain within <see cref="PrimaryWindowTimeout"/>.
     /// </summary>
-    public static async Task FlushMainThreadAsync()
+    public static async Task<bool> FlushMainThreadAsync()
     {
         if (MainThread.IsMainThread)
         {
             await Task.Yield();
-            return;
+            return true;
         }
 
-        await MainThread.InvokeOnMainThreadAsync(async () => await Task.Yield());
+        var flush = MainThread.InvokeOnMainThreadAsync(async () => await Task.Yield());
+        var completed = await Task.WhenAny(flush, Task.Delay(PrimaryWindowTimeout));
+        if (completed != flush)
+        {
+            return false;
+        }
+
+        await flush;
+        return true;
     }
 }

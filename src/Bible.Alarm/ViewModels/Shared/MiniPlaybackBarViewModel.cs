@@ -553,6 +553,11 @@ public sealed partial class MiniPlaybackBarViewModel : ObservableObject,
         if (isDisposed) return;
         isDisposed = true;
 
+        if (ReferenceEquals(Instance, this))
+        {
+            Instance = null;
+        }
+
         playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<PlaybackPositionChangedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<BeginStoppingPlaybackMessage>(this);

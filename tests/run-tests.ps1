@@ -283,13 +283,14 @@ function Run-AndroidTests {
         '-n', $activityComponent
     )
 
-    # Poll for done.txt every 5s up to 15 minutes. The activity always writes done.txt (success or
-    # failure) before calling Environment.Exit, so absence here means the test process hung or
-    # crashed before reaching the finally block.
-    Write-Output 'Waiting for tests to finish (up to 15 minutes)...'
+    # Poll for done.txt every 5s up to ANDROID_TEST_TIMEOUT_SEC (default 900 / 15 min). The activity
+    # always writes done.txt (success or failure) before calling Environment.Exit, so absence here
+    # means the test process hung or crashed before reaching the finally block.
+    $timeoutSec = if ($env:ANDROID_TEST_TIMEOUT_SEC) { [int]$env:ANDROID_TEST_TIMEOUT_SEC } else { 900 }
+    Write-Output "Waiting for tests to finish (up to $([math]::Round($timeoutSec / 60.0, 1)) minutes)..."
     $donePath = "$deviceResultsDir/done.txt"
     $doneRaw = $null
-    $deadline = (Get-Date).AddMinutes(15)
+    $deadline = (Get-Date).AddSeconds($timeoutSec)
     while ((Get-Date) -lt $deadline) {
         # Use a single shell command: `test -f && cat` keeps stdout empty until the file appears,
         # which gives us a clean truthy/falsy probe without race-y two-step ls/cat sequences.
@@ -318,7 +319,7 @@ function Run-AndroidTests {
     Repair-AndroidHostTestResultsLayout -CoverageDir $coverageDir
 
     if (-not $doneRaw) {
-        throw "Test runner did not produce $donePath within 15 minutes. See $coverageDir/logcat.log for the device-side trail."
+        throw "Test runner did not produce $donePath within $timeoutSec seconds. See $coverageDir/logcat.log for the device-side trail."
     }
 
     $returnCode = 0

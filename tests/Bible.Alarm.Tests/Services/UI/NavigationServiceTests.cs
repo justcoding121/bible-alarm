@@ -166,17 +166,17 @@ public sealed class NavigationServiceTests
                 return;
             }
 
+            if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
+            {
+                return;
+            }
+
             NavigationService sut = null!;
             try
             {
                 sut = CreateMauiSut();
                 var topPage = await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
-                    {
-                        return null;
-                    }
-
                     var window = Application.Current!.Windows[0];
                     var root = new ContentPage();
                     var navPage = new NavigationPage(root);
@@ -203,17 +203,17 @@ public sealed class NavigationServiceTests
                 return;
             }
 
+            if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
+            {
+                return;
+            }
+
             NavigationService sut = null!;
             try
             {
                 sut = CreateMauiSut();
                 var initialCount = await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
-                    {
-                        return 0;
-                    }
-
                     var window = Application.Current!.Windows[0];
                     var navPage = new NavigationPage(new ContentPage());
                     window.Page = navPage;
@@ -238,6 +238,11 @@ public sealed class NavigationServiceTests
                 return;
             }
 
+            if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
+            {
+                return;
+            }
+
             NavigationService sut = null!;
             HomeViewModel? homeVm = null;
             try
@@ -246,11 +251,6 @@ public sealed class NavigationServiceTests
                 homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
                 var stackCount = await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
-                    {
-                        return 0;
-                    }
-
                     var window = Application.Current!.Windows[0];
                     var navPage = new NavigationPage(new ContentPage());
                     await navPage.Navigation.PushAsync(new Home(homeVm!), false);
@@ -277,17 +277,17 @@ public sealed class NavigationServiceTests
                 return;
             }
 
+            if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
+            {
+                return;
+            }
+
             NavigationService sut = null!;
             try
             {
                 sut = CreateMauiSut();
                 var stackCount = await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
-                    {
-                        return 0;
-                    }
-
                     var window = Application.Current!.Windows[0];
                     var navPage = new NavigationPage(new ContentPage());
                     await navPage.Navigation.PushAsync(new ContentPage(), false);
@@ -314,19 +314,20 @@ public sealed class NavigationServiceTests
                 return;
             }
 
+            if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
+            {
+                return;
+            }
+
             NavigationService sut = null!;
             try
             {
                 sut = CreateMauiSut();
-                await MainThread.InvokeOnMainThreadAsync(async () =>
+                await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    if (!await MauiUiTestHostHelper.EnsurePrimaryWindowAsync())
-                    {
-                        return;
-                    }
-
                     var window = Application.Current!.Windows[0];
                     window.Page = new NavigationPage(new ContentPage());
+                    return Task.CompletedTask;
                 });
 
                 sut.ClearCache();

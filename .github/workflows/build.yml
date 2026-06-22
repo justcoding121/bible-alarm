@@ -244,11 +244,16 @@ jobs:
 
       - name: Run tests on AVD
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # Full suite normally finishes in a few minutes; 20 min is headroom for slow runners.
+          # A hung test still waits the full budget — see ci-android-device-tests.sh heartbeat logs.
+          ANDROID_TEST_TIMEOUT_SEC: 1200
         with:
           api-level: 30
           arch: x86_64
           profile: pixel_6
           force-avd-creation: false
+          emulator-boot-timeout: 900
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           # android-emulator-runner's script-parser splits on newlines and runs EACH line as a

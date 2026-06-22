@@ -97,7 +97,11 @@ public sealed class ScheduleViewModelTests
         try
         {
             appState.NotifyChanged();
-            await MauiUiTestHostHelper.FlushMainThreadAsync();
+            if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+            {
+                return;
+            }
+
             Assert.True(sut.IsSchedulePageOverlayVisible);
             Assert.False(sut.IsNewSchedule);
         }

@@ -25,6 +25,7 @@ internal static class MauiUiTestBootstrap
 
         if (Application.Current is not null)
         {
+            MauiUiTestHostHelper.EnsureAppResources();
             IsReady = true;
             BootstrapFailure = null;
             return;
@@ -40,6 +41,11 @@ internal static class MauiUiTestBootstrap
 
             // Build() alone does not always set Application.Current on the Windows test host.
             Application.Current ??= new BibleAlarmTestApplication();
+
+            if (Application.Current is not null)
+            {
+                MauiUiTestHostHelper.EnsureAppResources();
+            }
 
             IsReady = Application.Current is not null;
             BootstrapFailure = IsReady ? null : new InvalidOperationException("MAUI test host did not create Application.Current.");
