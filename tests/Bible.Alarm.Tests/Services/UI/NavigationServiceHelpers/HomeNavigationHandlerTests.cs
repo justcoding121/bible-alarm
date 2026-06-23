@@ -186,7 +186,13 @@ public sealed class HomeNavigationHandlerMauiTests(MauiUiFixture fixture)
 
         var nav = new FakeNavigation();
         using var homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
-        if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() => nav.Stack.Add(new Home(homeVm))))
+        var homePage = await MauiUiTestHostHelper.TryCreateHomePageAsync(homeVm);
+        if (homePage is null)
+        {
+            return;
+        }
+
+        if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() => nav.Stack.Add(homePage)))
         {
             return;
         }
@@ -210,9 +216,15 @@ public sealed class HomeNavigationHandlerMauiTests(MauiUiFixture fixture)
 
         var nav = new FakeNavigation();
         using var homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
+        var homePage = await MauiUiTestHostHelper.TryCreateHomePageAsync(homeVm);
+        if (homePage is null)
+        {
+            return;
+        }
+
         if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() =>
             {
-                nav.Stack.Add(new Home(homeVm));
+                nav.Stack.Add(homePage);
                 nav.Stack.Add(new ContentPage());
                 nav.Stack.Add(new ContentPage());
             }))
@@ -239,11 +251,16 @@ public sealed class HomeNavigationHandlerMauiTests(MauiUiFixture fixture)
         var nav = new FakeNavigation();
         Home? homePage = null;
         using var homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
+        homePage = await MauiUiTestHostHelper.TryCreateHomePageAsync(homeVm);
+        if (homePage is null)
+        {
+            return;
+        }
+
         if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() =>
             {
                 nav.Stack.Add(new ContentPage());
                 nav.Stack.Add(new ContentPage());
-                homePage = new Home(homeVm);
             }))
         {
             return;

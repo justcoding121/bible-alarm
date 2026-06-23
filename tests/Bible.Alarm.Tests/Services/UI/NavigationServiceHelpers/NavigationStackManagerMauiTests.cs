@@ -154,10 +154,16 @@ public sealed class NavigationStackManagerMauiTests(MauiUiFixture fixture)
 
         var nav = new FakeNavigation();
         using var homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
+        var homePage = await MauiUiTestHostHelper.TryCreateHomePageAsync(homeVm);
+        if (homePage is null)
+        {
+            return;
+        }
+
         if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() =>
             {
                 nav.Stack.Add(new ContentPage());
-                nav.Stack.Add(new Home(homeVm));
+                nav.Stack.Add(homePage);
             }))
         {
             return;

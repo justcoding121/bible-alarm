@@ -2,7 +2,6 @@
 
 using Bible.Alarm;
 using Bible.Alarm.Common;
-using Microsoft.Maui.Devices;
 using Serilog;
 using Syncfusion.Licensing;
 using Syncfusion.Maui.Core.Hosting;
@@ -45,11 +44,7 @@ internal static class MauiUiTestBootstrap
 
         try
         {
-            if (DeviceInfo.Platform == DevicePlatform.iOS && !MauiAppHolder.IsInitialized)
-            {
-                MauiAppHolder.CreateAndStore();
-            }
-            else if (retainedMauiApp is null)
+            if (retainedMauiApp is null)
             {
                 if (!string.IsNullOrEmpty(AppSettings.SyncfusionLicenseKey))
                 {

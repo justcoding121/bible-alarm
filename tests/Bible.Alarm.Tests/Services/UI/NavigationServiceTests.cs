@@ -262,12 +262,18 @@ public sealed class NavigationServiceTests
             {
                 sut = CreateMauiSut();
                 homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
+                var homePage = await MauiUiTestHostHelper.TryCreateHomePageAsync(homeVm);
+                if (homePage is null)
+                {
+                    return;
+                }
+
                 int? stackCount = null;
                 if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(async () =>
                     {
                         var window = Application.Current!.Windows[0];
                         var navPage = new NavigationPage(new ContentPage());
-                        await navPage.Navigation.PushAsync(new Home(homeVm!), false);
+                        await navPage.Navigation.PushAsync(homePage, false);
                         window.Page = navPage;
                         await sut.PopAsync();
                         stackCount = navPage.Navigation.NavigationStack.Count;

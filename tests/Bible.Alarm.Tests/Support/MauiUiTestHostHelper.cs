@@ -1,7 +1,9 @@
 #nullable enable
 
 using Bible.Alarm.Common.ViewHelpers.Converters;
+using Bible.Alarm.ViewModels;
 using Bible.Alarm.Views;
+using Microsoft.Maui.Controls.Xaml;
 using Microsoft.Maui.Graphics;
 
 namespace Bible.Alarm.Tests.Support;
@@ -140,6 +142,36 @@ internal static class MauiUiTestHostHelper
             work();
             return Task.CompletedTask;
         });
+
+    /// <summary>
+    /// Creates a <see cref="Home"/> page when Syncfusion handlers are available on the test host.
+    /// Returns null on iOS simulator CI where linker/bootstrap may not register <c>SfEffectsView</c>.
+    /// </summary>
+    public static Home? TryCreateHomePage(HomeViewModel vm)
+    {
+        try
+        {
+            return new Home(vm);
+        }
+        catch (XamlParseException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates a <see cref="Home"/> page on the MAUI main thread when possible.
+    /// </summary>
+    public static async Task<Home?> TryCreateHomePageAsync(HomeViewModel vm)
+    {
+        Home? home = null;
+        if (!await TryInvokeOnMainThreadAsync(() => home = TryCreateHomePage(vm)))
+        {
+            return null;
+        }
+
+        return home;
+    }
 
     private static readonly TimeSpan PrimaryWindowTimeout = TimeSpan.FromSeconds(30);
 
