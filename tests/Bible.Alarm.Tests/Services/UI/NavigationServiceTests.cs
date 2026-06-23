@@ -53,10 +53,13 @@ public sealed class NavigationServiceTests
         }
     }
 
+    private static bool ShouldSkipUnavailableNavigationTest() =>
+        MauiUiTestBootstrap.IsReady && Application.Current?.Windows.Count > 0;
+
     [Fact]
     public void GetCurrentPage_returns_null_when_navigation_unavailable()
     {
-        if (MauiUiTestBootstrap.IsReady && Application.Current?.Windows.Count > 0)
+        if (ShouldSkipUnavailableNavigationTest())
         {
             return;
         }
@@ -77,6 +80,11 @@ public sealed class NavigationServiceTests
     [Fact]
     public void GetCurrentHomePage_returns_null_when_navigation_unavailable()
     {
+        if (ShouldSkipUnavailableNavigationTest())
+        {
+            return;
+        }
+
         NavigationService sut = null!;
         try
         {
@@ -93,6 +101,11 @@ public sealed class NavigationServiceTests
     [Fact]
     public void IsPlaybackModalOnScreen_returns_false_when_navigation_unavailable()
     {
+        if (ShouldSkipUnavailableNavigationTest())
+        {
+            return;
+        }
+
         NavigationService sut = null!;
         try
         {
