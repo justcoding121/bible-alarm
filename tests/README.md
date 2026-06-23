@@ -90,7 +90,19 @@ ssh user@mac.local 'dotnet --info'
 ./tests/run-tests.ps1 -Platform All -MacHost user@mac.local
 ```
 
-For local cross-platform runs, an HTML report is written to `TestResults/merged/index.html` for human inspection. **In CI, only the Windows OpenCover XML is produced**: `test-windows`'s `Stage coverage artifact` step copies it to `artifacts/coverage-windows/coverage-windows.xml`, which the inline `dotnet sonarscanner begin /d:sonar.cs.opencover.reportsPaths=artifacts/coverage-windows/coverage-windows.xml` + `dotnet sonarscanner end` calls inside the same job feed to SonarCloud. Android and iOS hosts upload only test logs (`android-test-logs`, `xharness-ios-logs`), not coverage. See `.github/workflows/build.yml` and the "Android/iOS coverage" rows in [`.cursor/rules/testing/multi-platform-tests.mdc`](../.cursor/rules/testing/multi-platform-tests.mdc).
+For local cross-platform runs, an HTML report is written to `TestResults/merged/index.html` for human inspection. **In CI, only the Windows OpenCover XML is produced**: `test-windows`'s `Stage coverage artifacts` step copies every per-project `coverage.opencover.xml` into `artifacts/coverage-windows/` (minimum 8 files enforced), which SonarCloud unions via `sonar.cs.opencover.reportsPaths=artifacts/coverage-windows/*.opencover.xml`. CI also uploads a merged `coverage-report-html` artifact (ReportGenerator). Android and iOS hosts upload only test logs (`android-test-logs`, `xharness-ios-logs`), not coverage. See `.github/workflows/build.yml` and `.docs/SONARCLOUD_QUALITY_GATE.md`.
+
+### Coverage gap analysis (local)
+
+```pwsh
+# After downloading CI artifact coverage-windows into TestResults/coverage-windows:
+pwsh .tools/scripts/analyze-opencover-gaps.ps1 -ReportsDir TestResults/coverage-windows -Top 25
+
+# SonarCloud trend (requires SONAR_TOKEN):
+pwsh .tools/scripts/track-sonar-coverage.ps1
+```
+
+Baseline top-25 gaps from run 28003978806: `TestResults/coverage-baseline-top25.txt`.
 
 ## Adding a platform-only test
 

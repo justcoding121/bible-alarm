@@ -85,7 +85,8 @@ jobs:
       # `sonar.coverage.exclusions` drops orchestration scripts (.ps1, .sh, .py, etc.) from coverage
       # accounting; Android/iOS platform code and XAML code-behind are validated on device/Appium
       # but never instrumented on the Windows OpenCover pass (see .cursor/rules/testing/multi-platform-tests.mdc Hard rule #6).
-      # Set SonarCloud quality gate coverage threshold (e.g. 80%) in SonarCloud: Project Settings > Quality Gates.
+      # Set SonarCloud quality gate in SonarCloud UI (Project > Quality Gate): New Code coverage ≥80%,
+      # Overall coverage ramp toward 80%. See .docs/SONARCLOUD_QUALITY_GATE.md.
       - name: SonarScanner begin
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -96,6 +97,7 @@ jobs:
             /d:sonar.host.url="https://sonarcloud.io" `
             /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.language="cs" `
+            /d:sonar.qualitygate.wait="true" `
             /d:sonar.dotnet.excludeTestProjects="true" `
             /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**,**/.github/scripts/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py" `
             /d:sonar.coverage.exclusions="**/.github/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/*.android.cs,**/*.ios.cs,**/.tools/**/Program.cs,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs" `
@@ -137,6 +139,10 @@ jobs:
             Write-Error "No OpenCover XML produced by the Windows test pass"
             exit 1
           }
+          if ($covs.Count -lt 8) {
+            Write-Error "Expected at least 8 OpenCover XML files (got $($covs.Count)); coverage merge regression"
+            exit 1
+          }
           Write-Host "Staging $($covs.Count) OpenCover XML file(s):"
           foreach ($cov in $covs) {
             # `--results-directory TestResults` lays out TestResults/<guid>/coverage.opencover.xml
@@ -148,6 +154,23 @@ jobs:
             Write-Host "  $($cov.FullName)  ->  $dest  ($([math]::Round($cov.Length/1KB,1)) KB)"
           }
         shell: pwsh
+
+      - name: Generate merged HTML coverage report
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          New-Item -ItemType Directory -Path artifacts/coverage-report -Force | Out-Null
+          reportgenerator `
+            "-reports:artifacts/coverage-windows/*.opencover.xml" `
+            "-targetdir:artifacts/coverage-report" `
+            -reporttypes:Html
+        shell: pwsh
+
+      - name: Upload merged HTML coverage report
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report-html
+          path: artifacts/coverage-report/**
+          if-no-files-found: error
 
       # sonarscanner end submits the .sonarqube/ analysis directory + every staged coverage XML to
       # SonarCloud. Must run AFTER the test pass (so coverage exists) and AFTER staging (so Sonar

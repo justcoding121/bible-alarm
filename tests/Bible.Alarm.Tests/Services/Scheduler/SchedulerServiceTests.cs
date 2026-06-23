@@ -214,7 +214,7 @@ public sealed class SchedulerServiceTests : IDisposable
     public async Task RescheduleNextOccurrenceAsync_creates_alarm_when_schedule_enabled_and_not_scheduled()
     {
         var alarm = new RecordingAlarmService();
-        using var sut = new SchedulerService(
+        var sut = new SchedulerService(
             TestLogging.CreateLogger(),
             new EnabledScheduleAlarmService(),
             new RecordingMediaCacheService(),
@@ -225,5 +225,201 @@ public sealed class SchedulerServiceTests : IDisposable
         await sut.RescheduleNextOccurrenceAsync(3);
 
         Assert.Equal(3, Assert.Single(alarm.Created).Id);
+    }
+
+    [Fact]
+    public async Task RescheduleNextOccurrenceAsync_skips_when_already_scheduled()
+    {
+        var alarm = new RecordingAlarmService();
+        var sut = new SchedulerService(
+            TestLogging.CreateLogger(),
+            new EnabledScheduleAlarmService(),
+            new RecordingMediaCacheService(),
+            alarm,
+            new AlreadyScheduledNotificationService(),
+            new StubStorageService());
+
+        await sut.RescheduleNextOccurrenceAsync(3);
+
+        Assert.Empty(alarm.Created);
+    }
+
+    [Fact]
+    public async Task RescheduleNextOccurrenceAsync_skips_when_schedule_disabled()
+    {
+        var alarm = new RecordingAlarmService();
+        var sut = new SchedulerService(
+            TestLogging.CreateLogger(),
+            new DisabledScheduleAlarmService(),
+            new RecordingMediaCacheService(),
+            alarm,
+            new StubNotificationService(),
+            new StubStorageService());
+
+        await sut.RescheduleNextOccurrenceAsync(3);
+
+        Assert.Empty(alarm.Created);
+    }
+
+    [Fact]
+    public async Task HandleAsync_runs_cleanup_and_creates_alarm_for_unscheduled_enabled_schedule()
+    {
+        var alarm = new RecordingAlarmService();
+        var cache = new RecordingMediaCacheService();
+        var sut = new SchedulerService(
+            TestLogging.CreateLogger(),
+            new EnabledScheduleAlarmService(),
+            cache,
+            alarm,
+            new StubNotificationService(),
+            new StubStorageService());
+
+        var downloaded = await sut.HandleAsync();
+
+        Assert.True(downloaded);
+        Assert.Equal(1, cache.CleanUpCalls);
+        Assert.Equal(3, Assert.Single(alarm.Created).Id);
+    }
+
+    [Fact]
+    public async Task HandleAsync_sets_up_cache_when_notification_already_scheduled()
+    {
+        var cache = new SetupCacheWhenScheduledMediaCacheService();
+        var sut = new SchedulerService(
+            TestLogging.CreateLogger(),
+            new EnabledScheduleAlarmService(),
+            cache,
+            new RecordingAlarmService(),
+            new AlreadyScheduledNotificationService(),
+            new StubStorageService());
+
+        var downloaded = await sut.HandleAsync();
+
+        Assert.True(downloaded);
+        Assert.Equal(3, Assert.Single(cache.SetupCalls));
+    }
+
+    [Fact]
+    public async Task ProcessScheduledTasksAsync_delegates_to_HandleAsync()
+    {
+        var alarm = new RecordingAlarmService();
+        var sut = new SchedulerService(
+            TestLogging.CreateLogger(),
+            new EnabledScheduleAlarmService(),
+            new RecordingMediaCacheService(),
+            alarm,
+            new StubNotificationService(),
+            new StubStorageService());
+
+        await sut.ProcessScheduledTasksAsync();
+
+        Assert.Single(alarm.Created);
+    }
+
+    private sealed class AlreadyScheduledNotificationService : INotificationService
+    {
+        public Task ShowNotificationAsync(int scheduleId) => Task.CompletedTask;
+
+        public Task ScheduleNotificationAsync(AlarmSchedule alarmSchedule, string title, string body) =>
+            Task.CompletedTask;
+
+        public Task RemoveAsync(int scheduleId) => Task.CompletedTask;
+
+        public Task<bool> IsScheduledAsync(int scheduleId) => Task.FromResult(true);
+
+        public Task ClearDeliveredNotificationAsync(int scheduleId) => Task.CompletedTask;
+
+        public Task<bool> CanScheduleAsync() => Task.FromResult(true);
+    }
+
+    private sealed class DisabledScheduleAlarmService : IAlarmScheduleService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(
+            System.Linq.Expressions.Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true,
+            bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(new AlarmSchedule { Id = scheduleId, IsEnabled = false });
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId,
+            Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AlarmSchedule());
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
+    }
+
+    private sealed class SetupCacheWhenScheduledMediaCacheService : IMediaCacheService
+    {
+        public List<int> SetupCalls { get; } = [];
+
+        public void Dispose()
+        {
+        }
+
+        public Task<bool> ExistsAsync(string lookUpPath, int scheduleId) => Task.FromResult(false);
+
+        public string GetCacheFileName(string lookUpPath) => string.Empty;
+
+        public string GetCacheFilePath(string lookUpPath, int scheduleId) => string.Empty;
+
+        public Task<bool> SetupAlarmCacheAsync(int alarmScheduleId)
+        {
+            SetupCalls.Add(alarmScheduleId);
+            return Task.FromResult(true);
+        }
+
+        public Task CleanUpAsync() => Task.CompletedTask;
+
+        public Task<string?> ResolveTrackUriAsync(PlayItem playItem, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<bool> CacheTrackAsync(PlayItem playItem, int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task DeleteScheduleCacheAsync(int scheduleId) => Task.CompletedTask;
     }
 }
