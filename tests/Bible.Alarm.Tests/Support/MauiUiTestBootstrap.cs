@@ -2,6 +2,7 @@
 
 using Bible.Alarm;
 using Bible.Alarm.Common;
+using Microsoft.Maui.Devices;
 using Serilog;
 using Syncfusion.Licensing;
 using Syncfusion.Maui.Core.Hosting;
@@ -10,6 +11,12 @@ namespace Bible.Alarm.Tests.Support;
 
 internal static class MauiUiTestBootstrap
 {
+    /// <summary>
+    /// Keeps the MAUI app builder output alive for the test process. On iOS, discarding the built
+    /// <see cref="MauiApp"/> drops Syncfusion handler registration and <see cref="Views.Home"/> XAML fails.
+    /// </summary>
+    private static MauiApp? retainedMauiApp;
+
     /// <summary>
     /// True when a MAUI <see cref="Application"/> was created. Required only for UI control/handler tests
     /// (behaviors, CollectionView helpers, navigation with pages). ViewModel unit tests do not need this;
@@ -38,15 +45,22 @@ internal static class MauiUiTestBootstrap
 
         try
         {
-            if (!string.IsNullOrEmpty(AppSettings.SyncfusionLicenseKey))
+            if (DeviceInfo.Platform == DevicePlatform.iOS && !MauiAppHolder.IsInitialized)
             {
-                SyncfusionLicenseProvider.RegisterLicense(AppSettings.SyncfusionLicenseKey);
+                MauiAppHolder.CreateAndStore();
             }
+            else if (retainedMauiApp is null)
+            {
+                if (!string.IsNullOrEmpty(AppSettings.SyncfusionLicenseKey))
+                {
+                    SyncfusionLicenseProvider.RegisterLicense(AppSettings.SyncfusionLicenseKey);
+                }
 
-            MauiApp.CreateBuilder()
-                .UseMauiApp<BibleAlarmTestApplication>()
-                .ConfigureSyncfusionCore()
-                .Build();
+                retainedMauiApp = MauiApp.CreateBuilder()
+                    .UseMauiApp<BibleAlarmTestApplication>()
+                    .ConfigureSyncfusionCore()
+                    .Build();
+            }
 
             // Build() alone does not always set Application.Current on the Windows test host.
             Application.Current ??= new BibleAlarmTestApplication();
