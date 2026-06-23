@@ -1,7 +1,10 @@
 #nullable enable
 
+using Bible.Alarm;
 using Bible.Alarm.Common;
 using Serilog;
+using Syncfusion.Licensing;
+using Syncfusion.Maui.Core.Hosting;
 
 namespace Bible.Alarm.Tests.Support;
 
@@ -35,8 +38,14 @@ internal static class MauiUiTestBootstrap
 
         try
         {
+            if (!string.IsNullOrEmpty(AppSettings.SyncfusionLicenseKey))
+            {
+                SyncfusionLicenseProvider.RegisterLicense(AppSettings.SyncfusionLicenseKey);
+            }
+
             MauiApp.CreateBuilder()
                 .UseMauiApp<BibleAlarmTestApplication>()
+                .ConfigureSyncfusionCore()
                 .Build();
 
             // Build() alone does not always set Application.Current on the Windows test host.

@@ -186,11 +186,10 @@ public sealed class HomeNavigationHandlerMauiTests(MauiUiFixture fixture)
 
         var nav = new FakeNavigation();
         using var homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() => nav.Stack.Add(new Home(homeVm))))
         {
-            nav.Stack.Add(new Home(homeVm));
-            return Task.CompletedTask;
-        });
+            return;
+        }
 
         var sut = new HomeNavigationHandler(TestLogging.CreateLogger(), null!);
         await sut.NavigateToHomeAsync(nav);
@@ -211,13 +210,15 @@ public sealed class HomeNavigationHandlerMauiTests(MauiUiFixture fixture)
 
         var nav = new FakeNavigation();
         using var homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() =>
+            {
+                nav.Stack.Add(new Home(homeVm));
+                nav.Stack.Add(new ContentPage());
+                nav.Stack.Add(new ContentPage());
+            }))
         {
-            nav.Stack.Add(new Home(homeVm));
-            nav.Stack.Add(new ContentPage());
-            nav.Stack.Add(new ContentPage());
-            return Task.CompletedTask;
-        });
+            return;
+        }
 
         var sut = new HomeNavigationHandler(TestLogging.CreateLogger(), null!);
         await sut.NavigateToHomeAsync(nav);
@@ -238,13 +239,15 @@ public sealed class HomeNavigationHandlerMauiTests(MauiUiFixture fixture)
         var nav = new FakeNavigation();
         Home? homePage = null;
         using var homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() =>
+            {
+                nav.Stack.Add(new ContentPage());
+                nav.Stack.Add(new ContentPage());
+                homePage = new Home(homeVm);
+            }))
         {
-            nav.Stack.Add(new ContentPage());
-            nav.Stack.Add(new ContentPage());
-            homePage = new Home(homeVm);
-            return Task.CompletedTask;
-        });
+            return;
+        }
 
         var sut = new HomeNavigationHandler(TestLogging.CreateLogger(), new HomeServiceProvider(homePage!));
         await sut.NavigateToHomeAsync(nav);

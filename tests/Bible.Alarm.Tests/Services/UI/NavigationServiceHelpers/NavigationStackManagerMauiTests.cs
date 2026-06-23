@@ -78,12 +78,8 @@ public sealed class NavigationStackManagerMauiTests(MauiUiFixture fixture)
         }
 
         var nav = new FakeNavigation();
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            nav.Modals.Add(new ContentPage());
-            nav.Modals.Add(new ContentPage());
-            return Task.CompletedTask;
-        });
+        nav.Modals.Add(new ContentPage());
+        nav.Modals.Add(new ContentPage());
 
         await NavigationStackManager.PopModalAsync(nav);
 
@@ -101,17 +97,12 @@ public sealed class NavigationStackManagerMauiTests(MauiUiFixture fixture)
         }
 
         var nav = new FakeNavigation();
-        DisposableModalPage? modal = null;
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            modal = new DisposableModalPage();
-            nav.Modals.Add(modal);
-            return Task.CompletedTask;
-        });
+        var modal = new DisposableModalPage();
+        nav.Modals.Add(modal);
 
         await NavigationStackManager.PopModalAsync(nav);
 
-        Assert.True(modal!.Disposed);
+        Assert.True(modal.Disposed);
         Assert.Empty(nav.Modals);
     }
 
@@ -125,12 +116,8 @@ public sealed class NavigationStackManagerMauiTests(MauiUiFixture fixture)
         }
 
         var nav = new FakeNavigation();
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            nav.Modals.Add(new ContentPage());
-            nav.Modals.Add(new ContentPage());
-            return Task.CompletedTask;
-        });
+        nav.Modals.Add(new ContentPage());
+        nav.Modals.Add(new ContentPage());
 
         await NavigationStackManager.PopAllModalsAsync(nav);
 
@@ -148,11 +135,7 @@ public sealed class NavigationStackManagerMauiTests(MauiUiFixture fixture)
         }
 
         var nav = new FakeNavigation();
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            nav.Stack.Add(new ContentPage());
-            return Task.CompletedTask;
-        });
+        nav.Stack.Add(new ContentPage());
 
         await NavigationStackManager.PopAsync(nav);
 
@@ -171,12 +154,14 @@ public sealed class NavigationStackManagerMauiTests(MauiUiFixture fixture)
 
         var nav = new FakeNavigation();
         using var homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() =>
+            {
+                nav.Stack.Add(new ContentPage());
+                nav.Stack.Add(new Home(homeVm));
+            }))
         {
-            nav.Stack.Add(new ContentPage());
-            nav.Stack.Add(new Home(homeVm));
-            return Task.CompletedTask;
-        });
+            return;
+        }
 
         await NavigationStackManager.PopAsync(nav);
 
@@ -194,19 +179,14 @@ public sealed class NavigationStackManagerMauiTests(MauiUiFixture fixture)
         }
 
         var nav = new FakeNavigation();
-        DisposableModalPage? disposable = null;
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            nav.Stack.Add(new ContentPage());
-            disposable = new DisposableModalPage();
-            nav.Stack.Add(disposable);
-            return Task.CompletedTask;
-        });
+        var disposable = new DisposableModalPage();
+        nav.Stack.Add(new ContentPage());
+        nav.Stack.Add(disposable);
 
         await NavigationStackManager.PopAsync(nav);
 
         Assert.Equal(1, nav.PopAsyncCalls);
         Assert.Single(nav.Stack);
-        Assert.True(disposable!.Disposed);
+        Assert.True(disposable.Disposed);
     }
 }

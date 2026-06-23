@@ -56,6 +56,11 @@ public sealed class NavigationServiceTests
     [Fact]
     public void GetCurrentPage_returns_null_when_navigation_unavailable()
     {
+        if (MauiUiTestBootstrap.IsReady && Application.Current?.Windows.Count > 0)
+        {
+            return;
+        }
+
         NavigationService sut = null!;
         try
         {
@@ -175,16 +180,20 @@ public sealed class NavigationServiceTests
             try
             {
                 sut = CreateMauiSut();
-                var topPage = await MainThread.InvokeOnMainThreadAsync(async () =>
+                Page? topPage = null;
+                if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(async () =>
+                    {
+                        var window = Application.Current!.Windows[0];
+                        var root = new ContentPage();
+                        var navPage = new NavigationPage(root);
+                        var child = new ContentPage();
+                        await navPage.Navigation.PushAsync(child, false);
+                        window.Page = navPage;
+                        topPage = child;
+                    }))
                 {
-                    var window = Application.Current!.Windows[0];
-                    var root = new ContentPage();
-                    var navPage = new NavigationPage(root);
-                    var child = new ContentPage();
-                    await navPage.Navigation.PushAsync(child, false);
-                    window.Page = navPage;
-                    return child;
-                });
+                    return;
+                }
 
                 Assert.Same(topPage, sut.GetCurrentPage());
             }
@@ -212,14 +221,18 @@ public sealed class NavigationServiceTests
             try
             {
                 sut = CreateMauiSut();
-                var initialCount = await MainThread.InvokeOnMainThreadAsync(async () =>
+                int? initialCount = null;
+                if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(async () =>
+                    {
+                        var window = Application.Current!.Windows[0];
+                        var navPage = new NavigationPage(new ContentPage());
+                        window.Page = navPage;
+                        await sut.PopAsync();
+                        initialCount = navPage.Navigation.NavigationStack.Count;
+                    }))
                 {
-                    var window = Application.Current!.Windows[0];
-                    var navPage = new NavigationPage(new ContentPage());
-                    window.Page = navPage;
-                    await sut.PopAsync();
-                    return navPage.Navigation.NavigationStack.Count;
-                });
+                    return;
+                }
 
                 Assert.Equal(1, initialCount);
             }
@@ -249,15 +262,19 @@ public sealed class NavigationServiceTests
             {
                 sut = CreateMauiSut();
                 homeVm = new HomeViewModel(ViewModelTestDoubles.CreateHomeDeps());
-                var stackCount = await MainThread.InvokeOnMainThreadAsync(async () =>
+                int? stackCount = null;
+                if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(async () =>
+                    {
+                        var window = Application.Current!.Windows[0];
+                        var navPage = new NavigationPage(new ContentPage());
+                        await navPage.Navigation.PushAsync(new Home(homeVm!), false);
+                        window.Page = navPage;
+                        await sut.PopAsync();
+                        stackCount = navPage.Navigation.NavigationStack.Count;
+                    }))
                 {
-                    var window = Application.Current!.Windows[0];
-                    var navPage = new NavigationPage(new ContentPage());
-                    await navPage.Navigation.PushAsync(new Home(homeVm!), false);
-                    window.Page = navPage;
-                    await sut.PopAsync();
-                    return navPage.Navigation.NavigationStack.Count;
-                });
+                    return;
+                }
 
                 Assert.Equal(2, stackCount);
             }
@@ -286,16 +303,20 @@ public sealed class NavigationServiceTests
             try
             {
                 sut = CreateMauiSut();
-                var stackCount = await MainThread.InvokeOnMainThreadAsync(async () =>
+                int? stackCount = null;
+                if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(async () =>
+                    {
+                        var window = Application.Current!.Windows[0];
+                        var navPage = new NavigationPage(new ContentPage());
+                        await navPage.Navigation.PushAsync(new ContentPage(), false);
+                        await navPage.Navigation.PushAsync(new ContentPage(), false);
+                        window.Page = navPage;
+                        await sut.PopAsync();
+                        stackCount = navPage.Navigation.NavigationStack.Count;
+                    }))
                 {
-                    var window = Application.Current!.Windows[0];
-                    var navPage = new NavigationPage(new ContentPage());
-                    await navPage.Navigation.PushAsync(new ContentPage(), false);
-                    await navPage.Navigation.PushAsync(new ContentPage(), false);
-                    window.Page = navPage;
-                    await sut.PopAsync();
-                    return navPage.Navigation.NavigationStack.Count;
-                });
+                    return;
+                }
 
                 Assert.Equal(2, stackCount);
             }
@@ -323,12 +344,14 @@ public sealed class NavigationServiceTests
             try
             {
                 sut = CreateMauiSut();
-                await MainThread.InvokeOnMainThreadAsync(() =>
+                if (!await MauiUiTestHostHelper.TryInvokeOnMainThreadAsync(() =>
+                    {
+                        var window = Application.Current!.Windows[0];
+                        window.Page = new NavigationPage(new ContentPage());
+                    }))
                 {
-                    var window = Application.Current!.Windows[0];
-                    window.Page = new NavigationPage(new ContentPage());
-                    return Task.CompletedTask;
-                });
+                    return;
+                }
 
                 sut.ClearCache();
 

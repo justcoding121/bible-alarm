@@ -96,37 +96,17 @@ public sealed class BiblePublicationSelectionViewModelTests
     }
 
     [Fact]
-    public async Task ContentFlowDirection_maps_bible_language_direction_right_to_left()
+    public void ContentFlowDirection_maps_bible_language_direction_right_to_left()
     {
-        await RunContentFlowDirectionTestAsync(
+        AssertContentFlowDirection(
             MinimalSchedule(AppConstants.Media.TextDirectionRightToLeft),
             FlowDirection.RightToLeft);
     }
 
     [Fact]
-    public async Task ContentFlowDirection_defaults_to_left_to_right_when_direction_unspecified()
+    public void ContentFlowDirection_defaults_to_left_to_right_when_direction_unspecified()
     {
-        await RunContentFlowDirectionTestAsync(MinimalSchedule(null), FlowDirection.LeftToRight);
-    }
-
-    /// <summary>
-    /// The ViewModel ctor fires async init that marshals to <see cref="MainThread"/>. On Android device hosts,
-    /// constructing it from a background xUnit thread blocks inside that init until the UI thread responds.
-    /// Run on the main thread when MAUI is ready (same pattern as MusicPublicationSelectionViewModel headless tests).
-    /// </summary>
-    private static async Task RunContentFlowDirectionTestAsync(ScheduleStateItem schedule, FlowDirection expected)
-    {
-        if (MauiUiTestBootstrap.IsReady)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                AssertContentFlowDirection(schedule, expected);
-                return Task.CompletedTask;
-            });
-            return;
-        }
-
-        AssertContentFlowDirection(schedule, expected);
+        AssertContentFlowDirection(MinimalSchedule(null), FlowDirection.LeftToRight);
     }
 
     private static void AssertContentFlowDirection(ScheduleStateItem schedule, FlowDirection expected)

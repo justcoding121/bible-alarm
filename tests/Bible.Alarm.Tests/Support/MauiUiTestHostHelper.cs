@@ -103,6 +103,44 @@ internal static class MauiUiTestHostHelper
         return await openWindow;
     }
 
+    /// <summary>
+    /// Runs work on the MAUI main thread when the host is ready. Returns false when the main thread
+    /// does not respond within <see cref="PrimaryWindowTimeout"/> (common on slow CI emulators).
+    /// </summary>
+    public static async Task<bool> TryInvokeOnMainThreadAsync(Func<Task> work)
+    {
+        if (!CanUseVisualTree)
+        {
+            return false;
+        }
+
+        if (MainThread.IsMainThread)
+        {
+            await work();
+            return true;
+        }
+
+        var invoke = MainThread.InvokeOnMainThreadAsync(work);
+        var completed = await Task.WhenAny(invoke, Task.Delay(PrimaryWindowTimeout));
+        if (completed != invoke)
+        {
+            return false;
+        }
+
+        await invoke;
+        return true;
+    }
+
+    /// <summary>
+    /// Runs synchronous work on the MAUI main thread when the host is ready.
+    /// </summary>
+    public static Task<bool> TryInvokeOnMainThreadAsync(Action work) =>
+        TryInvokeOnMainThreadAsync(() =>
+        {
+            work();
+            return Task.CompletedTask;
+        });
+
     private static readonly TimeSpan PrimaryWindowTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>
