@@ -14,7 +14,7 @@ Configure in SonarCloud UI (API assignment previously returned 403).
 
 `build.yml` sets `sonar.qualitygate.wait=true` on `SonarScanner begin`. The `test-windows` job fails when the assigned gate fails.
 
-**Important:** Enable the gate in SonarCloud **before** merging the YAML change, or use a low overall threshold (e.g. 50%) until coverage catches up.
+**Important:** Enable `sonar.qualitygate.wait=true` in `build.yml` only **after** the gate is assigned in SonarCloud with a realistic overall threshold (e.g. 50–55% while ramping). Enabling it before UI setup causes `test-windows` to fail even when tests and coverage upload succeed.
 
 ## New code vs overall
 
