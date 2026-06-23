@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Net;
+using System.Net.Http;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -260,6 +262,183 @@ public sealed class EnglishContentSeederTests
             var sut = CreateSut(factory, httpClient);
 
             Assert.False(await sut.SeedEnglishPublicationAsync("zzz_non_cataloged_publication_xyz"));
+        }
+    }
+
+    private sealed class JsonHandler(string body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+    }
+
+    private sealed class NotFoundHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+    }
+
+    private static async Task SeedOsgCategoriesAndEnglishLanguageAsync(MediaDbContext db)
+    {
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(AppConstants.Media.MusicPublicationCodeOsg))
+        {
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        db.Languages.Add(new Language
+        {
+            LanguageCode = AppConstants.Media.DefaultLanguageCode,
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        });
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedDramasCategoriesAndEnglishLanguageAsync(MediaDbContext db)
+    {
+        foreach (var categoryCode in JwSourceHelper.GetCategoryCodesForPublication(
+                     AppConstants.Media.NormalizedPublicationCodeDramasGoodNews))
+        {
+            db.Categories.Add(new Category { CategoryCode = categoryCode });
+        }
+
+        db.Languages.Add(new Language
+        {
+            LanguageCode = AppConstants.Media.DefaultLanguageCode,
+            Direction = AppConstants.Media.TextDirectionLeftToRight,
+        });
+
+        await db.SaveChangesAsync();
+    }
+
+    private const string OsgFlatJson =
+        "{\"files\":{\"E\":{\"MP3\":[{\"track\":1,\"file\":{\"url\":\"https://cdn.example/osg.mp3\"},\"title\":\"Song One\"}]}},\"pubName\":\"Sing Out\"}";
+
+    private static string MediatorDramaJson()
+    {
+        var cat = AppConstants.Media.PubMediaJson.Category;
+        var media = AppConstants.Media.PubMediaJson.CategoryMedia;
+        var nk = AppConstants.Media.PubMediaJson.NaturalKey;
+        var pc = AppConstants.Media.PubMediaJson.PrimaryCategory;
+        var files = AppConstants.Media.PubMediaJson.Files;
+        var pdu = AppConstants.Media.PubMediaJson.ProgressiveDownloadUrl;
+        var title = AppConstants.Media.PubMediaJson.Title;
+        var nm = AppConstants.Media.PubMediaJson.Name;
+        var dramaKey = AppConstants.Media.BiblePublicationCodeDramasGoodNews;
+
+        return "{\""
+               + cat
+               + "\":{\""
+               + nm
+               + "\":\"Dramas show\",\""
+               + media
+               + "\":[{\""
+               + nk
+               + "\":\"k1\",\""
+               + pc
+               + "\":\""
+               + dramaKey
+               + "\",\""
+               + files
+               + "\":[{\""
+               + pdu
+               + "\":\"https://cdn/mediator/track.mp4\"}],\""
+               + title
+               + "\":\"Pilot\"}]}}";
+    }
+
+    [Fact]
+    public async Task Seed_Persists_Flat_Osg_Publication_With_Tracks()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedOsgCategoriesAndEnglishLanguageAsync(seed);
+            }
+
+            using var http = new HttpClient(new JsonHandler(OsgFlatJson));
+            var sut = CreateSut(factory, http);
+
+            Assert.True(await sut.SeedEnglishPublicationAsync(AppConstants.Media.MusicPublicationCodeOsg));
+
+            await using var verify = new MediaDbContext(opts);
+            var pub = await verify.BiblePublications
+                .Include(p => p.Tracks)
+                .ThenInclude(t => t.TrackUrl)
+                .SingleAsync(p => p.PublicationCode == AppConstants.Media.MusicPublicationCodeOsg);
+            Assert.Single(pub.Tracks);
+            Assert.NotNull(pub.Tracks[0].TrackUrl);
+        }
+    }
+
+    [Fact]
+    public async Task Seed_Returns_False_When_Flat_Osg_Http_Fails()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedOsgCategoriesAndEnglishLanguageAsync(seed);
+            }
+
+            using var http = new HttpClient(new NotFoundHandler());
+            var sut = CreateSut(factory, http);
+
+            Assert.False(await sut.SeedEnglishPublicationAsync(AppConstants.Media.MusicPublicationCodeOsg));
+        }
+    }
+
+    [Fact]
+    public async Task Seed_Persists_Mediator_Drama_Publication_With_Tracks()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedDramasCategoriesAndEnglishLanguageAsync(seed);
+            }
+
+            using var http = new HttpClient(new JsonHandler(MediatorDramaJson()));
+            var sut = CreateSut(factory, http);
+
+            Assert.True(await sut.SeedEnglishPublicationAsync(AppConstants.Media.BiblePublicationCodeDramasGoodNews));
+
+            await using var verify = new MediaDbContext(opts);
+            var pub = await verify.BiblePublications
+                .Include(p => p.Tracks)
+                .SingleAsync(p =>
+                    p.PublicationCode == AppConstants.Media.BiblePublicationCodeDramasGoodNews);
+            Assert.NotEmpty(pub.Tracks);
+        }
+    }
+
+    [Fact]
+    public async Task Seed_Returns_False_When_Category_Row_Missing_For_Known_Publication()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                seed.Languages.Add(new Language
+                {
+                    LanguageCode = AppConstants.Media.DefaultLanguageCode,
+                    Direction = AppConstants.Media.TextDirectionLeftToRight,
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            using var http = new HttpClient(new JsonHandler(OsgFlatJson));
+            var sut = CreateSut(factory, http);
+
+            Assert.False(await sut.SeedEnglishPublicationAsync(AppConstants.Media.MusicPublicationCodeOsg));
         }
     }
 }
