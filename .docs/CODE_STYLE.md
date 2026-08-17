@@ -100,24 +100,31 @@ if (value > 0) // Check if the value is valid
 public int Value { get; set; }
 ```
 
-## 4. Max 500 LOC Per Code File
+## 4. File Size and When to Split
 
-**Rule**: Keep a single code file to **500 lines of code (LOC) max**. If it grows beyond this, split it into cohesive helper classes/services.
+**Rule**: Prefer a single code file of about **800–1000 lines of code (LOC)**. A cohesive ViewModel or service may stay in one file even if Sonar S104 / S138 / S3776 fire. Readability wins over file-length metrics.
 
-**Rationale**: Smaller files are easier to navigate, review, test, and refactor.
+**When to split**: Only when the extracted type has a **nameable responsibility** a reader would look up on its own (e.g. a cascade handler, a progress reporter, a platform adapter). Do **not** split only to shrink a parent file.
 
-**Structure Guidance**:
-- Split large classes into helper classes with clear responsibilities (avoid “misc” helpers).
+**Do not create**:
+- `ref` parameter bags for shared mutable fields — use a holder object (`MusicStateHolder` style) or return a record
+- One-method `*Gate` / `*PropertyManager` types created only to shrink a parent file
+
+**Structure Guidance** (when a split is justified):
+- Prefer helpers with clear responsibilities (avoid “misc” helpers).
 - Use folder structure to reflect dependency hierarchy. Place helpers in `{ClassName}Helpers/` subfolder (e.g. `MusicPublicationSelectionViewModelHelpers/`). Naming: `{ClassName}{Responsibility}Helper.cs` or `{ClassName}{Responsibility}Handler.cs`.
   - Higher-level orchestration/feature classes may depend on helpers in the same folder or subfolders (e.g. `Helpers/`, `Internal/`).
   - Helpers should not depend back on higher-level classes (avoid “upward” dependencies and cyclic relationships across folders).
 
+**Sonar**: File-length rules (S104, S138) are disabled in `.editorconfig`. Keep S3776 / S107 as signals; silence them with a private local function, nested record, or a `#pragma` with a one-line *why* — do not extract a class just to quiet the analyzer.
+
 ## Additional Guidelines
 
 ### Summary Comments
-- Use `<summary>` XML documentation comments for public APIs
+- Use `<summary>` XML documentation comments for public APIs when they add context the type name does not already convey
 - Keep summaries concise and focused on "what" and "why", not "how"
 - Include important context about thread safety, side effects, or usage patterns
+- Do **not** write summaries that only restate the type name
 
 ### Exception Handling
 - Always log exceptions with context (what operation failed, relevant parameters)
@@ -125,9 +132,11 @@ public int Value { get; set; }
 - Include relevant context in log messages to aid debugging
 
 ### Code Comments
-- Use comments to explain "why", not "what"
+- Comments must add information the code does not already make obvious
+- Explain *why* (constraint, non-obvious invariant, historical trap, platform quirk)
+- Delete comments that only restate the next line, narrate control flow, or duplicate a clear method name
 - Prefer self-documenting code over comments
-- When comments are needed, place them on the line above the code they describe
+- When comments are needed, place them on the line above the code they describe (no same-line comments)
 
 ## 5. Multi-Platform Test Layout
 

@@ -349,3 +349,8 @@ csharp_style_prefer_conditional_expression_over_if = true:suggestion
 
 # No param/returns XML documentation comments
 # Note: This is a documentation rule - actual enforcement would require custom analyzer
+
+#### SonarAnalyzer — prefer readable cohesive files over LOC-driven splits ####
+
+dotnet_diagnostic.S104.severity = none
+dotnet_diagnostic.S138.severity = none

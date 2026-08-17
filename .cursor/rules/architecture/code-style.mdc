@@ -13,7 +13,7 @@ The canonical style guide is `.docs/CODE_STYLE.md`. Follow it. This rule mirrors
 ## XML documentation comments
 
 - Do **not** add `<param>`, `<returns>`, `<exception>`, or `<typeparam>` XML docs.
-- Use `<summary>` on public APIs when helpful.
+- Use `<summary>` on public APIs when helpful — not when the summary only restates the type name.
 
 ---
 
@@ -33,13 +33,17 @@ The canonical style guide is `.docs/CODE_STYLE.md`. Follow it. This rule mirrors
 - No inline comments on the same line as code (comments must be on separate lines).
 - Prefer self-documenting code; comments should explain **why**, not **what**.
 - Place comments on the line above the code they describe.
+- Delete comments that only restate the next line, narrate control flow, or duplicate a clear method name.
+- Keep comments for non-obvious invariants, platform quirks, and `#pragma` / Sonar suppressions that state the tradeoff.
 
 ---
 
 ## File size and structure
 
-- Keep a single code file **≤ 500 LOC** (excluding blank lines and using directives where reasonable).
-- If a file grows beyond that, split it into cohesive helper classes/services.
+- Prefer a single code file of about **800–1000 LOC**. A cohesive ViewModel or service may stay in one file even if Sonar S104 / S138 / S3776 fire.
+- Split only when the extracted type has a nameable responsibility a reader would look up on its own.
+- Do **not** create `ref` parameter bags for shared mutable fields — use a holder object or return a record.
+- Do **not** create one-method `*Gate` / `*PropertyManager` types only to shrink a parent file.
 - Organize helpers using folder structure to reflect dependency direction:
   - Higher-level feature classes can depend on lower-level helpers in the same folder or subfolders (e.g. `Helpers/`, `Internal/`).
   - Lower-level helpers should not depend on higher-level orchestration classes (avoid folder “upward” dependencies and cyclic relationships).
