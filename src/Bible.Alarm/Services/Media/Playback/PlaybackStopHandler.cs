@@ -9,16 +9,13 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Handles stopping playback and cleanup operations.
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed class PlaybackStopHandler
 {
     private readonly IAudioPlayer audioPlayer;
     private readonly IPlaylistService playlistService;
     private readonly IDispatcher dispatcher;
     private readonly ILogger logger;
+
     public PlaybackStopHandler(
         IAudioPlayer audioPlayer,
         IPlaylistService playlistService,

@@ -7,10 +7,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
 
-/// <summary>
-/// Handles initialization from state and container ready signaling.
-/// Separated from MusicSelectionContainerViewModel for better modularity.
-/// </summary>
 public sealed class MusicStateInitializer
 {
     private readonly IState<ApplicationState> state;

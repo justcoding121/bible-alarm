@@ -8,10 +8,6 @@ using Serilog;
 
 namespace Bible.Alarm.Stores.Reducers.Services;
 
-/// <summary>
-/// Handles schedule CRUD operations (Create, Update, Delete, Success, Failure).
-/// Separated from ApplicationReducer for better modularity.
-/// </summary>
 public static class ScheduleCrudReducer
 {
     public static ApplicationState OnCreateSchedule(ApplicationState state, CreateScheduleAction action)

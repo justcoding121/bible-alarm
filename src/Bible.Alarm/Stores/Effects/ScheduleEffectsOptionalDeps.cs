@@ -11,7 +11,7 @@ using Fluxor;
 namespace Bible.Alarm.Stores.Effects;
 
 /// <summary>
-/// Optional overrides for <see cref="ScheduleEffects"/> resolved from DI (keeps effect ctor within Sonar parameter limits).
+/// Optional <see cref="ScheduleEffects"/> overrides resolved from DI.
 /// </summary>
 public sealed record ScheduleEffectsOptionalDeps(
     IBiblePublicationService? BiblePublicationService = null,

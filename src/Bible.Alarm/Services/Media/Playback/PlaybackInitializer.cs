@@ -8,10 +8,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Handles initialization and preparation of playback for a schedule.
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed class PlaybackInitializer
 {
     private readonly IPreparePlaybackService preparePlaybackService;

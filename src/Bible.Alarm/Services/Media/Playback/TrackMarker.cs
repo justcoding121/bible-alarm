@@ -5,10 +5,6 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Handles marking tracks as played or finished.
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed class TrackMarker
 {
     private readonly IPlaylistService playlistService;

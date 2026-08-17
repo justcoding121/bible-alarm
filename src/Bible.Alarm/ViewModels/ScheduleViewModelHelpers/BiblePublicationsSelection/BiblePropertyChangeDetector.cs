@@ -4,10 +4,6 @@ using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 
-/// <summary>
-/// Detects property changes in bible selection.
-/// Separated from BibleSelectionContainerViewModel for better modularity.
-/// </summary>
 public sealed class BiblePublicationPropertyChangeDetector
 {
     private readonly BiblePublicationDisplayTextProvider displayTextProvider;

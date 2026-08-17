@@ -7,7 +7,7 @@ using Bible.Alarm.Stores.Models;
 namespace Bible.Alarm.Stores.Mapping;
 
 /// <summary>
-/// Extracted mapping expressions for <see cref="ScheduleMappingProfile"/> to keep AutoMapper configuration low in cognitive complexity.
+/// Nullable nested-entity projections used by <see cref="ScheduleMappingProfile"/> when mapping AlarmSchedule ↔ ScheduleStateItem.
 /// </summary>
 internal static class AlarmScheduleToScheduleStateItemMap
 {

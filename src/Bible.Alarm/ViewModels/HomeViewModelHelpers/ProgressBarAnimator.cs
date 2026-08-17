@@ -1,10 +1,6 @@
 #nullable enable
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 
-/// <summary>
-/// Handles progress bar animation logic.
-/// Separated from HomeViewModel for better modularity.
-/// </summary>
 public sealed partial class ProgressBarAnimator : IDisposable
 {
     private bool disposed;

@@ -5,10 +5,6 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Handles track preparation and playback logic.
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed class TrackPreparationHandler
 {
     private readonly IAudioPlayer audioPlayer;

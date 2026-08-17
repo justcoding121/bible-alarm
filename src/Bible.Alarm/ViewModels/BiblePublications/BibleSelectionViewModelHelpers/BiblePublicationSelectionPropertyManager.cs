@@ -9,9 +9,6 @@ using Fluxor;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 
-/// <summary>
-/// Manages UI properties and property changes for bible selection.
-/// </summary>
 public sealed partial class BiblePublicationSelectionPropertyManager : ObservableObject
 {
     private readonly IState<ApplicationState> state;

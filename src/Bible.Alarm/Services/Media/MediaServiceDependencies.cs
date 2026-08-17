@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Bible.Alarm.Services.Media;
 
 /// <summary>
-/// Constructor dependencies for <see cref="MediaService"/> (keeps DI registration under Sonar parameter limits).
+/// Constructor dependencies for <see cref="MediaService"/>.
 /// </summary>
 public readonly record struct MediaServiceDependencies(
     IMediaIndexService MediaIndexService,

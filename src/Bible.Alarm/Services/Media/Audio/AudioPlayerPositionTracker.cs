@@ -6,10 +6,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media.Audio;
 
-/// <summary>
-/// Handles position tracking and updates for AudioPlayer.
-/// Separated from AudioPlayer for better modularity.
-/// </summary>
 public class AudioPlayerPositionTracker
 {
     private readonly IDispatcher dispatcher;

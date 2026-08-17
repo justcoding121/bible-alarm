@@ -9,10 +9,6 @@ using Serilog;
 
 namespace Bible.Alarm.Stores.Reducers.Services;
 
-/// <summary>
-/// Handles syncing of CurrentSchedule, CurrentMusic, and CurrentBiblePublicationSchedule.
-/// Separated from ApplicationReducer for better modularity.
-/// </summary>
 public static class ScheduleStateSyncHelper
 {
     public static ScheduleStateItem? UpdateCurrentScheduleIfMatches(ApplicationState state, ScheduleStateItem actionSchedule)

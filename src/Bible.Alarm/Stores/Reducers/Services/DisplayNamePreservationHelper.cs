@@ -6,10 +6,6 @@ using Serilog;
 
 namespace Bible.Alarm.Stores.Reducers.Services;
 
-/// <summary>
-/// Handles preservation of display names when updating schedules.
-/// Separated from ApplicationReducer for better modularity.
-/// </summary>
 public static class DisplayNamePreservationHelper
 {
     public static void PreserveDisplayNamesFromExisting(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)

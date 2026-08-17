@@ -5,10 +5,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Manages navigation state for playback (next/previous track capabilities).
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed class PlaybackNavigationManager
 {
     private readonly IDispatcher dispatcher;

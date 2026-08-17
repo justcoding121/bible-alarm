@@ -1,23 +1,15 @@
 #nullable enable
-
-#nullable enable
 using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Reducers.Services;
 
-/// <summary>
-/// Handles copying schedule properties between ScheduleStateItem instances.
-/// Separated from ApplicationReducer for better modularity.
-/// </summary>
 public static class SchedulePropertyCopier
 {
     /// <summary>
-    /// Copies all properties from source to target ScheduleStateItem.
     /// Updates the existing item in place to avoid collection change events that cause Android Auto issues.
     /// </summary>
     public static void CopyScheduleProperties(ScheduleStateItem target, ScheduleStateItem source)
     {
-        // Schedule properties
         target.Id = source.Id;
         target.Name = source.Name;
         target.IsEnabled = source.IsEnabled;
@@ -33,7 +25,6 @@ public static class SchedulePropertyCopier
         target.CurrentPlayItem = source.CurrentPlayItem;
         target.LatestAlarmNotificationId = source.LatestAlarmNotificationId;
 
-        // Bible Reading Schedule properties
         target.BiblePublicationScheduleId = source.BiblePublicationScheduleId;
         target.BiblePublicationLanguageCode = source.BiblePublicationLanguageCode;
         target.BiblePublicationCode = source.BiblePublicationCode;
@@ -41,7 +32,6 @@ public static class SchedulePropertyCopier
         target.BiblePublicationTrackCode = source.BiblePublicationTrackCode;
         target.BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration;
 
-        // Music properties
         target.MusicId = source.MusicId;
         target.MusicSectionCode = source.MusicSectionCode;
         target.MusicPublicationCode = source.MusicPublicationCode;
@@ -49,7 +39,6 @@ public static class SchedulePropertyCopier
         target.MusicTrackCode = source.MusicTrackCode;
         target.MusicRepeat = source.MusicRepeat;
 
-        // Display name properties
         target.BiblePublicationCategoryId = source.BiblePublicationCategoryId;
         target.BiblePublicationCategoryName = source.BiblePublicationCategoryName;
         target.BiblePublicationLanguageName = source.BiblePublicationLanguageName;
@@ -69,4 +58,3 @@ public static class SchedulePropertyCopier
         target.MusicSectionModalItemCount = source.MusicSectionModalItemCount;
     }
 }
-

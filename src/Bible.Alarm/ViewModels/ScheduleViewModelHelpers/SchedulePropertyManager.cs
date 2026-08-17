@@ -8,9 +8,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
-/// <summary>
-/// Handles property management for ScheduleViewModel.
-/// </summary>
 public sealed partial class SchedulePropertyManager : ObservableObject
 {
     private readonly ILogger logger;

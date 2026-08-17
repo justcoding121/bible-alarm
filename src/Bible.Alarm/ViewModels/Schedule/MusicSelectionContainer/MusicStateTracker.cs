@@ -4,8 +4,6 @@ using Bible.Alarm.Stores.Models;
 namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
 
 /// <summary>
-/// Tracks last values from CurrentSchedule to detect changes.
-/// Separated from MusicSelectionContainerViewModel for better modularity.
 /// Music type is no longer tracked - inferred from LanguageCode (null = melody, non-null = vocal).
 /// </summary>
 public sealed class MusicStateTracker

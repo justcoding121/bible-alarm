@@ -22,10 +22,6 @@ internal readonly record struct SchedulePropertySnapshot(
     WeekDays DaysOfWeek,
     DateTime? LastPlayedAtUtc);
 
-/// <summary>
-/// Handles state change processing for HomeViewModel.
-/// Separated from HomeViewModel for better modularity.
-/// </summary>
 public class HomeStateChangeHandler
 {
     private readonly ILogger logger;

@@ -7,10 +7,6 @@ using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Services.Media.Playlist;
 
-/// <summary>
-/// Handles updating schedules when tracks are played or finished.
-/// Separated from PlaylistService for better modularity.
-/// </summary>
 public static class PlaylistTrackUpdater
 {
     public static void UpdateMusicTrack(AlarmSchedule schedule, string? nextTrackCode, string? nextSectionCode = null)

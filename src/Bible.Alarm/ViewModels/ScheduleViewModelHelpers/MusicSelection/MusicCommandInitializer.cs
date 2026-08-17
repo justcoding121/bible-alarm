@@ -21,10 +21,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 
-/// <summary>
-/// Handles initialization of commands for music selection.
-/// Separated from MusicSelectionContainerViewModel for better modularity.
-/// </summary>
 public sealed class MusicCommandInitializer
 {
     private readonly ILogger logger;

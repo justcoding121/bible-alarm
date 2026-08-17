@@ -4,10 +4,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
-/// <summary>
-/// Handles slider interaction logic for AlarmViewModal.
-/// Separated from AlarmViewModal for better modularity.
-/// </summary>
 public class AlarmViewModalSliderHandler
 {
     private readonly ILogger logger;

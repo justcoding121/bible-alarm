@@ -4,8 +4,6 @@ using Bible.Alarm.ViewModels.Schedule;
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 
 /// <summary>
-/// Handles cascading property change notifications for music properties.
-/// Separated from MusicSelectionContainerViewModel for better modularity.
 /// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
 /// </summary>
 public sealed class MusicPropertyNotifier

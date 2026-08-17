@@ -6,10 +6,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
-/// <summary>
-/// Handles command initialization for AlarmViewModal.
-/// Separated from AlarmViewModal for better modularity.
-/// </summary>
 public class AlarmViewModelCommandInitializer
 {
     private readonly ILogger logger;

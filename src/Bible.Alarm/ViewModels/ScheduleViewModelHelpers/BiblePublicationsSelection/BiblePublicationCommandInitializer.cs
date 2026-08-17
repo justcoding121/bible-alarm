@@ -21,10 +21,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 
-/// <summary>
-/// Handles initialization of commands for bible selection.
-/// Separated from BibleSelectionContainerViewModel for better modularity.
-/// </summary>
 public sealed class BiblePublicationCommandInitializer
 {
     private readonly ILogger logger;

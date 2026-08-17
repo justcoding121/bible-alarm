@@ -18,10 +18,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
 
-/// <summary>
-/// Handles state change logic for MusicSelectionContainerViewModel.
-/// Separated from MusicSelectionContainerViewModel for better modularity.
-/// </summary>
 public sealed class MusicStateChangeHandler
 {
     private const string PreferredMelodyPublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam;

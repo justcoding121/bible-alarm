@@ -6,9 +6,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 
-/// <summary>
-/// Handles property management for ScheduleListItemViewModel.
-/// </summary>
 public sealed class ScheduleListItemPropertyManager(
     ILogger logger,
     IScheduleStateService scheduleStateService)
@@ -17,9 +14,6 @@ public sealed class ScheduleListItemPropertyManager(
 
     public bool IsInitializing { get; set; }
 
-    /// <summary>
-    /// Handles IsEnabled property change.
-    /// </summary>
     public async Task HandleIsEnabledChanged(int scheduleId, bool newValue, AlarmSchedule? schedule, Action notifyThisPropertyChanged, Action notifyPropertiesChanged, Func<bool, Task> revertChange)
     {
         try
@@ -50,9 +44,6 @@ public sealed class ScheduleListItemPropertyManager(
         }
     }
 
-    /// <summary>
-    /// Gets property values from schedule.
-    /// </summary>
     public static (bool isEnabled, string name, string timeText, string hour, string minute, string meridianText, WeekDays daysOfWeek, bool musicEnabled) GetPropertiesFromSchedule(AlarmSchedule? schedule)
     {
         if (schedule == null)

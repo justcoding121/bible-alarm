@@ -1,16 +1,9 @@
 #nullable enable
 using Bible.Alarm.Shared.DataStructures;
-
-
-#nullable enable
 using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Reducers.Services;
 
-/// <summary>
-/// Factory for creating ApplicationState instances.
-/// Separated from ApplicationReducer for better modularity.
-/// </summary>
 public static class StateFactory
 {
     /// <summary>
@@ -44,4 +37,3 @@ public static class StateFactory
             pendingScheduleLoad: state.PendingScheduleLoad);
     }
 }
-

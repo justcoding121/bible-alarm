@@ -9,10 +9,6 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Handles playing a single track.
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed class TrackPlaybackHandler
 {
     private readonly IAudioPlayer audioPlayer;

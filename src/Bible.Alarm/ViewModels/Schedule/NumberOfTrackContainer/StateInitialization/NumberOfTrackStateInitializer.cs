@@ -7,7 +7,7 @@ using Serilog;
 namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.StateInitialization;
 
 /// <summary>
-/// Initializes NumberOfTrackContainerViewModel from ApplicationState. Extracted for LOC compliance.
+/// Maps CurrentSchedule fields into NumberOfTrackContainerViewModel init values, syncing notification enablement with OS permission on mobile.
 /// </summary>
 public static class NumberOfTrackStateInitializer
 {

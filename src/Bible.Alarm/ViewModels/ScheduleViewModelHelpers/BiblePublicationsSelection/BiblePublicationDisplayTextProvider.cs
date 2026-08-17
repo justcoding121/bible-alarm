@@ -14,10 +14,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 
-/// <summary>
-/// Provides display text for bible-related properties.
-/// Separated from BibleSelectionContainerViewModel for better modularity.
-/// </summary>
 public sealed class BiblePublicationDisplayTextProvider
 {
     private readonly IState<ApplicationState> state;

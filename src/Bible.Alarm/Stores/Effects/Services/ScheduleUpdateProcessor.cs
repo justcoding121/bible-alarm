@@ -15,10 +15,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Stores.Effects.Services;
 
-/// <summary>
-/// Handles processing of schedule update operations.
-/// Separated from ScheduleEffects for better modularity.
-/// </summary>
 public sealed class ScheduleUpdateProcessor
 {
     private readonly IMapper mapper;

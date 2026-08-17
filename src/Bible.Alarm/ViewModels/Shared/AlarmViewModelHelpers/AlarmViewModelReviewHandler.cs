@@ -6,9 +6,7 @@ using Serilog;
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
 /// <summary>
-/// Handles review request logic for AlarmViewModal.
 /// Implements industry best practices: time-based checks, engagement thresholds, and proper spacing.
-/// Separated from AlarmViewModal for better modularity.
 /// </summary>
 public class AlarmViewModelReviewHandler
 {

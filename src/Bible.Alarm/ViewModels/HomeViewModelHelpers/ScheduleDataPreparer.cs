@@ -6,10 +6,6 @@ using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 
-/// <summary>
-/// Handles off-UI-thread data preparation for schedules.
-/// Separated from HomeViewModel for better modularity.
-/// </summary>
 public class ScheduleDataPreparer
 {
     private readonly IMapper mapper;

@@ -8,10 +8,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 
-/// <summary>
-/// Manages ScheduleListItemViewModel creation, updates, and lifecycle.
-/// Separated from HomeViewModel for better modularity.
-/// </summary>
 public class ScheduleViewModelManager
 {
     private readonly ILogger logger;

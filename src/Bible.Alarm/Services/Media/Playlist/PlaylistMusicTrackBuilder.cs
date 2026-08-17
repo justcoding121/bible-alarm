@@ -6,11 +6,10 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+
 namespace Bible.Alarm.Services.Media.Playlist;
 
 /// <summary>
-/// Handles building music tracks for playlists.
-/// Separated from PlaylistService for better modularity.
 /// Save: For non-language music we save the language code selected on the row (e.g. MY) to AlarmMusic.LanguageCode so state is preserved on view schedule (like Bible).
 /// Playback: We identify no-language pub by publication (IsPublicationWithoutLanguageAsync), not by stored LanguageCode. If no-language → melody path (track lookup by pub/section only). If languaged → vocal path (uses stored LanguageCode for track lookup). Same pattern as Bible schedule playback.
 /// Rotation: Music always stays within the same publication (never jumps to another pub). For sectioned melody: next advances to next section at section end, wrapping to first section after the last; previous wraps within the current section only (no jump to previous section).

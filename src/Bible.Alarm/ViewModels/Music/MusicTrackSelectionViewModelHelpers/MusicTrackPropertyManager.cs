@@ -4,9 +4,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 
-/// <summary>
-/// Handles property management for MusicTrackSelectionViewModel.
-/// </summary>
 public sealed partial class MusicTrackPropertyManager : ObservableObject
 {
     private bool isBusy = true;
@@ -30,14 +27,12 @@ public sealed partial class MusicTrackPropertyManager : ObservableObject
         get => selectedTrack;
         set
         {
-            // Clear previous selection
             if (selectedTrack != null)
             {
                 selectedTrack.IsSelected = false;
                 selectedTrack.Repeat = false;
             }
 
-            // Set new selection
             if (SetProperty(ref selectedTrack, value) && value != null)
             {
                 value.IsSelected = true;

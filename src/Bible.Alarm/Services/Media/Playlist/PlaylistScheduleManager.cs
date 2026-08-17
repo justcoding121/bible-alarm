@@ -5,10 +5,6 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 
 namespace Bible.Alarm.Services.Media.Playlist;
 
-/// <summary>
-/// Manages schedule retrieval and persistence for PlaylistService.
-/// Separated from PlaylistService for better modularity.
-/// </summary>
 public class PlaylistScheduleManager
 {
     private readonly IAlarmScheduleService alarmScheduleService;

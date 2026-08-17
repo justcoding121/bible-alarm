@@ -7,12 +7,11 @@ using Serilog;
 namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 
 /// <summary>
-/// Handles property sync from ApplicationState when schedule changes within the same schedule.
-/// Extracted from NumberOfTrackContainerViewModel.OnStateChanged.
+/// Mirrors notification / always-play-from-start / play-indefinitely fields when ApplicationState changes for the same schedule.
 /// </summary>
 public static class NumberOfTrackStateChangeHandler
 {
-    /// <summary>Mutable VM fields mirrored from schedule state within <see cref="ApplyPropertyChanges"/>.</summary>
+    /// <summary>Mutable VM fields updated by <see cref="ApplyPropertyChanges"/>.</summary>
     public sealed class SyncTargets
     {
         public bool NotificationEnabled { get; set; }

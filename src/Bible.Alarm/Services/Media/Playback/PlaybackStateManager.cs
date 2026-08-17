@@ -8,10 +8,6 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Manages playback state (playlist, track index, schedule ID, etc.).
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed class PlaybackStateManager
 {
     private readonly ILogger logger;

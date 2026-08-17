@@ -8,10 +8,6 @@ using Serilog;
 
 namespace Bible.Alarm.Stores.Effects.Services;
 
-/// <summary>
-/// Handles updating of schedule entities in the database.
-/// Separated from ScheduleEffects for better modularity.
-/// </summary>
 public static class ScheduleEntityUpdater
 {
     /// <summary>

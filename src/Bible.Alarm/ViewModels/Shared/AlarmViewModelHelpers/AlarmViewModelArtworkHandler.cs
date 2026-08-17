@@ -3,10 +3,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
-/// <summary>
-/// Handles artwork loading for AlarmViewModal.
-/// Separated from AlarmViewModal for better modularity.
-/// </summary>
 public class AlarmViewModelArtworkHandler
 {
     private readonly ILogger logger;

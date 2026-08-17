@@ -9,10 +9,6 @@ using Timer = System.Timers.Timer;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Handles progress tracking and saving for Bible tracks and music tracks.
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed partial class ProgressTracker : IDisposable
 {
     private readonly IPlaylistService playlistService;

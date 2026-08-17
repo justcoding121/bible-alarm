@@ -4,9 +4,6 @@ using Bible.Alarm.Shared.DataStructures;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 
-/// <summary>
-/// Manages UI-bound properties for HomeViewModel.
-/// </summary>
 public class PropertyManager
 {
     private ObservableHashSet<ScheduleListItemViewModel> schedules = [];

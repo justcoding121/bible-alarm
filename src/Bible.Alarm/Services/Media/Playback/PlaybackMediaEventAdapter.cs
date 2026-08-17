@@ -12,7 +12,7 @@ using Serilog;
 namespace Bible.Alarm.Services.Media.Playback;
 
 /// <summary>
-/// Adapts AudioPlayer MediaEnded/MediaFailed events to PlaybackEventHandler. Extracted from PlaybackService for LOC compliance.
+/// Bridges AudioPlayer MediaEnded/MediaFailed into PlaybackEventHandler without coupling PlaybackService to those event paths.
 /// </summary>
 public sealed class PlaybackMediaEventAdapter
 {

@@ -6,9 +6,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 
-/// <summary>
-/// Handles property management for MusicPublicationSelectionViewModel.
-/// </summary>
 public sealed partial class MusicPublicationSelectionPropertyManager : ObservableObject
 {
     private bool isBusy = true;

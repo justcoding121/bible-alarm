@@ -6,7 +6,7 @@ using Bible.Alarm.Stores.Models;
 namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 
 /// <summary>
-/// Orchestrates OnStateChanged reinit decisions for NumberOfTrackContainerViewModel. Extracted for LOC compliance.
+/// Decides whether NumberOfTrackContainerViewModel should reset and/or reinitialize after an ApplicationState change.
 /// </summary>
 internal sealed class NumberOfTrackStateChangeOrchestrator
 {

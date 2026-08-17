@@ -4,10 +4,6 @@ using Bible.Alarm.ViewModels.Schedule;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 
-/// <summary>
-/// Handles cascading property change notifications for bible properties.
-/// Separated from BibleSelectionContainerViewModel for better modularity.
-/// </summary>
 public sealed class BiblePublicationPropertyNotifier
 {
     private readonly Action<string> onPropertyChanged;

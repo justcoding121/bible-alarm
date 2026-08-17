@@ -10,10 +10,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media.Audio;
 
-/// <summary>
-/// Handles state management for AudioPlayer.
-/// Separated from AudioPlayer for better modularity.
-/// </summary>
 public class AudioPlayerStateManager
 {
     private readonly ILogger logger;

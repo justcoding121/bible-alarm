@@ -15,10 +15,6 @@ using MusicTrackSelectedAction = Bible.Alarm.Stores.Actions.Music.TrackSelectedA
 
 namespace Bible.Alarm.Stores.Effects.Services;
 
-/// <summary>
-/// Handles syncing of track selection to CurrentSchedule.
-/// Separated from ScheduleEffects for better modularity.
-/// </summary>
 public sealed class TrackSelectionSyncHandler
 {
     private const string LogNullDisplay = "(null)";

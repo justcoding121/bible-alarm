@@ -24,10 +24,6 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 
-/// <summary>
-/// Handles navigation logic for HomeViewModel.
-/// Separated from HomeViewModel for better modularity.
-/// </summary>
 public class HomeNavigationHelper
 {
     private readonly ILogger logger;

@@ -7,10 +7,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 
-/// <summary>
-/// Handles permission granted/denied events for NumberOfTrackContainerViewModel.
-/// Extracted to reduce ViewModel size and centralize notification permission logic.
-/// </summary>
 public static class NumberOfTrackPermissionHandlers
 {
     public static void HandlePermissionGranted(

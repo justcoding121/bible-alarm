@@ -4,10 +4,6 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
-/// <summary>
-/// Handles system media controls (notification/lockscreen) button presses.
-/// Separated from PlaybackService for better modularity.
-/// </summary>
 public sealed class SystemControlsHandler
 {
     private readonly ILogger logger;

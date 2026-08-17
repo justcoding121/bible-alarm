@@ -9,7 +9,7 @@ using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media.Playback;
 
 /// <summary>
-/// Executes playback reset operations. Extracted from PlaybackService for LOC compliance.
+/// Isolates full playback reset (progress, player, Fluxor state, car-screen) from PlaybackService orchestration.
 /// </summary>
 public sealed class PlaybackResetExecutor
 {

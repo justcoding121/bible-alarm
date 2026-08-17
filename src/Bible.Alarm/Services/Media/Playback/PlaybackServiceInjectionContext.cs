@@ -8,7 +8,7 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 namespace Bible.Alarm.Services.Media.Playback;
 
 /// <summary>
-/// Groups injected collaborators for <see cref="global::Bible.Alarm.Services.Media.PlaybackService"/> to satisfy constructor parameter limits.
+/// Injected collaborators for <see cref="global::Bible.Alarm.Services.Media.PlaybackService"/>.
 /// </summary>
 public sealed record PlaybackServiceInjectionContext(
     IPreparePlaybackService PreparePlaybackService,

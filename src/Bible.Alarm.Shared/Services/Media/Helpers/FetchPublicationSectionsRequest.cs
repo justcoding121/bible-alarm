@@ -9,7 +9,7 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Parameters for <see cref="SectionFetcher.FetchPublicationSectionsAsync"/> (keeps call sites under Sonar parameter limits).
+/// Parameters for <see cref="SectionFetcher.FetchPublicationSectionsAsync"/>.
 /// </summary>
 internal sealed class FetchPublicationSectionsRequest
 {

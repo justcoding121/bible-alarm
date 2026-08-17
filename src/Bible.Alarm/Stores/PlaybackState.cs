@@ -30,7 +30,7 @@ public sealed record PlaybackDefaultScheduleSlice(
 
 /// <summary>
 /// Fluxor feature state for playback UI / Android Auto metadata.
-/// Split ctor slices keep Sonar parameter counts low while preserving a flat property surface for consumers.
+/// Transport, media, and default-schedule slices group related fields for construction while exposing a flat property surface.
 /// </summary>
 [FeatureState]
 public sealed class PlaybackState

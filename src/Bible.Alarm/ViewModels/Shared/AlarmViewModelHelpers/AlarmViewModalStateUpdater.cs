@@ -5,13 +5,9 @@ using Bible.Alarm.Stores;
 
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 
-/// <summary>
-/// Handles state updates for AlarmViewModal.
-/// Separated from AlarmViewModal for better modularity.
-/// </summary>
 public class AlarmViewModalStateUpdater
 {
-    /// <summary>Constructor dependencies for <see cref="AlarmViewModalStateUpdater"/> (avoids excessive parameter lists).</summary>
+    /// <summary>Constructor dependencies for <see cref="AlarmViewModalStateUpdater"/>.</summary>
     public sealed class Options
     {
         public required Action<string> SetTitle { get; init; }

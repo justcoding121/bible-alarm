@@ -11,10 +11,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.Media.Audio;
 
-/// <summary>
-/// Handles metadata operations for AudioPlayer.
-/// Separated from AudioPlayer for better modularity.
-/// </summary>
 public class AudioPlayerMetadataHandler
 {
     private static readonly TimeSpan ArtworkKeyRegexTimeout = TimeSpan.FromMilliseconds(250);
