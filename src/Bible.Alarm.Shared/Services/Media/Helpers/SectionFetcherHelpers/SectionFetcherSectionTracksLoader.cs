@@ -156,14 +156,12 @@ internal sealed class SectionFetcherSectionTracksLoader
             return false;
         }
 
-        string? updatedSectionName = null;
         var nameCtx = new ApplySectionNameContext(db, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
-        ApplySectionNameFromPubMediaRoot(
+        var updatedSectionName = ApplySectionNameFromPubMediaRoot(
             root,
             isIssueSectioned,
             section,
-            nameCtx,
-            ref updatedSectionName);
+            nameCtx);
 
         var formatKey = isVideoDrama ? AppConstants.Media.MediaStreamFormatMp4 : AppConstants.Media.MediaStreamFormatMp3;
         if (!TryGetLanguageFormatFilesElement(
@@ -249,12 +247,11 @@ internal sealed class SectionFetcherSectionTracksLoader
         return true;
     }
 
-    private void ApplySectionNameFromPubMediaRoot(
+    private string? ApplySectionNameFromPubMediaRoot(
         JsonElement root,
         bool isIssueSectioned,
         BiblePublicationSection section,
-        ApplySectionNameContext ctx,
-        ref string? updatedSectionName)
+        ApplySectionNameContext ctx)
     {
         if (isIssueSectioned)
         {
@@ -273,16 +270,15 @@ internal sealed class SectionFetcherSectionTracksLoader
             var sectionName = MagazineHelper.BuildSectionName(pubName, formattedDate);
             if (string.IsNullOrEmpty(sectionName))
             {
-                return;
+                return null;
             }
 
             var oldName = section.Name;
-            updatedSectionName = sectionName;
             section.Name = sectionName;
             ctx.Db.Entry(section).Property(s => s.Name).IsModified = true;
             logger.Information("Updated magazine section name from API: {OldName} -> {NewName} for section {SectionCode}",
                 oldName, sectionName, ctx.NormalizedSectionCode);
-            return;
+            return sectionName;
         }
 
         if (!root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))
@@ -291,7 +287,7 @@ internal sealed class SectionFetcherSectionTracksLoader
                 "pubName not found in API response for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. Available properties: {Properties}",
                 ctx.NormalizedSectionCode, ctx.NormalizedPublicationCode, ctx.NormalizedLanguageCode,
                 string.Join(", ", root.EnumerateObject().Select(p => p.Name)));
-            return;
+            return null;
         }
 
         var rawName = pubNameElement.GetString();
@@ -302,17 +298,17 @@ internal sealed class SectionFetcherSectionTracksLoader
             logger.Warning(
                 "pubName found in API response but section name is empty after processing. rawName={RawName} for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
                 rawName, ctx.NormalizedSectionCode, ctx.NormalizedPublicationCode, ctx.NormalizedLanguageCode);
-            return;
+            return null;
         }
 
         var previousName = section.Name;
-        updatedSectionName = sectionNameFromApi;
         section.Name = sectionNameFromApi;
         ctx.Db.Entry(section).Property(s => s.Name).IsModified = true;
         logger.Information(
             "Updated section name from API: {OldName} -> {NewName} for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. IsModified={IsModified}",
             previousName, sectionNameFromApi, ctx.NormalizedSectionCode, ctx.NormalizedPublicationCode, ctx.NormalizedLanguageCode,
             ctx.Db.Entry(section).Property(s => s.Name).IsModified);
+        return sectionNameFromApi;
     }
 
     private bool TryGetLanguageFormatFilesElement(
@@ -336,6 +332,8 @@ internal sealed class SectionFetcherSectionTracksLoader
         return true;
     }
 
+    private readonly record struct BuiltSectionTrackResult(BiblePublicationTrack? Track, int NextTrackCode);
+
     private static List<BiblePublicationTrack> BuildSectionTracksFromFormatFiles(
         JsonElement formatFiles,
         bool isBible,
@@ -356,28 +354,29 @@ internal sealed class SectionFetcherSectionTracksLoader
                 publication,
                 section,
                 normalizedSectionCode,
-                ref trackCode);
-            if (built != null)
+                trackCode);
+            trackCode = built.NextTrackCode;
+            if (built.Track != null)
             {
-                tracks.Add(built);
+                tracks.Add(built.Track);
             }
         }
 
         return tracks;
     }
 
-    private static BiblePublicationTrack? TryBuildSingleSectionTrackFromFile(
+    private static BuiltSectionTrackResult TryBuildSingleSectionTrackFromFile(
         JsonElement trackFile,
         bool isBible,
         bool isIssueSectioned,
         BiblePublication publication,
         BiblePublicationSection section,
         string normalizedSectionCode,
-        ref int trackCode)
+        int trackCode)
     {
         if (!trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.File, out var fileElement))
         {
-            return null;
+            return new BuiltSectionTrackResult(null, trackCode);
         }
 
         string? url = null;
@@ -393,33 +392,35 @@ internal sealed class SectionFetcherSectionTracksLoader
 
         if (string.IsNullOrEmpty(url))
         {
-            return null;
+            return new BuiltSectionTrackResult(null, trackCode);
         }
 
         var title = ResolveDecodedTrackTitleFromFileElement(trackFile, isBible);
 
-        if (!TryResolveSectionTrackCodeString(
-                trackFile,
-                isBible,
-                isIssueSectioned,
-                publication,
-                normalizedSectionCode,
-                ref trackCode,
-                out var trackCodeStr))
+        var resolved = TryResolveSectionTrackCodeString(
+            trackFile,
+            isBible,
+            isIssueSectioned,
+            publication,
+            normalizedSectionCode,
+            trackCode);
+        if (!resolved.Succeeded)
         {
-            return null;
+            return new BuiltSectionTrackResult(null, resolved.NextTrackCode);
         }
 
-        return new BiblePublicationTrack
-        {
-            TrackCode = trackCodeStr,
-            Title = title,
-            Publication = publication,
-            BiblePublicationId = publication.Id,
-            Section = section,
-            BiblePublicationSectionId = section.Id,
-            TrackUrl = new TrackUrl { Url = url }
-        };
+        return new BuiltSectionTrackResult(
+            new BiblePublicationTrack
+            {
+                TrackCode = resolved.TrackCodeStr!,
+                Title = title,
+                Publication = publication,
+                BiblePublicationId = publication.Id,
+                Section = section,
+                BiblePublicationSectionId = section.Id,
+                TrackUrl = new TrackUrl { Url = url }
+            },
+            resolved.NextTrackCode);
     }
 
     private static string ResolveDecodedTrackTitleFromFileElement(JsonElement trackFile, bool isBible)
@@ -463,20 +464,20 @@ internal sealed class SectionFetcherSectionTracksLoader
         return title;
     }
 
-    private static bool TryResolveSectionTrackCodeString(
+    private readonly record struct ResolvedSectionTrackCode(bool Succeeded, string? TrackCodeStr, int NextTrackCode);
+
+    private static ResolvedSectionTrackCode TryResolveSectionTrackCodeString(
         JsonElement trackFile,
         bool isBible,
         bool isIssueSectioned,
         BiblePublication publication,
         string normalizedSectionCode,
-        ref int trackCode,
-        out string trackCodeStr)
+        int trackCode)
     {
         if (isBible)
         {
-            trackCodeStr = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            trackCode++;
-            return true;
+            var trackCodeStr = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return new ResolvedSectionTrackCode(true, trackCodeStr, trackCode + 1);
         }
 
         if (isIssueSectioned)
@@ -486,12 +487,11 @@ internal sealed class SectionFetcherSectionTracksLoader
                 issueTrackEl.TryGetInt32(out var issueTrackNum) &&
                 issueTrackNum > 0)
             {
-                trackCodeStr = issueTrackNum.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                return true;
+                var trackCodeStr = issueTrackNum.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return new ResolvedSectionTrackCode(true, trackCodeStr, trackCode);
             }
 
-            trackCodeStr = null!;
-            return false;
+            return new ResolvedSectionTrackCode(false, null, trackCode);
         }
 
         if (publication.IsMusic && !publication.IsVideo)
@@ -500,20 +500,17 @@ internal sealed class SectionFetcherSectionTracksLoader
                 trackNumEl.ValueKind == JsonValueKind.Number &&
                 trackNumEl.TryGetInt32(out var apiTrackNum))
             {
-                trackCodeStr = apiTrackNum.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-            else
-            {
-                trackCodeStr = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                trackCode++;
+                var trackCodeStr = apiTrackNum.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return new ResolvedSectionTrackCode(true, trackCodeStr, trackCode);
             }
 
-            return true;
+            return new ResolvedSectionTrackCode(
+                true,
+                trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                trackCode + 1);
         }
 
-        trackCodeStr = normalizedSectionCode;
-        trackCode++;
-        return true;
+        return new ResolvedSectionTrackCode(true, normalizedSectionCode, trackCode + 1);
     }
 
     private static string BuildSectionTracksPubQuery(

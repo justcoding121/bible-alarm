@@ -194,13 +194,15 @@ internal sealed class MusicPublicationFetchCoordinator
                     await RunMusicPublicationRetryIterationAsync(languageCode, progress, attempt,
                         retryDelay, previousCatalogedCount, cancellationToken);
 
-                if (ApplyMusicPublicationCatalogIterationOutcome(
-                        outcome,
-                        ref publicationsData,
-                        ref allCataloged,
-                        ref previousCatalogedCount,
-                        languageCode,
-                        attempt))
+                var applied = ApplyMusicPublicationCatalogIterationOutcome(
+                    outcome,
+                    previousCatalogedCount,
+                    languageCode,
+                    attempt);
+                publicationsData = applied.PublicationsData;
+                allCataloged = applied.AllCataloged;
+                previousCatalogedCount = applied.PreviousCatalogedCount;
+                if (applied.ShouldBreak)
                 {
                     break;
                 }
@@ -220,18 +222,21 @@ internal sealed class MusicPublicationFetchCoordinator
         };
     }
 
-    private static bool ApplyMusicPublicationCatalogIterationOutcome(
+    private sealed record CatalogIterationApplyOutcome(
+        Dictionary<string, BiblePublication>? PublicationsData,
+        bool AllCataloged,
+        int PreviousCatalogedCount,
+        bool ShouldBreak);
+
+    private static CatalogIterationApplyOutcome ApplyMusicPublicationCatalogIterationOutcome(
         MusicPublicationRetryIterationOutcome outcome,
-        ref Dictionary<string, BiblePublication>? publicationsData,
-        ref bool allCataloged,
-        ref int previousCatalogedCount,
+        int previousCatalogedCount,
         string languageCode,
         int attempt)
     {
-        publicationsData = outcome.NextSnapshot;
+        var publicationsData = outcome.NextSnapshot;
         if (outcome.Completed)
         {
-            allCataloged = true;
             if (outcome.LogSuccess)
             {
                 Serilog.Log.Information(
@@ -239,16 +244,19 @@ internal sealed class MusicPublicationFetchCoordinator
                     outcome.ExpectedCount, attempt, languageCode);
             }
 
-            return false;
+            return new CatalogIterationApplyOutcome(publicationsData, AllCataloged: true, previousCatalogedCount, ShouldBreak: false);
         }
 
         if (outcome.BreakRetries)
         {
-            return true;
+            return new CatalogIterationApplyOutcome(publicationsData, AllCataloged: false, previousCatalogedCount, ShouldBreak: true);
         }
 
-        previousCatalogedCount = outcome.UpdatedCatalogedCount;
-        return false;
+        return new CatalogIterationApplyOutcome(
+            publicationsData,
+            AllCataloged: false,
+            outcome.UpdatedCatalogedCount,
+            ShouldBreak: false);
     }
 
     private static async Task HandleMusicPublicationCatalogRetryExceptionAsync(

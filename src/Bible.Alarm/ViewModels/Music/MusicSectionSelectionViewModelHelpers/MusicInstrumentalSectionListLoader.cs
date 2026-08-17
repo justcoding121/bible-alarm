@@ -255,13 +255,15 @@ internal sealed class MusicInstrumentalSectionListLoader
                     previousCatalogedCount,
                     cancellationToken);
 
-                if (ApplyInstrumentalCatalogIterationOutcome(
-                        iterationOutcome,
-                        ref sectionsData,
-                        ref allCataloged,
-                        ref previousCatalogedCount,
-                        publicationCode,
-                        attempt))
+                var applied = ApplyInstrumentalCatalogIterationOutcome(
+                    iterationOutcome,
+                    previousCatalogedCount,
+                    publicationCode,
+                    attempt);
+                sectionsData = applied.SectionsData;
+                allCataloged = applied.AllCataloged;
+                previousCatalogedCount = applied.PreviousCatalogedCount;
+                if (applied.ShouldBreak)
                 {
                     break;
                 }
@@ -281,34 +283,40 @@ internal sealed class MusicInstrumentalSectionListLoader
         };
     }
 
-    private bool ApplyInstrumentalCatalogIterationOutcome(
+    private sealed record CatalogIterationApplyOutcome(
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? SectionsData,
+        bool AllCataloged,
+        int PreviousCatalogedCount,
+        bool ShouldBreak);
+
+    private CatalogIterationApplyOutcome ApplyInstrumentalCatalogIterationOutcome(
         InstrumentalCatalogRetryIterationOutcome iterationOutcome,
-        ref SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData,
-        ref bool allCataloged,
-        ref int previousCatalogedCount,
+        int previousCatalogedCount,
         string publicationCode,
         int attempt)
     {
-        sectionsData = iterationOutcome.NextSectionsSnapshot;
+        var sectionsData = iterationOutcome.NextSectionsSnapshot;
         if (iterationOutcome.Completed)
         {
-            allCataloged = true;
             if (iterationOutcome.LogSuccess)
             {
                 logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections cataloged on attempt {Attempt} for publication={PublicationCode}",
                     iterationOutcome.ExpectedSectionCount, attempt, publicationCode);
             }
 
-            return false;
+            return new CatalogIterationApplyOutcome(sectionsData, AllCataloged: true, previousCatalogedCount, ShouldBreak: false);
         }
 
         if (iterationOutcome.BreakRetries)
         {
-            return true;
+            return new CatalogIterationApplyOutcome(sectionsData, AllCataloged: false, previousCatalogedCount, ShouldBreak: true);
         }
 
-        previousCatalogedCount = iterationOutcome.UpdatedPreviousCatalogedCount;
-        return false;
+        return new CatalogIterationApplyOutcome(
+            sectionsData,
+            AllCataloged: false,
+            iterationOutcome.UpdatedPreviousCatalogedCount,
+            ShouldBreak: false);
     }
 
     private async Task HandleInstrumentalCatalogRetryExceptionAsync(
