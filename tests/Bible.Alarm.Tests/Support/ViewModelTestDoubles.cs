@@ -13,7 +13,6 @@ using Bible.Alarm.Stores.Mapping;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Schedule;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -132,16 +131,6 @@ internal static class ViewModelTestDoubles
             Task.FromResult<ScheduleStateItem?>(null);
 
         public Task CompleteScheduleLoadAsync() => Task.CompletedTask;
-
-        public void InitializeTrackingFields(
-            ScheduleStateItem scheduleStateItem,
-            ref int lastScheduleId,
-            ref string? lastMusicTrackCode,
-            ref string? lastMusicPublicationCode,
-            ref string? lastMusicLanguageCode,
-            ref bool? lastMusicRepeat)
-        {
-        }
     }
 
     internal sealed class NoopScheduleCommandService : IScheduleCommandService
@@ -185,38 +174,6 @@ internal static class ViewModelTestDoubles
             IServiceProvider serviceProvider,
             Action<BiblePublicationSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfTrackContainerViewModel, ScheduleDetailsContainerViewModel, AlarmSettingsContainerViewModel> onContainersReady) =>
             Task.CompletedTask;
-    }
-
-    internal sealed class NoopScheduleStateChangeHandler : IScheduleStateChangeHandler
-    {
-        public bool HandleScheduleUpdateFromState(
-            ScheduleStateItem? currentSchedule,
-            ref string? lastMusicTrackCode,
-            ref string? lastMusicPublicationCode,
-            ref string? lastMusicLanguageCode,
-            ref bool? lastMusicRepeat,
-            out bool hasChanges)
-        {
-            hasChanges = false;
-            return false;
-        }
-
-        public void ResetMusicTrackingFields(
-            ref string? lastMusicTrackCode,
-            ref string? lastMusicPublicationCode,
-            ref string? lastMusicLanguageCode,
-            ref bool? lastMusicRepeat)
-        {
-        }
-
-        public void UpdateMusicTrackingFields(
-            ScheduleStateItem scheduleStateItem,
-            ref string? lastMusicTrackCode,
-            ref string? lastMusicPublicationCode,
-            ref string? lastMusicLanguageCode,
-            ref bool? lastMusicRepeat)
-        {
-        }
     }
 
     internal static IMapper CreateMapper()
@@ -265,8 +222,7 @@ internal static class ViewModelTestDoubles
             new NoopScheduleInitializationService(),
             new NoopScheduleCommandService(),
             new NoopScheduleMediaCacheService(),
-            new NoopScheduleContainerService(),
-            new NoopScheduleStateChangeHandler());
+            new NoopScheduleContainerService());
     }
 
     internal static MusicSelectionContainerViewModelDeps CreateMusicContainerDeps(

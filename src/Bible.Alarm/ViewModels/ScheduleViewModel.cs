@@ -8,7 +8,6 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fluxor;
 using Serilog;
@@ -51,7 +50,7 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         dispatcher = deps.Dispatcher;
         serviceProvider = deps.ServiceProvider;
 
-        var stateManager = new ScheduleStateManager(deps.ScheduleInitializationService, deps.ScheduleStateChangeHandler, dispatcher, logger);
+        var stateManager = new ScheduleStateManager(deps.ScheduleInitializationService, dispatcher, logger);
         propertyManager = new SchedulePropertyManager(state, logger);
         var commandExecutor = new ScheduleCommandExecutor(
             new ScheduleCommandExecutorCoreDeps(

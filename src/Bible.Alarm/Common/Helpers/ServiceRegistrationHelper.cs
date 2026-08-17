@@ -73,7 +73,6 @@ using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Categories;
 using Bible.Alarm.Stores;
@@ -307,7 +306,6 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<IState<ApplicationState>>())));
         services.AddSingleton<IScheduleMediaCacheService, ScheduleMediaCacheService>();
         services.AddSingleton<IScheduleContainerService, ScheduleContainerService>();
-        services.AddSingleton<IScheduleStateChangeHandler, ScheduleStateChangeHandler>();
 
         // Register bootstrap services
         services.AddSingleton<IDatabaseBootstrapService, DatabaseBootstrapService>();
@@ -447,8 +445,7 @@ public static class ServiceRegistrationHelper
             sp.GetRequiredService<IScheduleInitializationService>(),
             sp.GetRequiredService<IScheduleCommandService>(),
             sp.GetRequiredService<IScheduleMediaCacheService>(),
-            sp.GetRequiredService<IScheduleContainerService>(),
-            sp.GetRequiredService<IScheduleStateChangeHandler>())));
+            sp.GetRequiredService<IScheduleContainerService>())));
         services.AddTransient<MusicPublicationSelectionViewModel>(sp => new MusicPublicationSelectionViewModel(new MusicPublicationSelectionViewModelDeps(
             sp.GetRequiredService<IMediaService>(),
             sp.GetRequiredService<IServiceScopeFactory>(),

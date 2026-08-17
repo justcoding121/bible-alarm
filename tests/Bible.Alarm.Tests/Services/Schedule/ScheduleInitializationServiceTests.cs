@@ -128,38 +128,6 @@ public sealed class ScheduleInitializationServiceTests
     }
 
     [Fact]
-    public void InitializeTrackingFields_copies_music_and_schedule_identifiers()
-    {
-        var sut = new ScheduleInitializationService(
-            TestLogging.CreateLogger(),
-            BiblePublicationService: null,
-            new StubMelodyMusicService(),
-            CreateMapper(),
-            new StubScheduleDisplayNameService());
-        var item = new ScheduleStateItem
-        {
-            Id = 15,
-            MusicTrackCode = "3",
-            MusicPublicationCode = "iam",
-            MusicLanguageCode = "E",
-            MusicRepeat = true,
-        };
-        var lastScheduleId = 0;
-        string? lastTrack = null;
-        string? lastPub = null;
-        string? lastLang = null;
-        bool? lastRepeat = null;
-
-        sut.InitializeTrackingFields(item, ref lastScheduleId, ref lastTrack, ref lastPub, ref lastLang, ref lastRepeat);
-
-        Assert.Equal(15, lastScheduleId);
-        Assert.Equal("3", lastTrack);
-        Assert.Equal("iam", lastPub);
-        Assert.Equal("E", lastLang);
-        Assert.True(lastRepeat);
-    }
-
-    [Fact]
     public async Task CompleteScheduleLoadAsync_completes_without_throw()
     {
         var sut = new ScheduleInitializationService(

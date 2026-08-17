@@ -142,19 +142,5 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         await Task.Delay(50);
     }
 
-    public void InitializeTrackingFields(
-        ScheduleStateItem scheduleStateItem,
-        ref int lastScheduleId,
-        ref string? lastMusicTrackCode,
-        ref string? lastMusicPublicationCode,
-        ref string? lastMusicLanguageCode,
-        ref bool? lastMusicRepeat)
-    {
-        lastScheduleId = scheduleStateItem.Id;
-        lastMusicTrackCode = scheduleStateItem.MusicTrackCode;
-        lastMusicPublicationCode = scheduleStateItem.MusicPublicationCode;
-        lastMusicLanguageCode = scheduleStateItem.MusicLanguageCode;
-        lastMusicRepeat = scheduleStateItem.MusicRepeat;
-    }
 }
 

@@ -13,7 +13,6 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.Schedule;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -172,16 +171,6 @@ public sealed class ScheduleViewModelDepsBibleAlarmTests
             Task.FromResult<ScheduleStateItem?>(null);
 
         public Task CompleteScheduleLoadAsync() => Task.CompletedTask;
-
-        public void InitializeTrackingFields(
-            ScheduleStateItem scheduleStateItem,
-            ref int lastScheduleId,
-            ref string? lastMusicTrackCode,
-            ref string? lastMusicPublicationCode,
-            ref string? lastMusicLanguageCode,
-            ref bool? lastMusicRepeat)
-        {
-        }
     }
 
     private sealed class NoopScheduleCommand : IScheduleCommandService
@@ -225,38 +214,6 @@ public sealed class ScheduleViewModelDepsBibleAlarmTests
             Task.CompletedTask;
     }
 
-    private sealed class NoopScheduleStateChangeHandler : IScheduleStateChangeHandler
-    {
-        public bool HandleScheduleUpdateFromState(
-            ScheduleStateItem? currentSchedule,
-            ref string? lastMusicTrackCode,
-            ref string? lastMusicPublicationCode,
-            ref string? lastMusicLanguageCode,
-            ref bool? lastMusicRepeat,
-            out bool hasChanges)
-        {
-            hasChanges = false;
-            return false;
-        }
-
-        public void UpdateMusicTrackingFields(
-            ScheduleStateItem scheduleStateItem,
-            ref string? lastMusicTrackCode,
-            ref string? lastMusicPublicationCode,
-            ref string? lastMusicLanguageCode,
-            ref bool? lastMusicRepeat)
-        {
-        }
-
-        public void ResetMusicTrackingFields(
-            ref string? lastMusicTrackCode,
-            ref string? lastMusicPublicationCode,
-            ref string? lastMusicLanguageCode,
-            ref bool? lastMusicRepeat)
-        {
-        }
-    }
-
     private static IMapper CreateMapper()
     {
         var cfg = new MapperConfiguration(c => c.AddProfile<ScheduleMappingProfile>(), NullLoggerFactory.Instance);
@@ -276,7 +233,6 @@ public sealed class ScheduleViewModelDepsBibleAlarmTests
         var command = new NoopScheduleCommand();
         var cache = new NoopScheduleMediaCache();
         var container = new NoopScheduleContainer();
-        var stateHandler = new NoopScheduleStateChangeHandler();
 
         var deps = new ScheduleViewModelDeps(
             logger,
@@ -288,8 +244,7 @@ public sealed class ScheduleViewModelDepsBibleAlarmTests
             init,
             command,
             cache,
-            container,
-            stateHandler);
+            container);
 
         Assert.Same(logger, deps.Logger);
         Assert.Same(sp, deps.ServiceProvider);
@@ -301,6 +256,5 @@ public sealed class ScheduleViewModelDepsBibleAlarmTests
         Assert.Same(command, deps.ScheduleCommandService);
         Assert.Same(cache, deps.ScheduleMediaCacheService);
         Assert.Same(container, deps.ScheduleContainerService);
-        Assert.Same(stateHandler, deps.ScheduleStateChangeHandler);
     }
 }

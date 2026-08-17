@@ -4,7 +4,6 @@ using AutoMapper;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -21,5 +20,4 @@ public sealed record ScheduleViewModelDeps(
     IScheduleInitializationService ScheduleInitializationService,
     IScheduleCommandService ScheduleCommandService,
     IScheduleMediaCacheService ScheduleMediaCacheService,
-    IScheduleContainerService ScheduleContainerService,
-    IScheduleStateChangeHandler ScheduleStateChangeHandler);
+    IScheduleContainerService ScheduleContainerService);

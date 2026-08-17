@@ -3,7 +3,6 @@ using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -11,12 +10,7 @@ using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
 /// <summary>
-/// Handles state management for ScheduleViewModel.
-/// Simple flow:
-/// 1. Navigate to page (spinner shown via state)
-/// 2. Create/Load schedule → set CurrentSchedule in state
-/// 3. Containers render from state → signal ready
-/// 4. All ready → hide spinner
+/// Loads or creates CurrentSchedule for the schedule page, then lets containers signal ready.
 /// </summary>
 public sealed class ScheduleStateManager
 {
@@ -28,7 +22,6 @@ public sealed class ScheduleStateManager
 
     public ScheduleStateManager(
         IScheduleInitializationService scheduleInitializationService,
-        IScheduleStateChangeHandler scheduleStateChangeHandler,
         IDispatcher dispatcher,
         ILogger logger)
     {
@@ -176,20 +169,7 @@ public sealed class ScheduleStateManager
     {
         var stateValue = state.Value;
 
-        // Sync overlay visibility with state
         setOverlayVisible(stateValue.IsSchedulePageOverlayVisible);
-
-        // Notify UI of property changes
         notifySchedulePropertiesChanged();
-    }
-
-    /// <summary>
-    /// Unused - kept for interface compatibility. 
-    /// Schedule changes are handled via state subscriptions in containers.
-    /// </summary>
-    public static void HandleCurrentScheduleChanged(IState<ApplicationState> state)
-    {
-        // Containers handle their own initialization from state.
-        // This method is no longer needed in the simplified flow.
     }
 }

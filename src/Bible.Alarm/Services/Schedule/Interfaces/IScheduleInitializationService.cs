@@ -20,13 +20,5 @@ public interface IScheduleInitializationService
     Task<ScheduleStateItem?> LoadExistingScheduleAsync(int scheduleId, bool isEnabled, ScheduleStateItem? existingFromState = null);
 
     Task CompleteScheduleLoadAsync();
-
-    void InitializeTrackingFields(
-        ScheduleStateItem scheduleStateItem,
-        ref int lastScheduleId,
-        ref string? lastMusicTrackCode,
-        ref string? lastMusicPublicationCode,
-        ref string? lastMusicLanguageCode,
-        ref bool? lastMusicRepeat);
 }
 
