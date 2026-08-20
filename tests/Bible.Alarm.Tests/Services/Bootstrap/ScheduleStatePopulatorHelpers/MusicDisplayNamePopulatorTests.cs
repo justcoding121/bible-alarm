@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -166,5 +167,93 @@ public sealed class MusicDisplayNamePopulatorTests
 
         Assert.Equal("ZZ", state.MusicLanguageName);
         Assert.Equal(AppConstants.Media.TextDirectionLeftToRight, state.MusicLanguageDirection);
+    }
+
+    [Fact]
+    public void Populate_VocalMapsReleaseNameAndTrackTitleFromLookup()
+    {
+        var music = new AlarmMusic
+        {
+            PublicationCode = "sjjc",
+            LanguageCode = "E",
+            TrackCode = "2",
+            Repeat = false,
+        };
+        var schedule = WithMusic(music);
+        var lookup = LookupTestData.EmptyLookup() with
+        {
+            VocalLanguages = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["E"] = new Language
+                {
+                    LanguageCode = "E",
+                    Direction = AppConstants.Media.TextDirectionLeftToRight,
+                },
+            },
+            VocalReleases = new Dictionary<(string LanguageCode, string PublicationCode), VocalMusic>(
+                PublicationLookupKeyComparers.LanguagePublication.Instance)
+            {
+                [("E", "sjjc")] = new VocalMusic
+                {
+                    Publication = new BiblePublication { Name = "Sing Out Joyfully", PublicationCode = "sjjc" },
+                },
+            },
+            VocalTracks = new Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>>(
+                PublicationLookupKeyComparers.LanguagePublication.Instance)
+            {
+                [("E", "sjjc")] = new SortedDictionary<int, MusicTrack>
+                {
+                    [2] = new MusicTrack { TrackCode = "2", Title = "Jehovah Is Our King" },
+                },
+            },
+        };
+        var languageNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["E"] = "English",
+        };
+
+        var state = new ScheduleStateItem();
+        MusicDisplayNamePopulator.Populate(schedule, state, lookup, languageNames);
+
+        Assert.Equal("English", state.MusicLanguageName);
+        Assert.Equal("Sing Out Joyfully", state.MusicPublicationName);
+        Assert.Equal("Jehovah Is Our King", state.MusicTrackName);
+    }
+
+    [Fact]
+    public void Populate_MelodyPrefersSectionedTracksOverFlat()
+    {
+        var music = new AlarmMusic
+        {
+            PublicationCode = "iam",
+            LanguageCode = null,
+            SectionCode = "iam-2",
+            TrackCode = "4",
+            Repeat = false,
+        };
+        var schedule = WithMusic(music);
+        var lookup = LookupTestData.EmptyLookup() with
+        {
+            MelodyTracksBySection = new Dictionary<(string PublicationCode, string SectionCode), SortedDictionary<int, MusicTrack>>(
+                PublicationLookupKeyComparers.PublicationSection.Instance)
+            {
+                [("iam", "iam-2")] = new SortedDictionary<int, MusicTrack>
+                {
+                    [4] = new MusicTrack { TrackCode = "4", Title = "Sectioned melody" },
+                },
+            },
+            MelodyTracksFlat = new Dictionary<string, SortedDictionary<int, MusicTrack>>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["iam"] = new SortedDictionary<int, MusicTrack>
+                {
+                    [4] = new MusicTrack { TrackCode = "4", Title = "Flat melody" },
+                },
+            },
+        };
+
+        var state = new ScheduleStateItem();
+        MusicDisplayNamePopulator.Populate(schedule, state, lookup);
+
+        Assert.Equal("Sectioned melody", state.MusicTrackName);
     }
 }

@@ -2,8 +2,10 @@
 
 using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -134,5 +136,112 @@ public sealed class BiblePublicationDisplayNamePopulatorTests
 
         Assert.Equal("English", state.BiblePublicationLanguageName);
         Assert.Equal(AppConstants.Media.TextDirectionRightToLeft, state.BiblePublicationLanguageDirection);
+    }
+
+    [Fact]
+    public void Populate_NoLanguagePublication_maps_name_category_and_music_flag()
+    {
+        var bible = new BiblePublicationSchedule
+        {
+            PublicationCode = "iam",
+            LanguageCode = "E",
+            SectionCode = "iam-1",
+            TrackCode = "3",
+        };
+        var schedule = WithBibleSchedule(bible);
+        var languagesDict = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["E"] = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        };
+        var languageNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["E"] = "English",
+        };
+
+        var lookup = LookupTestData.EmptyLookup() with
+        {
+            NoLanguagePublications = new Dictionary<string, LookupDataLoader.NoLanguagePublicationMeta>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["iam"] = new LookupDataLoader.NoLanguagePublicationMeta("Kingdom Melodies", 9, "Music", IsMusic: true),
+            },
+            NoLanguageSections = new Dictionary<(string PublicationCode, string SectionCode), string>(
+                PublicationLookupKeyComparers.PublicationSection.Instance)
+            {
+                [("iam", "iam-1")] = "Disc 1",
+            },
+            NoLanguageTrackTitles = new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>(
+                PublicationLookupKeyComparers.PublicationNullableSectionTrack.Instance)
+            {
+                [("iam", "iam-1", "3")] = "Melody 3",
+            },
+        };
+
+        var state = new ScheduleStateItem();
+        BiblePublicationDisplayNamePopulator.Populate(schedule, state, lookup, languagesDict, languageNames);
+
+        Assert.Equal("English", state.BiblePublicationLanguageName);
+        Assert.Equal("Kingdom Melodies", state.BiblePublicationName);
+        Assert.True(state.BiblePublicationIsMusic);
+        Assert.Equal(9, state.BiblePublicationCategoryId);
+        Assert.Equal("Music", state.BiblePublicationCategoryName);
+        Assert.Equal("Disc 1", state.BiblePublicationSectionName);
+        Assert.Equal("Melody 3", state.BiblePublicationTrackTitle);
+    }
+
+    [Fact]
+    public void Populate_LanguageBoundPublication_maps_sectioned_track_and_category()
+    {
+        var bible = new BiblePublicationSchedule
+        {
+            PublicationCode = "nwt",
+            LanguageCode = "E",
+            SectionCode = "40",
+            TrackCode = "1",
+        };
+        var schedule = WithBibleSchedule(bible);
+        var category = new Category { CategoryCode = "Bible" };
+        var publication = new BiblePublication
+        {
+            Name = "New World Translation",
+            PublicationCode = "nwt",
+            IsMusic = false,
+            BiblePublicationCategories = [new BiblePublicationCategory { Category = category, CategoryId = 1 }],
+        };
+        publication.Sections.Add(new BiblePublicationSection
+        {
+            SectionCode = "40",
+            Name = "Matthew",
+            Tracks =
+            [
+                new BiblePublicationTrack { TrackCode = "1", Title = "Matthew 1" },
+            ],
+        });
+
+        var lookup = LookupTestData.EmptyLookup() with
+        {
+            Publications = new Dictionary<(string LanguageCode, string PublicationCode), BiblePublication>(
+                PublicationLookupKeyComparers.LanguagePublication.Instance)
+            {
+                [("E", "nwt")] = publication,
+            },
+            Sections = new Dictionary<(string LanguageCode, string PublicationCode, string SectionCode), string>(
+                PublicationLookupKeyComparers.LanguagePublicationSection.Instance)
+            {
+                [("E", "nwt", "40")] = "Matthew",
+            },
+        };
+        var languagesDict = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["E"] = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        };
+
+        var state = new ScheduleStateItem();
+        BiblePublicationDisplayNamePopulator.Populate(schedule, state, lookup, languagesDict);
+
+        Assert.Equal("New World Translation", state.BiblePublicationName);
+        Assert.Equal("Matthew", state.BiblePublicationSectionName);
+        Assert.Equal("Matthew 1", state.BiblePublicationTrackTitle);
+        Assert.Equal("Bible", state.BiblePublicationCategoryName);
+        Assert.False(state.BiblePublicationIsMusic);
     }
 }

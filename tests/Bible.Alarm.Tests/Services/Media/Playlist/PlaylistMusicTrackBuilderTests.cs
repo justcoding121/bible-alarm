@@ -40,6 +40,8 @@ public sealed class PlaylistMusicTrackBuilderTests
 
         public SortedDictionary<int, MusicTrack>? VocalTracks { get; init; }
 
+        public SortedDictionary<int, MusicTrack>? MelodyTracks { get; init; }
+
         public void Dispose()
         {
         }
@@ -69,7 +71,7 @@ public sealed class PlaylistMusicTrackBuilderTests
             Task.FromResult(new Dictionary<string, MelodyMusic>());
 
         public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode) =>
-            Task.FromResult(new SortedDictionary<int, MusicTrack>());
+            Task.FromResult(MelodyTracks ?? new SortedDictionary<int, MusicTrack>());
 
         public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode, string sectionCode) =>
             Task.FromResult(new SortedDictionary<int, MusicTrack>());
@@ -149,5 +151,91 @@ public sealed class PlaylistMusicTrackBuilderTests
         Assert.Equal("E", item.Metadata.LanguageCode);
         Assert.Equal("1", item.Metadata.TrackCode);
         Assert.Equal("https://music.example/track.mp3", item.Url);
+    }
+
+    [Fact]
+    public async Task NextMusicUrlToPlay_VocalPublication_wraps_to_first_track()
+    {
+        var tracks = new SortedDictionary<int, MusicTrack>
+        {
+            [1] = new MusicTrack { TrackCode = "1", Title = "Song A" },
+            [2] = new MusicTrack { TrackCode = "2", Title = "Song B" },
+        };
+        var sut = new PlaylistMusicTrackBuilder(
+            new StubMediaService { VocalTracks = tracks },
+            new StubUrlRefresh(),
+            new StubUrlConstruction());
+        var schedule = new AlarmSchedule
+        {
+            Id = 3,
+            Music = new AlarmMusic { LanguageCode = "E", PublicationCode = "sjjc", TrackCode = "2" },
+        };
+
+        var item = await sut.NextMusicUrlToPlay(schedule, next: true);
+
+        Assert.Equal("1", item.Metadata.TrackCode);
+    }
+
+    [Fact]
+    public async Task PreviousMusicUrlToPlay_VocalPublication_wraps_to_last_track()
+    {
+        var tracks = new SortedDictionary<int, MusicTrack>
+        {
+            [1] = new MusicTrack { TrackCode = "1", Title = "Song A" },
+            [2] = new MusicTrack { TrackCode = "2", Title = "Song B" },
+        };
+        var sut = new PlaylistMusicTrackBuilder(
+            new StubMediaService { VocalTracks = tracks },
+            new StubUrlRefresh(),
+            new StubUrlConstruction());
+        var schedule = new AlarmSchedule
+        {
+            Id = 3,
+            Music = new AlarmMusic { LanguageCode = "E", PublicationCode = "sjjc", TrackCode = "1" },
+        };
+
+        var item = await sut.PreviousMusicUrlToPlay(schedule);
+
+        Assert.Equal("2", item.Metadata.TrackCode);
+    }
+
+    [Fact]
+    public async Task NextMusicUrlToPlay_VocalPublication_throws_when_track_list_empty()
+    {
+        var sut = new PlaylistMusicTrackBuilder(
+            new StubMediaService { VocalTracks = [] },
+            new StubUrlRefresh(),
+            new StubUrlConstruction());
+        var schedule = new AlarmSchedule
+        {
+            Music = new AlarmMusic { LanguageCode = "E", PublicationCode = "sjjc", TrackCode = "1" },
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.NextMusicUrlToPlay(schedule, next: true));
+    }
+
+    [Fact]
+    public async Task NextMusicUrlToPlay_MelodyPublication_uses_no_language_path()
+    {
+        var tracks = new SortedDictionary<int, MusicTrack>
+        {
+            [1] = new MusicTrack { TrackCode = "10", Title = "Melody A", DownloadCode = "iam-1" },
+            [2] = new MusicTrack { TrackCode = "11", Title = "Melody B", DownloadCode = "iam-1" },
+        };
+        var sut = new PlaylistMusicTrackBuilder(
+            new StubMediaService { NoLanguagePublication = true, MelodyTracks = tracks },
+            new StubUrlRefresh(),
+            new StubUrlConstruction());
+        var schedule = new AlarmSchedule
+        {
+            Id = 8,
+            Music = new AlarmMusic { PublicationCode = "osg", TrackCode = "10" },
+        };
+
+        var item = await sut.NextMusicUrlToPlay(schedule, next: true);
+
+        Assert.Equal("11", item.Metadata.TrackCode);
+        Assert.Equal("osg", item.Metadata.PublicationCode);
+        Assert.Equal(string.Empty, item.Metadata.LanguageCode);
     }
 }
