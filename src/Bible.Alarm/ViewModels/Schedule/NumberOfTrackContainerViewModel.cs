@@ -13,7 +13,6 @@ using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.ListPopulation;
-using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.StateInitialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -56,12 +55,21 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
 #endif
     private readonly ContainerReadySignaler containerReadySignaler;
     private readonly NumberOfTracksListPopulator listPopulator;
-    private readonly NumberOfTrackStateChangeOrchestrator stateChangeOrchestrator;
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
     private NumberOfTracksListViewItemModel? currentNumberOfTracks;
     private bool isBusy = true;
     private bool isCancelBusy;
+
+    /// <summary>
+    /// Result of mapping CurrentSchedule into NumberOfTrackContainerViewModel init values.
+    /// </summary>
+    internal sealed record InitResult(
+        int ScheduleId,
+        bool NotificationEnabled,
+        bool AlwaysPlayFromStart,
+        bool PlayIndefinitely,
+        string? LastCategoryName);
 
     public bool IsBusy
     {
@@ -87,7 +95,6 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
         this.mapper = mapper;
         containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "NumberOfTrack", s => s.ContainerReadiness.NumberOfTrack);
         listPopulator = new NumberOfTracksListPopulator(logger, this.serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>());
-        stateChangeOrchestrator = new NumberOfTrackStateChangeOrchestrator(containerReadySignaler);
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
@@ -189,11 +196,43 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
         await navigationService.PopModalAsync();
     }
 
+    /// <summary>
+    /// Maps CurrentSchedule fields into init values, syncing notification enablement with OS permission on mobile.
+    /// </summary>
+    internal static InitResult? TryInitialize(
+        ScheduleStateItem? currentSchedule,
+        Func<bool> getIsGranted,
+        ILogger logger)
+    {
+        if (currentSchedule == null)
+        {
+            return null;
+        }
+
+        var notificationEnabled = currentSchedule.NotificationEnabled;
+#if ANDROID || IOS
+        notificationEnabled = NotificationPermissionSyncHelper.SyncValueWithPermission(
+            notificationEnabled,
+            getIsGranted,
+            logger,
+            "InitializeFromState: NotificationEnabled is true in state but permission is not granted - setting local property to OFF",
+            "InitializeFromState: Exception checking notification permission",
+            () => { });
+#endif
+
+        return new InitResult(
+            currentSchedule.Id,
+            notificationEnabled,
+            currentSchedule.AlwaysPlayFromStart,
+            currentSchedule.NumberOfTracksToPlay <= 0,
+            currentSchedule.BiblePublicationCategoryName);
+    }
+
     private void InitializeFromState()
     {
         try
         {
-            var result = NumberOfTrackStateInitializer.TryInitialize(
+            var result = TryInitialize(
                 state.Value.CurrentSchedule,
 #if ANDROID || IOS
                 () => permissionService != null && permissionService.IsGranted,
@@ -230,6 +269,24 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
         }
     }
 
+    /// <summary>
+    /// Decides whether to reset and/or reinitialize after an ApplicationState change.
+    /// </summary>
+    internal static (bool ShouldReset, bool ShouldReinit) GetReinitDecision(
+        ContainerReadySignaler containerReadySignaler,
+        ApplicationState stateValue,
+        int scheduleId)
+    {
+        var currentSchedule = stateValue.CurrentSchedule;
+        var resetAndReinit = containerReadySignaler.HasSignaledReady && !stateValue.ContainerReadiness.NumberOfTrack && currentSchedule != null;
+        var initWhenScheduleSet = scheduleId == 0 && currentSchedule != null && !containerReadySignaler.HasSignaledReady;
+        var scheduleChanged = currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0;
+
+        var shouldReinit = resetAndReinit || initWhenScheduleSet || scheduleChanged;
+        var shouldReset = resetAndReinit || scheduleChanged;
+        return (shouldReset, shouldReinit);
+    }
+
     private void OnStateChanged(object? sender, EventArgs e)
     {
         if (isProcessingStateChange)
@@ -242,7 +299,7 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
         {
             var stateValue = state.Value;
             var currentSchedule = stateValue.CurrentSchedule;
-            var (shouldReset, shouldReinit) = stateChangeOrchestrator.GetReinitDecision(stateValue, scheduleId);
+            var (shouldReset, shouldReinit) = GetReinitDecision(containerReadySignaler, stateValue, scheduleId);
 
             if (shouldReinit)
             {
@@ -282,41 +339,48 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
 #endif
     }
 
-    private void ApplyScheduleStatePropertyChangesCore(ScheduleStateItem currentSchedule)
+    /// <summary>
+    /// Mirrors notification / always-play-from-start / play-indefinitely fields when ApplicationState changes for the same schedule.
+    /// </summary>
+    internal void ApplyScheduleStatePropertyChangesCore(ScheduleStateItem currentSchedule)
     {
         var categoryBefore = lastCategoryName;
 
-        var syncTargets = new NumberOfTrackStateChangeHandler.SyncTargets
+#if ANDROID || IOS
+        if (!isWaitingForPermissionResponse && notificationEnabled != currentSchedule.NotificationEnabled)
+#else
+        if (notificationEnabled != currentSchedule.NotificationEnabled)
+#endif
         {
-            NotificationEnabled = notificationEnabled,
-            AlwaysPlayFromStart = alwaysPlayFromStart,
-            PlayIndefinitely = playIndefinitely,
-            LastCategoryName = lastCategoryName
-        };
-
-        NumberOfTrackStateChangeHandler.ApplyPropertyChanges(
-            new NumberOfTrackStateChangeHandler.ApplyContext(
-                currentSchedule,
+            var newValue = currentSchedule.NotificationEnabled;
 #if ANDROID || IOS
-                isWaitingForPermissionResponse,
-#else
-                false,
-#endif
-#if ANDROID || IOS
+            newValue = NotificationPermissionSyncHelper.SyncValueWithPermission(
+                newValue,
                 () => permissionService != null && permissionService.IsGranted,
-#else
-                () => true,
+                logger,
+                "OnStateChanged: NotificationEnabled is true in state but permission is not granted - syncing to OFF",
+                "OnStateChanged: Exception checking notification permission",
+                () => DispatchScheduleUpdate(s => s.NotificationEnabled = false));
 #endif
-                () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
-                forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
-                () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1),
-                logger),
-            syncTargets);
+            notificationEnabled = newValue;
+        }
 
-        notificationEnabled = syncTargets.NotificationEnabled;
-        alwaysPlayFromStart = syncTargets.AlwaysPlayFromStart;
-        playIndefinitely = syncTargets.PlayIndefinitely;
-        lastCategoryName = syncTargets.LastCategoryName;
+        alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+
+        playIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
+
+        var newCategoryName = currentSchedule.BiblePublicationCategoryName;
+        if (!string.Equals(lastCategoryName, newCategoryName, StringComparison.OrdinalIgnoreCase))
+        {
+            const int newDefault = 1;
+            _ = PopulateNumberOfTracksListViewAsync(newDefault);
+            if (!playIndefinitely)
+            {
+                DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1);
+            }
+        }
+
+        lastCategoryName = newCategoryName;
 
         OnPropertyChanged(nameof(NotificationEnabled));
         OnPropertyChanged(nameof(AlwaysPlayFromStart));
@@ -359,7 +423,6 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
         {
             if (SetProperty(ref currentNumberOfTracks, value))
             {
-                // Notify that the Text property (computed from CurrentNumberOfTracks) has changed
                 OnPropertyChanged(nameof(CurrentNumberOfTracksText));
                 OnPropertyChanged(nameof(SelectedTracksText));
                 OnPropertyChanged(nameof(SelectedNumberText));
@@ -538,4 +601,3 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
 #endif
     }
 }
-

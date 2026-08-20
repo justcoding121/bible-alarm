@@ -4,7 +4,6 @@ using System.Reflection;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule;
-using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -59,9 +58,7 @@ public sealed class NumberOfTrackStateChangeOrchestratorTests
         var signaler = CreateSignaler(state);
         SetHasSignaledReady(signaler, true);
 
-        var sut = new NumberOfTrackStateChangeOrchestrator(signaler);
-
-        var (shouldReset, shouldReinit) = sut.GetReinitDecision(state, scheduleId: 5);
+        var (shouldReset, shouldReinit) = NumberOfTrackContainerViewModel.GetReinitDecision(signaler, state, scheduleId: 5);
 
         Assert.True(shouldReset);
         Assert.True(shouldReinit);
@@ -77,9 +74,7 @@ public sealed class NumberOfTrackStateChangeOrchestratorTests
         };
         var signaler = CreateSignaler(state);
 
-        var sut = new NumberOfTrackStateChangeOrchestrator(signaler);
-
-        var (shouldReset, shouldReinit) = sut.GetReinitDecision(state, scheduleId: 0);
+        var (shouldReset, shouldReinit) = NumberOfTrackContainerViewModel.GetReinitDecision(signaler, state, scheduleId: 0);
 
         Assert.False(shouldReset);
         Assert.True(shouldReinit);
@@ -95,9 +90,7 @@ public sealed class NumberOfTrackStateChangeOrchestratorTests
         };
         var signaler = CreateSignaler(state);
 
-        var sut = new NumberOfTrackStateChangeOrchestrator(signaler);
-
-        var (shouldReset, shouldReinit) = sut.GetReinitDecision(state, scheduleId: 4);
+        var (shouldReset, shouldReinit) = NumberOfTrackContainerViewModel.GetReinitDecision(signaler, state, scheduleId: 4);
 
         Assert.True(shouldReset);
         Assert.True(shouldReinit);
@@ -113,9 +106,7 @@ public sealed class NumberOfTrackStateChangeOrchestratorTests
         };
         var signaler = CreateSignaler(state);
 
-        var sut = new NumberOfTrackStateChangeOrchestrator(signaler);
-
-        var (shouldReset, shouldReinit) = sut.GetReinitDecision(state, scheduleId: 7);
+        var (shouldReset, shouldReinit) = NumberOfTrackContainerViewModel.GetReinitDecision(signaler, state, scheduleId: 7);
 
         Assert.False(shouldReset);
         Assert.False(shouldReinit);

@@ -2,7 +2,7 @@
 
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
-using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.StateInitialization;
+using Bible.Alarm.ViewModels.Schedule;
 
 namespace Bible.Alarm.Tests;
 
@@ -13,7 +13,7 @@ public sealed class NumberOfTrackStateInitializerTests
     {
         var logger = TestLogging.CreateLogger();
 
-        var result = NumberOfTrackStateInitializer.TryInitialize(null, () => true, logger);
+        var result = NumberOfTrackContainerViewModel.TryInitialize(null, () => true, logger);
 
         Assert.Null(result);
     }
@@ -34,7 +34,7 @@ public sealed class NumberOfTrackStateInitializerTests
 
         // On Android/iOS, SyncValueWithPermission clears NotificationEnabled when grant is false;
         // use granted=true so this asserts pure field mapping on every host.
-        var result = NumberOfTrackStateInitializer.TryInitialize(schedule, () => true, logger);
+        var result = NumberOfTrackContainerViewModel.TryInitialize(schedule, () => true, logger);
 
         Assert.NotNull(result);
         Assert.Equal(15, result.ScheduleId);
@@ -58,7 +58,7 @@ public sealed class NumberOfTrackStateInitializerTests
             NumberOfTracksToPlay = 3,
         };
 
-        var result = NumberOfTrackStateInitializer.TryInitialize(schedule, () => true, logger);
+        var result = NumberOfTrackContainerViewModel.TryInitialize(schedule, () => true, logger);
 
         Assert.NotNull(result);
         Assert.False(result.PlayIndefinitely);
