@@ -332,13 +332,12 @@ jobs:
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Boot iOS simulator
-        # Pin xharness to this UDID. Without --device it may create a second "created by XHarness"
-        # simulator, then fail to boot it (exit 80 APP_CRASH, simctl 405 / domain tearing down).
+        # Warm CoreSimulator on a runner-provided iPhone. xharness still creates its own
+        # "iPhone 11 Pro (iOS 26.5) - created by XHarness" device for the test run — do not
+        # pass --device (pinning to iPhone 17 consistently exits 83 APP_LAUNCH_FAILURE).
         run: |
           DEVICE=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+ \(" | grep -v "created by XHarness" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
-          if [ -z "$DEVICE" ]; then echo "No iPhone simulator found"; exit 1; fi
           echo "Booting simulator $DEVICE"
-          echo "IOS_SIM_UDID=$DEVICE" >> "$GITHUB_ENV"
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
 
@@ -380,15 +379,22 @@ jobs:
           mkdir -p artifacts/xharness-ios-logs
           APP_PATH=$(find tests/Bible.Alarm.Tests.iOS/bin/Debug/net10.0-ios -maxdepth 3 -name '*.app' | head -n 1)
           if [ -z "$APP_PATH" ]; then echo "iOS .app bundle not found"; exit 1; fi
-          # Hosted macOS runners often exceed xharness default TCP handshake budget (exit 90 APP_LAUNCH_TIMEOUT).
-          # Default overall run timeout is 15 minutes; install + full shared suite can exceed that (exit 80 APP_CRASH).
-          dotnet xharness apple test \
-            --app="$APP_PATH" \
-            --target=ios-simulator-64 \
-            --device="$IOS_SIM_UDID" \
-            --launch-timeout=00:20:00 \
-            --timeout=02:00:00 \
-            --output-directory="$GITHUB_WORKSPACE/artifacts/xharness-ios-logs"
+          # Hosted macOS + Xcode 26 flakes with APP_CRASH (80) / APP_LAUNCH_FAILURE (83).
+          # Retry once; the last green run used xharness's own iPhone 11 Pro, not --device.
+          run_xharness() {
+            dotnet xharness apple test \
+              --app="$APP_PATH" \
+              --target=ios-simulator-64 \
+              --launch-timeout=00:20:00 \
+              --timeout=02:00:00 \
+              --output-directory="$GITHUB_WORKSPACE/artifacts/xharness-ios-logs"
+          }
+          if run_xharness; then
+            exit 0
+          fi
+          echo "First xharness attempt failed; retrying once"
+          sleep 15
+          run_xharness
 
       - name: Upload iOS xharness logs
         if: always()
