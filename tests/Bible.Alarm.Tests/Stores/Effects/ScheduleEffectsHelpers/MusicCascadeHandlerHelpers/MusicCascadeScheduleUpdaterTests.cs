@@ -22,7 +22,7 @@ public sealed class MusicCascadeScheduleUpdaterTests
 #pragma warning restore CS0067
     }
 
-    private static MusicCascadeScheduleMutation Mutation(string trackTitle, int? pubModal = 1, int? secModal = 2) =>
+    private static MusicCascadeScheduleUpdater.Mutation Mutation(string trackTitle, int? pubModal = 1, int? secModal = 2) =>
         new(
             PublicationCode: "sjj",
             PublicationName: "Sing",

@@ -103,7 +103,7 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
         // Initialize helper
         stateChangeHandler = new MusicSectionSelectionStateChangeHandler(
             logger,
-            new MusicSectionSelectionStateChangeHandlerCallbacks(
+            new MusicSectionSelectionStateChangeHandler.Callbacks(
             (code) => lastPublicationCode = code,
             (code) => lastSectionCode = code,
             () => initComplete,

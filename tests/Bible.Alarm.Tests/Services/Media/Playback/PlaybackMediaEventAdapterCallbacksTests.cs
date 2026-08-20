@@ -17,7 +17,7 @@ public sealed class PlaybackMediaEventAdapterCallbacksTests
         var stopCalls = 0;
         var modalCalls = 0;
 
-        var sut = new PlaybackMediaEventAdapterCallbacks(
+        var sut = new PlaybackMediaEventAdapter.Callbacks(
             GetPlaylist: () => playlist,
             GetCurrentTrackIndex: () => idx,
             SetCurrentTrackIndex: i => idx = i,

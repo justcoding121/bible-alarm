@@ -23,7 +23,7 @@ public sealed class BiblePublicationCascadeScheduleUpdaterTests
 #pragma warning restore CS0067
     }
 
-    private static BiblePublicationCascadeScheduleMutation Mutation(
+    private static BiblePublicationCascadeScheduleUpdater.Mutation Mutation(
         string trackTitle,
         bool publicationWithoutLanguage = false) =>
         new(
@@ -112,7 +112,7 @@ public sealed class BiblePublicationCascadeScheduleUpdaterTests
             BiblePublicationTrackModalItemCount = 0,
         };
 
-        var mutation = new BiblePublicationCascadeScheduleMutation(
+        var mutation = new BiblePublicationCascadeScheduleUpdater.Mutation(
             PublicationCode: "iam",
             PublicationName: "IAM",
             SectionCode: null,
@@ -152,7 +152,7 @@ public sealed class BiblePublicationCascadeScheduleUpdaterTests
             BiblePublicationTrackModalItemCount = 3,
         };
 
-        var mutation = new BiblePublicationCascadeScheduleMutation(
+        var mutation = new BiblePublicationCascadeScheduleUpdater.Mutation(
             PublicationCode: "nwt",
             PublicationName: "NWT",
             SectionCode: "40",

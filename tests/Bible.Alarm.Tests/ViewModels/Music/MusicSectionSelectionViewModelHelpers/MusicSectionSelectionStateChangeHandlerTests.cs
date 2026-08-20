@@ -16,7 +16,7 @@ public sealed class MusicSectionSelectionStateChangeHandlerTests
         var initCalls = 0;
         var sut = new MusicSectionSelectionStateChangeHandler(
             TestLogging.CreateLogger(),
-            new MusicSectionSelectionStateChangeHandlerCallbacks(
+            new MusicSectionSelectionStateChangeHandler.Callbacks(
                 _ => { },
                 _ => { },
                 () => false,
@@ -35,7 +35,7 @@ public sealed class MusicSectionSelectionStateChangeHandlerTests
         var initCalls = 0;
         var sut = new MusicSectionSelectionStateChangeHandler(
             TestLogging.CreateLogger(),
-            new MusicSectionSelectionStateChangeHandlerCallbacks(
+            new MusicSectionSelectionStateChangeHandler.Callbacks(
                 _ => { },
                 _ => { },
                 () => false,

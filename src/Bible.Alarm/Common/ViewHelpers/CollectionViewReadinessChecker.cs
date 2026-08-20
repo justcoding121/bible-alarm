@@ -22,7 +22,8 @@ internal static class CollectionViewReadinessChecker
 
         // Ensure the item exists in the source before proceeding
         // If ObservableCollection was just updated, the native platform might not have realized the last item exists yet
-        if (CollectionViewItemsSourceWarmupGate.ShouldYieldOnceBeforePolling(collectionView.ItemsSource, item))
+        var itemsSource = collectionView.ItemsSource;
+        if (itemsSource == null || !ItemsSourcePresence.ContainsItem(itemsSource, item))
         {
             // Give the renderer one frame to catch up with the data change
             await Task.Yield();

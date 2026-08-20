@@ -125,7 +125,7 @@ public sealed class DependencyBundleRecordsTests
     public void MusicSectionSelectionStateChangeHandlerCallbacks_invoke_Initialize()
     {
         var initLen = 0;
-        var sut = new MusicSectionSelectionStateChangeHandlerCallbacks(
+        var sut = new MusicSectionSelectionStateChangeHandler.Callbacks(
             _ => { },
             _ => { },
             () => true,
@@ -141,7 +141,7 @@ public sealed class DependencyBundleRecordsTests
     [Fact]
     public void PlaybackMediaEventAdapterCallbacks_invoke_Getters()
     {
-        var sut = new PlaybackMediaEventAdapterCallbacks(
+        var sut = new PlaybackMediaEventAdapter.Callbacks(
             () => null,
             () => 3,
             _ => { },

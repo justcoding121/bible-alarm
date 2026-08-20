@@ -105,7 +105,7 @@ public sealed partial class BiblePublicationSectionSelectionViewModel : Observab
         // Initialize helper
         stateChangeHandler = new StateChangeHandler(
             logger,
-            new BiblePublicationSectionStateChangeCallbacks(
+            new StateChangeHandler.Callbacks(
                 (c) => current = c,
                 (c) => lastCurrent = c,
                 () => initComplete,

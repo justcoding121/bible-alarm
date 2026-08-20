@@ -9,7 +9,7 @@ public sealed class BiblePublicationCascadeScheduleMutationTests
     [Fact]
     public void Record_holds_values_and_default_without_language_flag()
     {
-        var sut = new BiblePublicationCascadeScheduleMutation(
+        var sut = new BiblePublicationCascadeScheduleUpdater.Mutation(
             PublicationCode: "nwt",
             PublicationName: "NWT",
             SectionCode: "40",

@@ -12,6 +12,14 @@ namespace Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
 /// </summary>
 public class MusicSectionSelectionStateChangeHandler
 {
+    public sealed record Callbacks(
+        Action<string?> SetLastPublicationCode,
+        Action<string?> SetLastSectionCode,
+        Func<bool> GetInitComplete,
+        Action<bool> SetIsBusy,
+        Action<string> Initialize,
+        Action SetSelectedSection);
+
     private readonly ILogger logger;
     private readonly Action<string?> setLastPublicationCode;
     private readonly Action<string?> setLastSectionCode;
@@ -24,7 +32,7 @@ public class MusicSectionSelectionStateChangeHandler
     private string? lastPublicationCode;
     private string? lastSectionCode;
 
-    public MusicSectionSelectionStateChangeHandler(ILogger logger, MusicSectionSelectionStateChangeHandlerCallbacks callbacks)
+    public MusicSectionSelectionStateChangeHandler(ILogger logger, Callbacks callbacks)
     {
         this.logger = logger;
         setLastPublicationCode = callbacks.SetLastPublicationCode;

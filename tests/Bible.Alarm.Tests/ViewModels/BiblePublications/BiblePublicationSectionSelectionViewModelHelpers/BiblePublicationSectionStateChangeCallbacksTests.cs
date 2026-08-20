@@ -17,7 +17,7 @@ public sealed class BiblePublicationSectionStateChangeCallbacksTests
         (string, string)? initArgs = null;
         var selectedCalls = 0;
 
-        var sut = new BiblePublicationSectionStateChangeCallbacks(
+        var sut = new StateChangeHandler.Callbacks(
             b => cur = b,
             b => last = b,
             () => init,

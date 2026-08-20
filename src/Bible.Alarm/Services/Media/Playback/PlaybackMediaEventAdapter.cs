@@ -1,11 +1,13 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
@@ -16,16 +18,33 @@ namespace Bible.Alarm.Services.Media.Playback;
 /// </summary>
 public sealed class PlaybackMediaEventAdapter
 {
+    /// <summary>
+    /// Playlist/session closures the media-event adapter needs from PlaybackService without taking the service itself.
+    /// </summary>
+    public readonly record struct Callbacks(
+        Func<List<AudioPlayerTrack>?> GetPlaylist,
+        Func<int> GetCurrentTrackIndex,
+        Action<int> SetCurrentTrackIndex,
+        Func<int?> GetCurrentScheduleId,
+        Func<bool> GetIsIndefinitePlayback,
+        Func<Task<bool>> TryAppendNextTrackAsync,
+        Func<bool, Task> PlayCurrentTrackAsync,
+        Func<bool, Task> StopAsyncInternal,
+        Func<bool> GetIsManualNavigationPending,
+        Func<bool> GetIsAlarm,
+        Func<string, bool, Task> ShowPlaybackErrorInModalKeepSessionAsync,
+        Func<int, bool> IsPlaybackEstablishedForTrack);
+
     private readonly PlaybackEventHandler eventHandler;
     private readonly ProgressTracker progressTracker;
     private readonly ILogger logger;
-    private readonly PlaybackMediaEventAdapterCallbacks callbacks;
+    private readonly Callbacks callbacks;
 
     public PlaybackMediaEventAdapter(
         PlaybackEventHandler eventHandler,
         ProgressTracker progressTracker,
         ILogger logger,
-        PlaybackMediaEventAdapterCallbacks callbacks)
+        Callbacks callbacks)
     {
         this.eventHandler = eventHandler;
         this.progressTracker = progressTracker;

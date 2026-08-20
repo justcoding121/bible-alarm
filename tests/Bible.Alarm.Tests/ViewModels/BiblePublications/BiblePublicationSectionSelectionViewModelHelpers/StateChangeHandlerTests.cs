@@ -16,7 +16,7 @@ public sealed class StateChangeHandlerTests
         var setCurrentCount = 0;
         var sut = new StateChangeHandler(
             TestLogging.CreateLogger(),
-            new BiblePublicationSectionStateChangeCallbacks(
+            new StateChangeHandler.Callbacks(
                 _ => setCurrentCount++,
                 _ => { },
                 () => false,
@@ -35,7 +35,7 @@ public sealed class StateChangeHandlerTests
         var setCurrentCount = 0;
         var sut = new StateChangeHandler(
             TestLogging.CreateLogger(),
-            new BiblePublicationSectionStateChangeCallbacks(
+            new StateChangeHandler.Callbacks(
                 _ => setCurrentCount++,
                 _ => { },
                 () => false,

@@ -151,7 +151,7 @@ public sealed class BiblePublicationCascadeHandler
             BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
                 logger,
                 currentSchedule,
-                new BiblePublicationCascadeScheduleMutation(
+                new BiblePublicationCascadeScheduleUpdater.Mutation(
                     publicationCode,
                     publicationName,
                     sectionCode,
@@ -376,7 +376,7 @@ public sealed class BiblePublicationCascadeHandler
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            new BiblePublicationCascadeScheduleMutation(
+            new BiblePublicationCascadeScheduleUpdater.Mutation(
                 existingPublicationCode,
                 existingPublicationName,
                 resultSectionCode,
@@ -433,7 +433,7 @@ public sealed class BiblePublicationCascadeHandler
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            new BiblePublicationCascadeScheduleMutation(
+            new BiblePublicationCascadeScheduleUpdater.Mutation(
                 publicationCode,
                 currentSchedule.BiblePublicationName,
                 selectedSectionCode,
@@ -474,7 +474,7 @@ public sealed class BiblePublicationCascadeHandler
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            new BiblePublicationCascadeScheduleMutation(
+            new BiblePublicationCascadeScheduleUpdater.Mutation(
                 publicationCode,
                 currentSchedule.BiblePublicationName,
                 sectionCode,

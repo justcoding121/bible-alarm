@@ -10,7 +10,7 @@ public sealed class CascadeScheduleMutationRecordsTests
     [Fact]
     public void MusicCascadeScheduleMutation_records_equal_when_components_match()
     {
-        var a = new MusicCascadeScheduleMutation(
+        var a = new MusicCascadeScheduleUpdater.Mutation(
             PublicationCode: "iam",
             PublicationName: "Melodies",
             SectionCode: "iam-1",
@@ -20,7 +20,7 @@ public sealed class CascadeScheduleMutationRecordsTests
             PublicationModalItemCount: 4,
             SectionModalItemCount: 8);
 
-        var b = new MusicCascadeScheduleMutation(
+        var b = new MusicCascadeScheduleUpdater.Mutation(
             PublicationCode: "iam",
             PublicationName: "Melodies",
             SectionCode: "iam-1",
@@ -36,7 +36,7 @@ public sealed class CascadeScheduleMutationRecordsTests
     [Fact]
     public void BiblePublicationCascadeScheduleMutation_carries_publication_without_language_flag()
     {
-        var withLang = new BiblePublicationCascadeScheduleMutation(
+        var withLang = new BiblePublicationCascadeScheduleUpdater.Mutation(
             PublicationCode: "nwt",
             PublicationName: "NWT",
             SectionCode: "40",

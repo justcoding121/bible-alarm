@@ -139,33 +139,6 @@ public sealed class LanguageNameByLanguageModelBibleAlarmTests
     }
 }
 
-public sealed class MusicSelectionStripVisibilityGateBibleAlarmTests
-{
-    [Fact]
-    public void ShouldShowMusicSelectionRow_false_for_music_publication()
-    {
-        Assert.False(MusicSelectionStripVisibilityGate.ShouldShowMusicSelectionRow(
-            biblePublicationIsMusic: true,
-            biblePublicationCode: "nwt"));
-    }
-
-    [Fact]
-    public void ShouldShowMusicSelectionRow_false_for_music_flag_code()
-    {
-        Assert.False(MusicSelectionStripVisibilityGate.ShouldShowMusicSelectionRow(
-            biblePublicationIsMusic: false,
-            biblePublicationCode: AppConstants.Media.MediatorCategoryKeyChildrenSongs));
-    }
-
-    [Fact]
-    public void ShouldShowMusicSelectionRow_true_for_regular_bible_publication()
-    {
-        Assert.True(MusicSelectionStripVisibilityGate.ShouldShowMusicSelectionRow(
-            biblePublicationIsMusic: false,
-            biblePublicationCode: AppConstants.Media.BiblePublicationCodeNwt));
-    }
-}
-
 public sealed class ScheduledToastNotificationIdMatcherBibleAlarmTests
 {
     [Fact]
@@ -182,25 +155,6 @@ public sealed class ScheduledToastNotificationIdMatcherBibleAlarmTests
     {
         Assert.Throws<ArgumentNullException>(() =>
             ScheduledToastNotificationIdMatcher.MatchesSchedule(1, null!));
-    }
-}
-
-public sealed class CollectionViewItemsSourceWarmupGateBibleAlarmTests
-{
-    [Fact]
-    public void ShouldYieldOnceBeforePolling_true_when_source_missing_or_item_absent()
-    {
-        var item = new object();
-        Assert.True(CollectionViewItemsSourceWarmupGate.ShouldYieldOnceBeforePolling(null, item));
-        Assert.True(CollectionViewItemsSourceWarmupGate.ShouldYieldOnceBeforePolling(new List<object>(), item));
-    }
-
-    [Fact]
-    public void ShouldYieldOnceBeforePolling_false_when_item_present()
-    {
-        var item = "row";
-        var source = new List<object> { item };
-        Assert.False(CollectionViewItemsSourceWarmupGate.ShouldYieldOnceBeforePolling(source, item));
     }
 }
 

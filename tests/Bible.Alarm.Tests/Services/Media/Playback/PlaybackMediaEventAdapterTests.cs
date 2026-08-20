@@ -164,7 +164,7 @@ public sealed class PlaybackMediaEventAdapterTests
     private static PlaybackMediaEventAdapter CreateSut(
         PlaybackEventHandler handler,
         ProgressTracker progress,
-        PlaybackMediaEventAdapterCallbacks callbacks)
+        PlaybackMediaEventAdapter.Callbacks callbacks)
     {
         return new PlaybackMediaEventAdapter(handler, progress, TestLogging.CreateLogger(), callbacks);
     }
@@ -204,7 +204,7 @@ public sealed class PlaybackMediaEventAdapterTests
         var indexBox = 0;
         var stopStarted = new TaskCompletionSource();
 
-        var callbacks = new PlaybackMediaEventAdapterCallbacks(
+        var callbacks = new PlaybackMediaEventAdapter.Callbacks(
             GetPlaylist: () => playlist,
             GetCurrentTrackIndex: () => indexBox,
             SetCurrentTrackIndex: i => indexBox = i,
@@ -259,7 +259,7 @@ public sealed class PlaybackMediaEventAdapterTests
         var track = new AudioPlayerTrack { Uri = "u", PlayItem = new PlayItem(meta, "https://x") };
         var playlist = new List<AudioPlayerTrack> { track };
 
-        var callbacks = new PlaybackMediaEventAdapterCallbacks(
+        var callbacks = new PlaybackMediaEventAdapter.Callbacks(
             GetPlaylist: () => playlist,
             GetCurrentTrackIndex: () => 0,
             SetCurrentTrackIndex: _ => { },

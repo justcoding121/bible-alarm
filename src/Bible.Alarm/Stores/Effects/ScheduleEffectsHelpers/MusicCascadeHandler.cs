@@ -216,7 +216,7 @@ public sealed class MusicCascadeHandler
         MusicCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            new MusicCascadeScheduleMutation(
+            new MusicCascadeScheduleUpdater.Mutation(
                 publicationCode,
                 currentSchedule.MusicPublicationName,
                 null,
@@ -328,7 +328,7 @@ public sealed class MusicCascadeHandler
         MusicCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            new MusicCascadeScheduleMutation(
+            new MusicCascadeScheduleUpdater.Mutation(
                 publicationCode,
                 publicationName,
                 sectionCode,
@@ -486,7 +486,7 @@ public sealed class MusicCascadeHandler
         MusicCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            new MusicCascadeScheduleMutation(
+            new MusicCascadeScheduleUpdater.Mutation(
                 publicationCode,
                 publication.Name,
                 sectionCode,
@@ -553,7 +553,7 @@ public sealed class MusicCascadeHandler
         MusicCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
-            new MusicCascadeScheduleMutation(
+            new MusicCascadeScheduleUpdater.Mutation(
                 publicationCode,
                 currentSchedule.MusicPublicationName,
                 sectionCode,

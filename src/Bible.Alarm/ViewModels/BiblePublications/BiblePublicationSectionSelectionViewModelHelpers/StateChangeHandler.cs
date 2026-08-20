@@ -11,6 +11,14 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelect
 /// </summary>
 public class StateChangeHandler
 {
+    public sealed record Callbacks(
+        Action<BiblePublicationSchedule> SetCurrent,
+        Action<BiblePublicationSchedule> SetLastCurrent,
+        Func<bool> GetInitComplete,
+        Action<bool> SetIsBusy,
+        Action<string, string> Initialize,
+        Action SetSelectedSection);
+
     private readonly ILogger logger;
     private readonly Action<BiblePublicationSchedule> setCurrent;
     private readonly Action<BiblePublicationSchedule> setLastCurrent;
@@ -23,7 +31,7 @@ public class StateChangeHandler
     private string? lastLanguageCode;
     private string? lastPublicationCode;
 
-    public StateChangeHandler(ILogger logger, BiblePublicationSectionStateChangeCallbacks callbacks)
+    public StateChangeHandler(ILogger logger, Callbacks callbacks)
     {
         this.logger = logger;
         setCurrent = callbacks.SetCurrent;

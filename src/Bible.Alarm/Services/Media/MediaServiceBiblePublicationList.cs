@@ -128,7 +128,7 @@ internal static class MediaServiceBiblePublicationList
         if (!string.IsNullOrWhiteSpace(categoryName))
         {
             query = query.Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == categoryName));
-            if (MusicCategoryPublicationQueryGate.AppliesMusicOnlyFilter(categoryName, requireIsMusicForMusicCategory))
+            if (AppliesMusicOnlyFilter(categoryName, requireIsMusicForMusicCategory))
             {
                 query = query.Where(x => x.IsMusic);
             }
@@ -153,13 +153,17 @@ internal static class MediaServiceBiblePublicationList
         string? categoryName,
         bool requireIsMusicForMusicCategory)
     {
-        if (MusicCategoryPublicationQueryGate.AppliesMusicOnlyFilter(categoryName, requireIsMusicForMusicCategory))
+        if (AppliesMusicOnlyFilter(categoryName, requireIsMusicForMusicCategory))
         {
             return query.Where(pl => pl.IsMusic);
         }
 
         return query;
     }
+
+    private static bool AppliesMusicOnlyFilter(string? categoryName, bool requireIsMusicForMusicCategory) =>
+        requireIsMusicForMusicCategory
+        && string.Equals(categoryName, AppConstants.Media.BiblePublicationCategoryMusic, StringComparison.OrdinalIgnoreCase);
 
     private static async Task MergePlaceholderPublicationsAsync(
         MediaDbContext dbContext,

@@ -129,19 +129,19 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     internal static bool HasValidDisplayInfo(DisplayInfo displayInfo)
     {
-        return MeasurableScreenDimensionsGate.HasPositiveExtents(displayInfo.Width, displayInfo.Height, displayInfo.Density);
+        return displayInfo.Width > 0 && displayInfo.Height > 0 && displayInfo.Density > 0;
     }
 
     internal void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid)
     {
         var deviceIdiom = CurrentIdiom;
-        
+
         // Determine device size category for fallback (use screen width if available, otherwise use idiom)
         // Default to phone if we can't determine
         var deviceSizeCategory = FallbackFontDeviceCategoryResolver.Resolve(deviceIdiom);
         double deviceSizeMultiplier = FontServiceSizingHelpers.GetDeviceSizeMultiplier(deviceSizeCategory, platform);
 
-        if (FontFallbackPlatformBranchGate.UsesWindowsDesktopFallbackSizing(platform, deviceIdiom))
+        if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
         {
             SetWindowsDesktopFallbackFontSizes(deviceSizeMultiplier);
         }

@@ -16,7 +16,7 @@ public sealed class MusicSectionSelectionStateChangeHandlerCallbacksTests
         var initArg = "";
         var selectedCalled = 0;
 
-        var sut = new MusicSectionSelectionStateChangeHandlerCallbacks(
+        var sut = new MusicSectionSelectionStateChangeHandler.Callbacks(
             SetLastPublicationCode: c => lastPub = c,
             SetLastSectionCode: c => lastSection = c,
             GetInitComplete: () => initComplete,

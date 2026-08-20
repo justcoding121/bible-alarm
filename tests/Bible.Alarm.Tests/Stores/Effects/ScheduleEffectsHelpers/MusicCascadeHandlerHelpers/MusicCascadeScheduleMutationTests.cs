@@ -9,7 +9,7 @@ public sealed class MusicCascadeScheduleMutationTests
     [Fact]
     public void Record_holds_values()
     {
-        var sut = new MusicCascadeScheduleMutation(
+        var sut = new MusicCascadeScheduleUpdater.Mutation(
             PublicationCode: "voc",
             PublicationName: "Vocal",
             SectionCode: "s1",

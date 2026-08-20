@@ -102,7 +102,7 @@ public sealed partial class PlaybackService : IPlaybackService, IRecipient<NextB
             eventHandler,
             progressTracker,
             logger,
-            new PlaybackMediaEventAdapterCallbacks(
+            new PlaybackMediaEventAdapter.Callbacks(
                 () => stateManager.Playlist,
                 () => stateManager.CurrentTrackIndex,
                 idx => stateManager.CurrentTrackIndex = idx,

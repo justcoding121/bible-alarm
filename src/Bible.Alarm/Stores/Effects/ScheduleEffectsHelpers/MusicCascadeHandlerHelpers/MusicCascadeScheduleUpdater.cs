@@ -16,10 +16,21 @@ namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers.MusicCascadeHandlerH
 /// </summary>
 public static class MusicCascadeScheduleUpdater
 {
+    /// <summary>Piece of music cascade identity and modal badge counts dispatched into schedule state.</summary>
+    public sealed record Mutation(
+        string PublicationCode,
+        string? PublicationName,
+        string? SectionCode,
+        string SectionName,
+        string TrackCode,
+        string TrackTitle,
+        int? PublicationModalItemCount,
+        int? SectionModalItemCount);
+
     public static void UpdateSchedule(
         ILogger logger,
         ScheduleStateItem currentSchedule,
-        MusicCascadeScheduleMutation mutation,
+        Mutation mutation,
         IDispatcher dispatcher)
     {
         var m = mutation;
@@ -58,7 +69,7 @@ public static class MusicCascadeScheduleUpdater
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
     }
 
-    private static void AssignMusicPublicationDisplayName(ScheduleStateItem updatedSchedule, MusicCascadeScheduleMutation m, bool publicationChanged)
+    private static void AssignMusicPublicationDisplayName(ScheduleStateItem updatedSchedule, Mutation m, bool publicationChanged)
     {
         if (publicationChanged)
         {
@@ -72,7 +83,7 @@ public static class MusicCascadeScheduleUpdater
         }
     }
 
-    private static void AssignMusicSectionName(ScheduleStateItem updatedSchedule, MusicCascadeScheduleMutation m, bool publicationChanged, bool sectionChanged)
+    private static void AssignMusicSectionName(ScheduleStateItem updatedSchedule, Mutation m, bool publicationChanged, bool sectionChanged)
     {
         updatedSchedule.MusicSectionCode = m.SectionCode;
         if (publicationChanged || sectionChanged)
@@ -89,7 +100,7 @@ public static class MusicCascadeScheduleUpdater
 
     private static void AssignMusicTrackTitle(
         ScheduleStateItem updatedSchedule,
-        MusicCascadeScheduleMutation m,
+        Mutation m,
         bool publicationChanged,
         bool sectionChanged,
         bool trackChanged)

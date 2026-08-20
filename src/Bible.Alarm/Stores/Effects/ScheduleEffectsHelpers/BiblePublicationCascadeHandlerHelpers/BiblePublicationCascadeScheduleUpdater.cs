@@ -15,10 +15,23 @@ namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers.BiblePublicationCasc
 /// </summary>
 public static class BiblePublicationCascadeScheduleUpdater
 {
+    /// <summary>Bible cascade identity, modal counts, and language-reset flag for schedule state dispatch.</summary>
+    public sealed record Mutation(
+        string PublicationCode,
+        string? PublicationName,
+        string? SectionCode,
+        string SectionName,
+        string TrackCode,
+        string TrackTitle,
+        int? PublicationModalItemCount,
+        int? SectionModalItemCount,
+        int? TrackModalItemCount,
+        bool PublicationWithoutLanguage = false);
+
     public static void UpdateSchedule(
         ILogger logger,
         ScheduleStateItem currentSchedule,
-        BiblePublicationCascadeScheduleMutation mutation,
+        Mutation mutation,
         IDispatcher dispatcher)
     {
         var m = mutation;
@@ -68,7 +81,7 @@ public static class BiblePublicationCascadeScheduleUpdater
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
     }
 
-    private static void AssignBiblePublicationName(ScheduleStateItem updated, BiblePublicationCascadeScheduleMutation m, bool publicationChanged)
+    private static void AssignBiblePublicationName(ScheduleStateItem updated, Mutation m, bool publicationChanged)
     {
         if (publicationChanged)
         {
@@ -82,7 +95,7 @@ public static class BiblePublicationCascadeScheduleUpdater
 
     private static void AssignBibleSectionFields(
         ScheduleStateItem updated,
-        BiblePublicationCascadeScheduleMutation m,
+        Mutation m,
         string? normalizedSectionCode,
         bool publicationChanged,
         bool sectionChanged)
@@ -100,7 +113,7 @@ public static class BiblePublicationCascadeScheduleUpdater
 
     private static void AssignBibleTrackFields(
         ScheduleStateItem updated,
-        BiblePublicationCascadeScheduleMutation m,
+        Mutation m,
         bool publicationChanged,
         bool sectionChanged,
         bool trackChanged)
@@ -132,7 +145,7 @@ public static class BiblePublicationCascadeScheduleUpdater
     private static void AlignLanguageFields(
         ScheduleStateItem updated,
         ScheduleStateItem current,
-        BiblePublicationCascadeScheduleMutation m,
+        Mutation m,
         ILogger logger)
     {
         if (m.PublicationWithoutLanguage)
