@@ -93,6 +93,8 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          # Sonar "New Code" is previous_version. Without /v:, every analysis is "not provided"
+          # and the quality gate scores the entire repo as new (~115k lines, ~55% coverage).
           $csproj = Get-Content src/Bible.Alarm/Bible.Alarm.csproj -Raw
           if ($csproj -notmatch '<ApplicationDisplayVersion>([\d.]+)</ApplicationDisplayVersion>') {
             throw 'ApplicationDisplayVersion not found in Bible.Alarm.csproj'
@@ -330,11 +332,13 @@ jobs:
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Boot iOS simulator
-        # Use whichever iPhone simulator the runner image ships; macos-latest currently includes 17.x
-        # and 18.x runtimes. xharness picks the booted device automatically with --target=ios-simulator-64.
+        # Pin xharness to this UDID. Without --device it may create a second "created by XHarness"
+        # simulator, then fail to boot it (exit 80 APP_CRASH, simctl 405 / domain tearing down).
         run: |
-          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+ \(" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+ \(" | grep -v "created by XHarness" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          if [ -z "$DEVICE" ]; then echo "No iPhone simulator found"; exit 1; fi
           echo "Booting simulator $DEVICE"
+          echo "IOS_SIM_UDID=$DEVICE" >> "$GITHUB_ENV"
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
 
@@ -381,6 +385,7 @@ jobs:
           dotnet xharness apple test \
             --app="$APP_PATH" \
             --target=ios-simulator-64 \
+            --device="$IOS_SIM_UDID" \
             --launch-timeout=00:20:00 \
             --timeout=02:00:00 \
             --output-directory="$GITHUB_WORKSPACE/artifacts/xharness-ios-logs"
