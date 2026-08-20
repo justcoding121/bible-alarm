@@ -85,6 +85,8 @@ jobs:
       # `sonar.coverage.exclusions` drops orchestration scripts (.ps1, .sh, .py, etc.) from coverage
       # accounting; Android/iOS platform code and XAML code-behind are validated on device/Appium
       # but never instrumented on the Windows OpenCover pass (see .cursor/rules/testing/multi-platform-tests.mdc Hard rule #6).
+      # Also exclude whole-file #if ANDROID / #if IOS helpers that live outside Platforms/ (they
+      # do not compile into the Windows assembly but Sonar still counts the source).
       # Re-enable sonar.qualitygate.wait after SonarCloud gate is assigned with realistic
       # overall threshold (see .docs/SONARCLOUD_QUALITY_GATE.md). Enabling before UI setup fails CI.
       - name: SonarScanner begin
@@ -99,7 +101,7 @@ jobs:
             /d:sonar.language="cs" `
             /d:sonar.dotnet.excludeTestProjects="true" `
             /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**,**/.github/scripts/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py" `
-            /d:sonar.coverage.exclusions="**/.github/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/*.android.cs,**/*.ios.cs,**/.tools/**/Program.cs,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs" `
+            /d:sonar.coverage.exclusions="**/.github/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/*.android.cs,**/*.ios.cs,**/.tools/**/Program.cs,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs,**/ScheduleStateServiceAndroidEnableWithPermission.cs,**/ScheduleStateServiceIosEnableWithPermission.cs,**/IsEnabledIosPermissionChecker.cs,**/SchedulePlatformEnablePermissionRequests.cs" `
             /d:sonar.cs.opencover.reportsPaths="artifacts/coverage-windows/*.opencover.xml"
         shell: pwsh
 

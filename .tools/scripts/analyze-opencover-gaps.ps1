@@ -12,7 +12,7 @@ if (-not $files) {
     exit 1
 }
 
-$excludeRegex = [regex]'\\Views\\|\\Platforms\\Android\\|\\Platforms\\iOS\\|\.android\.cs|\.ios\.cs|\\\.tools\\|\\Database\\Migrations\\'
+$excludeRegex = [regex]'\\Views\\|\\Platforms\\Android\\|\\Platforms\\iOS\\|\.android\.cs|\.ios\.cs|\\\.tools\\|\\Database\\Migrations\\|ScheduleStateServiceAndroidEnableWithPermission|ScheduleStateServiceIosEnableWithPermission|IsEnabledIosPermissionChecker|SchedulePlatformEnablePermissionRequests'
 $results = @{}
 
 foreach ($file in $files) {
