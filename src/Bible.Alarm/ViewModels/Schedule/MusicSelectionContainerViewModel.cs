@@ -7,7 +7,7 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

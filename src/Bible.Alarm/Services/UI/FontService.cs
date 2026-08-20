@@ -437,10 +437,12 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     public void Dispose()
     {
-        if (!DisposableOneShotGate.TryBegin(ref isDisposed))
+        if (isDisposed)
         {
             return;
         }
+
+        isDisposed = true;
 
         if (!SkipDeviceDisplaySubscriptionForTests)
         {

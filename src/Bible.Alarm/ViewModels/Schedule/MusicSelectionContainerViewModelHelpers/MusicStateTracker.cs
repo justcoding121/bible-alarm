@@ -1,7 +1,7 @@
 #nullable enable
 using Bible.Alarm.Stores.Models;
 
-namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 
 /// <summary>
 /// Music type is no longer tracked - inferred from LanguageCode (null = melody, non-null = vocal).

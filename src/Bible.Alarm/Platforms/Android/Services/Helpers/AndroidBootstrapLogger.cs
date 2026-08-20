@@ -1,5 +1,6 @@
 using System.IO;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 
@@ -18,7 +19,7 @@ internal static class AndroidBootstrapLogger
             Directory.CreateDirectory(logDir);
             var path = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
             var text = ex.ToString();
-            var line = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z Exception: {text}{Environment.NewLine}";
+            var line = BootstrapLogLineFormatter.FormatUtcDiagnosticLine(DateTime.UtcNow, $"Exception: {text}");
             File.AppendAllText(path, line);
         }
         catch (Exception)
@@ -35,7 +36,7 @@ internal static class AndroidBootstrapLogger
             var logDir = Path.Combine(basePath, AppConstants.FilePaths.LogsDirectoryName);
             Directory.CreateDirectory(logDir);
             var path = Path.Combine(logDir, AppConstants.FilePaths.BootstrapDiagnosticLogFileName);
-            var line = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z {message}{Environment.NewLine}";
+            var line = BootstrapLogLineFormatter.FormatUtcDiagnosticLine(DateTime.UtcNow, message);
             File.AppendAllText(path, line);
         }
         catch (Exception)

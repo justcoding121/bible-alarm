@@ -15,7 +15,7 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 
 /// <summary>
 /// Handles MusicEnabled property logic for MusicSelectionContainerViewModel.

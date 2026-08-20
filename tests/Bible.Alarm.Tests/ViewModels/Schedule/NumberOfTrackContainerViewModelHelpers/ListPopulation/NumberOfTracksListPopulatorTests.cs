@@ -6,7 +6,7 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
-using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.ListPopulation;
+using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainerViewModelHelpers.ListPopulation;
 
 namespace Bible.Alarm.Tests;
 

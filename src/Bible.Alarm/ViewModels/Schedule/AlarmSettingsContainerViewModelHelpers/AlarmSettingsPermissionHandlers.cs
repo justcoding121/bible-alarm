@@ -5,7 +5,7 @@ using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Schedule.AlarmSettingsContainer;
+namespace Bible.Alarm.ViewModels.Schedule.AlarmSettingsContainerViewModelHelpers;
 
 /// <summary>
 /// Handles permission granted/denied events for AlarmSettingsContainerViewModel.

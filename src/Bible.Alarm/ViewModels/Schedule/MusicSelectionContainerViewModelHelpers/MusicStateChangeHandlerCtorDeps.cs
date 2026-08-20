@@ -7,7 +7,7 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 
 public sealed record MusicStateChangeHandlerServices(
     ILogger Logger,

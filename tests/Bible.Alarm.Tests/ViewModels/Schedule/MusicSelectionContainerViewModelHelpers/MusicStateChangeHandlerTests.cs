@@ -1,7 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.ViewModels.Schedule;
-using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 
 namespace Bible.Alarm.Tests;
 

@@ -1,7 +1,7 @@
 #nullable enable
 
 using System.Collections.ObjectModel;
-using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.ListPopulation;
+using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainerViewModelHelpers.ListPopulation;
 using Bible.Alarm.ViewModels.Shared;
 
 namespace Bible.Alarm.Tests;

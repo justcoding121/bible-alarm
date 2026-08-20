@@ -1,7 +1,7 @@
 #nullable enable
 using Bible.Alarm.Shared.Models.Schedule;
 
-namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 
 /// <summary>
 /// Holds mutable state for MusicStateChangeHandler.

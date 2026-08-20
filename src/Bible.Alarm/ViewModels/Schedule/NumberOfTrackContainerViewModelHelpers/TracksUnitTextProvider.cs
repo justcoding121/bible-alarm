@@ -2,7 +2,7 @@
 
 using Bible.Alarm.Shared.Constants;
 
-namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
+namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainerViewModelHelpers;
 
 /// <summary>
 /// Provides category-based unit text for tracks (Chapter/Episode/Track).

@@ -1,7 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Shared.Constants;
-using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
+using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainerViewModelHelpers;
 
 namespace Bible.Alarm.Tests;
 

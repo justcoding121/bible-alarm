@@ -5,7 +5,7 @@ using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 
 public sealed class MusicStateInitializer
 {

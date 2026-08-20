@@ -5,7 +5,7 @@ using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
+namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainerViewModelHelpers;
 
 public static class NumberOfTrackPermissionHandlers
 {

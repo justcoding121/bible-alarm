@@ -1,7 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
-using Bible.Alarm.ViewModels.Schedule.AlarmSettingsContainer;
+using Bible.Alarm.ViewModels.Schedule.AlarmSettingsContainerViewModelHelpers;
 using Serilog;
 
 namespace Bible.Alarm.Tests;

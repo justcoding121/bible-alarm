@@ -2,7 +2,7 @@
 
 using Bible.Alarm.Stores;
 using Bible.Alarm.Tests.Support;
-using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;

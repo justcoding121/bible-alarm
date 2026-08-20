@@ -1,7 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
+using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainerViewModelHelpers;
 using Bible.Alarm.Tests.Support;
 
 namespace Bible.Alarm.Tests;

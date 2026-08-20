@@ -26,7 +26,7 @@ using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Schedule;
-using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using Bible.Alarm.ViewModels.Shared;
 using Microsoft.Extensions.DependencyInjection;

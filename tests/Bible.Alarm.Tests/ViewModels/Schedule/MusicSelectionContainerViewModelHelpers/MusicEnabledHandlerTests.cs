@@ -8,7 +8,7 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
-using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
+using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using IDispatcher = Fluxor.IDispatcher;
