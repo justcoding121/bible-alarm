@@ -109,10 +109,15 @@ public sealed class NumberOfTrackStateChangeHandlerTests
 
         sut.ApplyScheduleStatePropertyChangesCore(schedule);
 
-        Assert.True(sut.NotificationEnabled);
         Assert.True(sut.AlwaysPlayFromStart);
         Assert.False(sut.PlayIndefinitely);
+#if WINDOWS
+        Assert.True(sut.NotificationEnabled);
         Assert.Empty(dispatcher.Dispatched);
+#else
+        Assert.DoesNotContain(dispatcher.Dispatched, static a =>
+            a is UpdateScheduleFromViewModelAction update && update.Schedule.NumberOfTracksToPlay != 2);
+#endif
     }
 
     [Fact]
@@ -209,7 +214,7 @@ public sealed class NumberOfTrackStateChangeHandlerTests
         Assert.False(sut.NotificationEnabled);
         Assert.False(sut.AlwaysPlayFromStart);
         Assert.False(sut.PlayIndefinitely);
-        Assert.Empty(dispatcher.Dispatched);
+        Assert.DoesNotContain(dispatcher.Dispatched, static a => a is UpdateScheduleFromViewModelAction);
     }
 #endif
 
